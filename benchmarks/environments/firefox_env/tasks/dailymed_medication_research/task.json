@@ -1,0 +1,35 @@
+{
+  "id": "dailymed_medication_research@1",
+  "version": "1.0",
+  "env_id": "firefox_env@0.1",
+  "description": "Research five medications on NIH DailyMed (https://dailymed.nlm.nih.gov/): Metformin Hydrochloride, Lisinopril, Atorvastatin Calcium, Omeprazole, and Sertraline Hydrochloride. \n\n1. Download the official drug label PDF for at least two of these medications to ~/Downloads/.\n2. Create a bookmark folder named 'Medication Reference' and add the DailyMed page for each of the 5 drugs to it.\n3. Create a JSON reference file at ~/Documents/medication_reference.json with keys 'metformin', 'lisinopril', 'atorvastatin', 'omeprazole', and 'sertraline'. For each, include: 'brand_name' (any valid brand), 'drug_class', 'ndc' (one valid NDC), 'indication', 'boxed_warning' (boolean), and 'boxed_warning_summary' (string, or null if none).",
+  "difficulty": "hard",
+  "tags": ["firefox", "research", "medical", "json", "bookmarks", "download"],
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dailymed_medication_research/setup_task.sh",
+    "post_task": "/workspace/tasks/dailymed_medication_research/export_result.sh"
+  },
+  "metadata": {
+    "target_drugs": ["metformin", "lisinopril", "atorvastatin", "omeprazole", "sertraline"],
+    "required_bookmark_folder": "Medication Reference",
+    "output_file": "/home/ga/Documents/medication_reference.json",
+    "ground_truth": {
+      "metformin": { "boxed_warning": true },
+      "lisinopril": { "boxed_warning": true },
+      "atorvastatin": { "boxed_warning": false },
+      "omeprazole": { "boxed_warning": false },
+      "sertraline": { "boxed_warning": true }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dailymed_medication_research"
+    }
+  }
+}

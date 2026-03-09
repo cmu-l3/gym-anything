@@ -1,0 +1,35 @@
+{
+  "id": "migrate_dns_office365@1",
+  "version": "1.0",
+  "env_id": "virtualmin_env@0.1",
+  "description": "Migrate the email services for the domain 'acmecorp.test' to Microsoft Office 365 by updating its DNS records in Virtualmin. \n\nStarting from the default local configuration:\n1. Remove any existing local MX records.\n2. Add a new MX record pointing to 'acmecorp-test.mail.protection.outlook.com' with Priority 0.\n3. Update the existing SPF (TXT) record to 'v=spf1 include:spf.protection.outlook.com -all' (do not create a duplicate SPF record).\n4. Add a CNAME record for 'autodiscover' pointing to 'autodiscover.outlook.com'.\n5. Add an SRV record for SIP Federation: Name='_sip', Protocol='_tls', Priority='100', Weight='1', Port='443', Target='sipdir.online.lync.com'.\n\nNavigate to 'Server Configuration' > 'DNS Records' for the domain to make these changes.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/migrate_dns_office365/setup_task.sh",
+    "post_task": "/workspace/tasks/migrate_dns_office365/export_result.sh"
+  },
+  "metadata": {
+    "domain": "acmecorp.test",
+    "expected_mx": "acmecorp-test.mail.protection.outlook.com",
+    "expected_spf": "v=spf1 include:spf.protection.outlook.com -all",
+    "expected_cname_target": "autodiscover.outlook.com",
+    "expected_srv": {
+      "name": "_sip._tls.acmecorp.test.",
+      "priority": 100,
+      "weight": 1,
+      "port": 443,
+      "target": "sipdir.online.lync.com"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_migrate_dns_office365"
+    }
+  }
+}

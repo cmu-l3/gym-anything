@@ -1,0 +1,75 @@
+STRIDE THREAT MODELING REFERENCE
+==================================
+Methodology: Microsoft STRIDE (Shostack, 2014)
+Application: OAuth 2.0 Authentication Service Security Review
+Analyst: Information Security Engineering Team
+
+=== STRIDE CATEGORIES ===
+
+S — SPOOFING (Identity)
+  Threat: Attacker impersonates a legitimate user, client, or server
+  Apply to: External entities, processes that authenticate users
+  Examples: Stolen credentials, session hijacking, forged tokens
+  Risk indicator: Any element that authenticates or is authenticated by another
+
+T — TAMPERING (Integrity)
+  Threat: Modification of data in transit or at rest
+  Apply to: Data flows (especially unencrypted), data stores
+  Examples: Man-in-the-middle token modification, database record alteration
+  Risk indicator: Any data flow or store that lacks integrity protection
+
+R — REPUDIATION (Non-repudiation)
+  Threat: Attacker denies performing an action; lack of audit trails
+  Apply to: Processes performing sensitive operations, missing audit stores
+  Examples: User denies authorizing a transaction, no log of token issuance
+  Risk indicator: Processes without audit logging, unlabeled audit flows
+
+I — INFORMATION DISCLOSURE (Confidentiality)
+  Threat: Exposure of sensitive data to unauthorized parties
+  Apply to: Data stores, data flows, external entities
+  Examples: Token leakage, database dump, verbose error messages
+  Risk indicator: Data flows crossing trust boundaries without encryption
+
+D — DENIAL OF SERVICE (Availability)
+  Threat: Rendering the system unavailable to legitimate users
+  Apply to: Processes, data stores (especially caches)
+  Examples: Token flooding, brute-force login, cache poisoning
+  Risk indicator: Processes reachable from external entities without rate limiting
+
+E — ELEVATION OF PRIVILEGE (Authorization)
+  Threat: Gaining higher access than authorized
+  Apply to: Processes that make access control decisions
+  Examples: JWT algorithm confusion, scope escalation, privilege escalation via token
+  Risk indicator: Processes that interpret permissions or issue tokens
+
+=== TRUST BOUNDARY ZONES ===
+Zone 1 — EXTERNAL (Internet-facing, untrusted):
+  Contains: External clients/apps, public internet
+
+Zone 2 — DMZ (Semi-trusted, demilitarized zone):
+  Contains: Public-facing APIs, load balancers, input validation
+
+Zone 3 — INTERNAL (Trusted, internal network):
+  Contains: Backend services, databases, auth servers
+
+Draw trust boundaries as DASHED rectangles in draw.io.
+Label each boundary zone clearly (External Zone, DMZ, Internal Zone).
+
+=== RISK CLASSIFICATION ===
+HIGH RISK (red fill):   Threats with no mitigation AND high impact
+MEDIUM RISK (orange fill): Threats with partial mitigation OR medium impact
+LOW RISK (green fill):  Threats with existing mitigations in place
+
+=== THREAT ENUMERATION TABLE (Page 2) ===
+Create a second diagram page named "Threat Enumeration" containing a table with:
+Columns: Threat_ID | Element | STRIDE_Category | Risk_Level | Proposed_Mitigation
+
+Minimum 8 threat entries required. Example format:
+  T-001 | Mobile App Client | S (Spoofing) | HIGH | Enforce PKCE for all public clients
+  T-002 | Token Request flow | T (Tampering) | HIGH | Enforce TLS 1.2+ on all flows
+  T-003 | Token Store (Redis) | I (Info Disclosure) | HIGH | Encrypt tokens at rest (AES-256)
+  [continue for each significant threat...]
+
+=== EXPORT REQUIREMENTS ===
+  SVG: ~/Diagrams/oauth_threat_model.svg (DFD page with trust boundaries)
+  PDF: ~/Diagrams/oauth_threat_model.pdf (all pages)

@@ -1,0 +1,51 @@
+{
+  "id": "hu_tissue_characterization@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure mean Hounsfield Unit (HU) values from five tissue types on the loaded abdominal CT: subcutaneous fat, skeletal muscle, liver parenchyma, aortic blood pool, and vertebral bone. Place labeled ROIs in each tissue. Save ROI markups to ~/Documents/SlicerData/AMOS/tissue_rois.mrk.json and report to ~/Documents/SlicerData/AMOS/hu_tissue_report.json with fields: case_id, measurements (array of {tissue, mean_hu, classification, slice_z_mm}).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hu_tissue_characterization/setup_task.sh",
+    "post_task": "/workspace/tasks/hu_tissue_characterization/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_rois": "/home/ga/Documents/SlicerData/AMOS/tissue_rois.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/hu_tissue_report.json",
+    "expected_tissues": ["subcutaneous_fat", "skeletal_muscle", "liver_parenchyma", "aortic_blood", "vertebral_bone"],
+    "hu_ranges": {
+      "subcutaneous_fat": {"min": -150, "max": -30, "typical": -100},
+      "skeletal_muscle": {"min": 10, "max": 70, "typical": 45},
+      "liver_parenchyma": {"min": 40, "max": 150, "typical": 70},
+      "aortic_blood": {"min": 100, "max": 350, "typical": 200},
+      "vertebral_bone": {"min": 100, "max": 500, "typical": 250}
+    },
+    "passing_thresholds": {
+      "min_correct_tissues": 3,
+      "min_score": 60
+    },
+    "scoring_weights": {
+      "fat_hu_correct": 15,
+      "muscle_hu_correct": 15,
+      "liver_hu_correct": 15,
+      "blood_hu_correct": 15,
+      "bone_hu_correct": 15,
+      "all_rois_created": 10,
+      "report_complete": 10,
+      "roi_size_adequate": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hu_tissue_characterization"
+    }
+  }
+}

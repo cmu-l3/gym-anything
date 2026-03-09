@@ -1,0 +1,30 @@
+{
+  "id": "configure_global_env_vars@1",
+  "version": "1.0",
+  "env_id": "jenkins_env@0.1",
+  "description": "Configure three global environment variables in Jenkins system settings, then create and run a freestyle job to verify they propagate correctly.\n\n1. Navigate to Manage Jenkins > System (Configure System).\n2. Under 'Global properties', enable the 'Environment variables' checkbox.\n3. Add these environment variables:\n   - Name: DEPLOY_TARGET, Value: staging-cluster-01\n   - Name: API_BASE_URL, Value: https://api.example.com/v2\n   - Name: BUILD_RETENTION_DAYS, Value: 30\n4. Save the system configuration.\n5. Create a new Freestyle project named exactly 'EnvVar-Verification-Job'.\n6. Add an 'Execute shell' build step with the command:\n   echo \"DEPLOY_TARGET=$DEPLOY_TARGET\"\n   echo \"API_BASE_URL=$API_BASE_URL\"\n   echo \"BUILD_RETENTION_DAYS=$BUILD_RETENTION_DAYS\"\n7. Save the job and click 'Build Now'.\n8. Wait for the build to complete successfully.\n\nLogin credentials — Username: admin, Password: Admin123!",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_global_env_vars/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_global_env_vars/export_result.sh"
+  },
+  "metadata": {
+    "expected_vars": {
+      "DEPLOY_TARGET": "staging-cluster-01",
+      "API_BASE_URL": "https://api.example.com/v2",
+      "BUILD_RETENTION_DAYS": "30"
+    },
+    "job_name": "EnvVar-Verification-Job"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_global_env_vars"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "id": "measurement_quality_audit@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Audit four pre-loaded trainee vascular measurements (trainee_aorta_diameter, trainee_ivc_diameter, trainee_celiac_distance, trainee_renal_bifurcation) on the abdominal CT for technical errors. Create corrected measurements with 'corrected_' prefix for any erroneous ones. Save corrected markups to ~/Documents/SlicerData/AMOS/corrected_measurements.mrk.json and audit report to ~/Documents/SlicerData/AMOS/measurement_audit_report.json with fields: erroneous_measurements, correct_measurements, errors, corrected_values.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/measurement_quality_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/measurement_quality_audit/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_corrected_markups": "/home/ga/Documents/SlicerData/AMOS/corrected_measurements.mrk.json",
+    "output_audit_report": "/home/ga/Documents/SlicerData/AMOS/measurement_audit_report.json",
+    "erroneous_measurements": ["trainee_aorta_diameter", "trainee_celiac_distance"],
+    "correct_measurements": ["trainee_ivc_diameter", "trainee_renal_bifurcation"],
+    "passing_thresholds": {
+      "error_identification_required": true,
+      "min_score": 60
+    },
+    "scoring_weights": {
+      "error_identification": 25,
+      "no_false_positives": 15,
+      "aorta_correction_level": 15,
+      "aorta_correction_value": 10,
+      "celiac_correction": 10,
+      "report_error_descriptions": 10,
+      "report_corrected_values": 10,
+      "files_saved": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_measurement_quality_audit"
+    }
+  }
+}

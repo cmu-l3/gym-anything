@@ -1,0 +1,36 @@
+{
+  "id": "garch_financial_risk@1",
+  "version": "1.0",
+  "env_id": "rstudio_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are a quantitative analyst at a risk management firm. Your team needs a volatility forecasting model for the S&P 500 ETF (SPY) to support daily VaR (Value-at-Risk) reporting. You will use real historical SPY price data stored at /home/ga/RProjects/datasets/spy_prices.csv (columns: Date, Open, High, Low, Close, Volume, Adjusted).\n\nYour analysis pipeline must produce three deliverables:\n\n1. Fit a GARCH(1,1) model to the SPY log-returns using the rugarch package. Use a 'sGARCH' variance model with 'ARMA(1,0)' mean model and 'norm' distribution. Extract the conditional volatility series and compute 1-day VaR at both 95% and 99% confidence levels using the fitted model's quantile function. Write results to /home/ga/RProjects/output/spy_var_estimates.csv with columns: Date, log_return, conditional_volatility, VaR_95 (negative number = loss), VaR_99 (negative number = loss). All rows must come from dates where actual returns exist.\n\n2. Perform a VaR backtest: count the number of days where the actual log_return exceeded VaR_95 and VaR_99 (i.e., actual losses worse than predicted). The expected exceedance rate under a correct model is 5% for VaR_95 and 1% for VaR_99. Write backtest results to /home/ga/RProjects/output/spy_backtest.csv with columns: confidence_level, expected_exceedances, actual_exceedances, exceedance_rate, kupiec_pof_statistic, kupiec_p_value.\n\n3. Create a 3-panel figure saved to /home/ga/RProjects/output/spy_garch_report.png:\n   - Panel 1: SPY log-returns time series\n   - Panel 2: Conditional volatility (annualized = sigma * sqrt(252)) with shaded recession periods (2020-03-01 to 2020-04-30)\n   - Panel 3: Rolling 1-day VaR_95 and VaR_99 overlaid on log-returns (exceedance days highlighted in red)\n\nLogin: username=ga, password=password123. RStudio is open. Write your R code in /home/ga/RProjects/garch_analysis.R.",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 85
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/garch_financial_risk/setup_task.sh",
+    "post_task": "/workspace/tasks/garch_financial_risk/export_result.sh",
+    "pre_task_timeout": 360
+  },
+  "metadata": {
+    "dataset_path": "/home/ga/RProjects/datasets/spy_prices.csv",
+    "var_csv_path": "/home/ga/RProjects/output/spy_var_estimates.csv",
+    "backtest_csv_path": "/home/ga/RProjects/output/spy_backtest.csv",
+    "plot_png_path": "/home/ga/RProjects/output/spy_garch_report.png",
+    "script_path": "/home/ga/RProjects/garch_analysis.R",
+    "ticker": "SPY",
+    "garch_model": "sGARCH(1,1)",
+    "var_levels": [0.95, 0.99],
+    "expected_var95_exceedance_rate_range": [0.02, 0.12],
+    "expected_conditional_vol_range_annualized": [0.05, 1.50],
+    "occupation": "Financial Quantitative Analyst",
+    "task_note": "Uses rugarch (CRAN) + real SPY ETF price data from Yahoo Finance"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_garch_financial_risk"
+    }
+  }
+}

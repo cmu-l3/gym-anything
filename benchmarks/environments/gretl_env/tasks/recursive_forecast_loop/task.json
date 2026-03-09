@@ -1,0 +1,33 @@
+{
+  "id": "recursive_forecast_loop@1",
+  "version": "1.0",
+  "env_id": "gretl_env@0.1",
+  "description": "Perform a recursive (expanding window) out-of-sample forecasting exercise using Gretl scripting.\n\nThe dataset `usa.gdt` contains quarterly US macroeconomic data, including the inflation rate (`inf`).\n\n**Goal:** Write and execute a hansl script to calculate the Root Mean Squared Forecast Error (RMSFE) of an AR(1) model for inflation.\n\n**Requirements:**\n1. Create a script that loads `usa.gdt` and creates a lag of inflation (`inf_1 = inf(-1)`).\n2. Initialize a container for forecast errors.\n3. **Loop** from observation `i = 40` to `($nobs - 1)`.\n4. Inside the loop:\n   - Restrict the sample to observations `1` through `i` (expanding window).\n   - Estimate an AR(1) model: `ols inf const inf_1 --quiet`.\n   - Forecast inflation for period `i+1` using the estimated coefficients and the value of `inf` at period `i`.\n   - Compute the forecast error ($e_{t+1} = y_{t+1} - \\hat{y}_{t+1}$) and store it.\n5. After the loop, calculate the RMSFE of the stored errors.\n6. Save the **RMSFE value** to `/home/ga/Documents/gretl_output/rmsfe_results.txt`.\n7. Save the **series of forecast errors** to `/home/ga/Documents/gretl_output/forecast_errors.csv`.\n8. Save your **script** to `/home/ga/Documents/gretl_output/recursive_forecast.inp`.\n9. Execute the script to generate the results.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/recursive_forecast_loop/setup_task.sh",
+    "post_task": "/workspace/tasks/recursive_forecast_loop/export_result.sh"
+  },
+  "metadata": {
+    "dataset": "usa.gdt",
+    "target_var": "inf",
+    "start_obs": 40,
+    "expected_rmsfe_min": 0.55,
+    "expected_rmsfe_max": 0.75,
+    "min_forecast_count": 60,
+    "output_script": "/home/ga/Documents/gretl_output/recursive_forecast.inp",
+    "output_result": "/home/ga/Documents/gretl_output/rmsfe_results.txt",
+    "output_csv": "/home/ga/Documents/gretl_output/forecast_errors.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_recursive_forecast"
+    }
+  }
+}

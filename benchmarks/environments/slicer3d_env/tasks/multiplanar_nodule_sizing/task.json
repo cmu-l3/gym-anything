@@ -1,0 +1,45 @@
+{
+  "id": "multiplanar_nodule_sizing@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the longest diameter of the pulmonary nodule in all three planes (axial, coronal, sagittal) on the chest CT. Reference the preliminary report at ~/Documents/SlicerData/LIDC/preliminary_measurement.json for nodule location. Calculate maximum/minimum diameters, asphericity, discrepancy flag, and shape classification. Save markups to ~/Documents/SlicerData/LIDC/multiplanar_measurements.mrk.json and report to ~/Documents/SlicerData/LIDC/nodule_sizing_report.json with fields: axial_diameter_mm, coronal_diameter_mm, sagittal_diameter_mm, maximum_diameter_mm, minimum_diameter_mm, asphericity_percent, discrepancy_flag, shape_classification.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multiplanar_nodule_sizing/setup_task.sh",
+    "post_task": "/workspace/tasks/multiplanar_nodule_sizing/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/LIDC/multiplanar_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/nodule_sizing_report.json",
+    "preliminary_report": "/home/ga/Documents/SlicerData/LIDC/preliminary_measurement.json",
+    "passing_thresholds": {
+      "max_diameter_error_mm": 2.0,
+      "per_plane_error_mm": 3.0,
+      "asphericity_error_percent": 5.0
+    },
+    "scoring_weights": {
+      "max_diameter_accuracy": 25,
+      "axial_measurement": 10,
+      "coronal_measurement": 10,
+      "sagittal_measurement": 10,
+      "asphericity_calculation": 15,
+      "discrepancy_flag": 10,
+      "shape_classification": 10,
+      "report_completeness": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multiplanar_nodule_sizing"
+    }
+  }
+}

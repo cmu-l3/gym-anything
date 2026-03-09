@@ -1,0 +1,32 @@
+{
+  "id": "chinook_json_hybrid_analysis@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Integrate a CSV file containing JSON audio features into the Chinook database, create a view that extracts specific fields, and export a filtered report.\n\n1. Connect to the Chinook SQLite database at `/home/ga/Documents/databases/chinook.db`.\n2. Create a new table named `TrackFeatures` with columns `TrackId` (INTEGER, Primary Key) and `Features` (TEXT).\n3. Import the data from `/home/ga/Documents/imports/track_features.csv` into the `TrackFeatures` table. Note: The CSV uses a pipe (`|`) delimiter and has no quoting characters.\n4. Create a view named `v_TrackExtended` that joins the `tracks` table with `TrackFeatures`. The view must expose: `TrackId`, `Name` (Track Name), `Composer`, `BPM` (extracted from Features JSON), `Key` (extracted from Features JSON), and `Danceability` (extracted from Features JSON).\n5. Export a CSV report to `/home/ga/Documents/exports/high_energy_tracks.csv` containing tracks where `BPM > 130` AND `Danceability > 0.7`. Include columns: `Name`, `BPM`, `Danceability`.\n6. Save your SQL scripts to `/home/ga/Documents/scripts/json_analysis.sql`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_json_hybrid_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_json_hybrid_analysis/export_result.sh"
+  },
+  "metadata": {
+    "database_path": "/home/ga/Documents/databases/chinook.db",
+    "import_file": "/home/ga/Documents/imports/track_features.csv",
+    "export_file": "/home/ga/Documents/exports/high_energy_tracks.csv",
+    "sql_file": "/home/ga/Documents/scripts/json_analysis.sql",
+    "required_view": "v_TrackExtended",
+    "required_table": "TrackFeatures",
+    "filter_bpm": 130,
+    "filter_danceability": 0.7
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_json_hybrid_analysis"
+    }
+  }
+}

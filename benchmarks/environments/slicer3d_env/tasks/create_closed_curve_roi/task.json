@@ -1,0 +1,41 @@
+{
+  "id": "create_closed_curve_roi@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Create a closed curve markup named 'GTV_Tumor_Margin' with at least 10 control points outlining the visible tumor on an axial slice of the pre-loaded BraTS FLAIR brain MRI (data at ~/Documents/SlicerData/BraTS/).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_closed_curve_roi/setup_task.sh",
+    "post_task": "/workspace/tasks/create_closed_curve_roi/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "expected_curve_name_patterns": ["GTV", "Tumor", "Margin", "tumor", "gtv", "margin"],
+    "min_control_points": 10,
+    "recommended_control_points": 15,
+    "curve_location_tolerance_mm": 30,
+    "scoring_weights": {
+      "closed_curve_exists": 25,
+      "min_control_points": 20,
+      "proper_naming": 10,
+      "curve_location_valid": 25,
+      "vlm_shape_quality": 15,
+      "curve_is_closed": 5
+    },
+    "pass_threshold": 70,
+    "key_criteria": ["closed_curve_exists", "curve_location_valid"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_closed_curve_roi"
+    }
+  }
+}

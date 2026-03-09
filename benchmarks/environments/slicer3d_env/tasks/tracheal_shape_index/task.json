@@ -1,0 +1,43 @@
+{
+  "id": "tracheal_shape_index@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the internal AP and transverse tracheal diameters at the aortic arch level on the provided chest CT, and calculate the Tracheal Index (transverse/AP ratio). Classify the tracheal shape accordingly. Save measurement markup to ~/Documents/SlicerData/LIDC/trachea_measurements.mrk.json and report to ~/Documents/SlicerData/LIDC/trachea_report.json with fields: ap_diameter_mm, transverse_diameter_mm, tracheal_index, classification, slice_number.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tracheal_shape_index/setup_task.sh",
+    "post_task": "/workspace/tasks/tracheal_shape_index/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/LIDC/trachea_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/trachea_report.json",
+    "passing_thresholds": {
+      "diameter_tolerance_mm": 3.0,
+      "slice_tolerance": 2,
+      "ti_tolerance": 0.1
+    },
+    "scoring_weights": {
+      "ap_diameter_accuracy": 25,
+      "transverse_diameter_accuracy": 25,
+      "measurement_level": 15,
+      "tracheal_index_correct": 15,
+      "classification_correct": 10,
+      "report_completeness": 10
+    },
+    "clinical_context": "Saber-sheath trachea (TI < 0.67) is a specific CT finding in COPD, seen in approximately 40% of severe COPD patients."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tracheal_shape_index"
+    }
+  }
+}

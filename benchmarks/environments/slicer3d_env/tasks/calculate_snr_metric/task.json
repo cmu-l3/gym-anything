@@ -1,0 +1,41 @@
+{
+  "id": "calculate_snr_metric@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Calculate the Signal-to-Noise Ratio (SNR) on the loaded MRHead brain MRI. Create a 'Signal' segment in brain white matter and a 'Noise' segment in background air (each at least 100 voxels), then compute SNR = Mean_signal / StdDev_noise. Save results to /home/ga/Documents/SlicerData/snr_result.json with fields: signal_mean, noise_std, snr.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/calculate_snr_metric/setup_task.sh",
+    "post_task": "/workspace/tasks/calculate_snr_metric/export_result.sh"
+  },
+  "metadata": {
+    "sample_file": "/home/ga/Documents/SlicerData/SampleData/MRHead.nrrd",
+    "output_json": "/home/ga/Documents/SlicerData/snr_result.json",
+    "expected_signal_mean_range": {"min": 200, "max": 1500},
+    "expected_noise_std_range": {"min": 5, "max": 80},
+    "expected_snr_range": {"min": 10, "max": 60},
+    "min_segment_voxels": 100,
+    "snr_calculation_tolerance": 0.01,
+    "scoring_weights": {
+      "json_exists": 15,
+      "json_valid_format": 10,
+      "signal_mean_plausible": 15,
+      "noise_std_plausible": 15,
+      "snr_mathematically_correct": 20,
+      "snr_in_expected_range": 10,
+      "segments_exist": 10,
+      "vlm_visual_confirmation": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_snr_metric"
+    }
+  }
+}

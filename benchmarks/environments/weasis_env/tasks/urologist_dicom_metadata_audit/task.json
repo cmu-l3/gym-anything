@@ -1,0 +1,33 @@
+{
+  "id": "urologist_dicom_metadata_audit@1",
+  "version": "1.0",
+  "env_id": "weasis_env@0.1",
+  "description": "You are a urologist who has received a batch of CT DICOM files for a renal stone workup that were incorrectly tagged during the import process. The files are stored at /home/ga/DICOM/studies/renal_audit/. Several DICOM header fields across the files contain erroneous values that could lead to patient safety issues if ingested into a PACS system: the patient sex field has been set incorrectly, the body part examined tag is wrong, and the referring physician name is missing or corrupted. You must inspect the DICOM headers (using Weasis DICOM tag viewer, dcmdump, pydicom, or any available tool), identify which specific tag values are incorrect, correct them, and verify the corrections. After fixing the tags, write a DICOM metadata audit report to /home/ga/DICOM/exports/metadata_audit_report.txt documenting: each incorrect tag you found (tag name, original wrong value, corrected value), the number of files affected, and confirmation that all files now have consistent, correct metadata.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/urologist_dicom_metadata_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/urologist_dicom_metadata_audit/export_result.sh"
+  },
+  "metadata": {
+    "target_directory": "/home/ga/DICOM/studies/renal_audit/",
+    "export_report": "/home/ga/DICOM/exports/metadata_audit_report.txt",
+    "occupation": "Urologist",
+    "clinical_scenario": "DICOM metadata audit and correction for patient safety",
+    "injected_errors": {
+      "patient_sex": {"wrong_value": "F", "correct_value": "M", "description": "Patient sex changed from M to F"},
+      "body_part_examined": {"wrong_value": "HEAD", "correct_value": "ABDOMEN", "description": "Body part changed from ABDOMEN to HEAD"},
+      "referring_physician": {"wrong_value": "", "correct_value": "Dr. Smith", "description": "Referring physician name cleared"}
+    },
+    "required_features": ["dicom_header_inspection", "dicom_tag_editing", "metadata_validation", "text_report"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_urologist_dicom_metadata_audit"
+    }
+  }
+}

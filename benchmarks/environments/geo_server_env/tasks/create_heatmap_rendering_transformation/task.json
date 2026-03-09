@@ -1,0 +1,30 @@
+{
+  "id": "create_heatmap_rendering_transformation@1",
+  "version": "1.0",
+  "env_id": "geo_server_env@0.1",
+  "description": "Create a population density heatmap for the 'ne:ne_populated_places' layer using GeoServer's 'vec:Heatmap' rendering transformation. \n\n1. Login to GeoServer (http://localhost:8080/geoserver/web/) with username 'admin' and password 'Admin123!'.\n2. Create a new SLD style named 'heatmap_population' in the 'ne' workspace.\n3. Configure the style to use the 'vec:Heatmap' rendering transformation with:\n   - Weight attribute: 'pop_max'\n   - Radius: between 15 and 60 pixels\n   - Output: pixels (FLOAT)\n   - Color Map: A gradient with at least 4 colors (e.g., transparent -> blue -> yellow -> red).\n4. Assign this style to the 'ne:ne_populated_places' layer.\n5. Generate a WMS GetMap request to render the heatmap and save the result to '/home/ga/heatmap_output.png'. The image must be PNG format, 800x400 pixels, covering the world bounds (-180, -90, 180, 90).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_heatmap_rendering_transformation/setup_task.sh",
+    "post_task": "/workspace/tasks/create_heatmap_rendering_transformation/export_result.sh"
+  },
+  "metadata": {
+    "expected_style_name": "heatmap_population",
+    "expected_layer_name": "ne:ne_populated_places",
+    "expected_output_path": "/home/ga/heatmap_output.png",
+    "expected_weight_attr": "pop_max",
+    "min_color_count": 4,
+    "min_image_size_bytes": 5000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_heatmap"
+    }
+  }
+}

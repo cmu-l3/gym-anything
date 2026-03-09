@@ -1,0 +1,47 @@
+{
+  "task": "gwc_tile_cache_seeding",
+  "task_id": "gwc_tile_cache_seeding@1",
+  "difficulty": "very_hard",
+  "test_date": "2026-03-01",
+  "methodology": "Pipeline simulation: verifier.py loaded directly with mock copy_from_env injecting synthetic result JSONs. Two do-nothing scenarios tested per Lesson 24.",
+  "pipeline_results": {
+    "do_nothing_no_export": {
+      "score": 0,
+      "passed": false,
+      "description": "copy_from_env raises FileNotFoundError (agent did nothing, export never ran)"
+    },
+    "do_nothing_baseline": {
+      "score": 0,
+      "passed": false,
+      "description": "Export ran but all fields at initial state (gwc_found=false, no gridsets, seed_triggered=false)"
+    },
+    "partial_no_seeding": {
+      "score": 55,
+      "passed": false,
+      "description": "GWC tile layer configured with EPSG:4326 + EPSG:900913 gridsets and image/png format, but tile seeding job never triggered. Score capped at 55 (below 60 threshold) per score cap gate."
+    },
+    "full_success": {
+      "score": 100,
+      "passed": true,
+      "description": "All criteria met: GWC tile layer for ne:ne_countries + both gridsets + image/png + seeding triggered with done status"
+    }
+  },
+  "scoring_breakdown": {
+    "gwc_tile_layer_found": 20,
+    "epsg4326_gridset": 20,
+    "epsg900913_gridset": 15,
+    "image_png_format": 15,
+    "seeding_triggered": 30
+  },
+  "score_cap_gate": "If seeding not triggered and score >= 60, score capped to 55 (Lesson 25 pattern: seeding is the required deliverable)",
+  "pass_threshold": 60,
+  "mandatory_for_pass": ["gwc_found", "gui_confirmed"],
+  "notes": "GWC REST API is at /geoserver/gwc/rest/ (NOT /geoserver/rest/). Seed detection uses both GWC seed REST API response AND Tomcat access log for POST to /gwc/ paths. Metatile 4x4 and zoom 0-3 are expected but not strictly scored.",
+  "env": "geo_server_env",
+  "env_base": "ubuntu-gnome-systemd_highres",
+  "app": "GeoServer 2.25.2 + GeoWebCache (bundled) via Docker",
+  "geoserver_url": "http://localhost:8080/geoserver/web/",
+  "gwc_rest_url": "http://localhost:8080/geoserver/gwc/rest/",
+  "credentials": "admin / Admin123!",
+  "verification_method": "export_result.sh -> /tmp/gwc_tile_cache_seeding_result.json -> copy_from_env -> JSON field parsing from GWC REST API responses + access log scan"
+}

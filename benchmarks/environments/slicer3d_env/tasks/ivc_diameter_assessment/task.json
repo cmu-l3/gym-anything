@@ -1,0 +1,43 @@
+{
+  "id": "ivc_diameter_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the IVC maximum transverse diameter at the intrahepatic and infrarenal levels on the loaded abdominal CT. Classify the IVC status and assess morphology. Save measurements to ~/Documents/SlicerData/AMOS/ivc_measurements.mrk.json and report to ~/Documents/SlicerData/AMOS/ivc_report.json with fields: intrahepatic_diameter_mm, infrarenal_diameter_mm, classification, morphology, clinical_interpretation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ivc_diameter_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/ivc_diameter_assessment/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/ivc_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/ivc_report.json",
+    "ivc_label": 9,
+    "passing_thresholds": {
+      "intrahepatic_error_max_mm": 4.0,
+      "infrarenal_error_max_mm": 3.0
+    },
+    "scoring_weights": {
+      "intrahepatic_accuracy": 25,
+      "infrarenal_accuracy": 20,
+      "measurement_location_valid": 15,
+      "classification_correct": 15,
+      "report_completeness": 10,
+      "both_levels_measured": 10,
+      "morphology_correct": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ivc_diameter"
+    }
+  }
+}

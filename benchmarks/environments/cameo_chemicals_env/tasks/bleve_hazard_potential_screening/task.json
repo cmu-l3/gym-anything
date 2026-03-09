@@ -1,0 +1,33 @@
+{
+  "id": "bleve_hazard_potential_screening@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "Evaluate the BLEVE (Boiling Liquid Expanding Vapor Explosion) risk for five chemicals by looking up their Physical State and Flammability on CAMEO Chemicals (https://cameochemicals.noaa.gov/). \n\nChemicals to assess:\n1. Isobutane (CAS 75-28-5)\n2. Vinyl Chloride (CAS 75-01-4)\n3. Toluene (CAS 108-88-3)\n4. Sulfur Dioxide (CAS 7446-09-5)\n5. Cyclohexane (CAS 110-82-7)\n\nFor each chemical, determine if it is a 'Liquefied Gas' or 'Liquid' (Physical State) and if it is 'Flammable' (Fire Hazards). \n\nClassify the risk tier using this exact logic:\n- TIER_1 (CRITICAL): Chemical is a Liquefied Gas AND Flammable.\n- TIER_2 (HIGH): Chemical is a Liquefied Gas but NOT Flammable.\n- TIER_3 (STANDARD): Chemical is a standard Liquid (regardless of flammability).\n\nSave the results to a CSV file at '/home/ga/Documents/bleve_risk_assessment.csv' with the header: 'Chemical,Physical_State,Flammable,Risk_Tier'. Values for Physical_State should be 'Liquefied Gas' or 'Liquid'. Values for Flammable should be 'Yes' or 'No'.",
+  "difficulty": "medium",
+  "tags": ["cameo", "bleve", "fire-safety", "classification", "hazmat"],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/bleve_hazard_potential_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/bleve_hazard_potential_screening/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/bleve_risk_assessment.csv",
+    "ground_truth": {
+      "Isobutane": {"state": "Liquefied Gas", "flammable": "Yes", "tier": "TIER_1"},
+      "Vinyl Chloride": {"state": "Liquefied Gas", "flammable": "Yes", "tier": "TIER_1"},
+      "Toluene": {"state": "Liquid", "flammable": "Yes", "tier": "TIER_3"},
+      "Sulfur Dioxide": {"state": "Liquefied Gas", "flammable": "No", "tier": "TIER_2"},
+      "Cyclohexane": {"state": "Liquid", "flammable": "Yes", "tier": "TIER_3"}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bleve_screening"
+    }
+  }
+}

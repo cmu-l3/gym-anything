@@ -1,0 +1,57 @@
+{
+  "id": "coronary_calcium_agatston@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Identify and segment coronary artery calcifications on the provided non-contrast chest CT, then calculate the Agatston score with per-vessel attribution (LM, LAD, LCx, RCA). Save the calcium segmentation to ~/Documents/SlicerData/Cardiac/calcium_segmentation.nii.gz and a report to ~/Documents/SlicerData/Cardiac/agatston_report.json with fields: total_agatston_score, per_vessel_scores, risk_category, lesion_count.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/coronary_calcium_agatston/setup_task.sh",
+    "post_task": "/workspace/tasks/coronary_calcium_agatston/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "cardiac_dir": "/home/ga/Documents/SlicerData/Cardiac",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/Cardiac/calcium_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/Cardiac/agatston_report.json",
+    "calcium_hu_threshold": 130,
+    "min_lesion_area_mm2": 1.0,
+    "density_factors": {
+      "130-199": 1,
+      "200-299": 2,
+      "300-399": 3,
+      "400+": 4
+    },
+    "risk_categories": {
+      "0": "No identifiable disease",
+      "1-10": "Minimal plaque burden",
+      "11-100": "Mild plaque burden",
+      "101-400": "Moderate plaque burden",
+      ">400": "Severe plaque burden"
+    },
+    "passing_thresholds": {
+      "score_error_percent": 15,
+      "score_error_min_points": 15,
+      "classification_must_match": true
+    },
+    "scoring_weights": {
+      "total_score_accuracy": 35,
+      "risk_category_correct": 20,
+      "per_vessel_attribution": 15,
+      "lesion_detection": 10,
+      "report_completeness": 10,
+      "segmentation_quality": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_coronary_calcium_agatston"
+    }
+  }
+}

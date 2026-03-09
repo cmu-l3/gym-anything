@@ -1,0 +1,157 @@
+{
+  "task_id": "legacy_pos_rescue@1",
+  "dataset": "old_pos_export.csv",
+  "case_id": null,
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "total_transactions",
+      "metadata_value": "~150 transactions",
+      "verified_value": 134,
+      "source": "Counted all non-header rows in CSV embedded in setup_task.sh",
+      "status": "contradicted"
+    },
+    {
+      "key": "unique_customers_claim",
+      "metadata_value": "~45 customers",
+      "verified_value": 85,
+      "source": "Normalized all customer names (sorted words, lowercased, punctuation removed) from CSV data",
+      "status": "contradicted"
+    },
+    {
+      "key": "customers_with_duplicates_or_variations",
+      "metadata_value": "customers with duplicate entries or name variations",
+      "verified_value": 43,
+      "source": "CSV analysis: 27 customers with name variations + 16 with exact duplicates",
+      "status": "verified"
+    },
+    {
+      "key": "duplicate_reduction_exact",
+      "metadata_value": "8-15 duplicate customers eliminated",
+      "verified_value": 16,
+      "source": "Exact case-sensitive duplicates found in CSV (16 entries could be removed)",
+      "status": "contradicted"
+    },
+    {
+      "key": "duplicate_reduction_with_variations",
+      "metadata_value": "8-15 duplicate customers",
+      "verified_value": 49,
+      "source": "Total duplicate entries = 134 transactions - 85 unique customers",
+      "status": "contradicted"
+    },
+    {
+      "key": "verifier_duplicate_tolerance",
+      "metadata_value": "8-20 duplicate reduction accepted by verifier",
+      "verified_value": 8,
+      "source": "verifier.py line 205: if 8 <= reduction <= 20",
+      "status": "verified"
+    },
+    {
+      "key": "date_formats_present",
+      "metadata_value": "MM/DD/YYYY, DD-MM-YY, YYYY-MM-DD mixed formats",
+      "verified_value": "All three formats confirmed: MM/DD/YYYY (23), DD-MM-YY (44), YYYY-MM-DD (66)",
+      "source": "Parsed all dates in CSV from setup_task.sh - 134 total transactions",
+      "status": "verified"
+    },
+    {
+      "key": "currency_formats_present",
+      "metadata_value": "$45.99, 67.50 USD, 23.75 mixed formats",
+      "verified_value": "All formats confirmed: $X.XX (87), X.XX USD (2), numeric only (45)",
+      "source": "Parsed all amounts in CSV from setup_task.sh",
+      "status": "verified"
+    },
+    {
+      "key": "vip_threshold_percentile",
+      "metadata_value": "Top 20% by spending using 80th percentile",
+      "verified_value": "$359.94 (80th percentile of customer spending)",
+      "source": "Calculated CLV for each unique customer, computed 80th percentile of spending distribution",
+      "status": "verified"
+    },
+    {
+      "key": "vip_customer_count",
+      "metadata_value": "top 20% by spending",
+      "verified_value": 17,
+      "source": "17 customers out of 85 have spending >= $359.94",
+      "status": "verified"
+    },
+    {
+      "key": "vip_percentage",
+      "metadata_value": "top 20%",
+      "verified_value": 20.0,
+      "source": "17/85 = 20.0% exactly matches 80th percentile definition",
+      "status": "verified"
+    },
+    {
+      "key": "total_revenue",
+      "metadata_value": "~$20,370",
+      "verified_value": "$20,370.56",
+      "source": "Summed all amounts in CSV after removing currency symbols",
+      "status": "verified"
+    },
+    {
+      "key": "difficulty_level",
+      "metadata_value": "medium",
+      "verified_value": "medium",
+      "source": "task.json difficulty field",
+      "status": "verified"
+    },
+    {
+      "key": "timeout_seconds",
+      "metadata_value": "300 seconds",
+      "verified_value": 300,
+      "source": "task.json init.timeout_sec field and README",
+      "status": "verified"
+    },
+    {
+      "key": "max_steps",
+      "metadata_value": "~15 steps",
+      "verified_value": 15,
+      "source": "task.json init.max_steps field",
+      "status": "verified"
+    },
+    {
+      "key": "pass_threshold",
+      "metadata_value": "75% (6/8 criteria must pass)",
+      "verified_value": 75,
+      "source": "README verification criteria section and verifier.py line 379",
+      "status": "verified"
+    },
+    {
+      "key": "verification_criteria_count",
+      "metadata_value": "8 criteria",
+      "verified_value": 8,
+      "source": "verifier.py lines 86-93 lists 8 criteria; README lists 8 checkmarks",
+      "status": "verified"
+    },
+    {
+      "key": "duplicate_customer_names_format",
+      "metadata_value": "Name variations like 'John Smith', 'J. Smith', 'Smith John'",
+      "verified_value": "Confirmed: examples include John Smith/JOHN SMITH/J. Smith/Smith John, Jane Doe/jane doe/JANE DOE, Mike Davis/MIKE DAVIS/M. Davis/Davis Mike",
+      "source": "CSV data in setup_task.sh",
+      "status": "verified"
+    },
+    {
+      "key": "output_file_required",
+      "metadata_value": "cleaned_customer_data.csv",
+      "verified_value": "cleaned_customer_data.csv",
+      "source": "export_result.sh line 16 and README section",
+      "status": "verified"
+    },
+    {
+      "key": "required_output_columns",
+      "metadata_value": "CustomerID, CleanedName, TransactionDate, CleanAmount, VIP_Status, PaymentMethod",
+      "verified_value": "Six columns specified in README",
+      "source": "README Expected Results section",
+      "status": "verified"
+    },
+    {
+      "key": "data_preservation_tolerance",
+      "metadata_value": "±1% tolerance for total revenue",
+      "verified_value": "2% tolerance in verifier",
+      "source": "verifier.py line 366: if difference_pct <= 0.02",
+      "status": "contradicted"
+    }
+  ],
+  "privileged_info_summary": "This is a synthetic data cleaning task with a CSV file containing 134 customer transactions from 85 unique customers (after name normalization). The task requires consolidating duplicate entries where the same customer appears with different name formatting (e.g., 'John Smith', 'JOHN SMITH', 'J. Smith', 'Smith John'). Actual data characteristics: 134 transactions with 43 customers having duplicates/variations, $20,370.56 total revenue, three date formats (MM/DD/YYYY: 23, DD-MM-YY: 44, YYYY-MM-DD: 66), three currency formats ($X.XX: 87, X.XX USD: 2, numeric: 45). VIP threshold is the 80th percentile of customer spending ($359.94), which identifies 17 of 85 customers (20.0%) as VIP. Required output: cleaned_customer_data.csv with columns CustomerID, CleanedName, TransactionDate, CleanAmount, VIP_Status, PaymentMethod. Pass threshold is 75% (6 of 8 verification criteria). Key contradictions: README claims ~150 transactions (actual: 134), ~45 customers (actual: 85), 8-15 duplicates (actual: 16 exact or 49 with variations), ±1% revenue tolerance (verifier uses 2%).",
+  "pi_confidence": "high"
+}

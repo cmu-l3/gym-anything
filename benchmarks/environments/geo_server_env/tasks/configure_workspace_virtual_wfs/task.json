@@ -1,0 +1,29 @@
+{
+  "id": "configure_workspace_virtual_wfs@1",
+  "version": "1.0",
+  "env_id": "geo_server_env@0.1",
+  "description": "You are a GIS Technologist setting up a multi-department GeoServer deployment. The Natural Earth data team needs their own isolated WFS (Web Feature Service) endpoint with controlled feature download limits.\n\nConfigure workspace-specific WFS service settings for the 'ne' workspace with the following parameters:\n- Title: Natural Earth Feature Service\n- Abstract: Provides controlled access to Natural Earth vector datasets\n- Max Features: 50\n- Service Level: COMPLETE\n- Enabled: true\n\nIMPORTANT: These must be workspace-specific WFS settings (not global WFS settings). In GeoServer, workspace-specific settings can be configured via the REST API or through the web admin interface under the workspace's Services configuration.\n\nAfter configuring the settings, perform the following verification steps:\n\n1. Save the workspace-specific WFS GetCapabilities response to ~/ne_wfs_capabilities.xml by requesting:\n   http://localhost:8080/geoserver/ne/wfs?service=WFS&request=GetCapabilities\n\n2. Save a WFS GetFeature response for ne_countries to ~/ne_countries_features.json by requesting:\n   http://localhost:8080/geoserver/ne/wfs?service=WFS&version=1.1.0&request=GetFeature&typeName=ne_countries&outputFormat=application/json\n\nThe GetFeature response should contain at most 50 features due to the configured limit.\n\nGeoServer credentials: admin / Admin123!\nGeoServer URL: http://localhost:8080/geoserver",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_workspace_virtual_wfs/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_workspace_virtual_wfs/export_result.sh"
+  },
+  "metadata": {
+    "expected_title": "Natural Earth Feature Service",
+    "expected_abstract": "Provides controlled access to Natural Earth vector datasets",
+    "expected_max_features": 50,
+    "capabilities_file": "/home/ga/ne_wfs_capabilities.xml",
+    "features_file": "/home/ga/ne_countries_features.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_workspace_virtual_wfs"
+    }
+  }
+}

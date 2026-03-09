@@ -1,0 +1,94 @@
+{
+  "task_id": "wfs_feature_service_setup@1",
+  "dataset": "Natural Earth 1:110M Dataset",
+  "case_id": "ne_110m_populated_places",
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "expected_layer",
+      "metadata_value": "major_cities",
+      "verified_value": "major_cities",
+      "source": "task.json metadata and README.md line 25 - confirmed as the SQL view layer name the agent must create",
+      "status": "verified"
+    },
+    {
+      "key": "expected_workspace",
+      "metadata_value": "ne",
+      "verified_value": "ne",
+      "source": "setup_geoserver.sh creates 'ne' workspace and PostGIS datastore at lines 136-157",
+      "status": "verified"
+    },
+    {
+      "key": "expected_style",
+      "metadata_value": "city_marker",
+      "verified_value": "city_marker",
+      "source": "task.json metadata and README.md line 30 - confirmed as the SLD style name the agent must create",
+      "status": "verified"
+    },
+    {
+      "key": "expected_wfs_title_keywords",
+      "metadata_value": ["Natural Earth", "WFS"],
+      "verified_value": ["Natural Earth", "WFS"],
+      "source": "task.json metadata and task description line 4 - agent must set WFS title to 'Natural Earth WFS' which contains both keywords",
+      "status": "verified"
+    },
+    {
+      "key": "expected_max_features",
+      "metadata_value": 5000,
+      "verified_value": 5000,
+      "source": "task.json metadata, task description line 4, and README.md line 23 - all specify 5000 as the required WFS maxFeatures setting",
+      "status": "verified"
+    },
+    {
+      "key": "sql_view_query",
+      "metadata_value": "SELECT * FROM ne_populated_places WHERE pop_max > 1000000",
+      "verified_value": "SELECT * FROM ne_populated_places WHERE pop_max > 1000000",
+      "source": "task.json metadata, task description, and README.md line 26 all specify the same query. Verified via Natural Earth documentation: ne_populated_places is a real table with pop_max column documented at https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "status": "verified"
+    },
+    {
+      "key": "source_table_geometry_column",
+      "metadata_value": "wkb_geometry",
+      "verified_value": "geom",
+      "source": "Code analysis: setup_geoserver.sh line 104 uses ogr2ogr with '-lco GEOMETRY_NAME=geom', which creates geometry column named 'geom'. However, README.md line 70 incorrectly claims the geometry column is 'wkb_geometry'. The actual database has 'geom'.",
+      "status": "contradicted"
+    },
+    {
+      "key": "source_data_geometry_type",
+      "metadata_value": "Point",
+      "verified_value": "Point",
+      "source": "Natural Earth documentation confirms ne_110m_populated_places contains point geometries representing populated places/cities. Verified via https://www.naturalearthdata.com/ and https://github.com/nvkelso/natural-earth-vector",
+      "status": "verified"
+    },
+    {
+      "key": "coordinate_reference_system",
+      "metadata_value": "SRID 4326",
+      "verified_value": "SRID 4326",
+      "source": "setup_geoserver.sh line 106 uses '-a_srs EPSG:4326'. WGS84/EPSG:4326 is the standard CRS for Natural Earth data, verified via https://epsg.io/4326 and https://www.naturalearthdata.com/",
+      "status": "verified"
+    },
+    {
+      "key": "data_source",
+      "metadata_value": "Natural Earth public domain dataset",
+      "verified_value": "Natural Earth public domain dataset from naturalearthdata.com",
+      "source": "setup_geoserver.sh imports from /home/ga/natural_earth/ne_110m_populated_places.shp. Natural Earth is a real, public domain vector and raster map dataset available at https://www.naturalearthdata.com/ at 1:10m, 1:50m, and 1:110m scales.",
+      "status": "verified"
+    },
+    {
+      "key": "population_filter_field",
+      "metadata_value": "pop_max",
+      "verified_value": "pop_max",
+      "source": "Natural Earth documentation explicitly lists pop_max as a standard field used for sizing city labels. Documented at https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "status": "verified"
+    },
+    {
+      "key": "population_threshold",
+      "metadata_value": ">1000000",
+      "verified_value": ">1000000",
+      "source": "task.json metadata, task description, and README.md all specify the same filter threshold for identifying 'major cities'",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The task configures GeoServer WFS service with a filtered SQL view of the Natural Earth ne_110m_populated_places dataset (public domain). The source data is a real dataset from https://www.naturalearthdata.com/ containing point geometries representing worldwide populated places. The SQL view filters for pop_max > 1,000,000 (major cities) using valid SQL against the real ne_populated_places table. WFS title should contain 'Natural Earth' and 'WFS', maxFeatures should be set to 5000, and an SLD style 'city_marker' with red circle marks should be created and applied. All spatial reference systems use SRID 4326 (WGS84). Critical note: README incorrectly claims source geometry column is 'wkb_geometry' when setup_geoserver.sh actually creates it as 'geom'.",
+  "pi_confidence": "high"
+}

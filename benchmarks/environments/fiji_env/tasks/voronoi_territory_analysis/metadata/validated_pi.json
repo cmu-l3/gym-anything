@@ -1,0 +1,87 @@
+{
+    "task_id": "voronoi_territory_analysis@1",
+    "dataset": "BBBC005",
+    "case_id": "BBBC005_v1_images (C25 variant specified but unavailable)",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "dataset",
+            "metadata_value": "BBBC005 - Simulated Cell Monolayer",
+            "verified_value": "BBBC005 - Simulated Cell Monolayer (BBBC005_v1_images)",
+            "source": "https://bbbc.broadinstitute.org/BBBC005 - Web search and ZIP file inspection",
+            "status": "verified"
+        },
+        {
+            "key": "image_dims",
+            "metadata_value": "[696, 520]",
+            "verified_value": "[696, 520]",
+            "source": "Direct inspection of BBBC005_v1_images/SIMCEPImages_A24_C100_F1_s01_w1.TIF using PIL Image library",
+            "status": "verified"
+        },
+        {
+            "key": "data_is_synthetic",
+            "metadata_value": "Not explicitly stated in metadata, but implied by 'Simulated Cell Monolayer'",
+            "verified_value": true,
+            "source": "https://bbbc.broadinstitute.org/BBBC005 states images are 'Simulated HCS images were generated with the SIMCEP simulating platform'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_cell_count_range",
+            "metadata_value": "[15, 35]",
+            "verified_value": "[15, 35] with caveats",
+            "source": "BBBC005 dataset contains cell counts: [1,2,3...24, 27, 31, 35, 40...100]. Range [15-35] is covered by: [15,16,17,18,19,20,21,22,23,24,27,31,35]",
+            "status": "verified"
+        },
+        {
+            "key": "dataset_file_naming_pattern",
+            "metadata_value": "setup_task.sh expects: BBBC005_v1_images/SIMULATION_C25_F1_s1_w1.TIF",
+            "verified_value": "Actual files use: BBBC005_v1_images/SIMCEPImages_<well>_C<count>_F<blur>_s<sample>_w<stain>.TIF",
+            "source": "ZIP file inspection - all 19,200 files use SIMCEPImages_ prefix, zero files use SIMULATION_ prefix",
+            "status": "contradicted"
+        },
+        {
+            "key": "dataset_c25_availability",
+            "metadata_value": "setup_task.sh attempts to extract C25 (25-cell) variant",
+            "verified_value": "C25 does NOT exist in BBBC005_v1_images; available cell counts are [1-24, 27, 31, 35, 40, 44, 48, 53, 57, 61, 66, 70, 74, 78, 83, 87, 91, 96, 100]",
+            "source": "ZIP file analysis - examined cell count parameter across all 19,200 files",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": "[\"cell_id\", \"area_px\", \"neighbors\"]",
+            "verified_value": "Verifier checks for case-insensitive matches of 'cell_id', 'area', 'neighbor'",
+            "source": "verifier.py lines 68-73 show relaxed column matching logic",
+            "status": "verified"
+        },
+        {
+            "key": "passing_thresholds.min_cells",
+            "metadata_value": "8",
+            "verified_value": "8",
+            "source": "verifier.py line 82: if row_count >= 8",
+            "status": "verified"
+        },
+        {
+            "key": "passing_thresholds.min_area",
+            "metadata_value": "500",
+            "verified_value": "500",
+            "source": "verifier.py line 100: if 500 < mean_area",
+            "status": "verified"
+        },
+        {
+            "key": "passing_thresholds.max_area",
+            "metadata_value": "50000",
+            "verified_value": "50000",
+            "source": "verifier.py line 100: if 500 < mean_area < 50000",
+            "status": "verified"
+        },
+        {
+            "key": "passing_thresholds.mean_neighbors_range",
+            "metadata_value": "[4.0, 8.0]",
+            "verified_value": "[4.0, 8.0]",
+            "source": "verifier.py line 92: if 4.0 <= mean_neighbors <= 8.0",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "BBBC005 is a synthetic dataset of simulated cell monolayers with image dimensions of 696x520 pixels. The dataset contains simulated cell counts from 1 to 100 (with specific variants at 1-24, then 27, 31, 35, 40, 44, 48, 53, 57, 61, 66, 70, 74, 78, 83, 87, 91, 96, 100), enabling creation of images within the expected range [15-35]. Files are named following the pattern SIMCEPImages_<well>_C<count>_F<blur>_s<sample>_w<stain>.TIF. Critical finding: The setup_task.sh script contains a critical bug - it attempts to extract files using the nonexistent 'SIMULATION_' prefix and attempts to use the unavailable C25 variant, which will cause the task initialization to fail.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,35 @@
+{
+  "id": "chinook_territory_realignment@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "The Sales Director has issued a new territory realignment plan. You need to update the Chinook database to reflect these changes.\n\n**Goal**: Import the provided territory mapping CSV into a new database table, then use it to bulk-update customer support representatives based on country.\n\n**Context**:\nA CSV file is located at `/home/ga/Documents/territory_assignments.csv` containing `Country` and `RepId` columns.\n\n**Expected Actions**:\n1. Connect to the Chinook SQLite database (`/home/ga/Documents/databases/chinook.db`) in DBeaver. Connection name: `Chinook`.\n2. Import `/home/ga/Documents/territory_assignments.csv` into a **new table** named `territory_map`.\n3. Update the `customers` table: Set `SupportRepId` to the matching `RepId` from `territory_map` for each customer's `Country`.\n   *(Hint: Use `UPDATE customers SET ... FROM ...` or a correlated subquery)*.\n4. Verify your work by exporting a summary CSV to `/home/ga/Documents/exports/reassignment_verification.csv` showing `EmployeeName` (First+Last) and the count of customers assigned to them. Columns: `EmployeeName`, `CustomerCount`.\n5. Save your SQL script (import/update/verify logic) to `/home/ga/Documents/scripts/update_territories.sql`.\n\n**Login**: ga / password123",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_territory_realignment/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_territory_realignment/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook.db",
+    "csv_source": "/home/ga/Documents/territory_assignments.csv",
+    "output_report": "/home/ga/Documents/exports/reassignment_verification.csv",
+    "output_script": "/home/ga/Documents/scripts/update_territories.sql",
+    "expected_mappings": {
+      "USA": 4,
+      "Canada": 4,
+      "France": 3,
+      "United Kingdom": 3,
+      "Australia": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_territory_realignment"
+    }
+  }
+}

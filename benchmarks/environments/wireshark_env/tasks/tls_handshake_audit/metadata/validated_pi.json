@@ -1,0 +1,66 @@
+{
+    "task_id": "tls_handshake_audit@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "capture_path",
+            "metadata_value": "/home/ga/Documents/captures/tls_traffic.pcap",
+            "verified_value": "/home/ga/Documents/captures/tls_traffic.pcap",
+            "source": "setup_task.sh line 11: CAPTURE_FILE=\"/home/ga/Documents/captures/tls_traffic.pcap\"",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Documents/tls_audit_report.txt",
+            "verified_value": "/home/ga/Documents/tls_audit_report.txt",
+            "source": "setup_task.sh line 17 and export_result.sh line 14 both reference /home/ga/Documents/tls_audit_report.txt",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_dir",
+            "metadata_value": "/var/lib/wireshark_ground_truth",
+            "verified_value": "/var/lib/wireshark_ground_truth",
+            "source": "setup_task.sh line 12: GROUND_TRUTH_DIR=\"/var/lib/wireshark_ground_truth\"",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "real HTTPS connections to several public web services",
+            "verified_value": "real HTTPS connections to 5 public services: www.google.com, www.example.com, www.wikipedia.org, www.cloudflare.com, api.github.com",
+            "source": "setup_task.sh lines 23-46: tcpdump captures real network traffic (port 443) from actual HTTPS requests using curl to real public domains",
+            "status": "verified"
+        },
+        {
+            "key": "traffic_generation_method",
+            "metadata_value": "not explicitly stated",
+            "verified_value": "dynamically generated at task runtime via tcpdump and curl",
+            "source": "setup_task.sh: tcpdump -i any -w captures real network interface traffic; curl makes real HTTP requests to actual domains",
+            "status": "verified"
+        },
+        {
+            "key": "fallback_mechanism",
+            "metadata_value": "not mentioned",
+            "verified_value": "Falls back to /home/ga/Documents/captures/http.cap if capture has < 10 packets",
+            "source": "setup_task.sh lines 50-55: checks PACKET_COUNT and falls back to pre-installed http.cap file",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_extraction_tool",
+            "metadata_value": "not stated",
+            "verified_value": "tshark (Wireshark CLI) version 3.4.10 available; used to extract metrics from pcap",
+            "source": "setup_task.sh lines 65-92 use tshark with filters like tls.handshake.type == 1 and tls.handshake.type == 2",
+            "status": "verified"
+        },
+        {
+            "key": "verification_tool",
+            "metadata_value": "Python verifier (verifier.py::verify_tls_audit)",
+            "verified_value": "verifier.py contains verify_tls_audit function that checks report against ground truth with scoring rubric",
+            "source": "task.json success.spec.program: verifier.py::verify_tls_audit; verifier.py lines 16-195 implement verification logic",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses real HTTPS connections to actual public services (Google, Example.com, Wikipedia, Cloudflare, and GitHub API) captured dynamically at runtime using tcpdump on port 443. The capture file is stored at /home/ga/Documents/captures/tls_traffic.pcap, the expected report at /home/ga/Documents/tls_audit_report.txt, and ground truth metrics are computed and stored in /var/lib/wireshark_ground_truth/ using tshark (version 3.4.10). If the initial capture is insufficient, the system falls back to a pre-installed http.cap file. The verifier checks the generated report against ground truth values with a scoring rubric (60/100 points required to pass).",
+    "pi_confidence": "high"
+}

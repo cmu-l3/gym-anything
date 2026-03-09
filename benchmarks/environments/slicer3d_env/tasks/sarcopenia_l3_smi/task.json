@@ -1,0 +1,49 @@
+{
+  "id": "sarcopenia_l3_smi@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment all skeletal muscles at the L3 vertebral level on the provided abdominal CT and calculate the Skeletal Muscle Index (SMI) for sarcopenia assessment. Patient height is 1.68 m, sex is male. Save segmentation to ~/Documents/SlicerData/AMOS/l3_muscle_segmentation.nii.gz and report to ~/Documents/SlicerData/AMOS/sarcopenia_report.json with fields: l3_slice_index, skeletal_muscle_area_cm2, patient_height_m, patient_sex, smi_cm2_m2, sarcopenia_threshold_cm2_m2, sarcopenia_classification.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sarcopenia_l3_smi/setup_task.sh",
+    "post_task": "/workspace/tasks/sarcopenia_l3_smi/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/AMOS/l3_muscle_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/sarcopenia_report.json",
+    "patient_height_m": 1.68,
+    "patient_sex": "male",
+    "sarcopenia_threshold_male": 52.4,
+    "sarcopenia_threshold_female": 38.5,
+    "muscle_hu_min": -29,
+    "muscle_hu_max": 150,
+    "passing_thresholds": {
+      "l3_slice_tolerance": 2,
+      "sma_error_max_percent": 15,
+      "dice_min": 0.7
+    },
+    "scoring_weights": {
+      "l3_level_accuracy": 20,
+      "muscle_area_accuracy": 30,
+      "segmentation_quality": 15,
+      "smi_calculation": 10,
+      "sarcopenia_classification": 10,
+      "no_organ_contamination": 5,
+      "report_completeness": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sarcopenia_l3_smi"
+    }
+  }
+}

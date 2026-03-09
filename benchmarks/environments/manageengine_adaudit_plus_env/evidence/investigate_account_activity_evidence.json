@@ -1,0 +1,51 @@
+{
+  "task": "investigate_account_activity",
+  "difficulty": "very_hard",
+  "timestamp": "2026-03-02",
+  "checks": {
+    "environment": "Windows 11 VM, ManageEngine ADAudit Plus at http://localhost:8081",
+    "pre_task_events": {
+      "dlee_extra_failed_logons": "10 additional failed logon events generated via net use",
+      "mjohnson_account_change": "Description modified (Event ID 4738 User Account Changed)",
+      "dlee_password_reset": "Password reset event (Event ID 4724)",
+      "baseline_failed_logon_users": ["baduser1", "baduser2", "wrongadmin", "testattacker", "bruteforce1"]
+    },
+    "agent_must_discover": [
+      "Which account has the most failed logon attempts (dlee after adding 10 extra)",
+      "Which accounts have recent account management changes (mjohnson description, dlee password)",
+      "The full list of failed logon usernames visible in ADAudit Plus"
+    ],
+    "expected_technician": {
+      "username": "soc_analyst1",
+      "role": "Operator",
+      "full_name": "SOC Analyst 1",
+      "email": "soc.analyst1@corp.local",
+      "password": "SOCAnalyst@2025"
+    },
+    "expected_report_file": "C:\\Users\\Docker\\Desktop\\account_threat_report.txt",
+    "report_must_contain": [
+      "At least 2-3 of: jsmith, mjohnson, rwilliams, abrown, dlee, baduser1, baduser2, wrongadmin, testattacker, bruteforce1"
+    ],
+    "verification_strategy": {
+      "technician_check": "DB query for soc_analyst1 in TechnicianInfo table",
+      "file_freshness": "report_mod_time > task_start_timestamp",
+      "content_check": "Case-insensitive search for known usernames",
+      "file_size": "Minimum 200 chars for minimal credit, 400 chars for full"
+    },
+    "service_status": "ADAudit Plus web server at port 8081, PostgreSQL at port 33307"
+  },
+  "setup_files_created": [
+    "C:\\Users\\Docker\\task_start_timestamp.txt",
+    "C:\\Users\\Docker\\Desktop\\account_threat_report.txt (removed if stale)"
+  ],
+  "scoring_breakdown": {
+    "tech_soc_analyst1_exists": "20 pts",
+    "tech_soc_analyst1_correct_role": "10 pts (Operator)",
+    "report_file_exists": "15 pts",
+    "report_modified_after_start": "15 pts",
+    "users_found_in_report": "25 pts (tiered: >=3=25, >=2=15, >=1=8)",
+    "report_content_length": "15 pts (tiered: >=400=15, >=200=8)"
+  },
+  "pass_threshold": 60,
+  "occupation_context": "SOC Analyst / IT Security Officer investigating Windows security events using ADAudit Plus"
+}

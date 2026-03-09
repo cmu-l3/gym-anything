@@ -1,0 +1,137 @@
+#VRML_SIM R2023b utf8
+# Autonomous Vehicle Sensor Configuration Scenario
+# Real robot simulation using standard AV sensor types:
+#   - Velodyne VLP-16 LIDAR (industry-standard AV sensor, 16-layer 360° LiDAR)
+#   - Automotive forward-facing camera (standard resolution 640x480)
+#   - GPS for localization
+# Starting state: sensors intentionally misconfigured — camera is low-res, LIDAR has
+# wrong layer count and limited range. Engineer must reconfigure to hardware specs.
+
+WorldInfo {
+  info [
+    "Autonomous vehicle sensor calibration task"
+    "Velodyne VLP-16 LIDAR specs: 16 layers, 360 deg FOV, 100m max range"
+    "Camera specs: 640x480 resolution, 60 degree FOV"
+  ]
+  title "AV Sensor Configuration"
+  basicTimeStep 32
+  gravity 9.81
+}
+
+Viewpoint {
+  orientation -0.5773502691896258 0.5773502691896258 0.5773502691896258 2.09440
+  position 0 -10 6
+}
+
+Background {
+  skyColor [0.53 0.81 0.92]
+}
+
+DirectionalLight {
+  ambientIntensity 1
+  direction -0.3 -1 -0.4
+  intensity 1.2
+}
+
+Solid {
+  name "road_surface"
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.25 0.25 0.25
+        }
+      }
+      geometry Box {
+        size 200 200 0.1
+      }
+    }
+  ]
+  translation 0 0 -0.05
+  boundingObject Box {
+    size 200 200 0.1
+  }
+}
+
+Solid {
+  name "lane_marking_left"
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.9 0.9 0.9
+        }
+      }
+      geometry Box {
+        size 50 0.15 0.01
+      }
+    }
+  ]
+  translation 0 -2.0 0.001
+}
+
+Solid {
+  name "lane_marking_right"
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.9 0.9 0.9
+        }
+      }
+      geometry Box {
+        size 50 0.15 0.01
+      }
+    }
+  ]
+  translation 0 2.0 0.001
+}
+
+DEF AV_PLATFORM Robot {
+  translation 0 0 0.5
+  rotation 0 0 1 0
+  children [
+    Camera {
+      translation 2.1 0 0.2
+      name "front_camera"
+      width 128
+      height 64
+      near 0.1
+      far 300
+      fieldOfView 1.0472
+    }
+    Lidar {
+      translation 0 0 0.6
+      name "velodyne_lidar"
+      numberOfLayers 4
+      horizontalResolution 256
+      fieldOfView 6.28318
+      verticalFieldOfView 0.5236
+      maxRange 20
+      near 0.1
+      frequency 10
+    }
+    GPS {
+      name "gps"
+    }
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.1 0.3 0.7
+        }
+      }
+      geometry Box {
+        size 4.5 1.9 1.4
+      }
+    }
+  ]
+  name "autonomous_vehicle"
+  controller "<none>"
+  physics Physics {
+    density -1
+    mass 1500
+  }
+  boundingObject Box {
+    size 4.5 1.9 1.4
+  }
+}

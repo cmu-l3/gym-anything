@@ -1,0 +1,48 @@
+{
+  "id": "emphysema_quantification@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment both lungs from the provided chest CT and quantify emphysema using the LAA-950 method. Calculate total lung volume, mean lung density, and 15th percentile density. Save lung segmentation to ~/Documents/SlicerData/LIDC/lung_segmentation.nii.gz and report to ~/Documents/SlicerData/LIDC/emphysema_report.json with fields: total_lung_volume_ml, laa_950_percent, severity_classification, mean_lung_density_hu, perc15_density_hu.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/emphysema_quantification/setup_task.sh",
+    "post_task": "/workspace/tasks/emphysema_quantification/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/LIDC/lung_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/emphysema_report.json",
+    "passing_thresholds": {
+      "laa_950_error_max_percent": 3.0,
+      "volume_error_max_percent": 20.0,
+      "dice_min": 0.85,
+      "mean_density_error_max_hu": 30.0
+    },
+    "scoring_weights": {
+      "laa_950_accuracy": 35,
+      "severity_classification": 20,
+      "lung_volume_accuracy": 15,
+      "segmentation_quality": 15,
+      "report_completeness": 10,
+      "mean_density_accuracy": 5
+    },
+    "severity_thresholds": {
+      "normal_max": 6,
+      "mild_max": 15,
+      "moderate_max": 25
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_emphysema_quantification"
+    }
+  }
+}

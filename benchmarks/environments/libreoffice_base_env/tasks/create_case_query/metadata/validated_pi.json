@@ -1,0 +1,80 @@
+{
+    "task_id": "create_case_query@1",
+    "dataset": "Chinook",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "odb_path",
+            "metadata_value": "/home/ga/chinook.odb",
+            "verified_value": "/home/ga/chinook.odb",
+            "source": "task.json metadata field; verified via setup_libreoffice_base.sh which copies from /opt/libreoffice_base_samples/chinook.odb to /home/ga/chinook.odb",
+            "status": "verified"
+        },
+        {
+            "key": "query_name",
+            "metadata_value": "TrackCategories",
+            "verified_value": "TrackCategories",
+            "source": "Specified in task.json metadata and task description; this is the name requested to be created",
+            "status": "verified"
+        },
+        {
+            "key": "expected_aliases",
+            "metadata_value": "[\"DurationCategory\", \"PriceCategory\"]",
+            "verified_value": "[\"DurationCategory\", \"PriceCategory\"]",
+            "source": "Task description lines 5-6 specify these computed column aliases in the CASE WHEN expressions",
+            "status": "verified"
+        },
+        {
+            "key": "thresholds.duration[0]",
+            "metadata_value": "180000",
+            "verified_value": "180000",
+            "source": "Verified via SQL query on Chinook database: 180000 milliseconds = 180 seconds = 3 minutes; 480 tracks are < 180000, 2400 tracks are in [180000, 360000]",
+            "status": "verified"
+        },
+        {
+            "key": "thresholds.duration[1]",
+            "metadata_value": "360000",
+            "verified_value": "360000",
+            "source": "Verified via SQL query on Chinook database: 360000 milliseconds = 360 seconds = 6 minutes; 623 tracks are > 360000",
+            "status": "verified"
+        },
+        {
+            "key": "thresholds.price[0]",
+            "metadata_value": "1.0",
+            "verified_value": "1.0",
+            "source": "Specified in task.json metadata; actual Chinook database contains only UnitPrice values of 0.99 and 1.99 (confirmed via DISTINCT UnitPrice query)",
+            "status": "verified"
+        },
+        {
+            "key": "thresholds.price[1]",
+            "metadata_value": "1.5",
+            "verified_value": "1.5",
+            "source": "Specified in task.json metadata; actual Chinook database contains only UnitPrice values of 0.99 and 1.99 (confirmed via DISTINCT UnitPrice query)",
+            "status": "verified"
+        },
+        {
+            "key": "price_threshold_data_alignment",
+            "metadata_value": "Standard category for prices >= 1.0 AND <= 1.5 would contain records",
+            "verified_value": "Standard category for prices >= 1.0 AND <= 1.5 is EMPTY (0 records); actual prices are only 0.99 (3290 tracks) and 1.99 (213 tracks)",
+            "source": "SQL query: SELECT COUNT(*) FROM Track WHERE UnitPrice >= 1.0 AND UnitPrice <= 1.5 returns 0",
+            "status": "contradicted"
+        },
+        {
+            "key": "database_is_authentic",
+            "metadata_value": "Chinook database",
+            "verified_value": "Authentic - Chinook is an official, widely-used sample database",
+            "source": "Verified via GitHub repository https://github.com/lerocha/chinook-database; database represents digital media store with 3503 real-world representative tracks",
+            "status": "verified"
+        },
+        {
+            "key": "track_count",
+            "metadata_value": null,
+            "verified_value": "3503",
+            "source": "SQL query: SELECT COUNT(*) FROM Track on official Chinook SQLite database",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the Chinook database, a real and officially maintained sample database representing a digital media store. The query to create is named 'TrackCategories' and should categorize 3503 tracks using CASE WHEN expressions with two computed columns: DurationCategory (thresholds: 180000 and 360000 milliseconds for 3 and 6 minute boundaries) and PriceCategory (thresholds: 1.0 and 1.5 currency units). Duration thresholds align with actual data distribution (480 short, 2400 medium, 623 long tracks). However, the price thresholds create an empty 'Standard' category because the Chinook database contains only two distinct prices: 0.99 (3290 tracks) and 1.99 (213 tracks), with no values between 1.0 and 1.5.",
+    "pi_confidence": "high"
+}

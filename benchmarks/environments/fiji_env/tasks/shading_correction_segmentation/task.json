@@ -1,0 +1,29 @@
+{
+  "id": "shading_correction_segmentation@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "You are a microbiologist analyzing a colony plate image (`blobs.gif`) that suffers from uneven illumination (vignetting). The corners are too dark, causing standard thresholding to miss colonies in those regions.\n\nYour goal is to perform retrospective shading correction and then segment ALL particles.\n\n**Workflow:**\n1. Open the sample image `blobs.gif` (File > Open Samples > Blobs).\n2. Generate a background model by duplicating the image and applying a large Gaussian Blur (Sigma ~ 40-80) to remove the objects while keeping the illumination pattern.\n3. Perform the correction using the Image Calculator (`Process > Image Calculator`): Divide the original image by the background model. Select '32-bit (float) result' for precision.\n4. (Optional) Adjust brightness/contrast of the result if needed for visibility.\n5. Apply a global threshold to the *corrected* image to create a binary mask that captures colonies even in the corners.\n6. Analyze the particles (`Analyze > Analyze Particles`) to count them.\n\n**Required Output:**\n- Save the final binary mask as `~/Fiji_Data/results/corrected_mask.png`.\n- Save the measurement results (including the count) as `~/Fiji_Data/results/particle_count.csv`.\n\n**Success Criteria:**\n- The particle count must be significantly higher than what a standard threshold yields (aim for > 50 particles).\n- The mask must show segmented objects across the entire field of view, including corners.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/shading_correction_segmentation/setup_task.sh",
+    "post_task": "/workspace/tasks/shading_correction_segmentation/export_result.sh"
+  },
+  "metadata": {
+    "dataset": "blobs.gif (Fiji built-in sample)",
+    "expected_count_min": 50,
+    "uncorrected_count_approx": 40,
+    "output_mask": "~/Fiji_Data/results/corrected_mask.png",
+    "output_csv": "~/Fiji_Data/results/particle_count.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_shading_correction"
+    }
+  }
+}

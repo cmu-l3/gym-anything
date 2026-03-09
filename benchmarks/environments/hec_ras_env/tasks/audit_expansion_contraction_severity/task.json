@@ -1,0 +1,30 @@
+{
+  "id": "audit_expansion_contraction_severity@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform a geometric audit of the Muncie river model to identify cross-section transitions that violate hydraulic design guidelines. \n\n**Goal:** Write a Python script to calculate the Top Width Expansion/Contraction Ratio between every pair of consecutive cross-sections at peak flow conditions.\n\n**Context:** Standard USACE guidelines suggest avoiding expansion ratios > 1.5 and contraction ratios < 0.5. You need to identify where these occur.\n\n**Steps:**\n1. Verify the Muncie unsteady flow simulation results exist (run `RasUnsteady Muncie.p04.tmp.hdf x04` if needed).\n2. Write a Python script using `h5py` to:\n   - Extract the 'Top Width' time series for all cross-sections from the results HDF5 file.\n   - For each cross-section, determine the Top Width at the timestep where THAT cross-section experiences maximum discharge (Peak Flow).\n   - Sort cross-sections from Upstream (highest River Station value) to Downstream (lowest River Station value).\n   - Calculate the Ratio = (Downstream Top Width) / (Upstream Top Width) for each consecutive pair.\n3. **Generate a CSV file** at `/home/ga/Documents/hec_ras_results/transition_audit.csv` containing columns: `Upstream_XS`, `Downstream_XS`, `Upstream_Width_ft`, `Downstream_Width_ft`, `Ratio`, `Type` (Expansion/Contraction), and `Status` (Severe/Acceptable).\n   - 'Severe' means Ratio > 1.5 or Ratio < 0.5.\n4. **Generate a Summary Report** at `/home/ga/Documents/hec_ras_results/transition_report.txt` listing:\n   - Total transitions analyzed.\n   - Count of 'Severe Expansion' violations.\n   - Count of 'Severe Contraction' violations.\n   - The specific reach segment (Upstream XS to Downstream XS) with the HIGHEST expansion ratio.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_expansion_contraction_severity/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_expansion_contraction_severity/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "expected_csv_path": "/home/ga/Documents/hec_ras_results/transition_audit.csv",
+    "expected_report_path": "/home/ga/Documents/hec_ras_results/transition_report.txt",
+    "expansion_limit": 1.5,
+    "contraction_limit": 0.5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit"
+    }
+  }
+}

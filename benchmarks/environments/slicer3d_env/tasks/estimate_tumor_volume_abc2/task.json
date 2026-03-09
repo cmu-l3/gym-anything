@@ -1,0 +1,43 @@
+{
+  "id": "estimate_tumor_volume_abc2@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Estimate the tumor volume on the provided brain MRI (T1-contrast) using the ABC/2 ellipsoid method. Measure three orthogonal diameters: A (longest axial), B (perpendicular to A on same slice), and C (craniocaudal extent). Save markups to ~/Documents/SlicerData/BraTS/measurement_A.mrk.json, measurement_B.mrk.json, and measurement_C.mrk.json. Save report to ~/Documents/SlicerData/BraTS/volume_estimate.txt with fields: A_diameter_mm, B_diameter_mm, C_diameter_mm, estimated_volume_ml.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/estimate_tumor_volume_abc2/setup_task.sh",
+    "post_task": "/workspace/tasks/estimate_tumor_volume_abc2/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement_A": "/home/ga/Documents/SlicerData/BraTS/measurement_A.mrk.json",
+    "output_measurement_B": "/home/ga/Documents/SlicerData/BraTS/measurement_B.mrk.json",
+    "output_measurement_C": "/home/ga/Documents/SlicerData/BraTS/measurement_C.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/volume_estimate.txt",
+    "diameter_range_mm": {"min": 5, "max": 80},
+    "volume_tolerance_percent": 35,
+    "orthogonal_angle_tolerance_degrees": 20,
+    "scoring_weights": {
+      "three_measurements_exist": 25,
+      "measurements_valid_range": 15,
+      "orthogonal_orientation": 15,
+      "volume_calculation_correct": 15,
+      "volume_estimate_accurate": 20,
+      "screenshot_with_measurements": 5,
+      "report_complete": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_estimate_tumor_volume_abc2"
+    }
+  }
+}

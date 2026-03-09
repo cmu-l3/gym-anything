@@ -1,0 +1,37 @@
+{
+  "id": "compute_courant_stability@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform a stability analysis on the Muncie HEC-RAS unsteady flow model. The simulation results are available in `Muncie.p04.tmp.hdf`. \n\nYour goal is to compute the Courant number ($C = V \\cdot \\Delta t / \\Delta x$) for each cross-section at the time of peak flow.\n\n**Steps:**\n1. Use Python (h5py/rashdf) to read `Muncie.p04.tmp.hdf`.\n2. Extract the channel velocity ($V$) at the peak timestep for each cross-section.\n3. Extract or calculate the distance between cross-sections ($\\Delta x$).\n4. Determine the computation time step ($\\Delta t$) used in the simulation.\n5. Compute $C = V \\cdot \\Delta t / \\Delta x$ for each station.\n6. Save a CSV file to `~/Documents/hec_ras_results/courant_analysis.csv` with columns: `River_Station`, `Velocity_fps`, `Delta_X_ft`, `Courant_Number`.\n7. Create a summary text file `~/Documents/hec_ras_results/courant_report.txt` stating the Maximum Courant Number, the count of sections where $C > 1.0$, and a stability assessment (STABLE if Max < 1.0, MARGINAL if 1.0-2.0, UNSTABLE if > 2.0).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_courant_stability/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_courant_stability/export_result.sh"
+  },
+  "metadata": {
+    "output_csv_path": "/home/ga/Documents/hec_ras_results/courant_analysis.csv",
+    "output_report_path": "/home/ga/Documents/hec_ras_results/courant_report.txt",
+    "hdf_file_path": "/home/ga/Documents/hec_ras_projects/Muncie/Muncie.p04.tmp.hdf",
+    "required_columns": ["River_Station", "Velocity_fps", "Delta_X_ft", "Courant_Number"],
+    "scoring": {
+      "file_exists": 10,
+      "csv_format": 10,
+      "data_volume": 10,
+      "velocity_reasonable": 10,
+      "consistency": 20,
+      "accuracy": 20,
+      "report_quality": 20
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_courant_stability"
+    }
+  }
+}

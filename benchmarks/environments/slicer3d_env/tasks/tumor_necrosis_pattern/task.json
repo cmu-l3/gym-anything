@@ -1,0 +1,48 @@
+{
+  "id": "tumor_necrosis_pattern@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment the enhancing tumor and necrotic core on the provided brain MRI by comparing T1 and T1ce sequences. Create segments named 'Enhancing_Tumor' and 'Necrotic_Core', measure their volumes, calculate the necrosis ratio, and classify the enhancement pattern. Save segmentation to ~/Documents/SlicerData/BraTS/enhancement_segmentation.nii.gz and report to ~/Documents/SlicerData/BraTS/necrosis_report.json with fields: enhancing_volume_ml, necrotic_volume_ml, total_core_volume_ml, necrosis_ratio, enhancement_pattern, clinical_interpretation.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tumor_necrosis_pattern/setup_task.sh",
+    "post_task": "/workspace/tasks/tumor_necrosis_pattern/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/BraTS/enhancement_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/necrosis_report.json",
+    "modalities": ["flair", "t1", "t1ce", "t2"],
+    "brats_labels": {
+      "necrotic_core": 1,
+      "edema": 2,
+      "enhancing": 4
+    },
+    "passing_thresholds": {
+      "enhancing_volume_error_max_pct": 40,
+      "necrotic_volume_error_max_pct": 40,
+      "ratio_error_max": 0.15
+    },
+    "scoring_weights": {
+      "enhancing_volume_accuracy": 25,
+      "necrotic_volume_accuracy": 25,
+      "necrosis_ratio_accuracy": 15,
+      "pattern_classification": 20,
+      "report_completeness": 10,
+      "segmentation_quality": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tumor_necrosis_pattern"
+    }
+  }
+}

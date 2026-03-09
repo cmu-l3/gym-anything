@@ -1,0 +1,30 @@
+{
+  "id": "audit_reach_length_consistency@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform a Quality Assurance audit on the Muncie HEC-RAS geometry to verify channel reach lengths.\n\nYour goal is to write a Python script that compares the stored 'Channel Reach Length' in the HDF5 geometry data against the 'Implied Length' calculated from River Station identifiers.\n\n**Context:**\nIn HEC-RAS, cross-sections have a 'River Station' (RS) which usually represents the distance from the river mouth. The distance to the next downstream cross-section should match the 'Channel Reach Length' property. Discrepancies indicate potential model errors.\n\n**Task Requirements:**\n1.  Locate the Plan HDF5 file `Muncie.p04.tmp.hdf` in `/home/ga/Documents/hec_ras_projects/Muncie/`. The geometry data is located under the `/Geometry` group.\n2.  Create a Python script at `/home/ga/Documents/hec_ras_results/audit_reach_lengths.py` that:\n    *   Iterates through all Rivers and Reaches.\n    *   For each cross-section, extracts the stored `Channel Reach Length`.\n    *   Calculates the `Implied Length` as: `(Current_RS - Next_Downstream_RS)`. (Note: The most downstream node in a reach has no downstream neighbor, so implied length is undefined/0).\n    *   Computes the absolute `Discrepancy` between Stored and Implied lengths.\n    *   Flags the section as 'FAIL' if the discrepancy is > 1.0 foot, otherwise 'PASS'.\n3.  Save the results to a CSV file at `/home/ga/Documents/hec_ras_results/reach_length_audit.csv` with columns: `River`, `Reach`, `River_Station`, `Stored_Length`, `Implied_Length`, `Discrepancy`, `Status`.\n4.  Save a summary text file at `/home/ga/Documents/hec_ras_results/audit_summary.txt` containing the count of failing sections and the River Station with the maximum discrepancy.\n\n**Note:** Use the `rashdf` or `h5py` libraries available in the environment.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_reach_length_consistency/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_reach_length_consistency/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "hdf_file": "Muncie.p04.tmp.hdf",
+    "script_path": "/home/ga/Documents/hec_ras_results/audit_reach_lengths.py",
+    "csv_path": "/home/ga/Documents/hec_ras_results/reach_length_audit.csv",
+    "summary_path": "/home/ga/Documents/hec_ras_results/audit_summary.txt",
+    "tolerance_ft": 1.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_reach_length_consistency"
+    }
+  }
+}

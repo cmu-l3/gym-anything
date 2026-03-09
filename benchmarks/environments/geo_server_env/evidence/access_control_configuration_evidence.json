@@ -1,0 +1,45 @@
+{
+  "task": "access_control_configuration",
+  "task_id": "access_control_configuration@1",
+  "difficulty": "hard",
+  "test_date": "2026-03-01",
+  "methodology": "Pipeline simulation: verifier.py loaded directly with mock copy_from_env injecting synthetic result JSONs. Two do-nothing scenarios tested per Lesson 24.",
+  "pipeline_results": {
+    "do_nothing_no_export": {
+      "score": 0,
+      "passed": false,
+      "description": "copy_from_env raises FileNotFoundError (agent did nothing, export never ran)"
+    },
+    "do_nothing_baseline": {
+      "score": 0,
+      "passed": false,
+      "description": "Export ran but all fields at initial state (user_found=false, role_found=false, data_rule_found=false)"
+    },
+    "partial_no_assignment": {
+      "score": 40,
+      "passed": false,
+      "description": "User gis_reader and role ROLE_GIS_READER created, but no role assignment and no ACL rules configured"
+    },
+    "full_success": {
+      "score": 100,
+      "passed": true,
+      "description": "All criteria met: user gis_reader created + ROLE_GIS_READER role created + user assigned to role + data ACL rule for ne.*.r + WMS service security rule"
+    }
+  },
+  "scoring_breakdown": {
+    "user_found": 20,
+    "role_found": 20,
+    "role_assigned_to_user": 20,
+    "data_acl_rule_for_ne_star": 25,
+    "service_acl_rule_for_wms": 15
+  },
+  "pass_threshold": 60,
+  "mandatory_for_pass": ["user_found", "role_found", "gui_confirmed"],
+  "notes": "Tests GeoServer security REST API: /rest/security/usergroup/users.json, /rest/security/roles.json, /rest/security/acl/layers.json, /rest/security/acl/services.json. Flexible matching on ACL rule key/value.",
+  "env": "geo_server_env",
+  "env_base": "ubuntu-gnome-systemd_highres",
+  "app": "GeoServer 2.25.2 + PostGIS 15-3.3 via Docker",
+  "geoserver_url": "http://localhost:8080/geoserver/web/",
+  "credentials": "admin / Admin123!",
+  "verification_method": "export_result.sh -> /tmp/access_control_configuration_result.json -> copy_from_env -> JSON field parsing against GeoServer security REST API responses"
+}

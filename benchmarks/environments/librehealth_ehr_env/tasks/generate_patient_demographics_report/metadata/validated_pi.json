@@ -1,0 +1,66 @@
+{
+    "task_id": "generate_patient_demographics_report@1",
+    "dataset": "NHANES 2011-2012 (National Health and Nutrition Examination Survey)",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "output_path",
+            "metadata_value": "/home/ga/patient_report_count.txt",
+            "verified_value": "/home/ga/patient_report_count.txt",
+            "source": "task.json specification and export_result.sh implementation",
+            "status": "verified"
+        },
+        {
+            "key": "filter_sex",
+            "metadata_value": "Male",
+            "verified_value": "Male",
+            "source": "Verified in SQL analysis of NHANES data dump",
+            "status": "verified"
+        },
+        {
+            "key": "filter_dob_cutoff",
+            "metadata_value": "1960-01-01",
+            "verified_value": "1960-01-01",
+            "source": "Verified in export_result.sh SQL query and metadata specification",
+            "status": "verified"
+        },
+        {
+            "key": "sql_logic",
+            "metadata_value": "sex = 'Male' AND DOB < '1960-01-01'",
+            "verified_value": "sex = 'Male' AND DOB < '1960-01-01' AND DOB IS NOT NULL AND DOB != ''",
+            "source": "export_result.sh line 36 implements the full query with additional NULL and empty string checks",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_count",
+            "metadata_value": null,
+            "verified_value": 1002,
+            "source": "Parsed NHANES SQL dump (libreehr_nhanes.sql.gz from https://github.com/LibreHealthIO/lh-ehr/raw/master/sql/nhanes/libreehr_nhanes.sql.gz) and executed exact query: SELECT COUNT(*) FROM patient_data WHERE sex = 'Male' AND DOB < '1960-01-01' AND DOB IS NOT NULL AND DOB != ''",
+            "status": "verified"
+        },
+        {
+            "key": "nhanes_patient_count",
+            "metadata_value": "9,375 real NHANES patients",
+            "verified_value": 9448,
+            "source": "Parsed patient_data table from NHANES SQL dump showing 9,448 total patients with valid IDs and 9,390 with complete demographics",
+            "status": "contradicted"
+        },
+        {
+            "key": "data_source_url",
+            "metadata_value": null,
+            "verified_value": "https://github.com/LibreHealthIO/lh-ehr/raw/master/sql/nhanes/libreehr_nhanes.sql.gz",
+            "source": "setup_librehealth.sh line 59 specifies this as primary source for NHANES data",
+            "status": "verified"
+        },
+        {
+            "key": "data_authenticity",
+            "metadata_value": null,
+            "verified_value": "Real CDC data from NHANES 2011-2012",
+            "source": "setup_librehealth.sh comments (lines 4, 53-56) confirm real NHANES patient data; verified via CDC and LibreHealth Forums that NHANES 2011-2012 data was loaded into LibreHealthEHR for educational purposes",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on real NHANES (National Health and Nutrition Examination Survey) 2011-2012 patient data containing 9,448 total patients. The task requires agents to identify male patients born before January 1, 1960. The ground truth count for this filtered demographic (sex='Male' AND DOB<'1960-01-01' with non-null, non-empty DOB values) is 1,002 patients. The data is sourced from the official LibreHealthIO repository (https://github.com/LibreHealthIO/lh-ehr/raw/master/sql/nhanes/libreehr_nhanes.sql.gz) and is publicly available real data from the CDC's National Health and Nutrition Examination Survey.",
+    "pi_confidence": "high"
+}

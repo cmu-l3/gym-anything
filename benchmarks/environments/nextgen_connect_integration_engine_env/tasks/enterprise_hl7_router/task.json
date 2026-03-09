@@ -1,0 +1,34 @@
+{
+  "id": "enterprise_hl7_router@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "You are the Integration Architect for a large regional health system with 8 hospitals. All external systems connect to a single HL7 'front door' endpoint, and messages must be dynamically routed to the correct downstream processing system based on both sending application (MSH-3) and message type (MSH-9). The routing rules are maintained in a database table so they can be updated without redeploying channels. Build a three-channel enterprise routing solution: CHANNEL 1 - 'Enterprise HL7 Router' (the facade): (a) Listens on TCP port 6668 for any HL7 message using MLLP. (b) Contains a JavaScript transformer that reads MSH-3 (Sending Application) and MSH-9 (Message Type) from the incoming message and sets channel map variables 'sendingApp' and 'messageType'. (c) Has a FIRST Channel Writer destination with a JavaScript filter script that checks: sendingApp contains 'Lab' OR messageType starts with 'ORU' - if true, routes to 'Lab Results Processor' channel. (d) Has a SECOND Channel Writer destination with a JavaScript filter script that checks: messageType starts with 'ADT' - if true, routes to 'ADT Event Handler' channel. (e) Has a THIRD Database Writer destination with NO filter (catches all unmatched messages) that INSERTs into 'dead_letter_queue' table (columns: message_id VARCHAR, sending_app VARCHAR, message_type VARCHAR, raw_message TEXT, received_at TIMESTAMP DEFAULT NOW()). CHANNEL 2 - 'Lab Results Processor': (a) Receives messages from Channel 1 via Channel Reader. (b) Has a Database Writer that INSERTs into 'lab_results_inbox' table (columns: message_id VARCHAR, patient_mrn VARCHAR, test_code VARCHAR, received_at TIMESTAMP DEFAULT NOW()). CHANNEL 3 - 'ADT Event Handler': (a) Receives messages from Channel 1 via Channel Reader. (b) Has a Database Writer that INSERTs into 'adt_events_inbox' table (columns: message_id VARCHAR, patient_mrn VARCHAR, event_type VARCHAR, received_at TIMESTAMP DEFAULT NOW()). All three channels must be deployed. A routing_rules table is pre-seeded in PostgreSQL with routing rules — query it with: docker exec nextgen-postgres psql -U postgres -d mirthdb -c 'SELECT * FROM routing_rules;' You must create the three destination tables yourself: dead_letter_queue, lab_results_inbox, and adt_events_inbox. PostgreSQL: jdbc:postgresql://nextgen-postgres:5432/mirthdb (postgres/postgres). REST API: https://localhost:8443/api (admin:admin). Header required: X-Requested-With: OpenAPI. Deploy Channels 2 and 3 first to get their IDs, then create Channel 1 referencing those IDs in the Channel Writer destinations.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/enterprise_hl7_router/setup_task.sh",
+    "post_task": "/workspace/tasks/enterprise_hl7_router/export_result.sh"
+  },
+  "metadata": {
+    "facade_channel_name": "Enterprise HL7 Router",
+    "lab_channel_name": "Lab Results Processor",
+    "adt_channel_name": "ADT Event Handler",
+    "facade_port": "6668",
+    "dlq_table": "dead_letter_queue",
+    "lab_table": "lab_results_inbox",
+    "adt_table": "adt_events_inbox",
+    "routing_rules_table": "routing_rules",
+    "occupation": "Integration Architect",
+    "soc_code": "15-1299.09"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_enterprise_hl7_router"
+    }
+  }
+}

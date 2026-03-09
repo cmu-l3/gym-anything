@@ -1,0 +1,52 @@
+{
+  "id": "brats_tumor_segmentation@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment the complete tumor region on the loaded brain MRI (FLAIR, T1, T1ce, T2 sequences) and create a 3D visualization. Save the segmentation to ~/Documents/SlicerData/BraTS/agent_segmentation.nii.gz and report the tumor volume in mL to ~/Documents/SlicerData/BraTS/tumor_report.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/brats_tumor_segmentation/setup_task.sh",
+    "post_task": "/workspace/tasks/brats_tumor_segmentation/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/BraTS/agent_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/tumor_report.txt",
+    "modalities": ["flair", "t1", "t1ce", "t2"],
+    "tumor_labels": {
+      "background": 0,
+      "necrotic_net": 1,
+      "edema": 2,
+      "enhancing": 4
+    },
+    "passing_thresholds": {
+      "dice_whole_tumor": 0.5,
+      "dice_tumor_core": 0.3,
+      "dice_enhancing": 0.3,
+      "hausdorff_95_max_mm": 30,
+      "volume_error_max_percent": 30
+    },
+    "scoring_weights": {
+      "dice_whole_tumor": 25,
+      "dice_tumor_core": 15,
+      "dice_enhancing": 15,
+      "hausdorff_metric": 10,
+      "volume_accuracy": 15,
+      "volume_reported": 10,
+      "visualization_created": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_brats_segmentation"
+    }
+  }
+}

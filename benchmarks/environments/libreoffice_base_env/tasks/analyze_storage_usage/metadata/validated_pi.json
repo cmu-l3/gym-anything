@@ -1,0 +1,52 @@
+{
+    "task_id": "analyze_storage_usage@1",
+    "dataset": "Chinook",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_query_name",
+            "metadata_value": "GenreStorageStats",
+            "verified_value": null,
+            "source": "task.json specification field, not a data claim",
+            "status": "unverified"
+        },
+        {
+            "key": "expected_columns",
+            "metadata_value": "[\"GenreName\", \"TrackCount\", \"TotalMB\"]",
+            "verified_value": null,
+            "source": "task.json specification field, not a data claim",
+            "status": "unverified"
+        },
+        {
+            "key": "ground_truth.largest_genre",
+            "metadata_value": "Rock",
+            "verified_value": "Drama",
+            "source": "Chinook SQLite database query: SELECT Genre, SUM(Bytes)/1048576.0 as MB FROM Genre JOIN Track GROUP BY Genre ORDER BY MB DESC LIMIT 1. Drama has 30,941.59 MB, Rock has 11,141.36 MB. Task description specifies sorting by TotalMB descending.",
+            "status": "contradicted"
+        },
+        {
+            "key": "ground_truth.rock_count",
+            "metadata_value": 1297,
+            "verified_value": 1297,
+            "source": "Chinook SQLite database query: SELECT COUNT(*) FROM Track WHERE GenreId=(SELECT GenreId FROM Genre WHERE Name='Rock'). Result: exactly 1297 tracks.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.rock_mb_approx",
+            "metadata_value": 10800,
+            "verified_value": 11141.36,
+            "source": "Chinook SQLite database query: SELECT SUM(Bytes)/1048576.0 FROM Track WHERE GenreId=(SELECT GenreId FROM Genre WHERE Name='Rock'). Result: 11,141.36 MB, which is 3.2% higher than claimed 10,800 MB.",
+            "status": "verified"
+        },
+        {
+            "key": "odb_path",
+            "metadata_value": "/home/ga/chinook.odb",
+            "verified_value": "/home/ga/chinook.odb",
+            "source": "Verified in setup_libreoffice_base.sh and export_result.sh scripts that copy/reference this path",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Chinook database is a synthetic dataset with 11 tables representing a digital media store. Rock is the largest genre by track count (1,297 tracks) but NOT by storage size (11,141.36 MB, ~3.2% above claimed 10,800 MB). By total storage size as requested in the task description, Drama is the largest genre (30,941.59 MB). The ODB file is created at /home/ga/chinook.odb from official Chinook SQLite source (github.com/lerocha/chinook-database).",
+    "pi_confidence": "high"
+}

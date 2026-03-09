@@ -1,0 +1,43 @@
+{
+  "id": "measure_aortic_cross_sectional_area@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the aortic cross-sectional area at the level of maximum diameter on the abdominal CT at ~/Documents/SlicerData/AMOS/amos_0001.nii.gz using a closed curve markup. Save results to ~/Documents/SlicerData/Exports/aortic_area_measurement.json with fields: patient_id, measurement_type, slice_index, cross_sectional_area_mm2, num_control_points, curve_name.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/measure_aortic_cross_sectional_area/setup_task.sh",
+    "post_task": "/workspace/tasks/measure_aortic_cross_sectional_area/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "input_volume": "/home/ga/Documents/SlicerData/AMOS/amos_0001.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/Exports/aortic_area_measurement.json",
+    "expected_max_slice_index": 45,
+    "expected_slice_tolerance": 5,
+    "expected_area_mm2": 855,
+    "area_tolerance_percent": 15,
+    "min_control_points": 6,
+    "expected_diameter_mm": 33,
+    "scoring_weights": {
+      "json_file_exists": 15,
+      "slice_location_correct": 25,
+      "area_within_tolerance": 30,
+      "sufficient_control_points": 10,
+      "vlm_aortic_location": 15,
+      "file_created_after_start": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_aortic_cross_sectional_area"
+    }
+  }
+}

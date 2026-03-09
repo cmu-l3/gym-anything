@@ -1,0 +1,32 @@
+{
+  "id": "social_metadata_validation_audit@1",
+  "version": "1.0",
+  "env_id": "frog_seo_spider_env@0.1",
+  "description": "You are a Technical Marketing Manager auditing social media previews. Configure Screaming Frog SEO Spider to extract Open Graph metadata from 'https://crawler-test.com/'. \n\nSTEPS:\n1. Open Screaming Frog SEO Spider.\n2. Configure 'Custom Extraction' (under Configuration > Custom > Custom Extraction) to extract two items:\n   - Name: 'OG Title', Method: CSS Path (or XPath), Selector: meta[property=\"og:title\"] (or equivalent), Attribute: content\n   - Name: 'OG Image', Method: CSS Path (or XPath), Selector: meta[property=\"og:image\"] (or equivalent), Attribute: content\n3. Start the crawl for 'https://crawler-test.com/'.\n4. Wait for the crawl to complete.\n5. Export the crawl data (including your custom extraction columns) as a CSV file named 'social_tags_export.csv' to '~/Documents/SEO/exports/'.\n6. Create a text report at '~/Documents/SEO/reports/missing_social_tags.txt' that lists the total number of URLs crawled, how many are missing OG tags, and at least 3 URLs that are missing them.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/social_metadata_validation_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/social_metadata_validation_audit/export_result.sh"
+  },
+  "metadata": {
+    "target_url": "https://crawler-test.com/",
+    "target_domain": "crawler-test.com",
+    "expected_export_filename": "social_tags_export.csv",
+    "expected_report_filename": "missing_social_tags.txt",
+    "test_urls": {
+      "has_tags": "https://crawler-test.com/facebook/has_og_tags",
+      "no_tags": "https://crawler-test.com/facebook/no_og_tags"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_social_metadata_audit"
+    }
+  }
+}

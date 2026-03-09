@@ -1,0 +1,28 @@
+{
+  "id": "generate_weighted_city_buffers@1",
+  "version": "1.0",
+  "env_id": "gvsig_desktop_env@0.1",
+  "description": "Generate variable-sized buffer zones around major cities based on their population.\n\nStarting with the Natural Earth countries basemap open in gvSIG Desktop:\n\n1. Add the Populated Places layer to the View from `/home/ga/gvsig_data/cities/ne_110m_populated_places.shp`.\n2. Open the Attribute Table for the populated places layer.\n3. Add a new field named `inf_deg` (Type: Double/Float) to the table.\n4. Calculate the values for this new field using the Field Calculator with the formula: `[POP_MAX] / 10000000`. This creates a radius in degrees proportional to population (e.g., 10M people = 1.0 degree).\n5. Open the Geoprocessing Buffer tool.\n6. Configure the buffer to use the `inf_deg` field for the distance/radius (do NOT use a fixed distance).\n7. Ensure 'Dissolve' is unchecked/disabled (we want individual circles).\n8. Save the result to `/home/ga/gvsig_data/exports/city_influence.shp`.\n\nThe task is complete when the shapefile is created containing variable-sized circular polygons corresponding to the cities.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/generate_weighted_city_buffers/setup_task.sh",
+    "post_task": "/workspace/tasks/generate_weighted_city_buffers/export_result.sh"
+  },
+  "metadata": {
+    "input_shp": "/home/ga/gvsig_data/cities/ne_110m_populated_places.shp",
+    "output_shp": "/home/ga/gvsig_data/exports/city_influence.shp",
+    "expected_feature_count_min": 200,
+    "correlation_threshold": 0.8
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_weighted_buffers"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "estimate_bankfull_capacity@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Calculate the bankfull discharge for every cross-section in the Muncie HEC-RAS model.\n\nBankfull discharge is defined as the flow rate on the **rising limb** of the flood hydrograph at the exact moment the water surface elevation (WSE) equals the minimum bank elevation.\n\n**Goal:** Create a Python script to analyze the HEC-RAS HDF5 geometry and result data, perform the calculations, and export a summary CSV.\n\n**Requirements:**\n1. Analyze the HDF5 output file (e.g., `Muncie.p04.tmp.hdf`).\n2. For each cross-section:\n   - Identify the Left and Right Bank Stations (horizontal coordinates) from the Geometry data.\n   - Look up the **elevation** of these bank stations using the station-elevation profile (you must derive Z from X).\n   - Define `Min_Bank_Elev` as the lower of the left and right bank elevations.\n   - Find the FIRST time step where the Water Surface Elevation (WSE) exceeds `Min_Bank_Elev` (the rising limb crossing).\n   - **Interpolate** the Flow (Discharge) at that exact time.\n   - If the cross-section never floods (Max WSE < Min Bank Elev), set Bankfull Q to 0.\n3. Save the results to `/home/ga/Documents/hec_ras_results/bankfull_capacity.csv`.\n\n**Output CSV Format:**\nThe CSV must contain exactly these columns:\n- `RiverStation` (string/numeric)\n- `Min_Bank_Elev_ft` (float)\n- `Bankfull_Q_cfs` (float)\n- `Max_WSE_ft` (float)\n\n**Note:** This task requires combining static geometry data with dynamic simulation results. You can find the HDF5 file in the project directory.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/estimate_bankfull_capacity/setup_task.sh",
+    "post_task": "/workspace/tasks/estimate_bankfull_capacity/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/hec_ras_results/bankfull_capacity.csv",
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "tolerances": {
+      "elevation_ft": 0.1,
+      "flow_percent": 5.0
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_estimate_bankfull_capacity"
+    }
+  }
+}

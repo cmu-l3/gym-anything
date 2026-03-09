@@ -1,0 +1,66 @@
+{
+    "task_id": "northwind_schema_reconstruction@1",
+    "dataset": "Northwind SQLite Database",
+    "case_id": "standard_northwind_with_orders",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "approx_counts.Customers",
+            "metadata_value": "89",
+            "verified_value": "89",
+            "source": "Analyzed legacy_sales_dump.csv from jpwhite3/northwind-SQLite3 create.sql. Counted unique CustomerName values in the flattened CSV (Orders × Customers × OrderDetails × Products × Categories join). Found exactly 89 unique customer names, which represents customers with at least one order. The full Customers table has 93 rows, but 4 customers have no orders and are therefore not in the CSV.",
+            "status": "verified"
+        },
+        {
+            "key": "approx_counts.Products",
+            "metadata_value": "77",
+            "verified_value": "77",
+            "source": "Analyzed legacy_sales_dump.csv from jpwhite3/northwind-SQLite3 create.sql. Counted unique ProductName values. Found exactly 77 unique products.",
+            "status": "verified"
+        },
+        {
+            "key": "approx_counts.Orders",
+            "metadata_value": "830",
+            "verified_value": "830",
+            "source": "Analyzed legacy_sales_dump.csv from jpwhite3/northwind-SQLite3 create.sql. Counted unique LegacyOrderID values. Found exactly 830 unique orders.",
+            "status": "verified"
+        },
+        {
+            "key": "approx_counts.OrderItems",
+            "metadata_value": "2155",
+            "verified_value": "2155",
+            "source": "Analyzed legacy_sales_dump.csv from jpwhite3/northwind-SQLite3 create.sql. Counted data rows in the generated CSV (excluding header). Found exactly 2155 data rows, which equals the number of OrderDetail records in the source database.",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": null,
+            "verified_value": "https://raw.githubusercontent.com/jpwhite3/northwind-SQLite3/main/src/create.sql",
+            "source": "Examined setup_task.sh script. The script attempts to download from https://raw.githubusercontent.com/jpwhite3/northwind-SQLite3/main/Northwind_large.sql, which does not exist and causes the script to fail. However, the actual data source that matches the metadata counts is the create.sql file from the jpwhite3/northwind-SQLite3 repository. Downloaded and verified both files.",
+            "status": "verified"
+        },
+        {
+            "key": "data_characteristics",
+            "metadata_value": null,
+            "verified_value": "Real data from public Microsoft Northwind sample database converted to SQLite3. The database represents a small business (Northwind Traders) with customers, products, categories, suppliers, orders, and order details from the 1990s.",
+            "source": "Cross-referenced https://github.com/jpwhite3/northwind-SQLite3 README and created database from SQL source. The jpwhite3 repository is a well-known conversion of the Microsoft Northwind sample database to SQLite3.",
+            "status": "verified"
+        },
+        {
+            "key": "setup_script_integrity",
+            "metadata_value": null,
+            "verified_value": "CRITICAL ISSUE: setup_task.sh will fail. The script tries to download from URL https://raw.githubusercontent.com/jpwhite3/northwind-SQLite3/main/Northwind_large.sql which returns 404 Not Found. This file does not exist in the repository.",
+            "source": "Tested direct download of the URL specified in setup_task.sh line 25. Received HTTP 404 error. Searched GitHub API for the file - it does not exist. The correct source files are: (1) dist/northwind.db (pre-built database, ~24MB, contains expanded data with 830 orders but 609K+ order details), or (2) src/create.sql (SQL source with standard Northwind data matching metadata).",
+            "status": "contradicted"
+        },
+        {
+            "key": "csv_row_count_relationship",
+            "metadata_value": null,
+            "verified_value": "OrderItems row count equals CSV data rows (minus header). Verified: 2155 OrderItems = 2155 CSV data rows (2156 total with header).",
+            "source": "Generated legacy_sales_dump.csv from the create.sql Northwind database using the exact query from setup_task.sh lines 69-86. Result: 2156 lines total (1 header + 2155 data), corresponding to the 2155 rows in Order Details table.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Northwind database used for this task is real data from the public Microsoft Northwind sample database, converted to SQLite3 by the jpwhite3/northwind-SQLite3 GitHub project. The normalized table counts are verified: Customers=89 (unique customers with orders), Products=77, Orders=830, OrderItems=2155. These values come from the standard Northwind dataset (create.sql), not the expanded version. Each OrderItem row corresponds to one row in the legacy_sales_dump.csv file, which is a flattened join of Orders, Customers, OrderDetails, Products, and Categories tables. The setup script has a critical bug: it attempts to download Northwind_large.sql from GitHub, which does not exist (404 Not Found). The actual data source should be https://raw.githubusercontent.com/jpwhite3/northwind-SQLite3/main/src/create.sql (for metadata-matching counts) or https://github.com/jpwhite3/northwind-SQLite3/raw/main/dist/northwind.db (for a pre-built database with expanded data).",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,33 @@
+{
+  "id": "configure_water_monitoring_pipeline@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "Configure the input processing for a water meter to track consumption and flow rate.\n\nScenario: You are a facility manager. A water meter with a pulse output has been connected to Emoncms (Node: 'utility_room', Input: 'main_water_pulses'). The meter generates **1 pulse for every 10 Liters** of water flow.\n\nYour goal is to configure the input processing for this input to create two specific feeds:\n\n1. **Total Consumption**: Create a feed named `water_total_m3` that tracks the cumulative water volume in **cubic meters (m³)**.\n   (Hint: 1000 Liters = 1 m³)\n\n2. **Flow Rate**: Create a feed named `water_flow_lpm` that tracks the current flow rate in **Liters per minute**.\n\nBoth feeds must use the **PHPFina** engine with a **10s** interval.\n\nStarting state: Emoncms is running and logged in. The input `main_water_pulses` is receiving data but has no processing configured.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_water_monitoring_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_water_monitoring_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "node_name": "utility_room",
+    "input_name": "main_water_pulses",
+    "pulse_weight_liters": 10,
+    "target_feed_total": "water_total_m3",
+    "target_feed_flow": "water_flow_lpm",
+    "expected_total_m3_test_val": 200.1,
+    "expected_flow_lpm_test_val": 600.0,
+    "test_delta_pulses": 10,
+    "test_duration_sec": 10
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_water_monitoring_pipeline"
+    }
+  }
+}

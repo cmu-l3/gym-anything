@@ -1,0 +1,49 @@
+{
+  "id": "brain_tumor_documentation_protocol@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Create a complete brain tumor documentation package from the loaded glioma MRI (FLAIR and T1_Contrast). Perform bidimensional measurements of the tumor and capture annotated screenshots in all three planes. Save screenshots to ~/Documents/SlicerData/BraTS/Documentation/axial_view.png, sagittal_view.png, and coronal_view.png. Save measurement markup to ~/Documents/SlicerData/BraTS/Documentation/measurements.mrk.json. Save report to ~/Documents/SlicerData/BraTS/Documentation/documentation_report.json with fields: patient_id, finding, max_axial_diameter_mm, perpendicular_diameter_mm, bidimensional_product_mm2, tumor_location, screenshot_count, documentation_complete.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/brain_tumor_documentation_protocol/setup_task.sh",
+    "post_task": "/workspace/tasks/brain_tumor_documentation_protocol/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "output_dir": "/home/ga/Documents/SlicerData/BraTS/Documentation",
+    "expected_screenshots": [
+      "axial_view.png",
+      "sagittal_view.png",
+      "coronal_view.png"
+    ],
+    "expected_measurement_file": "/home/ga/Documents/SlicerData/BraTS/Documentation/measurements.mrk.json",
+    "expected_report_file": "/home/ga/Documents/SlicerData/BraTS/Documentation/documentation_report.json",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "min_screenshot_size_kb": 50,
+    "diameter_tolerance_mm": 8.0,
+    "passing_threshold": 65,
+    "scoring_weights": {
+      "axial_screenshot": 12,
+      "sagittal_screenshot": 12,
+      "coronal_screenshot": 12,
+      "max_diameter_accuracy": 20,
+      "perpendicular_measurement": 10,
+      "bidimensional_calculation": 8,
+      "measurement_markup_saved": 8,
+      "report_completeness": 10,
+      "location_description": 8
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_brain_tumor_documentation"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "compute_flood_attenuation@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform a flood peak attenuation analysis on the Muncie unsteady flow simulation. \n\n1. Ensure the simulation results exist (run 'RasUnsteady Muncie.p04.tmp.hdf x04' if needed).\n2. Write a Python script to extract flow hydrographs from the HDF5 results ('Muncie.p04.hdf') for the most upstream and most downstream cross-sections.\n3. Compute the following metrics:\n   - Peak flow at both locations (cfs)\n   - Peak attenuation (cfs and %)\n   - Peak timing lag (hours)\n   - Cumulative flood volumes (acre-ft) and volume difference (%)\n4. Save three files to '/home/ga/Documents/hec_ras_results/':\n   - 'flood_attenuation_data.csv': Columns [Time_hours, Flow_Upstream_cfs, Flow_Downstream_cfs]\n   - 'flood_attenuation_summary.txt': A report listing all computed metrics.\n   - 'flood_attenuation_plot.png': An image showing the overlaid hydrographs.\n\nUse the installed python libraries (h5py, rashdf, matplotlib, pandas) for your analysis.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_flood_attenuation/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_flood_attenuation/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "expected_csv": "flood_attenuation_data.csv",
+    "expected_report": "flood_attenuation_summary.txt",
+    "expected_plot": "flood_attenuation_plot.png",
+    "min_peak_flow": 1000,
+    "max_peak_flow": 50000,
+    "min_attenuation_pct": 0,
+    "max_attenuation_pct": 50
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_flood_attenuation"
+    }
+  }
+}

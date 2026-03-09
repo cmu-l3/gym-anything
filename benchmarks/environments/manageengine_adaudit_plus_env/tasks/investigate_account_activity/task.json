@@ -1,0 +1,32 @@
+{
+  "id": "investigate_account_activity@1",
+  "version": "1.0",
+  "env_id": "manageengine_adaudit_plus_env@0.1",
+  "description": "ADAudit Plus is running at http://localhost:8081/ (login: admin/Admin@2024). Your security operations team has been notified of suspicious activity involving local Windows accounts in the past 24 hours. Use ADAudit Plus to conduct a thorough security investigation: navigate the reports and audit trail to identify which local user accounts were involved in account management events (creations, modifications, password resets, group membership changes) and which accounts were targeted by failed logon attempts. Based on your findings, take the following actions: (1) create a new technician account to conduct ongoing monitoring — username 'soc_analyst1', full name 'SOC Analyst', email 'soc.analyst@corp.local', password 'SOCTeam@2025', role 'Operator'; (2) write your full investigation findings to C:\\Users\\Docker\\Desktop\\account_threat_report.txt — the file must list every username you discovered in the audit trail, what type of event occurred for each account, and your recommended remediation steps.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\investigate_account_activity\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\investigate_account_activity\\export_result.ps1",
+    "pre_task_timeout": 900
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_investigate_account_activity"
+    }
+  },
+  "metadata": {
+    "expected_tech_username": "soc_analyst1",
+    "expected_tech_role": "Operator",
+    "expected_report_file": "C:\\Users\\Docker\\Desktop\\account_threat_report.txt",
+    "account_events_users": ["jsmith", "mjohnson", "rwilliams", "abrown", "dlee"],
+    "failed_logon_users": ["baduser1", "baduser2", "wrongadmin", "testattacker", "bruteforce1"],
+    "task_specific_users": ["dlee"],
+    "result_file": "C:\\Users\\Docker\\investigate_account_activity_result.json"
+  }
+}

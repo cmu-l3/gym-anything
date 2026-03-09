@@ -1,0 +1,52 @@
+{
+  "id": "kidney_length_measurement@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the maximum bipolar length of both kidneys on the loaded abdominal CT and classify each kidney's size and asymmetry. Save right kidney measurement to ~/Documents/SlicerData/AMOS/right_kidney_length.mrk.json, left kidney measurement to ~/Documents/SlicerData/AMOS/left_kidney_length.mrk.json, and report to ~/Documents/SlicerData/AMOS/kidney_report.json with fields: right_kidney {length_cm, classification}, left_kidney {length_cm, classification}, asymmetry {difference_cm, assessment}.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/kidney_length_measurement/setup_task.sh",
+    "post_task": "/workspace/tasks/kidney_length_measurement/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_right_measurement": "/home/ga/Documents/SlicerData/AMOS/right_kidney_length.mrk.json",
+    "output_left_measurement": "/home/ga/Documents/SlicerData/AMOS/left_kidney_length.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/kidney_report.json",
+    "kidney_labels": {
+      "right_kidney": 2,
+      "left_kidney": 3
+    },
+    "passing_thresholds": {
+      "length_error_max_cm": 1.0,
+      "classification_required": true
+    },
+    "clinical_thresholds": {
+      "small_max_cm": 9.0,
+      "normal_max_cm": 12.0,
+      "asymmetry_significant_cm": 1.5
+    },
+    "scoring_weights": {
+      "right_kidney_length": 25,
+      "left_kidney_length": 25,
+      "size_classification": 15,
+      "asymmetry_assessment": 10,
+      "measurements_saved": 10,
+      "report_completeness": 10,
+      "clinical_interpretation": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_kidney_length_measurement"
+    }
+  }
+}

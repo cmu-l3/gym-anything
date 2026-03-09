@@ -1,0 +1,29 @@
+{
+  "id": "archive_case_pdf_report@1",
+  "version": "1.0",
+  "env_id": "vital_recorder_windows_env@0.1",
+  "description": "Configure the Vital Recorder display to show ONLY the 'essential' vital sign trends for the full duration of the loaded case, and export a PDF report.\n\nStarting with VitalDB Case #3 loaded:\n1. Configure the track display to SHOW ONLY these 4 tracks (remove/hide all others, such as ECG waveforms, Pleth waves, etc.):\n   - Heart Rate (HR)\n   - Mean Arterial Pressure (ART_MBP or MBP)\n   - Oxygen Saturation (SPO2)\n   - End-Tidal CO2 (ETCO2 or CO2)\n\n2. Adjust the time view to fit the ENTIRE recording duration on the screen (Zoom Out / Fit to Screen).\n\n3. Print the resulting view to a PDF file:\n   - Use File > Print (or Ctrl+P)\n   - Select 'Microsoft Print to PDF' as the printer\n   - Save the file to 'C:\\Users\\Docker\\Documents\\case3_summary.pdf'\n\nThe final PDF must contain only the requested data trends for the whole case.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\archive_case_pdf_report\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\archive_case_pdf_report\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_output_path": "C:\\Users\\Docker\\Documents\\case3_summary.pdf",
+    "required_text": ["HR", "SPO2", "MBP", "CO2"],
+    "forbidden_text": ["ECG", "PLETH", "AWP"],
+    "case_file": "0003.vital",
+    "case_url": "https://api.vitaldb.net/0003.vital"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_archive_case_pdf_report"
+    }
+  }
+}

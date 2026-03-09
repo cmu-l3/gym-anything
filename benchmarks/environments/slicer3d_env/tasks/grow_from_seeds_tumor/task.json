@@ -1,0 +1,45 @@
+{
+  "id": "grow_from_seeds_tumor@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment the enhancing brain tumor on the loaded BraTS T1ce MRI using the 'Grow from seeds' effect in Segment Editor. Create two segments named 'Tumor' and 'Background', place seed points in each, and apply the region growing. Save the segmentation to ~/Documents/SlicerData/BraTS/tumor_segmentation.seg.nrrd.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/grow_from_seeds_tumor/setup_task.sh",
+    "post_task": "/workspace/tasks/grow_from_seeds_tumor/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/BraTS/tumor_segmentation.seg.nrrd",
+    "expected_module": "SegmentEditor",
+    "expected_effect": "GrowFromSeeds",
+    "dice_threshold_pass": 0.4,
+    "dice_threshold_good": 0.5,
+    "dice_threshold_excellent": 0.7,
+    "sensitivity_threshold": 0.5,
+    "volume_range_ml": {"min": 1, "max": 150},
+    "scoring_weights": {
+      "segmentation_exists": 15,
+      "tumor_segment_nonempty": 15,
+      "volume_reasonable": 10,
+      "segment_in_brain": 10,
+      "dice_above_03": 15,
+      "dice_above_05": 15,
+      "dice_above_07": 10,
+      "sensitivity_above_05": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_grow_from_seeds_tumor"
+    }
+  }
+}

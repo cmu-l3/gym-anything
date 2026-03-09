@@ -1,0 +1,31 @@
+{
+  "id": "cell_nuclear_morphometry_batch@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "You are a biological technician processing a batch of fluorescence microscopy images from a cell biology experiment. Images of Drosophila Kc167 cells stained with DAPI (nuclear DNA marker) from the BBBC008 dataset are available at ~/Fiji_Data/raw/bbbc008/. The DAPI channel images have filenames containing 'w1'.\n\nYour goal: Batch process ALL DAPI-channel images in the dataset. For each image: (1) apply background subtraction using the Rolling Ball algorithm (radius 50 pixels), (2) threshold to segment nuclei using an appropriate automatic method, (3) separate touching nuclei using the watershed algorithm, and (4) run Analyze Particles to measure each nucleus. Exclude objects smaller than 50 square pixels or larger than 5000 square pixels (likely debris or clumps).\n\nFor each detected nucleus record: image_filename, nucleus_id, area_px, perimeter_px, circularity, solidity, aspect_ratio (major_axis/minor_axis from ellipse fit), and mean_intensity. Apply the pixel scale from ~/Fiji_Data/raw/bbbc008/scale_info.txt to also report area_um2 and perimeter_um.\n\nSave all measurements to ~/Fiji_Data/results/morphometry/nuclear_measurements.csv. Additionally save a per-image summary to ~/Fiji_Data/results/morphometry/batch_summary.txt listing for each image: filename, n_nuclei, mean_area_um2, mean_circularity, and a quality flag (PASS if n_nuclei >= 5 and mean_circularity >= 0.5, else FAIL). Produce a QC overlay image for at least one image showing detected nucleus outlines to ~/Fiji_Data/results/morphometry/qc_overlay.png.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 90
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cell_nuclear_morphometry_batch/setup_task.sh",
+    "post_task": "/workspace/tasks/cell_nuclear_morphometry_batch/export_result.sh"
+  },
+  "metadata": {
+    "dataset": "BBBC008 - Drosophila Kc167 cells",
+    "channel": "DAPI (w1 files)",
+    "pixel_scale_um": 0.3296,
+    "min_particle_px": 50,
+    "max_particle_px": 5000,
+    "output_csv": "~/Fiji_Data/results/morphometry/nuclear_measurements.csv",
+    "output_summary": "~/Fiji_Data/results/morphometry/batch_summary.txt",
+    "output_overlay": "~/Fiji_Data/results/morphometry/qc_overlay.png"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cell_nuclear_morphometry_batch"
+    }
+  }
+}

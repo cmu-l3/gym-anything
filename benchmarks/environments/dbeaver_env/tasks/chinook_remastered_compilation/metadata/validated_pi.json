@@ -1,0 +1,80 @@
+{
+  "task_id": "chinook_remastered_compilation@1",
+  "dataset": "Chinook",
+  "case_id": null,
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "target_artist_id",
+      "metadata_value": "90",
+      "verified_value": "90",
+      "source": "Official Chinook database at https://github.com/lerocha/chinook-database confirms ArtistId 90 is Iron Maiden",
+      "status": "verified"
+    },
+    {
+      "key": "target_album_title",
+      "metadata_value": "Iron Maiden: Remastered Classics",
+      "verified_value": null,
+      "source": "This is a new album to be created by the task; cannot be verified in original database",
+      "status": "unverified"
+    },
+    {
+      "key": "target_price",
+      "metadata_value": "1.29",
+      "verified_value": null,
+      "source": "Official Chinook database only contains two price points: 0.99 (3290 tracks) and 1.99 (213 tracks). Price 1.29 does not exist in the official database and is a unique value created for this task.",
+      "status": "unverified"
+    },
+    {
+      "key": "name_suffix",
+      "metadata_value": " (Remastered)",
+      "verified_value": null,
+      "source": "This is a new naming convention for remastered tracks; cannot be verified in original database",
+      "status": "unverified"
+    },
+    {
+      "key": "expected_track_count",
+      "metadata_value": "10",
+      "verified_value": "10 (feasible from 213 Iron Maiden tracks)",
+      "source": "Iron Maiden has 213 total tracks in official Chinook database (verified by querying Album ArtistId=90 and joining Track table)",
+      "status": "verified"
+    },
+    {
+      "key": "db_path",
+      "metadata_value": "/home/ga/Documents/databases/chinook.db",
+      "verified_value": "/home/ga/Documents/databases/chinook.db",
+      "source": "Configured in task_utils.sh line 5 as CHINOOK_DB path; standard task environment setup",
+      "status": "verified"
+    },
+    {
+      "key": "csv_path",
+      "metadata_value": "/home/ga/Documents/exports/new_release_manifest.csv",
+      "verified_value": "/home/ga/Documents/exports/new_release_manifest.csv",
+      "source": "Configured in task_utils.sh line 6 as EXPORT_DIR; expected output location for CSV",
+      "status": "verified"
+    },
+    {
+      "key": "sql_path",
+      "metadata_value": "/home/ga/Documents/scripts/remaster_release.sql",
+      "verified_value": "/home/ga/Documents/scripts/remaster_release.sql",
+      "source": "Referenced in export_result.sh line 8 and task description as SQL script output location",
+      "status": "verified"
+    }
+  ],
+  "technical_issues": [
+    {
+      "issue": "Table name mismatch",
+      "description": "Setup script uses 'invoice_items' table name (lines 34, 51, 75 in setup_task.sh) but official Chinook database uses 'InvoiceLine' (PascalCase). This will cause INSERT and JOIN operations to fail unless the database has been modified to use lowercase table names.",
+      "severity": "critical",
+      "source": "Comparison of setup_task.sh with official https://github.com/lerocha/chinook-database schema"
+    },
+    {
+      "issue": "Non-standard unit price",
+      "description": "Task specifies UnitPrice of 1.29, but official Chinook database only contains two price points: 0.99 (regular tracks) and 1.99 (premium tracks). The task requires inserting a third unique price point.",
+      "severity": "medium",
+      "source": "Direct SQLite3 query of official Chinook database shows UnitPrice distribution"
+    }
+  ],
+  "privileged_info_summary": "The Chinook database is the official sample music store database (confirmed from https://github.com/lerocha/chinook-database). ArtistId 90 is verified to be Iron Maiden with 213 total tracks available in the official database. The task requires selecting the top 10 best-selling Iron Maiden tracks and creating a new album titled 'Iron Maiden: Remastered Classics' with remastered copies priced at 1.29 (a unique price not found in the official Chinook schema, which only contains 0.99 and 1.99). Expected outputs are a CSV manifest at /home/ga/Documents/exports/new_release_manifest.csv and a SQL script at /home/ga/Documents/scripts/remaster_release.sql.",
+  "pi_confidence": "medium"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "bronchial_wall_copd@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure bronchial wall thickness on the provided chest CT to assess airway remodeling. Measure the outer and inner diameters of a segmental bronchus and calculate Wall Area Percentage (WA%). Save measurement markup to ~/Documents/SlicerData/LIDC/bronchial_measurements.mrk.json. Save report to ~/Documents/SlicerData/LIDC/bronchial_report.json with fields: outer_diameter_mm, inner_diameter_mm, wall_area_percentage, classification, bronchus_location, slice_number.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/bronchial_wall_copd/setup_task.sh",
+    "post_task": "/workspace/tasks/bronchial_wall_copd/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "output_measurement": "/home/ga/Documents/SlicerData/LIDC/bronchial_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/bronchial_report.json",
+    "expected_outer_diameter_range_mm": [3.0, 12.0],
+    "expected_wall_thickness_range_mm": [0.3, 4.0],
+    "normal_wa_threshold": 60,
+    "mild_wa_threshold": 70,
+    "moderate_wa_threshold": 80,
+    "passing_thresholds": {
+      "min_score": 60,
+      "require_valid_diameters": true,
+      "require_wa_calculation": true
+    },
+    "scoring_weights": {
+      "outer_diameter_valid": 15,
+      "inner_diameter_valid": 15,
+      "anatomical_location": 15,
+      "wa_calculation_correct": 20,
+      "classification_matches": 15,
+      "report_complete": 10,
+      "measurement_technique": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bronchial_wall_copd"
+    }
+  }
+}

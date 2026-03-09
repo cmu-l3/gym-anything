@@ -1,0 +1,49 @@
+{
+  "id": "chinook_fts_catalog@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Create a Full-Text Search (FTS5) catalog for the Chinook database to enable fast text searching across Tracks, Albums, and Artists.\n\n1. Connect to the Chinook SQLite database at `/home/ga/Documents/databases/chinook.db`. Name the connection 'Chinook'.\n\n2. Create a new FTS5 virtual table named `catalog_fts` using the following schema (omit the 'content' option to store data directly):\n   Columns: `TrackId` (UNINDEXED), `TrackName`, `AlbumTitle`, `ArtistName`, `Composer`, `GenreName`.\n\n3. Populate `catalog_fts` with data by joining the `tracks`, `albums`, `artists`, and `genres` tables. All 3503 tracks must be indexed.\n\n4. Execute the following three search queries and export the results to CSV files in `/home/ga/Documents/exports/`:\n   a. Search for 'Iron Maiden' -> save to `search_iron_maiden.csv`\n   b. Search for 'blues rock' -> save to `search_blues_rock.csv`\n   c. Search for 'Bach' -> save to `search_bach.csv`\n   (The CSVs should include all table columns).\n\n5. Save your complete SQL script (CREATE, INSERT, and SELECTs) to `/home/ga/Documents/scripts/fts_catalog_setup.sql`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_fts_catalog/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_fts_catalog/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook.db",
+    "connection_name": "Chinook",
+    "table_name": "catalog_fts",
+    "expected_row_count": 3503,
+    "search_queries": {
+      "iron_maiden": {
+        "term": "Iron Maiden",
+        "file": "search_iron_maiden.csv",
+        "min_rows": 200,
+        "max_rows": 220
+      },
+      "blues_rock": {
+        "term": "blues rock",
+        "file": "search_blues_rock.csv",
+        "min_rows": 35,
+        "max_rows": 60
+      },
+      "bach": {
+        "term": "Bach",
+        "file": "search_bach.csv",
+        "min_rows": 15,
+        "max_rows": 45
+      }
+    },
+    "script_path": "/home/ga/Documents/scripts/fts_catalog_setup.sql"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_fts_catalog"
+    }
+  }
+}

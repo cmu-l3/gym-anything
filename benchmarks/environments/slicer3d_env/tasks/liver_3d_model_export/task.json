@@ -1,0 +1,54 @@
+{
+  "id": "liver_3d_model_export@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment the liver and tumor(s) on the loaded abdominal CT into segments named 'Liver' and 'Tumor', apply smoothing, and export as STL models. Save liver model to ~/Documents/SlicerData/IRCADb/liver_model.stl, tumor model to ~/Documents/SlicerData/IRCADb/tumor_model.stl, and report to ~/Documents/SlicerData/IRCADb/model_report.json with fields: liver_volume_ml, tumor_volume_ml, tumor_count, smoothing_applied, models_exported.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/liver_3d_model_export/setup_task.sh",
+    "post_task": "/workspace/tasks/liver_3d_model_export/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "ircadb_dir": "/home/ga/Documents/SlicerData/IRCADb",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_liver_stl": "/home/ga/Documents/SlicerData/IRCADb/liver_model.stl",
+    "output_tumor_stl": "/home/ga/Documents/SlicerData/IRCADb/tumor_model.stl",
+    "output_report": "/home/ga/Documents/SlicerData/IRCADb/model_report.json",
+    "labels": {
+      "liver": 1,
+      "tumor": 2,
+      "portal_vein": 3
+    },
+    "passing_thresholds": {
+      "liver_volume_error_max_pct": 30,
+      "tumor_volume_error_max_pct": 50,
+      "min_triangles": 1000,
+      "max_triangles": 500000
+    },
+    "scoring_weights": {
+      "liver_stl_exists": 10,
+      "tumor_stl_exists": 10,
+      "liver_watertight": 10,
+      "tumor_watertight": 10,
+      "liver_volume_accuracy": 15,
+      "tumor_volume_accuracy": 15,
+      "triangle_count": 5,
+      "smoothing_applied": 5,
+      "report_complete": 10,
+      "report_volume_match": 5,
+      "tumor_count_correct": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_liver_3d_model_export"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "sanitize_hardcoded_secrets@1",
+  "version": "1.0",
+  "env_id": "vscode_env@0.1",
+  "description": "Remove hardcoded production secrets from Python source files and migrate to environment configuration. WORKSPACE: /home/ga/workspace/payment_service. TASK: (1) Use Search (Ctrl+Shift+F) to find all hardcoded secrets in app.py, db_connector.py, and payment_handler.py. Look for: 'sk_live_' (Stripe key), 'P@ssw0rd!2024_SecureDB_Prod' (DB password), 'AKIAIOSFODNN7EXAMPLE' (AWS key ID), 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' (AWS secret). (2) Create a new file named '.env' in /home/ga/workspace/payment_service/ with these exact lines: 'STRIPE_API_KEY=sk_live_51HxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxY', 'DB_PASSWORD=P@ssw0rd!2024_SecureDB_Prod', 'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE', 'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'. (3) Update app.py: Add 'import os' and 'from dotenv import load_dotenv' at top, add 'load_dotenv()' after imports, replace line 'STRIPE_API_KEY = \"sk_live_51H...Y\"' with 'STRIPE_API_KEY = os.getenv(\"STRIPE_API_KEY\")'. (4) Update db_connector.py: Add 'import os' and 'from dotenv import load_dotenv' at top, add 'load_dotenv()' after imports, replace line 'DB_PASSWORD = \"P@ssw0rd!2024_SecureDB_Prod\"' with 'DB_PASSWORD = os.getenv(\"DB_PASSWORD\")'. (5) Update payment_handler.py: Add 'import os' and 'from dotenv import load_dotenv' at top, add 'load_dotenv()' after imports, replace lines with hardcoded AWS credentials with 'AWS_ACCESS_KEY_ID = os.getenv(\"AWS_ACCESS_KEY_ID\")' and 'AWS_SECRET_ACCESS_KEY = os.getenv(\"AWS_SECRET_ACCESS_KEY\")'. (6) Update .gitignore file: Add a new line '.env' to prevent committing secrets. (7) Save all files (Ctrl+S). VERIFICATION: All hardcoded secret strings must be removed from source files and moved to .env, code must use os.getenv() to read them, and .gitignore must include .env.",
+  "difficulty": "medium",
+  "tags": ["security", "environment-variables", "search", "refactoring", "git"],
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sanitize_hardcoded_secrets/setup_task.sh",
+    "post_task": "/workspace/tasks/sanitize_hardcoded_secrets/export_result.sh"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secrets_sanitized"
+    }
+  }
+}

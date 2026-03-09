@@ -1,0 +1,42 @@
+{
+  "id": "calculate_evans_index@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Calculate the Evans Index on the loaded FLAIR brain MRI by measuring the maximum frontal horn width and maximum internal skull diameter at the same axial level. Both measurements must be at the same Z-coordinate (within 5mm tolerance). Export line markups to ~/Documents/SlicerData/Exports/evans_measurements.mrk.json.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/calculate_evans_index/setup_task.sh",
+    "post_task": "/workspace/tasks/calculate_evans_index/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "data_source": "BraTS 2021 dataset (Kaggle)",
+    "modality": "FLAIR MRI",
+    "expected_frontal_horn_range_mm": {"min": 20, "max": 60},
+    "expected_skull_width_range_mm": {"min": 100, "max": 180},
+    "expected_evans_index_range": {"min": 0.15, "max": 0.50},
+    "z_tolerance_mm": 5.0,
+    "horizontal_angle_tolerance_deg": 15,
+    "output_measurements": "/home/ga/Documents/SlicerData/Exports/evans_measurements.mrk.json",
+    "output_screenshot": "/home/ga/Documents/SlicerData/Screenshots/evans_index.png",
+    "scoring_weights": {
+      "two_line_markups_exist": 25,
+      "same_slice_level": 20,
+      "measurements_horizontal": 15,
+      "valid_ratio_range": 20,
+      "vlm_anatomically_correct": 15,
+      "measurements_exported": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_evans_index"
+    }
+  }
+}

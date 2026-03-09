@@ -1,0 +1,22 @@
+{
+  "id": "audit_anesthetic_adequacy_peak_stress@1",
+  "version": "1.0",
+  "env_id": "vital_recorder_windows_env@0.1",
+  "description": "Perform a clinical quality assurance audit on VitalDB Case #6 ('case0006.vital') using Vital Recorder.\n\nYour goal is to identify the moment of maximum physiological stress (Maximum Heart Rate) during the maintenance phase of surgery, capture it, and assess anesthetic depth.\n\n**Protocol:**\n1. **Load Data:** If not already loaded, open 'C:\\Users\\Docker\\Documents\\VitalData\\case0006.vital'.\n2. **Identify Peak Stress:** Scan the maintenance phase of the surgery (exclude the first 15 mins and last 15 mins of recording). Locate the exact timestamp where the **Heart Rate (HR)** track reaches its **global maximum value** (highest sustained peak, ignore momentary artifact spikes).\n3. **Assess Adequacy:** At that exact moment of peak HR, read the concurrent **Bispectral Index (BIS)** value.\n   - If BIS < 60, the anesthesia was 'ADEQUATE'.\n   - If BIS >= 60, the anesthesia was 'INADEQUATE'.\n4. **Capture Evidence:** Zoom the display to a ~5-minute window centered on this peak stress event. Ensure the HR and BIS tracks are clearly visible. Save a screenshot to 'C:\\Users\\Docker\\Documents\\peak_stress_event.png'.\n5. **Report Findings:** Create a text file at 'C:\\Users\\Docker\\Documents\\adequacy_audit.txt' with the following exact format:\n\n",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "difficulty": "medium",
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_anesthetic_adequacy_peak_stress/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_anesthetic_adequacy_peak_stress/export_result.sh"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_anesthetic_adequacy"
+    }
+  }
+}

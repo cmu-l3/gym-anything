@@ -1,0 +1,33 @@
+{
+  "id": "vendor_fuzzy_cleanup@1",
+  "version": "1.0",
+  "env_id": "power_bi_desktop_env@0.1",
+  "description": "You are a procurement analyst. Your goal is to consolidate messy invoice data where vendor names are inconsistent (e.g., 'Msft', 'Microsoft Inc.') by mapping them to a clean master vendor list using Power Query's Fuzzy Merge feature.\n\nTwo files are available on the Desktop in the `PowerBITasks` folder:\n1. `invoices_messy.csv`: Contains raw invoice data with a `Vendor_Entered` column.\n2. `vendor_master.csv`: Contains the official `Vendor_Canonical` names and `Category`.\n\nYour task:\n1. Import both CSV files into Power BI Desktop.\n2. In Power Query, merge `invoices_messy` with `vendor_master` using a **Fuzzy Match** on the vendor name columns to correct the inconsistencies. Ensure you extract the `Vendor_Canonical` and `Category` columns.\n3. Create a DAX measure named `Spend_Share_Pct` that calculates the percentage of total spend for each vendor (Amount / Total Amount across all vendors). Use `ALL` or `ALLSELECTED` to ignore row context for the denominator.\n4. Create a Table visual displaying: `Vendor_Canonical`, `Category`, `Amount`, and `Spend_Share_Pct`.\n5. Export the data from this visual to a CSV file named `consolidated_spend.csv` on the Desktop (`C:\\Users\\Docker\\Desktop\\`).\n6. Save the Power BI report as `Vendor_Spend_Analysis.pbix` on the Desktop.\n\nNote: The total spend for 'Omega Marketing Group' should be 4000 if mapped correctly.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\vendor_fuzzy_cleanup\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\vendor_fuzzy_cleanup\\export_result.ps1"
+  },
+  "metadata": {
+    "ground_truth": {
+      "TechSource Solutions": 2500,
+      "Global Logistics Inc": 2500,
+      "Apex Office Supplies": 1000,
+      "BrightStar Energy": 2000,
+      "Omega Marketing Group": 4000
+    },
+    "output_csv": "C:\\Users\\Docker\\Desktop\\consolidated_spend.csv",
+    "output_pbix": "C:\\Users\\Docker\\Desktop\\Vendor_Spend_Analysis.pbix"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vendor_fuzzy_cleanup"
+    }
+  }
+}

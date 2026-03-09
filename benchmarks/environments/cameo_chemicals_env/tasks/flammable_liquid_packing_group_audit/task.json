@@ -1,0 +1,34 @@
+{
+  "id": "flammable_liquid_packing_group_audit@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "You are a logistics coordinator auditing a shipping manifest. You need to determine the correct Department of Transportation (DOT) Packing Group for four flammable liquids based on their physical properties.\n\nUse the CAMEO Chemicals website (https://cameochemicals.noaa.gov/) to look up the Boiling Point (BP) and Flash Point (FP) for the following chemicals:\n1. Propylene Oxide (CAS 75-56-9)\n2. Toluene (CAS 108-88-3)\n3. Cyclohexanone (CAS 108-94-1)\n4. Acetonitrile (CAS 75-05-8)\n\nApply the following classification rules (derived from 49 CFR 173.121) to determine the Packing Group:\n- Packing Group I (High Danger): Boiling Point <= 35°C (95°F)\n- Packing Group II (Medium Danger): Boiling Point > 35°C AND Flash Point < 23°C (73°F)\n- Packing Group III (Low Danger): Boiling Point > 35°C AND Flash Point >= 23°C\n\nNote: If a range is provided, use the lowest value for safety. Use Celsius values.\n\nCreate a CSV report file at '/home/ga/Documents/packing_group_audit.csv' with the header 'Chemical,Boiling_Point_C,Flash_Point_C,Packing_Group' and a row for each chemical containing your findings.",
+  "difficulty": "medium",
+  "tags": ["cameo", "dot", "packing-group", "classification", "flammable-liquid", "audit"],
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/flammable_liquid_packing_group_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/flammable_liquid_packing_group_audit/export_result.sh"
+  },
+  "metadata": {
+    "output_file": "/home/ga/Documents/packing_group_audit.csv",
+    "chemicals": {
+      "Propylene Oxide": {"bp": 34, "fp": -37, "pg": "I"},
+      "Toluene": {"bp": 110, "fp": 4, "pg": "II"},
+      "Cyclohexanone": {"bp": 155, "fp": 44, "pg": "III"},
+      "Acetonitrile": {"bp": 82, "fp": 2, "pg": "II"}
+    },
+    "tolerance_bp": 10,
+    "tolerance_fp": 10
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_packing_group_audit"
+    }
+  }
+}

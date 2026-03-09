@@ -1,0 +1,48 @@
+{
+  "task": "wfs_feature_service_setup",
+  "task_id": "wfs_feature_service_setup@1",
+  "difficulty": "hard",
+  "test_date": "2026-03-01",
+  "methodology": "Pipeline simulation + live VM testing. Verifier.py loaded directly with mock copy_from_env for pipeline tests. Live VM do-nothing CONFIRMED score=0/False after fix (setup_task.sh disables WFS at task start; verifier requires maxFeatures in [1000,50000], not >= 5000 which matched default 1000000).",
+  "pipeline_results": {
+    "do_nothing_no_export": {
+      "score": 0,
+      "passed": false,
+      "description": "copy_from_env raises FileNotFoundError (agent did nothing, export never ran)"
+    },
+    "do_nothing_baseline": {
+      "score": 0,
+      "passed": false,
+      "description": "Export ran but all fields at initial state (wfs_enabled=false, layer_found=false)"
+    },
+    "partial_no_sql_view": {
+      "score": 35,
+      "passed": false,
+      "description": "WFS service enabled with title + max_features, SLD city_marker created with circle mark, but SQL view layer not published"
+    },
+    "full_success": {
+      "score": 100,
+      "passed": true,
+      "description": "All criteria met: WFS enabled with Natural Earth WFS title + 5000 maxFeatures + major_cities SQL view layer (Point type) + city_marker SLD with circle/red mark"
+    }
+  },
+  "scoring_breakdown": {
+    "wfs_enabled": 15,
+    "wfs_title_configured": 10,
+    "wfs_max_features_in_range_1000_50000": 10,
+    "sql_view_layer_found": 25,
+    "layer_is_point_type": 10,
+    "sld_has_circle_mark": 15,
+    "default_style_applied": 15
+  },
+  "pass_threshold": 60,
+  "mandatory_for_pass": ["layer_found", "gui_confirmed"],
+  "notes": "SQL view major_cities uses ne_populated_places table. Verifier searches all datastores in ne workspace for the layer. Tests: WFS service configuration, SQL view creation, PointSymbolizer SLD. IMPORTANT: setup_task.sh disables WFS at task start (GeoServer default is enabled). maxFeatures must be in [1000, 50000] — default value 1000000 does NOT score. Title must contain 'Natural Earth' for full 10pts; no partial credit for default title.",
+  "env": "geo_server_env",
+  "env_base": "ubuntu-gnome-systemd_highres",
+  "app": "GeoServer 2.25.2 + PostGIS 15-3.3 via Docker",
+  "geoserver_url": "http://localhost:8080/geoserver/web/",
+  "credentials": "admin / Admin123!",
+  "postgis": "geoserver / geoserver123 @ localhost:5432/gis",
+  "verification_method": "export_result.sh -> /tmp/wfs_feature_service_setup_result.json -> copy_from_env -> JSON field parsing"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "manage_user_roles@1",
+  "version": "1.0",
+  "env_id": "openclinica_env@0.1",
+  "description": "A compliance audit of clinical trial user access has identified several issues that must be remediated immediately. As the Clinical Data Manager with administrative access, complete the following access control changes in OpenClinica (login: root / Admin123!):\n\n1. User 'mrivera' has completed their data entry work on the Phase II Diabetes Trial and has moved to a monitoring role. Change their role from 'data manager' to 'monitor' in the Phase II Diabetes Trial. In OpenClinica, you may need to remove the existing role and re-assign with the correct role.\n\n2. User 'lchang' should no longer have access to the Cardiovascular Outcomes Registry. Remove their role from that study entirely.\n\n3. A new principal investigator has joined the Phase II Diabetes Trial team. Create a user account with the following details:\n   - Username: kpatel\n   - First Name: Kavya\n   - Last Name: Patel\n   - Email: k.patel@clinical-research.org\n   - Institutional Affiliation: Stanford Medical Center\n\n4. Assign user kpatel the 'investigator' role in the Phase II Diabetes Trial.\n\n5. Also grant user mrivera a 'monitor' role in the Asthma Prevention Pilot study (AP-PILOT-2022), in addition to their role in the Diabetes Trial.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/manage_user_roles/setup_task.sh",
+    "post_task": "/workspace/tasks/manage_user_roles/export_result.sh"
+  },
+  "metadata": {
+    "changes": [
+      {"user": "mrivera", "study": "DM-TRIAL-2024", "action": "change_role", "old_role": "data_manager", "new_role": "monitor"},
+      {"user": "lchang", "study": "CV-REG-2023", "action": "remove_role"},
+      {"user": "kpatel", "action": "create", "first_name": "Kavya", "last_name": "Patel", "email": "k.patel@clinical-research.org", "affiliation": "Stanford Medical Center"},
+      {"user": "kpatel", "study": "DM-TRIAL-2024", "action": "assign_role", "role": "investigator"},
+      {"user": "mrivera", "study": "AP-PILOT-2022", "action": "assign_role", "role": "monitor"}
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_manage_user_roles"
+    }
+  }
+}

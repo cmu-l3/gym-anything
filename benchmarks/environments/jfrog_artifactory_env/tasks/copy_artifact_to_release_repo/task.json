@@ -1,0 +1,34 @@
+{
+  "id": "copy_artifact_to_release_repo@1",
+  "version": "1.0",
+  "env_id": "jfrog_artifactory_env@0.1",
+  "description": "Promote (copy) the Maven artifacts for 'commons-lang3' version 3.14.0 from the 'staging-libs-local' repository to the 'release-libs-local' repository. \n\nStarting state:\n- 'staging-libs-local' contains 'commons-lang3-3.14.0.jar' and 'commons-lang3-3.14.0.pom' at the path 'org/apache/commons/commons-lang3/3.14.0/'.\n- 'release-libs-local' is empty.\n\nGoal:\nCopy both the JAR and POM files to 'release-libs-local', ensuring they are stored at the exact same path structure: 'org/apache/commons/commons-lang3/3.14.0/'.\n\nMethod:\nYou may use the Artifactory UI (Tree Browser > Copy) or the REST API. Ensure the original artifacts remain in the staging repository (do not move/delete them).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/copy_artifact_to_release_repo/setup_task.sh",
+    "post_task": "/workspace/tasks/copy_artifact_to_release_repo/export_result.sh"
+  },
+  "metadata": {
+    "source_repo": "staging-libs-local",
+    "target_repo": "release-libs-local",
+    "artifact_path": "org/apache/commons/commons-lang3/3.14.0",
+    "artifacts": [
+      "commons-lang3-3.14.0.jar",
+      "commons-lang3-3.14.0.pom"
+    ],
+    "admin_user": "admin",
+    "admin_pass": "password",
+    "artifactory_url": "http://localhost:8082"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_copy_artifact"
+    }
+  }
+}

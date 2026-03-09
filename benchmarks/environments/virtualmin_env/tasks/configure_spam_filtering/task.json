@@ -1,0 +1,29 @@
+{
+  "id": "configure_spam_filtering@1",
+  "version": "1.0",
+  "env_id": "virtualmin_env@0.1",
+  "description": "Configure SpamAssassin spam filtering for the 'greenfield.test' virtual server in Virtualmin.\n\nScenario: The greenfield.test nonprofit organization is receiving complaints from staff. Emails from a trusted partner (trustedpartner.org) and their alerting system (important-alerts.net) are being incorrectly flagged as spam, while emails from known bulk senders get through. You need to fine-tune the spam filtering settings.\n\nPerform the following configuration changes for the greenfield.test domain:\n\n1. Enable SpamAssassin spam filtering for the greenfield.test domain (it is currently disabled).\n2. Set the spam classification score threshold to 4 (messages scoring 4 or above are classified as spam).\n3. Set the spam auto-deletion score threshold to 10 (messages scoring 10 or above are automatically deleted).\n4. Configure spam delivery so identified spam (below the deletion threshold) is delivered to each user's spam/junk mail folder (e.g., ~/Maildir/.spam/ or the equivalent Virtualmin spam folder option).\n5. Add whitelist_from entries for these trusted senders (should never be marked as spam):\n   - *@trustedpartner.org\n   - admin@important-alerts.net\n6. Add blacklist_from entries for these known spam senders (should always be marked as spam):\n   - *@known-spammer.example\n   - marketing@bulkmail.example\n\nAll settings should be saved and applied to the greenfield.test domain.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_spam_filtering/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_spam_filtering/export_result.sh"
+  },
+  "metadata": {
+    "target_domain": "greenfield.test",
+    "required_score": 4,
+    "delete_score": 10,
+    "whitelist": ["*@trustedpartner.org", "admin@important-alerts.net"],
+    "blacklist": ["*@known-spammer.example", "marketing@bulkmail.example"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_spam_filtering"
+    }
+  }
+}

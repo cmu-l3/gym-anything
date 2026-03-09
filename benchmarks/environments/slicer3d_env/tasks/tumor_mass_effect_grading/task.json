@@ -1,0 +1,44 @@
+{
+  "id": "tumor_mass_effect_grading@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Perform a comprehensive mass effect assessment on the provided brain MRI, including midline shift, ventricular compression ratio, subfalcine and uncal herniation, sulcal effacement scoring, and overall grade. Save measurements to ~/Documents/SlicerData/BraTS/mass_effect_measurements.mrk.json, screenshots to ~/Documents/SlicerData/BraTS/screenshots/, and report to ~/Documents/SlicerData/BraTS/mass_effect_report.json with fields: midline_shift_mm, ipsilateral_ventricle_mm, contralateral_ventricle_mm, ventricular_ratio, subfalcine_herniation, subfalcine_extent_mm, sulcal_effacement_score, uncal_herniation, overall_grade, clinical_notes.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tumor_mass_effect_grading/setup_task.sh",
+    "post_task": "/workspace/tasks/tumor_mass_effect_grading/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurements": "/home/ga/Documents/SlicerData/BraTS/mass_effect_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/mass_effect_report.json",
+    "output_screenshots_dir": "/home/ga/Documents/SlicerData/BraTS/screenshots",
+    "passing_thresholds": {
+      "midline_shift_error_max_mm": 4.0,
+      "ventricular_ratio_error_max": 0.2,
+      "grade_must_match": true
+    },
+    "scoring_weights": {
+      "midline_shift_accurate": 25,
+      "ventricular_ratio_accurate": 20,
+      "herniation_assessment": 15,
+      "sulcal_effacement_score": 10,
+      "overall_grade_correct": 15,
+      "report_complete": 10,
+      "screenshots_present": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mass_effect_grading"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "configure_strict_capture_filter@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "Configure Wireshark to perform a live capture on the primary network interface (eth0) that records ONLY ICMP traffic (pings), while completely ignoring the background HTTP/TCP noise. \n\n1. Open Wireshark and identify the 'eth0' interface.\n2. Enter a **Capture Filter** (not a Display Filter) to restrict recording to ICMP packets only.\n3. Start the capture.\n4. Open a terminal and run 'ping -c 10 8.8.8.8' to generate traffic.\n5. Stop the capture after the pings finish.\n6. Save the capture to '/home/ga/Documents/captures/icmp_strict.pcapng'.\n\nThe resulting file must contain at least 10 ICMP packets and EXACTLY ZERO non-ICMP packets.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_strict_capture_filter/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_strict_capture_filter/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/captures/icmp_strict.pcapng",
+    "min_icmp_packets": 10,
+    "max_noise_packets": 0,
+    "interface": "eth0"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_strict_capture_filter"
+    }
+  }
+}

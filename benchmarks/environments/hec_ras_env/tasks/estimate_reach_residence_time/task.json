@@ -1,0 +1,29 @@
+{
+  "id": "estimate_reach_residence_time@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Calculate the hydraulic residence time (flushing time) for the Muncie reach of the White River during peak flood conditions.\n\nYour goal is to write and execute a Python script that integrates the reach volume and divides it by the peak outflow rate.\n\n**Steps:**\n1. Open the HEC-RAS HDF5 result file (`Muncie.p04.hdf`).\n2. Identify the **timestamp** where the discharge ($Q$) at the most downstream cross-section is maximized.\n3. At that specific timestamp, extract the **Flow Area** for every cross-section and the **Main Channel Reach Lengths** between them.\n4. Calculate the **Total Water Volume** ($V_{total}$) in the reach using the Average End Area method: $V = \\sum L_i \\times (A_i + A_{i+1})/2$.\n5. Calculate the **Residence Time** in hours: $T = V_{total} / Q_{out,peak}$.\n\n**Output Requirements:**\n- Save the integration table to `~/Documents/hec_ras_results/volume_integration.csv` with columns: `RiverStation_Upstream`, `RiverStation_Downstream`, `ReachLength_ft`, `AvgArea_sqft`, `SegmentVolume_cuft`.\n- Save a summary report to `~/Documents/hec_ras_results/residence_time_report.txt` containing the calculated `Total Reach Volume (cu ft)` and `Hydraulic Residence Time (hours)`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/estimate_reach_residence_time/setup_task.sh",
+    "post_task": "/workspace/tasks/estimate_reach_residence_time/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "hdf_filename": "Muncie.p04.hdf",
+    "expected_csv_path": "/home/ga/Documents/hec_ras_results/volume_integration.csv",
+    "expected_report_path": "/home/ga/Documents/hec_ras_results/residence_time_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_estimate_reach_residence_time"
+    }
+  }
+}

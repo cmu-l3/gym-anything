@@ -1,0 +1,38 @@
+{
+  "id": "catalog_cleanup@1",
+  "version": "1.0",
+  "env_id": "drupal_commerce_env@0.1",
+  "description": "Perform a quarterly catalog cleanup for Urban Electronics. You need to update the status and details of four specific products using the Drupal Commerce admin interface:\n\n1. Discontinue 'Bose QuietComfort 45': Find this product and set its status to Unpublished (inactive).\n2. Discontinue 'Anker PowerCore 26800': Find this product and set its status to Unpublished (inactive).\n3. Mark 'Nintendo Switch OLED' for clearance: Update its title to exactly 'Nintendo Switch OLED [CLEARANCE]' and reduce its price to $279.99.\n4. Update 'LG 34\" UltraWide Monitor' SKU: Change the product variation SKU from 'LG-34UW' to 'LG-34UW-V2'.\n\nEnsure no other products are modified. The admin interface is available at http://localhost/admin/commerce/products (credentials: admin / Admin1234!).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/catalog_cleanup/setup_task.sh",
+    "post_task": "/workspace/tasks/catalog_cleanup/export_result.sh"
+  },
+  "metadata": {
+    "targets": {
+      "bose": {"title_fragment": "Bose QuietComfort 45", "expected_status": "0"},
+      "anker": {"title_fragment": "Anker PowerCore 26800", "expected_status": "0"},
+      "nintendo": {
+        "original_title_fragment": "Nintendo Switch OLED",
+        "expected_title": "Nintendo Switch OLED [CLEARANCE]",
+        "expected_price": "279.99"
+      },
+      "lg": {
+        "title_fragment": "UltraWide Monitor",
+        "original_sku": "LG-34UW",
+        "expected_sku": "LG-34UW-V2"
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_catalog_cleanup"
+    }
+  }
+}

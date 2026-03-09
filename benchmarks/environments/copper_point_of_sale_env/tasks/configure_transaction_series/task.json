@@ -1,0 +1,28 @@
+{
+  "id": "configure_transaction_series@1",
+  "version": "1.0",
+  "env_id": "copper_point_of_sale_env@0.1",
+  "description": "Configure the transaction numbering settings in NCH Copper Point of Sale.\n\nYour goal is to set up a new transaction series for the fiscal year and verify it by processing a sale.\n\nSteps:\n1. Open the Preferences/Options menu.\n2. Navigate to the 'Transaction' or 'Numbering' settings.\n3. Set the 'Transaction Number Prefix' to 'FY25-'.\n4. Set the 'Next Transaction Number' to '1000'.\n5. Save the settings.\n6. Return to the main screen and process a new sale (add any item, pay with cash).\n7. Confirm the resulting receipt number is 'FY25-1000'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_transaction_series\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_transaction_series\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_prefix": "FY25-",
+    "expected_start_number": 1000,
+    "registry_path": "HKCU:\\Software\\NCH Software\\Copper\\Settings",
+    "db_path_pattern": "C:\\ProgramData\\NCH Software\\Copper\\Shared\\*.db"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_transaction_series"
+    }
+  }
+}

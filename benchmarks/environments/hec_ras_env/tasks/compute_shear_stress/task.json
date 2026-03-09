@@ -1,0 +1,33 @@
+{
+  "id": "compute_shear_stress@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Run the Muncie unsteady flow simulation (if results do not already exist), then write and execute a Python script to compute bed shear stress distributions.\n\nYour script must:\n1. Read the HEC-RAS HDF output file (typically `Muncie.p04.tmp.hdf` or `Muncie.p04.hdf` inside the project directory).\n2. Identify the time step of **peak total flow** across the system.\n3. At that peak time step, for every cross-section, compute the bed shear stress (\\u03c4) using the derived Manning's formula:\n   \n   \\u03c4 = (\\u03b3 * n^2 * V^2) / (k_n^2 * R^(1/3))\n\n   Where:\n   - \\u03b3 (Specific Weight) = 62.4 lb/ft\u00b3\n   - n (Manning's roughness) = 0.035 (use this uniform value)\n   - V = Channel Velocity\n   - k_n = 1.486 (for US Customary units)\n   - R = Hydraulic Radius\n\n4. Convert the result from lb/ft\u00b2 to **Pascals (Pa)** (1 lb/ft\u00b2 = 47.88 Pa).\n\n**Deliverables:**\n1. A CSV file at `/home/ga/Documents/hec_ras_results/shear_stress_analysis.csv` with columns: `River_Station`, `Velocity`, `Hydraulic_Radius`, `Shear_Stress_Pa`.\n2. A summary text file at `/home/ga/Documents/hec_ras_results/shear_stress_summary.txt` containing:\n   - Total count of cross-sections.\n   - The River Station with the **maximum** shear stress and its value.\n   - The **mean** shear stress across all sections.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_shear_stress/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_shear_stress/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "script_path": "/home/ga/Documents/hec_ras_results/compute_shear_stress.py",
+    "constants": {
+      "gamma": 62.4,
+      "n": 0.035,
+      "kn": 1.486,
+      "conversion_factor": 47.88
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_shear_stress"
+    }
+  }
+}

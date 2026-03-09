@@ -1,0 +1,43 @@
+{
+  "id": "psoas_asymmetry_index@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the cross-sectional areas of the left and right psoas major muscles at the L3 level on the provided abdominal CT and calculate the Psoas Asymmetry Index. Save report to ~/Documents/SlicerData/AMOS/psoas_asymmetry_report.json with fields: left_psoas_area_mm2, right_psoas_area_mm2, asymmetry_index_percent, classification, smaller_side, vertebral_level.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/psoas_asymmetry_index/setup_task.sh",
+    "post_task": "/workspace/tasks/psoas_asymmetry_index/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/psoas_asymmetry_report.json",
+    "passing_thresholds": {
+      "area_error_max_percent": 15,
+      "asymmetry_error_max_points": 5
+    },
+    "scoring_weights": {
+      "left_psoas_area": 20,
+      "right_psoas_area": 20,
+      "asymmetry_index": 20,
+      "classification": 15,
+      "smaller_side": 10,
+      "report_completeness": 10,
+      "vertebral_level": 5
+    },
+    "typical_psoas_area_range_mm2": [800, 2500],
+    "data_source": "AMOS 2022 (Abdominal Multi-Organ Segmentation)"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_psoas_asymmetry"
+    }
+  }
+}

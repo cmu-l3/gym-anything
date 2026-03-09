@@ -1,0 +1,31 @@
+{
+  "id": "focus_quality_assessment@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "You are a microscopy technician performing quality control on a batch of fluorescence images. The dataset is located at `~/Fiji_Data/raw/BBBC005/`. Your goal is to assess the focus quality of all 'w1' (nuclear stain) images in this directory.\n\nPerform the following steps:\n1. Identify all TIF images containing 'w1' in the filename.\n2. For each image, calculate four focus metrics:\n   - **Variance of Laplacian (VoL)**: Convolve with a standard 3x3 Laplacian kernel, then measure variance.\n   - **Normalized Variance**: Variance of pixel intensities / Mean intensity.\n   - **Tenengrad**: Mean of squared Sobel gradient magnitudes.\n   - **StdDev**: Standard deviation of raw pixel intensities.\n3. Rank the images by sharpness (VoL) from highest to lowest.\n4. Classify each image: 'PASS' if its VoL is greater than the median VoL of the batch, otherwise 'FAIL'.\n5. Generate a report CSV file at `~/Fiji_Data/results/focus_qc/focus_metrics.csv` with columns: `filename`, `laplacian_var`, `normalized_var`, `tenengrad`, `stddev`, `rank`, `qc_status`.\n6. Generate a text summary at `~/Fiji_Data/results/focus_qc/qc_summary.txt` listing: total images, PASS/FAIL counts, best/worst focused filenames, and the median threshold used.\n7. Create a visual comparison montage image saved to `~/Fiji_Data/results/focus_qc/focus_comparison.png` showing the best and worst focused images side-by-side.\n\nAnti-gaming note: The verifier checks that your metrics correlate with the ground-truth focus levels encoded in the image filenames.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/focus_quality_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/focus_quality_assessment/export_result.sh"
+  },
+  "metadata": {
+    "input_dir": "~/Fiji_Data/raw/BBBC005",
+    "output_csv": "~/Fiji_Data/results/focus_qc/focus_metrics.csv",
+    "output_summary": "~/Fiji_Data/results/focus_qc/qc_summary.txt",
+    "output_image": "~/Fiji_Data/results/focus_qc/focus_comparison.png",
+    "min_images": 20,
+    "ground_truth_pattern": "F{level}",
+    "required_columns": ["filename", "laplacian_var", "normalized_var", "tenengrad", "stddev", "rank", "qc_status"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_focus_quality"
+    }
+  }
+}

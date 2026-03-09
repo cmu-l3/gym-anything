@@ -1,0 +1,31 @@
+{
+    "task_id": "retry_failed_deployment@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "job_name",
+            "metadata_value": "Payment-Gateway-Deploy",
+            "verified_value": "Payment-Gateway-Deploy",
+            "source": "setup_task.sh line 15: JOB_NAME=\"Payment-Gateway-Deploy\"; export_result.sh line 8: JOB_NAME=\"Payment-Gateway-Deploy\"",
+            "status": "verified"
+        },
+        {
+            "key": "target_build_number",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "setup_task.sh: Line 90 comment states 'We need Build #3 to be the failed one'; Line 111 in expected_params.json: 'failed_build_number': 3; Lines 119-127 show three builds created sequentially (Build 1, Build 2, Build 3 - the failure); verifier.py line 50 checks if last_build_number > 3 indicating Build 3 is the last pre-existing build",
+            "status": "verified"
+        },
+        {
+            "key": "parameter_keys",
+            "metadata_value": ["ARTIFACT_TAG", "REGION", "FORCE_RESTART"],
+            "verified_value": ["ARTIFACT_TAG", "REGION", "FORCE_RESTART"],
+            "source": "setup_task.sh defines three parameters: line 27 (ARTIFACT_TAG - hudson.model.StringParameterDefinition), line 33 (REGION - hudson.model.ChoiceParameterDefinition), line 45 (FORCE_RESTART - hudson.model.BooleanParameterDefinition). Parameters extracted in export_result.sh lines 24-26 using these exact names. Parameters verified in verifier.py lines 38-40 (actual_tag, actual_region, actual_restart)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task creates a Jenkins job named 'Payment-Gateway-Deploy' with three parameters: ARTIFACT_TAG (string), REGION (choice), and FORCE_RESTART (boolean). The setup script generates three initial builds, with Build #3 serving as the failed deployment that the agent must retry. Build #3 is created with a randomized tag pattern (paygw-2024.10.12-rc8-x{RANDOM_SUFFIX}), a randomly selected region from [us-east-1, us-west-2, eu-central-1, ap-northeast-1], and FORCE_RESTART=false. The agent must identify Build #3's parameters and trigger a new build with the same ARTIFACT_TAG and REGION but with FORCE_RESTART set to true.",
+    "pi_confidence": "high"
+}

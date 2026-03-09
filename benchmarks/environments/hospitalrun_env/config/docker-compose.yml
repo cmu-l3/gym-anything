@@ -1,0 +1,67 @@
+version: "2.4"
+
+services:
+  couchdb:
+    image: couchdb:1.7.1
+    container_name: hospitalrun-couchdb
+    ports:
+      - "5984:5984"
+    volumes:
+      - couchdb_data:/usr/local/var/lib/couchdb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5984/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.16
+    container_name: hospitalrun-elasticsearch
+    environment:
+      - cluster.name=hospitalrun
+      - bootstrap.memory_lock=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - network.host=0.0.0.0
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    mem_limit: 512m
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cat/health || exit 1"]
+      interval: 20s
+      timeout: 15s
+      retries: 15
+      start_period: 60s
+
+  hospitalrun:
+    image: hospitalrun/hospitalrun-server:1.0.0-beta
+    container_name: hospitalrun-app
+    ports:
+      - "3000:3000"
+    depends_on:
+      couchdb:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  couchdb_data:
+    driver: local
+  esdata:
+    driver: local

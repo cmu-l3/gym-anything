@@ -1,0 +1,35 @@
+{
+  "id": "event_screening_false_detection_cleanup@1",
+  "version": "1.0",
+  "env_id": "seiscomp_env@0.1",
+  "description": "During a recent system maintenance window, the automatic event detection pipeline produced several false detections that were erroneously committed to the database alongside the real 2024 Noto Peninsula M7.5 earthquake. Your database now contains the real event plus three false detections that need to be identified and removed. Review all events in the database, distinguish genuine seismic events from false detections using standard seismological quality criteria (location plausibility, number of associated picks, magnitude consistency), and remove the false events while preserving the legitimate Noto Peninsula earthquake. After cleaning the database, export a bulletin of the remaining verified events to /home/ga/Desktop/verified_events.txt to confirm only legitimate events remain.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "partial"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/event_screening_false_detection_cleanup/setup_task.sh",
+    "post_task": "/workspace/tasks/event_screening_false_detection_cleanup/export_result.sh"
+  },
+  "metadata": {
+    "real_event": "Noto Peninsula, Japan 2024-01-01 M7.5",
+    "false_event_count": 3,
+    "false_event_characteristics": {
+      "location": "ocean far from stations",
+      "phase_count": "< 4",
+      "magnitude": "< 2.0"
+    },
+    "seiscomp_gui_apps": ["scolv"],
+    "seiscomp_cli_tools": ["scbulletin", "scdb"],
+    "occupation": "Geoscientists (SOC 19-2042.00)",
+    "task_type": "event_quality_control_and_database_cleanup"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_event_screening_false_detection_cleanup"
+    }
+  }
+}

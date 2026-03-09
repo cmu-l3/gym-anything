@@ -1,0 +1,52 @@
+{
+    "task_id": "stage_drift_correction@1",
+    "dataset": "Bridge image (synthetic fallback)",
+    "case_id": "drifting_structure.tif",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "input_path",
+            "metadata_value": "/home/ga/ImageJ_Data/raw/drifting_structure.tif",
+            "verified_value": "/home/ga/ImageJ_Data/raw/drifting_structure.tif",
+            "source": "setup_task.sh line 37: output_path variable",
+            "status": "verified"
+        },
+        {
+            "key": "output_path",
+            "metadata_value": "/home/ga/ImageJ_Data/results/stabilized_stack.tif",
+            "verified_value": "/home/ga/ImageJ_Data/results/stabilized_stack.tif",
+            "source": "export_result.sh line 11 and verifier.py line 11",
+            "status": "verified"
+        },
+        {
+            "key": "min_sharpness_ratio",
+            "metadata_value": 1.5,
+            "verified_value": 1.4,
+            "source": "verifier.py documentation (line 10) states >1.5, but actual implementation (line 116) checks 'if ratio > 1.4' for full credit. Metadata matches spec but contradicts implementation.",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_frames",
+            "metadata_value": 20,
+            "verified_value": null,
+            "source": "verifier.py does not enforce minimum frame count; line 93 only checks if is_stack (>1 frame), not >=20",
+            "status": "unverified"
+        },
+        {
+            "key": "data_source_url",
+            "metadata_value": "https://imagej.nih.gov/ij/images/bridge.gif",
+            "verified_value": "https://imagej.nih.gov/ij/images/bridge.gif returns 404; falls back to synthetic generation",
+            "source": "URL verification: https://imagej.nih.gov/ij/images/bridge.gif returns HTTP 404. Real source is at https://imagej.net/ij/images/bridge.gif (HTTP 200)",
+            "status": "contradicted"
+        },
+        {
+            "key": "input_frame_count",
+            "metadata_value": null,
+            "verified_value": 30,
+            "source": "setup_task.sh line 64: n_frames = 30",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task generates a 30-frame synthetic drifting image stack (fallback due to incorrect download URL) with linear drift of 2 pixels per frame. The verifier expects the output to be a multi-frame stack. The minimum sharpness ratio threshold in the verifier code is 1.4 (for full credit at line 116), not the claimed 1.5 in metadata. The minimum frame count of 20 is not enforced by the verifier. Input path and output path claims are correct.",
+    "pi_confidence": "high"
+}

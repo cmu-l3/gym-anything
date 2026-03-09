@@ -1,0 +1,108 @@
+{
+    "task_id": "desaturate_bw@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "primary_software",
+            "metadata_value": "GIMP",
+            "verified_value": "GIMP 2.10 (as configured in setup_gimp.sh)",
+            "source": "setup_gimp.sh creates .config/GIMP/2.10 directories; install_gimp.sh installs gimp package",
+            "status": "verified"
+        },
+        {
+            "key": "image_source_primary_url",
+            "metadata_value": "https://images.unsplash.com/photo-1490750967868-88aa4486c946?ixlib=rb-4.0.3...",
+            "verified_value": "URL is valid and downloads a real JPEG image (111.7KB)",
+            "source": "WebFetch successfully downloaded JPEG from the URL",
+            "status": "verified"
+        },
+        {
+            "key": "image_source_fallback_url",
+            "metadata_value": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3...",
+            "verified_value": "URL is valid and downloads a real JPEG image (212.2KB, forest/nature scene)",
+            "source": "WebFetch successfully downloaded JPEG from the URL; Web search confirmed Unsplash forest image",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "Unsplash free image service",
+            "verified_value": "Two Unsplash URLs in setup_desaturate.sh (lines 13, 15) with fallback to synthetic generation using ImageMagick",
+            "source": "setup_desaturate.sh lines 13-20 show download attempts and fallback 'convert' command",
+            "status": "verified"
+        },
+        {
+            "key": "data_is_synthetic",
+            "metadata_value": "False (intended to be real images from Unsplash)",
+            "verified_value": "False - primary data is real. Synthetic fallback only if downloads fail (line 18 of setup_desaturate.sh)",
+            "source": "setup_desaturate.sh shows wget downloads with ImageMagick 'convert' fallback",
+            "status": "verified"
+        },
+        {
+            "key": "desaturate_methods_claimed",
+            "metadata_value": "Lightness, Luminosity, Average, Value",
+            "verified_value": "GIMP 2.10 actually has: Luminance, Luma, Lightness, Average, Value",
+            "source": "GIMP 2.10 official documentation at docs.gimp.org/2.10/en/gimp-filter-desaturate.html",
+            "status": "contradicted"
+        },
+        {
+            "key": "desaturate_luminosity_method",
+            "metadata_value": "Method is called 'Luminosity'",
+            "verified_value": "GIMP 2.10 calls it 'Luminance' or 'Luma', not 'Luminosity'. Uses formula: (0.22×R) + (0.72×G) + (0.06×B)",
+            "source": "GIMP 2.10 official documentation; README.md line 24 uses incorrect name",
+            "status": "contradicted"
+        },
+        {
+            "key": "verification_rgb_tolerance",
+            "metadata_value": "Mean absolute difference between R,G,B channels ≤ 2.0 units per pixel",
+            "verified_value": "2.0 (exactly as documented)",
+            "source": "verifier.py line 166 and README.md line 106",
+            "status": "verified"
+        },
+        {
+            "key": "verification_saturation_threshold",
+            "metadata_value": "At least 95% of pixels have saturation values below 0.05",
+            "verified_value": "saturation_threshold=0.05, percentage_threshold=0.95 (exactly as documented)",
+            "source": "verifier.py lines 44, 166 and README.md line 107",
+            "status": "verified"
+        },
+        {
+            "key": "verification_detail_preservation",
+            "metadata_value": "Standard deviation of grayscale values ≥ 60% of original luminosity standard deviation",
+            "verified_value": "detail_threshold=0.6 (60% exactly as documented)",
+            "source": "verifier.py lines 66, 172 and README.md line 108",
+            "status": "verified"
+        },
+        {
+            "key": "verification_tonal_range",
+            "metadata_value": "Standard deviation of brightness values ≥ 15 (avoiding flat gray)",
+            "verified_value": "min_std_threshold=15.0 (exactly as documented)",
+            "source": "verifier.py lines 99, 175 and README.md line 109",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": "75% (requires at least 3 out of 4 verification criteria)",
+            "verified_value": "score >= 75, criteria_met >= 3/4 (exactly as documented)",
+            "source": "verifier.py lines 211-212 and README.md line 117",
+            "status": "verified"
+        },
+        {
+            "key": "verification_dependencies",
+            "metadata_value": "Python PIL (Pillow) and numpy",
+            "verified_value": "PIL (Image module) and numpy imported in verifier.py lines 9-10",
+            "source": "verifier.py imports; setup_desaturate.sh line 8 installs python3-pil python3-numpy",
+            "status": "verified"
+        },
+        {
+            "key": "export_format",
+            "metadata_value": "JPEG format with filename 'desaturated_bw.jpg'",
+            "verified_value": "export_desaturate.sh automates export with xdotool, results in /home/ga/Desktop/desaturated_bw.jpg",
+            "source": "export_desaturate.sh line 39-41 checks for .jpg file; verifier.py line 137 checks possible_results",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The desaturate_bw@1 task uses real images downloaded from Unsplash (URLs verified as valid and accessible). Primary image sources are an Unsplash flower photo (111.7KB) and forest photo (212.2KB), with an ImageMagick-generated synthetic fallback if downloads fail. The task requires GIMP 2.10 with desaturation functions (Luminance/Luma, Lightness, Average, Value). Verification uses PIL and numpy to check: RGB channel equality (tolerance ≤2.0), pixel saturation (<0.05 for ≥95% of pixels), detail preservation (≥60% of original luminosity standard deviation), and meaningful tonal range (standard deviation ≥15). Pass threshold is 75% (≥3 of 4 criteria). Minor documentation inaccuracy: README calls the standard desaturation method 'Luminosity' but GIMP 2.10 documentation calls it 'Luminance' or 'Luma'.",
+    "pi_confidence": "high"
+}

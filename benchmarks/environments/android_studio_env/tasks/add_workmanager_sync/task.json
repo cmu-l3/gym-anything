@@ -1,0 +1,32 @@
+{
+  "id": "add_workmanager_sync@1",
+  "version": "1.0",
+  "env_id": "android_studio_env@0.1",
+  "description": "Integrate WorkManager into the WeatherApp project to perform periodic background data synchronization.\n\n1. Add the dependency `androidx.work:work-runtime-ktx:2.9.1` (or newer) to the app's `build.gradle.kts`.\n2. Create a new file `app/src/main/java/com/example/weatherapp/sync/SyncWorker.kt`. The `SyncWorker` class must:\n   - Extend `CoroutineWorker`.\n   - In `doWork()`, save the current system time (milliseconds) to SharedPreferences using the name \"weather_prefs\" and key \"last_sync_time\".\n   - Return `Result.success()`.\n3. Create or update the `Application` class at `app/src/main/java/com/example/weatherapp/WeatherApplication.kt`:\n   - Extend `android.app.Application`.\n   - In `onCreate()`, schedule a PeriodicWorkRequest for `SyncWorker` that runs every 15 minutes.\n   - Add a constraint requiring `NetworkType.CONNECTED`.\n   - Enqueue it using `enqueueUniquePeriodicWork` with the name \"weather_sync\" and policy `KEEP`.\n4. Register `WeatherApplication` in `AndroidManifest.xml`.\n5. Verify the project builds successfully.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/add_workmanager_sync/setup_task.sh",
+    "post_task": "/workspace/tasks/add_workmanager_sync/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/AndroidStudioProjects/WeatherApp",
+    "app_package": "com.example.weatherapp",
+    "worker_class": "com.example.weatherapp.sync.SyncWorker",
+    "application_class": "com.example.weatherapp.WeatherApplication",
+    "shared_prefs_name": "weather_prefs",
+    "shared_prefs_key": "last_sync_time",
+    "work_name": "weather_sync",
+    "dependency_string": "androidx.work:work-runtime-ktx"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_add_workmanager_sync"
+    }
+  }
+}

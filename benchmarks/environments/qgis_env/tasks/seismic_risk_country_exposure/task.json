@@ -1,0 +1,29 @@
+{
+  "id": "seismic_risk_country_exposure@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "You are a seismic risk analyst at a global reinsurance company. The underwriting team needs a country-level portfolio exposure report based on the past 30 days of seismic activity to inform their catastrophe model inputs.\n\nThe USGS real-time earthquake feed (M2.5+, last 30 days) and Natural Earth country boundaries have been downloaded to /home/ga/GIS_Data/. Perform a spatial aggregation to count earthquake epicenters per country and compute per-country magnitude statistics.\n\nInput files:\n- /home/ga/GIS_Data/earthquakes_month.geojson  (USGS M2.5+ earthquakes, last 30 days)\n- /home/ga/GIS_Data/world_countries.geojson  (Natural Earth country boundaries with 'ADMIN' field for country name and 'ISO_A3' for ISO code)\n\nDeliverable: /home/ga/GIS_Data/exports/country_seismic_exposure.geojson\n- A GeoJSON FeatureCollection\n- Include ONLY countries that experienced at least 1 earthquake epicenter within their boundary\n- Each feature must retain the country geometry and original fields, plus exactly these four computed fields:\n  * quake_count  (integer: count of earthquake epicenters whose centroid falls within the country boundary)\n  * mean_mag     (float, 2 decimal places: arithmetic mean of all earthquake magnitudes in that country)\n  * max_mag      (float: maximum magnitude of any earthquake in the country)\n  * risk_tier    (string: 'low' if quake_count < 5, 'medium' if quake_count >= 5 and < 15, 'high' if quake_count >= 15)\n\nField names must be exactly as specified. Do not include countries with zero earthquakes.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/seismic_risk_country_exposure/setup_task.sh",
+    "post_task": "/workspace/tasks/seismic_risk_country_exposure/export_result.sh"
+  },
+  "metadata": {
+    "earthquake_source": "/home/ga/GIS_Data/earthquakes_month.geojson",
+    "countries_source": "/home/ga/GIS_Data/world_countries.geojson",
+    "expected_output": "/home/ga/GIS_Data/exports/country_seismic_exposure.geojson",
+    "expected_fields": ["quake_count", "mean_mag", "max_mag", "risk_tier"],
+    "gt_file": "/tmp/gt_seismic.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_seismic_risk_country_exposure"
+    }
+  }
+}

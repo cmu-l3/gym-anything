@@ -1,0 +1,28 @@
+{
+  "id": "compute_cumulative_erosive_impulse@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Calculate the cumulative erosive impulse on the main channel for the Muncie flood model. \n\nGoal: Determine the cumulative duration and magnitude of shear stress exceeding a critical threshold of 0.03 lb/ft² for every cross-section in the model.\n\nContext: You are an environmental engineer designing coir log bank stabilization. The material fails if the cumulative impulse (integral of excess shear over time) is too high.\n\nStarting State: Terminal open in '~/Documents/hec_ras_projects/Muncie'. Simulation results (HDF file) may or may not exist.\n\nInstructions:\n1. Ensure the HEC-RAS unsteady flow simulation has been run. If 'Muncie.p04.hdf' does not exist or is outdated, run 'RasUnsteady Muncie.p04.tmp.hdf x04'.\n2. Write a Python script using 'h5py' to:\n   - Open the HDF results file.\n   - Extract 'Shear Stress' (Channel) time series for all cross-sections.\n   - Calculate Cumulative Erosive Impulse (I) = Integral of (Shear - 0.03) dt for all time steps where Shear > 0.03. (dt in hours).\n   - Identify the Critical River Station (highest Impulse).\n3. Save results to '~/Documents/hec_ras_results/erosion_impulse.csv' with columns: RiverStation, Max_Shear_lb_sq_ft, Duration_Above_Threshold_hr, Cumulative_Impulse_lb_sq_ft_hr.\n4. Save a summary to '~/Documents/hec_ras_results/erosion_summary.txt' with the Critical River Station and its Impulse value.\n5. Generate a plot '~/Documents/hec_ras_results/critical_shear_plot.png' showing the Shear Stress vs Time for the critical cross-section, with a horizontal line at 0.03.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_cumulative_erosive_impulse/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_cumulative_erosive_impulse/export_result.sh"
+  },
+  "metadata": {
+    "threshold_shear": 0.03,
+    "output_csv": "/home/ga/Documents/hec_ras_results/erosion_impulse.csv",
+    "output_summary": "/home/ga/Documents/hec_ras_results/erosion_summary.txt",
+    "output_plot": "/home/ga/Documents/hec_ras_results/critical_shear_plot.png"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_cumulative_erosive_impulse"
+    }
+  }
+}

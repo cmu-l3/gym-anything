@@ -1,0 +1,32 @@
+{
+  "id": "mri_volume_estimation@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Brain Tissue Volume Estimation from MRI Stack",
+  "description": "Open the T1 Head MRI sample stack in Fiji (File > Open Samples > T1 Head (2.4MB, MRI)). This is a 256x256x129 slice T1-weighted MRI brain scan.\n\nYour goal is to estimate the total brain tissue volume:\n1. Apply an intensity threshold to segment brain tissue (bright regions) from background, CSF, and skull.\n2. Measure the thresholded tissue area on each slice of the stack (or at minimum 20+ slices spanning the full range).\n3. Compute a total brain tissue volume estimate by summing the per-slice areas.\n4. Save all per-slice area measurements and the total volume estimate to ~/ImageJ_Data/results/mri_volume_results.csv.\n\nThe CSV must include:\n- A slice number or identifier column\n- Measured area per slice\n- A total volume value (as a summary row, separate line, or header comment)\n\nNote: In a real brain MRI, tissue area varies greatly across slices — near zero at the very top and bottom, maximal in the middle.",
+  "difficulty": "medium",
+  "tags": ["medical-imaging", "mri", "volumetrics", "stack-processing", "thresholding", "3d-analysis"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mri_volume_estimation/setup_task.sh",
+    "post_task": "/workspace/tasks/mri_volume_estimation/export_result.sh"
+  },
+  "metadata": {
+    "expected_file": "/home/ga/ImageJ_Data/results/mri_volume_results.csv",
+    "min_data_rows": 20,
+    "min_area_variation_std": 100.0,
+    "expected_max_area_min": 5000,
+    "expected_max_area_max": 65536,
+    "sample_image": "T1 Head (2.4MB, MRI)"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mri_volume_estimation"
+    }
+  }
+}

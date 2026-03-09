@@ -1,0 +1,33 @@
+{
+  "id": "piping_material_compatibility_audit@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "A process engineer is recommissioning a chemical transfer manifold made of Aluminum (Type 6061) piping and Brass (Copper alloy) valves. You must audit five chemicals to determine if they are compatible with these materials using the CAMEO Chemicals database (https://cameochemicals.noaa.gov/).\n\nChemicals to audit:\n1. Sodium Hydroxide Solution (CAS 1310-73-2)\n2. Ammonia, Anhydrous (CAS 7664-41-7)\n3. Methyl Chloride (CAS 74-87-3)\n4. Sulfuric Acid (CAS 7664-93-9)\n5. Toluene (CAS 108-88-3)\n\nFor each chemical, check the 'Hazards' and 'Reactivity' sections. Mark it as 'Incompatible' (NO) if the datasheet mentions it corrodes, attacks, or reacts hazardously (e.g., forms hydrogen gas or explosive salts) with Aluminum or Copper/Zinc/Brass.\n\nGenerate a CSV report at '/home/ga/Documents/piping_audit.csv' with the following columns:\n- Chemical\n- Safe_for_Aluminum (YES/NO)\n- Safe_for_Copper (YES/NO)\n- Hazard_Type (Brief description of risk if NO, or 'None' if YES)",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/piping_material_compatibility_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/piping_material_compatibility_audit/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/piping_audit.csv",
+    "expected_columns": ["Chemical", "Safe_for_Aluminum", "Safe_for_Copper", "Hazard_Type"],
+    "ground_truth": {
+      "Sodium Hydroxide Solution": {"Al": "NO", "Cu": "NO"},
+      "Ammonia, Anhydrous": {"Al": "YES", "Cu": "NO"},
+      "Methyl Chloride": {"Al": "NO", "Cu": "YES"},
+      "Sulfuric Acid": {"Al": "NO", "Cu": "NO"},
+      "Toluene": {"Al": "YES", "Cu": "YES"}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_piping_audit"
+    }
+  }
+}

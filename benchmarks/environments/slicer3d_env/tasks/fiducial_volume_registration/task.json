@@ -1,0 +1,46 @@
+{
+  "id": "fiducial_volume_registration@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Register 'MRHead_misaligned' to 'MRHead_reference' using fiducial-based rigid registration. Place at least 4 corresponding anatomical landmark pairs on both volumes, compute the rigid transform, and apply it to the moving volume. The Fiducial Registration Error (FRE) should be below 3.0mm.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fiducial_volume_registration/setup_task.sh",
+    "post_task": "/workspace/tasks/fiducial_volume_registration/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "sample_file": "MRHead.nrrd",
+    "reference_volume": "MRHead_reference",
+    "moving_volume": "MRHead_misaligned",
+    "task_data_dir": "/home/ga/Documents/SlicerData/RegistrationTask",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "ground_truth_file": "/var/lib/slicer/ground_truth/registration_gt.json",
+    "applied_translation_mm": [12.0, -8.0, 5.0],
+    "applied_rotation_deg": [3.0, 0.0, 8.0],
+    "min_fiducial_pairs": 4,
+    "max_fre_mm": 3.0,
+    "max_rotation_error_deg": 2.0,
+    "max_translation_error_mm": 2.0,
+    "scoring_weights": {
+      "transform_exists": 15,
+      "transform_applied": 15,
+      "min_fiducials": 15,
+      "fre_quality": 20,
+      "rotation_accuracy": 15,
+      "translation_accuracy": 10,
+      "vlm_visual": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fiducial_volume_registration"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "id": "cardiothoracic_ratio@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the cardiothoracic ratio (CTR) on the provided chest CT by measuring the maximum transverse cardiac diameter and maximum internal thoracic diameter at the same axial level. Save cardiac measurement to ~/Documents/SlicerData/LIDC/cardiac_diameter.mrk.json, thoracic measurement to ~/Documents/SlicerData/LIDC/thoracic_diameter.mrk.json, and report to ~/Documents/SlicerData/LIDC/ctr_report.json with fields: cardiac_diameter_mm, thoracic_diameter_mm, ctr_ratio, slice_number, classification.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cardiothoracic_ratio/setup_task.sh",
+    "post_task": "/workspace/tasks/cardiothoracic_ratio/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_cardiac_measurement": "/home/ga/Documents/SlicerData/LIDC/cardiac_diameter.mrk.json",
+    "output_thoracic_measurement": "/home/ga/Documents/SlicerData/LIDC/thoracic_diameter.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/ctr_report.json",
+    "cardiac_diameter_range_mm": {"min": 80, "max": 200},
+    "thoracic_diameter_range_mm": {"min": 200, "max": 400},
+    "ctr_tolerance": 0.02,
+    "reference_tolerance_percent": 15,
+    "passing_thresholds": {
+      "cardiac_valid": true,
+      "thoracic_valid": true,
+      "ctr_calculation_correct": true
+    },
+    "scoring_weights": {
+      "cardiac_diameter_valid": 15,
+      "thoracic_diameter_valid": 15,
+      "same_level_measurements": 10,
+      "ctr_calculation_correct": 20,
+      "ctr_in_expected_range": 15,
+      "classification_correct": 15,
+      "report_complete": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cardiothoracic_ratio"
+    }
+  }
+}

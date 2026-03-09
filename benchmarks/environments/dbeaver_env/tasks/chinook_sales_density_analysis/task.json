@@ -1,0 +1,30 @@
+{
+  "id": "chinook_sales_density_analysis@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Data Warehouse Engineer working with the Chinook digital media database. Management needs to analyze 'sales density'—specifically identifying days with zero revenue to understand sales consistency.\n\nYour task has three parts:\n\n1. **Create a Date Dimension**: Connect to the Chinook SQLite database (`/home/ga/Documents/databases/chinook.db`) and create a table named `dim_date`. It must contain a continuous daily sequence from **2009-01-01** to **2013-12-31** (covering the full range of invoice data). The table must have at least these columns:\n   - `DateValue` (TEXT, format 'YYYY-MM-DD')\n   - `Year` (INTEGER)\n   - `Month` (INTEGER)\n   - `MonthName` (TEXT)\n   - `DayOfWeek` (TEXT)\n   - `IsWeekend` (INTEGER: 1 for Saturday/Sunday, 0 otherwise)\n   *(Hint: Use a Recursive CTE to generate the sequence)*\n\n2. **Create Analysis View**: Create a view named `v_monthly_density` that joins your `dim_date` with the `invoices` table. It should aggregate by Year-Month and calculate:\n   - `MonthKey` (TEXT, 'YYYY-MM')\n   - `TotalDays` (Days in the month)\n   - `ZeroSalesDays` (Count of days where NO invoices occurred)\n   - `TotalRevenue` (Sum of invoice totals)\n   Sort by `MonthKey` ascending.\n\n3. **Export Report**: Export the results of the view to a CSV file at `/home/ga/Documents/exports/sales_density.csv`.\n\nDBeaver is already open. You must create the 'Chinook' connection yourself.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_sales_density_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_sales_density_analysis/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook.db",
+    "expected_dim_date_rows": 1826,
+    "expected_csv_path": "/home/ga/Documents/exports/sales_density.csv",
+    "expected_view_name": "v_monthly_density",
+    "date_range_start": "2009-01-01",
+    "date_range_end": "2013-12-31"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_sales_density_analysis"
+    }
+  }
+}

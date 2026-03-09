@@ -1,0 +1,48 @@
+{
+  "id": "ventricular_hydrocephalus_screening@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment the lateral ventricles on the provided brain MRI (MRHead.nrrd), calculate ventricular volume, measure Evans' Index (frontal horn width / internal skull diameter), and classify the findings. Save segmentation to ~/Documents/SlicerData/SampleData/ventricle_segmentation.nii.gz, frontal horn ruler to ~/Documents/SlicerData/SampleData/frontal_horn_ruler.mrk.json, skull diameter ruler to ~/Documents/SlicerData/SampleData/skull_diameter_ruler.mrk.json, and report to ~/Documents/SlicerData/SampleData/ventricle_report.json with fields: ventricular_volume_ml, frontal_horn_width_mm, internal_skull_diameter_mm, evans_index, classification, clinical_notes.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ventricular_hydrocephalus_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/ventricular_hydrocephalus_screening/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "sample_dir": "/home/ga/Documents/SlicerData/SampleData",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/SampleData/ventricle_segmentation.nii.gz",
+    "output_frontal_ruler": "/home/ga/Documents/SlicerData/SampleData/frontal_horn_ruler.mrk.json",
+    "output_skull_ruler": "/home/ga/Documents/SlicerData/SampleData/skull_diameter_ruler.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/SampleData/ventricle_report.json",
+    "expected_ranges": {
+      "ventricular_volume_ml": {"min": 5, "max": 100},
+      "frontal_horn_width_mm": {"min": 15, "max": 60},
+      "internal_skull_diameter_mm": {"min": 100, "max": 180},
+      "evans_index": {"min": 0.15, "max": 0.50}
+    },
+    "scoring_weights": {
+      "segmentation_exists": 10,
+      "volume_plausible": 15,
+      "location_valid": 10,
+      "frontal_ruler_valid": 10,
+      "skull_ruler_valid": 10,
+      "evans_valid": 15,
+      "classification_valid": 15,
+      "report_complete": 10,
+      "volume_match": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ventricular_assessment"
+    }
+  }
+}

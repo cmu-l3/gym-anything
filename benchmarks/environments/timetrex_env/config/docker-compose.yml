@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    container_name: timetrex-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: timetrex
+      POSTGRES_PASSWORD: timetrex
+      POSTGRES_DB: timetrex
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timetrex -d timetrex"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  timetrex:
+    build:
+      context: .
+      dockerfile: Dockerfile.timetrex
+    container_name: timetrex-app
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      TIMETREX_DB_HOST: postgres
+      TIMETREX_DB_USER: timetrex
+      TIMETREX_DB_PASS: timetrex
+      TIMETREX_DB_NAME: timetrex
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/interface/login/login.php"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+volumes:
+  postgres_data:

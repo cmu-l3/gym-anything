@@ -1,0 +1,65 @@
+{
+  "id": "ait_equipment_classification@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "You are an electrical engineer determining the temperature classification for electrical equipment in a chemical processing area. Per NEC Article 500 and IEC 60079-14, equipment in hazardous areas must have a T-rating (maximum surface temperature) that does NOT exceed the auto-ignition temperature of any flammable substance present.\n\nUse CAMEO Chemicals (https://cameochemicals.noaa.gov/) to look up the **Auto-Ignition Temperature** for these five chemicals:\n1. Diethyl Ether (CAS 60-29-7)\n2. Acetone (CAS 67-64-1)\n3. Carbon Disulfide (CAS 75-15-0)\n4. Toluene (CAS 108-88-3)\n5. n-Hexane (CAS 110-54-3)\n\nFor each chemical, determine the required T-Class using this table. Choose the T-Class with the **highest** max surface temperature that is still **at or below** the chemical's auto-ignition temperature.\n\n| T-Class | Max Surface Temp |\n|---------|------------------|\n| T1      | 450°C (842°F)    |\n| T2      | 300°C (572°F)    |\n| T2A     | 280°C (536°F)    |\n| T2B     | 260°C (500°F)    |\n| T2C     | 230°C (446°F)    |\n| T2D     | 215°C (419°F)    |\n| T3      | 200°C (392°F)    |\n| T3A     | 180°C (356°F)    |\n| T3B     | 165°C (329°F)    |\n| T3C     | 160°C (320°F)    |\n| T4      | 135°C (275°F)    |\n| T4A     | 120°C (248°F)    |\n| T5      | 100°C (212°F)    |\n| T6      | 85°C (185°F)     |\n\nCreate a report at `/home/ga/Documents/ait_classification_report.txt` containing:\n- Each chemical's Name, Auto-Ignition Temperature, and required T-Class.\n- The name of the **Most Restrictive Chemical** (lowest AIT).\n- The overall **Facility Required T-Class** (dictated by the most restrictive chemical).",
+  "difficulty": "medium",
+  "tags": ["cameo", "engineering", "hazmat", "safety", "classification", "electrical"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ait_equipment_classification/setup_task.sh",
+    "post_task": "/workspace/tasks/ait_equipment_classification/export_result.sh"
+  },
+  "metadata": {
+    "output_file": "/home/ga/Documents/ait_classification_report.txt",
+    "chemicals": [
+      {
+        "name": "Diethyl Ether",
+        "cas": "60-29-7",
+        "ait_c_range": [155, 180],
+        "ait_f_range": [311, 356],
+        "expected_tclass": ["T3C", "T4"]
+      },
+      {
+        "name": "Acetone",
+        "cas": "67-64-1",
+        "ait_c_range": [460, 470],
+        "ait_f_range": [860, 878],
+        "expected_tclass": ["T1"]
+      },
+      {
+        "name": "Carbon Disulfide",
+        "cas": "75-15-0",
+        "ait_c_range": [85, 105],
+        "ait_f_range": [185, 221],
+        "expected_tclass": ["T6", "T5"] 
+      },
+      {
+        "name": "Toluene",
+        "cas": "108-88-3",
+        "ait_c_range": [475, 485],
+        "ait_f_range": [887, 905],
+        "expected_tclass": ["T1"]
+      },
+      {
+        "name": "n-Hexane",
+        "cas": "110-54-3",
+        "ait_c_range": [220, 230],
+        "ait_f_range": [428, 446],
+        "expected_tclass": ["T2D"]
+      }
+    ],
+    "most_restrictive": "Carbon Disulfide",
+    "facility_tclass": ["T6", "T5"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ait_equipment_classification"
+    }
+  }
+}

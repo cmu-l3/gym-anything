@@ -1,0 +1,35 @@
+{
+  "id": "classic_analysis_pgm_export@1",
+  "version": "1.0",
+  "env_id": "epi_info_env@0.1",
+  "description": "Using Epi Info 7 Classic Analysis, write and execute a script to process the Oswego outbreak data. \n\nGoal: Create a dataset of ONLY ill patients containing a new variable representing their total food exposure count, and export it to a CSV file.\n\nRequired Steps:\n1. Open Classic Analysis.\n2. In the Program Editor, write commands to:\n   - READ the 'Oswego' table from the Sample project (typically 'C:\\Epi Info 7\\Resources\\Projects\\Sample\\Sample.prj').\n   - DEFINE a new numeric variable named 'FoodCount'.\n   - ASSIGN 'FoodCount' to be the sum of positive responses ('Yes') for these food items: BAKEDHAM, SPINACH, MASHEDPOTA, CABBAGESAL, JELLO, ROLLS, BROWNBREAD, MILK, COFFEE, WATER, CAKES, VANILLAICE, CHOCOLATE, FRUITCUP.\n   - SELECT only records where ILL is 'Yes'.\n   - WRITE (Export) the results to a CSV file at 'C:\\Users\\Docker\\Documents\\OswegoIllExport.csv' (use REPLACE mode).\n3. Run the commands.\n4. Verify the file is created.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\classic_analysis_pgm_export\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\classic_analysis_pgm_export\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_output_path": "C:\\Users\\Docker\\Documents\\OswegoIllExport.csv",
+    "expected_column": "FoodCount",
+    "filter_column": "ILL",
+    "filter_value": "Yes",
+    "min_rows": 40,
+    "max_rows": 50,
+    "food_items": [
+      "BAKEDHAM", "SPINACH", "MASHEDPOTA", "CABBAGESAL", "JELLO", "ROLLS", 
+      "BROWNBREAD", "MILK", "COFFEE", "WATER", "CAKES", "VANILLAICE", 
+      "CHOCOLATE", "FRUITCUP"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_classic_analysis_export"
+    }
+  }
+}

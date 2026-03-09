@@ -1,0 +1,32 @@
+{
+  "id": "multi_role_access_governance@1",
+  "version": "1.0",
+  "env_id": "manageengine_adaudit_plus_env@0.1",
+  "description": "ADAudit Plus is running at http://localhost:8081/ (login: admin/Admin@2024). Your organization has experienced unauthorized privilege escalations — multiple Windows user accounts were added to sensitive security groups without change-management approval. Using ADAudit Plus, investigate the group membership change events to identify exactly which user accounts were added to which groups and when. Based on your investigation, take the following governance actions: (1) create three new technician accounts for your governance team — username 'gov_lead' (full name 'Governance Lead', email 'gov.lead@corp.local', password 'GovTeam@2025', role 'Auditor'), username 'risk_analyst' (full name 'Risk Analyst', email 'risk.analyst@corp.local', password 'RiskTeam@2025', role 'Operator'), username 'change_manager' (full name 'Change Manager', email 'change.manager@corp.local', password 'ChangeTeam@2025', role 'Operator'); (2) schedule a new report named 'Group Membership Changes Weekly' that runs every week; (3) write a governance audit report to C:\\Users\\Docker\\Desktop\\governance_audit.txt listing every account that was added to a privileged group, which group they were added to, and your recommended remediation actions for each.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 70,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\multi_role_access_governance\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\multi_role_access_governance\\export_result.ps1",
+    "pre_task_timeout": 900
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multi_role_access_governance"
+    }
+  },
+  "metadata": {
+    "expected_technicians": ["gov_lead", "risk_analyst", "change_manager"],
+    "expected_roles": {"gov_lead": "Auditor", "risk_analyst": "Operator", "change_manager": "Operator"},
+    "expected_report_name": "Group Membership Changes Weekly",
+    "expected_audit_file": "C:\\Users\\Docker\\Desktop\\governance_audit.txt",
+    "group_change_accounts": ["jsmith", "abrown"],
+    "privilege_groups": ["Administrators", "Security_Team"],
+    "result_file": "C:\\Users\\Docker\\multi_role_access_governance_result.json"
+  }
+}

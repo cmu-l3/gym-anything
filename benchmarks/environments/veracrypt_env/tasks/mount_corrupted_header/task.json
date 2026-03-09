@@ -1,0 +1,29 @@
+{
+  "id": "mount_corrupted_header@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "A VeraCrypt encrypted volume at /home/ga/Volumes/corrupted_volume.hc has suffered primary header corruption (simulating a disk error). The volume contains three critical files: project_ssh_config, infrastructure_hosts, and quarterly_metrics.csv.\n\nVolume parameters:\n- Password: RecoverMe2024!\n- Encryption: AES\n- Hash: SHA-512\n- PIM: 0 (default)\n- No keyfiles\n\nThe primary header is damaged, so a normal mount will fail. You must mount the volume using VeraCrypt's embedded backup header feature. In the CLI, this is the --backup-header flag. In the GUI, this is the 'Use backup header embedded in a volume if available' option in Mount Options.\n\nYour tasks:\n1. Mount the corrupted volume at /home/ga/MountPoints/slot1 using the embedded backup header\n2. Verify the three files are accessible inside the mounted volume\n3. Compute SHA-256 checksums of all three files\n4. Create a recovery report at /home/ga/recovery_report.txt with the following format:\n   - First line: RECOVERY REPORT\n   - One line per file: <sha256_checksum>  <filename>\n   - Last line: RECOVERY COMPLETE: 3 files verified\n\nThe checksum lines must use the exact format output by sha256sum (two spaces between hash and filename, filename only without path).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mount_corrupted_header/setup_task.sh",
+    "post_task": "/workspace/tasks/mount_corrupted_header/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/corrupted_volume.hc",
+    "mount_point": "/home/ga/MountPoints/slot1",
+    "report_path": "/home/ga/recovery_report.txt",
+    "expected_files": ["project_ssh_config", "infrastructure_hosts", "quarterly_metrics.csv"],
+    "ground_truth_checksums_path": "/var/lib/veracrypt_task_data/expected_checksums.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mount_corrupted_header"
+    }
+  }
+}

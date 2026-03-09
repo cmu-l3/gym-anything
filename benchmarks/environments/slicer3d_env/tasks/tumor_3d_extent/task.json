@@ -1,0 +1,42 @@
+{
+  "id": "tumor_3d_extent@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the maximum tumor extent in all three anatomical planes (AP, ML, SI) on the provided brain MRI and calculate the ellipsoid volume approximation. Create ruler markups named 'Tumor_AP_mm', 'Tumor_ML_mm', and 'Tumor_SI_mm'. Save markups to ~/Documents/SlicerData/BraTS/tumor_dimensions.mrk.json and report to ~/Documents/SlicerData/BraTS/tumor_extent_report.json with fields: AP_diameter_mm, ML_diameter_mm, SI_diameter_mm, ellipsoid_volume_ml.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tumor_3d_extent/setup_task.sh",
+    "post_task": "/workspace/tasks/tumor_3d_extent/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_markups": "/home/ga/Documents/SlicerData/BraTS/tumor_dimensions.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/tumor_extent_report.json",
+    "dimension_tolerance_mm": 10.0,
+    "volume_tolerance_percent": 25.0,
+    "scoring_weights": {
+      "ap_accuracy": 20,
+      "ml_accuracy": 20,
+      "si_accuracy": 20,
+      "volume_calculation": 15,
+      "markups_named": 10,
+      "report_complete": 10,
+      "markups_saved": 5
+    },
+    "passing_threshold": 60,
+    "required_criteria": ["at_least_2_dimensions_correct"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tumor_3d_extent"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "wfs_t_insert_feature@1",
+  "version": "1.0",
+  "env_id": "geo_server_env@0.1",
+  "description": "A new settlement named 'Nova Cartografia' has been officially established in Brazil and needs to be added to the geospatial database through GeoServer's WFS-T (Transactional Web Feature Service) interface.\n\nGeoServer is running at http://localhost:8080/geoserver with admin credentials admin / Admin123!. The workspace 'ne' contains the layer 'ne_populated_places' backed by a PostGIS datastore ('postgis_ne').\n\nYour task is to insert a new point feature into the ne:ne_populated_places layer by sending a WFS-T Insert transaction to GeoServer's WFS endpoint.\n\nThe new feature must have these attribute values:\n- name: Nova Cartografia\n- nameascii: Nova Cartografia\n- adm0name: Brazil\n- featurecla: Populated place\n- pop_max: 45000\n- latitude: -15.7801\n- longitude: -47.9292\n- Geometry: Point at longitude -47.9292, latitude -15.7801 (EPSG:4326)\n\nSteps:\n1. Determine the namespace URI for the 'ne' workspace (you can query the REST API at /rest/namespaces/ne.json with the admin credentials).\n2. Construct a WFS-T Insert transaction XML document targeting ne:ne_populated_places with the above attributes and a GML Point geometry.\n3. Send the transaction to GeoServer's WFS endpoint.\n4. Verify the response indicates success (totalInserted=\"1\").\n5. Save the WFS-T transaction XML you constructed to ~/wfst_insert.xml\n6. Save the transaction response to ~/wfst_response.xml\n\nNote: You may use curl, Python, or any available tool. The WFS endpoint is at http://localhost:8080/geoserver/wfs or http://localhost:8080/geoserver/ne/wfs",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/wfs_t_insert_feature/setup_task.sh",
+    "post_task": "/workspace/tasks/wfs_t_insert_feature/export_result.sh"
+  },
+  "metadata": {
+    "target_name": "Nova Cartografia",
+    "target_adm0": "Brazil",
+    "target_pop": 45000,
+    "target_lat": -15.7801,
+    "target_lon": -47.9292,
+    "tolerance_degrees": 0.01,
+    "expected_files": ["wfst_insert.xml", "wfst_response.xml"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_wfs_t_insert_feature"
+    }
+  }
+}

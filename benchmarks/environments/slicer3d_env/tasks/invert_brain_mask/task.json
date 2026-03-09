@@ -1,0 +1,39 @@
+{
+  "id": "invert_brain_mask@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Create an inverse of the existing 'Brain' segment on the loaded MRHead MRI to produce a 'NonBrain' segment covering all non-brain regions. Use the Logical operators effect to invert the mask. Both segments should remain in the scene with minimal overlap. No manual save is required.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 240,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/invert_brain_mask/setup_task.sh",
+    "post_task": "/workspace/tasks/invert_brain_mask/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "sample_file": "MRHead.nrrd",
+    "initial_segment_name": "Brain",
+    "expected_inverse_names": ["NonBrain", "Inverse", "Background", "Skull", "NonBrain_1"],
+    "output_segmentation_dir": "/home/ga/Documents/SlicerData",
+    "min_brain_voxels": 100000,
+    "max_overlap_ratio": 0.01,
+    "coverage_tolerance": 0.10,
+    "scoring_weights": {
+      "inverse_segment_exists": 25,
+      "segment_has_voxels": 15,
+      "voxel_count_complementary": 25,
+      "minimal_overlap": 15,
+      "vlm_visual_confirmation": 20
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_invert_brain_mask"
+    }
+  }
+}

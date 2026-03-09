@@ -1,0 +1,43 @@
+{
+  "id": "fill_segmentation_holes@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Fill the internal holes in the 'RightLung' segment of the loaded lung segmentation to create a solid segment. Use the closing (fill holes) smoothing method, not Gaussian smoothing. The external boundary should remain mostly unchanged. Save the filled segmentation to ~/Documents/SlicerData/Exports/filled_lung_segment.seg.nrrd.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fill_segmentation_holes/setup_task.sh",
+    "post_task": "/workspace/tasks/fill_segmentation_holes/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "data_dir": "/home/ga/Documents/SlicerData/LungHoles",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "input_segmentation": "/home/ga/Documents/SlicerData/LungHoles/lung_with_holes.seg.nrrd",
+    "input_ct": "/home/ga/Documents/SlicerData/LungHoles/chest_ct.nrrd",
+    "output_segmentation": "/home/ga/Documents/SlicerData/Exports/filled_lung_segment.seg.nrrd",
+    "segment_name": "RightLung",
+    "expected_volume_increase_min_percent": 5,
+    "expected_volume_increase_max_percent": 30,
+    "min_initial_holes": 50,
+    "scoring_weights": {
+      "output_file_exists": 15,
+      "file_recently_modified": 10,
+      "volume_increased": 25,
+      "volume_not_overexpanded": 15,
+      "euler_improved": 15,
+      "bounding_box_stable": 10,
+      "vlm_confirms_solid": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fill_segmentation_holes"
+    }
+  }
+}

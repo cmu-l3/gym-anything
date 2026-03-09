@@ -1,0 +1,50 @@
+{
+  "id": "minip_airway_visualization@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Create a coronal MinIP (Minimum Intensity Projection) slab visualization of the airways on the loaded chest CT. Annotate the trachea, carina, right and left main bronchi, and at least one lobar bronchus with fiducial markers. Measure trachea, right bronchus, and left bronchus diameters. Save screenshot to ~/Documents/SlicerData/LIDC/minip_airway_visualization.png, landmarks to ~/Documents/SlicerData/LIDC/airway_landmarks.mrk.json, and measurements to ~/Documents/SlicerData/LIDC/airway_measurements.json with fields: trachea_diameter_mm, right_bronchus_diameter_mm, left_bronchus_diameter_mm.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/minip_airway_visualization/setup_task.sh",
+    "post_task": "/workspace/tasks/minip_airway_visualization/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_screenshot": "/home/ga/Documents/SlicerData/LIDC/minip_airway_visualization.png",
+    "output_landmarks": "/home/ga/Documents/SlicerData/LIDC/airway_landmarks.mrk.json",
+    "output_measurements": "/home/ga/Documents/SlicerData/LIDC/airway_measurements.json",
+    "normal_ranges": {
+      "trachea_min_mm": 15,
+      "trachea_max_mm": 25,
+      "right_bronchus_min_mm": 10,
+      "right_bronchus_max_mm": 16,
+      "left_bronchus_min_mm": 9,
+      "left_bronchus_max_mm": 14
+    },
+    "scoring_weights": {
+      "minip_created": 15,
+      "trachea_measurement": 15,
+      "right_bronchus_measurement": 10,
+      "left_bronchus_measurement": 10,
+      "anatomic_relationship": 10,
+      "carina_landmark": 10,
+      "bronchi_labeled": 10,
+      "lobar_bronchi_labeled": 5,
+      "screenshot_quality": 10,
+      "report_completeness": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_minip_airway_visualization"
+    }
+  }
+}

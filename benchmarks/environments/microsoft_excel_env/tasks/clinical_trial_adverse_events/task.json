@@ -1,0 +1,32 @@
+{
+  "id": "clinical_trial_adverse_events@1",
+  "version": "1.0",
+  "env_id": "microsoft_excel_env@0.1",
+  "description": "You are a pharmacovigilance analyst at an FDA-contracted drug safety consultancy conducting a comparative safety review of two PD-1 immune checkpoint inhibitors. Microsoft Excel is open with clinical_trial_ae.xlsx containing real FDA FAERS (Adverse Event Reporting System) data. The 'Patient_Demographics' sheet has 100 individual case safety reports for pembrolizumab (Keytruda) with Case_ID, Drug_Name, Age, Sex, Report_Date, Serious flag, and Country. The 'Raw_AE_Data' sheet has 240 individual adverse event records linked to those cases with MedDRA terms and outcomes. The 'AE_Frequency_Comparison' sheet has 30 MedDRA preferred terms with pre-filled report counts for Keytruda and Opdivo (nivolumab) from FAERS. For each term, calculate the Rate_Ratio (Keytruda_Report_Count / Opdivo_Report_Count), Rate_Difference (Keytruda_Count - Opdivo_Count), and Signal_Flag ('SIGNAL' if Rate_Ratio > 1.5 AND Rate_Difference > 500, blank otherwise). Fill the TOTAL row with column sums. Complete the 'Safety_Signal_Report' sheet: Total Cases (Keytruda) from Patient_Demographics (count of unique Case_IDs), Total Cases (Opdivo) is not available (enter 'N/A' or leave blank), Total AE Terms (Keytruda) from Raw_AE_Data count, Total AE Terms (Opdivo) from AE_Frequency_Comparison sum, Serious Case Rate (Keytruda %) from Patient_Demographics (count where Serious='Yes' / total * 100), Most Reported AE (Keytruda) from AE_Frequency_Comparison (term with highest Keytruda count), Most Reported AE (Opdivo) (term with highest Opdivo count), AE Term with Highest Rate Ratio, Highest Rate Ratio Value, Terms with Signal Flag Count, Total Report Count sums. Save the file as C:\\\\Users\\\\Docker\\\\Desktop\\\\ExcelTasks\\\\clinical_trial_ae.xlsx using Ctrl+S.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\clinical_trial_adverse_events\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\clinical_trial_adverse_events\\export_result.ps1"
+  },
+  "metadata": {
+    "occupation": "Biostatisticians",
+    "industry": "Pharmaceutical / Pharmacovigilance",
+    "onet_soc": "15-2041.00",
+    "data_source": "FDA FAERS via OpenFDA API (real adverse event reports for pembrolizumab/Keytruda and nivolumab/Opdivo); MedDRA preferred term counts from FAERS cumulative database; case demographics from individual safety reports",
+    "excel_features": ["COUNTIF", "COUNTIFS", "division", "IF_flags", "MAX", "INDEX_MATCH", "multi_sheet", "aggregation"],
+    "expected_total_keytruda_reports": 90861,
+    "expected_total_opdivo_reports": 76705,
+    "expected_serious_rate_pct": 85
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_clinical_trial_adverse_events"
+    }
+  }
+}

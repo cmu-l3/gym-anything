@@ -1,0 +1,30 @@
+{
+  "id": "verify_levee_freeboard_compliance@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform a FEMA levee accreditation check for the Muncie flood model. You are provided with a levee survey file ('levee_survey.csv') containing survey stations and top-of-levee elevations. Your task is to:\n\n1. Run the HEC-RAS Unsteady simulation (Plan 04) if results are not already present.\n2. Create a Python script to extract the Maximum Water Surface Elevation (WSE) profile from the results (HDF5) and linearly interpolate the WSE values to the survey stations defined in the CSV.\n3. Compute the freeboard (Levee Elev - Max WSE) for each survey point.\n4. Generate a compliance report CSV ('levee_compliance.csv') in '~/Documents/hec_ras_results/' with columns: 'Station_ft', 'Levee_Top_Elev_ft', 'Modeled_WSE_ft', 'Freeboard_ft', 'Status'. The 'Status' should be 'FAIL' if freeboard < 3.0 ft, otherwise 'PASS'.\n5. Generate a visualization plot ('levee_profile.png') showing the Levee Top and Max WSE profiles.\n\nThe project is located in '~/Documents/hec_ras_projects/Muncie'. Use the provided analysis scripts or write your own.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/verify_levee_freeboard_compliance/setup_task.sh",
+    "post_task": "/workspace/tasks/verify_levee_freeboard_compliance/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "survey_file": "levee_survey.csv",
+    "output_csv": "/home/ga/Documents/hec_ras_results/levee_compliance.csv",
+    "output_plot": "/home/ga/Documents/hec_ras_results/levee_profile.png",
+    "ground_truth_path": "/var/lib/hec_ras/ground_truth/levee_compliance_gt.csv",
+    "freeboard_threshold_ft": 3.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_levee_freeboard_compliance"
+    }
+  }
+}

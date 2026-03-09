@@ -1,0 +1,37 @@
+{
+  "id": "chinook_customer_similarity@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Compute a customer-to-customer similarity matrix based on shared artist purchases in the Chinook database. \n\n1. Connect to the Chinook SQLite database at `/home/ga/Documents/databases/chinook.db`. Name the connection 'Chinook'.\n\n2. Write a SQL query to find the Top 20 customer pairs with the highest Jaccard Similarity based on the artists they have purchased. \n   - An artist is considered 'purchased' if the customer bought at least one track by that artist.\n   - For every pair of customers (A, B) where A.CustomerId < B.CustomerId and they share at least 1 artist:\n     * Calculate `SharedArtists`: Count of artists purchased by BOTH A and B.\n     * Calculate `TotalArtists`: Count of artists purchased by A OR B (Union = CountA + CountB - Shared).\n     * Calculate `JaccardSimilarity`: SharedArtists / TotalArtists (rounded to 4 decimal places).\n   - Sort results by JaccardSimilarity DESC, then SharedArtists DESC.\n\n3. Export the top 20 rows to `/home/ga/Documents/exports/customer_similarity.csv`. The CSV must have exactly these columns: `CustomerIdA`, `CustomerIdB`, `CustomerNameA`, `CustomerNameB`, `SharedArtists`, `TotalArtists`, `JaccardSimilarity`. (Customer names should be 'FirstName LastName').\n\n4. Save your SQL query to `/home/ga/Documents/scripts/similarity_query.sql`.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_customer_similarity/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_customer_similarity/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook.db",
+    "output_csv": "/home/ga/Documents/exports/customer_similarity.csv",
+    "output_sql": "/home/ga/Documents/scripts/similarity_query.sql",
+    "required_columns": [
+      "CustomerIdA",
+      "CustomerIdB",
+      "CustomerNameA",
+      "CustomerNameB",
+      "SharedArtists",
+      "TotalArtists",
+      "JaccardSimilarity"
+    ],
+    "expected_rows": 20
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_customer_similarity"
+    }
+  }
+}

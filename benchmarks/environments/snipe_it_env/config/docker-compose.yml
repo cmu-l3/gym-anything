@@ -1,0 +1,38 @@
+version: "3.8"
+
+volumes:
+  snipeit_db_data:
+  snipeit_storage:
+
+services:
+  snipeit-db:
+    image: mariadb:10.11
+    container_name: snipeit-db
+    restart: unless-stopped
+    volumes:
+      - snipeit_db_data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: snipeit
+      MYSQL_USER: snipeit
+      MYSQL_PASSWORD: snipeit_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_pass"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  snipeit-app:
+    image: snipe/snipe-it:latest
+    container_name: snipeit-app
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - snipeit_storage:/var/lib/snipeit
+    env_file:
+      - /home/ga/snipeit/.env
+    depends_on:
+      snipeit-db:
+        condition: service_healthy

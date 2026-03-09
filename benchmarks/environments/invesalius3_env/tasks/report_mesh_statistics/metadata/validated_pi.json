@@ -1,0 +1,45 @@
+{
+    "task_id": "report_mesh_statistics@1",
+    "dataset": "CT Cranium (InVesalius sample dataset)",
+    "case_id": "0051",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "stl_output_path",
+            "metadata_value": "/home/ga/Documents/skull.stl",
+            "verified_value": "/home/ga/Documents/skull.stl",
+            "source": "Confirmed in task.json description line 5, setup_task.sh lines 10-11, and export_result.sh line 10. All scripts consistently reference this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "report_output_path",
+            "metadata_value": "/home/ga/Documents/mesh_stats.txt",
+            "verified_value": "/home/ga/Documents/mesh_stats.txt",
+            "source": "Confirmed in task.json description line 5, setup_task.sh lines 11, 19, and export_result.sh line 11. All scripts consistently reference this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "min_triangles",
+            "metadata_value": 50000,
+            "verified_value": 50000,
+            "source": "Confirmed in task.json metadata, verifier.py line 29 (used as default), and used in verification checks on lines 68 and 74. The value is reasonable for a complete cranial bone surface mesh - research indicates cranial meshes typically contain 35,000-500,000 triangles depending on segmentation detail. Cross-referenced with export_skull_stl task which uses min_triangle_count of 10,000 for baseline requirement, suggesting 50,000 is plausible for a more complex mesh with better detail.",
+            "status": "verified"
+        },
+        {
+            "key": "min_volume_mm3",
+            "metadata_value": 50000,
+            "verified_value": "Not used in verification logic (unverified through code review)",
+            "source": "Code analysis: The metadata defines min_volume_mm3 at task.json line 20, but grep search of verifier.py shows this value is never extracted from metadata. The verifier.py line 106 checks hardcoded threshold: 'if vol > 1000 and area > 1000:' without using the min_volume_mm3 metadata value. This is a contradiction between metadata definition and verification implementation.",
+            "status": "contradicted"
+        },
+        {
+            "key": "dicom_series",
+            "metadata_value": "ct_cranium/0051",
+            "verified_value": "ct_cranium/0051",
+            "source": "Confirmed in setup_invesalius.sh lines 71-73: download URL 'https://github.com/invesalius/invesalius3/releases/download/v3.0/0051.zip' contains the '0051' dataset identifier. setup_task.sh line 8 references '/home/ga/DICOM/ct_cranium' as the location. This is the official InVesalius sample dataset, confirmed also in export_skull_stl task's validated_pi.json.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires reporting mesh statistics (triangle count, volume, surface area) of a cranial bone surface generated from the official InVesalius CT Cranium sample dataset (case ID 0051), which is downloaded from https://github.com/invesalius/invesalius3/releases/download/v3.0/0051.zip. The bone segmentation uses the standard Bone preset (226-3071 HU range) to generate a 3D surface mesh. The task expects the STL output path to be /home/ga/Documents/skull.stl with a minimum of 50,000 triangles for a complete cranial mesh. The report is saved to /home/ga/Documents/mesh_stats.txt. The metadata specifies a minimum volume of 50,000 mm³, but this threshold is not actually enforced by the verification logic - the verifier only checks that volume and surface area values are non-zero and greater than 1000.",
+    "pi_confidence": "high"
+}

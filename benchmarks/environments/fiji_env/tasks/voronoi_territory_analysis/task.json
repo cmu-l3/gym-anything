@@ -1,0 +1,36 @@
+{
+  "id": "voronoi_territory_analysis@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Perform spatial territory analysis on a simulated cell monolayer. You have two images in `~/Fiji_Data/raw/voronoi_task/`: `cell_bodies.tif` (cytoplasm) and `cell_nuclei.tif` (nuclei).\n\nYour goal is to segment individual cell territories using Voronoi tessellation seeded by nuclear centroids.\n\n1. Open both images.\n2. Segment the nuclei from `cell_nuclei.tif` (Threshold > Watershed > Analyze Particles) to get centroids.\n3. Generate a Voronoi diagram using these nuclear centroids as seeds.\n4. Convert the Voronoi diagram into a territory map (invert if necessary so regions are white and boundaries black, or use the Voronoi output directly to define regions).\n5. Measure the following properties for each cell territory (excluding edge-touching cells): Area, Perimeter, Circularity, Solidity, and Centroid (X,Y).\n6. Determine the number of neighbors for each cell (how many other territories it touches).\n\nSave your results to `~/Fiji_Data/results/voronoi/`:\n- `territory_measurements.csv`: A CSV file with columns: `cell_id`, `centroid_x`, `centroid_y`, `area_px`, `perimeter_px`, `circularity`, `solidity`, `neighbors`.\n- `voronoi_overlay.png`: An image showing the Voronoi boundaries overlaid on the original `cell_bodies.tif` image.\n- `spatial_summary.txt`: A text file summarizing the analysis with: `total_cells_detected`, `mean_area_px`, `mean_circularity`, `mean_neighbors`.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 75,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/voronoi_territory_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/voronoi_territory_analysis/export_result.sh"
+  },
+  "metadata": {
+    "dataset": "BBBC005 - Simulated Cell Monolayer",
+    "image_dims": [696, 520],
+    "expected_cell_count_range": [15, 35],
+    "output_dir": "~/Fiji_Data/results/voronoi/",
+    "required_columns": ["cell_id", "area_px", "neighbors"],
+    "passing_thresholds": {
+      "min_cells": 8,
+      "min_area": 500,
+      "max_area": 50000,
+      "mean_neighbors_range": [4.0, 8.0]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_voronoi_analysis"
+    }
+  },
+  "tags": ["biology", "spatial-analysis", "voronoi", "segmentation", "topology"]
+}

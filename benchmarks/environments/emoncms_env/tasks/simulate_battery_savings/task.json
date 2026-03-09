@@ -1,0 +1,28 @@
+{
+  "id": "simulate_battery_savings@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "Calculate the potential savings of a home battery system based on historical energy data.\n\nYou have access to an Emoncms feed named 'surplus_power' containing 7 days of power data (in Watts) at 10-minute intervals.\n- Positive values (> 0) represent excess solar energy (surplus) that can charge the battery.\n- Negative values (< 0) represent grid import (deficit) that the battery can discharge to cover.\n\nYour task is to write a script to simulate a 5.0 kWh battery with 100% efficiency starting at 0% charge.\n\nSimulation Logic:\n1. Iterate through the data chronologically.\n2. Calculate energy for each interval (Power * Time).\n3. If Surplus: Charge battery (up to 5.0 kWh max).\n4. If Deficit: Discharge battery (down to 0.0 kWh min) to cover the deficit.\n5. Track the total energy (kWh) successfully discharged from the battery.\n\nSave the result to '/home/ga/battery_simulation.json' in this format:\n{\n  \"feed_name\": \"surplus_power\",\n  \"battery_capacity_kwh\": 5.0,\n  \"total_avoided_import_kwh\": <YOUR_CALCULATED_VALUE>\n}\n\nLogin to Emoncms at http://localhost with username 'admin' and password 'admin'. API keys are in /home/ga/emoncms_apikeys.sh.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/simulate_battery_savings/setup_task.sh",
+    "post_task": "/workspace/tasks/simulate_battery_savings/export_result.sh"
+  },
+  "metadata": {
+    "feed_name": "surplus_power",
+    "interval_sec": 600,
+    "battery_capacity": 5.0,
+    "duration_days": 7
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_battery_simulation"
+    }
+  }
+}

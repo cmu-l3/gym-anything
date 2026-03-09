@@ -1,0 +1,80 @@
+{
+  "task_id": "medical_bill_reconciliation@1",
+  "dataset": "Medical Bill Reconciliation Dataset",
+  "case_id": null,
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "bills_sheet_row_count",
+      "metadata_value": "8 rows of medical bills (from README.md)",
+      "verified_value": "8 data rows (plus 1 header row)",
+      "source": "Parsed CSV data from setup_task.sh lines 13-23",
+      "status": "verified"
+    },
+    {
+      "key": "eob_sheet_row_count",
+      "metadata_value": "5 rows showing what insurance says you owe (from README.md)",
+      "verified_value": "5 data rows (plus 1 header row)",
+      "source": "Parsed CSV data from setup_task.sh lines 25-33",
+      "status": "verified"
+    },
+    {
+      "key": "duplicate_bills_count",
+      "metadata_value": "2 duplicate bills: City Hospital ER visit and Dr. Chen ER physician (from README.md line 67)",
+      "verified_value": "2 duplicate bill pairs identified: (1) Rows 1 & 3: City Hospital 2024-01-02 $850; (2) Rows 2 & 6: Dr. Sarah Chen 2024-01-02 $425",
+      "source": "Manual analysis of CSV data - matching provider (case-insensitive), date of service, and amount billed",
+      "status": "verified"
+    },
+    {
+      "key": "bill_not_in_eob",
+      "metadata_value": "1 bill not in EOB: Pharmacy (from README.md line 68)",
+      "verified_value": "Row 8: Pharmacy Benefit Mgr, Prescription Antibiotics, $45.00 - no matching EOB entry",
+      "source": "Amount matching analysis - Pharmacy bill amount ($45) does not match any EOB Amount Charged values",
+      "status": "verified"
+    },
+    {
+      "key": "potential_overpayment_duplicates",
+      "metadata_value": "~$1,275 if duplicates not caught (from README.md line 69)",
+      "verified_value": "$1,275.00 (exact: $850 from City Hospital duplicate + $425 from Dr. Chen duplicate)",
+      "source": "Sum of amounts from duplicate bill pairs (rows 3 and 6)",
+      "status": "verified"
+    },
+    {
+      "key": "task_difficulty",
+      "metadata_value": "medium (from task.json and README.md)",
+      "verified_value": "medium",
+      "source": "task.json difficulty field",
+      "status": "verified"
+    },
+    {
+      "key": "task_timeout_seconds",
+      "metadata_value": "240 seconds (from task.json init.timeout_sec and README.md)",
+      "verified_value": "240 seconds",
+      "source": "task.json init.timeout_sec field",
+      "status": "verified"
+    },
+    {
+      "key": "task_max_steps",
+      "metadata_value": "~15 steps (from README.md 'Duration: ~15')",
+      "verified_value": "15 steps (from task.json init.max_steps)",
+      "source": "task.json init.max_steps field",
+      "status": "verified"
+    },
+    {
+      "key": "success_threshold",
+      "metadata_value": "75% (6 out of 8 criteria) (from README.md line 82)",
+      "verified_value": "75% (verified in verifier.py line 297: passed = score >= 75)",
+      "source": "verifier.py line 297",
+      "status": "verified"
+    },
+    {
+      "key": "data_source",
+      "metadata_value": "Not specified in metadata",
+      "verified_value": "Synthetic data generated in setup_task.sh using Python csv module and ODS library",
+      "source": "setup_task.sh lines 45-76 contain inline Python script that generates ODS workbook",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The medical bill reconciliation task uses a synthetic dataset with 8 bills and 5 EOB entries. The dataset contains exactly 2 duplicate bills (City Hospital ER: $850, rows 1&3; Dr. Chen ER: $425, rows 2&6) totaling $1,275 in potential overpayment if not caught. One bill (Pharmacy $45, row 8) has no corresponding EOB entry. The task requires 75% pass threshold (6/8 success criteria) and has 240-second timeout.",
+  "pi_confidence": "high"
+}

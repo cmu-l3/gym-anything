@@ -1,0 +1,48 @@
+{
+  "id": "liver_steatosis_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Assess hepatic steatosis on the loaded abdominal CT by measuring mean HU values in the liver and spleen. Place ROIs in homogeneous parenchyma, calculate the liver-to-spleen attenuation ratio, and classify steatosis severity. Save liver ROI to ~/Documents/SlicerData/Steatosis/liver_roi.mrk.json, spleen ROI to ~/Documents/SlicerData/Steatosis/spleen_roi.mrk.json, and report to ~/Documents/SlicerData/Steatosis/steatosis_report.json with fields: liver_hu, spleen_hu, ls_ratio, classification, interpretation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/liver_steatosis_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/liver_steatosis_assessment/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "steatosis_dir": "/home/ga/Documents/SlicerData/Steatosis",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_liver_roi": "/home/ga/Documents/SlicerData/Steatosis/liver_roi.mrk.json",
+    "output_spleen_roi": "/home/ga/Documents/SlicerData/Steatosis/spleen_roi.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/Steatosis/steatosis_report.json",
+    "hu_tolerance": 10,
+    "ls_ratio_tolerance": 0.1,
+    "passing_thresholds": {
+      "min_score": 60,
+      "require_both_rois": true,
+      "require_one_accurate_measurement": true
+    },
+    "scoring_weights": {
+      "liver_roi_placed": 10,
+      "liver_roi_valid": 10,
+      "spleen_roi_placed": 10,
+      "spleen_roi_valid": 10,
+      "liver_hu_accuracy": 15,
+      "spleen_hu_accuracy": 15,
+      "ls_ratio_correct": 10,
+      "classification_correct": 10,
+      "report_complete": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_liver_steatosis"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "sakila_audit_system@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "Implement a complete database audit and customer loyalty system for the Sakila DVD rental database using MySQL Workbench (host: localhost, user: ga, password: password123). The supporting tables have already been created. Complete all of the following: (1) Create an AFTER UPDATE trigger named tr_customer_audit on sakila.customer that fires when any row is updated — the trigger must INSERT a record into sakila.customer_audit_log containing the customer_id (from OLD row), the old email address (OLD.email), the new email address (NEW.email), and the change timestamp (NOW()); (2) Create a stored procedure named sp_calculate_loyalty_tiers() in sakila that populates the sakila.customer_loyalty table by categorizing every customer into tiers based on their total rental count: 'Bronze' for 0–5 rentals, 'Silver' for 6–20 rentals, 'Gold' for 21 or more rentals — the procedure should first DELETE all existing rows from customer_loyalty, then INSERT the categorized rows; (3) Test the trigger by executing UPDATE statements on at least 5 different customer email addresses; (4) Call CALL sp_calculate_loyalty_tiers() to populate the loyalty table; (5) Export the contents of sakila.customer_loyalty to /home/ga/Documents/exports/customer_loyalty.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_audit_system/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_audit_system/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "trigger_name": "tr_customer_audit",
+    "trigger_table": "customer",
+    "audit_log_table": "customer_audit_log",
+    "procedure_name": "sp_calculate_loyalty_tiers",
+    "loyalty_table": "customer_loyalty",
+    "expected_output_file": "/home/ga/Documents/exports/customer_loyalty.csv",
+    "expected_customer_count": 599,
+    "tier_bronze_max": 5,
+    "tier_silver_max": 20
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_audit_system"
+    }
+  }
+}

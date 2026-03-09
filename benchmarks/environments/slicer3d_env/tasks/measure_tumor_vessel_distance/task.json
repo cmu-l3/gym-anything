@@ -1,0 +1,39 @@
+{
+  "id": "measure_tumor_vessel_distance@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the minimum 3D distance between the 'Tumor' and 'PortalVein' segments in the pre-loaded liver CT segmentation, and determine surgical resectability. Save report to ~/Documents/SlicerData/Exports/tumor_vessel_distance.json with fields: minimum_distance_mm, safely_resectable.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/measure_tumor_vessel_distance/setup_task.sh",
+    "post_task": "/workspace/tasks/measure_tumor_vessel_distance/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "ircadb_dir": "/home/ga/Documents/SlicerData/IRCADb",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_report": "/home/ga/Documents/SlicerData/Exports/tumor_vessel_distance.json",
+    "resectability_threshold_mm": 10.0,
+    "distance_tolerance_mm": 2.0,
+    "distance_range_mm": {"min": 0.1, "max": 100},
+    "scoring_weights": {
+      "output_file_exists": 15,
+      "valid_json_structure": 10,
+      "distance_within_tolerance": 35,
+      "correct_resectability": 20,
+      "vlm_confirms_visualization": 10,
+      "file_created_during_task": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tumor_vessel_distance"
+    }
+  }
+}

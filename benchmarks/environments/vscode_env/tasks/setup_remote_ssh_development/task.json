@@ -1,0 +1,22 @@
+{
+  "id": "setup_remote_ssh_development@1",
+  "version": "1.0",
+  "env_id": "vscode_env@0.1",
+  "description": "Configure VSCode for remote SSH development. IMPORTANT: Complete these steps in order:\n\n1. CREATE SSH CONFIG: Create file ~/.ssh/config with these exact contents:\n   Host devserver\n       HostName 127.0.0.1\n       Port 2222\n       User developer\n       IdentityFile /home/ga/.ssh/id_rsa_devserver\n       StrictHostKeyChecking accept-new\n\n2. CONNECT TO REMOTE: Press Ctrl+Shift+P, type 'Remote-SSH: Connect to Host', select 'devserver'. Accept fingerprint if prompted. Wait 30-60 seconds for VSCode Server to install on remote.\n\n3. VERIFY REMOTE CONNECTION: Check bottom-left corner shows 'SSH: devserver' (green indicator). If connection fails, retry.\n\n4. INSTALL EXTENSION REMOTELY: Press Ctrl+Shift+P, type 'Extensions: Install Extensions', search for 'ESLint' (by dbaeumer), click Install. Make sure it installs on SSH: DEVSERVER (not locally).\n\n5. CREATE REMOTE WORKSPACE: Open folder /home/developer/projects/ (File > Open Folder or Ctrl+K Ctrl+O). This is on the REMOTE machine.\n\n6. CREATE NODE.JS FILE: Create new file /home/developer/projects/hello-server.js with this code:\n   const http = require('http');\n   const server = http.createServer((req, res) => {\n     res.writeHead(200, {'Content-Type': 'text/plain'});\n     res.end('Hello from remote!');\n   });\n   server.listen(3000, () => {\n     console.log('Server running on port 3000');\n   });\n\n7. RUN ON REMOTE: Open integrated terminal (Ctrl+`), verify prompt shows 'developer@devserver', then run: node hello-server.js &\n\n8. VERIFY REMOTE EXECUTION: The Node.js process must be running on the REMOTE machine (as developer user), not locally. Keep the remote connection active.\n\nIMPORTANT: The SSH key is already set up. The remote server is running at 127.0.0.1:2222. Do NOT try to create the developer user - it already exists. Focus on VSCode configuration and remote development workflow.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_remote_ssh_development/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_remote_ssh_development/export_result.sh"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_remote_ssh_setup"
+    }
+  }
+}

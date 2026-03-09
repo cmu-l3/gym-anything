@@ -1,0 +1,30 @@
+{
+  "id": "airport_proximity_modeler_automation@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "Create a QGIS Processing Model to automate a noise pollution analysis workflow.\n\n1. Open QGIS (it should already be running).\n2. Open the Processing Modeler (Processing > Graphical Modeler).\n3. Create a model with two Vector Layer inputs: one for 'Airports' and one for 'Urban Areas'.\n4. Add a 'Buffer' algorithm to the model: connect it to the Airports input, set the Distance to 0.05 degrees, and Segments to 5.\n5. Add an 'Intersection' algorithm (or Clip): set the Input layer to Urban Areas, and the Overlay layer to the Buffered Airports output. Name the final algorithm output 'Affected Urban Areas'.\n6. Save the model as 'airport_impact.model3' in /home/ga/GIS_Data/models/.\n7. Run the model using the provided source data:\n   - Airports: /home/ga/GIS_Data/source/ne_10m_airports.shp\n   - Urban Areas: /home/ga/GIS_Data/source/ne_10m_urban_areas.shp\n8. Save the result to /home/ga/GIS_Data/exports/urban_noise_zones.geojson.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/airport_proximity_modeler_automation/setup_task.sh",
+    "post_task": "/workspace/tasks/airport_proximity_modeler_automation/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "model_path": "/home/ga/GIS_Data/models/airport_impact.model3",
+    "output_path": "/home/ga/GIS_Data/exports/urban_noise_zones.geojson",
+    "buffer_distance": 0.05,
+    "source_airports": "/home/ga/GIS_Data/source/ne_10m_airports.shp",
+    "source_urban": "/home/ga/GIS_Data/source/ne_10m_urban_areas.shp"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_airport_proximity_modeler_automation"
+    }
+  }
+}

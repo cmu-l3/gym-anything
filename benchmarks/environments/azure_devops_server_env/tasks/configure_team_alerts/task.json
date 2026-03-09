@@ -1,0 +1,38 @@
+{
+  "id": "configure_team_alerts@1",
+  "version": "1.0",
+  "env_id": "azure_devops_server_env@0.1",
+  "description": "You are a Scrum Master for the TailwindTraders project in Azure DevOps. Your team has been missing critical bug notifications while being flooded with noisy default alerts.\n\nComplete the following three actions in Project Settings > Notifications for the TailwindTraders project:\n\n1. CREATE a new team notification subscription named 'Critical Bug Alert':\n   - Event type: Work item is created\n   - Filters: Work Item Type = Bug AND Priority = 1\n   - Deliver to: Members of TailwindTraders Team\n\n2. CREATE a new team notification subscription named 'Resolution Notification':\n   - Event type: Work item is updated (state change)\n   - Filter: State changes to 'Resolved'\n   - Deliver to: Members of TailwindTraders Team\n\n3. DISABLE the default team subscription for 'A work item is assigned to a member of the team' to reduce notification noise.\n\nAll subscriptions should be team-level subscriptions (not personal) under the TailwindTraders project.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_team_alerts\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_team_alerts\\export_result.ps1"
+  },
+  "metadata": {
+    "collection_url": "http://localhost/DefaultCollection",
+    "project_name": "TailwindTraders",
+    "expected_filters": {
+      "bug_type": "Bug",
+      "bug_priority": "1",
+      "resolution_state": "Resolved"
+    },
+    "scoring": {
+      "critical_bug_exists": 25,
+      "critical_bug_filters": 15,
+      "resolved_exists": 25,
+      "resolved_filters": 15,
+      "default_disabled": 20
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_team_alerts"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+    "task_id": "enforce_explicit_imports@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/IdeaProjects/inventory-system",
+            "verified_value": "/home/ga/IdeaProjects/inventory-system",
+            "source": "Verified in setup_task.sh (line 7) and export_result.sh (line 6) - consistent usage across both scripts",
+            "status": "verified"
+        },
+        {
+            "key": "required_wildcard_threshold",
+            "metadata_value": "50",
+            "verified_value": "50",
+            "source": "Verified in verifier.py (line 97): 'if val > 50:' checks that CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND is greater than 50. Default IntelliJ IDEA value is 5; task requires 999, which passes this threshold.",
+            "status": "verified"
+        },
+        {
+            "key": "forbidden_pattern",
+            "metadata_value": "import\\s+[\\w\\.]+\\*;",
+            "verified_value": null,
+            "source": "Pattern tested with grep -rE shows 0 matches on valid Java wildcard imports (java.util.*;, java.io.*;, etc.). Pattern works with grep -P (Perl regex) but fails with grep -E (POSIX extended regex) as used in export_result.sh. Correct POSIX pattern should be: import[[:space:]]+[a-zA-Z0-9_.]+\\*; or similar. Verifier.py uses Python regex (where \\w is valid), which correctly identifies wildcard imports.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task creates a Java project with 3 files containing 10 total wildcard import statements (Product.java: 3, InventoryService.java: 4, FileUtils.java: 3). The project directory is /home/ga/IdeaProjects/inventory-system. The verifier requires CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND > 50 (default is 5, task description suggests 999). Critical issue: The forbidden_pattern 'import\\s+[\\w\\.]+\\*;' does not work with grep -E as implemented in export_result.sh, resulting in incorrect wildcard counts.",
+    "pi_confidence": "high"
+}

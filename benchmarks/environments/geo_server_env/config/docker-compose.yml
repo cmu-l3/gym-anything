@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgis:
+    image: kartoza/postgis:15-3.3
+    container_name: gs-postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gis
+      POSTGRES_USER: geoserver
+      POSTGRES_PASSWORD: geoserver123
+      ALLOW_IP_RANGE: 0.0.0.0/0
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geoserver -d gis"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  geoserver:
+    image: kartoza/geoserver:2.25.2
+    container_name: gs-app
+    restart: unless-stopped
+    depends_on:
+      postgis:
+        condition: service_healthy
+    environment:
+      GEOSERVER_ADMIN_USER: admin
+      GEOSERVER_ADMIN_PASSWORD: Admin123!
+      GEOSERVER_DATA_DIR: /opt/geoserver/data_dir
+      INITIAL_MEMORY: 1024m
+      MAXIMUM_MEMORY: 2048m
+      STABLE_EXTENSIONS: ""
+      COMMUNITY_EXTENSIONS: ""
+      SAMPLE_DATA: "true"
+    ports:
+      - "8080:8080"
+    volumes:
+      - geoserver_data:/opt/geoserver/data_dir
+      - /home/ga/natural_earth:/opt/geoserver/natural_earth:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/geoserver/web/ || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
+
+volumes:
+  postgis_data:
+  geoserver_data:

@@ -1,0 +1,153 @@
+SYSTEM SPECIFICATION: eShopOnContainers Reference Application
+==============================================================
+Document Type: System Architecture Specification for C4 Model
+Source: Microsoft eShopOnContainers open-source reference application
+        https://github.com/dotnet-architecture/eShopOnContainers
+        Fowler, M. et al. — ".NET Microservices: Architecture for
+        Containerized .NET Applications" (Microsoft, 2022)
+Version: Based on eShopOnContainers v5.0
+
+=== SYSTEM OVERVIEW ===
+eShopOnContainers is Microsoft's official reference implementation for
+cloud-native microservices on .NET and Kubernetes. It is an online
+retail store demonstrating Domain-Driven Design (DDD), CQRS, and
+Event Sourcing patterns. All services communicate via synchronous REST/gRPC
+and an asynchronous event bus (RabbitMQ or Azure Service Bus).
+
+=== USERS (External Actors) ===
+1. Web Customer
+   Description: Shoppers browsing and purchasing via browser
+   Interaction: Via Web MVC App and Angular SPA (HTTPS)
+
+2. Mobile Customer
+   Description: Shoppers using Xamarin cross-platform mobile app
+   Interaction: Via REST API Gateway (HTTPS/JSON)
+
+3. Back-Office User
+   Description: Internal staff managing catalog, orders, and promotions
+   Interaction: Via Admin SPA (HTTPS, internal network)
+
+=== THE SOFTWARE SYSTEM ===
+System Name: eShopOnContainers
+Description: Online retail platform enabling customers to browse products,
+             add to cart, checkout, and track orders. Back-office users
+             manage product catalog, pricing, and campaign marketing.
+
+=== EXTERNAL SYSTEMS (Third-Party Integrations) ===
+1. Stripe Payment Gateway
+   Description: Processes credit card payments and refunds
+   Protocol: HTTPS REST (Stripe API)
+   Data: Payment intent, charge, refund
+
+2. SendGrid Email Service
+   Description: Transactional email (order confirmations, shipping alerts)
+   Protocol: HTTPS REST (SendGrid v3 Mail Send API)
+   Data: HTML order confirmation templates
+
+3. Azure Service Bus
+   Description: Production-grade message broker (replaces RabbitMQ in prod)
+   Protocol: AMQP 1.0
+   Data: Integration events (OrderStarted, PaymentSucceeded, etc.)
+
+4. Application Insights
+   Description: Distributed tracing, telemetry, and error monitoring
+   Protocol: HTTPS (Azure Monitor ingestion endpoint)
+   Data: Traces, metrics, exceptions
+
+=== INTERNAL CONTAINERS / MICROSERVICES (Level 2 - Container Diagram) ===
+
+1. Web MVC App [ASP.NET Core MVC / C#]
+   Description: Server-rendered web storefront for customers
+   Communicates with: API Gateway (HTTPS/REST)
+
+2. SPA Client [Angular / TypeScript]
+   Description: Single-page app for rich browser shopping experience
+   Communicates with: API Gateway (HTTPS/REST)
+
+3. Mobile App [Xamarin.Forms / C#]
+   Description: Cross-platform iOS/Android shopping app
+   Communicates with: API Gateway (HTTPS/REST)
+
+4. API Gateway / BFF [Ocelot / ASP.NET Core]
+   Description: Backend-for-Frontend; routes and aggregates API calls,
+                handles auth token validation
+   Routes to: Catalog.API, Basket.API, Ordering.API, Marketing.API
+   Auth: Validates JWT tokens from Identity.API
+
+5. Identity.API [ASP.NET Core Identity + IdentityServer4]
+   Description: OAuth 2.0 / OpenID Connect authorization server;
+                issues JWT access tokens for all services
+   Database: SQL Server (users, clients, grants)
+
+6. Catalog.API [ASP.NET Core / C#]
+   Description: Product catalog management (items, brands, types, images)
+   Database: SQL Server (CatalogDb)
+   Publishes: CatalogItemPriceChanged integration event to EventBus
+
+7. Basket.API [ASP.NET Core / C#]
+   Description: Customer shopping cart management
+   Database: Redis (basket cache, keyed by buyer ID)
+   Subscribes to: ProductPriceChanged (updates cart item prices)
+   Publishes: UserCheckoutAccepted event to EventBus
+
+8. Ordering.API [ASP.NET Core / C#, CQRS + Event Sourcing]
+   Description: Order lifecycle (create, validate, pay, ship, cancel)
+   Database: SQL Server (OrderingDb)
+   Subscribes to: UserCheckoutAccepted, PaymentSucceeded, StockConfirmed
+   Publishes: OrderStarted, OrderStatusChanged events
+
+9. Payment.API [ASP.NET Core / C#]
+   Description: Payment processing; calls Stripe for charges/refunds
+   Database: SQL Server (PaymentDb, audit log)
+   Subscribes to: OrderStatusChangedToAwaitingStockValidation
+   Publishes: PaymentSucceeded / PaymentFailed events
+   Calls: Stripe Payment Gateway (external)
+
+10. Marketing.API [ASP.NET Core / C#]
+    Description: Campaign and promotion management
+    Database: MongoDB (campaigns collection)
+    Subscribes to: UserLocationUpdated
+    Calls: SendGrid (campaign emails)
+
+11. Location.API [ASP.NET Core / C#]
+    Description: Records and queries user geolocation for personalization
+    Database: MongoDB (locations collection)
+    Publishes: UserLocationUpdated events to EventBus
+
+12. Event Bus [RabbitMQ (dev) / Azure Service Bus (prod)]
+    Description: Asynchronous integration event backbone connecting services
+    Protocol: AMQP 1.0
+    Key topics/exchanges: order-events, payment-events, catalog-events
+
+=== C4 MODEL COLOR CONVENTIONS ===
+Apply the standard C4 color scheme:
+  Blue (#1168BD fill, white text): Owned system elements (eShopOnContainers internal)
+  Grey (#999999 fill, white text): External systems and third-party services
+  Yellow (#FFCC00 fill, black text): Users / human actors (personas)
+  Light Blue (#85BBF0 fill, black text): Databases and data stores
+  No fill / white: Containers/services within the system boundary
+
+=== RELATIONSHIP LABEL REQUIREMENTS ===
+All relationship arrows MUST include a label describing:
+  Protocol / Technology (e.g., "HTTPS/REST", "AMQP event", "gRPC", "SQL")
+
+=== DIAGRAM PAGES REQUIRED ===
+Page 1 — "System Context": Level 1 C4 diagram
+  Show: eShopOnContainers platform (one box), all Users, all External Systems
+  Show: Relationships between users, the system, and external systems
+  Do NOT show internal services on this page
+
+Page 2 — "Container Diagram": Level 2 C4 diagram
+  Show: All internal microservices/containers listed above
+  Show: Event Bus as a distinct component
+  Show: All databases attached to their respective services
+  Show: Key relationships with protocol labels
+
+Page 3 — "Legend": C4 notation key
+  Show: Color-coded boxes for Person, Software System, Container, Database
+  Show: Arrow types (sync = solid, async = dashed)
+  Include the eShopOnContainers project name and diagram date
+
+=== OUTPUT ===
+Save diagram as: ~/Diagrams/ecommerce_c4_model.drawio
+Export PDF to:   ~/Diagrams/ecommerce_c4_model.pdf

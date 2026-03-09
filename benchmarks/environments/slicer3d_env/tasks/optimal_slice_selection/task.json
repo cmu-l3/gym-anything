@@ -1,0 +1,48 @@
+{
+  "id": "optimal_slice_selection@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Find the optimal slice showing maximum tumor cross-sectional area in each plane (axial, sagittal, coronal) on the loaded BraTS FLAIR MRI. Measure the maximum tumor diameter on each optimal slice. Save screenshot to ~/Documents/SlicerData/BraTS/optimal_slices_view.png, measurements to ~/Documents/SlicerData/BraTS/tumor_dimensions.mrk.json, and report to ~/Documents/SlicerData/BraTS/slice_report.json with fields: axial_slice_index, axial_diameter_mm, sagittal_slice_index, sagittal_diameter_mm, coronal_slice_index, coronal_diameter_mm.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/optimal_slice_selection/setup_task.sh",
+    "post_task": "/workspace/tasks/optimal_slice_selection/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_screenshot": "/home/ga/Documents/SlicerData/BraTS/optimal_slices_view.png",
+    "output_measurements": "/home/ga/Documents/SlicerData/BraTS/tumor_dimensions.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/slice_report.json",
+    "slice_tolerance": 2,
+    "diameter_tolerance_mm": 5.0,
+    "passing_thresholds": {
+      "min_correct_slices": 2,
+      "slice_tolerance": 2,
+      "diameter_tolerance_mm": 5.0
+    },
+    "scoring_weights": {
+      "axial_slice_selection": 15,
+      "sagittal_slice_selection": 15,
+      "coronal_slice_selection": 15,
+      "axial_diameter_accuracy": 10,
+      "sagittal_diameter_accuracy": 10,
+      "coronal_diameter_accuracy": 10,
+      "markup_files_created": 10,
+      "screenshot_quality": 10,
+      "report_completeness": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_optimal_slice_selection"
+    }
+  }
+}

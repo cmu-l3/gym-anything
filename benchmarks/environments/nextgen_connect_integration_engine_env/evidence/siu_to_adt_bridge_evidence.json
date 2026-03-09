@@ -1,0 +1,44 @@
+{
+  "task": "siu_to_adt_bridge",
+  "collected": "2026-03-03",
+  "environment": "nextgen_connect_integration_engine_env@0.1",
+  "occupation": "Clinical Systems Integration Engineer / IT Project Manager (SOC 15-1299.09)",
+  "checks": {
+    "target_entity": "Two-channel bridge: 'SIU Intake Channel' (port 6666, Channel Writer) -> 'ADT Pre-Registration Processor' (Channel Reader, DB Writer to scheduling_preregistrations)",
+    "initial_state": "No channels exist; scheduling_preregistrations table does not exist. Only baseline infrastructure running.",
+    "service_status": "nextgen-connect container healthy; nextgen-postgres container healthy; REST API accessible",
+    "sample_data_available": [
+      "/home/ga/sample_siu_s12.hl7 (SIU^S12 New Appointment Booking - Maria Rodriguez, appointment 2024-01-20 09:00)",
+      "/home/ga/sample_adt_reference.hl7 (ADT^A01 reference for ADT format)"
+    ],
+    "real_data_source": "HL7 v2.5 SIU^S12 message created per HL7 scheduling specification. SCH segment with appointment timing, PID with patient demographics, AIL/AIP with resource allocation — matching real PMS scheduling workflows.",
+    "architecture_note": "Two-channel inter-channel routing via Channel Writer/Reader pattern. Channel 2 must be deployed before Channel 1 to obtain its UUID for the Channel Writer destination reference."
+  },
+  "setup_files_created": [
+    "/tmp/initial_siubridge_channel_count",
+    "/home/ga/sample_siu_s12.hl7",
+    "/home/ga/sample_adt_reference.hl7"
+  ],
+  "verification_approach": "export_result.sh identifies SIU and ADT channels by name patterns (siu/intake, adt/prereg/processor), extracts XML for each: SIU channel checked for JS transformer + ChannelDispatcherProperties; ADT channel checked for DatabaseDispatcher + scheduling_preregistrations. Both channel deployment statuses checked. verifier.py loads /tmp/siu_to_adt_bridge_result.json.",
+  "do_nothing_test": {
+    "expected_score": 0,
+    "expected_passed": false,
+    "reason": "No channels created by setup; siubridge initial count matches current; scheduling_preregistrations does not exist"
+  },
+  "wrong_target_test": {
+    "method": "Modify JSON: siu_channel_exists=false; adt_channel_exists=false",
+    "expected_score": 0,
+    "expected_passed": false
+  },
+  "scoring_breakdown": {
+    "siu_channel_exists_name_port": 20,
+    "siu_js_transformer_siu_sch_mapping": 20,
+    "siu_channel_writer_destination": 20,
+    "adt_channel_exists_name": 15,
+    "adt_db_writer_scheduling_preregistrations": 10,
+    "scheduling_preregistrations_table": 10,
+    "both_channels_deployed": 5,
+    "total": 100,
+    "pass_threshold": 70
+  }
+}

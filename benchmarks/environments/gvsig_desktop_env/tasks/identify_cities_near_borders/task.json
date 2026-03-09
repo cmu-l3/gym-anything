@@ -1,0 +1,31 @@
+{
+  "id": "identify_cities_near_borders@1",
+  "version": "1.0",
+  "env_id": "gvsig_desktop_env@0.1",
+  "description": "Perform a spatial analysis to identify cities located near international borders.\n\nGoal: Export a shapefile containing only populated places that are within 0.5 degrees of any country border.\n\nStarting State: gvSIG Desktop is open with the 'ne_110m_admin_0_countries' layer loaded (from the countries_base project).\n\nExpected Actions:\n1. Add the populated places layer from '/home/ga/gvsig_data/cities/ne_110m_populated_places.shp' to the View.\n2. Convert the countries polygon layer to a line layer (representing borders) using the Geoprocessing toolbox (Polygons to lines).\n3. Create a fixed distance buffer of 0.5 degrees around the new border lines.\n4. Select all features from the populated places layer that intersect with the buffer.\n5. Export the selected cities to a new shapefile at '/home/ga/gvsig_data/exports/border_cities.shp'.\n\nFinal State: A shapefile exists at the export path containing only the cities near borders.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/identify_cities_near_borders/setup_task.sh",
+    "post_task": "/workspace/tasks/identify_cities_near_borders/export_result.sh"
+  },
+  "metadata": {
+    "countries_shp": "/home/ga/gvsig_data/countries/ne_110m_admin_0_countries.shp",
+    "cities_shp": "/home/ga/gvsig_data/cities/ne_110m_populated_places.shp",
+    "output_path": "/home/ga/gvsig_data/exports/border_cities.shp",
+    "buffer_distance": 0.5,
+    "expected_total_cities": 243,
+    "min_expected_cities": 30,
+    "max_expected_cities": 100
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_identify_cities_near_borders"
+    }
+  }
+}

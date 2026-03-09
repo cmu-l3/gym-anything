@@ -1,0 +1,32 @@
+{
+  "id": "hospital_staffing_overtime_audit@1",
+  "version": "1.0",
+  "env_id": "microsoft_excel_2010_env@0.1",
+  "description": "You are a healthcare finance analyst at a regional hospital conducting a January 2024 payroll audit. Microsoft Excel 2010 is open with hospital_staffing.xlsx. The 'Timesheets' sheet contains 600 rows of individual shift data for 30 employees across 5 departments (ICU, ER, Surgery, Oncology, Pediatrics) over 20 working days, with columns: Employee_ID, Department, Date, Shift_Start, Shift_End, Hours_Worked, Hourly_Rate. Complete the 'Employee_Overtime_Summary' sheet (rows 2-31) for all 30 employees. For each employee calculate: Regular Hours (sum of MIN(Hours_Worked, 8) across all their shifts), Overtime Hours (total hours worked minus regular hours), Regular Pay (Regular Hours × Hourly Rate), Overtime Pay (Overtime Hours × Hourly Rate × 1.5 premium), Total Pay (Regular + Overtime Pay), and OT_Flag ('OT_REVIEW' if Overtime Hours exceed 40 for the month, blank otherwise). Fill in the TOTALS row (row 33) with column sums. Then complete the 'Department_Cost_Summary' sheet (rows 2-6) with department-level aggregates using SUMIF: Total Regular Hours, Total Overtime Hours, Total Regular Pay, Total Overtime Pay, Total Labor Cost, Avg Cost per Employee, and OT% of total hours. Fill in the HOSPITAL TOTAL row (row 8). Save the file as C:\\Users\\Docker\\Desktop\\ExcelTasks\\hospital_staffing.xlsx using Ctrl+S.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\hospital_staffing_overtime_audit\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\hospital_staffing_overtime_audit\\export_result.ps1"
+  },
+  "metadata": {
+    "occupation": "Medical and Health Services Managers",
+    "industry": "Healthcare / Hospital Administration",
+    "onet_soc": "11-9111.00",
+    "data_source": "Hourly rates from BLS OEWS May 2023 (SOC 29-1141 RN $40.92 median, 29-2061 LPN $25.25 median); shift structure consistent with ANA/Joint Commission hospital staffing standards; FLSA 40-hr OT threshold (29 U.S.C. 207)",
+    "excel_features": ["SUMPRODUCT", "SUMIFS", "SUMIF", "MIN_in_aggregate", "IF_flags", "multi_sheet"],
+    "expected_total_ot_hours": 776.1,
+    "expected_total_ot_cost_range": [47000, 62000],
+    "expected_ot_review_count": 7
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hospital_staffing_overtime_audit"
+    }
+  }
+}

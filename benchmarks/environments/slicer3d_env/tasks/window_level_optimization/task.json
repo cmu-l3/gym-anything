@@ -1,0 +1,47 @@
+{
+  "id": "window_level_optimization@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Apply lung, soft tissue, and bone window/level settings to the provided chest CT and capture a screenshot for each. Save screenshots to ~/Documents/SlicerData/LIDC/lung_window.png, ~/Documents/SlicerData/LIDC/soft_tissue_window.png, and ~/Documents/SlicerData/LIDC/bone_window.png. Save a report documenting the exact width and level values used to ~/Documents/SlicerData/LIDC/window_level_report.json with keys: lung_window, soft_tissue_window, bone_window (each containing width and level).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/window_level_optimization/setup_task.sh",
+    "post_task": "/workspace/tasks/window_level_optimization/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "output_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "output_lung_screenshot": "/home/ga/Documents/SlicerData/LIDC/lung_window.png",
+    "output_soft_tissue_screenshot": "/home/ga/Documents/SlicerData/LIDC/soft_tissue_window.png",
+    "output_bone_screenshot": "/home/ga/Documents/SlicerData/LIDC/bone_window.png",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/window_level_report.json",
+    "window_level_ranges": {
+      "lung": {"width_min": 1200, "width_max": 1800, "level_min": -700, "level_max": -400},
+      "soft_tissue": {"width_min": 300, "width_max": 500, "level_min": 20, "level_max": 60},
+      "bone": {"width_min": 1500, "width_max": 2500, "level_min": 200, "level_max": 600}
+    },
+    "scoring_weights": {
+      "lung_wl_values": 15,
+      "lung_screenshot_quality": 10,
+      "soft_tissue_wl_values": 15,
+      "soft_tissue_screenshot_quality": 10,
+      "bone_wl_values": 15,
+      "bone_screenshot_quality": 10,
+      "report_completeness": 10,
+      "screenshot_timestamps": 5,
+      "vlm_visual_quality": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_window_level_optimization"
+    }
+  }
+}

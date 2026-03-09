@@ -1,0 +1,52 @@
+{
+    "task_id": "create_service_charge@1",
+    "dataset": "Floreant POS 1.4 build 1707b",
+    "case_id": "floreant_pos_env@0.1",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_name",
+            "metadata_value": "Large Party",
+            "verified_value": null,
+            "source": "Web search and GitHub source code analysis did not reveal where this name would be stored; GRATUITY table schema does not have NAME column",
+            "status": "unverified"
+        },
+        {
+            "key": "expected_rate",
+            "metadata_value": 18.0,
+            "verified_value": null,
+            "source": "18% is industry-standard for service charges (WebSearch: https://www.7shifts.com/blog/why-restaurants-use-service-charge-vs-tip/), but GRATUITY table schema (GitHub: Gratuity.hbm.xml) shows 'amount' field, not 'percentage'; unclear if rate 18.0 is stored in GRATUITY table",
+            "status": "contradicted"
+        },
+        {
+            "key": "database_path",
+            "metadata_value": "/opt/floreantpos/database/derby-server/posdb",
+            "verified_value": "/opt/floreantpos/database/derby-server/posdb",
+            "source": "setup_floreant.sh (lines 118-128) and setup_task.sh confirm this path; Derby database initialization files located at this path with service.properties",
+            "status": "verified"
+        },
+        {
+            "key": "table_candidates[0]",
+            "metadata_value": "GRATUITY",
+            "verified_value": "GRATUITY",
+            "source": "GitHub: Jabro/floreantpos contains Gratuity.java and Gratuity.hbm.xml in model directory; table exists with columns: ID (Integer, primary key), amount (Double), paid (Boolean), TICKET_ID, OWNER_ID, TERMINAL_ID",
+            "status": "verified"
+        },
+        {
+            "key": "table_candidates[1]",
+            "metadata_value": "SERVICE_CHARGE",
+            "verified_value": null,
+            "source": "Web search and GitHub source code analysis of Jabro/floreantpos found no SERVICE_CHARGE table entity; service charge appears to be a store-level configuration value (Floreant POS documentation), not a separate table",
+            "status": "contradicted"
+        },
+        {
+            "key": "table_candidates[2]",
+            "metadata_value": "TICKET_ADJUSTMENT",
+            "verified_value": null,
+            "source": "Web search and GitHub source code analysis of Jabro/floreantpos found no TICKET_ADJUSTMENT table; found TicketCouponAndDiscount entity instead",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "Floreant POS 1.4 build 1707b is a real open-source restaurant POS system using Apache Derby database. The database path /opt/floreantpos/database/derby-server/posdb is correct. The GRATUITY table exists in the schema but has columns (ID, amount, paid, TICKET_ID, OWNER_ID, TERMINAL_ID) different from what the task's export_result.sh script expects (ID, NAME, PERCENTAGE). The script queries for a 'Large Party' name and 18.0 percentage rate, but the actual GRATUITY table structure stores ticket-associated gratuity amounts, not named service charge configurations. SERVICE_CHARGE and TICKET_ADJUSTMENT are not found as tables in the source code; service charges appear to be store-level configuration values, not database entities.",
+    "pi_confidence": "medium"
+}

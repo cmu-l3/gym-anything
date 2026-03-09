@@ -1,0 +1,30 @@
+{
+  "id": "volumetric_spotlight_scene@1",
+  "version": "1.0",
+  "env_id": "blender3d_env@0.1",
+  "description": "Create a dramatic volumetric lighting scene ('god rays') in Blender.\n\nStarting from the basic scene:\n1. Remove or disable the existing Sun light (it washes out the effect).\n2. Add a **Spot Light** positioned high up (e.g., Z > 4) and aim it at the cube. Set its Power/Energy high enough to be visible (e.g., 500W+).\n3. Create a **Volumetric Fog Domain**: Add a Cube, scale it up to cover the scene (scale ~6+), and assign a new material. In the Shader Editor, delete the 'Principled BSDF' surface node and add a **'Principled Volume'** node connected to the **Volume** output of the Material Output node. Set Density to something subtle (e.g., 0.05 to 0.2).\n4. Set the **World Background** color to near black (RGB < 0.1) so the environment is dark.\n5. Ensure the Render Engine is set to **Cycles** (required for accurate volumetrics).\n6. Render the image and save it to `/home/ga/BlenderProjects/volumetric_render.png`.\n7. Save the .blend file to `/home/ga/BlenderProjects/volumetric_scene.blend`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/volumetric_spotlight_scene/setup_task.sh",
+    "post_task": "/workspace/tasks/volumetric_spotlight_scene/export_result.sh"
+  },
+  "metadata": {
+    "expected_blend": "/home/ga/BlenderProjects/volumetric_scene.blend",
+    "expected_render": "/home/ga/BlenderProjects/volumetric_render.png",
+    "min_spot_energy": 50.0,
+    "volume_density_range": [0.01, 1.0],
+    "max_world_brightness": 0.15,
+    "required_engine": "CYCLES"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_volumetric_scene"
+    }
+  }
+}

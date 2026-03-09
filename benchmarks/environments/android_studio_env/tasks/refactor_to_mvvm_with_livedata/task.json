@@ -1,0 +1,27 @@
+{
+  "id": "refactor_to_mvvm_with_livedata@1",
+  "version": "1.0",
+  "env_id": "android_studio_env@0.1",
+  "description": "The TaskManagerApp project is open in Android Studio. The app has three Activities that all violate the separation-of-concerns principle by holding repository instances and business logic directly:\n\n- TaskListActivity: holds a TaskRepository, does filtering/sorting/stats computation inline\n- AddTaskActivity: holds a TaskRepository, does title/length validation inline\n- TaskDetailActivity: holds its own separate TaskRepository instance (not shared), does status update logic inline\n\nThis is the classic 'God Activity' anti-pattern — state is lost on configuration changes (screen rotation), Activities are untestable, and the three repository instances are not shared so changes in one Activity are not visible in others.\n\nYour task is to refactor the app to the MVVM (Model-View-ViewModel) architecture:\n\n1. Add lifecycle-viewmodel-ktx, lifecycle-livedata-ktx, and activity-ktx dependencies to app/build.gradle.kts\n2. Create TaskListViewModel extending ViewModel: move repository, filtering, sorting, and stats logic into it; expose tasks as LiveData<List<Task>>\n3. Create AddTaskViewModel extending ViewModel: move validation logic and addTask() call into it; expose validation errors as LiveData\n4. Create TaskDetailViewModel extending ViewModel: load task by ID, expose as LiveData<Task?>; move updateStatus() logic into it\n5. Update Activities to use ViewModelProvider (or by viewModels() delegate) to obtain their ViewModel, and observe the LiveData instead of calling the repository directly\n\nLogin credentials: user 'ga', password 'password123'.\n\nAfter all changes, ensure the project compiles successfully.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/refactor_to_mvvm_with_livedata/setup_task.sh",
+    "post_task": "/workspace/tasks/refactor_to_mvvm_with_livedata/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/AndroidStudioProjects/TaskManagerApp",
+    "data_source": "/workspace/data/TaskManagerApp",
+    "package_path": "com/example/taskmanager"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_refactor_to_mvvm_with_livedata"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "chinook_test_subset@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Extract a referentially consistent data subset from the Chinook database for testing purposes.\n\nYour goal is to create a new SQLite database file named 'chinook_brazil_test.db' at '/home/ga/Documents/databases/' containing ONLY data related to customers from Brazil.\n\nSteps:\n1. Connect to the existing Chinook database ('/home/ga/Documents/databases/chinook.db') in DBeaver.\n2. Create a new SQLite database file at '/home/ga/Documents/databases/chinook_brazil_test.db' and connect to it (name the connection 'ChinookBrazilTest').\n3. In the new database, create the following 9 tables with the same schema as the original: customers, employees, invoices, invoice_items, tracks, albums, artists, genres, media_types.\n4. Populate these tables with data based on the filter: Customer Country = 'Brazil'.\n   - Include ONLY Brazilian customers.\n   - Include ONLY invoices for those customers.\n   - Include ONLY invoice_items for those invoices.\n   - Include ONLY tracks referenced by those invoice_items.\n   - Include ONLY albums, artists, genres, and media_types referenced by those tracks.\n   - Include ONLY employees referenced as SupportRepId by those customers.\n5. Ensure NO orphaned records exist (referential integrity must be maintained).\n6. Save your SQL extraction script (DDL and INSERTs) to '/home/ga/Documents/scripts/brazil_subset_extraction.sql'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_test_subset/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_test_subset/export_result.sh"
+  },
+  "metadata": {
+    "source_db": "/home/ga/Documents/databases/chinook.db",
+    "target_db": "/home/ga/Documents/databases/chinook_brazil_test.db",
+    "target_script": "/home/ga/Documents/scripts/brazil_subset_extraction.sql",
+    "required_tables": ["customers", "employees", "invoices", "invoice_items", "tracks", "albums", "artists", "genres", "media_types"],
+    "filter_country": "Brazil"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_test_subset"
+    }
+  }
+}

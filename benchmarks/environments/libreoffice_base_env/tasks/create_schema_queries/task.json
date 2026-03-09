@@ -1,0 +1,37 @@
+{
+  "id": "create_schema_queries@1",
+  "version": "1.0",
+  "env_id": "libreoffice_base_env@0.1",
+  "description": "Create two saved SQL queries in the Chinook database to document the system schema using the HSQLDB INFORMATION_SCHEMA.\n\n1. Create a query named 'TableColumnCatalog' that lists all user table columns. It must select: Table Name, Column Name, Type Name, Ordinal Position, and Nullability. Filter to include only the 'PUBLIC' schema (excluding system tables) and sort by Table Name then Ordinal Position.\n\n2. Create a query named 'PrimaryKeyCatalog' that lists all primary keys. It must select: Table Name, Column Name, Key Sequence, and PK Name. Filter to include only the 'PUBLIC' schema and sort by Table Name then Key Sequence.\n\n3. Save the database file to ensure changes are persisted.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_schema_queries/setup_task.sh",
+    "post_task": "/workspace/tasks/create_schema_queries/export_result.sh"
+  },
+  "metadata": {
+    "database_path": "/home/ga/chinook.odb",
+    "queries": {
+      "TableColumnCatalog": {
+        "required_tables": ["SYSTEM_COLUMNS"],
+        "required_columns": ["TABLE_NAME", "COLUMN_NAME", "TYPE_NAME", "ORDINAL_POSITION", "IS_NULLABLE"],
+        "required_filters": ["PUBLIC"]
+      },
+      "PrimaryKeyCatalog": {
+        "required_tables": ["SYSTEM_PRIMARYKEYS"],
+        "required_columns": ["TABLE_NAME", "COLUMN_NAME", "KEY_SEQ", "PK_NAME"],
+        "required_filters": ["PUBLIC"]
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_schema_queries"
+    }
+  }
+}

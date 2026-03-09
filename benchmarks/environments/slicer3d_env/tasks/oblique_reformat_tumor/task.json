@@ -1,0 +1,42 @@
+{
+  "id": "oblique_reformat_tumor@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Create an oblique slice reformat on the Red slice view that passes through the brain tumor on the pre-loaded T1-contrast enhanced BraTS MRI. The slice must be rotated at least 15 degrees from any standard orientation (axial, sagittal, coronal) and the tumor must be visible in the reformatted view.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 240,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/oblique_reformat_tumor/setup_task.sh",
+    "post_task": "/workspace/tasks/oblique_reformat_tumor/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "min_angle_deviation_degrees": 15,
+    "max_distance_to_tumor_mm": 10,
+    "tumor_voxel_threshold": 100,
+    "scoring_weights": {
+      "oblique_orientation_achieved": 35,
+      "tumor_visible_in_slice": 30,
+      "slice_through_tumor_center": 20,
+      "orientation_changed": 10,
+      "vlm_visual_confirmation": 5
+    },
+    "standard_orientations": {
+      "axial": [0, 0, 1],
+      "sagittal": [1, 0, 0],
+      "coronal": [0, 1, 0]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_oblique_reformat_tumor"
+    }
+  }
+}

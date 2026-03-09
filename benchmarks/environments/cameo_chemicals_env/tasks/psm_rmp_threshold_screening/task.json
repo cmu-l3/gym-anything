@@ -1,0 +1,62 @@
+{
+  "id": "psm_rmp_threshold_screening@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "Audit a proposed chemical inventory to determine if it triggers OSHA Process Safety Management (PSM) or EPA Risk Management Program (RMP) requirements. \n\nProposed Inventory:\n1. Chlorine: 2,000 lbs\n2. Sulfur Dioxide: 3,000 lbs\n3. Hydrogen Fluoride: 800 lbs\n4. Methomyl: 5,000 lbs\n5. Ammonia, Anhydrous: 12,000 lbs\n\nInstructions:\n1. Search for each chemical on CAMEO Chemicals (https://cameochemicals.noaa.gov/).\n2. In the 'Regulatory Information' section of the datasheet, find the Threshold Quantity (TQ) for 'OSHA Process Safety Management (PSM)' and 'EPA Risk Management Program (RMP)'.\n3. Note: Be careful to distinguish these from 'EPCRA Extremely Hazardous Substances'. If a chemical is not listed under PSM or RMP, treat the TQ as 'N/A'.\n4. Compare the inventory amount to the TQ. If Inventory >= TQ, the regulation is TRIGGERED.\n5. Create a CSV file at '/home/ga/Documents/regulatory_threshold_audit.csv' with the header: 'Chemical Name, Inventory (lbs), PSM TQ (lbs), RMP TQ (lbs), PSM Triggered, RMP Triggered'.\n6. Fill in the data for all 5 chemicals. Use 'YES' or 'NO' for the Triggered columns.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/psm_rmp_threshold_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/psm_rmp_threshold_screening/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/regulatory_threshold_audit.csv",
+    "ground_truth": {
+      "Chlorine": {
+        "inventory": 2000,
+        "psm_tq": 1500,
+        "rmp_tq": 2500,
+        "psm_triggered": true,
+        "rmp_triggered": false
+      },
+      "Sulfur Dioxide": {
+        "inventory": 3000,
+        "psm_tq": 1000,
+        "rmp_tq": 5000,
+        "psm_triggered": true,
+        "rmp_triggered": false
+      },
+      "Hydrogen Fluoride": {
+        "inventory": 800,
+        "psm_tq": 1000,
+        "rmp_tq": 1000,
+        "psm_triggered": false,
+        "rmp_triggered": false
+      },
+      "Methomyl": {
+        "inventory": 5000,
+        "psm_tq": null,
+        "rmp_tq": null,
+        "psm_triggered": false,
+        "rmp_triggered": false
+      },
+      "Ammonia, Anhydrous": {
+        "inventory": 12000,
+        "psm_tq": 10000,
+        "rmp_tq": 10000,
+        "psm_triggered": true,
+        "rmp_triggered": true
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_psm_rmp_threshold_screening"
+    }
+  }
+}

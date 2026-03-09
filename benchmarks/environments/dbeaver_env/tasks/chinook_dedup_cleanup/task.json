@@ -1,0 +1,34 @@
+{
+  "id": "chinook_dedup_cleanup@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "A database corruption incident occurred where duplicate Customer and Artist records were inserted into the Chinook database, and some related records (Invoices, Albums) were incorrectly linked to these duplicates.\n\nYour goal is to clean up the database `/home/ga/Documents/databases/chinook_dedup.db` using DBeaver.\n\nRequirements:\n1. Connect to the SQLite database at `/home/ga/Documents/databases/chinook_dedup.db` (Connection name: 'ChinookDedup').\n2. Identify duplicate Customers (same FirstName, LastName, Email) and Artists (same Name). The record with the LOWEST ID is the 'canonical' (correct) one.\n3. Reassign any child records (Invoices for Customers, Albums for Artists) from the duplicate records to the canonical records to prevent data loss.\n4. Delete the duplicate Customer and Artist records.\n5. Produce a deduplication report CSV at `/home/ga/Documents/exports/dedup_report.csv` with columns: TableName, DuplicateGroupsFound, RecordsRemoved, ChildRecordsReassigned.\n6. Save your SQL cleanup script to `/home/ga/Documents/scripts/dedup_cleanup.sql`.\n\nFinal verification will check that all duplicates are gone, no business data (Invoices/Albums) was lost, and referential integrity is maintained.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_dedup_cleanup/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_dedup_cleanup/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook_dedup.db",
+    "connection_name": "ChinookDedup",
+    "report_path": "/home/ga/Documents/exports/dedup_report.csv",
+    "script_path": "/home/ga/Documents/scripts/dedup_cleanup.sql",
+    "original_customer_count": 59,
+    "original_artist_count": 275,
+    "original_invoice_count": 412,
+    "original_album_count": 347,
+    "added_duplicates_customers": 8,
+    "added_duplicates_artists": 6
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_dedup_cleanup"
+    }
+  }
+}

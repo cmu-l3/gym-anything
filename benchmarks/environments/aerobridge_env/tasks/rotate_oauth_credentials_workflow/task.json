@@ -1,0 +1,30 @@
+{
+  "id": "rotate_oauth_credentials_workflow@1",
+  "version": "1.0",
+  "env_id": "aerobridge_env@0.1",
+  "description": "Perform a security credential rotation for the 'Logistics_Fleet_Sync_v1' OAuth application. Log in to the admin panel (admin/adminpass123) and navigate to the Django OAuth Toolkit section. \n\n1. Inspect the existing 'Logistics_Fleet_Sync_v1' application to note its configuration (Client Type, Authorization Grant Type, and Redirect URIs).\n2. Create a NEW application named 'Logistics_Fleet_Sync_v2' with the EXACT same configuration settings.\n3. Save the new application's Client ID and Client Secret to a file at '/home/ga/Documents/new_credentials.json' in JSON format: {\"client_id\": \"...\", \"client_secret\": \"...\"}.\n4. Delete the old 'Logistics_Fleet_Sync_v1' application to revoke the old credentials.\n\nEnsure the new application is fully configured before deleting the old one.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rotate_oauth_credentials_workflow/setup_task.sh",
+    "post_task": "/workspace/tasks/rotate_oauth_credentials_workflow/export_result.sh"
+  },
+  "metadata": {
+    "old_app_name": "Logistics_Fleet_Sync_v1",
+    "new_app_name": "Logistics_Fleet_Sync_v2",
+    "expected_client_type": "confidential",
+    "expected_grant_type": "authorization-code",
+    "expected_redirect_uris": "https://logistics-partner.com/oauth/callback https://backup.logistics-partner.com/complete/aerobridge",
+    "credentials_file_path": "/home/ga/Documents/new_credentials.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rotate_oauth_credentials"
+    }
+  }
+}

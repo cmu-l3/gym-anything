@@ -1,0 +1,80 @@
+{
+    "task_id": "tls_decryption_with_keylog@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "pcap_path",
+            "metadata_value": "/home/ga/Documents/captures/secure_api.pcap",
+            "verified_value": "/home/ga/Documents/captures/secure_api.pcap",
+            "source": "Code review: setup_task.sh line 70 creates this file via tcpdump",
+            "status": "verified"
+        },
+        {
+            "key": "keylog_path",
+            "metadata_value": "/home/ga/Documents/captures/session_keys.log",
+            "verified_value": "/home/ga/Documents/captures/session_keys.log",
+            "source": "Code review: setup_task.sh line 77 creates this file via SSLKEYLOGFILE environment variable with curl",
+            "status": "verified"
+        },
+        {
+            "key": "output_path",
+            "metadata_value": "/home/ga/Documents/decrypted_flag.txt",
+            "verified_value": "/home/ga/Documents/decrypted_flag.txt",
+            "source": "Code review: task.json description line 6 and export_result.sh line 12 reference this path",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_path",
+            "metadata_value": "/var/lib/app/ground_truth/secret_uuid.txt",
+            "verified_value": "/var/lib/app/ground_truth/secret_uuid.txt",
+            "source": "Code review: setup_task.sh line 14 creates this file with randomly generated UUID",
+            "status": "verified"
+        },
+        {
+            "key": "data_synthetic",
+            "metadata_value": null,
+            "verified_value": true,
+            "source": "Code review: setup_task.sh generates all data at runtime - PCAP traffic generated locally, session keys from curl, secret from /proc/sys/kernel/random/uuid",
+            "status": "verified"
+        },
+        {
+            "key": "secret_type",
+            "metadata_value": "UUID (implied from task description)",
+            "verified_value": "UUID string, randomly generated from /proc/sys/kernel/random/uuid",
+            "source": "Code review: setup_task.sh line 13, verifier.py line 52 comment confirms secret is UUID",
+            "status": "verified"
+        },
+        {
+            "key": "tls_technique",
+            "metadata_value": null,
+            "verified_value": "SSLKEYLOGFILE with Wireshark (real, documented technique)",
+            "source": "Web search: SSLKEYLOGFILE is a standard, documented mechanism supported by Firefox, Chrome, curl, and Wireshark. See Wireshark Wiki TLS page, curl documentation, and multiple networking resources.",
+            "status": "verified"
+        },
+        {
+            "key": "wireshark_version",
+            "metadata_value": null,
+            "verified_value": "Wireshark 3.4.10",
+            "source": "Code execution: wireshark --version returns 'Wireshark 3.4.10 (Git commit 733b3a137c2b)'. Version 3.4.10 supports SSLKEYLOGFILE decryption.",
+            "status": "verified"
+        },
+        {
+            "key": "openssl_version",
+            "metadata_value": null,
+            "verified_value": "OpenSSL 3.0.18",
+            "source": "Code execution: Python's ssl module reports 'OpenSSL 3.0.18 30 Sep 2025'. OpenSSL 3.0.x supports SSLKEYLOGFILE.",
+            "status": "verified"
+        },
+        {
+            "key": "python_version",
+            "metadata_value": null,
+            "verified_value": "Python 3.13.9",
+            "source": "Code execution: sys.version returns 'Python 3.13.9'. Python 3.8+ has built-in support for ssl.SSLContext.keylog_filename and SSLKEYLOGFILE environment variable.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic task with no real-world datasets or external data sources. All data is generated at task runtime: the PCAP file is created via tcpdump from localhost traffic on port 4443, session keys are captured via curl's SSLKEYLOGFILE environment variable, and the secret is a randomly generated UUID. The task tests TLS decryption using the SSLKEYLOGFILE technique, which is a real, documented mechanism supported by Wireshark 3.4.10 and OpenSSL 3.0.18. The task description accurately describes the procedure: configure Wireshark to use the session keys log file to decrypt TLS traffic and extract the secret flag.",
+    "pi_confidence": "high"
+}

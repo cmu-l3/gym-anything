@@ -1,0 +1,52 @@
+{
+  "id": "pa_aorta_ratio@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the main pulmonary artery and ascending aorta diameters at the PA bifurcation level on the loaded chest CT and calculate the PA:Aorta ratio. Classify the finding. Save PA markup to ~/Documents/SlicerData/LIDC/pa_measurement.mrk.json, aorta markup to ~/Documents/SlicerData/LIDC/aorta_measurement.mrk.json, and report to ~/Documents/SlicerData/LIDC/pa_aorta_report.json with fields: pa_diameter_mm, aorta_diameter_mm, pa_aorta_ratio, assessment, measurement_slice_index.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pa_aorta_ratio/setup_task.sh",
+    "post_task": "/workspace/tasks/pa_aorta_ratio/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_pa_measurement": "/home/ga/Documents/SlicerData/LIDC/pa_measurement.mrk.json",
+    "output_aorta_measurement": "/home/ga/Documents/SlicerData/LIDC/aorta_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/pa_aorta_report.json",
+    "anatomical_ranges": {
+      "pa_min_mm": 18,
+      "pa_max_mm": 45,
+      "aorta_min_mm": 22,
+      "aorta_max_mm": 45,
+      "ratio_min": 0.6,
+      "ratio_max": 2.0
+    },
+    "classification_thresholds": {
+      "normal_max": 1.0,
+      "elevated_max": 1.3
+    },
+    "scoring_weights": {
+      "pa_plausible": 15,
+      "aorta_plausible": 15,
+      "ratio_calculated": 20,
+      "classification_correct": 20,
+      "pa_markup_exists": 8,
+      "aorta_markup_exists": 8,
+      "report_complete": 9,
+      "measurements_different": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pa_aorta_ratio"
+    }
+  }
+}

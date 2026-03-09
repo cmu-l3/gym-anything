@@ -1,0 +1,59 @@
+{
+  "id": "hazardous_gas_evolution_profiling@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "A safety engineer needs to select gas sensors for 5 containment areas where specific chemicals might accidentally mix. Use the CAMEO Chemicals 'Reactivity' tool (https://cameochemicals.noaa.gov/) to predict the SPECIFIC hazardous gas evolved for each pair. \n\nThe mixing scenarios are provided in ~/Desktop/mixing_scenarios.txt. \n\nFor each area, mix the two chemicals in the tool, read the hazard text to find the specific gas name (e.g., 'Generates Chlorine', 'Generates Hydrogen'), and compile a report.\n\nSave the report to ~/Desktop/sensor_selection_report.csv with the following format:\nArea,Chemical_A,Chemical_B,Evolved_Gas_Name\n\nExample:\nArea 1,Sodium Hypochlorite,Ammonia,Chloramine\n",
+  "difficulty": "medium",
+  "tags": ["cameo", "chemicals", "reactivity", "safety", "gas-detection", "hazmat"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hazardous_gas_evolution_profiling/setup_task.sh",
+    "post_task": "/workspace/tasks/hazardous_gas_evolution_profiling/export_result.sh"
+  },
+  "metadata": {
+    "scenarios_file": "/home/ga/Desktop/mixing_scenarios.txt",
+    "output_file": "/home/ga/Desktop/sensor_selection_report.csv",
+    "expected_results": [
+      {
+        "area": "Area 1",
+        "chem_a": "Sodium Hypochlorite",
+        "chem_b": "Ammonia",
+        "gas_keywords": ["chloramine", "chloramines"]
+      },
+      {
+        "area": "Area 2",
+        "chem_a": "Sodium Cyanide",
+        "chem_b": "Sulfuric Acid",
+        "gas_keywords": ["hydrogen cyanide", "hcn"]
+      },
+      {
+        "area": "Area 3",
+        "chem_a": "Sodium Sulfide",
+        "chem_b": "Formic Acid",
+        "gas_keywords": ["hydrogen sulfide", "h2s"]
+      },
+      {
+        "area": "Area 4",
+        "chem_a": "Zinc Powder",
+        "chem_b": "Hydrochloric Acid",
+        "gas_keywords": ["hydrogen", "h2"]
+      },
+      {
+        "area": "Area 5",
+        "chem_a": "Sodium Bisulfite",
+        "chem_b": "Nitric Acid",
+        "gas_keywords": ["sulfur dioxide", "so2", "nitrogen oxide", "nox"]
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hazardous_gas_evolution_profiling"
+    }
+  }
+}

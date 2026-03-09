@@ -1,0 +1,28 @@
+{
+  "id": "detect_latency_spikes_tcp_delta@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "Analyze the packet capture ~/Documents/captures/200722_tcp_anon.pcapng to identify TCP latency spikes. Configure Wireshark to calculate TCP conversation timestamps (if not already enabled). Apply a display filter to find packets where the time since the previous packet in the same stream (tcp.time_delta) is greater than 0.2 seconds.\n\n1. Export these specific 'laggy' packets to a new file named ~/Documents/captures/latency_spikes.pcapng.\n2. Create a report file at ~/Documents/captures/latency_report.txt containing:\n   - total_spike_packets: <number of packets matching the filter>\n   - worst_stream_index: <tcp.stream index of the packet with the highest delta>\n   - max_delta_seconds: <the maximum time delta value in seconds>\n\nFormat the report as key: value pairs.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/detect_latency_spikes_tcp_delta/setup_task.sh",
+    "post_task": "/workspace/tasks/detect_latency_spikes_tcp_delta/export_result.sh"
+  },
+  "metadata": {
+    "pcap_file": "200722_tcp_anon.pcapng",
+    "threshold_seconds": 0.2,
+    "output_pcap": "latency_spikes.pcapng",
+    "output_report": "latency_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_detect_latency_spikes"
+    }
+  }
+}

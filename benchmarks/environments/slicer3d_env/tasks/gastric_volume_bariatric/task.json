@@ -1,0 +1,52 @@
+{
+  "id": "gastric_volume_bariatric@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment the entire stomach (fundus, body, and antrum) on the provided abdominal CT, excluding esophagus and duodenum. Compute the gastric volume in mL and classify the size. Save segmentation to ~/Documents/SlicerData/AMOS/gastric_segmentation.nii.gz and report to ~/Documents/SlicerData/AMOS/bariatric_report.json with fields: volume_ml, classification, fundus_included, surgical_recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/gastric_volume_bariatric/setup_task.sh",
+    "post_task": "/workspace/tasks/gastric_volume_bariatric/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/AMOS/gastric_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/bariatric_report.json",
+    "stomach_label": 9,
+    "liver_label": 6,
+    "spleen_label": 1,
+    "passing_thresholds": {
+      "dice_minimum": 0.60,
+      "dice_good": 0.70,
+      "dice_excellent": 0.80,
+      "volume_error_max_percent": 30,
+      "volume_error_good_percent": 20,
+      "volume_error_excellent_percent": 10,
+      "spillover_max_percent": 5
+    },
+    "scoring_weights": {
+      "dice_coefficient": 30,
+      "dice_bonus": 10,
+      "volume_accuracy": 20,
+      "volume_bonus": 5,
+      "correct_classification": 15,
+      "segmentation_contiguous": 10,
+      "no_organ_spillover": 5,
+      "report_complete": 10,
+      "valid_recommendation": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_gastric_volume"
+    }
+  }
+}

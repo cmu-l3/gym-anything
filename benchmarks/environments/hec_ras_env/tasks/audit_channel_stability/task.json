@@ -1,0 +1,29 @@
+{
+  "id": "audit_channel_stability@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform an erosion risk audit on the White River Muncie model. The Conservation District requires any river cross-section with a Maximum Channel Velocity exceeding 4.0 ft/s to be identified.\n\nYour goal is to:\n1. Run the HEC-RAS unsteady simulation (if results are not already present).\n2. Extract the 'Channel Velocity' time series for all cross-sections from the HDF5 results.\n3. Identify every cross-section where the maximum velocity during the simulation exceeds 4.0 ft/s.\n4. Create a CSV report at '~/Documents/hec_ras_results/velocity_compliance_audit.csv' listing ONLY the failing cross-sections. The CSV must have headers: 'River_Station', 'Max_Channel_Vel_fps', 'Excess_fps' (Max - 4.0). Sort the rows by River Station in descending order.\n5. Generate a profile plot saved to '~/Documents/hec_ras_results/velocity_profile_audit.png' showing Max Channel Velocity vs River Station, with a horizontal line indicating the 4.0 ft/s limit.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_channel_stability/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_channel_stability/export_result.sh"
+  },
+  "metadata": {
+    "velocity_threshold": 4.0,
+    "output_csv": "/home/ga/Documents/hec_ras_results/velocity_compliance_audit.csv",
+    "output_plot": "/home/ga/Documents/hec_ras_results/velocity_profile_audit.png",
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_file": "Muncie.p04.hdf"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_channel_stability"
+    }
+  }
+}

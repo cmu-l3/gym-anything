@@ -1,0 +1,37 @@
+{
+  "id": "classify_channel_shape@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Analyze the channel geometry of the White River (Muncie project) at peak flood stage. \n\nYour goal is to:\n1. Run the unsteady flow simulation for the Muncie project (Plan 04).\n2. Write a Python script to extract the Peak Water Surface Elevation (WSE) and Cross-Section Geometry (Station-Elevation points) for every river station from the HDF5 output.\n3. For each cross-section, calculate the 'Shape Factor' at the peak stage:\n   - Flow Area (A): Area of water below Peak WSE.\n   - Top Width (T): Width of water surface at Peak WSE.\n   - Hydraulic Depth (D_hyd): A / T.\n   - Max Depth (Y_max): Peak WSE - Minimum Channel Elevation.\n   - Shape Factor (SF): D_hyd / Y_max.\n4. Classify each cross-section based on the Shape Factor:\n   - 'Triangular' if SF < 0.65\n   - 'Parabolic' if 0.65 <= SF <= 0.85\n   - 'Rectangular' if SF > 0.85\n5. Save the results to a CSV file at `/home/ga/Documents/hec_ras_results/channel_shape_analysis.csv` with columns: `River_Station`, `Peak_WSE`, `Flow_Area`, `Top_Width`, `Hydraulic_Depth`, `Max_Depth`, `Shape_Factor`, `Classification`.\n\nThe Muncie project is located in `/home/ga/Documents/hec_ras_projects/Muncie/`. HEC-RAS executables are in your PATH.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/classify_channel_shape/setup_task.sh",
+    "post_task": "/workspace/tasks/classify_channel_shape/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "expected_csv_path": "/home/ga/Documents/hec_ras_results/channel_shape_analysis.csv",
+    "required_columns": [
+      "River_Station",
+      "Peak_WSE",
+      "Flow_Area",
+      "Top_Width",
+      "Hydraulic_Depth",
+      "Max_Depth",
+      "Shape_Factor",
+      "Classification"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_classify_channel_shape"
+    }
+  }
+}

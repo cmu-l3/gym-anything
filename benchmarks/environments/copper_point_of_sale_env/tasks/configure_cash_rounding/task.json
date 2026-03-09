@@ -1,0 +1,30 @@
+{
+  "id": "configure_cash_rounding@1",
+  "version": "1.0",
+  "env_id": "copper_point_of_sale_env@0.1",
+  "description": "Configure NCH Copper Point of Sale to handle cash rounding for regions without small coin denominations (e.g., Canada, Australia). \n\nGoal: Enable 'Cash Rounding' to the nearest 5 cents (0.05) and verify it with a test transaction.\n\nInstructions:\n1. Open Copper POS Options/Preferences.\n2. Navigate to the 'Regional' settings tab.\n3. Configure the 'Rounding' settings:\n   - Set Rounding Interval to '0.05' (5 cents).\n   - Ensure the Rounding Rule is set to 'Round to the nearest value'.\n4. Create a new inventory item (or use a temporary manual item) to force a specific price:\n   - Item Name: 'Washer Test'\n   - Price: $0.03\n   - Tax: None (Tax Exempt)\n5. Process a NEW SALE:\n   - Add 1x 'Washer Test' ($0.03).\n   - Add 1x any other item priced at $1.00 (Tax Exempt), or create a 'Bolt Test' at $1.00.\n   - The Subtotal should be $1.03.\n6. Select 'Payment' and choose 'Cash'.\n7. Verify that the Total Amount Due rounds UP to $1.05.\n8. Complete the sale.\n9. Leave the final receipt or transaction summary visible on the screen.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_cash_rounding\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_cash_rounding\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_rounding_interval": "0.05",
+    "expected_rounding_type": "Nearest",
+    "test_item_name": "Washer Test",
+    "test_item_price": 0.03,
+    "expected_pre_round_total": 1.03,
+    "expected_final_total": 1.05
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_cash_rounding"
+    }
+  }
+}

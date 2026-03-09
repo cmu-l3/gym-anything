@@ -1,0 +1,47 @@
+{
+  "id": "enhancement_subtraction_map@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Create a subtraction enhancement map (T1_Contrast minus T1) from the loaded brain MRI volumes, named 'EnhancementMap'. Threshold the result to create a binary 'EnhancementMask'. Save the enhancement map to ~/Documents/SlicerData/BraTS/enhancement_map.nii.gz, the mask to ~/Documents/SlicerData/BraTS/enhancement_mask.nii.gz, and a report to ~/Documents/SlicerData/BraTS/enhancement_report.txt containing: total enhancing volume (mL), maximum enhancement intensity, and mean enhancement intensity in the masked region.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/enhancement_subtraction_map/setup_task.sh",
+    "post_task": "/workspace/tasks/enhancement_subtraction_map/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_enhancement_map": "/home/ga/Documents/SlicerData/BraTS/enhancement_map.nii.gz",
+    "output_enhancement_mask": "/home/ga/Documents/SlicerData/BraTS/enhancement_mask.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/enhancement_report.txt",
+    "source_t1": "T1",
+    "source_t1ce": "T1_Contrast",
+    "recommended_threshold": 100,
+    "passing_thresholds": {
+      "subtraction_correlation_min": 0.9,
+      "mask_dice_min": 0.3,
+      "volume_error_max_percent": 50
+    },
+    "scoring_weights": {
+      "enhancement_map_created": 15,
+      "subtraction_correct": 25,
+      "enhancement_mask_created": 15,
+      "mask_captures_enhancing": 20,
+      "report_exists": 10,
+      "volume_accuracy": 10,
+      "max_intensity_reported": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_enhancement_subtraction"
+    }
+  }
+}

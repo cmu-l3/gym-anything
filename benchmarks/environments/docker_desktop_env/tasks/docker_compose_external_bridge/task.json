@@ -1,0 +1,32 @@
+{
+  "id": "docker_compose_external_bridge@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "Configure two independent Docker Compose projects to communicate via external networks. \n\nScenario: You have a 'shared-infra' project (PostgreSQL + Redis) and a 'flask-api' project. Currently, they cannot talk to each other because they are on isolated default networks.\n\nYour task:\n1. Create two external Docker networks named 'infra-db-net' and 'infra-cache-net'.\n2. Modify '/home/ga/Documents/docker-projects/shared-infra/docker-compose.yml' to attach Postgres to 'infra-db-net' and Redis to 'infra-cache-net'.\n3. Modify '/home/ga/Documents/docker-projects/flask-api/docker-compose.yml' to attach the API service to BOTH networks.\n4. Ensure all networks are declared as 'external: true' in the compose files.\n5. Start all services using Docker Compose.\n6. Verify connectivity by running the Flask app's health checks (http://localhost:5050/health/db and /health/redis).\n7. Save a brief report to '/home/ga/Documents/docker-projects/connectivity-report.txt' confirming the networks created and the status of the connections.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_compose_external_bridge/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_compose_external_bridge/export_result.sh"
+  },
+  "metadata": {
+    "project_root": "/home/ga/Documents/docker-projects",
+    "network_db": "infra-db-net",
+    "network_cache": "infra-cache-net",
+    "service_db": "shared-postgres",
+    "service_redis": "shared-redis",
+    "service_api": "flask-api",
+    "api_port": 5050,
+    "expected_report_path": "/home/ga/Documents/docker-projects/connectivity-report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_compose_external_bridge"
+    }
+  }
+}

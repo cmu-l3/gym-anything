@@ -1,0 +1,37 @@
+{
+  "id": "handbook_find_replace@1",
+  "version": "1.0",
+  "env_id": "libreoffice_writer_env@0.1",
+  "description": "Open the employee handbook at /home/ga/Documents/employee_handbook.docx and perform the following 5 systematic Find & Replace corrections:\n\n1. Replace all double spaces (\"  \") with single spaces.\n2. Standardize company name: Replace \"Greenfield industries\" (lowercase 'i') with \"Greenfield Industries\" (uppercase 'I'). Be careful not to change instances that are already correct.\n3. Update email domain: Replace \"@greenfield-ind.com\" with \"@greenfieldind.com\".\n4. Expand abbreviations: Replace \"dept.\" (case-insensitive) with \"Department\".\n5. Update policy year: Replace \"2019\" with \"2024\".\n\nSave the corrected document as a NEW file at /home/ga/Documents/employee_handbook_corrected.docx. Do not overwrite the original.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/handbook_find_replace/setup_task.sh",
+    "post_task": "/workspace/tasks/handbook_find_replace/export_result.sh"
+  },
+  "metadata": {
+    "source_path": "/home/ga/Documents/employee_handbook.docx",
+    "output_path": "/home/ga/Documents/employee_handbook_corrected.docx",
+    "checks": {
+      "double_spaces": {"pattern": "  ", "target": 0},
+      "company_casing_bad": {"pattern": "Greenfield industries", "target": 0},
+      "company_casing_good": {"pattern": "Greenfield Industries", "min_count": 8},
+      "old_email": {"pattern": "@greenfield-ind.com", "target": 0},
+      "new_email": {"pattern": "@greenfieldind.com", "min_count": 5},
+      "abbrev_dept": {"pattern": "dept.", "target": 0, "case_insensitive": true},
+      "full_dept": {"pattern": "Department", "min_count": 7},
+      "old_year": {"pattern": "2019", "target": 0},
+      "new_year": {"pattern": "2024", "min_count": 4}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_handbook_corrections"
+    }
+  }
+}

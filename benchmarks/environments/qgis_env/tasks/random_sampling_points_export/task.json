@@ -1,0 +1,36 @@
+{
+  "id": "random_sampling_points_export@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "A conservation biologist is planning a biodiversity survey across three Central European countries. You need to generate random sampling locations within country boundaries and export the results.\n\n1. In QGIS (already open), add the vector layer '/home/ga/GIS_Data/european_countries.geojson' which contains polygon boundaries for Austria, Switzerland, and Czechia.\n\n2. Use the Processing Toolbox tool 'Random Points Inside Polygons' (under Vector Creation) with these parameters:\n   - Input layer: european_countries\n   - Sampling strategy: Points count\n   - Point count: 5 (per polygon feature)\n   - Minimum distance between points: 0\n\n3. This should generate 15 random points total (5 per country).\n\n4. Open the attribute table of the resulting points layer. Toggle editing and use the Field Calculator to add two new decimal fields:\n   - 'longitude' with expression: x($geometry)\n   - 'latitude' with expression: y($geometry)\n   Save edits.\n\n5. Export the random points layer as GeoJSON to: /home/ga/GIS_Data/exports/sampling_points.geojson\n\n6. Export the attribute table as CSV to: /home/ga/GIS_Data/exports/sampling_coordinates.csv\n\nBoth output files must contain all 15 sampling points with their coordinates.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/random_sampling_points_export/setup_task.sh",
+    "post_task": "/workspace/tasks/random_sampling_points_export/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "input_file": "/home/ga/GIS_Data/european_countries.geojson",
+    "expected_geojson_path": "/home/ga/GIS_Data/exports/sampling_points.geojson",
+    "expected_csv_path": "/home/ga/GIS_Data/exports/sampling_coordinates.csv",
+    "expected_feature_count": 15,
+    "expected_geometry_type": "Point",
+    "coordinate_bounds": {
+      "lon_min": 5.0,
+      "lon_max": 19.0,
+      "lat_min": 45.0,
+      "lat_max": 52.0
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_random_sampling_points_export"
+    }
+  }
+}

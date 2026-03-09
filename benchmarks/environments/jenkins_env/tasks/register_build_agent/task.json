@@ -1,0 +1,31 @@
+{
+  "id": "register_build_agent@1",
+  "version": "1.0",
+  "env_id": "jenkins_env@0.1",
+  "description": "A new server has been provisioned to handle frontend build workloads. You need to register it as a node in Jenkins to scale our build capacity.\n\nNavigate to 'Manage Jenkins' > 'Nodes' (or 'Manage Nodes and Clouds') and create a new 'Permanent Agent' with the following specifications:\n\n- Name: frontend-builder-01\n- Remote root directory: /opt/jenkins-agent\n- Number of executors: 4\n- Labels: frontend linux high-mem\n- Usage: Only build jobs with label expressions matching this node\n- Launch method: Launch agent by connecting it to the controller\n\nYou are already logged in as admin. If prompted to log in, use Username: admin, Password: Admin123!",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/register_build_agent/setup_task.sh",
+    "post_task": "/workspace/tasks/register_build_agent/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "expected_node_name": "frontend-builder-01",
+    "expected_executors": 4,
+    "expected_remote_fs": "/opt/jenkins-agent",
+    "expected_labels": ["frontend", "linux", "high-mem"],
+    "expected_mode": "EXCLUSIVE",
+    "expected_launcher_class": "hudson.slaves.JNLPLauncher"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_register_build_agent"
+    }
+  }
+}

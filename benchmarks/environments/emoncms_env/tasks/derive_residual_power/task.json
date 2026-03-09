@@ -1,0 +1,30 @@
+{
+  "id": "derive_residual_power@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "You are a homeowner monitoring your energy usage in Emoncms. You have inputs for 'main_power' (Total Grid), 'ev_charger' (Electric Vehicle), and 'heat_pump' (HVAC). \n\nYour goal is to calculate the 'Residual' power (Main - EV - HeatPump) to see what the rest of the house is using.\n\n1. Go to the Inputs page.\n2. Configure the input processing for **main_power**.\n3. Add steps to subtract the **ev_charger** and **heat_pump** inputs.\n4. Log the result to a NEW feed named **residual_power**.\n\n**CRITICAL REQUIREMENT**: You must NOT stop logging the total main power. The existing 'Log to feed' process for 'main_power' must remain valid and must record the full grid power, NOT the residual value. Ensure your processing order is correct.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/derive_residual_power/setup_task.sh",
+    "post_task": "/workspace/tasks/derive_residual_power/export_result.sh"
+  },
+  "metadata": {
+    "main_input_name": "main_power",
+    "ev_input_name": "ev_charger",
+    "hp_input_name": "heat_pump",
+    "target_feed_name": "residual_power",
+    "main_feed_name": "main_power",
+    "tolerance_percent": 0.05
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_derive_residual_power"
+    }
+  }
+}

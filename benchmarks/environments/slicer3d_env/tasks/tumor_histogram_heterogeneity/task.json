@@ -1,0 +1,49 @@
+{
+  "id": "tumor_histogram_heterogeneity@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Quantify tumor signal intensity heterogeneity on the provided brain MRI (T1ce) using the pre-existing tumor segmentation. Compute intensity statistics (mean, SD, min, max), calculate the Coefficient of Variation (CV), and classify heterogeneity. Export statistics to ~/Documents/SlicerData/BraTS/tumor_statistics.csv and save report to ~/Documents/SlicerData/BraTS/heterogeneity_report.json with fields: mean_intensity, std_intensity, min_intensity, max_intensity, coefficient_of_variation_percent, heterogeneity_class.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tumor_histogram_heterogeneity/setup_task.sh",
+    "post_task": "/workspace/tasks/tumor_histogram_heterogeneity/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_csv": "/home/ga/Documents/SlicerData/BraTS/tumor_statistics.csv",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/heterogeneity_report.json",
+    "passing_thresholds": {
+      "mean_error_percent": 5.0,
+      "sd_error_percent": 10.0,
+      "cv_internal_consistency": 1.0
+    },
+    "scoring_weights": {
+      "mean_accuracy": 20,
+      "sd_accuracy": 20,
+      "cv_calculation": 15,
+      "classification_correct": 15,
+      "csv_exported": 10,
+      "report_complete": 10,
+      "minmax_reasonable": 5,
+      "timestamps_valid": 5
+    },
+    "heterogeneity_thresholds": {
+      "homogeneous_max": 20,
+      "mild_max": 35,
+      "moderate_max": 50
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tumor_histogram_heterogeneity"
+    }
+  }
+}

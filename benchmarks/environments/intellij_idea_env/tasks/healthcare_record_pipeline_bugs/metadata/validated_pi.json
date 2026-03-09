@@ -1,0 +1,73 @@
+{
+    "task_id": "healthcare_record_pipeline_bugs@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_name",
+            "metadata_value": "healthcare-pipeline",
+            "verified_value": "healthcare-pipeline",
+            "source": "pom.xml <artifactId> tag at line 8",
+            "status": "verified"
+        },
+        {
+            "key": "test_class",
+            "metadata_value": "com.healthcare.PatientRegistryTest",
+            "verified_value": "com.healthcare.PatientRegistryTest",
+            "source": "PatientRegistryTest.java package declaration (line 1) and class definition (line 10)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_test_count",
+            "metadata_value": 6,
+            "verified_value": 6,
+            "source": "PatientRegistryTest.java contains exactly 6 @Test methods at lines 17, 35, 70, 101, 119, 126: testAddAndRetrieveRecord(), testPatientsWithSameNameButDifferentDOBAreDistinct(), testAddingInvalidRecordThrowsException(), testNullDiagnosticCodeReturnsFalseNotNPE(), testValidIcd10CodeAccepted(), testInvalidIcd10CodeRejected()",
+            "status": "verified"
+        },
+        {
+            "key": "bug_1_patient_equals_hashcode_missing_dateofbirth",
+            "metadata_value": "Patient.equals()/hashCode() only compare fullName, not dateOfBirth — two patients with the same name are treated as identical",
+            "verified_value": "TRUE - Patient.java line 53 shows equals() only checks fullName; line 68 shows hashCode() only hashes fullName",
+            "source": "Direct code inspection of Patient.java; method bodies show no dateOfBirth comparison; inline comments at lines 37-45 and 56-63 explicitly document this bug",
+            "status": "verified"
+        },
+        {
+            "key": "bug_2_patientregistry_swallows_exception",
+            "metadata_value": "PatientRegistry.addRecord() catches IllegalArgumentException but never re-throws it — validation failures silently disappear",
+            "verified_value": "TRUE - PatientRegistry.java lines 47-52 show catch block logs warning but has no rethrow statement; line 51 comment states 'Missing: throw e;'",
+            "source": "Direct code inspection of PatientRegistry.java; catch block at lines 47-52 demonstrates exception is swallowed; inline comment at line 51 documents the missing throw",
+            "status": "verified"
+        },
+        {
+            "key": "bug_3_diagnosticcoder_null_throws_npe",
+            "metadata_value": "DiagnosticCoder.isValidCode(null) throws NullPointerException instead of returning false",
+            "verified_value": "TRUE - DiagnosticCoder.java line 28 calls code.startsWith() without null check; comments at lines 16-21 explicitly describe this null safety bug",
+            "source": "Direct code inspection of DiagnosticCoder.java line 28 shows unguarded method call; inline comments at lines 16-21 document the NPE bug",
+            "status": "verified"
+        },
+        {
+            "key": "test_methods_and_names",
+            "metadata_value": "6 tests exist to verify the bugs",
+            "verified_value": "testAddAndRetrieveRecord (baseline), testPatientsWithSameNameButDifferentDOBAreDistinct (Bug 1), testAddingInvalidRecordThrowsException (Bug 2), testNullDiagnosticCodeReturnsFalseNotNPE (Bug 3), testValidIcd10CodeAccepted (diagnostic coder validation), testInvalidIcd10CodeRejected (diagnostic coder validation)",
+            "source": "PatientRegistryTest.java lines 17-130; test names directly reference the bugs they catch",
+            "status": "verified"
+        },
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/IdeaProjects/healthcare-pipeline",
+            "verified_value": "/home/ga/IdeaProjects/healthcare-pipeline",
+            "source": "setup_task.sh line 6 and export_result.sh line 6 both define this path; this is the runtime deployment location",
+            "status": "verified"
+        },
+        {
+            "key": "source_attribution",
+            "metadata_value": "Custom healthcare record pipeline implementation",
+            "verified_value": "Custom implementation with embedded inline documentation of bugs",
+            "source": "Code inspection shows no external library attribution; all three implementation files contain detailed inline comments explaining their specific bugs and how to fix them",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic healthcare record pipeline task with 6 JUnit tests in the com.healthcare.PatientRegistryTest class. Three real bugs are present in the implementation: (1) Patient.java's equals()/hashCode() methods only compare fullName and ignore dateOfBirth, causing records for same-named patients born on different dates to collide in the HashMap; (2) PatientRegistry.addRecord() catches and logs IllegalArgumentException from record.validate() but fails to re-throw it, causing validation failures to silently disappear; (3) DiagnosticCoder.isValidCode() lacks a null check before calling startsWith(), throwing NullPointerException instead of returning false when passed null. All three bugs are explicitly documented in inline code comments. The test class contains 6 tests: testAddAndRetrieveRecord (baseline), testPatientsWithSameNameButDifferentDOBAreDistinct (targets Bug 1), testAddingInvalidRecordThrowsException (targets Bug 2), testNullDiagnosticCodeReturnsFalseNotNPE (targets Bug 3), testValidIcd10CodeAccepted, and testInvalidIcd10CodeRejected. The project uses Maven with Java 11+ and JUnit 4.12.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,32 @@
+{
+  "id": "viewshed_fire_lookout_siting@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "Perform a viewshed analysis to determine the visible area from a proposed fire lookout tower.\n\n1. Open QGIS (it should already be running).\n2. Load the Digital Elevation Model (DEM) from `/home/ga/GIS_Data/rasters/srtm_41_19.tif`.\n3. The DEM is currently in WGS84 (geographic coordinates). Reproject it to **WGS 84 / UTM zone 34S (EPSG:32734)** to ensure accurate metric distance calculations. Save the reprojected file as `/home/ga/GIS_Data/rasters/dem_reprojected.tif`.\n4. Analyze the terrain to find the **highest elevation point** in the reprojected DEM.\n5. Perform a Viewshed analysis (using the standard QGIS or GDAL Visibility tool) with the following parameters:\n   - **Observer Location**: The highest point you identified.\n   - **Observer Height**: 10 meters (representing the tower height).\n   - **Target Height**: 0 meters (ground level).\n   - **Analysis Radius/Max Distance**: 20 kilometers (20000 meters).\n6. Save the resulting visibility map as a raster file to `/home/ga/GIS_Data/exports/fire_lookout_viewshed.tif`.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/viewshed_fire_lookout_siting/setup_task.sh",
+    "post_task": "/workspace/tasks/viewshed_fire_lookout_siting/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "dem_source": "/home/ga/GIS_Data/rasters/srtm_41_19.tif",
+    "reprojected_dem": "/home/ga/GIS_Data/rasters/dem_reprojected.tif",
+    "expected_output": "/home/ga/GIS_Data/exports/fire_lookout_viewshed.tif",
+    "target_crs": "EPSG:32734",
+    "observer_height": 10,
+    "radius": 20000,
+    "min_visible_pixel_ratio": 0.01
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_viewshed_fire_lookout_siting"
+    }
+  }
+}

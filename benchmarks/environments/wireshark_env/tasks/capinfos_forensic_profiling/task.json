@@ -1,0 +1,27 @@
+{
+  "id": "capinfos_forensic_profiling@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "You are a network forensic analyst triaging five packet capture files received during an incident response engagement. Your task is to profile each capture file using Wireshark suite tools (capinfos, tshark, or the Wireshark GUI) and produce a structured forensic inventory report.\n\nThe five capture files are located in /home/ga/Documents/captures/:\n- http.cap\n- dns.cap\n- telnet-cooked.pcap\n- 200722_tcp_anon.pcapng\n- smtp.pcap\n\nFor each file, determine:\n1. packet_count (integer) - total number of packets\n2. capture_duration_seconds (float, rounded to 6 decimal places) - time span of the capture\n3. average_packet_size_bytes (float, rounded to 2 decimal places) - mean packet size\n4. file_size_bytes (integer) - size of the capture file on disk\n5. encapsulation (string) - link-layer encapsulation type (e.g., 'Ethernet')\n\nAlso compute a summary section with:\n- total_packets_all_files: sum of all packet counts\n- file_with_most_packets: filename of the file with the highest packet count\n- file_with_longest_duration: filename of the file with the longest capture duration\n- file_with_largest_avg_packet_size: filename of the file with the largest average packet size\n\nSave the results as valid JSON to /home/ga/Documents/forensic_report.json with this exact structure:\n{\n  \"capture_files\": [\n    {\n      \"filename\": \"http.cap\",\n      \"packet_count\": <int>,\n      \"capture_duration_seconds\": <float>,\n      \"average_packet_size_bytes\": <float>,\n      \"file_size_bytes\": <int>,\n      \"encapsulation\": \"<string>\"\n    },\n    ... (one entry per file, all 5 files)\n  ],\n  \"summary\": {\n    \"total_packets_all_files\": <int>,\n    \"file_with_most_packets\": \"<filename>\",\n    \"file_with_longest_duration\": \"<filename>\",\n    \"file_with_largest_avg_packet_size\": \"<filename>\"\n  }\n}\n\nHint: The 'capinfos' command-line tool (part of the Wireshark suite) is particularly useful for this task.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/capinfos_forensic_profiling/setup_task.sh",
+    "post_task": "/workspace/tasks/capinfos_forensic_profiling/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/Documents/forensic_report.json",
+    "captures_dir": "/home/ga/Documents/captures",
+    "required_files": ["http.cap", "dns.cap", "telnet-cooked.pcap", "200722_tcp_anon.pcapng", "smtp.pcap"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_forensic_report"
+    }
+  }
+}

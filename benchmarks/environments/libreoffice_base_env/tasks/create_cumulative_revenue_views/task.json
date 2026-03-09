@@ -1,0 +1,28 @@
+{
+  "id": "create_cumulative_revenue_views@1",
+  "version": "1.0",
+  "env_id": "libreoffice_base_env@0.1",
+  "description": "Create two saved SQL Views in the Chinook database (`MonthlyRevenue` and `CumulativeRevenue`) to calculate monthly sales and running total revenue.\n\n1. **Create View `MonthlyRevenue`**:\n   - Source: `Invoice` table.\n   - Columns: `SalesYear` (Year of InvoiceDate), `SalesMonth` (Month of InvoiceDate), `PeriodId` (Formula: Year * 100 + Month), and `MonthlyTotal` (Sum of Total).\n   - Group by Year and Month.\n\n2. **Create View `CumulativeRevenue`**:\n   - Source: The `MonthlyRevenue` view you just created.\n   - Columns: `SalesYear`, `SalesMonth`, `MonthlyTotal`, and `RunningTotal`.\n   - `RunningTotal` must be the cumulative sum of `MonthlyTotal` for all periods up to and including the current one (ordered by `PeriodId`). Use a correlated subquery to calculate this.\n\n3. **Save the database** (Ctrl+S) to persist your changes.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_cumulative_revenue_views/setup_task.sh",
+    "post_task": "/workspace/tasks/create_cumulative_revenue_views/export_result.sh"
+  },
+  "metadata": {
+    "odb_path": "/home/ga/chinook.odb",
+    "expected_final_revenue": 2328.60,
+    "script_path_in_zip": "database/script",
+    "required_views": ["MonthlyRevenue", "CumulativeRevenue"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_cumulative_revenue_views"
+    }
+  }
+}

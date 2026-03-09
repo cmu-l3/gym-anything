@@ -1,0 +1,36 @@
+{
+  "id": "multichannel_assembly_calibration@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Multi-Channel Fluorescence Assembly",
+  "description": "You are a microscopist processing raw data from an experiment. You have three separate grayscale images representing different fluorescence channels and a metadata file containing spatial calibration info.\n\nYour goal is to create a calibrated, composite image.\n\n**Data Location:** `~/ImageJ_Data/raw/experiment_042/`\n- `nucleus_raw.tif` (Channel 3)\n- `cytoskeleton_raw.tif` (Channel 2)\n- `mitochondria_raw.tif` (Channel 1)\n- `microscope_metadata.txt` (Contains pixel size information)\n\n**Steps:**\n1. Open the three raw TIFF images in Fiji.\n2. Merge them into a single composite image (Image > Color > Merge Channels...):\n   - **C1 (Red):** mitochondria_raw.tif\n   - **C2 (Green):** cytoskeleton_raw.tif\n   - **C3 (Blue):** nucleus_raw.tif\n   - Ensure 'Create composite' is CHECKED (do not flatten to RGB).\n3. Apply spatial calibration (Analyze > Set Scale...):\n   - Use the resolution found in `microscope_metadata.txt` (0.16 microns/pixel).\n   - Set 'Unit of length' to 'micron'.\n4. Adjust the brightness/contrast of the **Green** channel so the cytoskeleton is clearly visible (Image > Adjust > Brightness/Contrast).\n5. Save the result as `~/ImageJ_Data/processed/assembled_cell.tif`.\n\nThe final file must be a multi-channel TIFF with correct spatial calibration metadata.",
+  "difficulty": "medium",
+  "tags": ["microscopy", "image-processing", "calibration", "composite", "fiji", "metadata"],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multichannel_assembly_calibration/setup_task.sh",
+    "post_task": "/workspace/tasks/multichannel_assembly_calibration/export_result.sh"
+  },
+  "metadata": {
+    "raw_dir": "/home/ga/ImageJ_Data/raw/experiment_042",
+    "result_path": "/home/ga/ImageJ_Data/processed/assembled_cell.tif",
+    "expected_pixel_width": 0.16,
+    "tolerance_pixel_width": 0.01,
+    "expected_unit": "micron",
+    "channel_map": {
+      "Red": "mitochondria",
+      "Green": "cytoskeleton",
+      "Blue": "nucleus"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multichannel_assembly"
+    }
+  }
+}

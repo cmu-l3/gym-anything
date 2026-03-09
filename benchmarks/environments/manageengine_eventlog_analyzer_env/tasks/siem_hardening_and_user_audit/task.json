@@ -1,0 +1,30 @@
+{
+  "id": "siem_hardening_and_user_audit@1",
+  "version": "1.0",
+  "env_id": "manageengine_eventlog_analyzer_env@0.1",
+  "description": "A security audit of your ManageEngine EventLog Analyzer deployment has identified several configuration issues that must be remediated. Your tasks are: (1) navigate to Settings > Technicians & Roles and identify technician accounts that were incorrectly granted Administrator privileges — specifically, the accounts 'contractor01' and 'it-support' should not have Admin access and must be downgraded to Operator role, (2) create a new technician account with Username: 'soc-analyst-02', Full Name: 'SOC Analyst Two', Email: 'soc2@company.local', and Role: Operator, (3) review the existing alert profiles and identify at least 2 that are configured with 'Warning' severity but should be 'Critical' — update their severity to Critical (look for alerts related to brute force, failed logins, or unauthorized access that are set to Warning), and (4) document all changes in a file at ~/Desktop/hardening_report.txt listing: usernames downgraded, the new account created, and which alert names were updated to Critical severity. Log in with username: admin, password: admin.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 75
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/siem_hardening_and_user_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/siem_hardening_and_user_audit/export_result.sh"
+  },
+  "metadata": {
+    "accounts_to_downgrade": ["contractor01", "it-support"],
+    "new_account_username": "soc-analyst-02",
+    "new_account_email": "soc2@company.local",
+    "new_account_role": "Operator",
+    "misconfigured_alerts": ["SSH Brute Force - Warning", "Failed Auth Monitor"],
+    "report_path": "/home/ga/Desktop/hardening_report.txt",
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_siem_hardening_and_user_audit"
+    }
+  }
+}

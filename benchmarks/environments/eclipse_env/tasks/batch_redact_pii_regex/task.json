@@ -1,0 +1,31 @@
+{
+  "id": "batch_redact_pii_regex@1",
+  "version": "1.0",
+  "env_id": "eclipse_env@0.1",
+  "description": "Redact Personally Identifiable Information (PII) from the 'PatientConnector' legacy project using Eclipse's Search and Replace features.\n\nThe project contains scattered sensitive data that must be scrubbed before open-source release.\n\nYOUR GOAL:\n1. Open the 'PatientConnector' project in Eclipse.\n2. Use the 'Search > File...' dialog (Ctrl+H) with Regular Expressions.\n3. Find ALL Social Security Numbers in the format 'XXX-XX-XXXX' (3 digits, hyphen, 2 digits, hyphen, 4 digits) and replace them with the exact string 'XXX-XX-XXXX'.\n4. Find ALL Medical Record Numbers in the format 'MRN-XXXXXX' (MRN- followed by 6 digits) and replace them with the exact string 'MRN-000000'.\n5. Ensure all occurrences in Java source files, XML files, properties files, and logs are redacted.\n\nWARNING: Do not manually edit files one by one. Use the bulk 'Replace All' feature to ensure comprehensive redaction.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/batch_redact_pii_regex/setup_task.sh",
+    "post_task": "/workspace/tasks/batch_redact_pii_regex/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/eclipse-workspace/PatientConnector",
+    "ssn_regex": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+    "mrn_regex": "MRN-\\d{6}",
+    "replacement_ssn": "XXX-XX-XXXX",
+    "replacement_mrn": "MRN-000000",
+    "expected_ssn_count": 15,
+    "expected_mrn_count": 10
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_batch_redact_pii_regex"
+    }
+  }
+}

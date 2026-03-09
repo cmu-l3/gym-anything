@@ -1,0 +1,33 @@
+{
+  "id": "decommission_encrypted_volume@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "A company's IT security team is retiring an encrypted project archive. You must securely decommission the encrypted volume at /home/ga/Volumes/data_volume.hc by performing the following steps:\n\n1. Mount the volume to /home/ga/MountPoints/slot1 using password 'MountMe2024' (no keyfiles, PIM 0).\n2. Generate SHA-256 checksums for ALL files inside the mounted volume.\n3. Copy all files from the mounted volume to /home/ga/Documents/DecryptedExport/.\n4. Save the SHA-256 checksum manifest to /home/ga/Documents/DecryptedExport/checksums.sha256 in standard sha256sum format.\n5. Verify the copied files' checksums match the originals.\n6. Dismount the volume.\n7. Securely overwrite and delete the original container file /home/ga/Volumes/data_volume.hc using 'shred' (at least 3 passes).\n8. Create a decommission report at /home/ga/Documents/decommission_report.txt containing:\n   - The decommission date/time\n   - The original volume path\n   - Number of files exported\n   - Per-file verification status (PASS/FAIL)\n   - Confirmation that the container was securely destroyed\n\nEnsure the volume is completely unrecoverable and all data is safely backed up.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/decommission_encrypted_volume/setup_task.sh",
+    "post_task": "/workspace/tasks/decommission_encrypted_volume/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/data_volume.hc",
+    "export_dir": "/home/ga/Documents/DecryptedExport",
+    "report_file": "/home/ga/Documents/decommission_report.txt",
+    "expected_files": [
+      "SF312_Nondisclosure_Agreement.txt",
+      "FY2024_Revenue_Budget.csv",
+      "backup_authorized_keys"
+    ],
+    "ground_truth_assets": "/workspace/assets/sample_data"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_decommission_encrypted_volume"
+    }
+  }
+}

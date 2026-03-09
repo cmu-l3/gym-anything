@@ -1,0 +1,30 @@
+{
+  "id": "tune_campaign_dialing@1",
+  "version": "1.0",
+  "env_id": "vicidial_env@0.1",
+  "description": "Optimize the 'NURTURE' campaign settings to improve list penetration while maintaining compliance. \n\n1. Modify the Campaign's **Dial Statuses** to include 'BUSY' and 'N' (No Answer) in addition to 'NEW'.\n2. Create a new **Lead Filter** with ID 'MAX_5_TRIES' and Name 'Max 5 Attempts'. The SQL rule should be `called_count < 5` to stop calling leads after 5 attempts.\n3. Assign this new Lead Filter to the 'NURTURE' campaign.\n4. Set the **Dial Timeout** to 45 seconds.\n5. Set the **Drop Percentage Limit** to 2%.\n\nNavigate to the Campaigns section and System Settings (Lead Filters) to make these changes.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tune_campaign_dialing/setup_task.sh",
+    "post_task": "/workspace/tasks/tune_campaign_dialing/export_result.sh"
+  },
+  "metadata": {
+    "campaign_id": "NURTURE",
+    "filter_id": "MAX_5_TRIES",
+    "expected_statuses": ["NEW", "BUSY", "N"],
+    "expected_sql": "called_count < 5",
+    "expected_timeout": 45,
+    "expected_drop_percent": 2
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tune_campaign_dialing"
+    }
+  }
+}

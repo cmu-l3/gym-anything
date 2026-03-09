@@ -1,0 +1,53 @@
+{
+  "id": "neural_foramen_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the neural foraminal height, width, and area bilaterally at L4-L5 and L5-S1 levels on the loaded lumbar CT. Grade stenosis severity for each foramen. Save markups to ~/Documents/SlicerData/AMOS/foramen_measurements.mrk.json and report to ~/Documents/SlicerData/AMOS/foramen_report.json with fields per level/side (L4L5_left, L4L5_right, L5S1_left, L5S1_right): height_mm, width_mm, area_mm2, grade; plus clinical_impression.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/neural_foramen_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/neural_foramen_assessment/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/foramen_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/foramen_report.json",
+    "foramen_levels": ["L4L5", "L5S1"],
+    "foramen_sides": ["left", "right"],
+    "passing_thresholds": {
+      "height_error_max_mm": 3.0,
+      "width_error_max_mm": 2.0,
+      "grade_tolerance": 1
+    },
+    "scoring_weights": {
+      "level_identification": 15,
+      "height_accuracy_l4l5": 15,
+      "height_accuracy_l5s1": 15,
+      "width_measurements": 10,
+      "bilateral_coverage": 10,
+      "stenosis_grading": 15,
+      "area_calculations": 5,
+      "report_completeness": 10,
+      "clinical_impression": 5
+    },
+    "normal_values": {
+      "height_normal_min_mm": 15,
+      "height_mild_min_mm": 10,
+      "height_moderate_min_mm": 5,
+      "width_normal_min_mm": 7
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_neural_foramen_assessment"
+    }
+  }
+}

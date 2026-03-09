@@ -1,0 +1,42 @@
+{
+  "id": "compute_momentum_flux@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Your goal is to perform a hydraulic momentum analysis on the Muncie dataset using the HEC-RAS HDF5 results.\n\nThe unsteady flow simulation has already been run, and results are available in `Muncie.p04.hdf` (or similar). You must write a Python script to compute the **Dynamic Momentum Flux** and **Specific Force** for every cross-section at the time of its peak discharge.\n\n**Physics Formulas:**\n1. Dynamic Momentum Flux: $M = \\rho \\times Q \\times V$\n   - Use $\\rho = 1.94$ slugs/ft³ (assuming US Customary units)\n2. Specific Force: $SF = \\frac{Q^2}{g \\times A} + A \\times \\bar{y}$\n   - Use $g = 32.2$ ft/s²\n   - Approximation: You may estimate the centroid depth $\\bar{y}$ as half the hydraulic depth ($d = \\text{Area} / \\text{TopWidth}$ or just use Depth/2 if width is unavailable).\n\n**Requirements:**\n1. Create a Python script at `~/Documents/hec_ras_results/compute_momentum_flux.py` that reads the HDF5 results using `h5py`.\n2. For each cross-section:\n   - Find the time step with maximum Discharge (Q).\n   - Extract Q, Velocity (V), and Area (A) at that step.\n   - Compute M and SF.\n3. Save a CSV file to `~/Documents/hec_ras_results/momentum_flux.csv` with columns: `River_Station`, `Q_peak`, `Velocity`, `Flow_Area`, `Depth`, `M_dynamic`, `Specific_Force`.\n4. Create a text report `~/Documents/hec_ras_results/momentum_summary.txt` identifying which river station has the maximum Momentum Flux and which has the maximum Specific Force.\n\nNote: The project is in the `~/Documents/hec_ras_projects/Muncie` directory.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_momentum_flux/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_momentum_flux/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "script_path": "/home/ga/Documents/hec_ras_results/compute_momentum_flux.py",
+    "csv_path": "/home/ga/Documents/hec_ras_results/momentum_flux.csv",
+    "report_path": "/home/ga/Documents/hec_ras_results/momentum_summary.txt",
+    "expected_columns": [
+      "River_Station",
+      "Q_peak",
+      "Velocity",
+      "Flow_Area",
+      "Depth",
+      "M_dynamic",
+      "Specific_Force"
+    ],
+    "physics_constants": {
+      "rho_slugs": 1.94,
+      "g_ft_s2": 32.2
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_momentum_flux"
+    }
+  }
+}

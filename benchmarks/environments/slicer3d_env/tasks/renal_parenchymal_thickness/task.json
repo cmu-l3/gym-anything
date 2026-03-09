@@ -1,0 +1,51 @@
+{
+  "id": "renal_parenchymal_thickness@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure renal parenchymal thickness at 3 standardized locations (anterior, posterior, lateral) for each kidney at the hilar level on the provided abdominal CT. Classify each kidney and assess bilateral symmetry. Save measurement markups to ~/Documents/SlicerData/AMOS/renal_thickness_measurements.mrk.json and report to ~/Documents/SlicerData/AMOS/renal_parenchyma_report.json with fields: right_kidney (anterior_mm, posterior_mm, lateral_mm, average_mm, classification), left_kidney (same structure), bilateral_difference_mm, symmetry_assessment, overall_impression.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/renal_parenchymal_thickness/setup_task.sh",
+    "post_task": "/workspace/tasks/renal_parenchymal_thickness/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/renal_thickness_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/renal_parenchyma_report.json",
+    "kidney_labels": {
+      "right_kidney": 2,
+      "left_kidney": 3
+    },
+    "passing_thresholds": {
+      "measurement_tolerance_mm": 5.0,
+      "average_tolerance_mm": 3.0,
+      "bilateral_asymmetry_threshold_mm": 5.0
+    },
+    "scoring_weights": {
+      "right_kidney_measurements": 20,
+      "left_kidney_measurements": 20,
+      "average_calculation": 10,
+      "classification_accuracy": 20,
+      "bilateral_comparison": 10,
+      "markup_created": 10,
+      "report_completeness": 10
+    },
+    "classification_thresholds": {
+      "normal_min_mm": 15,
+      "mildly_reduced_min_mm": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_renal_parenchymal_thickness"
+    }
+  }
+}

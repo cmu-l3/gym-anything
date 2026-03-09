@@ -1,0 +1,49 @@
+{
+  "id": "roi_box_volume_render@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Create an ROI box around the right kidney on the loaded abdominal CT and use it to crop the volume rendering to isolate the kidney region. Save a screenshot of the cropped 3D visualization to /home/ga/Documents/SlicerData/Exports/roi_kidney_render.png.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/roi_box_volume_render/setup_task.sh",
+    "post_task": "/workspace/tasks/roi_box_volume_render/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "amos_file": "/home/ga/Documents/SlicerData/AMOS/amos_0001.nii.gz",
+    "output_screenshot": "/home/ga/Documents/SlicerData/Exports/roi_kidney_render.png",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "right_kidney_center_ras": [70, -10, 20],
+    "acceptable_roi_center_range": {
+      "R_min": 30, "R_max": 110,
+      "A_min": -60, "A_max": 40,
+      "S_min": -60, "S_max": 80
+    },
+    "roi_size_range_mm": {
+      "min_per_axis": 40,
+      "max_per_axis": 160
+    },
+    "min_screenshot_size_kb": 50,
+    "scoring_weights": {
+      "roi_box_created": 15,
+      "roi_reasonable_size": 10,
+      "roi_correct_location": 20,
+      "volume_rendering_active": 10,
+      "roi_cropping_enabled": 20,
+      "screenshot_exists": 10,
+      "vlm_confirms_isolation": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_roi_box_volume_render"
+    }
+  }
+}

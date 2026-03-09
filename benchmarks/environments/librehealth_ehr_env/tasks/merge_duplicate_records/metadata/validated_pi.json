@@ -1,0 +1,59 @@
+{
+    "task_id": "merge_duplicate_records@1",
+    "dataset": "NHANES (National Health and Nutrition Examination Survey)",
+    "case_id": "Cameron Fry (synthetic identity with real NHANES medical data)",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "patient_name",
+            "metadata_value": "Cameron Fry",
+            "verified_value": "Cameron Fry",
+            "source": "setup_task.sh line 27: librehealth_query UPDATE patient_data SET fname='Cameron', lname='Fry', mname='Alan'",
+            "status": "verified"
+        },
+        {
+            "key": "action",
+            "metadata_value": "merge",
+            "verified_value": "merge",
+            "source": "task.json description: 'merge these two records into a single Golden Record'; setup_task.sh line 55: 'Merge PID $NEW_PID -> into -> PID $ORIG_PID'",
+            "status": "verified"
+        },
+        {
+            "key": "target_metric",
+            "metadata_value": "data_integrity",
+            "verified_value": "data_integrity",
+            "source": "verifier.py validates: (1) duplicate eliminated, (2) master preserved, (3) exactly one record remains - all core data integrity checks",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": null,
+            "verified_value": "NHANES (9,375 real patient records from https://github.com/LibreHealthIO/lh-ehr/raw/master/sql/nhanes/libreehr_nhanes.sql.gz)",
+            "source": "setup_librehealth.sh lines 58-72: downloads NHANES SQL dump (~39MB) from official LibreHealthIO repository; verified file exists (HTTP 200, 38MB)",
+            "status": "verified"
+        },
+        {
+            "key": "patient_selection_method",
+            "metadata_value": null,
+            "verified_value": "LIMIT 1 OFFSET 20 - selects the 21st patient in patient_data table to avoid collisions with other concurrent tasks",
+            "source": "setup_task.sh line 17: ORIG_PID=$(librehealth_query 'SELECT pid FROM patient_data LIMIT 1 OFFSET 20')",
+            "status": "verified"
+        },
+        {
+            "key": "duplicate_creation_method",
+            "metadata_value": null,
+            "verified_value": "Temporary table clone with auto_increment PID assignment - original gets lower PID, duplicate gets higher PID",
+            "source": "setup_task.sh lines 31-34: CREATE TEMPORARY TABLE + UPDATE pid=NULL + INSERT to trigger auto_increment",
+            "status": "verified"
+        },
+        {
+            "key": "medical_data_authenticity",
+            "metadata_value": null,
+            "verified_value": "Real NHANES survey data from CDC, identity is synthetic",
+            "source": "setup_librehealth.sh: 'real NHANES patients from official LibreHealthIO/lh-ehr repository'; NHANES is official CDC survey (https://www.cdc.gov/nchs/nhanes/index.html)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses real NHANES patient data (9,375 records from CDC's National Health and Nutrition Examination Survey). A patient record is selected from offset 20, renamed to 'Cameron Fry' with middle name 'Alan', and duplicated. The duplicate record receives a higher PID. The agent must merge the duplicate (higher PID) into the original (lower PID) using LibreHealth's Merge Patients tool. Success requires: (1) duplicate record eliminated, (2) master record preserved, (3) exactly one record remains for the patient. This maintains data_integrity by consolidating duplicate records.",
+    "pi_confidence": "high"
+}

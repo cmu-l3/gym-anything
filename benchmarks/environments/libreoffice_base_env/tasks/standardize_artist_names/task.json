@@ -1,0 +1,36 @@
+{
+  "id": "standardize_artist_names@1",
+  "version": "1.0",
+  "env_id": "libreoffice_base_env@0.1",
+  "description": "The Chinook music store database is open in LibreOffice Base. You need to standardize the artist names for cataloging purposes.\n\n1. Open the SQL tool (Tools > SQL).\n2. Create a new audit table named 'ArtistNameLog' with columns 'ArtistId' (INTEGER) and 'OriginalName' (VARCHAR(120)).\n3. Insert records into 'ArtistNameLog' for all artists whose names currently start with 'The ' (e.g., 'The Beatles').\n4. Update the 'Artist' table to change these names to the format 'Name, The' (e.g., change 'The Beatles' to 'Beatles, The').\n5. Save the database (Ctrl+S) to persist your changes.\n\nHint: In HSQLDB, you can use SUBSTRING(col, start) and the concatenation operator ||.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/standardize_artist_names/setup_task.sh",
+    "post_task": "/workspace/tasks/standardize_artist_names/export_result.sh"
+  },
+  "metadata": {
+    "database_path": "/home/ga/chinook.odb",
+    "target_prefix": "The ",
+    "target_suffix": ", The",
+    "sample_check_ids": {
+      "127": {"original": "The Red Hot Chili Peppers", "expected": "Red Hot Chili Peppers, The"},
+      "139": {"original": "The Cult", "expected": "Cult, The"},
+      "140": {"original": "The Doors", "expected": "Doors, The"},
+      "141": {"original": "The Police", "expected": "Police, The"},
+      "142": {"original": "The Rolling Stones", "expected": "Rolling Stones, The"},
+      "143": {"original": "The Tea Party", "expected": "Tea Party, The"},
+      "144": {"original": "The Who", "expected": "Who, The"}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_standardize_artist_names"
+    }
+  }
+}

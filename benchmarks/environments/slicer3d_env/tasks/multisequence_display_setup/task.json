@@ -1,0 +1,43 @@
+{
+  "id": "multisequence_display_setup@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Set up a 2x2 Four-Up layout with linked views displaying the four pre-loaded BraTS MRI sequences: FLAIR (top-left), T1 (top-right), T1_Contrast (bottom-left), T2 (bottom-right). Navigate to the tumor, place a fiducial at tumor center, and capture a screenshot. Save screenshot to ~/Documents/SlicerData/BraTS/multisequence_comparison.png, fiducial to ~/Documents/SlicerData/BraTS/tumor_center.fcsv, and report to ~/Documents/SlicerData/BraTS/sequence_comparison_report.json with fields: case_id, slice_position_mm, tumor_center_ras, sequence_assessment, estimated_tumor_size_mm.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multisequence_display_setup/setup_task.sh",
+    "post_task": "/workspace/tasks/multisequence_display_setup/export_task.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_screenshot": "/home/ga/Documents/SlicerData/BraTS/multisequence_comparison.png",
+    "output_fiducial": "/home/ga/Documents/SlicerData/BraTS/tumor_center.fcsv",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/sequence_comparison_report.json",
+    "expected_sequences": ["FLAIR", "T1", "T1_Contrast", "T2"],
+    "fiducial_tolerance_mm": 20.0,
+    "min_screenshot_size_kb": 200,
+    "scoring_weights": {
+      "four_panel_layout": 20,
+      "correct_sequences": 20,
+      "view_synchronization": 15,
+      "tumor_visible": 15,
+      "fiducial_placement": 10,
+      "window_level_appropriate": 10,
+      "report_completeness": 10
+    },
+    "passing_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multisequence_display_setup"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "id": "provision_volume_migration@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Create a new encrypted volume for a new employee and migrate sensitive onboarding documents into it. \n\n1. Mount the existing template volume at '/home/ga/Volumes/onboarding_template.hc' (Password: 'TemplatePass123'). \n2. Create a NEW VeraCrypt volume at '/home/ga/Volumes/Issued/jdoe_chimera.hc' with the following specifications:\n   - Size: 20 MB\n   - Encryption Algorithm: Serpent (CRITICAL requirement)\n   - Hash Algorithm: SHA-512\n   - Filesystem: FAT\n   - Password: 'SerpentSecure2024!'\n3. Mount the new volume.\n4. Copy ALL files from the template volume to the new volume.\n5. Dismount BOTH volumes when finished.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/provision_volume_migration/setup_task.sh",
+    "post_task": "/workspace/tasks/provision_volume_migration/export_result.sh"
+  },
+  "metadata": {
+    "template_path": "/home/ga/Volumes/onboarding_template.hc",
+    "template_password": "TemplatePass123",
+    "target_path": "/home/ga/Volumes/Issued/jdoe_chimera.hc",
+    "target_password": "SerpentSecure2024!",
+    "required_algorithm": "Serpent",
+    "expected_files": [
+      "Project_Chimera_Protocol.pdf",
+      "Emergency_Contact_List.csv",
+      "Q3_Financial_Forecast.xlsx"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_provision_volume_migration"
+    }
+  }
+}

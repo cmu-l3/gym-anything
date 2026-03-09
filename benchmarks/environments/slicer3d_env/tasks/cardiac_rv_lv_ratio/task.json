@@ -1,0 +1,48 @@
+{
+  "id": "cardiac_rv_lv_ratio@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the RV and LV maximum transverse diameters on the provided chest CT at the 4-chamber level and calculate the RV/LV ratio. Save RV measurement to ~/Documents/SlicerData/Cardiac/rv_measurement.mrk.json, LV measurement to ~/Documents/SlicerData/Cardiac/lv_measurement.mrk.json, and report to ~/Documents/SlicerData/Cardiac/cardiac_report.json with fields: rv_diameter_mm, lv_diameter_mm, rv_lv_ratio, classification.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cardiac_rv_lv_ratio/setup_task.sh",
+    "post_task": "/workspace/tasks/cardiac_rv_lv_ratio/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "cardiac_dir": "/home/ga/Documents/SlicerData/Cardiac",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_rv_measurement": "/home/ga/Documents/SlicerData/Cardiac/rv_measurement.mrk.json",
+    "output_lv_measurement": "/home/ga/Documents/SlicerData/Cardiac/lv_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/Cardiac/cardiac_report.json",
+    "passing_thresholds": {
+      "diameter_error_max_mm": 5.0,
+      "ratio_error_max": 0.15
+    },
+    "scoring_weights": {
+      "rv_diameter_accuracy": 25,
+      "lv_diameter_accuracy": 25,
+      "ratio_present": 10,
+      "ratio_accuracy": 15,
+      "classification_correct": 15,
+      "report_completeness": 10
+    },
+    "physiological_ranges": {
+      "rv_min_mm": 15,
+      "rv_max_mm": 80,
+      "lv_min_mm": 20,
+      "lv_max_mm": 80
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cardiac_rv_lv_ratio"
+    }
+  }
+}

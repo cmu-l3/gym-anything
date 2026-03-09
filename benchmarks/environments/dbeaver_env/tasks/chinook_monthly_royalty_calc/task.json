@@ -1,0 +1,34 @@
+{
+  "id": "chinook_monthly_royalty_calc@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Create a music royalty calculation pipeline in DBeaver using the Chinook database.\n\n1. **Connect**: Create a new SQLite connection named 'ChinookRoyalty' pointing to `/home/ga/Documents/databases/chinook.db`.\n\n2. **Create Rates Table**: Create a table named `royalty_rates` with columns: `RateId` (PK), `MinRevenue` (REAL), `MaxRevenue` (REAL, nullable), `RoyaltyPercent` (REAL), `TierName` (TEXT). Insert these exact tiers:\n   - Bronze: $0 - $10 (10%)\n   - Silver: $10.01 - $50 (15%)\n   - Gold: $50.01 - $200 (20%)\n   - Platinum: > $200.01 (25%, MaxRevenue is NULL)\n\n3. **Calculate Royalties**: Create a table `artist_monthly_royalties` with columns: `RoyaltyId` (PK), `ArtistId`, `ArtistName`, `YearMonth` (YYYY-MM), `GrossRevenue`, `RoyaltyPercent`, `RoyaltyAmount`, `TierName`. Populate it by joining Artists-Albums-Tracks-InvoiceItems-Invoices. Group by Artist and Month (using InvoiceDate). For each group, calculate GrossRevenue, look up the correct royalty rate based on that revenue, and compute `RoyaltyAmount = GrossRevenue * (RoyaltyPercent / 100)`.\n\n4. **Export Report**: Export a summary CSV to `/home/ga/Documents/exports/royalty_summary.csv` containing: `ArtistName`, `TotalGrossRevenue`, `TotalRoyalties`, `MonthsActive`, `AvgMonthlyRevenue`, `MostCommonTier`. Sort by TotalRoyalties descending.\n\n5. **Save Script**: Save your SQL work to `/home/ga/Documents/scripts/royalty_calculation.sql`.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_monthly_royalty_calc/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_monthly_royalty_calc/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook.db",
+    "connection_name": "ChinookRoyalty",
+    "export_path": "/home/ga/Documents/exports/royalty_summary.csv",
+    "script_path": "/home/ga/Documents/scripts/royalty_calculation.sql",
+    "tiers": [
+      {"name": "Bronze", "min": 0, "max": 10, "rate": 10.0},
+      {"name": "Silver", "min": 10.01, "max": 50, "rate": 15.0},
+      {"name": "Gold", "min": 50.01, "max": 200, "rate": 20.0},
+      {"name": "Platinum", "min": 200.01, "max": null, "rate": 25.0}
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_monthly_royalty_calc"
+    }
+  }
+}

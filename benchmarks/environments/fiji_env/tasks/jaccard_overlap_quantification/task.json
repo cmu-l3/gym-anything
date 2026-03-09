@@ -1,0 +1,33 @@
+{
+  "id": "jaccard_overlap_quantification@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Calculate the Jaccard Index (Intersection over Union) for a pair of simulated microscopy images to quantify their spatial overlap.\n\nFiles are located at `~/Fiji_Data/raw/jaccard/`:\n- `channel_1.tif` (simulated nuclear stain)\n- `channel_2.tif` (simulated cytoplasmic stain)\n\nInstructions:\n1. Open both images in Fiji.\n2. Create binary masks for BOTH images using the 'Otsu' auto-threshold method (`Image > Adjust > Auto Threshold`, select 'Otsu', ensure 'White objects on black background' is unchecked or handled such that objects are 255).\n3. Use `Process > Image Calculator` to create:\n   - An Intersection image (AND operation).\n   - A Union image (OR operation).\n4. Save the resulting binary images to `~/Fiji_Data/results/jaccard/` as:\n   - `intersection_mask.tif`\n   - `union_mask.tif`\n5. Measure the Area (or Integrated Density) of both the Intersection and Union images.\n6. Calculate the Jaccard Index: J = Area(Intersection) / Area(Union).\n7. Save the result to `~/Fiji_Data/results/jaccard/results.csv` with the format: `jaccard_index,intersection_area,union_area`.\n   - Example: `0.45,10500,23000`\n\nNote: Ensure your masks are binary (0 and 255) before calculating.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/jaccard_overlap_quantification/setup_task.sh",
+    "post_task": "/workspace/tasks/jaccard_overlap_quantification/export_result.sh"
+  },
+  "metadata": {
+    "dataset": "BBBC005 (Simulated)",
+    "threshold_method": "Otsu",
+    "output_dir": "~/Fiji_Data/results/jaccard/",
+    "expected_files": [
+      "intersection_mask.tif",
+      "union_mask.tif",
+      "results.csv"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_jaccard_overlap"
+    }
+  },
+  "tags": ["image-analysis", "binary-morphology", "quantification", "fiji", "scientific"]
+}

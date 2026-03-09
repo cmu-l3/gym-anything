@@ -1,0 +1,36 @@
+{
+  "id": "configure_manual_preview_campaign@1",
+  "version": "1.0",
+  "env_id": "vicidial_env@0.1",
+  "description": "Configure the existing campaign 'VIP_DIAL' for manual preview dialing and import a vendor lead list.\n\nPART 1: CAMPAIGN CONFIGURATION\nNavigate to the 'VIP_DIAL' campaign detail view and apply these settings:\n- Dial Method: MANUAL\n- Manual Dial Preview: YES\n- List Order: DOWN COUNT\n- Auto Alt Dial: NONE\n- Active: Y\n\nPART 2: LEAD IMPORT\nImport the vendor file at '~/Documents/VicidialData/vendor_senators_vip.csv' into a NEW list with List ID 9500.\nThis file has non-standard headers, so you must use the 'Custom Layout' in the Lead Loader to map them correctly:\n- Map 'Gov_ID' to 'Vendor Lead Code'\n- Map 'Official_Name' to 'First Name'\n- Map 'Contact_Number' to 'Phone'\n- Map 'Home_State' to 'State'\n\nEnsure the list is active and the leads are loaded successfully.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_manual_preview_campaign/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_manual_preview_campaign/export_result.sh"
+  },
+  "metadata": {
+    "campaign_id": "VIP_DIAL",
+    "list_id": "9500",
+    "expected_dial_method": "MANUAL",
+    "expected_preview": "YES",
+    "expected_lead_order": "DOWN COUNT",
+    "source_file": "/home/ga/Documents/VicidialData/vendor_senators_vip.csv",
+    "mapping_checks": {
+      "phone_number": "Contact_Number",
+      "first_name": "Official_Name",
+      "vendor_lead_code": "Gov_ID",
+      "state": "Home_State"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_manual_preview_campaign"
+    }
+  }
+}

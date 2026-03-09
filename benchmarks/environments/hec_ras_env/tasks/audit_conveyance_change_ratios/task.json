@@ -1,0 +1,29 @@
+{
+  "id": "audit_conveyance_change_ratios@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform a hydraulic stability audit on the Muncie HEC-RAS model by analyzing conveyance change ratios.\n\nYour goal is to identify cross-sections where the channel capacity changes too abruptly, which can cause model instability. You must calculate the effective conveyance (K) at the moment of peak flow for every cross-section and report the ratio between adjacent sections.\n\n**Formulas:**\n1. Conveyance: K = Q / sqrt(Sf)\n   - Q = Total Flow (cfs)\n   - Sf = Friction Slope\n   - Note: Use values strictly from the time step where Flow is maximized for that specific cross-section.\n   - If Sf < 0.0001, set K = 0.\n\n2. Conveyance Ratio: R = K_upstream / K_downstream\n   - Compare each cross-section with its immediate downstream neighbor.\n\n**Steps:**\n1. Open the Muncie project in `~/Documents/hec_ras_projects/Muncie/`.\n2. Ensure the unsteady flow simulation (Plan 04) has been run and results are available in the HDF5 file (`Muncie.p04.hdf`). Run it using `RasUnsteady` if needed.\n3. Create a Python script to extract the Peak Flow and corresponding Friction Slope for every cross-section from the HDF5 results.\n4. Calculate K and the Ratio (Upstream/Downstream) for all adjacent pairs.\n5. Generate a CSV report at `~/Documents/hec_ras_results/conveyance_audit.csv`.\n\n**Output CSV Requirements:**\n- Columns: `Upstream_River_Station`, `Downstream_River_Station`, `K_Upstream`, `K_Downstream`, `Ratio`, `Status`\n- `Status` column: Set to 'Warning' if Ratio < 0.7 or Ratio > 1.4; otherwise 'OK'. Set to 'Skipped' if K is 0.\n- Sort by River Station from upstream to downstream.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_conveyance_change_ratios/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_conveyance_change_ratios/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/hec_ras_results/conveyance_audit.csv",
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "ground_truth_path": "/var/lib/hec-ras/ground_truth_conveyance.csv",
+    "threshold_min": 0.7,
+    "threshold_max": 1.4
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_conveyance"
+    }
+  }
+}

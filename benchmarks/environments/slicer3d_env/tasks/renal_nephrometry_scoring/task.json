@@ -1,0 +1,47 @@
+{
+  "id": "renal_nephrometry_scoring@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Calculate the RENAL nephrometry score for the kidney tumor on the provided abdominal CT. Assess all five components: Radius, Exophytic/Endophytic extent, Nearness to collecting system, Anterior/Posterior location, and Location relative to polar lines. Save measurements to ~/Documents/SlicerData/KiTS/agent_measurements.mrk.json and report to ~/Documents/SlicerData/KiTS/renal_score_report.json with fields: tumor_side, R_diameter_cm, R_score, E_percent_exophytic, E_score, N_distance_mm, N_score, A_location, L_score, total_score, suffix, complexity.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/renal_nephrometry_scoring/setup_task.sh",
+    "post_task": "/workspace/tasks/renal_nephrometry_scoring/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "kits_dir": "/home/ga/Documents/SlicerData/KiTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurements": "/home/ga/Documents/SlicerData/KiTS/agent_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/KiTS/renal_score_report.json",
+    "tumor_label": 2,
+    "kidney_label": 1,
+    "passing_thresholds": {
+      "diameter_error_max_cm": 1.0,
+      "distance_error_max_mm": 3.0,
+      "score_tolerance": 1,
+      "min_correct_scores": 3
+    },
+    "scoring_weights": {
+      "r_score_correct": 15,
+      "e_score_correct": 15,
+      "n_score_correct": 15,
+      "a_location_correct": 10,
+      "l_score_correct": 15,
+      "total_score_accurate": 15,
+      "complexity_correct": 10,
+      "report_completeness": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_renal_nephrometry"
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "lung_lobar_volume@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment both lungs from the provided chest CT into 5 anatomical lobes (RUL, RML, RLL, LUL, LLL) and calculate each lobe's volume. Save lobar segmentation to ~/Documents/SlicerData/LIDC/lobar_segmentation.nii.gz (labels 1-5) and volume report to ~/Documents/SlicerData/LIDC/lobar_volumes.json with fields: RUL_volume_ml, RML_volume_ml, RLL_volume_ml, LUL_volume_ml, LLL_volume_ml, total_lung_volume_ml, right_left_ratio.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/lung_lobar_volume/setup_task.sh",
+    "post_task": "/workspace/tasks/lung_lobar_volume/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/LIDC/lobar_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/lobar_volumes.json",
+    "expected_lobe_count": 5,
+    "expected_right_lobes": 3,
+    "expected_left_lobes": 2,
+    "lobe_labels": {
+      "RUL": 1,
+      "RML": 2,
+      "RLL": 3,
+      "LUL": 4,
+      "LLL": 5
+    },
+    "passing_thresholds": {
+      "total_volume_min_ml": 3000,
+      "total_volume_max_ml": 7000,
+      "right_left_ratio_min": 1.0,
+      "right_left_ratio_max": 1.5,
+      "lobe_proportion_tolerance": 0.15
+    },
+    "expected_lobe_proportions": {
+      "RUL": 0.20,
+      "RML": 0.08,
+      "RLL": 0.25,
+      "LUL": 0.25,
+      "LLL": 0.22
+    },
+    "scoring_weights": {
+      "five_lobes_exist": 20,
+      "correct_laterality": 15,
+      "correct_lobe_count_per_side": 15,
+      "spatial_relationships": 10,
+      "total_volume_plausible": 10,
+      "rl_ratio_correct": 10,
+      "lobe_proportions": 10,
+      "report_complete": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_lung_lobar_volume"
+    }
+  }
+}

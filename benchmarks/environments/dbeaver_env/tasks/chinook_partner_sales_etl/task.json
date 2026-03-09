@@ -1,0 +1,31 @@
+{
+  "id": "chinook_partner_sales_etl@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "A third-party music festival has provided a sales CSV file (/home/ga/Documents/data/festival_sales.csv). You need to ingest this data into the Chinook database.\n\n1. Connect to the Chinook database (chinook.db).\n\n2. Import the CSV into a staging table named 'festival_sales_import'.\n\n3. Create a new destination table 'valid_festival_sales' with columns: Id (PK), SaleDate, CustomerId, TrackId, Price.\n\n4. Populate 'valid_festival_sales' by selecting rows from the staging table where:\n   - The UserEmail matches an existing Customer in the 'customers' table.\n   - The SongTitle and ArtistName match an existing Track and its Artist (via Album). Matches must be exact.\n\n5. Export all REJECTED rows (those that couldn't be mapped) to a new CSV file at /home/ga/Documents/exports/festival_sales_exceptions.csv.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_partner_sales_etl/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_partner_sales_etl/export_result.sh"
+  },
+  "metadata": {
+    "input_csv": "/home/ga/Documents/data/festival_sales.csv",
+    "staging_table": "festival_sales_import",
+    "valid_table": "valid_festival_sales",
+    "exception_csv": "/home/ga/Documents/exports/festival_sales_exceptions.csv",
+    "expected_valid_count": 5,
+    "expected_exception_count": 4,
+    "db_path": "/home/ga/Documents/databases/chinook.db"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_partner_sales_etl"
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+    "task_id": "chinook_inventory_lifecycle_management@1",
+    "dataset": "Chinook Sample Database",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "db_path",
+            "metadata_value": "/home/ga/Documents/databases/chinook.db",
+            "verified_value": "/home/ga/Documents/databases/chinook.db",
+            "source": "Verified in setup_dbeaver.sh and setup_task.sh - database is copied from /workspace/data/chinook.db to this path",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Documents/exports/archival_summary.csv",
+            "verified_value": "/home/ga/Documents/exports/archival_summary.csv",
+            "source": "Verified in setup_dbeaver.sh, setup_task.sh, and export_result.sh - export directory is created and script writes to this path",
+            "status": "verified"
+        },
+        {
+            "key": "target_year",
+            "metadata_value": "2013",
+            "verified_value": "2013",
+            "source": "Verified by querying the Chinook database - invoices exist from 2009-01-01 to 2013-12-22. Query: SELECT DISTINCT substr(InvoiceDate, 1, 4) FROM invoices returns [2009, 2010, 2011, 2012, 2013]",
+            "status": "verified"
+        },
+        {
+            "key": "new_column",
+            "metadata_value": "IsArchived",
+            "verified_value": "IsArchived",
+            "source": "Verified in task description and scripts - the column to be added to tracks table with type INTEGER and default value 0",
+            "status": "verified"
+        },
+        {
+            "key": "database_source",
+            "metadata_value": null,
+            "verified_value": "https://github.com/lerocha/chinook-database (public repository, curated sample database)",
+            "source": "Identified from setup_task.sh fallback URL and confirmed by WebFetch of GitHub repository. Local database has invoice dates 2009-2013, while current GitHub version has 2021-2025 dates.",
+            "status": "verified"
+        },
+        {
+            "key": "total_tracks_in_database",
+            "metadata_value": null,
+            "verified_value": "3503",
+            "source": "Direct database query: SELECT COUNT(*) FROM tracks = 3503",
+            "status": "verified"
+        },
+        {
+            "key": "tracks_sold_in_2013",
+            "metadata_value": null,
+            "verified_value": "442",
+            "source": "Database query: SELECT COUNT(DISTINCT t.TrackId) FROM tracks t JOIN invoice_items ii ON t.TrackId = ii.TrackId JOIN invoices i ON ii.InvoiceId = i.InvoiceId WHERE i.InvoiceDate LIKE '2013-%'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_archived_count",
+            "metadata_value": null,
+            "verified_value": "3061",
+            "source": "Calculated as total_tracks (3503) minus tracks_sold_2013 (442) = 3061",
+            "status": "verified"
+        },
+        {
+            "key": "total_genres",
+            "metadata_value": null,
+            "verified_value": "25",
+            "source": "Database query: SELECT COUNT(*) FROM genres = 25",
+            "status": "verified"
+        },
+        {
+            "key": "invoice_date_range",
+            "metadata_value": null,
+            "verified_value": "2009-01-01 to 2013-12-22",
+            "source": "Database query: SELECT MIN(InvoiceDate), MAX(InvoiceDate) FROM invoices",
+            "status": "verified"
+        },
+        {
+            "key": "data_authenticity",
+            "metadata_value": null,
+            "verified_value": "Partial - media data (artists, albums, tracks) is real from iTunes libraries; customer/employee data is fictitious; sales data is algorithmically generated",
+            "source": "WebFetch of https://github.com/lerocha/chinook-database confirms mixed real/synthetic nature of Chinook database",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Chinook database is a well-known public sample database with 3,503 tracks across 25 genres. The local version contains invoice data from 2009-2013 (80 invoices in 2013). Of the 3,503 tracks, 442 were sold in 2013, meaning 3,061 tracks qualify as dead stock for archival. The database path is /home/ga/Documents/databases/chinook.db and the output report path is /home/ga/Documents/exports/archival_summary.csv. The media content is real (from iTunes), while customer records and sales transactions are synthetically generated. The task requires adding an INTEGER column named 'IsArchived' to the tracks table with default value 0.",
+    "pi_confidence": "high"
+}

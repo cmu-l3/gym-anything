@@ -1,0 +1,41 @@
+#!/system/bin/sh
+echo "=== Setting up heater_power_derating task ==="
+
+# Record task start time for anti-gaming verification
+date +%s > /sdcard/task_start_time.txt
+
+# Clean up any previous results
+rm -f /sdcard/Download/derated_power.txt 2>/dev/null
+rm -f /sdcard/task_result.json 2>/dev/null
+
+PACKAGE="com.hsn.electricalcalculations"
+
+# Force stop to get clean state
+am force-stop $PACKAGE
+sleep 1
+
+# Press Home to ensure clean back stack
+input keyevent KEYCODE_HOME
+sleep 1
+
+# Launch the application
+echo "Launching Electrical Calculations..."
+monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
+sleep 8
+
+# Dismiss potential startup dialogs/ads by pressing back once
+# (Wait a bit before doing this to ensure app is loaded)
+input keyevent KEYCODE_BACK
+sleep 2
+
+# Check if we accidentally exited (if no ad was present), relaunch if needed
+if dumpsys window | grep mCurrentFocus | grep -q "Launcher"; then
+    echo "Relaunching app..."
+    monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
+    sleep 5
+fi
+
+# Take initial screenshot for evidence
+screencap -p /sdcard/task_initial.png
+
+echo "=== Task setup complete ==="

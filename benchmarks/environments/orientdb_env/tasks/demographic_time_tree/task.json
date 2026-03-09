@@ -1,0 +1,28 @@
+{
+  "id": "demographic_time_tree@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "The marketing team needs a graph-based index to analyze user cohorts by age in the 'demodb' database. \n\nYour task is to create a hierarchical time tree and link User Profiles to it based on their Birthday.\n\nRequirements:\n1. Create Vertex Classes:\n   - 'Year' (Property: 'Value' Integer)\n   - 'Month' (Property: 'Value' Integer, 1-12)\n\n2. Create Edge Classes:\n   - 'HasMonth' (Year -> Month)\n   - 'BornIn' (Profile -> Month)\n\n3. Populate the Graph:\n   - Iterate through all 'Profiles' vertices.\n   - For each profile, extract the birth year and month from the 'Birthday' property.\n   - Ensure the corresponding Year and Month vertices exist. \n     - CRITICAL: Do not create duplicate Year nodes (e.g., only one node for '1985'). \n     - CRITICAL: Month nodes must be distinct per year (e.g., 1985's March is a different vertex from 1990's March). The Month vertex must be connected to its specific Year vertex via 'HasMonth'.\n   - Connect the Profile to the Month vertex with a 'BornIn' edge.\n\nExample Path:\nProfile(John) --[BornIn]--> Month(Value:3) <--[HasMonth]-- Year(Value:1985)\n\nYou may use the OrientDB Studio (http://localhost:2480/studio/index.html), the Console, or Python scripts to accomplish this.\n\nDatabase: demodb\nCredentials: root / GymAnything123!",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/demographic_time_tree/setup_task.sh",
+    "post_task": "/workspace/tasks/demographic_time_tree/export_result.sh"
+  },
+  "metadata": {
+    "db_name": "demodb",
+    "required_vertex_classes": ["Year", "Month"],
+    "required_edge_classes": ["HasMonth", "BornIn"],
+    "profile_class": "Profiles"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_demographic_time_tree"
+    }
+  }
+}

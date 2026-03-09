@@ -1,0 +1,49 @@
+{
+  "id": "nist_thermophysical_properties_research@1",
+  "version": "1.0",
+  "env_id": "firefox_env@0.1",
+  "description": "You are a chemical process engineer. Research thermophysical properties for three industrial fluids using the NIST Chemistry WebBook (https://webbook.nist.gov/chemistry/).\n\nTarget Fluids:\n1. Methanol\n2. Toluene\n3. 1,1,1,2-Tetrafluoroethane (R-134a)\n\nFor each fluid, find:\n- CAS Registry Number\n- Molecular Weight (g/mol)\n- Critical Temperature (Tc) in Kelvin\n- Critical Pressure (Pc) in **bar** (Note: NIST may provide MPa, atm, or bar; you must convert/report in bar).\n\nActions:\n1. Create a Firefox bookmark folder named 'Process Design Data'.\n2. Bookmark the specific NIST properties page for each fluid in that folder.\n3. Create a JSON file at ~/Documents/fluid_properties.json with the structure:\n{\n  \"methanol\": { \"cas_registry_number\": \"...\", \"molecular_weight_g_mol\": 0.0, \"critical_temperature_k\": 0.0, \"critical_pressure_bar\": 0.0 },\n  \"toluene\": { ... },\n  \"r134a\": { ... }\n}",
+  "difficulty": "medium",
+  "tags": ["firefox", "research", "engineering", "data-extraction", "nist", "unit-conversion"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nist_thermophysical_properties_research/setup_task.sh",
+    "post_task": "/workspace/tasks/nist_thermophysical_properties_research/export_result.sh"
+  },
+  "metadata": {
+    "required_domains": ["webbook.nist.gov"],
+    "required_bookmark_folder": "Process Design Data",
+    "output_file": "/home/ga/Documents/fluid_properties.json",
+    "reference_data": {
+      "methanol": {
+        "cas": "67-56-1",
+        "mw": 32.04,
+        "tc": 512.6,
+        "pc_bar": 80.97
+      },
+      "toluene": {
+        "cas": "108-88-3",
+        "mw": 92.14,
+        "tc": 591.75,
+        "pc_bar": 41.26
+      },
+      "r134a": {
+        "cas": "811-97-2",
+        "mw": 102.03,
+        "tc": 374.21,
+        "pc_bar": 40.59
+      }
+    },
+    "tolerance_percent": 2.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nist_research"
+    }
+  }
+}

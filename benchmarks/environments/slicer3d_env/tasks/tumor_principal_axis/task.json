@@ -1,0 +1,44 @@
+{
+  "id": "tumor_principal_axis@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Characterize the tumor's 3D geometry on the provided brain MRI. Place a fiducial at the tumor centroid, measure the major, intermediate, and minor axes, calculate ellipsoid volume and shape ratios, and classify the tumor shape. Save centroid to ~/Documents/SlicerData/BraTS/tumor_centroid.mrk.json and report to ~/Documents/SlicerData/BraTS/principal_axis_report.json with fields: centroid_ras, major_axis_mm, intermediate_axis_mm, minor_axis_mm, ellipsoid_volume_ml, elongation_ratio, flatness_ratio, shape_classification.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tumor_principal_axis/setup_task.sh",
+    "post_task": "/workspace/tasks/tumor_principal_axis/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_centroid": "/home/ga/Documents/SlicerData/BraTS/tumor_centroid.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/principal_axis_report.json",
+    "passing_thresholds": {
+      "centroid_error_max_mm": 10.0,
+      "axis_error_max_percent": 20.0,
+      "axis_error_max_mm": 5.0
+    },
+    "scoring_weights": {
+      "centroid_accuracy": 30,
+      "major_axis": 15,
+      "intermediate_axis": 10,
+      "minor_axis": 10,
+      "volume_calculation": 10,
+      "shape_classification": 10,
+      "report_completeness": 10,
+      "centroid_file_exists": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tumor_principal_axis"
+    }
+  }
+}

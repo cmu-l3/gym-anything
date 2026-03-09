@@ -1,0 +1,44 @@
+{
+  "id": "liver_ablation_suitability@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Assess the hepatic lesion on the loaded contrast-enhanced abdominal CT for thermal ablation suitability. Measure lesion dimensions, distances to hepatic vein, portal vein, and liver capsule, and identify the Couinaud segment. Classify ablation suitability and propose a probe entry point if feasible. Save measurements to ~/Documents/SlicerData/IRCADb/lesion_measurements.mrk.json and report to ~/Documents/SlicerData/IRCADb/ablation_report.json with fields: lesion_dimensions_mm, max_dimension_mm, distance_to_hepatic_vein_mm, distance_to_portal_vein_mm, distance_to_capsule_mm, liver_segment, subcapsular, suitability_classification, rationale, proposed_entry_point.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/liver_ablation_suitability/setup_task.sh",
+    "post_task": "/workspace/tasks/liver_ablation_suitability/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "ircadb_dir": "/home/ga/Documents/SlicerData/IRCADb",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/IRCADb/lesion_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/IRCADb/ablation_report.json",
+    "patient_num": "5",
+    "passing_thresholds": {
+      "dimension_error_max_mm": 10.0,
+      "distance_error_max_mm": 8.0
+    },
+    "scoring_weights": {
+      "lesion_dimensions": 20,
+      "hepatic_vein_distance": 15,
+      "portal_vein_distance": 15,
+      "capsule_distance": 10,
+      "classification": 20,
+      "liver_segment": 5,
+      "report_completeness": 10,
+      "entry_point": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_liver_ablation_suitability"
+    }
+  }
+}

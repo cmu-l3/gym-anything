@@ -1,0 +1,55 @@
+{
+  "task": "brute_force_response",
+  "difficulty": "hard",
+  "timestamp": "2026-03-02",
+  "checks": {
+    "environment": "Windows 11 VM, ManageEngine ADAudit Plus at http://localhost:8081",
+    "pre_task_events": {
+      "rwilliams_failed_logons": "15 failed logon events via net use (most-targeted account)",
+      "jsmith_failed_logons": "3 failed logon events (noise)",
+      "baseline_failed_logon_users": ["baduser1", "baduser2", "wrongadmin", "testattacker", "bruteforce1"]
+    },
+    "agent_must_discover": [
+      "rwilliams is the most targeted account (15 + existing events)",
+      "The source IP / authentication pattern indicating brute force"
+    ],
+    "expected_configurations": {
+      "technician": {
+        "username": "incident_handler",
+        "role": "Operator",
+        "full_name": "Incident Handler",
+        "email": "incident.handler@corp.local",
+        "password": "IncidentH@2025"
+      },
+      "notification_email": "security-alerts@corp.local",
+      "notification_threshold_hours": 1
+    },
+    "expected_analysis_file": "C:\\Users\\Docker\\Desktop\\brute_force_analysis.txt",
+    "analysis_must_contain": [
+      "rwilliams (primary target)",
+      "Brute force / failed logon analysis",
+      "Remediation recommendations"
+    ],
+    "verification_strategy": {
+      "technician_check": "DB query for incident_handler in TechnicianInfo with role=Operator",
+      "notification_check": "DB query for security-alerts@corp.local in notification config tables",
+      "file_freshness": "brute_force_analysis.txt mod_time > task_start_timestamp",
+      "content_check": "Case-insensitive search for 'rwilliams' in analysis file"
+    },
+    "service_status": "ADAudit Plus web server at port 8081, PostgreSQL at port 33307"
+  },
+  "setup_files_created": [
+    "C:\\Users\\Docker\\task_start_timestamp.txt",
+    "C:\\Users\\Docker\\Desktop\\brute_force_analysis.txt (removed if stale)"
+  ],
+  "scoring_breakdown": {
+    "tech_incident_handler_exists": "15 pts",
+    "tech_incident_handler_operator_role": "10 pts",
+    "notification_security_alerts_email": "25 pts",
+    "analysis_file_fresh": "20 pts",
+    "analysis_has_rwilliams": "20 pts",
+    "analysis_content_length_100_plus": "10 pts"
+  },
+  "pass_threshold": 60,
+  "occupation_context": "Incident Response Analyst identifying and responding to a brute force attack using ADAudit Plus forensics"
+}

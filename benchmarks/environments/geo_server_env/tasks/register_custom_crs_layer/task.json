@@ -1,0 +1,27 @@
+{
+  "id": "register_custom_crs_layer@1",
+  "version": "1.0",
+  "env_id": "geo_server_env@0.1",
+  "description": "Register a new custom Coordinate Reference System (CRS) in GeoServer and publish a reprojected layer. \n\n1. Log in to the GeoServer web admin at http://localhost:8080/geoserver/web/ (User: admin, Password: Admin123!).\n2. Navigate to 'Data > SRS List' and create a new SRS with Code '990001'.\n3. Use the following WKT for the description:\n   PROJCS[\"Pacific Mercator\", \n     GEOGCS[\"WGS 84\", \n       DATUM[\"World Geodetic System 1984\", \n         SPHEROID[\"WGS 84\", 6378137.0, 298.257223563]], \n       PRIMEM[\"Greenwich\", 0.0], \n       UNIT[\"degree\", 0.017453292519943295], \n       AXIS[\"Geodetic longitude\", EAST], \n       AXIS[\"Geodetic latitude\", NORTH]], \n     PROJECTION[\"Mercator_1SP\"], \n     PARAMETER[\"central_meridian\", 150.0], \n     PARAMETER[\"latitude_of_origin\", 0.0], \n     PARAMETER[\"scale_factor\", 1.0], \n     PARAMETER[\"false_easting\", 0.0], \n     PARAMETER[\"false_northing\", 0.0], \n     UNIT[\"m\", 1.0], \n     AXIS[\"Easting\", EAST], \n     AXIS[\"Northing\", NORTH], \n     AUTHORITY[\"EPSG\",\"990001\"]]\n\n4. Create a new layer in the 'ne' workspace named 'ne_countries_pacific' using the 'ne_countries' table from the 'postgis_ne' store.\n5. Configure the layer to use 'EPSG:990001' as the Declared SRS and set SRS Handling to 'Reproject native to declared'.\n6. Compute the bounding boxes and save.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/register_custom_crs_layer/setup_task.sh",
+    "post_task": "/workspace/tasks/register_custom_crs_layer/export_result.sh"
+  },
+  "metadata": {
+    "expected_srs_code": "990001",
+    "expected_layer_name": "ne_countries_pacific",
+    "expected_wkt_fragment": "PARAMETER[\"central_meridian\", 150.0]"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_register_custom_crs_layer"
+    }
+  }
+}

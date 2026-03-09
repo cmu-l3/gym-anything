@@ -1,0 +1,49 @@
+{
+  "id": "gallbladder_cholecystitis_screening@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Locate and measure the gallbladder on the provided abdominal CT: longitudinal length, maximum transverse diameter, and wall thickness. Assess for distension, wall thickening, pericholecystic fluid, and gallstones. Save measurement markups to ~/Documents/SlicerData/AMOS/gallbladder_measurements.mrk.json and report to ~/Documents/SlicerData/AMOS/gallbladder_report.json with structure: {patient_id, gallbladder_identified, measurements: {length_cm, transverse_diameter_cm, wall_thickness_mm}, findings: {distension, wall_thickening, pericholecystic_fluid, gallstones_visible}, classification, recommendation}.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/gallbladder_cholecystitis_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/gallbladder_cholecystitis_screening/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/gallbladder_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/gallbladder_report.json",
+    "gallbladder_label": 9,
+    "normal_ranges": {
+      "length_cm_max": 10.0,
+      "transverse_cm_max": 5.0,
+      "wall_thickness_mm_max": 3.0
+    },
+    "passing_thresholds": {
+      "length_error_max_cm": 1.0,
+      "transverse_error_max_cm": 0.8,
+      "wall_thickness_error_max_mm": 1.5
+    },
+    "scoring_weights": {
+      "gallbladder_identified": 10,
+      "length_accuracy": 20,
+      "transverse_accuracy": 15,
+      "wall_thickness_accuracy": 25,
+      "classification_correct": 15,
+      "report_completeness": 10,
+      "internal_consistency": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_gallbladder_assessment"
+    }
+  }
+}

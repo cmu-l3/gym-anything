@@ -1,0 +1,101 @@
+{
+    "task_id": "refactor_to_mvvm_with_livedata@1",
+    "dataset": "TaskManagerApp",
+    "case_id": "com/example/taskmanager",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/AndroidStudioProjects/TaskManagerApp",
+            "verified_value": "/home/ga/AndroidStudioProjects/TaskManagerApp",
+            "source": "setup_task.sh line 9 - runtime project directory where data is copied",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "/workspace/data/TaskManagerApp",
+            "verified_value": "/workspace/data/TaskManagerApp (maps to /compute/babel-u5-24/pranjala/gym_anything_clean/Gym-Anything_for_cmu_super_clean/benchmarks/environments/android_studio_env/data/TaskManagerApp in this environment)",
+            "source": "setup_task.sh line 10 and actual filesystem inspection",
+            "status": "verified"
+        },
+        {
+            "key": "package_path",
+            "metadata_value": "com/example/taskmanager",
+            "verified_value": "com/example/taskmanager",
+            "source": "Verified package directory exists with Activities, Repository, and Model classes at app/src/main/java/com/example/taskmanager/",
+            "status": "verified"
+        },
+        {
+            "key": "lifecycle_viewmodel_ktx_version",
+            "metadata_value": "2.7.0",
+            "verified_value": "2.7.0 is a real stable version (released January 10, 2024); however, 2.10.0 is the current latest stable version as of February 2026",
+            "source": "Android Developer official documentation (https://developer.android.com/jetpack/androidx/releases/lifecycle)",
+            "status": "verified"
+        },
+        {
+            "key": "lifecycle_livedata_ktx_version",
+            "metadata_value": "2.7.0",
+            "verified_value": "2.7.0 is a real stable version (released January 10, 2024); however, 2.10.0 is the current latest stable version as of February 2026",
+            "source": "Android Developer official documentation (https://developer.android.com/jetpack/androidx/releases/lifecycle)",
+            "status": "verified"
+        },
+        {
+            "key": "activity_ktx_version",
+            "metadata_value": "1.8.2",
+            "verified_value": "1.8.2 is a real stable version; however, 1.12.4 is the current latest stable version as of February 2026. Note: as of activity 1.9.0, activity-ktx became empty and all functionality was merged into the main activity library",
+            "source": "Android Developer official documentation (https://developer.android.com/jetpack/androidx/releases/activity)",
+            "status": "verified"
+        },
+        {
+            "key": "god_activity_pattern_tasklistactivity",
+            "metadata_value": "TaskListActivity holds TaskRepository and contains filtering, sorting, and stats computation inline",
+            "verified_value": "CONFIRMED: TaskListActivity.kt line 39 has 'private val repository = TaskRepository()'; lines 66-85 contain inline filtering, sorting, and stats logic",
+            "source": "Code inspection of TaskManagerApp/app/src/main/java/com/example/taskmanager/ui/TaskListActivity.kt",
+            "status": "verified"
+        },
+        {
+            "key": "god_activity_pattern_addtaskactivity",
+            "metadata_value": "AddTaskActivity holds TaskRepository and contains validation logic inline",
+            "verified_value": "CONFIRMED: AddTaskActivity.kt line 33 has 'private val repository = TaskRepository()'; lines 66-80 contain inline validation logic for title length",
+            "source": "Code inspection of TaskManagerApp/app/src/main/java/com/example/taskmanager/ui/AddTaskActivity.kt",
+            "status": "verified"
+        },
+        {
+            "key": "god_activity_pattern_taskdetailactivity",
+            "metadata_value": "TaskDetailActivity holds its own separate TaskRepository instance (not shared), does status update logic inline",
+            "verified_value": "CONFIRMED: TaskDetailActivity.kt line 30 has 'private val repository = TaskRepository()' (separate instance from other Activities); lines 80-87 contain inline status update logic",
+            "source": "Code inspection of TaskManagerApp/app/src/main/java/com/example/taskmanager/ui/TaskDetailActivity.kt",
+            "status": "verified"
+        },
+        {
+            "key": "state_loss_on_rotation",
+            "metadata_value": "State is lost on configuration changes (screen rotation) because Activities directly hold mutable state",
+            "verified_value": "CONFIRMED: currentFilter and sortByPriority fields in TaskListActivity are instance variables that would be lost on rotation without savedInstanceState handling",
+            "source": "Code inspection - Activities have no onSaveInstanceState() or ViewModel-based persistence",
+            "status": "verified"
+        },
+        {
+            "key": "repository_dependencies_exist",
+            "metadata_value": "build.gradle.kts lacks lifecycle-viewmodel-ktx, lifecycle-livedata-ktx, and activity-ktx dependencies",
+            "verified_value": "CONFIRMED: Current app/build.gradle.kts (lines 44-54) only contains androidx.core, androidx.appcompat, material, androidx.constraintlayout, androidx.recyclerview dependencies. No lifecycle or activity-ktx dependencies present",
+            "source": "Code inspection of TaskManagerApp/app/build.gradle.kts",
+            "status": "verified"
+        },
+        {
+            "key": "task_repository_api",
+            "metadata_value": "TaskRepository provides methods like getAllTasks(), getTasksByStatus(), getCompletionStats(), getOverdueTasks(), getTotalEstimatedHours(), addTask(), updateTask()",
+            "verified_value": "CONFIRMED: TaskRepository class provides all these methods as public functions. It is an in-memory repository with sample data seeding.",
+            "source": "Code inspection of TaskRepository.kt",
+            "status": "verified"
+        },
+        {
+            "key": "task_model_structure",
+            "metadata_value": "Task is a data class with fields: id, title, description, priority (Priority enum), status (TaskStatus enum), dueDate, createdAt, tags, estimatedHours",
+            "verified_value": "CONFIRMED: Task.kt defines a data class with exactly these fields. Priority has LOW, MEDIUM, HIGH, CRITICAL values. TaskStatus has PENDING, IN_PROGRESS, COMPLETED, CANCELLED values.",
+            "source": "Code inspection of Task.kt model",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The TaskManagerApp is a synthetic task management application with three Activities (TaskListActivity, AddTaskActivity, TaskDetailActivity), each holding a separate TaskRepository instance and implementing business logic inline—the classic 'God Activity' anti-pattern. The codebase currently lacks lifecycle-viewmodel-ktx (2.7.0), lifecycle-livedata-ktx (2.7.0), and activity-ktx (1.8.2) dependencies needed for MVVM refactoring. The data source contains an in-memory repository with sample tasks seeded at initialization. The app uses Kotlin with AndroidX support libraries for UI components (RecyclerView, AppCompatActivity). All stated problems (state loss on rotation, untestable activities, non-shared repository instances) are accurately represented in the code.",
+    "pi_confidence": "high"
+}

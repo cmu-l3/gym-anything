@@ -1,0 +1,57 @@
+{
+  "id": "incompatible_absorbent_screening@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "Perform a safety audit on spill kit absorbents for specific chemicals using CAMEO Chemicals (https://cameochemicals.noaa.gov/). \n\nYour goal is to determine if 'Cellulose' or 'Sawdust' (organic absorbents) are SAFE or UNSAFE to use for the following chemicals:\n1. Nitric Acid, Red Fuming (CAS 7697-37-2)\n2. Perchloric Acid (CAS 7601-90-3)\n3. Bromine (CAS 7726-95-6)\n4. Hydrogen Peroxide (CAS 7722-84-1)\n5. Mineral Oil (CAS 8012-95-1)\n\nFor each chemical:\n1. Search for it on CAMEO Chemicals.\n2. Go to the 'Hazards' section.\n3. Read the 'Potentially Incompatible Absorbents' subsection (or general fire hazards if that specific subsection is missing but fire risks with organics are mentioned).\n4. Determine if cellulose/sawdust is SAFE or UNSAFE.\n\nCreate a report file at '/home/ga/Documents/absorbent_safety_audit.txt' with the following format for each chemical:\n\nChemical: [Name]\nStatus: [SAFE or UNSAFE]\nReason: [Brief explanation/excerpt from datasheet]\n\n(Repeat for all 5 chemicals).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/incompatible_absorbent_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/incompatible_absorbent_screening/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/absorbent_safety_audit.txt",
+    "chemicals": [
+      {
+        "name": "Nitric Acid",
+        "cas": "7697-37-2",
+        "expected_status": "UNSAFE",
+        "keywords": ["ignite", "fire", "combustible", "spontaneous", "organic", "sawdust", "cellulose"]
+      },
+      {
+        "name": "Perchloric Acid",
+        "cas": "7601-90-3",
+        "expected_status": "UNSAFE",
+        "keywords": ["ignite", "fire", "explosion", "combustible", "organic", "wood", "paper"]
+      },
+      {
+        "name": "Bromine",
+        "cas": "7726-95-6",
+        "expected_status": "UNSAFE",
+        "keywords": ["ignite", "fire", "combustible", "organic", "sawdust"]
+      },
+      {
+        "name": "Hydrogen Peroxide",
+        "cas": "7722-84-1",
+        "expected_status": "UNSAFE",
+        "keywords": ["ignite", "fire", "combustible", "organic", "decomposition", "catalytic"]
+      },
+      {
+        "name": "Mineral Oil",
+        "cas": "8012-95-1",
+        "expected_status": "SAFE",
+        "keywords": []
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_absorbent_screening"
+    }
+  }
+}

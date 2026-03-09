@@ -1,0 +1,36 @@
+{
+  "id": "local_thickness_phase_mapping@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "You are a materials scientist characterizing an Au-Pb-Sn solder alloy. Your goal is to measure the local thickness distribution of both the primary (bright) and matrix (dark) phases using Fiji's Local Thickness plugin.\n\nInput: ~/Fiji_Data/raw/metallography/AuPbSn40_alloy.tif\nOutput Directory: ~/Fiji_Data/results/thickness/\n\nTask Steps:\n1. Open the alloy image and convert to 8-bit grayscale.\n2. Segment the bright (solid) phase using automatic thresholding (e.g., Otsu). Clean noise if necessary.\n3. Run 'Analyze > Local Thickness > Local Thickness (complete process)' on the bright phase mask. Save the result as 'solid_phase_thickness_map.tif'.\n4. Invert the binary mask to isolate the dark (void/matrix) phase.\n5. Run Local Thickness on the dark phase mask. Save the result as 'void_phase_thickness_map.tif'.\n6. Measure statistics (mean, std dev, max) for BOTH thickness maps.\n7. Save a summary CSV to 'thickness_statistics.csv' with columns: phase, mean_thickness_px, std_thickness_px, max_thickness_px.\n8. Create a color-coded visualization of one thickness map (using a LUT like Fire or Jet) and save as 'thickness_visualization.png'.\n9. Save a histogram of the solid phase thickness as 'thickness_histogram.png'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 75,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/local_thickness_phase_mapping/setup_task.sh",
+    "post_task": "/workspace/tasks/local_thickness_phase_mapping/export_result.sh"
+  },
+  "metadata": {
+    "input_image_path": "/home/ga/Fiji_Data/raw/metallography/AuPbSn40_alloy.tif",
+    "expected_output_dir": "/home/ga/Fiji_Data/results/thickness",
+    "required_files": [
+      "solid_phase_thickness_map.tif",
+      "void_phase_thickness_map.tif",
+      "thickness_statistics.csv",
+      "thickness_visualization.png",
+      "thickness_histogram.png"
+    ],
+    "image_source": "https://imagej.nih.gov/ij/images/AuPbSn40.jpg",
+    "csv_columns": ["phase", "mean_thickness_px", "std_thickness_px", "max_thickness_px"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_local_thickness_phase_mapping"
+    }
+  },
+  "tags": ["materials-science", "metallography", "local-thickness", "segmentation", "quantification"]
+}

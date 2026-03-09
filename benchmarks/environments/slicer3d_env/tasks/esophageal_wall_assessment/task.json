@@ -1,0 +1,49 @@
+{
+  "id": "esophageal_wall_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the esophageal wall thickness on the provided chest CT and classify the finding. Save measurement markup to ~/Documents/SlicerData/LIDC/esophageal_measurement.mrk.json and report to ~/Documents/SlicerData/LIDC/esophageal_report.json with fields: measured_wall_thickness_mm, measurement_level, esophageal_appearance, classification, recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/esophageal_wall_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/esophageal_wall_assessment/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/LIDC/esophageal_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/esophageal_report.json",
+    "expected_esophagus_region": {
+      "y_range_mm": [20, 80],
+      "description": "Posterior mediastinum, anterior to spine"
+    },
+    "normal_thickness_max_mm": 5.0,
+    "mild_thickening_max_mm": 10.0,
+    "plausible_range_mm": [2.0, 15.0],
+    "passing_thresholds": {
+      "measurement_error_max_mm": 3.0,
+      "location_in_mediastinum": true
+    },
+    "scoring_weights": {
+      "esophagus_located": 15,
+      "measurement_accuracy": 25,
+      "measurement_level_documented": 10,
+      "classification_correct": 20,
+      "classification_consistency": 10,
+      "recommendation_appropriate": 10,
+      "report_complete": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_esophageal_wall_assessment"
+    }
+  }
+}

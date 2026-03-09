@@ -1,0 +1,31 @@
+{
+    "task_id": "bulk_mark_category_out_of_stock@1",
+    "dataset": "WooCommerce sample products (if XML import succeeds) + manually created products via WP-CLI",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_category",
+            "metadata_value": "Accessories",
+            "verified_value": "Accessories category exists in database but NO products are assigned to it",
+            "source": "Analysis of setup_woocommerce.sh (lines 225-246) and bulk_mark_category_out_of_stock/setup_task.sh (lines 45-49). WP-CLI product creation commands do not include --categories parameter. WooCommerce sample XML import (if succeeds) would provide some Accessories products.",
+            "status": "contradicted"
+        },
+        {
+            "key": "control_category",
+            "metadata_value": "Clothing",
+            "verified_value": "Clothing category is created but has NO products assigned. WooCommerce official sample_products.xml does not contain products in a 'Clothing' category (it has Tshirts, Hoodies, Accessories, Music instead)",
+            "source": "Analysis of setup_woocommerce.sh and WooCommerce sample data from https://raw.githubusercontent.com/woocommerce/woocommerce/trunk/plugins/woocommerce/sample-data/sample_products.xml which confirmed no Clothing category exists in official sample data",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_status",
+            "metadata_value": "outofstock",
+            "verified_value": "outofstock",
+            "source": "WooCommerce database schema: _stock_status meta key accepts 'instock', 'outofstock', and 'onbackorder' as values. Verified in setup_task.sh reset commands (lines 26, 36) and export_result.sh verification logic (line 38). Confirmed via WooCommerce documentation: https://rudrastyh.com/woocommerce/change-product-stock-programmatically.html",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The WooCommerce environment creates Accessories and Clothing categories but does not assign any products to either category during setup. The Accessories category would receive products only if the WooCommerce sample XML import succeeds (which is conditional in the setup script). The Clothing category receives no products from any source - the official WooCommerce sample data does not include a Clothing category. The correct stock status value is 'outofstock' (one word, no hyphen).",
+    "pi_confidence": "high"
+}

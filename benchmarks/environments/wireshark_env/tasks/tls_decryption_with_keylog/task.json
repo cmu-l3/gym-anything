@@ -1,0 +1,28 @@
+{
+  "id": "tls_decryption_with_keylog@1",
+  "version": "1.0",
+  "env_id": "wireshark_env@0.1",
+  "description": "Configure Wireshark to decrypt the HTTPS traffic in '~/Documents/captures/secure_api.pcap' using the session keys provided in '~/Documents/captures/session_keys.log'.\n\n1. Open the PCAP file in Wireshark.\n2. Go to Edit > Preferences > Protocols > TLS.\n3. Set the '(Pre)-Master-Secret log filename' to the provided 'session_keys.log' file.\n4. Analyze the decrypted HTTP traffic to find a response containing 'SECRET_FLAG:'.\n5. Extract the UUID value following the label (e.g., if text is 'SECRET_FLAG: 1234-5678', extract '1234-5678').\n6. Save ONLY the UUID to a file named '~/Documents/decrypted_flag.txt'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tls_decryption_with_keylog/setup_task.sh",
+    "post_task": "/workspace/tasks/tls_decryption_with_keylog/export_result.sh"
+  },
+  "metadata": {
+    "pcap_path": "/home/ga/Documents/captures/secure_api.pcap",
+    "keylog_path": "/home/ga/Documents/captures/session_keys.log",
+    "output_path": "/home/ga/Documents/decrypted_flag.txt",
+    "ground_truth_path": "/var/lib/app/ground_truth/secret_uuid.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tls_decryption"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "id": "edit_dashboard_widgets@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "The dashboard 'Server Room Overview' is currently displaying data from decommissioned UPS sensors. You need to reconfigure the widgets to show the correct Server Room feeds.\n\nTarget Feeds:\n- Power: 'server_power' (0-5000 W)\n- Temperature: 'server_temp' (10-45 °C)\n- Humidity: 'server_humidity' (%RH)\n\nTask:\n1. Open the 'Server Room Overview' dashboard.\n2. Edit the dashboard to reconfigure the three widgets:\n   - Change the Power Dial to use the 'server_power' feed. Set max value to 5000. Label: 'Server Power (W)'.\n   - Change the Temperature Dial to use the 'server_temp' feed. Set min to 10, max to 45. Label: 'Temperature (°C)'.\n   - Change the Humidity Value display to use the 'server_humidity' feed. Label: 'Humidity (%RH)'.\n3. Save the dashboard.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/edit_dashboard_widgets/setup_task.sh",
+    "post_task": "/workspace/tasks/edit_dashboard_widgets/export_result.sh"
+  },
+  "metadata": {
+    "dashboard_name": "Server Room Overview",
+    "target_feeds": {
+      "power": "server_power",
+      "temp": "server_temp",
+      "humidity": "server_humidity"
+    },
+    "widget_requirements": [
+      {
+        "type": "dial",
+        "feed_tag": "server_room",
+        "feed_name": "server_power",
+        "label_contains": ["Server Power", "(W)"],
+        "max": 5000
+      },
+      {
+        "type": "dial",
+        "feed_tag": "server_room",
+        "feed_name": "server_temp",
+        "label_contains": ["Temperature", "°C"],
+        "min": 10,
+        "max": 45
+      },
+      {
+        "type": "value",
+        "feed_tag": "server_room",
+        "feed_name": "server_humidity",
+        "label_contains": ["Humidity", "%RH"]
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_edit_dashboard_widgets"
+    }
+  }
+}

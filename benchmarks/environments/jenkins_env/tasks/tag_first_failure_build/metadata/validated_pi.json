@@ -1,0 +1,31 @@
+{
+    "task_id": "tag_first_failure_build@1",
+    "dataset": "jenkins-docs/simple-java-maven-app",
+    "case_id": "Build #3 (theoretical)",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "job_name",
+            "metadata_value": "Nightly-Quality-Gate",
+            "verified_value": "Nightly-Quality-Gate",
+            "source": "setup_task.sh line 13: JOB_NAME=\"Nightly-Quality-Gate\" and verifier.py checks this",
+            "status": "verified"
+        },
+        {
+            "key": "target_error",
+            "metadata_value": "FATAL: Non-resolvable parent POM",
+            "verified_value": "Error message text is real Maven error (confirmed via JBoss thread: https://developer.jboss.org/thread/235500), but task setup does NOT trigger it",
+            "source": "Maven error text verified via JBoss documentation. However, setup_task.sh line 98 uses sed to replace '<groupId>org.jenkins-ci.main</groupId>' which does NOT exist in the jenkins-docs/simple-java-maven-app pom.xml (verified via https://raw.githubusercontent.com/jenkins-docs/simple-java-maven-app/master/pom.xml). The pom.xml has groupId 'com.mycompany.app' and NO parent POM section. The sed command will not match anything and the build will NOT fail with the claimed error.",
+            "status": "contradicted"
+        },
+        {
+            "key": "target_tag",
+            "metadata_value": "Regression Start",
+            "verified_value": "Regression Start",
+            "source": "verifier.py line 40: expected_tag = \"Regression Start\" - matches metadata exactly",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the jenkins-docs/simple-java-maven-app repository from GitHub (https://github.com/jenkins-docs/simple-java-maven-app), which is a real public Maven project with no parent POM. The job name is 'Nightly-Quality-Gate' and the expected tag is 'Regression Start'. However, the task setup attempts to trigger a 'FATAL: Non-resolvable parent POM' error by modifying a parent POM groupId that does not exist in the actual repository's pom.xml. The sed command targets '<groupId>org.jenkins-ci.main</groupId>' which is not present in the project - the actual groupId is 'com.mycompany.app' and there is no parent POM section. Therefore, the build will not fail with the claimed error message, and the task setup is misconfigured.",
+    "pi_confidence": "high"
+}

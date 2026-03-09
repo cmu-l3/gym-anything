@@ -1,0 +1,49 @@
+{
+  "id": "lumbar_lordosis_angle@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the lumbar lordosis angle (L1 superior endplate to S1 superior endplate) on the provided abdominal CT scan. Save measurement markups to ~/Documents/SlicerData/AMOS/lumbar_lordosis_markups.mrk.json and report to ~/Documents/SlicerData/AMOS/lumbar_lordosis_report.json with fields: angle_degrees, l1_identified, s1_identified, classification, measurement_method.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/lumbar_lordosis_angle/setup_task.sh",
+    "post_task": "/workspace/tasks/lumbar_lordosis_angle/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_markups": "/home/ga/Documents/SlicerData/AMOS/lumbar_lordosis_markups.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/lumbar_lordosis_report.json",
+    "passing_thresholds": {
+      "angle_error_max_degrees": 8.0,
+      "l1_z_tolerance_mm": 25.0,
+      "s1_z_tolerance_mm": 25.0
+    },
+    "scoring_weights": {
+      "angle_accuracy": 35,
+      "l1_landmark_correct": 15,
+      "s1_landmark_correct": 15,
+      "classification_correct": 15,
+      "markup_file_valid": 10,
+      "report_complete": 10
+    },
+    "classification_ranges": {
+      "hypolordosis": [0, 30],
+      "low_normal": [30, 40],
+      "normal": [40, 60],
+      "high_normal": [60, 70],
+      "hyperlordosis": [70, 180]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_lumbar_lordosis"
+    }
+  }
+}

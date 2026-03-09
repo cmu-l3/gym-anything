@@ -1,0 +1,43 @@
+{
+  "id": "mount_multi_volume_workspace@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Mount three existing VeraCrypt encrypted volumes to a structured workspace and document the layout.\n\nTarget Configuration:\n1. Mount '/home/ga/Volumes/test_volume.hc' to '/home/ga/Workspace/project_alpha' (Password: 'OldPassword123')\n2. Mount '/home/ga/Volumes/data_volume.hc' to '/home/ga/Workspace/project_beta' (Password: 'MountMe2024')\n3. Mount '/home/ga/Volumes/mounted_volume.hc' to '/home/ga/Workspace/project_gamma' (Password: 'DismountMe123')\n\nAfter mounting all three volumes simultaneously, verify their contents are accessible.\n\nFinally, create a text file at '/home/ga/Workspace/mount_manifest.txt' that lists:\n- The volume file path and mount point for each project\n- The list of filenames found inside each volume\n- A final line stating 'Total files: N' (where N is the sum of files across all volumes)",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mount_multi_volume_workspace/setup_task.sh",
+    "post_task": "/workspace/tasks/mount_multi_volume_workspace/export_result.sh"
+  },
+  "metadata": {
+    "volumes": [
+      {
+        "path": "/home/ga/Volumes/test_volume.hc",
+        "mount_point": "/home/ga/Workspace/project_alpha",
+        "expected_files": ["incident_report_2024.txt"]
+      },
+      {
+        "path": "/home/ga/Volumes/data_volume.hc",
+        "mount_point": "/home/ga/Workspace/project_beta",
+        "expected_files": ["SF312_Nondisclosure_Agreement.txt", "FY2024_Revenue_Budget.csv", "backup_authorized_keys"]
+      },
+      {
+        "path": "/home/ga/Volumes/mounted_volume.hc",
+        "mount_point": "/home/ga/Workspace/project_gamma",
+        "expected_files": ["network_topology.txt"]
+      }
+    ],
+    "manifest_path": "/home/ga/Workspace/mount_manifest.txt",
+    "expected_total_files": 5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mount_multi_volume_workspace"
+    }
+  }
+}

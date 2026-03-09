@@ -1,0 +1,31 @@
+{
+  "id": "airport_schema_normalization@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Database Architect. A flat-table database containing real global airport data from OpenFlights has been set up at /home/ga/Documents/databases/airports_flat.db. It has a single denormalized table 'airports_raw' with columns: airport_id (INTEGER), name (TEXT), city (TEXT), country (TEXT), iata_code (TEXT), icao_code (TEXT), latitude (REAL), longitude (REAL), altitude (INTEGER), timezone_offset (REAL), dst_type (TEXT), tz_name (TEXT), type (TEXT), source (TEXT).\n\nYour tasks:\n\n1. Connect to the database in DBeaver with the connection name exactly 'Airports' (SQLite driver).\n\n2. Design and create a normalized (3NF) schema in the SAME database (airports_flat.db) with these three new tables:\n   - 'countries' with columns: country_name TEXT PRIMARY KEY\n   - 'timezones' with columns: tz_name TEXT PRIMARY KEY, timezone_offset REAL, dst_type TEXT\n   - 'airports' with columns: airport_id INTEGER PRIMARY KEY, name TEXT, city TEXT, iata_code TEXT, icao_code TEXT, latitude REAL, longitude REAL, altitude INTEGER, type TEXT, source TEXT, country_name TEXT REFERENCES countries(country_name), tz_name TEXT REFERENCES timezones(tz_name)\n\n3. Migrate all data from airports_raw into the three new tables using INSERT...SELECT statements.\n\n4. Write a validation query that checks: (a) count of airports in the new airports table equals count in airports_raw, (b) count of distinct countries in countries table.\n\n5. Save a validation report to /home/ga/Documents/exports/normalization_report.txt containing exactly these labeled values:\n   ORIGINAL_COUNT: <number>\n   AIRPORTS_TABLE_COUNT: <number>\n   COUNTRIES_COUNT: <number>\n   TIMEZONES_COUNT: <number>\n   MIGRATION_VALID: YES or NO (YES if ORIGINAL_COUNT == AIRPORTS_TABLE_COUNT)\n\nLogin: ga / password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 75
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/airport_schema_normalization/setup_task.sh",
+    "post_task": "/workspace/tasks/airport_schema_normalization/export_result.sh"
+  },
+  "metadata": {
+    "target_db": "/home/ga/Documents/databases/airports_flat.db",
+    "connection_name": "Airports",
+    "output_report": "/home/ga/Documents/exports/normalization_report.txt",
+    "openflights_source": "https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat",
+    "expected_airport_count_min": 6000,
+    "expected_airport_count_max": 9000,
+    "expected_country_count_min": 200,
+    "expected_country_count_max": 260
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_airport_schema_normalization"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "chinook_ar_workflow@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Finance Operations Engineer. You need to implement an Accounts Receivable (AR) tracking system in the Chinook database.\n\nYour tasks:\n\n1. Connect to the Chinook database at /home/ga/Documents/databases/chinook.db using DBeaver. Name the connection 'ChinookAR'.\n\n2. Modify the 'invoices' table to add two new columns:\n   - 'PaymentStatus' (TEXT or VARCHAR)\n   - 'PaymentDate' (DATETIME)\n\n3. Backfill historical data using these rules:\n   - Rule A (General): For invoices with InvoiceDate BEFORE 2013-01-01, set PaymentStatus='Paid' and PaymentDate = InvoiceDate + 30 days.\n   - Rule B (Recent): For invoices with InvoiceDate ON or AFTER 2013-01-01, set PaymentStatus='Pending' and PaymentDate = NULL.\n\n4. Apply a VIP Exception:\n   - Customer ID 5 (Jakub Berthelsen) pays instantly.\n   - For ALL his invoices (regardless of date), set PaymentStatus='Paid' and PaymentDate = InvoiceDate.\n\n5. Generate an Aging Report CSV at /home/ga/Documents/exports/ar_aging_report.csv containing all 'Pending' invoices. The report must:\n   - Assume the 'Current Date' for calculation is 2013-12-31.\n   - Include columns: InvoiceId, CustomerName (First Last), InvoiceDate, Total, DaysOutstanding.\n   - DaysOutstanding = (2013-12-31) - InvoiceDate.\n   - Sort by DaysOutstanding descending.\n\n6. Save your SQL script to /home/ga/Documents/scripts/ar_setup.sql.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_ar_workflow/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_ar_workflow/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook.db",
+    "export_path": "/home/ga/Documents/exports/ar_aging_report.csv",
+    "script_path": "/home/ga/Documents/scripts/ar_setup.sql",
+    "vip_customer_id": 5,
+    "cutoff_date": "2013-01-01",
+    "report_date": "2013-12-31"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_ar_workflow"
+    }
+  }
+}

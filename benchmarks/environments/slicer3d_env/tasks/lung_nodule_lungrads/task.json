@@ -1,0 +1,47 @@
+{
+  "id": "lung_nodule_lungrads@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the lung nodule specified in ~/Documents/SlicerData/LIDC/nodule_target.json (contains RAS coordinates and location) and classify it according to Lung-RADS criteria. Save the line measurement markup to ~/Documents/SlicerData/LIDC/nodule_measurement.mrk.json and report to ~/Documents/SlicerData/LIDC/lungrads_report.json with fields: measured_diameter_mm, lungrads_category, recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/lung_nodule_lungrads/setup_task.sh",
+    "post_task": "/workspace/tasks/lung_nodule_lungrads/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/LIDC/nodule_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/lungrads_report.json",
+    "nodule_target_file": "/home/ga/Documents/SlicerData/LIDC/nodule_target.json",
+    "passing_thresholds": {
+      "diameter_error_max_mm": 3.0,
+      "location_error_max_mm": 15.0
+    },
+    "scoring_weights": {
+      "measurement_accuracy": 40,
+      "measurement_created": 15,
+      "measurement_location": 10,
+      "classification_correct": 20,
+      "report_complete": 10,
+      "reasonable_range": 5
+    },
+    "lungrads_criteria": {
+      "category_2_max_mm": 6.0,
+      "category_3_max_mm": 8.0,
+      "category_4a_max_mm": 15.0
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_lung_nodule_lungrads"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "customize_server_config@1",
+  "version": "1.0",
+  "env_id": "jitsi_meet_env@0.1",
+  "description": "Customize the local Jitsi Meet deployment to meet corporate requirements. \n\n1. Create a configuration override file at `/home/ga/.jitsi-meet-cfg/web/custom-config.js` with the following settings:\n   - `config.defaultLanguage = 'fr';`\n   - `config.requireDisplayName = true;`\n   - `config.startWithAudioMuted = true;`\n   - `config.startWithVideoMuted = true;`\n   - `config.prejoinConfig = { enabled: true, hideDisplayName: false };`\n   - `config.disableDeepLinking = true;`\n   - `config.disableThirdPartyRequests = true;`\n   - `config.enableWelcomePage = true;`\n\n2. Restart the Jitsi Meet `web` container to apply the changes (using docker compose in `/home/ga/jitsi`).\n\n3. Verify the changes by opening Firefox to `http://localhost:8080`. The interface should be in French (e.g., \"Démarrer la réunion\").\n\n4. Save a screenshot of the French home page to `~/jitsi_config_verification.png`.\n\n5. Save the output of `curl -s http://localhost:8080/custom-config.js` to `~/custom_config_served.txt`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/customize_server_config/setup_task.sh",
+    "post_task": "/workspace/tasks/customize_server_config/export_result.sh"
+  },
+  "metadata": {
+    "config_path": "/home/ga/.jitsi-meet-cfg/web/custom-config.js",
+    "required_params": {
+      "defaultLanguage": "fr",
+      "requireDisplayName": true,
+      "startWithAudioMuted": true,
+      "startWithVideoMuted": true,
+      "disableDeepLinking": true,
+      "disableThirdPartyRequests": true,
+      "enableWelcomePage": true
+    },
+    "docker_dir": "/home/ga/jitsi"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_customize_server_config"
+    }
+  }
+}

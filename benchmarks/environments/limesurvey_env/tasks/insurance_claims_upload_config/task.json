@@ -1,0 +1,44 @@
+{
+  "id": "insurance_claims_upload_config@1",
+  "version": "1.0",
+  "env_id": "limesurvey_env@0.1",
+  "description": "Configure a secure insurance claim portal in LimeSurvey. Log in (admin/Admin123!) and create a new survey titled 'Auto Insurance Claim Portal 2025'. Create two question groups: 'Incident Details' and 'Document Submission'. In 'Incident Details', add a Yes/No question (Code: HAS_EVIDENCE) asking 'Do you have photographic evidence of the damage?'. In 'Document Submission', add two File Upload questions: 1) 'Upload Signed Claim Form (PDF Only)' (Code: FORM_PDF) which must ONLY allow 'pdf' files and be limited to 1 file. 2) 'Upload Damage Photos' (Code: DMG_PHOTOS) which must allow 'jpg,png' files, be limited to 5 files, and MUST ONLY BE VISIBLE if the user answered 'Yes' to HAS_EVIDENCE. Finally, activate the survey.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/insurance_claims_upload_config/setup_task.sh",
+    "post_task": "/workspace/tasks/insurance_claims_upload_config/export_result.sh"
+  },
+  "metadata": {
+    "expected_title": "Auto Insurance Claim Portal 2025",
+    "questions": {
+      "evidence": {
+        "code": "HAS_EVIDENCE",
+        "type": "L"
+      },
+      "pdf": {
+        "code": "FORM_PDF",
+        "type": "|", 
+        "filetypes": ["pdf"],
+        "max_files": 1
+      },
+      "photos": {
+        "code": "DMG_PHOTOS",
+        "type": "|",
+        "filetypes": ["jpg", "png", "jpeg"],
+        "max_files": 5,
+        "relevance_keyword": "HAS_EVIDENCE"
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_insurance_claims_upload"
+    }
+  }
+}

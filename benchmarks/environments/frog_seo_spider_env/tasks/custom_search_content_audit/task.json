@@ -1,0 +1,30 @@
+{
+  "id": "custom_search_content_audit@1",
+  "version": "1.0",
+  "env_id": "frog_seo_spider_env@0.1",
+  "description": "Configure Screaming Frog SEO Spider's Custom Search to audit https://books.toscrape.com/ for content compliance. \n\nSTEPS:\n1. Go to Configuration > Custom > Search.\n2. Add 3 rules to search Page Source:\n   - Rule 'Buy Button': Contains text 'Add to basket'\n   - Rule 'Availability': Contains text 'In stock'\n   - Rule 'Price Format': Contains regex '£[0-9]+\\.[0-9]{2}'\n3. Start the crawl of https://books.toscrape.com/.\n4. When complete, export the Custom Search results (from the Custom Search tab) to '~/Documents/SEO/exports/custom_search_results.csv'.\n5. Write a summary report at '~/Documents/SEO/reports/content_quality_report.txt' that includes the total page count, counts for each search pattern found, and recommendations.\n\nSUCCESS CRITERIA: A CSV export containing Custom Search columns with data, and a text report with numeric findings.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/custom_search_content_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/custom_search_content_audit/export_result.sh"
+  },
+  "metadata": {
+    "target_url": "https://books.toscrape.com/",
+    "target_domain": "books.toscrape.com",
+    "expected_csv_path": "/home/ga/Documents/SEO/exports/custom_search_results.csv",
+    "expected_report_path": "/home/ga/Documents/SEO/reports/content_quality_report.txt",
+    "search_rules": ["Buy Button", "Availability", "Price Format"],
+    "expected_min_rows": 20
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_custom_search_content_audit"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "id": "benchmark_simulation_performance@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Run the HEC-RAS unsteady flow simulation for the Muncie project and generate a performance benchmark report.\n\n**Goal:** Execute the simulation, capture the log, and calculate performance metrics.\n\n**Starting State:** Terminal open in `~/Documents/hec_ras_projects/Muncie`. Plan file: `Muncie.p04.tmp.hdf`. Run ID: `x04`.\n\n**Steps:**\n1. Run the unsteady simulation using `RasUnsteady` with the plan file and run ID. **Redirect all output (stdout and stderr)** to `~/Documents/hec_ras_results/simulation.log`.\n2. Analyze the log to determine:\n   - **Wall Clock Time:** Total time taken to run the command (in seconds).\n   - **Simulated Duration:** The duration of the event modeled in the simulation (in hours). *Hint: Look for the simulation window start/end times in the log or input files.*\n   - **Stability:** Count lines containing 'Maximum Iterations', 'extrapolated', or 'not converged'.\n3. Create a CSV file at `~/Documents/hec_ras_results/benchmark_report.csv` with exactly these columns:\n   - `WallClockSeconds`\n   - `SimulatedHours`\n   - `PerformanceRatio_HrPerSec` (Calculated as SimulatedHours / WallClockSeconds)\n   - `ConvergenceWarnings`\n   - `LogFileSize_Bytes`\n\n**Example CSV Row:**\n`45.5, 24.0, 0.527, 0, 15400`",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/benchmark_simulation_performance/setup_task.sh",
+    "post_task": "/workspace/tasks/benchmark_simulation_performance/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "plan_hdf": "Muncie.p04.tmp.hdf",
+    "run_id": "x04",
+    "log_path": "/home/ga/Documents/hec_ras_results/simulation.log",
+    "report_path": "/home/ga/Documents/hec_ras_results/benchmark_report.csv",
+    "min_simulated_hours": 10.0,
+    "max_simulated_hours": 100.0,
+    "expected_headers": [
+      "WallClockSeconds",
+      "SimulatedHours",
+      "PerformanceRatio_HrPerSec",
+      "ConvergenceWarnings",
+      "LogFileSize_Bytes"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_benchmark_simulation_performance"
+    }
+  }
+}

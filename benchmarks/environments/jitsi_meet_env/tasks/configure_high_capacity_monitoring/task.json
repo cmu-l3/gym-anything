@@ -1,0 +1,32 @@
+{
+  "id": "configure_high_capacity_monitoring@1",
+  "version": "1.0",
+  "env_id": "jitsi_meet_env@0.1",
+  "description": "Configure the Jitsi Meet instance for a high-capacity Video Wall / Security Operations Center scenario. \n\nYou must modify the server-side configuration to ensure all video streams are received simultaneously without suspension, even if bandwidth is high.\n\nRequired Settings in the active configuration (config.js):\n1. Set 'channelLastN' to -1 (Unlimited streams)\n2. Set 'enableLayerSuspension' to false (Disable suspension)\n3. Set 'disableAudioLevels' to true (Save CPU, video priority)\n\nAfter modifying the configuration, you must restart the relevant Jitsi Meet services (or the web container) to apply the changes. Verify that the new configuration is being served by the web server.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_high_capacity_monitoring/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_high_capacity_monitoring/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "config_url": "http://localhost:8080/config.js",
+    "config_path": "/home/ga/.jitsi-meet-cfg/web/config.js",
+    "requirements": {
+      "channelLastN": -1,
+      "enableLayerSuspension": false,
+      "disableAudioLevels": true
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_config_monitoring"
+    }
+  }
+}

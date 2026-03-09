@@ -1,0 +1,44 @@
+{
+  "id": "segmentation_qc_correction@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Correct the pre-loaded AI brain tumor segmentation which contains under-segmentation, over-segmentation, and boundary roughening errors. Use the FLAIR and T1-contrast sequences to guide corrections. Save the corrected segmentation to ~/Documents/SlicerData/BraTS/corrected_segmentation.nii.gz and a QC report to ~/Documents/SlicerData/BraTS/qc_report.json with fields: error_count, error_types, corrections_made.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/segmentation_qc_correction/setup_task.sh",
+    "post_task": "/workspace/tasks/segmentation_qc_correction/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "broken_segmentation": "/home/ga/Documents/SlicerData/BraTS/ai_segmentation.nii.gz",
+    "output_segmentation": "/home/ga/Documents/SlicerData/BraTS/corrected_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/qc_report.json",
+    "passing_thresholds": {
+      "dice_improvement_min": 0.05,
+      "final_dice_min": 0.90,
+      "error_fix_threshold": 0.70
+    },
+    "scoring_weights": {
+      "dice_improvement": 25,
+      "final_dice_high": 20,
+      "under_seg_fixed": 15,
+      "over_seg_fixed": 15,
+      "boundary_improved": 10,
+      "qc_report_complete": 10,
+      "error_types_identified": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_segmentation_qc"
+    }
+  }
+}

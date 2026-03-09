@@ -1,0 +1,48 @@
+{
+  "id": "aortic_path_length_evar@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the aortic centerline path length from the aortic hiatus to the aortic bifurcation on the provided abdominal CT, along with the straight-line distance between those landmarks, and compute the tortuosity ratio. Save open curve markup to ~/Documents/SlicerData/AMOS/aortic_curve.mrk.json, straight-line ruler to ~/Documents/SlicerData/AMOS/aortic_straight.mrk.json, and report to ~/Documents/SlicerData/AMOS/evar_measurements.json with fields: path_length_mm, straight_length_mm, tortuosity_ratio, superior_landmark, inferior_landmark.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/aortic_path_length_evar/setup_task.sh",
+    "post_task": "/workspace/tasks/aortic_path_length_evar/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_curve": "/home/ga/Documents/SlicerData/AMOS/aortic_curve.mrk.json",
+    "output_straight": "/home/ga/Documents/SlicerData/AMOS/aortic_straight.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/evar_measurements.json",
+    "aorta_label": 10,
+    "passing_thresholds": {
+      "path_length_error_max_mm": 15.0,
+      "straight_length_error_max_mm": 10.0,
+      "tortuosity_error_max": 0.03,
+      "endpoint_error_max_mm": 25.0,
+      "min_curve_points": 6
+    },
+    "scoring_weights": {
+      "path_length_accuracy": 30,
+      "straight_length_accuracy": 15,
+      "tortuosity_ratio": 10,
+      "superior_endpoint": 10,
+      "inferior_endpoint": 10,
+      "centerline_fidelity": 10,
+      "sufficient_points": 5,
+      "report_completeness": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_aortic_path_length"
+    }
+  }
+}

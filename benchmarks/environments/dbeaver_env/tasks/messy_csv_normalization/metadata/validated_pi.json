@@ -1,0 +1,80 @@
+{
+    "task_id": "messy_csv_normalization@1",
+    "dataset": "Chinook Database - Sample Digital Media Store",
+    "case_id": "invoices table (LIMIT 50)",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "source_csv",
+            "metadata_value": "/home/ga/Documents/imports/legacy_sales_dump.csv",
+            "verified_value": "/home/ga/Documents/imports/legacy_sales_dump.csv",
+            "source": "setup_task.sh line 37: output_file = '/home/ga/Documents/imports/legacy_sales_dump.csv'",
+            "status": "verified"
+        },
+        {
+            "key": "target_table",
+            "metadata_value": "clean_sales",
+            "verified_value": "clean_sales",
+            "source": "task.json description and verifier.py checks for table 'clean_sales'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_columns",
+            "metadata_value": ["SaleId", "SaleDate", "CustomerId", "SaleAmount"],
+            "verified_value": ["SaleId", "SaleDate", "CustomerId", "SaleAmount"],
+            "source": "task.json description and export_result.sh line 52-55 verification checks all four columns",
+            "status": "verified"
+        },
+        {
+            "key": "expected_date_format",
+            "metadata_value": "YYYY-MM-DD",
+            "verified_value": "YYYY-MM-DD",
+            "source": "task.json description and export_result.sh line 62 regex validation: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": null,
+            "verified_value": "Chinook SQLite database - invoices table (first 50 rows)",
+            "source": "setup_task.sh line 29: SELECT InvoiceId, InvoiceDate, CustomerId, Total FROM invoices LIMIT 50",
+            "status": "verified"
+        },
+        {
+            "key": "row_count",
+            "metadata_value": null,
+            "verified_value": 50,
+            "source": "setup_task.sh LIMIT 50 clause, confirmed by SQLite database inspection",
+            "status": "verified"
+        },
+        {
+            "key": "invoice_date_original_format",
+            "metadata_value": null,
+            "verified_value": "YYYY-MM-DD HH:MM:SS (DATETIME type)",
+            "source": "SQLite PRAGMA table_info shows InvoiceDate as DATETIME type; sample values from Chinook show format '2009-01-01 00:00:00'",
+            "status": "verified"
+        },
+        {
+            "key": "total_original_type",
+            "metadata_value": null,
+            "verified_value": "NUMERIC(10,2)",
+            "source": "SQLite PRAGMA table_info(invoices) shows Total column as NUMERIC(10,2)",
+            "status": "verified"
+        },
+        {
+            "key": "csv_header_columns",
+            "metadata_value": null,
+            "verified_value": ["TrxID", "TrxDate", "CustomerDetail", "Amount"],
+            "source": "setup_task.sh line 50: writer.writerow(['TrxID', 'TrxDate', 'CustomerDetail', 'Amount'])",
+            "status": "verified"
+        },
+        {
+            "key": "csv_transformations",
+            "metadata_value": null,
+            "verified_value": "InvoiceId->TrxID (unchanged); InvoiceDate->DD/MM/YYYY format; CustomerId->'Valued Customer [ID:CustomerId]'; Total->'$ amount' with commas",
+            "source": "setup_task.sh lines 55-81: Python transformation logic shows all four transformations",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the Chinook SQLite database, a well-known sample database containing digital media store data. Data extracted: 50 rows from the invoices table, which contains synthetic/auto-generated invoice data (not from real iTunes). The messy CSV contains deliberately malformed data: dates converted from YYYY-MM-DD HH:MM:SS to DD/MM/YYYY format, customer IDs embedded in text strings (e.g., 'Valued Customer [ID:123]'), and amounts formatted with currency symbols and commas (e.g., '$ 1,234.56'). The task expects the user to clean this data and import it into a new table 'clean_sales' with columns [SaleId, SaleDate, CustomerId, SaleAmount], converting dates to YYYY-MM-DD format, extracting numeric IDs, and removing currency formatting.",
+    "pi_confidence": "high"
+}

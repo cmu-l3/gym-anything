@@ -1,0 +1,35 @@
+{
+  "id": "compute_flood_wave_travel_time@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "You are a water resource specialist analyzing flood wave propagation through the HEC-RAS Muncie, Indiana river model for emergency flood warning planning.\n\nThe unsteady flow simulation has already been run. Results are in the plan HDF file located at /home/ga/Documents/hec_ras_projects/Muncie/ (the file ending in .p04.hdf or .p04.tmp.hdf).\n\nYour task:\n1. Open the plan HDF file using Python (h5py, numpy, and rashdf are available) and explore its structure to find cross-section flow time series and river station data.\n2. Identify the most upstream cross-section (highest river station number) and the most downstream cross-section (lowest river station number).\n3. Extract the flow (discharge) time series at both cross-sections.\n4. Find the time of peak flow at each location.\n5. Compute the flood wave travel time (difference in peak arrival times).\n6. Compute the reach length (difference in river station numbers, in feet).\n7. Compute the average flood wave celerity (reach length divided by travel time, in ft/s).\n\nSave your results to: /home/ga/Documents/hec_ras_results/flood_wave_travel_time.txt\n\nThe output file must contain these labeled lines (exact label wording can vary, but all values must be present):\n- Upstream Cross-Section Station: <number>\n- Downstream Cross-Section Station: <number>\n- Reach Length (ft): <number>\n- Peak Flow at Upstream (cfs): <number>\n- Peak Flow at Downstream (cfs): <number>\n- Time of Peak at Upstream (hrs): <number, hours from simulation start>\n- Time of Peak at Downstream (hrs): <number, hours from simulation start>\n- Travel Time (hrs): <number>\n- Average Wave Celerity (ft/s): <number>\n\nHint: The HDF file structure typically has cross-section data under paths like '/Results/Unsteady/Output/Output Blocks/Base Output/Unsteady Time Series/Cross Sections/' and geometry under '/Geometry/Cross Sections/'. Use h5py to explore groups and datasets.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_flood_wave_travel_time/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_flood_wave_travel_time/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "output_file": "flood_wave_travel_time.txt",
+    "expected_ranges": {
+        "reach_length_min": 1000,
+        "reach_length_max": 200000,
+        "celerity_min": 0.1,
+        "celerity_max": 50.0,
+        "travel_time_min": 0.0,
+        "travel_time_max": 48.0
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_flood_wave_travel_time"
+    }
+  }
+}

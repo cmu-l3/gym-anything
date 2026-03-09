@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.5
+    container_name: oscar-db
+    restart: always
+    command: 'mysqld --character-set-server=utf8 --collation-server=utf8_general_ci --innodb-strict-mode=0'
+    environment:
+      MYSQL_ROOT_PASSWORD: oscarroot
+      MYSQL_DATABASE: drugref2
+      MYSQL_USER: oscar
+      MYSQL_PASSWORD: oscar
+      TZ: America/Toronto
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-poscarroot"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+  oscar:
+    image: openosp/open-osp:release
+    container_name: oscar-app
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - oscar_documents:/var/lib/OscarDocument
+      - ./oscar.properties:/root/oscar.properties
+      - ./ssl.crt:/usr/local/tomcat/conf/ssl.crt
+      - ./ssl.key:/usr/local/tomcat/conf/ssl.key
+      - ./ssl.crt:/usr/local/tomcat/conf/chain.pem
+    environment:
+      TZ: America/Toronto
+      CATALINA_OPTS: "-Djava.awt.headless=true"
+      JAVA_OPTS: "-Dlog4j2.formatMsgNoLookups=true -Xmx2G -Xms512M -Dorg.apache.el.parser.COERCE_TO_ZERO=true"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/oscar/login.do"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
+
+volumes:
+  mariadb_data:
+  oscar_documents:

@@ -1,0 +1,60 @@
+{
+  "id": "safety_induction_assessment_rules@1",
+  "version": "1.0",
+  "env_id": "limesurvey_env@0.1",
+  "description": "Create a mandatory 'Site Safety Induction Exam 2024' in LimeSurvey. This exam determines if subcontractors can enter the worksite. \n\n1. Create the survey and enable 'Assessment mode' in the Notification & Data settings.\n2. Create a question group named 'OSHA Compliance'.\n3. Add these 4 mandatory List (Radio) questions and assign the specified Assessment Values to the answer options (Correct=1, Incorrect=0):\n   - Q1: 'What is the standard color for Danger signs per OSHA?'\n     * Red (Value: 1)\n     * Yellow (Value: 0)\n     * Orange (Value: 0)\n   - Q2: 'At what height is fall protection generally required in construction?'\n     * 4 feet (Value: 0)\n     * 6 feet (Value: 1)\n     * 10 feet (Value: 0)\n   - Q3: 'Who is responsible for maintaining a safe work environment?'\n     * The Site Foreman only (Value: 0)\n     * The Safety Officer only (Value: 0)\n     * Everyone on site (Value: 1)\n   - Q4: 'What should you do if you discover a damaged ladder?'\n     * Use it carefully (Value: 0)\n     * Tag it Do Not Use and report it (Value: 1)\n     * Leave it for someone else (Value: 0)\n\n4. Configure two Assessment Rules:\n   - If the score is 0 to 3: Display message 'FAIL - Retraining Required'\n   - If the score is 4 to 4: Display message 'PASS - Induction Complete'\n\n5. Activate the survey.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/safety_induction_assessment_rules/setup_task.sh",
+    "post_task": "/workspace/tasks/safety_induction_assessment_rules/export_result.sh"
+  },
+  "metadata": {
+    "expected_title": "Site Safety Induction Exam 2024",
+    "expected_group": "OSHA Compliance",
+    "questions": [
+      {
+        "text_snippet": "standard color",
+        "correct_answer": "Red",
+        "correct_value": 1
+      },
+      {
+        "text_snippet": "fall protection",
+        "correct_answer": "6 feet",
+        "correct_value": 1
+      },
+      {
+        "text_snippet": "safe work environment",
+        "correct_answer": "Everyone",
+        "correct_value": 1
+      },
+      {
+        "text_snippet": "damaged ladder",
+        "correct_answer": "Tag it",
+        "correct_value": 1
+      }
+    ],
+    "rules": [
+      {
+        "min": 0,
+        "max": 3,
+        "msg_snippet": "FAIL"
+      },
+      {
+        "min": 4,
+        "max": 4,
+        "msg_snippet": "PASS"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_safety_induction"
+    }
+  }
+}

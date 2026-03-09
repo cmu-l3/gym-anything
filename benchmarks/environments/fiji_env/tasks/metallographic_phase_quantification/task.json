@@ -1,0 +1,31 @@
+{
+  "id": "metallographic_phase_quantification@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "You are a metallurgist analyzing a sample of hot-rolled carbon steel to determine its mechanical properties. Your task is to quantify the percentage of the **Pearlite phase** (dark/textured regions) versus the Ferrite phase (light regions) in the provided microstructure image.\n\nImage Location: `~/Fiji_Data/raw/metallurgy/steel_microstructure.jpg`\n\n**Standard Operating Procedure (SOP):**\n1. Open the image and convert it to **8-bit grayscale** (`Image > Type > 8-bit`).\n2. Apply a **Median Filter** with a radius of **2.0 pixels** to reduce noise (`Process > Filters > Median...`).\n3. Segment the Pearlite phase using **Auto Threshold** with the **'Otsu'** method (`Image > Adjust > Auto Threshold`). Ensure you are selecting the **dark** regions (Pearlite) as the foreground.\n4. Measure the **Area Fraction** (%) of the Pearlite phase.\n   - Ensure `Analyze > Set Measurements` includes 'Area Fraction'.\n\n**Required Outputs:**\n1. Save the binary segmentation mask as `~/Fiji_Data/results/metallurgy/pearlite_mask.png`.\n2. Save the measurement results table as `~/Fiji_Data/results/metallurgy/phase_measurements.csv`.\n3. Create a text report at `~/Fiji_Data/results/metallurgy/report.txt` containing exactly one line with the format: `Pearlite_Fraction: XX.X` (where XX.X is your measured percentage).\n\nYour result will be compared against a ground truth value calculated using the same standard algorithms.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/metallographic_phase_quantification/setup_task.sh",
+    "post_task": "/workspace/tasks/metallographic_phase_quantification/export_result.sh"
+  },
+  "metadata": {
+    "image_path": "~/Fiji_Data/raw/metallurgy/steel_microstructure.jpg",
+    "mask_path": "~/Fiji_Data/results/metallurgy/pearlite_mask.png",
+    "csv_path": "~/Fiji_Data/results/metallurgy/phase_measurements.csv",
+    "report_path": "~/Fiji_Data/results/metallurgy/report.txt",
+    "ground_truth_file": "/var/lib/app/ground_truth_fraction.txt",
+    "tolerance_percent": 2.5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_metallographic_phase_quantification"
+    }
+  },
+  "tags": ["materials-science", "metallurgy", "segmentation", "quantification", "thresholding"]
+}

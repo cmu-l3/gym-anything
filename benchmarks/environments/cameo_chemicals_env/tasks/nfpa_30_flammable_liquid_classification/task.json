@@ -1,0 +1,64 @@
+{
+  "id": "nfpa_30_flammable_liquid_classification@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "Create a classification schedule for six chemicals by looking up their Flash Point and Boiling Point on CAMEO Chemicals (https://cameochemicals.noaa.gov/) and determining their NFPA 30 Flammable Liquid Class.\n\nFor each of the following chemicals:\n1. Diethyl Ether\n2. Toluene\n3. o-Xylene\n4. Acetic Acid\n5. Benzaldehyde\n6. Glycerine\n\nPerform the following steps:\n1. Search for the chemical on CAMEO Chemicals.\n2. Navigate to the Physical Properties section to find the Flash Point and Boiling Point.\n3. Determine the NFPA 30 Class using the logic below (compare all temperatures in Fahrenheit):\n   - Class IA: Flash Point < 73°F AND Boiling Point < 100°F\n   - Class IB: Flash Point < 73°F AND Boiling Point >= 100°F\n   - Class IC: Flash Point >= 73°F AND Flash Point < 100°F\n   - Class II: Flash Point >= 100°F AND Flash Point < 140°F\n   - Class IIIA: Flash Point >= 140°F AND Flash Point < 200°F\n   - Class IIIB: Flash Point >= 200°F\n\nCreate a CSV file at `~/Documents/flammable_liquid_classes.csv` with the headers: `Chemical Name`, `Flash Point (F)`, `Boiling Point (F)`, `NFPA 30 Class`. Record the numeric values for temperatures (e.g., 40, not 40°F) and the class string (e.g., Class IB).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nfpa_30_flammable_liquid_classification/setup_task.sh",
+    "post_task": "/workspace/tasks/nfpa_30_flammable_liquid_classification/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/flammable_liquid_classes.csv",
+    "ground_truth": [
+      {
+        "name": "Diethyl Ether",
+        "flash_point": -49,
+        "boiling_point": 94,
+        "class": "Class IA"
+      },
+      {
+        "name": "Toluene",
+        "flash_point": 40,
+        "boiling_point": 231,
+        "class": "Class IB"
+      },
+      {
+        "name": "o-Xylene",
+        "flash_point": 90,
+        "boiling_point": 291,
+        "class": "Class IC"
+      },
+      {
+        "name": "Acetic Acid",
+        "flash_point": 102,
+        "boiling_point": 244,
+        "class": "Class II"
+      },
+      {
+        "name": "Benzaldehyde",
+        "flash_point": 148,
+        "boiling_point": 354,
+        "class": "Class IIIA"
+      },
+      {
+        "name": "Glycerine",
+        "flash_point": 320,
+        "boiling_point": 554,
+        "class": "Class IIIB"
+      }
+    ],
+    "tolerance_degrees": 10
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nfpa_30_flammable_liquid_classification"
+    }
+  }
+}

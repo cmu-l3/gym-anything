@@ -1,0 +1,29 @@
+{
+  "id": "enforce_data_retention@1",
+  "version": "1.0",
+  "env_id": "libreoffice_base_env@0.1",
+  "description": "A new data retention policy requires purging old financial records while preserving those under legal hold. \n\nGoal: Delete all Invoices (and their associated InvoiceLines) from the Chinook database that are dated before January 1, 2011. \n\nEXCEPTION: You must PRESERVE any invoice (regardless of date) that contains at least one track from the 'Classical' genre. These are under a legal hold.\n\nSummary of Requirements:\n1. Identify invoices older than 2011-01-01.\n2. Exclude invoices containing 'Classical' tracks.\n3. Delete the remaining target invoices and their invoice lines.\n4. Save the database to persist changes.\n\nThe database is located at: /home/ga/chinook.odb",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/enforce_data_retention/setup_task.sh",
+    "post_task": "/workspace/tasks/enforce_data_retention/export_result.sh"
+  },
+  "metadata": {
+    "database_path": "/home/ga/chinook.odb",
+    "reference_sqlite_path": "/opt/libreoffice_base_samples/Chinook_Sqlite.sqlite",
+    "cutoff_date": "2011-01-01",
+    "protected_genre": "Classical",
+    "protected_genre_id": 24
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_data_retention"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "id": "aortic_bifurcation_level@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Identify the aortic bifurcation point on the provided abdominal CT, place a fiducial marker at the bifurcation, and measure the aortic diameter just proximal to it. Save fiducial marker to ~/Documents/SlicerData/AMOS/bifurcation_marker.mrk.json and report to ~/Documents/SlicerData/AMOS/bifurcation_report.json with fields: vertebral_level, coordinates, terminal_diameter_mm, clinical_comment.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/aortic_bifurcation_level/setup_task.sh",
+    "post_task": "/workspace/tasks/aortic_bifurcation_level/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_marker": "/home/ga/Documents/SlicerData/AMOS/bifurcation_marker.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/bifurcation_report.json",
+    "aorta_label": 10,
+    "passing_thresholds": {
+      "bifurcation_distance_max_mm": 20.0,
+      "diameter_error_max_mm": 5.0
+    },
+    "scoring_weights": {
+      "bifurcation_localized": 30,
+      "vertebral_level_exact": 25,
+      "vertebral_level_adjacent": 15,
+      "terminal_diameter": 15,
+      "fiducial_saved": 10,
+      "report_complete": 10,
+      "clinical_comment_bonus": 5
+    },
+    "vertebral_order": ["T12", "L1", "L2", "L3", "L4", "L5", "S1"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_aortic_bifurcation_level"
+    }
+  }
+}

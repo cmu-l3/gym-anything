@@ -1,0 +1,33 @@
+{
+  "id": "nested_encryption_workflow@1",
+  "name": "Nested Encryption Workflow",
+  "description": "Set up defense-in-depth encryption by creating a VeraCrypt volume nested inside another VeraCrypt volume.\n\nScenario: A security researcher needs to store classified source documents behind two independent encryption layers with different passwords. The outer volume already exists; you must create an inner volume inside it, populate it with sensitive files, and cleanly tear down both layers.\n\nStarting State:\n- VeraCrypt GUI is running\n- Outer volume exists at /home/ga/Volumes/outer_vault.hc (50MB, password: OuterVault2024!)\n- Sensitive files at /home/ga/Documents/sensitive_files/:\n  - SF312_Nondisclosure_Agreement.txt\n  - FY2024_Revenue_Budget.csv\n- Mount points available: /home/ga/MountPoints/slot1/ and /home/ga/MountPoints/slot2/\n\nSteps:\n1. Mount the outer volume /home/ga/Volumes/outer_vault.hc to /home/ga/MountPoints/slot1/ using password: OuterVault2024!\n2. Create a new 20MB encrypted volume at /home/ga/MountPoints/slot1/inner_vault.hc with:\n   - Encryption: Serpent\n   - Hash: SHA-512\n   - Filesystem: FAT\n   - Password: InnerSecret!99\n   - PIM: 0 (default), no keyfiles\n3. Mount the inner volume /home/ga/MountPoints/slot1/inner_vault.hc to /home/ga/MountPoints/slot2/ using password: InnerSecret!99\n4. Copy both files from /home/ga/Documents/sensitive_files/ into /home/ga/MountPoints/slot2/\n5. Dismount the inner volume (slot2) first, then dismount the outer volume (slot1)\n\nFinal State: No VeraCrypt volumes mounted. The outer vault contains inner_vault.hc which contains both sensitive documents.",
+  "category": "security",
+  "tags": ["veracrypt", "encryption", "nested-volumes", "workflow", "defense-in-depth"],
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nested_encryption_workflow/setup_task.sh",
+    "post_task": "/workspace/tasks/nested_encryption_workflow/export_result.sh"
+  },
+  "metadata": {
+    "outer_volume_path": "/home/ga/Volumes/outer_vault.hc",
+    "outer_password": "OuterVault2024!",
+    "inner_volume_filename": "inner_vault.hc",
+    "inner_password": "InnerSecret!99",
+    "expected_inner_algo": "Serpent",
+    "source_files_dir": "/home/ga/Documents/sensitive_files"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nested_encryption"
+    }
+  }
+}

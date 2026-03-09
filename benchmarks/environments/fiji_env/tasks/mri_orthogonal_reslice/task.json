@@ -1,0 +1,40 @@
+{
+  "id": "mri_orthogonal_reslice@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "You are a medical scientist analyzing a T1-weighted MRI brain scan. The dataset is located at ~/Fiji_Data/raw/t1-head/t1-head.tif. This is a 3D stack currently in axial orientation with no spatial calibration (units are pixels).\n\nYour goal is to reformat this dataset, perform measurements, and generate a multi-view montage.\n\nRequired Steps:\n1. Open the image (~/Fiji_Data/raw/t1-head/t1-head.tif).\n2. Set Spatial Calibration (Image > Properties):\n   - Pixel width: 1.0 mm\n   - Pixel height: 1.0 mm\n   - Voxel depth: 1.5 mm\n   - Unit: mm\n3. Navigate to a mid-axial slice (approx slice 65) showing the lateral ventricles.\n4. Measure the maximum left-to-right brain width on this slice. Record the value.\n5. Generate an Axial Line Profile:\n   - Draw a line across the brain width.\n   - Analyze > Plot Profile.\n   - Save values as ~/Fiji_Data/results/reslice/axial_profile.csv\n6. Reslice to Coronal View:\n   - Select the original stack.\n   - Image > Stacks > Reslice [/]... (Direction: Top).\n   - Save the result as ~/Fiji_Data/results/reslice/coronal_stack.tif\n7. Reslice to Sagittal View:\n   - Select the original stack.\n   - Image > Stacks > Reslice [/]... (Direction: Left).\n   - Save the result as ~/Fiji_Data/results/reslice/sagittal_stack.tif\n8. Generate a Coronal Line Profile:\n   - On the new coronal stack, draw a vertical line from top to bottom through the brain.\n   - Analyze > Plot Profile.\n   - Save values as ~/Fiji_Data/results/reslice/coronal_profile.csv\n9. Create an Orthogonal Montage:\n   - Create a composite image showing one slice from each view (Axial, Coronal, Sagittal) side-by-side.\n   - Save as ~/Fiji_Data/results/reslice/orthogonal_montage.png\n10. Create a Measurement Report:\n    - Create a text file at ~/Fiji_Data/results/reslice/measurement_report.txt\n    - Include: The measured brain width (mm), dimensions of the coronal and sagittal stacks (slices, width, height), and the calibration values used.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mri_orthogonal_reslice/setup_task.sh",
+    "post_task": "/workspace/tasks/mri_orthogonal_reslice/export_result.sh"
+  },
+  "metadata": {
+    "input_path": "/home/ga/Fiji_Data/raw/t1-head/t1-head.tif",
+    "expected_outputs": [
+      "/home/ga/Fiji_Data/results/reslice/coronal_stack.tif",
+      "/home/ga/Fiji_Data/results/reslice/sagittal_stack.tif",
+      "/home/ga/Fiji_Data/results/reslice/axial_profile.csv",
+      "/home/ga/Fiji_Data/results/reslice/coronal_profile.csv",
+      "/home/ga/Fiji_Data/results/reslice/orthogonal_montage.png",
+      "/home/ga/Fiji_Data/results/reslice/measurement_report.txt"
+    ],
+    "calibration": {
+      "pixel_width": 1.0,
+      "pixel_height": 1.0,
+      "voxel_depth": 1.5,
+      "unit": "mm"
+    },
+    "expected_brain_width_range_mm": [120, 180]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mri_reslice"
+    }
+  }
+}

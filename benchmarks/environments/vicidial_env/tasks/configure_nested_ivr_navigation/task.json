@@ -1,0 +1,32 @@
+{
+  "id": "configure_nested_ivr_navigation@1",
+  "version": "1.0",
+  "env_id": "vicidial_env@0.1",
+  "description": "Configure a nested IVR system in Vicidial with the following structure:\n\n1. Create two Inbound Groups:\n   - ID: 'TC_SALES', Name: 'TechCorp Sales', Active: 'Y'\n   - ID: 'TC_TECH', Name: 'TechCorp Support', Active: 'Y'\n\n2. Create a 'Support Sub Menu' (Call Menu):\n   - Menu ID: 'MENU_SUB_SUP'\n   - Name: 'Support Sub Menu'\n   - Options:\n     - Key '1': Route to In-Group 'TC_TECH'\n     - Key '9': Route to Call Menu 'MENU_MAIN' (Go Back)\n\n3. Create a 'Main Menu' (Call Menu):\n   - Menu ID: 'MENU_MAIN'\n   - Name: 'TechCorp Main Menu'\n   - Options:\n     - Key '1': Route to In-Group 'TC_SALES'\n     - Key '2': Route to Call Menu 'MENU_SUB_SUP'\n\nEnsure all menus and groups are Active/Y. Login credentials: 6666 / andromeda.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_nested_ivr_navigation/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_nested_ivr_navigation/export_result.sh"
+  },
+  "metadata": {
+    "ingroups": ["TC_SALES", "TC_TECH"],
+    "menus": ["MENU_MAIN", "MENU_SUB_SUP"],
+    "expected_routes": [
+      {"menu": "MENU_MAIN", "option": "1", "route": "IN_GROUP", "value": "TC_SALES"},
+      {"menu": "MENU_MAIN", "option": "2", "route": "CALLMENU", "value": "MENU_SUB_SUP"},
+      {"menu": "MENU_SUB_SUP", "option": "1", "route": "IN_GROUP", "value": "TC_TECH"},
+      {"menu": "MENU_SUB_SUP", "option": "9", "route": "CALLMENU", "value": "MENU_MAIN"}
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nested_ivr"
+    }
+  }
+}

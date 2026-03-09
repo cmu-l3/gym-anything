@@ -1,0 +1,39 @@
+{
+  "id": "audit_encrypted_volumes@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Perform a security audit of two pre-existing encrypted volumes located in /home/ga/Volumes/: 'dept_finance.hc' (password: 'Finance2024!') and 'dept_hr.hc' (password: 'HumanRes2024!').\n\nFor each volume:\n1. Mount it using the provided password (no PIM, no keyfiles).\n2. Inspect the volume properties to determine the Encryption Algorithm and Hash Algorithm.\n3. List the files contained within the volume.\n\nCreate a JSON audit report saved to '/home/ga/Documents/volume_audit_report.json' with the following structure:\n{\n  \"audit_date\": \"YYYY-MM-DD\",\n  \"volumes\": [\n    {\n      \"filename\": \"dept_finance.hc\",\n      \"path\": \"/home/ga/Volumes/dept_finance.hc\",\n      \"encryption_algorithm\": \"...\",\n      \"hash_algorithm\": \"...\",\n      \"files\": [\"file1\", \"file2\"]\n    },\n    ...\n  ]\n}\n\nWhen finished, ensure both volumes are dismounted.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_encrypted_volumes/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_encrypted_volumes/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/Documents/volume_audit_report.json",
+    "volumes": {
+      "dept_finance.hc": {
+        "password": "Finance2024!",
+        "encryption": "Serpent",
+        "hash": "SHA-256",
+        "files": ["FY2024_Revenue_Budget.csv", "SF312_Nondisclosure_Agreement.txt"]
+      },
+      "dept_hr.hc": {
+        "password": "HumanRes2024!",
+        "encryption": "Twofish",
+        "hash": "Whirlpool",
+        "files": ["backup_authorized_keys"]
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_encrypted_volumes"
+    }
+  }
+}

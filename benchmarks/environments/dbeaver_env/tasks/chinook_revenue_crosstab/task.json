@@ -1,0 +1,33 @@
+{
+  "id": "chinook_revenue_crosstab@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Data Analyst at a digital media distributor. Management needs a year-over-year revenue analysis by music genre for the period 2009–2013.\n\nYour tasks:\n\n1. Connect to the provided SQLite database at '/home/ga/Documents/databases/chinook_crosstab.db'. Name the connection exactly 'ChinookCrosstab'.\n\n2. Perform a complex SQL analysis to pivot revenue by year. Since SQLite does not have a native PIVOT function, use 'CASE WHEN' statements to aggregate revenue.\n\n3. Create a new persistent table in the database named 'genre_yearly_revenue' with the results. The table must have exactly these 7 columns:\n   - GenreName (Text)\n   - Rev_2009 (Real: Revenue for 2009)\n   - Rev_2010 (Real: Revenue for 2010)\n   - Rev_2011 (Real: Revenue for 2011)\n   - Rev_2012 (Real: Revenue for 2012)\n   - Rev_2013 (Real: Revenue for 2013)\n   - TotalRevenue (Real: Sum of all years)\n\n   Sort the table by TotalRevenue descending.\n\n4. Create a database index named 'idx_genre_total_revenue' on the 'TotalRevenue' column of your new table.\n\n5. Export the 'genre_yearly_revenue' table to a CSV file at: '/home/ga/Documents/exports/genre_yearly_revenue.csv'.\n\n6. Save your SQL script (containing the CREATE TABLE and CREATE INDEX statements) to: '/home/ga/Documents/scripts/genre_crosstab.sql'.\n\nNotes:\n- Revenue = UnitPrice * Quantity\n- Dates are in the 'Invoice' table (InvoiceDate)\n- Data spans 2009-2013",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_revenue_crosstab/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_revenue_crosstab/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook_crosstab.db",
+    "connection_name": "ChinookCrosstab",
+    "output_table": "genre_yearly_revenue",
+    "output_index": "idx_genre_total_revenue",
+    "csv_path": "/home/ga/Documents/exports/genre_yearly_revenue.csv",
+    "sql_path": "/home/ga/Documents/scripts/genre_crosstab.sql",
+    "required_columns": ["GenreName", "Rev_2009", "Rev_2010", "Rev_2011", "Rev_2012", "Rev_2013", "TotalRevenue"],
+    "expected_top_genre": "Rock",
+    "ground_truth_tolerance": 0.10
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_revenue_crosstab"
+    }
+  }
+}

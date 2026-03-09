@@ -1,0 +1,44 @@
+{
+  "id": "renal_cyst_bosniak@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Characterize the renal cyst in the right kidney on the provided abdominal CT using the Bosniak classification system. Measure the cyst diameter, internal HU density, wall thickness, septations, and calcifications. Save measurement markups to ~/Documents/SlicerData/AMOS/cyst_measurements.mrk.json and report to ~/Documents/SlicerData/AMOS/bosniak_report.json with fields: cyst_location, max_diameter_mm, internal_hu_mean, internal_hu_range, reference_parenchyma_hu, wall_thickness_mm, septations, calcification, soft_tissue_nodule, bosniak_category, recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/renal_cyst_bosniak/setup_task.sh",
+    "post_task": "/workspace/tasks/renal_cyst_bosniak/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/cyst_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/bosniak_report.json",
+    "passing_thresholds": {
+      "diameter_tolerance_mm": 3.0,
+      "hu_tolerance": 10.0
+    },
+    "scoring_weights": {
+      "cyst_located": 15,
+      "diameter_accuracy": 20,
+      "hu_measurement": 20,
+      "bosniak_category": 25,
+      "reference_hu": 5,
+      "report_complete": 10,
+      "recommendation": 5
+    },
+    "bosniak_categories": ["I", "II", "IIF", "III", "IV"],
+    "data_source": "AMOS 2022 dataset with synthetic cyst lesion"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_renal_cyst_bosniak"
+    }
+  }
+}

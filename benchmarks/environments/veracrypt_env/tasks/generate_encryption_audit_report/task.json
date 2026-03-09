@@ -1,0 +1,39 @@
+{
+  "id": "generate_encryption_audit_report@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "You are performing a quarterly encryption compliance audit. Three departmental VeraCrypt encrypted volumes exist at /home/ga/Volumes/ with different encryption configurations. You must inspect each volume's technical specifications and produce a structured compliance report.\n\nVolumes and credentials:\n- /home/ga/Volumes/finance_dept.hc — Password: Fin@nce2024Secure\n- /home/ga/Volumes/hr_dept.hc — Password: HR#Dept!2024Safe\n- /home/ga/Volumes/engineering_dept.hc — Password: Eng1neer$2024Key\n\nAll volumes use PIM=0 and no keyfiles.\n\nYour tasks:\n1. For each volume, mount it (use mount points under /home/ga/MountPoints/ or any temporary directory) and extract its technical properties — specifically the encryption algorithm, hash algorithm (PKCS-5 PRF), and volume type.\n2. Create a JSON compliance report at /home/ga/Documents/encryption_audit_report.json with the following structure:\n{\n  \"audit_date\": \"YYYY-MM-DD\",\n  \"auditor\": \"ga\",\n  \"volumes\": [\n    {\n      \"path\": \"/home/ga/Volumes/finance_dept.hc\",\n      \"encryption_algorithm\": \"<algorithm>\",\n      \"hash_algorithm\": \"<hash>\",\n      \"volume_type\": \"Normal\"\n    },\n    ...\n  ]\n}\n3. After completing the report, dismount all three volumes.\n\nThe audit_date should be today's date. Algorithm names should match VeraCrypt's reported names (e.g., AES, Serpent, Twofish, SHA-512, SHA-256, Whirlpool).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/generate_encryption_audit_report/setup_task.sh",
+    "post_task": "/workspace/tasks/generate_encryption_audit_report/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/Documents/encryption_audit_report.json",
+    "expected_volumes": {
+      "finance_dept.hc": {
+        "encryption": ["AES"],
+        "hash": ["SHA-512", "SHA512", "HMAC-SHA-512"]
+      },
+      "hr_dept.hc": {
+        "encryption": ["Serpent"],
+        "hash": ["SHA-256", "SHA256", "HMAC-SHA-256"]
+      },
+      "engineering_dept.hc": {
+        "encryption": ["Twofish"],
+        "hash": ["Whirlpool", "HMAC-Whirlpool"]
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_encryption_audit_report"
+    }
+  }
+}

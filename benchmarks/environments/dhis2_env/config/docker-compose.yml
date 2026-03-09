@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:14-3.4-alpine
+    container_name: dhis2-db
+    restart: always
+    environment:
+      POSTGRES_DB: dhis2
+      POSTGRES_USER: dhis
+      POSTGRES_PASSWORD: dhis
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dhis -d dhis2"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  dhis2:
+    image: dhis2/core:2.40.11
+    container_name: dhis2-app
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      DHIS2_HOME: /opt/dhis2
+    volumes:
+      - ./dhis.conf:/opt/dhis2/dhis.conf:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/system/info"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 180s
+
+volumes:
+  db_data:

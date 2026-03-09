@@ -1,0 +1,30 @@
+{
+  "id": "compute_flood_duration@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "You are a Water Resource Specialist preparing a flood damage assessment for the White River through Muncie, Indiana. Flood damage is strongly correlated with the *duration* of inundation. You need to quantify how long each cross-section in the model experiences flooding above a defined threshold.\n\n**Goal:** Write and execute a Python script that analyzes the HEC-RAS unsteady simulation results to compute flood duration at each cross-section.\n\n**Instructions:**\n\n1. The Muncie project is located at `/home/ga/Documents/hec_ras_projects/Muncie/`. The simulation has already been run. Find the plan HDF result file (e.g., `Muncie.p04.hdf` or similar). Use `h5py` to explore the file structure and locate the unsteady time series output for cross-section water surface elevations (WSE).\n\n2. Create a Python script at `/home/ga/Documents/hec_ras_results/flood_duration_analysis.py` that:\n   - Opens the plan HDF result file\n   - Extracts the water surface elevation (WSE) time series for all cross-sections\n   - Determines time steps from the HDF data\n   - For **each cross-section**:\n     - Define the **flood threshold** as the WSE at the first time step **plus 2.0 feet** (Threshold = Initial_WSE + 2.0)\n     - Compute the **total duration in hours** that WSE > Threshold\n     - Compute the **peak WSE**\n     - Compute the **percentage of total simulation time** above the threshold\n   - Saves results to `/home/ga/Documents/hec_ras_results/flood_duration.csv` with these exact columns:\n     - `CrossSection`: Identifier or index\n     - `ThresholdElevation_ft`: The computed threshold\n     - `FloodDuration_hours`: Total hours above threshold\n     - `PeakWSE_ft`: Maximum WSE\n     - `TimeAboveThreshold_pct`: Percentage (0-100)\n   - Prints a summary identifying the cross-section with the longest flood duration.\n\n3. Execute the script and ensure the CSV is generated correctly.\n\n**Available libraries:** h5py, numpy, pandas, matplotlib, scipy",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_flood_duration/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_flood_duration/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "expected_csv": "/home/ga/Documents/hec_ras_results/flood_duration.csv",
+    "expected_script": "/home/ga/Documents/hec_ras_results/flood_duration_analysis.py",
+    "ground_truth_path": "/var/lib/hec_ras/ground_truth.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_flood_duration"
+    }
+  },
+  "tags": ["hec-ras", "python", "hdf5", "data-analysis", "flood-modeling"]
+}

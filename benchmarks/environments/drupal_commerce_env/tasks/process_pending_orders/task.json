@@ -1,0 +1,50 @@
+{
+  "id": "process_pending_orders@1",
+  "version": "1.0",
+  "env_id": "drupal_commerce_env@0.1",
+  "description": "You are the store manager for Urban Electronics. You have 4 pending draft orders that need processing based on recent customer interactions and inventory checks.\n\nNavigate to the Commerce Orders page (/admin/commerce/orders) and process the following 4 most recent orders:\n\n1. Customer: johndoe | Product: Sony WH-1000XM5\n   ACTION: Complete this order (Place it).\n\n2. Customer: janesmith | Product: Logitech MX Master 3S\n   ACTION: Cancel this order (Customer requested cancellation).\n\n3. Customer: mikewilson | Product: Samsung Galaxy S24 Ultra\n   ACTION: Complete this order (Place it).\n\n4. Customer: johndoe | Product: Apple AirPods Pro 2\n   ACTION: Cancel this order (Item out of stock).\n\nDo not create new orders. Only process the existing draft orders found in the list.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/process_pending_orders/setup_task.sh",
+    "post_task": "/workspace/tasks/process_pending_orders/export_result.sh"
+  },
+  "metadata": {
+    "orders": [
+      {
+        "customer": "johndoe",
+        "product_sku": "SONY-WH1000XM5",
+        "target_action": "complete",
+        "expected_states": ["completed", "fulfillment", "validation"]
+      },
+      {
+        "customer": "janesmith",
+        "product_sku": "LOGI-MXM3S",
+        "target_action": "cancel",
+        "expected_states": ["canceled"]
+      },
+      {
+        "customer": "mikewilson",
+        "product_sku": "SAM-S24ULTRA",
+        "target_action": "complete",
+        "expected_states": ["completed", "fulfillment", "validation"]
+      },
+      {
+        "customer": "johndoe",
+        "product_sku": "APPLE-APP2",
+        "target_action": "cancel",
+        "expected_states": ["canceled"]
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_process_pending_orders"
+    }
+  }
+}

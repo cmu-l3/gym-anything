@@ -1,0 +1,53 @@
+{
+  "id": "stereotactic_biopsy_planning@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Plan a stereotactic biopsy trajectory on the loaded brain MRI. Target the enhancing tumor core (T1ce), select a cortical entry point that avoids the ventricles and midline, and create a trajectory line. Save target fiducial to ~/Documents/SlicerData/BraTS/biopsy_target.mrk.json, entry fiducial to ~/Documents/SlicerData/BraTS/biopsy_entry.mrk.json, trajectory to ~/Documents/SlicerData/BraTS/biopsy_trajectory.mrk.json, and report to ~/Documents/SlicerData/BraTS/trajectory_report.json with fields: trajectory_length_mm, angle_from_vertical_deg, ventricle_clearance_mm, entry_coordinates_ras, target_coordinates_ras.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/stereotactic_biopsy_planning/setup_task.sh",
+    "post_task": "/workspace/tasks/stereotactic_biopsy_planning/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_target": "/home/ga/Documents/SlicerData/BraTS/biopsy_target.mrk.json",
+    "output_entry": "/home/ga/Documents/SlicerData/BraTS/biopsy_entry.mrk.json",
+    "output_trajectory": "/home/ga/Documents/SlicerData/BraTS/biopsy_trajectory.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/trajectory_report.json",
+    "modalities": ["flair", "t1", "t1ce", "t2"],
+    "tumor_labels": {
+      "background": 0,
+      "necrotic": 1,
+      "edema": 2,
+      "enhancing": 4
+    },
+    "passing_thresholds": {
+      "target_distance_max_mm": 10.0,
+      "trajectory_intersects_edema": false,
+      "entry_superior_to_target": true
+    },
+    "scoring_weights": {
+      "target_in_tumor": 25,
+      "trajectory_avoids_ventricles": 25,
+      "valid_entry_point": 15,
+      "trajectory_length_correct": 10,
+      "angle_calculation": 10,
+      "clearance_reported": 5,
+      "all_markups_saved": 5,
+      "report_complete": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_stereotactic_biopsy_planning"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "correct_payment_error@1",
+  "version": "1.0",
+  "env_id": "floreant_pos_env@0.1",
+  "description": "Simulate a common cashier error and correct it. \n\n1. Create a NEW Dine In ticket with at least one food item.\n2. Mistakenly settle the ticket using 'CASH'.\n3. Realize the mistake: Re-open the closed ticket (using 'Edit Ticket' or via the Ticket List).\n4. Void the existing CASH transaction (do NOT void the ticket items, just the payment).\n5. Settle the ticket correctly using 'CREDIT CARD' (or 'CARD').\n\nThe goal is to have a single ticket that shows a voided cash payment and a successful credit card payment.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/correct_payment_error/setup_task.sh",
+    "post_task": "/workspace/tasks/correct_payment_error/export_result.sh"
+  },
+  "metadata": {
+    "expected_tender_sequence": ["CASH", "CREDIT_CARD"],
+    "db_path": "/opt/floreantpos/database/derby-server"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_correct_payment_error"
+    }
+  }
+}

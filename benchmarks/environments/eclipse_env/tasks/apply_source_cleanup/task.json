@@ -1,0 +1,39 @@
+{
+  "id": "apply_source_cleanup@1",
+  "version": "1.0",
+  "env_id": "eclipse_env@0.1",
+  "description": "Fix code quality issues in the 'InventoryManager' project using Eclipse's 'Source > Clean Up' feature and manual corrections.\n\nThe project contains several code smells:\n- Missing @Override annotations\n- Unused imports\n- Raw type usage (e.g., List instead of List<String>)\n- Unnecessary boxing (e.g., Integer.valueOf(42))\n- String comparison using '==' instead of '.equals()'\n\nYour task:\n1. Open the 'InventoryManager' project in Eclipse (it is already in the workspace).\n2. Open the Problems view to see the warnings.\n3. Use 'Source > Clean Up...' on the project to fix standard issues (missing @Override, unused imports, unnecessary boxing).\n4. Manually fix any remaining issues, specifically replacing '==' with '.equals()' for String comparisons and fixing raw types.\n5. Ensure the project compiles with ZERO errors and ZERO warnings (verify in Problems view).\n6. Save all files.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/apply_source_cleanup/setup_task.sh",
+    "post_task": "/workspace/tasks/apply_source_cleanup/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/eclipse-workspace/InventoryManager",
+    "source_files": [
+      "src/com/warehouse/model/Product.java",
+      "src/com/warehouse/model/Category.java",
+      "src/com/warehouse/service/InventoryService.java"
+    ],
+    "forbidden_patterns": {
+      "unused_imports": ["import java.util.Date;", "import java.io.Serializable;", "import java.sql.SQLException;"],
+      "raw_types": ["List tags;", "Map inventory;", "Set categories;"],
+      "string_equality": ["sku == otherSku", "categoryName == \"Default\"", "name == inputName"],
+      "unnecessary_boxing": ["Integer.valueOf(42)", "Boolean.valueOf(true)"]
+    },
+    "required_patterns": {
+      "override_annotation": ["@Override\\s+public String toString", "@Override\\s+public int compareTo"]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_apply_source_cleanup"
+    }
+  }
+}

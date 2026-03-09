@@ -1,0 +1,46 @@
+{
+  "id": "usda_crop_planning_research@1",
+  "version": "1.0",
+  "env_id": "firefox_env@0.1",
+  "description": "You are an agricultural extension agent preparing a spring planting advisory for Iowa farmers. Use Firefox to research the most recent available USDA data for Corn and Soybeans. \n\nResearch Requirements:\n1. Navigate to USDA NASS (nass.usda.gov) to find: \n   - Iowa's total Corn production (in millions of bushels) for the most recent crop year.\n   - Iowa's total Soybean production (in millions of bushels) for the most recent crop year.\n   - The National (US) average yield per acre for both crops.\n2. Navigate to USDA ERS (ers.usda.gov) or WASDE to find:\n   - Current estimated average farm price ($/bushel) for both crops.\n3. Create a Firefox bookmark folder named 'Crop Planning Research' and save at least 5 relevant USDA pages into it.\n4. Create a JSON advisory file at ~/Documents/crop_planning_advisory.json with the structure:\n   {\n     \"corn\": {\n       \"iowa_production_bushels_millions\": <number>,\n       \"national_yield_bushels_per_acre\": <number>,\n       \"price_per_bushel_dollars\": <number>\n     },\n     \"soybeans\": {\n       \"iowa_production_bushels_millions\": <number>,\n       \"national_yield_bushels_per_acre\": <number>,\n       \"price_per_bushel_dollars\": <number>\n     },\n     \"data_year\": \"YYYY\",\n     \"recommendation\": \"<Your text advice based on the data>\"\n   }",
+  "difficulty": "hard",
+  "tags": ["firefox", "research", "agriculture", "usda", "json", "bookmarks"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/usda_crop_planning_research/setup_task.sh",
+    "post_task": "/workspace/tasks/usda_crop_planning_research/export_result.sh"
+  },
+  "metadata": {
+    "output_file": "/home/ga/Documents/crop_planning_advisory.json",
+    "bookmark_folder_name": "Crop Planning Research",
+    "min_bookmarks": 5,
+    "plausible_ranges": {
+      "corn": {
+        "iowa_production_min": 1500,
+        "iowa_production_max": 3000,
+        "national_yield_min": 150,
+        "national_yield_max": 200,
+        "price_min": 3.00,
+        "price_max": 8.50
+      },
+      "soybeans": {
+        "iowa_production_min": 350,
+        "iowa_production_max": 750,
+        "national_yield_min": 40,
+        "national_yield_max": 60,
+        "price_min": 8.00,
+        "price_max": 18.00
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_usda_crop_planning_research"
+    }
+  }
+}

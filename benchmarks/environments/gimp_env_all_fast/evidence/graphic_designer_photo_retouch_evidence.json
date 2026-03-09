@@ -1,0 +1,63 @@
+{
+  "task_id": "graphic_designer_photo_retouch@1",
+  "occupation": "Graphic Designers",
+  "occupation_gdp_usd": 82424970.37,
+  "onet_importance": 94.0,
+  "category_rationale": "Essential for retouching photography, compositing images, and preparing raster assets for print or digital layouts.",
+  "difficulty": "very_hard",
+  "do_nothing_test": {
+    "expected_score": 0,
+    "expected_passed": false,
+    "note": "retouched_portrait.png does not exist before agent acts. Returns score=0 immediately."
+  },
+  "partial_test": {
+    "expected_score_range": [20, 60],
+    "example": "Agent only applies Levels (contrast) and exports. Criteria 1, 2, 3 pass. Criteria 4 (color correction) and 5 (vignette) fail if only one tool was used. Score ~60%."
+  },
+  "verification_criteria": [
+    {
+      "id": 1,
+      "label": "retouched_portrait.png exists and is valid",
+      "weight": 20,
+      "check": "File exists on Desktop, PIL can open it"
+    },
+    {
+      "id": 2,
+      "label": "Significant pixel changes from source",
+      "weight": 20,
+      "check": "Mean abs diff > 8.0 OR > 20% pixels changed by > 10 value"
+    },
+    {
+      "id": 3,
+      "label": "Contrast improved",
+      "weight": 20,
+      "check": "Output (p95-p5) brightness spread > source spread + 10"
+    },
+    {
+      "id": 4,
+      "label": "Color correction applied",
+      "weight": 20,
+      "check": "Sum of channel mean shifts > 15, OR channel std reduced by > 5"
+    },
+    {
+      "id": 5,
+      "label": "Vignette effect present",
+      "weight": 20,
+      "check": "Center region brightness > corner region brightness by > 10"
+    }
+  ],
+  "source_image": {
+    "subject": "Historical portrait photograph (Abraham Lincoln or similar)",
+    "license": "Public Domain",
+    "source": "Wikimedia Commons",
+    "primary_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Abraham_Lincoln_O-77_matte_collodion_print.jpg/800px-Abraham_Lincoln_O-77_matte_collodion_print.jpg"
+  },
+  "gimp_features_required": [
+    "Colors → Levels or Colors → Curves (tonal range)",
+    "Colors → Curves (individual channel adjustments for color cast)",
+    "Filters → Enhance → Unsharp Mask (sharpening)",
+    "Script-Fu vignette OR ellipse selection + Gaussian blur + burn (vignette)",
+    "File → Export As"
+  ],
+  "validation_notes": "Task was statically validated. The portrait source has naturally compressed tonal range and slight color imbalance due to age, making tonal and color corrections verifiable. Vignette criterion requires deliberate edge-darkening action."
+}

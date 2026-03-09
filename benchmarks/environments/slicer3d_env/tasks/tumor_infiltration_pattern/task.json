@@ -1,0 +1,50 @@
+{
+  "id": "tumor_infiltration_pattern@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Assess the tumor infiltration pattern on the provided brain MRI by comparing T1ce and FLAIR sequences. Characterize the tumor border, identify infiltrated structures, measure the maximum infiltration radius, calculate the infiltration index (FLAIR/T1ce volume ratio), and assign an infiltration grade. Save markups (at least 3 measurements) to ~/Documents/SlicerData/BraTS/infiltration_markups.mrk.json and report to ~/Documents/SlicerData/BraTS/infiltration_report.json with fields: border_characterization, infiltrated_structures, max_infiltration_radius_mm, infiltration_index, infiltration_grade, surgical_margin_recommendation_mm, resection_feasibility.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tumor_infiltration_pattern/setup_task.sh",
+    "post_task": "/workspace/tasks/tumor_infiltration_pattern/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_markups": "/home/ga/Documents/SlicerData/BraTS/infiltration_markups.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/infiltration_report.json",
+    "modalities": ["flair", "t1", "t1ce", "t2"],
+    "tumor_labels": {
+      "background": 0,
+      "necrotic_net": 1,
+      "edema": 2,
+      "enhancing": 4
+    },
+    "passing_thresholds": {
+      "infiltration_index_error_percent": 30,
+      "infiltration_radius_error_mm": 5.0,
+      "grade_tolerance": 1
+    },
+    "scoring_weights": {
+      "infiltration_index_accuracy": 20,
+      "max_infiltration_radius": 20,
+      "border_characterization": 15,
+      "infiltration_grade": 15,
+      "structure_identification": 10,
+      "markups_created": 10,
+      "report_completeness": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tumor_infiltration_pattern"
+    }
+  }
+}

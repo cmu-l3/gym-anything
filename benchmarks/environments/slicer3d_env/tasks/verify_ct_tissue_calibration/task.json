@@ -1,0 +1,44 @@
+{
+  "id": "verify_ct_tissue_calibration@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Verify CT scanner calibration by placing fiducial markers on four tissue types in the pre-loaded abdominal CT: air (name contains 'air'), fat (name contains 'fat'), liver (name contains 'liver'), and bone (name contains 'bone', 'spine', or 'vertebr'). Place fiducials at least 20mm apart, directly on each tissue. Save the scene to ~/Documents/SlicerData/AMOS/.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/verify_ct_tissue_calibration/setup_task.sh",
+    "post_task": "/workspace/tasks/verify_ct_tissue_calibration/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "expected_fiducial_count": 4,
+    "tissue_types": ["air", "fat", "liver", "bone"],
+    "expected_ranges": {
+      "air": {"min": -1050, "max": -950},
+      "fat": {"min": -150, "max": -50},
+      "liver": {"min": 30, "max": 80},
+      "bone": {"min": 300, "max": 1500}
+    },
+    "min_fiducial_separation_mm": 20,
+    "scoring_weights": {
+      "air_sample_correct": 20,
+      "fat_sample_correct": 20,
+      "liver_sample_correct": 25,
+      "bone_sample_correct": 25,
+      "fiducial_spatial_spread": 5,
+      "screenshot_evidence": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ct_tissue_calibration"
+    }
+  }
+}

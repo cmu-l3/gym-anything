@@ -1,0 +1,47 @@
+{
+  "id": "casualty_triage_onset_profiling@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "Research the 'Rate of Onset' and 'Persistence' properties for five hazardous chemicals on CAMEO Chemicals (https://cameochemicals.noaa.gov/) to create a casualty triage support report.\n\nChemicals to analyze:\n1. Phosgene (CAS 75-44-5)\n2. Hydrogen Cyanide (CAS 74-90-8)\n3. Chlorine (CAS 7782-50-5)\n4. Sulfuric Acid (CAS 7664-93-9)\n5. Nitrogen Dioxide (CAS 10102-44-0)\n\nFor each chemical:\n1. Search for it on CAMEO Chemicals.\n2. In the 'Health Hazards' section, find the text for 'Rate of Onset' and 'Persistence'.\n3. Classify the Triage Category based on the Rate of Onset:\n   - ASSIGN 'IMMEDIATE' if onset is described as Immediate, Rapid, or Minutes.\n   - ASSIGN 'DELAYED' if onset is described as Delayed, Hours, or Latent.\n\nCreate a JSON file at ~/Documents/triage_classification.json with this exact structure:\n[\n  {\n    \"chemical\": \"Chemical Name\",\n    \"rate_of_onset\": \"extracted text\",\n    \"persistence\": \"extracted text\",\n    \"triage_category\": \"IMMEDIATE|DELAYED\"\n  },\n  ...\n]",
+  "difficulty": "medium",
+  "tags": ["cameo", "medical", "triage", "health-hazards", "json"],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/casualty_triage_onset_profiling/setup_task.sh",
+    "post_task": "/workspace/tasks/casualty_triage_onset_profiling/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/triage_classification.json",
+    "chemicals": [
+      "Phosgene",
+      "Hydrogen Cyanide",
+      "Chlorine",
+      "Sulfuric Acid",
+      "Nitrogen Dioxide"
+    ],
+    "ground_truth": {
+      "Phosgene": "DELAYED",
+      "Hydrogen Cyanide": "IMMEDIATE",
+      "Chlorine": "IMMEDIATE",
+      "Sulfuric Acid": "IMMEDIATE",
+      "Nitrogen Dioxide": "DELAYED"
+    },
+    "onset_keywords": {
+      "Phosgene": ["delayed", "hours", "latent"],
+      "Hydrogen Cyanide": ["immediate", "rapid", "minutes"],
+      "Chlorine": ["immediate", "minutes"],
+      "Sulfuric Acid": ["immediate"],
+      "Nitrogen Dioxide": ["delayed", "hours"]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_casualty_triage"
+    }
+  }
+}

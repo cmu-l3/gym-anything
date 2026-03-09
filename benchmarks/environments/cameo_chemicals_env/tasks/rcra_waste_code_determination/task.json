@@ -1,0 +1,61 @@
+{
+  "id": "rcra_waste_code_determination@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "You are an EHS manager processing chemical waste. Research the following 5 chemicals on CAMEO Chemicals (https://cameochemicals.noaa.gov/): Acetone (CAS 67-64-1), Acetic Acid, Glacial (CAS 64-19-7), Thionyl Chloride (CAS 7719-09-7), Hydrochloric Acid (CAS 7647-01-0), and Ethylene Glycol (CAS 107-21-1). \n\nFor each chemical, determine:\n1. Flash Point (°F)\n2. Corrosivity (Is it 'Corrosive'?)\n3. Water Reactivity (Does it 'React violently with water'?)\n\nApply these RCRA waste code rules:\n- D001 (Ignitable): Flash Point < 140°F\n- D002 (Corrosive): Explicitly listed as 'Corrosive'\n- D003 (Reactive): Explicitly listed as 'Water Reactive' or 'Reacts violently with water'\n\nCreate a CSV file at '/home/ga/Documents/waste_classification.csv' with columns: 'Chemical Name', 'Flash Point (F)', 'Corrosive?', 'Water Reactive?', 'RCRA Codes'. For the 'RCRA Codes' column, separate multiple codes with a semicolon (e.g., 'D001; D002') or write 'None' if none apply.",
+  "difficulty": "medium",
+  "tags": ["cameo", "rcra", "waste-codes", "hazmat", "compliance", "chemistry"],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rcra_waste_code_determination/setup_task.sh",
+    "post_task": "/workspace/tasks/rcra_waste_code_determination/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/waste_classification.csv",
+    "ground_truth": {
+      "Acetone": {
+        "fp_min": -20,
+        "fp_max": 20,
+        "corrosive": false,
+        "water_reactive": false,
+        "codes": ["D001"]
+      },
+      "Acetic Acid": {
+        "fp_min": 90,
+        "fp_max": 120,
+        "corrosive": true,
+        "water_reactive": false,
+        "codes": ["D001", "D002"]
+      },
+      "Thionyl Chloride": {
+        "fp_check": "none",
+        "corrosive": true,
+        "water_reactive": true,
+        "codes": ["D002", "D003"]
+      },
+      "Hydrochloric Acid": {
+        "fp_check": "none",
+        "corrosive": true,
+        "water_reactive": false,
+        "codes": ["D002"]
+      },
+      "Ethylene Glycol": {
+        "fp_min": 200,
+        "fp_max": 260,
+        "corrosive": false,
+        "water_reactive": false,
+        "codes": []
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rcra_waste_code_determination"
+    }
+  }
+}

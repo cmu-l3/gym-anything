@@ -1,0 +1,59 @@
+{
+    "task_id": "configure_parasitic_load_filter@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "input_name",
+            "metadata_value": "workshop_power",
+            "verified_value": "workshop_power",
+            "source": "setup_task.sh:18 creates input with 'node=workshop&json={workshop_power:150}'; export_result.sh:14 confirms INPUT_NAME='workshop_power'",
+            "status": "verified"
+        },
+        {
+            "key": "parasitic_load",
+            "metadata_value": 45,
+            "verified_value": 45,
+            "source": "export_result.sh:29 explicitly states '40 - 45 = -5'; verifier.py:61 validates Test A expects 0 for input 40 (implying 45W parasitic load)",
+            "status": "verified"
+        },
+        {
+            "key": "target_feed_name",
+            "metadata_value": "workshop_production_load",
+            "verified_value": "workshop_production_load",
+            "source": "export_result.sh:13 defines FEED_NAME='workshop_production_load'; setup_task.sh:33 confirms same feed name to be created",
+            "status": "verified"
+        },
+        {
+            "key": "test_case_low_input",
+            "metadata_value": 40,
+            "verified_value": 40,
+            "source": "export_result.sh:30 sets TEST_A_INPUT=40",
+            "status": "verified"
+        },
+        {
+            "key": "test_case_low_expect",
+            "metadata_value": 0,
+            "verified_value": 0,
+            "source": "export_result.sh:31 sets TEST_A_EXPECT=0; verifier.py:61-68 validates this as clamping logic (40 - 45 = -5 → 0)",
+            "status": "verified"
+        },
+        {
+            "key": "test_case_high_input",
+            "metadata_value": 145,
+            "verified_value": 145,
+            "source": "export_result.sh:48 sets TEST_B_INPUT=145",
+            "status": "verified"
+        },
+        {
+            "key": "test_case_high_expect",
+            "metadata_value": 100,
+            "verified_value": 100,
+            "source": "export_result.sh:49 sets TEST_B_EXPECT=100; verifier.py:72 validates subtraction logic (145 - 45 = 100)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The configure_parasitic_load_filter task requires configuring Emoncms input processing to subtract 45W from workshop_power input and clamp negative results to 0, logging to workshop_production_load feed at 10s interval. All metadata claims are verified: input_name is workshop_power; parasitic_load is 45W; target_feed_name is workshop_production_load; test_case_low_input is 40 (expects 0 output after 40-45=-5 clamped); test_case_high_input is 145 (expects 100 output after 145-45=100). Emoncms supports required operations: offset processor for subtraction, allow_positive for clamping, and PHPFina feeds support 10-second intervals. Data is synthetic, created by setup script posting test values.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,94 @@
+{
+    "task_id": "emergency_communication_prep@1",
+    "dataset": "SpamAssassin Public Corpus",
+    "case_id": "ham_001-ham_050, spam_001-spam_020",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "data_source",
+            "metadata_value": "Not explicitly stated in metadata",
+            "verified_value": "SpamAssassin public mail corpus (http://spamassassin.apache.org/publiccorpus/)",
+            "source": "Email header analysis - emails contain SpamAssassin mailing list headers from 2002; setup_task.sh loads from /workspace/assets/emails/{ham,spam}",
+            "status": "verified"
+        },
+        {
+            "key": "data_is_real_or_synthetic",
+            "metadata_value": "Not stated",
+            "verified_value": "Real emails from public mailing lists (EXMH developers, SpamAssassin talk, SecurityFocus, Irish Linux Users Group, etc.) dated August 2002",
+            "source": "Email content analysis; From/To headers show real discussion threads from established open-source projects",
+            "status": "verified"
+        },
+        {
+            "key": "initial_inbox_size",
+            "metadata_value": "Not stated in metadata",
+            "verified_value": "50 ham emails",
+            "source": "setup_task.sh lines 42-54: loads up to 50 ham emails with break condition [ $IDX -ge 50 ]",
+            "status": "verified"
+        },
+        {
+            "key": "spam_folder_size",
+            "metadata_value": "Not stated in metadata",
+            "verified_value": "20 spam emails",
+            "source": "setup_task.sh lines 56-68: loads up to 20 spam emails with break condition [ $SPAM_IDX -ge 20 ]",
+            "status": "verified"
+        },
+        {
+            "key": "total_available_emails",
+            "metadata_value": "Not stated in metadata",
+            "verified_value": "70 emails total (50 ham + 20 spam)",
+            "source": "Glob count of /workspace/assets/emails/*/*.eml files; setup_task.sh configuration",
+            "status": "verified"
+        },
+        {
+            "key": "required_folders",
+            "metadata_value": "[\"Incident-Infrastructure\", \"Incident-Security\", \"Incident-Software\"]",
+            "verified_value": "Same - these are task requirements (folder names to be created by agent)",
+            "source": "task.json metadata.required_folders; verifier.py lines 62-70",
+            "status": "verified"
+        },
+        {
+            "key": "min_emails_moved",
+            "metadata_value": "5",
+            "verified_value": "5 - verified as task requirement",
+            "source": "task.json metadata.min_emails_moved; verifier.py line 75: checks total_populated_count >= 5",
+            "status": "verified"
+        },
+        {
+            "key": "required_draft_recipients",
+            "metadata_value": "[\"infra-alerts@company.com\", \"security-team@company.com\", \"engineering@company.com\", \"cto@company.com\"]",
+            "verified_value": "Same recipients verified in verifier.py",
+            "source": "task.json metadata.required_drafts; verifier.py lines 108-172",
+            "status": "verified"
+        },
+        {
+            "key": "cto_draft_subject_keyword",
+            "metadata_value": "\"Communication\"",
+            "verified_value": "Verifier accepts: ['Emergency', 'Incident', 'Communication'] - MORE LENIENT than metadata",
+            "source": "task.json metadata line 40 specifies 'Communication'; verifier.py lines 151-153 shows: for kw in ['Emergency', 'Incident', 'Communication']",
+            "status": "contradicted"
+        },
+        {
+            "key": "body_placeholders",
+            "metadata_value": "[\"affected\", \"estimated\", \"recovery\", \"threat\", \"scope\", \"workaround\", \"error\", \"escalation\"]",
+            "verified_value": "Same - verifier checks if >= 1 placeholder appears in each template body",
+            "source": "task.json metadata.body_placeholders; verifier.py lines 39, 115-118, 127-131, 140-144",
+            "status": "verified"
+        },
+        {
+            "key": "success_threshold_score",
+            "metadata_value": "Not stated in metadata",
+            "verified_value": "60 points (out of 100 possible)",
+            "source": "verifier.py line 22 comment 'Pass Threshold: 60 pts'; line 177: passed = score >= 60",
+            "status": "verified"
+        },
+        {
+            "key": "max_draft_body_placeholder_points",
+            "metadata_value": "Not stated",
+            "verified_value": "9 points total (3 points per template × 3 templates, with requirement of >= 1 placeholder per template)",
+            "source": "verifier.py lines 16-17; each template checks body quality for 3 pts if has placeholders",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses real email data from the SpamAssassin public corpus (70 emails total: 50 ham emails in inbox, 20 spam emails in junk). All emails are from August 2002 and sourced from real public mailing lists including EXMH developers, SpamAssassin discussions, SecurityFocus, and Irish Linux Users Group. The agent must create three incident folders and move at least 5 emails into them, then draft four email templates with specific recipient addresses. A discrepancy exists: the metadata specifies the CTO email subject keyword must be 'Communication', but the verifier accepts 'Emergency', 'Incident', or 'Communication', making the verifier more lenient than the stated requirement.",
+    "pi_confidence": "high"
+}

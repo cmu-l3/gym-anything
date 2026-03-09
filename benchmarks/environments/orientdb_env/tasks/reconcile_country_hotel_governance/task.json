@@ -1,0 +1,39 @@
+{
+  "id": "reconcile_country_hotel_governance@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "A governance regression corrupted country normalization in both master data and flagship hotel records for UK/Netherlands coverage. Use OrientDB Studio at http://localhost:2480/studio/index.html with server credentials root / GymAnything123! and connect to demodb. Restore canonical values for the affected country and hotel records, re-establish a UNIQUE constraint on Countries.Name, and produce a remediation audit trail in GovernanceFixLog with the required issue keys and ownership.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 90,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/reconcile_country_hotel_governance/setup_task.sh",
+    "post_task": "/workspace/tasks/reconcile_country_hotel_governance/export_result.sh"
+  },
+  "metadata": {
+    "expected_country_types": {
+      "United Kingdom": "European",
+      "Netherlands": "European"
+    },
+    "expected_hotel_countries": {
+      "The Savoy": "United Kingdom",
+      "Intercontinental Amsterdam": "Netherlands"
+    },
+    "expected_issue_keys": [
+      "COUNTRY_NL_TYPE",
+      "COUNTRY_UK_TYPE",
+      "HOTEL_ICA_COUNTRY",
+      "HOTEL_SAVOY_COUNTRY"
+    ],
+    "required_resolved_by": "data_governance"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_reconcile_country_hotel_governance"
+    }
+  }
+}

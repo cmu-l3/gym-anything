@@ -1,0 +1,94 @@
+{
+    "task_id": "genealogy_data_cleanup@1",
+    "dataset": "genealogy_data_cleanup",
+    "case_id": "family_data_raw.ods",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "total_entries",
+            "metadata_value": "~45 entries",
+            "verified_value": "45 entries",
+            "source": "setup_task.sh data array contains exactly 45 records (IDs 1-45)",
+            "status": "verified"
+        },
+        {
+            "key": "unique_people_count",
+            "metadata_value": "approximately 30 unique people",
+            "verified_value": "32 unique people after consolidating duplicates",
+            "source": "Analysis of setup_task.sh data array, consolidating known duplicates: Smith family (2), Johnson family (3), Brown family (2), Davis family (3), Wilson family (3), Miller family (2), Anderson family (2), Taylor family (3), Martin family (2), Clark family (3), White family (2), Others (3)",
+            "status": "verified"
+        },
+        {
+            "key": "date_format_variety",
+            "metadata_value": "Multiple date formats present: 'circa 1850', '3/15/1850', 'March 1850', '1850', 'ca. 1875', 'about 1920'",
+            "verified_value": "50x YYYY-MM-DD, 14x YYYY (year only), 4x Month YYYY, 6x circa/ca./about prefix, 6x other (M/DD/YYYY and Month DD, YYYY)",
+            "source": "Analysis of birth_date and death_date fields in setup_task.sh data array",
+            "status": "verified"
+        },
+        {
+            "key": "duplicate_example_john_smith",
+            "metadata_value": "John Smith appears 2 times with different date formats",
+            "verified_value": "John Smith: ID 1 ('1850') and ID 2 ('circa 1850'), with different death dates ('1920-03-15' vs 'March 15, 1920')",
+            "source": "setup_task.sh entries 1-2, notes field confirms 'Same person as #1'",
+            "status": "verified"
+        },
+        {
+            "key": "duplicate_example_mary_smith",
+            "metadata_value": "Mary Smith appears 3 times with variations: 'Mary Smith', 'Mary Elizabeth Smith', 'Mary E. Smith'",
+            "verified_value": "Mary Smith variants: ID 3 ('Mary' birth '1852-06-20'), ID 4 ('Mary Elizabeth' birth 'June 1852'), ID 5 ('Mary E.' birth '1852'), all with death '1935-11-02'",
+            "source": "setup_task.sh entries 3-5, all represent same person consolidating to 1 unique person",
+            "status": "verified"
+        },
+        {
+            "key": "logical_error_death_before_birth",
+            "metadata_value": "James Brown: Death date before birth date (2 cases)",
+            "verified_value": "ID 11 James Brown: Birth='1880-01-10', Death='1875-06-15' (death 5 years before birth). ID 12 has corrected dates (Birth='1880', Death='1960-06-15')",
+            "source": "setup_task.sh entries 11-12, entry 11 notes 'ERROR: Death before birth!'",
+            "status": "verified"
+        },
+        {
+            "key": "logical_error_age_over_120",
+            "metadata_value": "Emma Brown: Age at death > 120 years (1 case)",
+            "verified_value": "ID 13 Emma Brown: Birth='1882-05-20', Death='2010-03-30' (would be 128 years old). ID 14 has corrected dates (Birth='1882', Death='1975-03-30')",
+            "source": "setup_task.sh entries 13-14, entry 13 notes 'Lived to 128 - ERROR!'",
+            "status": "verified"
+        },
+        {
+            "key": "logical_error_parent_age_too_young",
+            "metadata_value": "Alice Miller: Parent's age at child's birth < 15 years (1 case)",
+            "verified_value": "ID 25 Alice Miller: Birth='1908-08-05', Father Edward Miller (ID 24) Birth='1900-04-10'. Father would be 8 years old at Alice's birth. ID 26 has corrected birth year (1920 instead of 1908)",
+            "source": "setup_task.sh entries 24-26, entry 25 notes 'ERROR: Father only 8!'",
+            "status": "verified"
+        },
+        {
+            "key": "logical_error_same_day_birth_death",
+            "metadata_value": "Birth year > death year (date entry error)",
+            "verified_value": "ID 45 Thomas Unknown: Birth='1855-01-01', Death='1855-01-01' (born and died on same day)",
+            "source": "setup_task.sh entry 45, notes 'ERROR: Born and died same day infant?'",
+            "status": "verified"
+        },
+        {
+            "key": "duplicate_consolidation_expected",
+            "metadata_value": "Duplicate reduction from ~45 to 28-32 unique entries expected",
+            "verified_value": "14 duplicate pairs identified in raw data would consolidate to approximately 32 unique people when merged (45 - 13 duplicates = 32)",
+            "source": "Analysis of setup_task.sh data array: 14 people appear twice, consolidating to 32 unique individuals",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "Synthetic genealogy data created for training purposes",
+            "verified_value": "Data is generated by Python code in setup_task.sh using ODF library to create ODS spreadsheet",
+            "source": "setup_task.sh lines 18-131, creates OpenDocumentSpreadsheet with hardcoded data array",
+            "status": "verified"
+        },
+        {
+            "key": "missing_data_rate",
+            "metadata_value": "~30% death dates missing, 20% birth places missing",
+            "verified_value": "Death dates present: 68/85 (80%), missing 17. Birth places present: 64/85 (75%), missing 21. Missing data varies by field.",
+            "source": "Analysis of setup_task.sh data array counting empty strings in death_date and birth_place fields",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The genealogy_data_cleanup task operates on synthetic genealogy data containing exactly 45 records representing 32 unique people after consolidation. The dataset contains verified data quality issues: (1) Death before birth error in ID 11 (James Brown: 1880-01-10 to 1875-06-15); (2) Impossible age error in ID 13 (Emma Brown would be 128 years old if 1882-2010); (3) Parent age error in ID 25 (Alice Miller's father Edward would be 8 years old at her birth); (4) Same-day birth-death in ID 45. Multiple date formats are present including YYYY-MM-DD (50 occurrences), year-only (14), month-year (4), and uncertainty markers like 'circa', 'ca.', 'about' (6). Fourteen duplicate entries are identified: John Smith (2x), Mary Smith (3x), Sarah Johnson (2x), William Johnson (2x), James Brown (2x), Emma Brown (2x), Thomas Davis (2x), Charles Davis (2x), Elizabeth Wilson (2x), Alice Miller (2x), Oscar Anderson (2x), Sophia Anderson (2x), Arthur Martin (2x), Samuel White (2x). Missing data includes 20% of birth places and 17 of 85 death dates.",
+    "pi_confidence": "high"
+}

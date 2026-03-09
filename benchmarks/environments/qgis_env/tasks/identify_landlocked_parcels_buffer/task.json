@@ -1,0 +1,30 @@
+{
+  "id": "identify_landlocked_parcels_buffer@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "Identify land parcels that do not touch the road network and create a 10-meter easement buffer around them.\n\n1. Open QGIS.\n2. Load the parcel layer from '/home/ga/GIS_Data/cadastral/subdivision_parcels.geojson' and the road network from '/home/ga/GIS_Data/cadastral/road_network.geojson'. Both are in WGS84 (EPSG:4326).\n3. To perform accurate metric buffering, first reproject both layers to 'WGS 84 / UTM zone 10N' (EPSG:32610). You can do this by exporting/saving them as new files with the target CRS.\n4. Select the parcels that are ISOLATED (i.e., disjoint from the road network). These are parcels that do NOT share any boundary with a road line.\n5. Run the Buffer tool on ONLY the selected isolated parcels. Set the buffer distance to 10 meters.\n6. Save the buffered result to '/home/ga/GIS_Data/exports/easement_buffers.geojson'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/identify_landlocked_parcels_buffer/setup_task.sh",
+    "post_task": "/workspace/tasks/identify_landlocked_parcels_buffer/export_result.sh"
+  },
+  "metadata": {
+    "parcels_source": "/home/ga/GIS_Data/cadastral/subdivision_parcels.geojson",
+    "roads_source": "/home/ga/GIS_Data/cadastral/road_network.geojson",
+    "expected_output": "/home/ga/GIS_Data/exports/easement_buffers.geojson",
+    "expected_feature_count": 2,
+    "min_area_m2": 14000,
+    "max_area_m2": 15000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_identify_landlocked_parcels_buffer"
+    }
+  }
+}

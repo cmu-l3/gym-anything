@@ -1,0 +1,28 @@
+{
+  "id": "evaluate_development_flood_risk@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Calculate flood risk for a list of proposed development sites using the Muncie HEC-RAS model.\n\nContext: A developer has proposed several sites along the White River. You need to determine which sites would be flooded during the modeled event (Plan 04) and estimate the financial damage.\n\nInput Data:\n1. HEC-RAS Results: '~/Documents/hec_ras_projects/Muncie/Muncie.p04.hdf' (or .tmp.hdf)\n2. Site List: '~/Documents/hec_ras_projects/Muncie/proposed_development_sites.csv' (contains Site_ID, River_Station, First_Floor_Elevation_ft, Property_Value_USD)\n\nTask:\n1. Extract the Maximum Water Surface Elevation (WSE) for each site's River Station from the HEC-RAS results.\n2. Calculate Flood Depth: Depth = Max_WSE - First_Floor_Elevation. (If negative, Depth is 0).\n3. Calculate Damage Cost using this schedule:\n   - Depth = 0 ft: $0\n   - 0 < Depth < 2.0 ft: 10% of Property Value\n   - 2.0 <= Depth < 5.0 ft: 25% of Property Value\n   - Depth >= 5.0 ft: 50% of Property Value\n\nOutput Requirements:\n1. Save a CSV report to '~/Documents/hec_ras_results/site_risk_assessment.csv' with columns: Site_ID, River_Station, Max_WSE_ft, Flood_Depth_ft, Damage_USD.\n2. Save a summary text file to '~/Documents/hec_ras_results/risk_summary.txt' containing the total number of sites, number of damaged sites, and total damage cost (formatted as currency).\n\nUse Python for the analysis. The 'h5py' and 'pandas' libraries are installed.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_development_flood_risk/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_development_flood_risk/export_result.sh"
+  },
+  "metadata": {
+    "ground_truth_path": "/var/lib/hec_ras/ground_truth.csv",
+    "input_csv_path": "/home/ga/Documents/hec_ras_projects/Muncie/proposed_development_sites.csv",
+    "expected_output_csv": "/home/ga/Documents/hec_ras_results/site_risk_assessment.csv",
+    "expected_output_txt": "/home/ga/Documents/hec_ras_results/risk_summary.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_risk_assessment"
+    }
+  }
+}

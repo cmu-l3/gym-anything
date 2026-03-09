@@ -1,0 +1,33 @@
+{
+  "id": "define_blade_structural_props@1",
+  "version": "1.0",
+  "env_id": "example.qblade_env@0.1",
+  "description": "Define the structural properties of a wind turbine blade in QBlade.\n\n1. **Prerequisites**: Generate a NACA 0012 airfoil (100 panels) and run an XFoil polar analysis (Re=1,000,000, NCrit=9, AoA -5 to 20) so it is available for blade design.\n\n2. **Blade Geometry**: Go to the 'Blade Design' module. Create a new blade named 'StructBlade10'. Define 3 sections at positions **0 m**, **5 m**, and **10 m**. Use Chord=1.0m and Twist=0 for all sections. Assign the NACA 0012 airfoil to all sections.\n\n3. **Structural Data**: Switch to the 'Structural Data' sub-tab/view in the Blade Design module. Enter the following distributed properties:\n   - **Pos 0m**: Mass = 40 kg/m, Stiffness (EI) = 1.0e7\n   - **Pos 5m**: Mass = 20 kg/m, Stiffness (EI) = 0.5e7\n   - **Pos 10m**: Mass = 5 kg/m, Stiffness (EI) = 0.1e7\n   *(Ensure you edit the Mass and Stiffness columns, not the geometry columns)*\n\n4. **Report & Save**:\n   - Find the calculated 'Total Blade Mass' in the blade info panel.\n   - Create a text file at `/home/ga/Documents/blade_mass.txt` containing just the numeric mass value in kg (e.g., 212.5).\n   - Save the project as `/home/ga/Documents/projects/structural_design.wpa`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/define_blade_structural_props/setup_task.sh",
+    "post_task": "/workspace/tasks/define_blade_structural_props/export_result.sh"
+  },
+  "metadata": {
+    "expected_project_path": "/home/ga/Documents/projects/structural_design.wpa",
+    "expected_report_path": "/home/ga/Documents/blade_mass.txt",
+    "target_mass_kg": 212.5,
+    "mass_tolerance": 2.5,
+    "blade_name": "StructBlade10",
+    "structural_values": {
+      "mass": [40, 20, 5],
+      "stiffness": [10000000, 5000000, 1000000]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_blade_structural_props"
+    }
+  }
+}

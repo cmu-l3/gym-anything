@@ -1,0 +1,73 @@
+{
+    "task_id": "add_admin_flight_count@1",
+    "dataset": "Aerobridge (openutm-labs/aerobridge - archived OSS project)",
+    "case_id": "registry.models.Aircraft admin.py customization",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_file",
+            "metadata_value": "/opt/aerobridge/registry/admin.py",
+            "verified_value": "/opt/aerobridge/registry/admin.py (file exists in real Aerobridge codebase at registry/admin.py)",
+            "source": "GitHub: openutm-labs/aerobridge repository, registry/admin.py exists on master branch",
+            "status": "verified"
+        },
+        {
+            "key": "expected_header",
+            "metadata_value": "Plan Count",
+            "verified_value": "Plan Count is a reasonable Django admin column header string",
+            "source": "Django admin conventions for custom readonly fields with short_description attributes",
+            "status": "verified"
+        },
+        {
+            "key": "admin_url",
+            "metadata_value": "http://localhost:8000/admin/registry/aircraft/",
+            "verified_value": "http://localhost:8000/admin/registry/aircraft/ (correct Django admin URL pattern for Aircraft list view)",
+            "source": "Django admin URL routing: /admin/<app_label>/<model_name>/",
+            "status": "verified"
+        },
+        {
+            "key": "Aircraft-FlightPlan_relationship",
+            "metadata_value": "Implicit assumption: Aircraft has related FlightPlan objects to count",
+            "verified_value": "CONTRADICTION: FlightPlan model has NO foreign key or relationship to Aircraft. FlightPlan contains only: id, name, plan_file_json, geo_json, is_editable, created_at, updated_at. Aircraft has foreign keys to Operator and Company only.",
+            "source": "GitHub: openutm-labs/aerobridge/blob/master/registry/models.py (Aircraft definition) and gcs_operations/models.py (FlightPlan definition)",
+            "status": "contradicted"
+        },
+        {
+            "key": "FlightOperation-Aircraft_relationship",
+            "metadata_value": "Not mentioned in task, but relevant to actual data structure",
+            "verified_value": "FlightOperation model (gcs_operations) has ForeignKey(Aircraft, field_name='drone'), not FlightPlan",
+            "source": "GitHub: openutm-labs/aerobridge/blob/master/gcs_operations/models.py - FlightOperation class definition",
+            "status": "verified"
+        },
+        {
+            "key": "setup_task_FlightPlan_creation",
+            "metadata_value": "Implicit in setup_task.sh: FlightPlan.objects.create(..., aircraft=ac) is expected to work",
+            "verified_value": "CONTRADICTION: This code will FAIL. FlightPlan model has no 'aircraft' field. Attempting to pass aircraft=ac will raise TypeError.",
+            "source": "Code analysis: setup_task.sh line 51 attempts FlightPlan creation with aircraft parameter; registry/models.py FlightPlan definition has no such field",
+            "status": "contradicted"
+        },
+        {
+            "key": "AircraftAdmin_exists_in_real_codebase",
+            "metadata_value": "Implicit assumption: AircraftAdmin class needs to be created/modified",
+            "verified_value": "VERIFIED: Aircraft is registered with SimpleHistoryAdmin directly (no custom AircraftAdmin class exists). Task requires creating new AircraftAdmin class.",
+            "source": "GitHub: openutm-labs/aerobridge/blob/master/registry/admin.py - line shows admin.site.register(Aircraft, SimpleHistoryAdmin)",
+            "status": "verified"
+        },
+        {
+            "key": "Aerobridge_project_status",
+            "metadata_value": "Active open-source project (implied by use as test environment)",
+            "verified_value": "Aerobridge repository is ARCHIVED as of December 2023. Aerobridge Pro is recommended for professional use.",
+            "source": "GitHub openutm-labs/aerobridge main page indicates 'archived' status",
+            "status": "contradicted"
+        },
+        {
+            "key": "task_data_authenticity",
+            "metadata_value": "Uses Aerobridge application",
+            "verified_value": "MIXED: Aircraft data comes from real Aerobridge fixture data (fixtures/initial_data.json from openutm-labs/aerobridge project); FlightPlan test data is synthetically injected by setup_task.sh",
+            "source": "setup_task.sh creates synthetic FlightPlan records; install_aerobridge.sh loads real fixture data from Aerobridge project",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The add_admin_flight_count task references a real Django application (Aerobridge) and real model (Aircraft from registry app) with authentic fixture data (from openutm-labs/aerobridge open-source project). The target file /opt/aerobridge/registry/admin.py exists in the real codebase. However, there is a critical structural contradiction: the task asks to count 'Flight Plans associated with each aircraft,' but the FlightPlan model has NO relationship to Aircraft in the actual codebase. FlightPlan contains only JSON fields and timestamps. The actual relationship exists between Aircraft and FlightOperation (via drone field), not FlightPlan. Additionally, the setup_task.sh script attempts to create FlightPlan objects with an 'aircraft' parameter that does not exist in the model definition, which would cause a runtime error. The Aerobridge repository is archived (December 2023), and Aircraft is registered with SimpleHistoryAdmin (no custom AircraftAdmin class exists in the real codebase).",
+    "pi_confidence": "high"
+}

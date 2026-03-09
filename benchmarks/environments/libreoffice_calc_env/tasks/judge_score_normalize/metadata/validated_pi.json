@@ -1,0 +1,87 @@
+{
+    "task_id": "judge_score_normalize@1",
+    "dataset": null,
+    "case_id": "pie_competition_8pies_4judges",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "judge_2_score_range",
+            "metadata_value": "Judge 2 is harsh (scores 4-6)",
+            "verified_value": "Judge 2 scores range from 4 to 6",
+            "source": "Direct analysis of hardcoded CSV data in setup_task.sh. Judge 2 scores are: [5, 6, 4, 5, 5, 6, 5, 4]",
+            "status": "verified"
+        },
+        {
+            "key": "judge_4_score_range",
+            "metadata_value": "Judge 4 is generous (scores 9-10)",
+            "verified_value": "Judge 4 scores range from 9 to 10",
+            "source": "Direct analysis of hardcoded CSV data in setup_task.sh. Judge 4 scores are: [9, 10, 9, 10, 9, 10, 9, 9]",
+            "status": "verified"
+        },
+        {
+            "key": "dataset_size",
+            "metadata_value": "8 pies × 4 judges (32 total scores)",
+            "verified_value": "8 pies × 4 judges = 32 scores",
+            "source": "CSV data in setup_task.sh contains exactly 8 pie entries (Apple Classic, Cherry Bomb, Pecan Dream, Pumpkin Spice, Blueberry Bliss, Lemon Meringue, Chocolate Silk, Key Lime Tart) each with 4 judge scores",
+            "status": "verified"
+        },
+        {
+            "key": "normalization_method",
+            "metadata_value": "Z-score standardization: z = (score - mean) / stdev",
+            "verified_value": "Z-score formula is correctly implemented in verifier.py lines 187-191: z = (score - mean) / std where std is calculated with ddof=1 (sample standard deviation)",
+            "source": "Code analysis of verifier.py::calculate_expected_zscores function",
+            "status": "verified"
+        },
+        {
+            "key": "judge_1_score_range",
+            "metadata_value": "Judge 1 (moderate): scores 6-9",
+            "verified_value": "Judge 1 scores range from 6 to 9",
+            "source": "Direct analysis of CSV data. Judge 1 scores are: [7, 9, 6, 8, 7, 9, 8, 6] with min=6, max=9",
+            "status": "verified"
+        },
+        {
+            "key": "judge_3_score_range",
+            "metadata_value": "Judge 3 (moderate): scores 6-9",
+            "verified_value": "Judge 3 scores range from 6 to 9",
+            "source": "Direct analysis of CSV data. Judge 3 scores are: [8, 9, 7, 8, 7, 9, 8, 6] with min=6, max=9",
+            "status": "verified"
+        },
+        {
+            "key": "expected_top_3_winners",
+            "metadata_value": "Top 3 winners after z-score normalization",
+            "verified_value": "Top 3 are: (1) Cherry Bomb (avg z=1.248), (2) Lemon Meringue (avg z=1.248), (3) Pumpkin Spice (avg z=0.467)",
+            "source": "Z-score calculation using formula z=(x-mean)/std for each judge independently, then averaging z-scores across judges per pie. Verified with numpy calculation.",
+            "status": "verified"
+        },
+        {
+            "key": "data_provenance",
+            "metadata_value": "Task data source",
+            "verified_value": "Data is synthetic/hardcoded, created in setup_task.sh as embedded CSV string",
+            "source": "setup_task.sh lines 13-23 contain hardcoded 'cat > ... << CSVEOF' with all data values",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_function_name",
+            "metadata_value": "verify_score_normalization",
+            "verified_value": "Function exists at verifier.py line 340: def verify_score_normalization(traj, env_info, task_info)",
+            "source": "File inspection of verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "judge_bias_demonstration",
+            "metadata_value": "Judge 2 is notably harsher than Judge 4",
+            "verified_value": "Judge 2: mean=5.0, std=0.756 vs Judge 4: mean=9.375, std=0.518 (difference of 4.375 in mean scores)",
+            "source": "Statistical analysis of scores. Judge 2's mean is 4.375 points lower than Judge 4's mean.",
+            "status": "verified"
+        },
+        {
+            "key": "normalization_impact",
+            "metadata_value": "Z-score normalization should produce different rankings than naive averaging",
+            "verified_value": "Normalization produces IDENTICAL rankings to naive averaging",
+            "source": "Computed both naive average rankings and z-score based rankings. Both produce: 1=Cherry Bomb, 2=Lemon Meringue, 3=Pumpkin Spice, 4=Chocolate Silk, 5=Apple Classic, 6=Blueberry Bliss, 7=Pecan Dream, 8=Key Lime Tart. Zero differences.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task uses synthetic data with 8 pies rated by 4 judges. Judge 2 is harsh (scores 4-6, mean=5.0) while Judge 4 is generous (scores 9-10, mean=9.375), showing clear judge bias. The task requires z-score normalization using the formula z=(score-mean)/stdev for each judge independently, then ranking pies by average z-scores. The expected top 3 winners are: Cherry Bomb, Lemon Meringue, and Pumpkin Spice. However, for this specific dataset, z-score normalization produces identical rankings to naive averaging, so normalization does not change the final rankings despite correcting for judge bias in individual scores.",
+    "pi_confidence": "high"
+}

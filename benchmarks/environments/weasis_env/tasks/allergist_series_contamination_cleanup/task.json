@@ -1,0 +1,34 @@
+{
+  "id": "allergist_series_contamination_cleanup@1",
+  "version": "1.0",
+  "env_id": "weasis_env@0.1",
+  "description": "You are an allergist-immunologist preparing a chest CT series for a clinical presentation on airway remodeling in severe asthma. The DICOM directory at /home/ga/DICOM/studies/airway_series/ should contain only chest CT images from a single CT study. However, during a recent PACS migration, several DICOM files from a completely different imaging modality (MRI brain scans) were accidentally mixed into this directory. These contaminating files belong to a different patient and modality entirely. You must identify which files do NOT belong in this CT series — they will have a different Modality tag, different patient information, or fundamentally different image characteristics — remove them from the directory (delete or move them to /home/ga/DICOM/quarantine/), and verify that only legitimate CT files remain. After cleaning the series, write a contamination report to /home/ga/DICOM/exports/contamination_report.txt documenting: how many contaminating files were found, what modality/patient they belonged to, and confirmation that the remaining files are all consistent CT images from the same study.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/allergist_series_contamination_cleanup/setup_task.sh",
+    "post_task": "/workspace/tasks/allergist_series_contamination_cleanup/export_result.sh"
+  },
+  "metadata": {
+    "target_directory": "/home/ga/DICOM/studies/airway_series/",
+    "quarantine_directory": "/home/ga/DICOM/quarantine/",
+    "export_report": "/home/ga/DICOM/exports/contamination_report.txt",
+    "occupation": "Allergist/Immunologist",
+    "clinical_scenario": "Series contamination cleanup for clinical presentation",
+    "injected_contaminants": {
+      "count": 4,
+      "source": "MR brain scan files mixed into CT chest directory",
+      "distinguishing_features": "Different Modality tag (MR vs CT), different PatientName/ID, different StudyDescription"
+    },
+    "required_features": ["dicom_header_inspection", "file_classification", "file_management", "series_validation", "text_report"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_allergist_series_contamination_cleanup"
+    }
+  }
+}

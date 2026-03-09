@@ -1,0 +1,33 @@
+{
+  "id": "size_rotor_for_5kw_output@1",
+  "version": "1.0",
+  "env_id": "example.qblade_env@0.1",
+  "description": "Perform an iterative design sizing exercise to determine the specific rotor radius required to produce exactly 5 kW of mechanical power.\n\nTarget Conditions:\n- Rated Wind Speed: 10 m/s\n- Tip Speed Ratio (TSR): 6\n- Target Power: 5000 W (+/- 50 W)\n\nWorkflow:\n1. Generate a NACA 4412 airfoil (100 panels), run XFoil analysis (Re=1e6, NCrit=9), and perform 360-degree extrapolation.\n2. Design a simple 3-bladed rotor with constant chord (0.25 m) and zero twist (0 deg) using this airfoil.\n3. Run a BEM Rotor Simulation at the target conditions (10 m/s, TSR 6).\n4. Iteratively adjust the blade length (using the Scale Blade tool or by modifying station positions) and re-simulate until the power output is between 4950 W and 5050 W.\n\nDeliverables:\n1. Save the final QBlade project to '/home/ga/Documents/projects/sized_rotor_5kw.wpa'.\n2. Export the successful BEM simulation result data to '/home/ga/Documents/projects/final_simulation.txt'.\n3. Create a text file at '/home/ga/Documents/projects/sizing_result.txt' containing the text 'Final Radius: X.XX m' (where X.XX is your determined radius).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/size_rotor_for_5kw_output/setup_task.sh",
+    "post_task": "/workspace/tasks/size_rotor_for_5kw_output/export_result.sh"
+  },
+  "metadata": {
+    "target_power_watts": 5000,
+    "tolerance_watts": 50,
+    "target_tsr": 6,
+    "target_wind_speed": 10,
+    "min_plausible_radius": 2.2,
+    "max_plausible_radius": 3.2,
+    "project_path": "/home/ga/Documents/projects/sized_rotor_5kw.wpa",
+    "simulation_path": "/home/ga/Documents/projects/final_simulation.txt",
+    "result_text_path": "/home/ga/Documents/projects/sizing_result.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_size_rotor_for_5kw_output"
+    }
+  }
+}

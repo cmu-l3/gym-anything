@@ -1,0 +1,49 @@
+{
+  "id": "graph_history_tracking@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "Implement a history tracking mechanism for the 'Hotels' class in the 'demodb' database. \n\n1. **Schema Changes**: \n   - Create a new vertex class named 'HotelHistory'.\n   - Add properties to 'HotelHistory': 'OriginalName' (String), 'OriginalStars' (Integer), 'OriginalPhone' (String), 'MutationReason' (String).\n   - Create a new edge class named 'HasHistory'.\n\n2. **Perform Versioned Updates**: \n   For each of the following changes, you must first create a 'HotelHistory' vertex containing the *current* (old) values of the hotel, link the hotel to it via a 'HasHistory' edge, and then update the hotel record.\n\n   - **Update 1**: Change 'Hotel Artemide' Stars to 5.\n     - History Record: Save current Name, Stars (4), Phone. Set MutationReason = 'Annual Review'.\n   - **Update 2**: Change 'The Savoy' Phone to '+44-20-9999-8888'.\n     - History Record: Save current Name, Stars, Phone (+44-20-7836-4343). Set MutationReason = 'Correction'.\n   - **Update 3**: Rename 'Hotel Adlon Kempinski' to 'Adlon Kempinski Berlin'.\n     - History Record: Save current Name (Hotel Adlon Kempinski), Stars, Phone. Set MutationReason = 'Rebranding'.\n\nStarting state: OrientDB Studio is open. Credentials: root / GymAnything123!.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/graph_history_tracking/setup_task.sh",
+    "post_task": "/workspace/tasks/graph_history_tracking/export_result.sh"
+  },
+  "metadata": {
+    "db_name": "demodb",
+    "required_classes": ["HotelHistory", "HasHistory"],
+    "targets": [
+      {
+        "original_name": "Hotel Artemide",
+        "update_field": "Stars",
+        "new_value": 5,
+        "old_value": 4,
+        "reason": "Annual Review"
+      },
+      {
+        "original_name": "The Savoy",
+        "update_field": "Phone",
+        "new_value": "+44-20-9999-8888",
+        "old_value": "+44-20-7836-4343",
+        "reason": "Correction"
+      },
+      {
+        "original_name": "Hotel Adlon Kempinski",
+        "update_field": "Name",
+        "new_value": "Adlon Kempinski Berlin",
+        "old_value": "Hotel Adlon Kempinski",
+        "reason": "Rebranding"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_graph_history_tracking"
+    }
+  }
+}

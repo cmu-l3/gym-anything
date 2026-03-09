@@ -1,0 +1,27 @@
+# Docker Compose for WordPress MariaDB
+# Database runs in Docker, WordPress runs natively on host
+
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:10.11
+    container_name: wordpress-mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpresspass
+    ports:
+      - "3306:3306"
+    volumes:
+      - wordpress_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  wordpress_db_data:

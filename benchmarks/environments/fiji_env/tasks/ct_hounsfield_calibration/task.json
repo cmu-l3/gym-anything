@@ -1,0 +1,33 @@
+{
+  "id": "ct_hounsfield_calibration@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "You are a medical physicist calibrating a raw CT scan slice. The file '~/Fiji_Data/raw/ct/patient_ct_raw.tif' contains uncalibrated detector data (16-bit grayscale). Your goal is to calibrate this image to Hounsfield Units (HU) and segment the skull.\n\n1. Open '~/Fiji_Data/raw/ct/patient_ct_raw.tif'.\n2. Identify the background (Air) and the fluid-filled lateral ventricles in the center of the brain (Water/CSF). Measure their mean gray values.\n   - Note: Air should be calibrated to -1000 HU.\n   - Note: Water should be calibrated to 0 HU.\n3. Use 'Analyze > Calibrate...' to apply a straight-line calibration function mapping your measured raw values to these HU values. Select 'Global' calibration if prompted.\n4. After calibration, verify the skull bone is bright (typically > 400 HU).\n5. Create a binary mask of the bone tissue (threshold > 400 HU). Use 'Image > Adjust > Threshold' followed by 'Edit > Selection > Create Mask' or 'Process > Binary > Convert to Mask'.\n6. Save the following outputs to '~/Fiji_Data/results/ct/':\n   - 'calibrated_ct.tif' (The image with HU values)\n   - 'bone_mask.png' (The binary mask of the skull)\n   - 'density_report.csv' (A CSV file with columns: Region, Mean_HU. Include rows for Air, Water, and Bone).\n\nEnsure the calibrated image preserves the full dynamic range (do not convert to 8-bit).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ct_hounsfield_calibration/setup_task.sh",
+    "post_task": "/workspace/tasks/ct_hounsfield_calibration/export_result.sh"
+  },
+  "metadata": {
+    "input_file": "~/Fiji_Data/raw/ct/patient_ct_raw.tif",
+    "output_calibrated": "~/Fiji_Data/results/ct/calibrated_ct.tif",
+    "output_mask": "~/Fiji_Data/results/ct/bone_mask.png",
+    "output_report": "~/Fiji_Data/results/ct/density_report.csv",
+    "reference_values": {
+      "air_hu": -1000,
+      "water_hu": 0,
+      "bone_threshold_hu": 400
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ct_calibration"
+    }
+  }
+}

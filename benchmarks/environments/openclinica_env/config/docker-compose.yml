@@ -1,0 +1,56 @@
+# Docker Compose for OpenClinica 3.13 with PostgreSQL 9.5
+# Two-service architecture: Database + Application
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:9.5
+    container_name: oc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_INITDB_ARGS: "-E 'UTF-8' --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - oc_pg_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  openclinica:
+    image: piegsaj/openclinica:oc-3.13
+    container_name: oc-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: postgres
+      DB_NAME: openclinica
+      DB_USER: clinica
+      DB_PASS: clinica
+      DB_PORT: 5432
+      LOG_LEVEL: INFO
+      TZ: UTC
+      SUPPORT_URL: "https://www.openclinica.com/community-edition-open-source-edc/"
+    ports:
+      - "8080:8080"
+    volumes:
+      - oc_app_data:/usr/local/tomcat/openclinica.data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/OpenClinica/ > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
+
+volumes:
+  oc_pg_data:
+  oc_app_data:

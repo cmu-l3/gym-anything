@@ -1,0 +1,43 @@
+{
+  "id": "adjust_lung_window@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Adjust the display window/level settings on the loaded chest CT to standard lung window parameters. The lung parenchyma should become visible as dark/gray tissue with internal structures. No file output is required; verification checks the volume display settings directly.",
+  "difficulty": "easy",
+  "init": {
+    "timeout_sec": 180,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/adjust_lung_window/setup_task.sh",
+    "post_task": "/workspace/tasks/adjust_lung_window/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "patient_id": "LIDC-IDRI-0001",
+    "data_source": "LIDC-IDRI from The Cancer Imaging Archive (TCIA)",
+    "data_url": "https://www.cancerimagingarchive.net/collection/lidc-idri/",
+    "initial_window": 400,
+    "initial_level": 40,
+    "target_window": 1500,
+    "target_level": -600,
+    "window_acceptable_range": {"min": 1200, "max": 1800},
+    "level_acceptable_range": {"min": -700, "max": -500},
+    "optimal_window_range": {"min": 1400, "max": 1600},
+    "optimal_level_range": {"min": -650, "max": -550},
+    "scoring_weights": {
+      "window_in_range": 35,
+      "level_in_range": 35,
+      "values_changed": 10,
+      "vlm_lung_visible": 15,
+      "optimal_bonus": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_adjust_lung_window"
+    }
+  }
+}

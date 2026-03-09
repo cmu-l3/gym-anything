@@ -1,0 +1,94 @@
+{
+  "task_id": "major_incident_documentation@1",
+  "difficulty": "very_hard",
+  "profession": "Incident Commander / Senior Dispatcher",
+  "date_tested": "2026-03-03",
+  "pass_threshold": 70,
+  "max_score": 100,
+
+  "seed_data": {
+    "target_person": "Michael De Santa",
+    "target_name_id": 1,
+    "streets": ["El Rancho Boulevard", "Jamestown Street"],
+    "citation_name": "Safety Violation",
+    "citation_fine": 2500.00,
+    "call_type": "10-70",
+    "bolo_description": "White male, heavyset, bald, blue work jacket"
+  },
+
+  "db_baselines": {
+    "note": "Baselines recorded at setup_task.sh runtime inside VM",
+    "tables": ["calls", "call_history", "ncic_citations", "bolos_persons"],
+    "baseline_files": [
+      "/tmp/mid_baseline_active_call",
+      "/tmp/mid_baseline_history_call",
+      "/tmp/mid_baseline_citation",
+      "/tmp/mid_baseline_bolo_person"
+    ],
+    "preexisting_michael_citations": "None (Michael De Santa has no prior citations in seed data)"
+  },
+
+  "scoring_breakdown": {
+    "section_1_call": {
+      "points_possible": 30,
+      "is_gate": true,
+      "criteria": [
+        {"criterion": "call_type_10_70_structure_fire", "points": 15},
+        {"criterion": "street1_el_rancho_boulevard", "points": 10},
+        {"criterion": "street2_jamestown_street", "points": 5}
+      ]
+    },
+    "section_2_citation": {
+      "points_possible": 45,
+      "wrong_target_gate": true,
+      "wrong_target_description": "Citation not for Michael De Santa (name_id=1) -> section score=0",
+      "criteria": [
+        {"criterion": "michael_citation_confirmed", "points": 10},
+        {"criterion": "citation_name_safety_violation", "points": 20},
+        {"criterion": "fine_matches_2500", "points": 15}
+      ]
+    },
+    "section_3_bolo": {
+      "points_possible": 25,
+      "criteria": [
+        {"criterion": "bolo_created", "points": 15},
+        {"criterion": "description_keywords_white_bald_heavyset_blue_jacket", "points": 10}
+      ]
+    }
+  },
+
+  "test_results": {
+    "do_nothing_test": {
+      "score": 0,
+      "passed": false,
+      "feedback": "No dispatch call found in database",
+      "status": "PASS"
+    },
+    "wrong_target_test": {
+      "scenario": "Citation for name_id=99 instead of Michael De Santa (name_id=1)",
+      "injected_call": true,
+      "injected_citation_name_id": 99,
+      "expected_score": 30,
+      "actual_score": 30,
+      "passed": false,
+      "status": "PASS"
+    },
+    "partial_completion_test": {
+      "scenario": "Call + BOLO, no citation",
+      "injected_call": true,
+      "injected_bolo_description": "white male, bald, heavyset, blue work jacket",
+      "expected_score": 55,
+      "actual_score": 55,
+      "passed": false,
+      "status": "PASS"
+    }
+  },
+
+  "screenshot": "major_incident_documentation_screenshot.png",
+  "notes": [
+    "Michael De Santa has no prior citations in seed data (clean baseline)",
+    "Citation fine tolerance: exact +-$1.00 for full credit, +-$250 for partial credit",
+    "Citation partial match: 'safety' alone = 10 pts, 'Safety Violation' = 20 pts",
+    "BOLO keywords: white, bald, heavyset, heavy, blue, jacket, fled, fleeing, overweight, large"
+  ]
+}

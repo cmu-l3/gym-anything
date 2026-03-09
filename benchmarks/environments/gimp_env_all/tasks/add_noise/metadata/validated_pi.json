@@ -1,0 +1,115 @@
+{
+  "task_id": "add_noise@1",
+  "dataset": null,
+  "case_id": null,
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "metadata_field_existence",
+      "metadata_value": "Expected: metadata field with verification thresholds",
+      "verified_value": "No metadata field exists in task.json",
+      "source": "Direct inspection of /compute/.../tasks/add_noise/task.json",
+      "status": "contradicted"
+    },
+    {
+      "key": "primary_image_source_url",
+      "metadata_value": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4 with w=800",
+      "verified_value": "URL is real and returns valid 800x533 JPEG image (not 800x600)",
+      "source": "WebFetch of URL + PIL Image analysis",
+      "status": "verified"
+    },
+    {
+      "key": "fallback_image_source_url",
+      "metadata_value": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e with w=800",
+      "verified_value": "URL is real and returns valid 800x533 JPEG image",
+      "source": "WebFetch of URL + PIL Image analysis",
+      "status": "verified"
+    },
+    {
+      "key": "image_dimensions_claimed",
+      "metadata_value": "800x600 (implied from setup script parameters w=800)",
+      "verified_value": "Actual Unsplash images are 800x533, not 800x600",
+      "source": "PIL Image.open() analysis of downloaded Unsplash images",
+      "status": "contradicted"
+    },
+    {
+      "key": "std_deviation_increase_requirement",
+      "metadata_value": "README claims minimum 10-20% (line 107)",
+      "verified_value": "Verifier actually requires: 10 <= increase <= 200 (allows up to 200%)",
+      "source": "verifier.py line 217: std_increase_good = 10 <= noise_analysis['avg_std_increase'] <= 200",
+      "status": "contradicted"
+    },
+    {
+      "key": "perfect_score_variance_range",
+      "metadata_value": "README claims 10-50% for 100% score (line 119)",
+      "verified_value": "Verifier allows up to 200% variance increase",
+      "source": "verifier.py line 217: allows <= 200%",
+      "status": "contradicted"
+    },
+    {
+      "key": "texture_addition_threshold",
+      "metadata_value": "Local variance increase >= 2.0",
+      "verified_value": "Verifier checks: local_var_increase >= 2.0",
+      "source": "verifier.py line 223",
+      "status": "verified"
+    },
+    {
+      "key": "rgb_channel_threshold",
+      "metadata_value": "All RGB channels must be affected",
+      "verified_value": "Verifier checks: min_channel_increase >= 5.0 (5% minimum)",
+      "source": "verifier.py line 229",
+      "status": "verified"
+    },
+    {
+      "key": "pixel_change_threshold",
+      "metadata_value": "At least 10% of pixels changed",
+      "verified_value": "Verifier checks: change_percentage > 10",
+      "source": "verifier.py line 235 and 145",
+      "status": "verified"
+    },
+    {
+      "key": "pass_score_threshold",
+      "metadata_value": "75% (README line 124)",
+      "verified_value": "Verifier enforces: score >= 75",
+      "source": "verifier.py line 241",
+      "status": "verified"
+    },
+    {
+      "key": "task_timeout_seconds",
+      "metadata_value": "90 seconds (task.json)",
+      "verified_value": "Confirmed in task.json: 90",
+      "source": "task.json init.timeout_sec field",
+      "status": "verified"
+    },
+    {
+      "key": "task_max_steps",
+      "metadata_value": "8 steps (task.json)",
+      "verified_value": "Confirmed in task.json: 8",
+      "source": "task.json init.max_steps field",
+      "status": "verified"
+    },
+    {
+      "key": "export_filename",
+      "metadata_value": "noisy_image.jpg (from export_noise.sh)",
+      "verified_value": "Script exports to: /home/ga/Desktop/noisy_image.jpg",
+      "source": "export_noise.sh line 27 and 39",
+      "status": "verified"
+    },
+    {
+      "key": "gimp_menu_path",
+      "metadata_value": "Filters \u2192 Noise \u2192 RGB Noise (README)",
+      "verified_value": "Confirmed in GIMP documentation - correct path",
+      "source": "GIMP 2.10+ documentation (https://docs.gimp.org/2.10/en/gimp-filter-noise-rgb.html)",
+      "status": "verified"
+    },
+    {
+      "key": "reward_type",
+      "metadata_value": "sparse (task.json)",
+      "verified_value": "Confirmed in task.json",
+      "source": "task.json init.reward_type field",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The add_noise task uses real Unsplash images (photo-1506905925346 and photo-1441974231531) which are 800x533 JPEG images, not 800x600 as the script parameters suggest. The task requires adding RGB noise to an image via GIMP's Filters \u2192 Noise \u2192 RGB Noise menu. Verification checks that standard deviation increases between 10-200% (with local variance > 2.0 and all RGB channels affected by \u22655%), requires 75% score to pass, has 90-second timeout and 8-step limit. The README documentation contains discrepancies with actual verifier behavior: it claims 10-20% minimum and 10-50% for perfect score, but the verifier actually allows 10-200% variance increase. The task.json lacks a metadata field unlike other similar tasks in the codebase.",
+  "pi_confidence": "high"
+}

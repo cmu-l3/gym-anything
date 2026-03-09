@@ -1,0 +1,31 @@
+{
+  "id": "configure_parasitic_load_filter@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "Configure the 'workshop_power' input to filter out a constant 45W parasitic load. You need to configure the input processing steps so that:\n\n1. It subtracts 45 Watts from the input value.\n2. It ensures the result is never negative (if input is < 45, result should be 0).\n3. It logs this final 'clean' value to a new PHPFina feed named 'workshop_production_load' (interval 10s).\n\nThe 'workshop_power' input already exists. Navigate to the Inputs page to begin.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_parasitic_load_filter/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_parasitic_load_filter/export_result.sh"
+  },
+  "metadata": {
+    "input_name": "workshop_power",
+    "parasitic_load": 45,
+    "target_feed_name": "workshop_production_load",
+    "test_case_low_input": 40,
+    "test_case_low_expect": 0,
+    "test_case_high_input": 145,
+    "test_case_high_expect": 100
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_parasitic_load_filter"
+    }
+  }
+}

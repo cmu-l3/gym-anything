@@ -1,0 +1,47 @@
+{
+  "id": "visceral_fat_quantification@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Quantify subcutaneous (SAT) and visceral (VAT) adipose tissue at the L4-L5 level on the provided abdominal CT. Segment both fat compartments, calculate cross-sectional areas, compute the VAT/SAT ratio, and classify the fat distribution. Save segmentation to ~/Documents/SlicerData/AMOS/fat_segmentation.nii.gz and report to ~/Documents/SlicerData/AMOS/fat_analysis_report.json with fields: measurement_level, slice_index, sat_area_cm2, vat_area_cm2, vat_sat_ratio, fat_distribution.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/visceral_fat_quantification/setup_task.sh",
+    "post_task": "/workspace/tasks/visceral_fat_quantification/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/AMOS/fat_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/fat_analysis_report.json",
+    "fat_hu_range": {
+      "min": -190,
+      "max": -30
+    },
+    "passing_thresholds": {
+      "sat_area_error_percent": 20,
+      "vat_area_error_percent": 20,
+      "ratio_error": 0.15,
+      "slice_tolerance": 3
+    },
+    "scoring_weights": {
+      "correct_slice_level": 15,
+      "sat_area_accuracy": 25,
+      "vat_area_accuracy": 25,
+      "vat_sat_ratio": 15,
+      "classification_correct": 10,
+      "report_completeness": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_visceral_fat_quantification"
+    }
+  }
+}

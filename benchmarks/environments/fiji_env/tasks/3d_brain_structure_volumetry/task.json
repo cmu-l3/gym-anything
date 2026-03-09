@@ -1,0 +1,31 @@
+{
+  "id": "3d_brain_structure_volumetry@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "You are a medical scientist performing 3D volumetric analysis of a human brain MRI scan. A 16-bit grayscale MRI image stack (27 axial slices) is available at ~/Fiji_Data/raw/mri/mri_stack.tif. Voxel dimensions are documented in ~/Fiji_Data/raw/mri/voxel_info.txt.\n\nYour goal: Perform 3D segmentation and volumetric measurement of two distinct brain regions:\n\n(1) BRIGHT REGION: Segment the bright brain tissue (excluding skull and background). Apply a threshold to isolate tissue signal, then use 3D connected components to identify the main brain mass. Measure its volume in mm3.\n\n(2) VENTRICLES: Within the brain mass, identify the dark CSF-filled ventricles (hypo-intense regions). Apply an inverse threshold within the brain mask to isolate ventricle-like structures. Measure total ventricle volume in mm3.\n\nFor each structure, compute: volume_voxels, volume_mm3, and (if possible) surface area and sphericity.\n\nSave results to ~/Fiji_Data/results/volumetry/volume_measurements.csv with columns: structure_name,volume_voxels,volume_mm3,surface_area_mm2,sphericity. Save orthogonal views (XY, XZ, YZ projections) to ~/Fiji_Data/results/volumetry/orthogonal_views.tif. Save a text report to ~/Fiji_Data/results/volumetry/volumetry_report.txt summarizing both measurements and noting whether ventricle volume is < 5% of brain volume (typical in healthy brain).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/3d_brain_structure_volumetry/setup_task.sh",
+    "post_task": "/workspace/tasks/3d_brain_structure_volumetry/export_result.sh"
+  },
+  "metadata": {
+    "dataset": "ImageJ MRI Stack - human brain axial MRI",
+    "n_slices": 27,
+    "bit_depth": 16,
+    "voxel_size_mm": [1.0, 1.0, 1.5],
+    "structures": ["brain_tissue", "ventricles"],
+    "output_csv": "~/Fiji_Data/results/volumetry/volume_measurements.csv",
+    "output_ortho": "~/Fiji_Data/results/volumetry/orthogonal_views.tif",
+    "output_report": "~/Fiji_Data/results/volumetry/volumetry_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_3d_brain_structure_volumetry"
+    }
+  }
+}

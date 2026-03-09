@@ -1,0 +1,46 @@
+{
+  "id": "fix_security_vulns@1",
+  "version": "1.0",
+  "env_id": "intellij_idea_env@0.1",
+  "description": "A security audit has identified 6 critical vulnerabilities in the 'security-audit' Java library. Your task is to fix them according to the report in SECURITY_AUDIT.md:\n\n1. SQL Injection in DatabaseHelper.java\n2. Path Traversal in FileManager.java\n3. Insecure Randomness in TokenGenerator.java\n4. Hardcoded Credentials in ConfigLoader.java\n5. XXE Vulnerability in XmlProcessor.java\n6. Weak Hashing (MD5) in PasswordUtil.java\n\nThe project must compile successfully after your changes. Use standard Java security best practices (PreparedStatements, SecureRandom, PBKDF2, input validation, etc.).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fix_security_vulns/setup_task.sh",
+    "post_task": "/workspace/tasks/fix_security_vulns/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/IdeaProjects/security-audit",
+    "files": {
+      "sql": "src/main/java/com/auditlib/DatabaseHelper.java",
+      "path": "src/main/java/com/auditlib/FileManager.java",
+      "random": "src/main/java/com/auditlib/TokenGenerator.java",
+      "creds": "src/main/java/com/auditlib/ConfigLoader.java",
+      "xxe": "src/main/java/com/auditlib/XmlProcessor.java",
+      "hash": "src/main/java/com/auditlib/PasswordUtil.java"
+    },
+    "forbidden_patterns": {
+      "creds": ["db_p@ssw0rd_2024!", "sk-api-9f8e7d6c5b4a3210"],
+      "hash": ["MD5"],
+      "random": ["new Random()"]
+    },
+    "required_patterns": {
+      "sql": ["PreparedStatement", "prepareStatement", "?"],
+      "path": ["getCanonicalPath", "normalize", "toRealPath"],
+      "random": ["SecureRandom"],
+      "creds": ["System.getenv", "getProperty"],
+      "xxe": ["setFeature", "ACCESS_EXTERNAL_DTD", "setExpandEntityReferences"],
+      "hash": ["PBKDF2", "BCrypt", "SCrypt", "Argon2", "SecretKeyFactory"]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fix_security_vulns"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "place_tumor_fiducials@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Place exactly 4 fiducial markers at the boundaries of the brain tumor visible on the loaded FLAIR MRI. Name them 'Superior' (highest Z), 'Inferior' (lowest Z), 'Anterior' (largest Y in RAS), and 'Posterior' (smallest Y in RAS), each on or near the tumor boundary. Save the markup point list to ~/Documents/SlicerData/BraTS/tumor_boundaries.mrk.json.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/place_tumor_fiducials/setup_task.sh",
+    "post_task": "/workspace/tasks/place_tumor_fiducials/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_markup_file": "/home/ga/Documents/SlicerData/BraTS/tumor_boundaries.mrk.json",
+    "expected_num_fiducials": 4,
+    "expected_labels": ["Superior", "Inferior", "Anterior", "Posterior"],
+    "position_tolerance_mm": 15.0,
+    "min_z_spread_mm": 10.0,
+    "scoring_weights": {
+      "markup_file_exists": 15,
+      "valid_json_format": 10,
+      "exactly_4_points": 20,
+      "points_named_correctly": 15,
+      "superior_highest_z": 10,
+      "inferior_lowest_z": 10,
+      "points_near_tumor": 15,
+      "points_span_tumor": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_place_tumor_fiducials"
+    }
+  }
+}

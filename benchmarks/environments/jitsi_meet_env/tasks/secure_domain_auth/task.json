@@ -1,0 +1,35 @@
+{
+  "id": "secure_domain_auth@1",
+  "version": "1.0",
+  "env_id": "jitsi_meet_env@0.1",
+  "description": "Configure Jitsi Meet to require authentication for moderators while allowing guest access. \n\n1. Modify '/home/ga/jitsi/.env' to set ENABLE_AUTH=1, AUTH_TYPE=internal, and ENABLE_GUESTS=1.\n2. Restart the Jitsi Meet Docker containers to apply changes.\n3. Register a moderator user named 'admin' with password 'Moderator2024!' using the prosody container (hint: use 'docker exec' with 'prosodyctl register').\n4. Verify the setup by navigating to 'http://localhost:8080/SecureDomainTest' in Firefox - you should see a login prompt.\n5. Save a report to '/home/ga/jitsi/auth_config_report.txt' confirming the configuration.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/secure_domain_auth/setup_task.sh",
+    "post_task": "/workspace/tasks/secure_domain_auth/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "env_file": "/home/ga/jitsi/.env",
+    "report_file": "/home/ga/jitsi/auth_config_report.txt",
+    "required_env_vars": {
+      "ENABLE_AUTH": "1",
+      "AUTH_TYPE": "internal",
+      "ENABLE_GUESTS": "1"
+    },
+    "moderator_user": "admin",
+    "moderator_domain": "meet.jitsi",
+    "test_url": "http://localhost:8080/SecureDomainTest"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secure_domain_auth"
+    }
+  }
+}

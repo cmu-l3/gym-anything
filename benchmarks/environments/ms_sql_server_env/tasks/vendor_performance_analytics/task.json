@@ -1,0 +1,43 @@
+{
+    "id": "vendor_performance_analytics@1",
+    "version": "1.0",
+    "env_id": "ms_sql_server_env@0.1",
+    "description": "You are a logistics analyst at a manufacturing company. The procurement director needs a quarterly vendor performance scorecard to identify underperforming suppliers before the next supplier review meeting.\n\nUsing Azure Data Studio connected to the local SQL Server, build a vendor performance analytics system in the AdventureWorks2022 database. The system must include:\n\n- A new schema named 'Analytics' in AdventureWorks2022\n- A vendor performance summary table 'Analytics.VendorPerformance' with columns capturing: vendor identity (VendorID, VendorName), order volume metrics (TotalOrders as distinct POs, TotalLineItems), cost efficiency (AvgUnitCostVariance comparing invoiced unit price to standard product cost), delivery performance (OnTimeDeliveryRate as a decimal fraction 0–1, based on whether ReceivedQty >= OrderQty), and a vendor performance rank (VendorRank using DENSE_RANK)\n- A parameterized stored procedure 'dbo.usp_VendorPerformanceReport' that accepts @StartDate and @EndDate and repopulates Analytics.VendorPerformance with current metrics by joining Purchasing.PurchaseOrderHeader, Purchasing.PurchaseOrderDetail, Purchasing.Vendor, and Production.Product\n\nAfter creating all objects, execute the stored procedure for the date range '2013-01-01' to '2014-01-01'.\n\nWhen complete: the Analytics schema must exist in AdventureWorks2022, Analytics.VendorPerformance must contain at least 5 populated rows with VendorRank starting at 1, and dbo.usp_VendorPerformanceReport must exist.",
+    "difficulty": "very_hard",
+    "init": {
+        "timeout_sec": 1800,
+        "max_steps": 150,
+        "reward_type": "sparse"
+    },
+    "hooks": {
+        "pre_task": "/workspace/tasks/vendor_performance_analytics/setup_task.sh",
+        "post_task": "/workspace/tasks/vendor_performance_analytics/export_result.sh"
+    },
+    "metadata": {
+        "domain": "Supply Chain / Logistics",
+        "occupation": "Logistics Analyst",
+        "soc_code": "13-1081.02",
+        "soc_major_group": "Business and Financial Operations",
+        "application": "Azure Data Studio + Microsoft SQL Server 2022",
+        "database": "AdventureWorks2022",
+        "dataset": "AdventureWorks2022 Purchasing and Production schemas (Microsoft sample database, real supply chain simulation data)",
+        "key_tables": [
+            "Purchasing.Vendor",
+            "Purchasing.PurchaseOrderHeader",
+            "Purchasing.PurchaseOrderDetail",
+            "Production.Product"
+        ],
+        "required_objects": [
+            "Analytics schema",
+            "Analytics.VendorPerformance table",
+            "dbo.usp_VendorPerformanceReport stored procedure"
+        ],
+        "difficulty_rationale": "Requires creating multiple interdependent objects (schema, table, parameterized stored procedure), using DENSE_RANK window function inside a CTE within a stored procedure, multi-schema joins across Purchasing and Production, and computing fractional delivery rates with precise DECIMAL casting."
+    },
+    "success": {
+        "mode": "program",
+        "spec": {
+            "program": "verifier.py::verify_vendor_performance_analytics"
+        }
+    }
+}

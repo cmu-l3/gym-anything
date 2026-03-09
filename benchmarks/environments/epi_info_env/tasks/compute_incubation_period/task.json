@@ -1,0 +1,37 @@
+{
+  "id": "compute_incubation_period@1",
+  "version": "1.0",
+  "env_id": "epi_info_env@0.1",
+  "description": "Compute the incubation period (in hours) for a gastroenteritis outbreak using Epi Info 7 Classic Analysis.\n\n**Goal:** Calculate the time interval between the common meal exposure and symptom onset, analyze the distribution, and identify the likely pathogen.\n\n**Data:** The project 'StigenOutbreak' is loaded. It contains 91 case records in the 'CaseData' table. Each record has a 'MealDateTime' (exposure) and 'OnsetDateTime' (symptoms).\n\n**Instructions:**\n1. In Classic Analysis, use the READ command to open the 'CaseData' table if not already open.\n2. DEFINE a new numeric variable 'IncubationHours'.\n3. ASSIGN 'IncubationHours' as the difference in hours between 'OnsetDateTime' and 'MealDateTime'. (Hint: Use date arithmetic or the HOURS function).\n4. Select only Confirmed and Probable cases (CaseStatus <> 'Not a case').\n5. Use MEANS to calculate statistics for 'IncubationHours'.\n6. Use FREQ or a histogram to visualize the distribution.\n7. Based on the median incubation period (~33 hours) and range, determine the pathogen (e.g., Salmonella, Norovirus, Staph aureus).\n8. Create a results file at `C:\\Users\\Docker\\Documents\\EpiInfoData\\StigenOutbreak\\incubation_results.txt` containing:\n   - Number of cases analyzed (N)\n   - Median incubation period (hours)\n   - Mean incubation period (hours)\n   - Min and Max incubation period\n   - The name of the likely pathogen",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\compute_incubation_period\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\compute_incubation_period\\export_result.ps1",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "project_path": "C:\\Users\\Docker\\Documents\\EpiInfoData\\StigenOutbreak\\StigenOutbreak.prj",
+    "results_path": "C:\\Users\\Docker\\Documents\\EpiInfoData\\StigenOutbreak\\incubation_results.txt",
+    "expected_n_min": 85,
+    "expected_n_max": 91,
+    "expected_median_min": 28.0,
+    "expected_median_max": 40.0,
+    "expected_pathogen": "Norovirus",
+    "ground_truth": {
+      "median": 33.0,
+      "pathogen": "Norovirus",
+      "n": 91
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_incubation_period"
+    }
+  }
+}

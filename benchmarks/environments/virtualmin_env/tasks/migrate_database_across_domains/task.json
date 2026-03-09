@@ -1,0 +1,32 @@
+{
+  "id": "migrate_database_across_domains@1",
+  "version": "1.0",
+  "env_id": "virtualmin_env@0.1",
+  "name": "Migrate Sakila Database and Create Application Database for brightstar.test",
+  "description": "BrightStar Media (brightstar.test) needs database infrastructure for their new video catalog application. Perform the following in Virtualmin:\n\n1. Create a new MySQL database named 'brightstar_catalog' (Virtualmin may auto-prefix it) under the brightstar.test domain.\n2. Grant the brightstar.test domain's MySQL user full access to the 'sakila' database (this database already exists on the server with sample film/actor data — it was imported during server setup).\n3. Create a table called 'video_categories' in the brightstar_catalog database with at least these columns: id (INT AUTO_INCREMENT PRIMARY KEY), name (VARCHAR(100) NOT NULL), description (TEXT), created_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP).\n4. Insert at least 5 rows into the 'video_categories' table using real film genre categories (e.g., Action, Comedy, Drama, Documentary, Horror — these categories are found in the sakila.category table for reference).\n\nLogin credentials: root / GymAnything123!\nMySQL root password: GymAnything123!",
+  "difficulty": "hard",
+  "tags": ["database", "mysql", "migration", "multi-step", "cross-domain"],
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/migrate_database_across_domains/setup_task.sh",
+    "post_task": "/workspace/tasks/migrate_database_across_domains/export_result.sh"
+  },
+  "metadata": {
+    "target_domain": "brightstar.test",
+    "new_db_suffix": "catalog",
+    "required_table": "video_categories",
+    "required_columns": ["id", "name", "description", "created_at"],
+    "min_rows": 5,
+    "sakila_db": "sakila",
+    "real_categories": ["Action", "Animation", "Children", "Classics", "Comedy", "Documentary", "Drama", "Family", "Foreign", "Games", "Horror", "Music", "New", "Sci-Fi", "Sports", "Travel"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_migrate_database_across_domains"
+    }
+  }
+}

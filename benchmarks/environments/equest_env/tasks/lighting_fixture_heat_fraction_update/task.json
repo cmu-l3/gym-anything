@@ -1,0 +1,30 @@
+{
+  "id": "lighting_fixture_heat_fraction_update@1",
+  "version": "1.0",
+  "env_id": "equest_env@0.1",
+  "description": "Update the lighting definition for all Middle Floor (M.*) spaces in the '4StoreyBuilding' model to reflect a retrofit to suspended LED fixtures. \n\nGoal: \n1. Navigate to the Internal Loads / Space Properties.\n2. For ALL 5 spaces on the Middle Floor (M.S21, M.E22, M.N23, M.W24, M.C25), change:\n   - Lighting Power Density (LIGHTING-W/AREA) to 0.72 W/ft2\n   - Heat to Return Air (LIGHT-TO-RETURN-AIR) to 0.0\n   - Heat to Space (LIGHT-TO-SPACE) to 1.0\n3. Run the full annual simulation.\n4. Save the project.\n\nNote: Ensure the heat fractions sum to 1.0. Do not modify Ground or Top floor spaces.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\lighting_fixture_heat_fraction_update\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\lighting_fixture_heat_fraction_update\\export_result.ps1"
+  },
+  "metadata": {
+    "target_floor_prefix": "M.",
+    "target_spaces": ["M.S21", "M.E22", "M.N23", "M.W24", "M.C25"],
+    "target_lpd": 0.72,
+    "target_return_air": 0.0,
+    "target_space_fraction": 1.0,
+    "project_path": "C:\\Users\\Docker\\Documents\\eQUEST 3-65 Projects\\4StoreyBuilding\\4StoreyBuilding.inp"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_lighting_update"
+    }
+  }
+}

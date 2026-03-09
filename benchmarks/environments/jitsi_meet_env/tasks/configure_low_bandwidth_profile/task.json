@@ -1,0 +1,28 @@
+{
+  "id": "configure_low_bandwidth_profile@1",
+  "version": "1.0",
+  "env_id": "jitsi_meet_env@0.1",
+  "description": "Configure the Jitsi Meet web server to enforce a 'Low Bandwidth Profile'.\n\n1. Locate the Jitsi Meet web configuration file (`config.js`). It is typically found in the configuration directory (e.g., `~/.jitsi-meet-cfg/web/config.js`).\n2. Modify the `config.js` file to enforce the following constraints:\n   - Set `startAudioOnly` to `true` (forces participants to join with camera off).\n   - Update the `constraints` object to limit video resolution:\n     - `video.height.ideal`: 360\n     - `video.height.max`: 360\n     - `video.height.min`: 180\n3. Restart the Jitsi Meet web container (or the deployment) to apply changes.\n4. Verify by joining a meeting in Firefox. You should join as 'Audio Only' (camera disabled by default).\n5. Take a screenshot of the meeting in this state and save it to `/home/ga/bandwidth_test_evidence.png`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_low_bandwidth_profile/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_low_bandwidth_profile/export_result.sh"
+  },
+  "metadata": {
+    "config_path": "/home/ga/.jitsi-meet-cfg/web/config.js",
+    "evidence_path": "/home/ga/bandwidth_test_evidence.png",
+    "container_name": "jitsi-web",
+    "expected_resolution": 360
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_low_bandwidth_profile"
+    }
+  }
+}

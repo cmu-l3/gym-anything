@@ -1,0 +1,32 @@
+{
+  "id": "analyze_storage_discharge@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform a hydrological analysis of the Muncie river reach to determine the storage-discharge relationship and the Muskingum routing parameter 'K'.\n\nYour goal is to:\n1. Ensure the HEC-RAS unsteady flow simulation has been run (output file Muncie.p04.hdf exists).\n2. Write a Python script (`calculate_storage.py`) in `~/Documents/hec_ras_results/` that reads the HDF5 results to:\n   - Calculate the **Total Channel Storage** (in acre-feet) for the entire reach at each time step. Use the formula: $Volume = \\sum (Area_i \\times Length_i)$ summing over all cross-sections.\n   - Extract the **Outflow Discharge** (in cfs) at the most downstream cross-section.\n   - Perform a linear regression on Volume vs Outflow to estimate the slope $K$ (convert $K$ to hours).\n3. Save the time-series data to `~/Documents/hec_ras_results/storage_discharge_data.csv` with columns: `Time_Step_Index`, `Outflow_cfs`, `Total_Storage_acft`.\n4. Generate a plot `~/Documents/hec_ras_results/storage_loop.png` showing Storage (y) vs Outflow (x).\n5. Save the estimated K value to `~/Documents/hec_ras_results/muskingum_k.txt` in the format \"Estimated K: X.X hours\".",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/analyze_storage_discharge/setup_task.sh",
+    "post_task": "/workspace/tasks/analyze_storage_discharge/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "expected_csv": "/home/ga/Documents/hec_ras_results/storage_discharge_data.csv",
+    "expected_plot": "/home/ga/Documents/hec_ras_results/storage_loop.png",
+    "expected_report": "/home/ga/Documents/hec_ras_results/muskingum_k.txt",
+    "min_k_hours": 1.0,
+    "max_k_hours": 15.0,
+    "required_columns": ["Time_Step_Index", "Outflow_cfs", "Total_Storage_acft"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_analyze_storage_discharge"
+    }
+  }
+}

@@ -1,0 +1,143 @@
+{
+    "task_id": "hue_rotation@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "metadata_field_exists",
+            "metadata_value": null,
+            "verified_value": "NO metadata field exists in task.json. Unlike some other tasks (e.g., graphic_designer_photo_retouch), hue_rotation task.json contains no 'metadata' key.",
+            "source": "Direct inspection of task.json file",
+            "status": "verified"
+        },
+        {
+            "key": "primary_image_source_url",
+            "metadata_value": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64",
+            "verified_value": "Valid Unsplash URL - downloads successfully as 800x533 JPEG image with RGB color space, 63% saturated pixels",
+            "source": "setup_hue_task.sh line 13; verified via direct HTTP download and HSV analysis",
+            "status": "verified"
+        },
+        {
+            "key": "fallback_image_source_url",
+            "metadata_value": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4",
+            "verified_value": "Valid Unsplash URL - downloads successfully as 800x533 JPEG image with RGB color space",
+            "source": "setup_hue_task.sh line 15; verified via direct HTTP download",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_type",
+            "metadata_value": "Real images from Unsplash or synthetic fallback generated with ImageMagick",
+            "verified_value": "Real data - both Unsplash URLs are valid and serve images. Synthetic fallback only used if both URLs fail.",
+            "source": "setup_hue_task.sh lines 13-25 logic inspection and URL verification",
+            "status": "verified"
+        },
+        {
+            "key": "target_hue_rotation_degrees",
+            "metadata_value": "approximately 60 degrees (from task description)",
+            "verified_value": "Success criteria: 40-80 degrees (60° ± 20°). Detectable range: 30-120 degrees.",
+            "source": "Task description; verifier.py lines 163-164: shift_detected (30-120°), target_achieved (40-80°)",
+            "status": "verified"
+        },
+        {
+            "key": "hue_shift_magnitude_detection_lower_bound",
+            "metadata_value": "30 degrees",
+            "verified_value": "30 degrees (shift_detected threshold)",
+            "source": "verifier.py line 163",
+            "status": "verified"
+        },
+        {
+            "key": "hue_shift_magnitude_detection_upper_bound",
+            "metadata_value": "120 degrees",
+            "verified_value": "120 degrees (shift_detected threshold)",
+            "source": "verifier.py line 163",
+            "status": "verified"
+        },
+        {
+            "key": "target_hue_shift_lower_bound",
+            "metadata_value": "40 degrees",
+            "verified_value": "40 degrees (target_achieved = 60° - 20°)",
+            "source": "verifier.py line 164",
+            "status": "verified"
+        },
+        {
+            "key": "target_hue_shift_upper_bound",
+            "metadata_value": "80 degrees",
+            "verified_value": "80 degrees (target_achieved = 60° + 20°)",
+            "source": "verifier.py line 164",
+            "status": "verified"
+        },
+        {
+            "key": "saturation_preservation_threshold",
+            "metadata_value": "Saturation values should be preserved during hue rotation",
+            "verified_value": "saturation_change < 0.1 (absolute difference of median saturation values)",
+            "source": "verifier.py line 165; line 153: sat_change = abs(np.median(result_sats) - np.median(orig_sats))",
+            "status": "verified"
+        },
+        {
+            "key": "transformation_uniformity_threshold",
+            "metadata_value": "Hue rotation should be uniform across the image",
+            "verified_value": "uniformity_std < 30 (standard deviation of per-pixel hue differences)",
+            "source": "verifier.py line 166; line 150: uniformity_std = np.std(pixel_hue_diffs)",
+            "status": "verified"
+        },
+        {
+            "key": "saturation_filter_threshold",
+            "metadata_value": "Filter grayscale pixels to avoid noise",
+            "verified_value": "saturation > 0.15 threshold used to exclude low-saturation pixels",
+            "source": "verifier.py line 121: saturated_mask = (orig_s > 0.15) & (result_s > 0.15)",
+            "status": "verified"
+        },
+        {
+            "key": "minimum_saturated_pixels_required",
+            "metadata_value": "Minimum number of saturated pixels for reliable analysis",
+            "verified_value": "100 pixels (hardcoded minimum threshold)",
+            "source": "verifier.py lines 123-132; error returned if np.sum(saturated_mask) < 100",
+            "status": "verified"
+        },
+        {
+            "key": "unsplash_image_saturation_analysis",
+            "metadata_value": "Unsplash images have sufficient color diversity for hue rotation testing",
+            "verified_value": "Primary Unsplash image: 268,813 saturated pixels out of 426,400 total (63.1% saturation), hues distributed 0-360°",
+            "source": "HSV analysis of downloaded Unsplash image colorful_image_test.jpg using RGB-to-HSV conversion",
+            "status": "verified"
+        },
+        {
+            "key": "success_criteria_count",
+            "metadata_value": "4 criteria evaluated for pass/fail",
+            "verified_value": "4 criteria: (1) shift_detected, (2) target_achieved, (3) saturation_preserved, (4) uniform_transformation",
+            "source": "verifier.py lines 269-290",
+            "status": "verified"
+        },
+        {
+            "key": "pass_score_threshold",
+            "metadata_value": "Need at least 75% score to pass task",
+            "verified_value": "score >= 75 required (3 out of 4 criteria must pass)",
+            "source": "verifier.py line 294: passed = score >= 75",
+            "status": "verified"
+        },
+        {
+            "key": "score_calculation_method",
+            "metadata_value": "Score based on number of criteria met",
+            "verified_value": "score = (criteria_met / total_criteria) * 100, where criteria_met ranges 0-4",
+            "source": "verifier.py line 293: score = int((criteria_met / total_criteria) * 100)",
+            "status": "verified"
+        },
+        {
+            "key": "image_size_claim",
+            "metadata_value": "Images are 800x533 pixels",
+            "verified_value": "Both primary and fallback Unsplash images are 800x533 pixels",
+            "source": "Wget file command output and image analysis",
+            "status": "verified"
+        },
+        {
+            "key": "image_format_claim",
+            "metadata_value": "Images are JPEG with progressive encoding",
+            "verified_value": "Both images are valid JPEG with progressive encoding, JFIF standard 1.01",
+            "source": "File command output: 'JPEG image data, JFIF standard 1.01... progressive'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The hue_rotation task.json contains NO metadata field (unlike other tasks in the collection). The task uses real Unsplash images (800x533 JPEG) with full color spectrum as primary and fallback sources; synthetic images are only generated if both URLs fail. Task success requires rotating hues by 40-80 degrees (target: 60° ± 20°). The verifier uses HSV color space analysis, filtering for saturated pixels (saturation > 0.15) and requiring at least 100 saturated pixels for analysis. Success is determined by 4 equally-weighted criteria: detectable hue shift (30-120°), target shift achieved (40-80°), saturation preservation (change < 0.1), and uniform transformation (std < 30°). A minimum score of 75% (3 of 4 criteria) is required to pass. Verification testing confirms Unsplash images contain ~63% saturated pixels with hues spanning the full 0-360° range, providing robust data for hue rotation analysis.",
+    "pi_confidence": "high"
+}

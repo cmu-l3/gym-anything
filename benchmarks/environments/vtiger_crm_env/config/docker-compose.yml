@@ -1,0 +1,50 @@
+version: "3.8"
+
+volumes:
+  vtiger_db_data:
+  vtiger_storage:
+
+services:
+  vtiger-db:
+    image: mariadb:10.11
+    container_name: vtiger-db
+    restart: unless-stopped
+    volumes:
+      - vtiger_db_data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: vtiger
+      MYSQL_USER: vtiger
+      MYSQL_PASSWORD: vtiger_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    command: >
+      --character-set-server=utf8
+      --collation-server=utf8_general_ci
+      --default-storage-engine=InnoDB
+      --sql-mode=NO_ENGINE_SUBSTITUTION
+      --local-infile=1
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_pass"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  vtiger-app:
+    build:
+      context: /home/ga/vtiger/docker
+      dockerfile: Dockerfile
+    container_name: vtiger-app
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - vtiger_storage:/var/www/html/vtigercrm/storage
+    environment:
+      DB_HOST: vtiger-db
+      DB_PORT: "3306"
+      DB_NAME: vtiger
+      DB_USER: vtiger
+      DB_PASSWORD: vtiger_pass
+    depends_on:
+      vtiger-db:
+        condition: service_healthy

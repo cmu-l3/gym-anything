@@ -1,0 +1,30 @@
+{
+  "id": "compute_loop_rating_curve@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Extract unsteady flow simulation results from the Muncie HEC-RAS model and analyze the stage-discharge hysteresis (loop rating curve). \n\nGoal: Create a summary CSV and a plot showing the hysteresis loops for three cross-sections.\n\nPrerequisites:\n- The simulation result file 'Muncie.p04.tmp.hdf' is located in '/home/ga/Documents/hec_ras_projects/Muncie'.\n\nInstructions:\n1. Open a terminal and use Python to inspect the HDF results.\n2. Select three cross-sections: the most upstream, the most downstream, and one near the middle.\n3. For each cross-section:\n   - Extract the Water Surface Elevation (Stage) and Flow (Discharge) time series.\n   - Identify rising and falling limbs.\n   - Compute the 'Maximum Loop Width' in cfs. This is the maximum difference in discharge between the rising and falling limbs at the same stage.\n   - Calculate 'Loop Width Percentage' = (Max Loop Width / Peak Flow) * 100.\n4. Save a summary CSV to '/home/ga/Documents/hec_ras_results/loop_rating_summary.csv' with columns: 'river_station', 'position' (upstream/middle/downstream), 'peak_stage_ft', 'peak_flow_cfs', 'max_loop_width_cfs', 'loop_width_pct'.\n5. Generate a plot named '/home/ga/Documents/hec_ras_results/loop_rating_curves.png' showing the Stage vs. Discharge loops for all three locations. Use different colors for rising/falling limbs.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_loop_rating_curve/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_loop_rating_curve/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "hdf_filename": "Muncie.p04.tmp.hdf",
+    "expected_csv": "loop_rating_summary.csv",
+    "expected_plot": "loop_rating_curves.png",
+    "accuracy_tolerance_pct": 20
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_loop_rating_curve"
+    }
+  }
+}

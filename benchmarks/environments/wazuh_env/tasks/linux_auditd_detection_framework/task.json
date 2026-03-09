@@ -1,0 +1,28 @@
+{
+  "id": "linux_auditd_detection_framework@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "You are a Security Engineer responsible for improving Linux host monitoring coverage. The Linux audit subsystem (auditd) generates detailed security event logs at /var/log/audit/audit.log on monitored endpoints, but Wazuh currently has no decoder pipeline for these logs — privilege escalation attempts, credential file access, and suspicious syscalls are passing through entirely undetected. Your goal is to build a complete auditd monitoring and detection framework. The end state must include: (1) a custom decoder chain — at minimum a parent decoder and a child decoder — in Wazuh's decoder configuration that can parse Linux audit.log format and extract relevant fields such as syscall type, process name, and file path; (2) at least two custom detection rules triggered by auditd events, covering at minimum two distinct threat categories (for example: privilege escalation via setuid/setgid syscalls, unauthorized access to /etc/shadow or /etc/passwd, or suspicious process execution via execve); (3) at least one of those rules must include a MITRE ATT&CK technique mapping using the <mitre> element; (4) a CDB lookup list in /var/ossec/etc/lists/ containing at least 3 high-risk executable paths (e.g. /usr/bin/sudo, /bin/su, /usr/bin/pkexec) for rule enrichment; and (5) ossec.conf updated to actively monitor the audit log location on endpoints. A sample audit.log file has been staged at /var/log/audit/audit.log inside the Wazuh manager container for testing. Log in to the Wazuh dashboard at https://localhost with username admin, password SecretPassword.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/linux_auditd_detection_framework/setup_task.sh",
+    "post_task": "/workspace/tasks/linux_auditd_detection_framework/export_result.sh"
+  },
+  "metadata": {
+    "min_decoder_count": 2,
+    "min_rule_count": 2,
+    "min_cdb_entries": 3,
+    "audit_log_path": "/var/log/audit/audit.log",
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_linux_auditd_detection_framework"
+    }
+  }
+}

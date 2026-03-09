@@ -1,0 +1,36 @@
+{
+  "id": "secure_data_migration@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Migrate sensitive data to an encrypted container. \n\n1. Examine the files in '/home/ga/Documents/SensitiveData/'.\n2. Create a new VeraCrypt volume at '/home/ga/Volumes/secure_archive.hc' with:\n   - Size: 25MB\n   - Encryption: AES\n   - Hash: SHA-512\n   - Filesystem: FAT\n   - Password: 'SecureMigration2024!'\n3. Mount the volume to a slot of your choice.\n4. Copy ALL 5 data files from SensitiveData into the mounted volume. Do NOT copy the checksum manifest.\n5. Verify the integrity of the copied files by calculating their SHA-256 checksums and comparing them against the provided 'checksums.sha256' manifest.\n6. Create a report at '/home/ga/Documents/migration_report.txt' listing the files, their calculated checksums, and a final status of 'PASS' if they match.\n7. Dismount the volume.\n8. Securely delete the original files from '/home/ga/Documents/SensitiveData/' (including the manifest) so the directory is empty or removed.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/secure_data_migration/setup_task.sh",
+    "post_task": "/workspace/tasks/secure_data_migration/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/secure_archive.hc",
+    "password": "SecureMigration2024!",
+    "source_dir": "/home/ga/Documents/SensitiveData",
+    "report_path": "/home/ga/Documents/migration_report.txt",
+    "expected_files": [
+      "SF312_Nondisclosure_Agreement.txt",
+      "FY2024_Revenue_Budget.csv",
+      "backup_authorized_keys",
+      "employee_contacts.vcf",
+      "incident_response_plan.md"
+    ],
+    "ground_truth_checksums_path": "/var/lib/veracrypt_task/ground_truth_checksums.sha256"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secure_data_migration"
+    }
+  }
+}

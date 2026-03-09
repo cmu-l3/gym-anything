@@ -1,0 +1,87 @@
+{
+    "task_id": "ecommerce_order_refactoring@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_name",
+            "metadata_value": "ecommerce-service",
+            "verified_value": "ecommerce-service",
+            "source": "pom.xml <artifactId>ecommerce-service</artifactId>",
+            "status": "verified"
+        },
+        {
+            "key": "test_class",
+            "metadata_value": "com.ecommerce.OrderManagerTest",
+            "verified_value": "com.ecommerce.OrderManagerTest",
+            "source": "OrderManagerTest.java package and class declaration",
+            "status": "verified"
+        },
+        {
+            "key": "expected_test_count",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Code analysis: counted 5 @Test methods in OrderManagerTest (testExactlyTenItemsQualifyForBulkDiscount, testElevenItemsAlsoGetDiscount, testSubtotalDoesNotOverflowForLargeOrder, testInvalidPaymentCardIsRejected, testValidPaymentCardIsAccepted)",
+            "status": "verified"
+        },
+        {
+            "key": "initial_test_failures",
+            "metadata_value": "3 of 5 tests failing initially",
+            "verified_value": "3 of 5 tests failing initially",
+            "source": "Analysis of buggy code: Bug 1 (> 10 threshold) causes testExactlyTenItemsQualifyForBulkDiscount to fail. Bug 2 (int overflow) causes testSubtotalDoesNotOverflowForLargeOrder to fail. Bug 3 (always return true) causes testInvalidPaymentCardIsRejected to fail. testElevenItemsAlsoGetDiscount passes (11 > 10), testValidPaymentCardIsAccepted passes (no validation logic).",
+            "status": "verified"
+        },
+        {
+            "key": "bug_1_threshold",
+            "metadata_value": "Change > 10 to >= 10 in calculateDiscountCents",
+            "verified_value": "Current code uses: if (totalItems > 10) on line 56 of OrderManager.java. Javadoc at line 44 documents: 'BUG: The bulk discount threshold is > 10 instead of >= 10'",
+            "source": "OrderManager.java lines 44-46 and 56",
+            "status": "verified"
+        },
+        {
+            "key": "bug_2_overflow",
+            "metadata_value": "Change int total to long total in calculateSubtotalCents",
+            "verified_value": "Current code uses: int total = 0 on line 31 of OrderManager.java. Javadoc at line 22 documents: 'BUG: The accumulator is declared as int. For large orders, the intermediate sum can exceed Integer.MAX_VALUE (~$21 million), silently wrapping to a negative value.'",
+            "source": "OrderManager.java lines 22-25 and 31",
+            "status": "verified"
+        },
+        {
+            "key": "bug_3_validation",
+            "metadata_value": "Implement actual validation in validatePaymentCard() instead of always returning true",
+            "verified_value": "Current code returns true unconditionally at line 88 of OrderManager.java. Javadoc at line 77 documents: 'BUG: This method always returns true, performing no actual validation. Invalid cards — including empty strings, short numbers, and non-numeric values — are silently accepted, allowing fraudulent transactions to proceed.'",
+            "source": "OrderManager.java lines 77-89",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_total_points",
+            "metadata_value": 100,
+            "verified_value": 100,
+            "source": "verifier.py lines 19-25 and README.md scoring table: 25+30+25+10+5+5=100",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": "score >= 70 AND all 5 tests pass",
+            "verified_value": "score >= 70 AND all 5 tests pass",
+            "source": "verifier.py line 196: 'passed = score >= 70 and all_tests_pass' where all_tests_pass is defined as 'tests_run >= expected_tests and tests_failed == 0 and tests_error == 0'",
+            "status": "verified"
+        },
+        {
+            "key": "java_version",
+            "metadata_value": "11",
+            "verified_value": "11",
+            "source": "pom.xml lines 16-17: <maven.compiler.source>11</maven.compiler.source> and <maven.compiler.target>11</maven.compiler.target>",
+            "status": "verified"
+        },
+        {
+            "key": "test_framework",
+            "metadata_value": "JUnit 4",
+            "verified_value": "JUnit 4.12",
+            "source": "pom.xml lines 22-27: dependency on junit 4.12 with test scope",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The ecommerce-service project is a synthetic Maven-based Java application (Java 11, JUnit 4.12) with 5 test methods in com.ecommerce.OrderManagerTest. The project contains three intentional bugs in OrderManager.java documented in Javadoc: (1) discount threshold uses > 10 instead of >= 10 on line 56, causing 10-item orders to miss bulk discount; (2) subtotal accumulator uses int instead of long on line 31, causing overflow for orders exceeding ~$21M; (3) validatePaymentCard() always returns true without validation on line 88. The test suite is designed to catch these bugs: testExactlyTenItemsQualifyForBulkDiscount fails due to bug 1, testSubtotalDoesNotOverflowForLargeOrder fails due to bug 2, testInvalidPaymentCardIsRejected fails due to bug 3. Initially 3 of 5 tests fail. Scoring: Bug 1 fix (25 pts), Bug 2 fix (30 pts), Bug 3 fix (25 pts), all tests pass (10 pts), test file unmodified (5 pts), VLM bonus (5 pts), total 100 points. Pass threshold: ≥70 points AND all tests pass with 0 failures.",
+    "pi_confidence": "high"
+}

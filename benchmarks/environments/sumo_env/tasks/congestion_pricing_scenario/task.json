@@ -1,0 +1,38 @@
+{
+  "id": "congestion_pricing_scenario@1",
+  "version": "1.0",
+  "env_id": "sumo_env@0.1",
+  "description": "You are a transport economist at the Italian Ministry of Infrastructure and Sustainable Mobility (MIMS), evaluating a congestion pricing policy for Bologna's Pasubio corridor. The city council is considering implementing a cordon-based congestion charge to reduce traffic volume and improve air quality. Your task is to model the policy's impact using SUMO simulation. Using the Bologna Pasubio scenario at /home/ga/SUMO_Scenarios/bologna_pasubio/: (1) Run the baseline simulation and extract comprehensive network performance data. Parse the tripinfo output to compute: total vehicle count, total vehicle-kilometers traveled (VKT from 'routeLength' attribute), average trip duration, average speed, total time loss, and total fuel consumption (from 'fuel_abs' or computed from emissions). Save to /home/ga/SUMO_Output/baseline_traffic_economics.csv with columns: metric,value,unit. (2) Model the congestion pricing effect by reducing demand. Create a modified route file at /home/ga/SUMO_Scenarios/bologna_pasubio/pasubio_priced.rou.xml where you remove approximately 15-25% of private vehicle trips (simulating demand reduction from the congestion charge). The removal should NOT be random -- remove vehicles whose routes pass through a defined 'charging zone' of at least 5 edges in the core corridor. Buses and public transit vehicles must NOT be removed. (3) Create a pricing scenario sumocfg at /home/ga/SUMO_Scenarios/bologna_pasubio/run_priced.sumocfg using the modified routes. Run the pricing scenario simulation. (4) Extract the same metrics for the pricing scenario and save to /home/ga/SUMO_Output/priced_traffic_economics.csv (same format). (5) Produce a cost-benefit analysis report at /home/ga/SUMO_Output/congestion_pricing_cba.csv with columns: category,baseline_value,priced_value,change_pct,annual_monetized_eur. Categories must include: travel_time_savings, fuel_savings, emission_reduction_co2, congestion_charge_revenue, total_net_benefit. Use standard European transport economic values: Value of Time = 15 EUR/hour, fuel cost = 1.80 EUR/liter, CO2 social cost = 100 EUR/tonne. (6) Write an executive policy brief at /home/ga/SUMO_Output/congestion_pricing_brief.txt documenting: policy design (charging zone, charge level, exemptions), demand reduction achieved, network performance improvements, monetized cost-benefit analysis, distributional impacts, and policy recommendations with implementation timeline.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 90,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/congestion_pricing_scenario/setup_task.sh",
+    "post_task": "/workspace/tasks/congestion_pricing_scenario/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Economists (19-3011.00)",
+    "industry": "Government and Public Administration",
+    "scenario": "bologna_pasubio",
+    "demand_reduction_target_pct": "15-25",
+    "min_charging_zone_edges": 5,
+    "value_of_time_eur": 15,
+    "fuel_cost_eur_liter": 1.80,
+    "co2_social_cost_eur_tonne": 100,
+    "baseline_economics_path": "/home/ga/SUMO_Output/baseline_traffic_economics.csv",
+    "priced_economics_path": "/home/ga/SUMO_Output/priced_traffic_economics.csv",
+    "cba_report_path": "/home/ga/SUMO_Output/congestion_pricing_cba.csv",
+    "priced_route_path": "/home/ga/SUMO_Scenarios/bologna_pasubio/pasubio_priced.rou.xml",
+    "priced_cfg_path": "/home/ga/SUMO_Scenarios/bologna_pasubio/run_priced.sumocfg",
+    "brief_path": "/home/ga/SUMO_Output/congestion_pricing_brief.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_congestion_pricing_scenario"
+    }
+  }
+}

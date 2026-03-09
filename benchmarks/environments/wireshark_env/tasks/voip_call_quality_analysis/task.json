@@ -1,0 +1,27 @@
+{
+  "id": "voip_call_quality_analysis@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "Analyze the VoIP packet capture (SIP_CALL_RTP_G711) loaded in Wireshark. Produce a structured quality assessment report saved to ~/Documents/voip_report.txt.\n\nThe report MUST contain EXACTLY these labeled lines (one value per line):\n\nTotal_SIP_Packets: <integer>\nTotal_RTP_Packets: <integer>\nSIP_Methods: <comma-separated list of unique SIP methods, e.g. ACK,BYE,INVITE>\nCaller: <SIP From user/URI from the first INVITE>\nCallee: <SIP To user/URI from the first INVITE>\nCodec: <RTP codec name, e.g. G711, PCMU, or payload type>\nNumber_of_RTP_Streams: <integer count of distinct RTP streams>\nSIP_Response_Codes: <comma-separated list of unique SIP response status codes>\n\nUse Wireshark's Telephony tools (VoIP Calls, RTP Streams, SIP Statistics) or tshark to find this information.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/voip_call_quality_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/voip_call_quality_analysis/export_result.sh"
+  },
+  "metadata": {
+    "pcap_file": "SIP_CALL_RTP_G711",
+    "report_path": "/home/ga/Documents/voip_report.txt",
+    "download_url": "https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/SIP_CALL_RTP_G711"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_voip_analysis"
+    }
+  }
+}

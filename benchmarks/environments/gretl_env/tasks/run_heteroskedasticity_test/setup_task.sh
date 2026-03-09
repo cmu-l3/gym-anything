@@ -1,0 +1,30 @@
+#!/bin/bash
+echo "=== Setting up run_heteroskedasticity_test task ==="
+
+source /workspace/scripts/task_utils.sh
+
+setup_gretl_task "food.gdt" "heteroskedasticity_test"
+
+echo ""
+echo "============================================================"
+echo "TASK: Run White's Heteroskedasticity Test in Gretl"
+echo "============================================================"
+echo ""
+echo "Gretl is open with food.gdt loaded."
+echo "Dataset: 40 households, variables: food_exp and income."
+echo ""
+echo "Please:"
+echo "1. First run OLS regression:"
+echo "   Model > Ordinary Least Squares"
+echo "   - Dependent variable: food_exp"
+echo "   - Independent variable (regressor): income"
+echo "   - Click OK"
+echo ""
+echo "2. In the OLS results window, run White's test:"
+echo "   Tests > Heteroskedasticity > White's test"
+echo "   (or 'White's test, squares only')"
+echo ""
+echo "3. Save the White's test results to:"
+echo "   /home/ga/Documents/gretl_output/white_test_results.txt"
+echo "   (File > Save to file in the test results window)"
+echo "============================================================"

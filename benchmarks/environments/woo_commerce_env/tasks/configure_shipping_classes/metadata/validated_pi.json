@@ -1,0 +1,73 @@
+{
+    "task_id": "configure_shipping_classes@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "class_1.name",
+            "metadata_value": "Bulky Items",
+            "verified_value": "Bulky Items",
+            "source": "Task description (line 5 in task.json) explicitly specifies 'Create two new shipping classes' with name 'Bulky Items'. Setup script creates 'Domestic' shipping zone. Export script (line 30) searches for shipping class with this exact name. WooCommerce product_shipping_class taxonomy stores class names in wp_terms.name field.",
+            "status": "verified"
+        },
+        {
+            "key": "class_1.slug",
+            "metadata_value": "bulky-items",
+            "verified_value": "bulky-items",
+            "source": "Task description (line 5) specifies slug 'bulky-items'. Export script (line 30) uses this exact slug to retrieve the class from wp_term_taxonomy. WooCommerce documentation confirms shipping class slug follows URL-safe convention with lowercase and hyphens. Verifier script (line 79-91) validates costs using slug-based keys.",
+            "status": "verified"
+        },
+        {
+            "key": "class_2.name",
+            "metadata_value": "Fragile",
+            "verified_value": "Fragile",
+            "source": "Task description (line 5) explicitly specifies second shipping class name as 'Fragile'. Export script (line 39) searches for this exact class name. WooCommerce stores shipping class names as term names in product_shipping_class taxonomy.",
+            "status": "verified"
+        },
+        {
+            "key": "class_2.slug",
+            "metadata_value": "fragile",
+            "verified_value": "fragile",
+            "source": "Task description (line 5) specifies slug 'fragile' for the second class. Export script (line 39) retrieves class by this slug. WooCommerce shipping class API (documented in developer.woocommerce.com) uses $shipping_class->slug with kebab-case naming convention. Slug is used in option names like 'class_cost_fragile'.",
+            "status": "verified"
+        },
+        {
+            "key": "costs.bulky",
+            "metadata_value": "15.00",
+            "verified_value": "15.00",
+            "source": "Task description (line 5) specifies 'Bulky Items shipping class cost: $15.00'. Export script (line 100) retrieves flat_rate_settings JSON where costs are stored. Verifier script (lines 82-91) checks class_cost_{id} or class_cost_bulky-items keys with value matching '15.00' or '15'. WooCommerce flat rate shipping stores class costs as numeric strings in wp_options settings. Format verified by WooCommerce official flat-rate documentation.",
+            "status": "verified"
+        },
+        {
+            "key": "costs.fragile",
+            "metadata_value": "8.00",
+            "verified_value": "8.00",
+            "source": "Task description (line 5) specifies 'Fragile shipping class cost: $8.00'. Export script (line 100) exports flat_rate_settings. Verifier script (lines 93-101) validates 'Fragile' class cost matches 8.00. WooCommerce stores flat rate class costs in option format 'woocommerce_flat_rate_{instance_id}_settings' as JSON with class_cost keys. Format is numeric string without currency symbol.",
+            "status": "verified"
+        },
+        {
+            "key": "costs.no_class",
+            "metadata_value": "5.00",
+            "verified_value": "5.00",
+            "source": "Task description (line 5) specifies 'No shipping class cost: $5.00'. Setup script (line 45) initializes flat rate with cost=5.00. Export script (line 100) retrieves settings containing base 'cost' field. Verifier script (lines 66-71) validates base_cost equals '5.00' or '5'. This is the default flat rate cost applied to products without a shipping class. WooCommerce stores this as the 'cost' key in settings JSON.",
+            "status": "verified"
+        },
+        {
+            "key": "assignments.WBH-001",
+            "metadata_value": "fragile",
+            "verified_value": "fragile",
+            "source": "Task description (line 5) specifies 'Edit product Wireless Bluetooth Headphones (SKU: WBH-001) and assign it the Fragile shipping class.' Setup script (line 58-59) creates this product with SKU 'WBH-001'. Export script (lines 72-76) checks if product with SKU 'WBH-001' is assigned to 'Fragile' class (fragile_class.id). Verifier script (lines 112-116) validates headphones_fragile assignment is true. Product-term relationships stored in wp_term_relationships table.",
+            "status": "verified"
+        },
+        {
+            "key": "assignments.MWS-GRY-L",
+            "metadata_value": "bulky-items",
+            "verified_value": "bulky-items",
+            "source": "Task description (line 5) specifies 'Edit product Merino Wool Sweater (SKU: MWS-GRY-L) and assign it the Bulky Items shipping class.' Setup script (line 239) in setup_woocommerce.sh creates this product with SKU 'MWS-GRY-L' at $89.99. Export script (lines 72-73) checks if sweater product is assigned to bulky_class via wp_term_relationships. Verifier script (lines 106-110) validates sweater_bulky assignment equals true. This is verified in export_result.sh logic.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The configure_shipping_classes task requires setting up two shipping classes ('Bulky Items' with slug 'bulky-items' and 'Fragile' with slug 'fragile') in WooCommerce, configuring flat rate shipping costs ($15.00 for bulky, $8.00 for fragile, $5.00 base), and assigning these classes to two pre-existing products: Wireless Bluetooth Headphones (SKU: WBH-001) to Fragile class and Merino Wool Sweater (SKU: MWS-GRY-L) to Bulky Items class. All metadata values follow WooCommerce standard conventions: slugs use kebab-case, costs are numeric strings without currency symbols, and class assignments use wp_term_relationships. Data is synthetic, generated in a local Docker WooCommerce environment with products created during environment setup (setup_woocommerce.sh lines 235-239). The verifier script validates class existence, cost configuration in wp_options settings, and product assignments through database queries.",
+    "pi_confidence": "high"
+}

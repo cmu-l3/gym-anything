@@ -1,0 +1,34 @@
+{
+  "id": "reformat_volume_filesystem@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Convert the filesystem inside the encrypted volume '/home/ga/Volumes/data_volume.hc' from FAT to ext4, ensuring all existing data is preserved. \n\nThe volume is currently formatted as FAT and contains important documents. You must:\n1. Mount the volume (Password: 'MountMe2024').\n2. Backup the data.\n3. Reformat the volume's internal filesystem to ext4 (you may need to mount with filesystem protection disabled or specific options to access the raw device for formatting).\n4. Restore the original data to the new ext4 volume.\n5. Save a verification report to '/home/ga/Volumes/reformat_report.txt' listing the new filesystem type and the files inside.\n\nEnsure the volume is dismounted when finished.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/reformat_volume_filesystem/setup_task.sh",
+    "post_task": "/workspace/tasks/reformat_volume_filesystem/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/data_volume.hc",
+    "password": "MountMe2024",
+    "expected_fs": "ext4",
+    "expected_files": [
+      "SF312_Nondisclosure_Agreement.txt",
+      "FY2024_Revenue_Budget.csv",
+      "backup_authorized_keys"
+    ],
+    "report_path": "/home/ga/Volumes/reformat_report.txt",
+    "ground_truth_dir": "/var/lib/veracrypt_task"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_reformat_volume_filesystem"
+    }
+  }
+}

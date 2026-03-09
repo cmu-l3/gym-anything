@@ -1,0 +1,30 @@
+{
+  "id": "calculate_solar_fraction@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "Calculate the solar energy fraction for the household using the existing Emoncms feed data.\n\n1. Identify the 'house_kwh' (consumption) and 'solar_kwh' (generation) feeds in the Emoncms Feeds list.\n2. Determine the total energy (kWh) for each feed over the entire available data history. Note: These are cumulative counter feeds, so the total is (Last Value - First Value).\n3. Calculate the Solar Fraction percentage: (Total Solar / Total House) * 100.\n4. Create a report file at '/home/ga/solar_fraction_report.txt' with exactly the following format (replace <value> with your numbers rounded to 2 decimal places):\n\nTotal House Consumption (kWh): <value>\nTotal Solar Generation (kWh): <value>\nSolar Fraction (%): <value>",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/calculate_solar_fraction/setup_task.sh",
+    "post_task": "/workspace/tasks/calculate_solar_fraction/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/solar_fraction_report.txt",
+    "feeds": ["house_kwh", "solar_kwh"],
+    "tolerances": {
+      "kwh_percent": 10,
+      "fraction_points": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_calculate_solar_fraction"
+    }
+  }
+}

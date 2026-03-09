@@ -1,0 +1,65 @@
+{
+  "id": "fix_schedule_data_quality@1",
+  "version": "1.0",
+  "env_id": "project_libre_env@0.1",
+  "description": "A Commercial Construction project for a three-story office building is open in ProjectLibre. A project controls audit has revealed multiple data quality issues that were introduced during a system migration. The errors span different categories: some task durations have been corrupted to physically impossible values (far too short or far too long for the trade involved), critical predecessor links have been dropped from key tasks, and at least one dependency has an unrealistic negative lead time that violates construction logic. Perform a thorough schedule audit across all phases and correct all data integrity issues you find. Save the project when done.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 640,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fix_schedule_data_quality/setup_task.sh"
+  },
+  "metadata": {
+    "project_file": "/home/ga/Projects/current_task.xml",
+    "injected_errors": [
+      {
+        "task_uid": 17,
+        "task_name": "Detail, fabricate and deliver steel",
+        "error": "Duration changed from PT480H (60 days) to PT40H (5 days). Steel fabrication and delivery in 5 working days is physically impossible.",
+        "original_duration": "PT480H0M0S",
+        "corrupted_duration": "PT40H0M0S",
+        "verifier_check": "duration >= 400 hours"
+      },
+      {
+        "task_uid": 8,
+        "task_name": "Submit preliminary shop drawings",
+        "error": "Duration changed from PT80H (10 days) to PT800H (100 days). Shop drawing submission does not take 100 working days.",
+        "original_duration": "PT80H0M0S",
+        "corrupted_duration": "PT800H0M0S",
+        "verifier_check": "duration <= 160 hours"
+      },
+      {
+        "task_uid": 55,
+        "task_name": "Form 2nd floor including all floor openings",
+        "error": "All predecessor links removed. This task originally depended on tasks 53, 14, 15, 16, 48.",
+        "original_predecessors": ["53", "14", "15", "16", "48"],
+        "verifier_check": "has at least one predecessor"
+      },
+      {
+        "task_uid": 39,
+        "task_name": "Pour column piers and foundations",
+        "error": "Predecessor 38 (Set reinforcing and anchor bolts) given lag of -480 hours (-60 days). You cannot pour concrete 60 days before reinforcing is set.",
+        "predecessor_uid": 38,
+        "corrupted_lag": -28800000,
+        "verifier_check": "lag >= 0"
+      },
+      {
+        "task_uid": 82,
+        "task_name": "Install exterior masonry work",
+        "error": "Duration changed from PT200H (25 days) to PT16H (2 days). Exterior masonry for a 3-story building cannot be completed in 2 days.",
+        "original_duration": "PT200H0M0S",
+        "corrupted_duration": "PT16H0M0S",
+        "verifier_check": "duration >= 120 hours"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fix_schedule_data_quality"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "id": "tumor_enhancement_pattern@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Characterize the contrast enhancement pattern of the tumor on the provided brain MRI by comparing T1 and T1ce sequences. Place ROIs in the tumor and in normal white matter, calculate enhancement ratio and relative enhancement, classify the enhancement degree and spatial pattern. Load T1 pre-contrast from ~/Documents/SlicerData/BraTS/{sample_id}/{sample_id}_t1.nii.gz. Save ROI markups to ~/Documents/SlicerData/BraTS/enhancement_rois.mrk.json and report to ~/Documents/SlicerData/BraTS/enhancement_report.json with fields: t1_tumor_mean, t1ce_tumor_mean, t1_wm_mean, t1ce_wm_mean, enhancement_ratio, relative_enhancement_percent, classification, pattern, tumor_roi_position, notes.",
+  "difficulty": "intermediate",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tumor_enhancement_pattern/setup_task.sh",
+    "post_task": "/workspace/tasks/tumor_enhancement_pattern/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_roi_file": "/home/ga/Documents/SlicerData/BraTS/enhancement_rois.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/enhancement_report.json",
+    "passing_thresholds": {
+      "enhancement_ratio_error_max": 0.3,
+      "relative_enhancement_error_max_percent": 25,
+      "classification_must_match": true
+    },
+    "scoring_weights": {
+      "enhancement_ratio_accuracy": 25,
+      "relative_enhancement_accuracy": 20,
+      "tumor_roi_placement": 15,
+      "reference_roi_placement": 10,
+      "classification_correct": 15,
+      "pattern_description": 5,
+      "report_completeness": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tumor_enhancement_pattern"
+    }
+  }
+}

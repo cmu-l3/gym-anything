@@ -1,0 +1,26 @@
+{
+  "id": "purge_obsolete_inventory@1",
+  "version": "1.0",
+  "env_id": "libreoffice_base_env@0.1",
+  "description": "Clean up the Chinook database by archiving and deleting unsold inventory.\n\n1. Identify tracks that have NEVER been sold (no records in the 'InvoiceLine' table).\n2. Create a new table named 'UnsoldTracksArchive' with columns: 'TrackId' (Integer), 'Name' (Text), 'Composer' (Text), and 'UnitPrice' (Decimal/Double).\n3. Copy the data for these unsold tracks into the new archive table.\n4. Remove these tracks from the 'PlaylistTrack' table (to satisfy foreign key constraints).\n5. Delete these tracks from the 'Track' table.\n6. Save the database.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/purge_obsolete_inventory/setup_task.sh",
+    "post_task": "/workspace/tasks/purge_obsolete_inventory/export_result.sh"
+  },
+  "metadata": {
+    "archive_table_name": "UnsoldTracksArchive",
+    "source_db_path": "/opt/libreoffice_base_samples/Chinook_Sqlite.sqlite"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_purge_obsolete_inventory"
+    }
+  }
+}

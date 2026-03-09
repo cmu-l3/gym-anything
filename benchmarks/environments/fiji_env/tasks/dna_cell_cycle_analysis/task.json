@@ -1,0 +1,32 @@
+{
+  "id": "dna_cell_cycle_analysis@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Perform quantitative DNA content analysis on a fluorescence microscopy image of human cancer cells.\n\nInput: ~/Fiji_Data/raw/cell_cycle/nuclei.tif (DAPI stained nuclei)\n\nSteps:\n1. Open the image and apply Background Subtraction (Rolling Ball radius: 50 pixels).\n2. Segment nuclei using the Otsu threshold method. Apply Watershed to separate touching cells.\n3. Measure the 'Integrated Density' of all particles (filter size: 100-Infinity).\n4. Analyze the distribution of Integrated Density values to identify the G1 phase peak (the most common value/mode).\n5. Save results:\n   - Measurements table: ~/Fiji_Data/results/cell_cycle/measurements.csv\n   - Histogram plot: ~/Fiji_Data/results/cell_cycle/histogram.png\n   - Text report: ~/Fiji_Data/results/cell_cycle/g1_peak_report.txt (must contain the numeric value of the G1 peak integrated density)\n\nGoal: Accurately identify the G1 population intensity.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dna_cell_cycle_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/dna_cell_cycle_analysis/export_result.sh"
+  },
+  "metadata": {
+    "input_image": "~/Fiji_Data/raw/cell_cycle/nuclei.tif",
+    "expected_outputs": [
+      "~/Fiji_Data/results/cell_cycle/measurements.csv",
+      "~/Fiji_Data/results/cell_cycle/histogram.png",
+      "~/Fiji_Data/results/cell_cycle/g1_peak_report.txt"
+    ],
+    "ground_truth_method": "Python skimage analysis (Otsu + watershed)",
+    "tolerance_percent": 15
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dna_cell_cycle_analysis"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "id": "watershed_object_separation@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Watershed Segmentation and Object Separation",
+  "description": "Perform watershed segmentation on the 'Blobs' sample image to separate touching objects.\n\n1. Open the 'Blobs (25K)' sample image (File > Open Samples > Blobs).\n2. Apply a threshold to create a binary mask (Image > Adjust > Threshold).\n3. Count the objects in this binary state *before* separation (Analyze > Analyze Particles) and note the count.\n4. Apply the Watershed algorithm to separate touching objects (Process > Binary > Watershed).\n5. Count and measure the objects *after* separation.\n6. Save the individual measurements of the separated objects to '~/ImageJ_Data/results/watershed_measurements.csv'.\n7. Create a summary text file at '~/ImageJ_Data/results/watershed_summary.txt' that explicitly states:\n   - The object count BEFORE watershed\n   - The object count AFTER watershed\n   - The difference (number of new objects resolved)\n\nThe 'After' count must be higher than the 'Before' count to demonstrate successful separation.",
+  "difficulty": "medium",
+  "tags": ["segmentation", "watershed", "particle-analysis", "binary-processing", "imagej"],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/watershed_object_separation/setup_task.sh",
+    "post_task": "/workspace/tasks/watershed_object_separation/export_result.sh"
+  },
+  "metadata": {
+    "expected_before_min": 15,
+    "expected_before_max": 50,
+    "expected_after_min": 40,
+    "expected_after_max": 85,
+    "min_area_px": 10,
+    "max_area_px": 8000,
+    "csv_path": "/home/ga/ImageJ_Data/results/watershed_measurements.csv",
+    "txt_path": "/home/ga/ImageJ_Data/results/watershed_summary.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_watershed_separation"
+    }
+  }
+}

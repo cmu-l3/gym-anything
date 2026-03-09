@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  opencad-db:
+    image: mysql:5.7
+    container_name: opencad-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: opencad
+      MYSQL_USER: opencad
+      MYSQL_PASSWORD: opencadpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - opencad_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    command: --default-authentication-plugin=mysql_native_password
+
+  opencad-app:
+    image: php:7.3-apache
+    container_name: opencad-app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      opencad-db:
+        condition: service_healthy
+
+volumes:
+  opencad_mysql:

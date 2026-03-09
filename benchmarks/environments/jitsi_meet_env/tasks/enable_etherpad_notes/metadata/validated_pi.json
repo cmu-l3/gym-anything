@@ -1,0 +1,57 @@
+{
+    "task_id": "enable_etherpad_notes@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "etherpad_container_name",
+            "metadata_value": "etherpad",
+            "verified_value": "etherpad",
+            "source": "setup_task.sh line 14 filters docker containers by name 'etherpad'; line 16 removes container with `docker rm -f etherpad`; export_result.sh line 13 checks `docker ps --filter 'name=etherpad'` to verify container status",
+            "status": "verified"
+        },
+        {
+            "key": "etherpad_port",
+            "metadata_value": 9001,
+            "verified_value": 9001,
+            "source": "Port 9001 is Etherpad-Lite's default port (confirmed via web search of official Etherpad documentation). export_result.sh line 56 queries API at http://localhost:9001/api/1.2.13/getText. Task description specifies URL base should be 'http://localhost:9001/p/' for Jitsi integration.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_pad_text",
+            "metadata_value": [
+                "Weekly Standup Agenda - Engineering Team",
+                "1. Previous action items review",
+                "2. Sprint progress update",
+                "3. Blockers and dependencies",
+                "4. New action items"
+            ],
+            "verified_value": [
+                "Weekly Standup Agenda - Engineering Team",
+                "1. Previous action items review",
+                "2. Sprint progress update",
+                "3. Blockers and dependencies",
+                "4. New action items"
+            ],
+            "source": "Task description (task.json line 5) explicitly prescribes these exact text lines to be typed into the shared document. Verifier.py line 99-101 checks that these lines are present (case-insensitive) in the pad content retrieved via API.",
+            "status": "verified"
+        },
+        {
+            "key": "proof_screenshot_path",
+            "metadata_value": "/home/ga/etherpad_integration_proof.png",
+            "verified_value": "/home/ga/etherpad_integration_proof.png",
+            "source": "setup_task.sh line 20 removes any pre-existing file at this path. export_result.sh line 66 defines PROOF_SCREENSHOT variable pointing to this exact path. Task description (task.json line 5) instructs agent to save screenshot to '/home/ga/etherpad_integration_proof.png'.",
+            "status": "verified"
+        },
+        {
+            "key": "jitsi_url",
+            "metadata_value": "http://localhost:8080",
+            "verified_value": "http://localhost:8080",
+            "source": "setup_jitsi.sh line 78 waits for http://localhost:8080 and line 84 confirms 'Jitsi Meet is running at http://localhost:8080'. task_utils.sh line 4 defines JITSI_BASE_URL default as 'http://localhost:8080'. docker-compose.yml maps port 8080 to Jitsi web container's port 80.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a Jitsi Meet integration task requiring deployment of Etherpad-Lite and configuration for collaborative meeting notes. The task uses a locally-hosted Jitsi Meet instance at http://localhost:8080 running in Docker. The agent must deploy an Etherpad container named 'etherpad' on port 9001 (the default Etherpad port), configure Jitsi to use the Etherpad instance via 'http://localhost:9001/p/', join a meeting named 'WeeklyStandup', and type a specific 5-line agenda into the shared notes panel. The expected agenda text includes the header 'Weekly Standup Agenda - Engineering Team' followed by four numbered items covering action items, sprint progress, blockers, and new action items. Success is verified by confirming the Etherpad container is running, Jitsi config contains the etherpad_base URL on port 9001, the Jitsi web interface is reachable, the pad contains all expected text, a proof screenshot is saved to /home/ga/etherpad_integration_proof.png, and visual verification shows the Jitsi UI with notes panel open. All metadata values are accurate.",
+    "pi_confidence": "high"
+}

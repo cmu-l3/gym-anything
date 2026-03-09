@@ -1,0 +1,59 @@
+{
+  "id": "pac_limit_hierarchy_audit@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "Perform a Protective Action Criteria (PAC) audit for 5 chemicals: Chlorine, Cyclohexane, Methyl Mercaptan, Sodium Hydroxide, and Acetone. Use CAMEO Chemicals (https://cameochemicals.noaa.gov/) to find the PAC-2 value for each. CRITICAL: You must identify the 'Source Basis' (AEGL, ERPG, or TEEL) by checking which tables exist on the datasheet. Follow the DOE hierarchy: AEGLs (60-min) > ERPGs > TEELs. If AEGLs exist, use AEGL-2 (60 min). If not, check ERPG-2. If neither, use TEEL-2. Save a report to '~/Desktop/pac_audit_results.txt' following the exact format specified in the instructions.",
+  "difficulty": "medium",
+  "tags": ["cameo", "pac", "aegl", "erpg", "teel", "emergency-planning", "audit"],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pac_limit_hierarchy_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/pac_limit_hierarchy_audit/export_result.sh"
+  },
+  "metadata": {
+    "output_file": "/home/ga/Desktop/pac_audit_results.txt",
+    "chemicals": [
+      {
+        "name": "Chlorine",
+        "expected_value": 2.0,
+        "unit": "ppm",
+        "expected_source": "AEGL"
+      },
+      {
+        "name": "Cyclohexane",
+        "expected_value": 1700,
+        "unit": "ppm",
+        "expected_source": "TEEL"
+      },
+      {
+        "name": "Methyl Mercaptan",
+        "expected_value": 23,
+        "trap_value": 30,
+        "unit": "ppm",
+        "expected_source": "AEGL"
+      },
+      {
+        "name": "Sodium Hydroxide",
+        "expected_value": 5,
+        "unit": "mg/m3",
+        "expected_source": "TEEL"
+      },
+      {
+        "name": "Acetone",
+        "expected_value": 3200,
+        "unit": "ppm",
+        "expected_source": "TEEL"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pac_limit_hierarchy_audit"
+    }
+  }
+}

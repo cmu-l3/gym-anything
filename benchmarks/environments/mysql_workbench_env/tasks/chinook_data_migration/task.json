@@ -1,0 +1,31 @@
+{
+  "id": "chinook_data_migration@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "You are a software developer working with the Chinook digital music store database (pre-loaded as 'chinook' in the MySQL server, host: localhost, user: ga, password: password123). The database has two data integrity issues introduced by a failed ETL job: (1) 15 Invoice records have NULL BillingAddress — fix these by copying the Address field from the corresponding Customer record into Invoice.BillingAddress, and (2) 3 InvoiceLine records have incorrect UnitPrice values that are inconsistent with their Track's UnitPrice in the Track table — fix these by setting each InvoiceLine.UnitPrice to match Track.UnitPrice for the same TrackId. After fixing both issues: create a database view named v_sales_by_genre in the chinook schema that joins Genre, Track, InvoiceLine, and Invoice to show total sales (SUM of UnitPrice * Quantity) per genre, with columns genre_name and total_sales; add a non-unique index named idx_invoiceline_trackid on InvoiceLine(TrackId); and export the v_sales_by_genre results sorted by total_sales descending to /home/ga/Documents/exports/chinook_genre_sales.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_data_migration/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_data_migration/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "chinook",
+    "null_billing_invoice_count": 15,
+    "wrong_unitprice_invoiceline_count": 3,
+    "expected_view": "v_sales_by_genre",
+    "expected_index": "idx_invoiceline_trackid",
+    "expected_output_file": "/home/ga/Documents/exports/chinook_genre_sales.csv",
+    "expected_genre_count": 25,
+    "data_source": "Chinook sample database by Luis Rocha (lerocha/chinook-database)"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_data_migration"
+    }
+  }
+}

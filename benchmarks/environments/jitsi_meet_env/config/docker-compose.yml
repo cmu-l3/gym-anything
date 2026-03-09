@@ -1,0 +1,141 @@
+services:
+  # Jitsi Meet web frontend
+  web:
+    image: jitsi/web:stable-9753
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+      - '8443:443'
+    volumes:
+      - /home/ga/.jitsi-meet-cfg/web:/config:Z
+      - /home/ga/.jitsi-meet-cfg/transcripts:/usr/share/jitsi-meet/transcripts:Z
+    environment:
+      - ENABLE_AUTH=0
+      - ENABLE_GUESTS=1
+      - ENABLE_LETSENCRYPT=0
+      - ENABLE_HTTP_REDIRECT=0
+      - ENABLE_HSTS=0
+      - ENABLE_RECORDING=0
+      - ENABLE_LIVESTREAMING=0
+      - ENABLE_TRANSCRIPTIONS=0
+      - DISABLE_HTTPS=1
+      - HTTP_PORT=80
+      - HTTPS_PORT=443
+      - TZ=UTC
+      - PUBLIC_URL=http://localhost:8080
+      - BOSH_RELATIVE=true
+      - ENABLE_XMPP_WEBSOCKET=0
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_BOSH_URL_BASE=http://xmpp.meet.jitsi:5280
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - JIBRI_RECORDER_PASSWORD=${JIBRI_RECORDER_PASSWORD}
+      - JIBRI_XMPP_PASSWORD=${JIBRI_XMPP_PASSWORD}
+    networks:
+      meet.jitsi:
+        aliases:
+          - meet.jitsi
+
+  # XMPP server
+  prosody:
+    image: jitsi/prosody:stable-9753
+    restart: unless-stopped
+    expose:
+      - '5222'
+      - '5269'
+      - '5280'
+      - '5347'
+    volumes:
+      - /home/ga/.jitsi-meet-cfg/prosody/config:/config:Z
+      - /home/ga/.jitsi-meet-cfg/prosody/prosody-plugins-custom:/prosody-plugins-custom:Z
+    environment:
+      - ENABLE_AUTH=0
+      - ENABLE_GUESTS=1
+      - ENABLE_LOBBY=1
+      - ENABLE_AV_MODERATION=1
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_HIDDEN_DOMAIN=hidden.meet.jitsi
+      - XMPP_RECORDER_DOMAIN=recorder.meet.jitsi
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - JIBRI_RECORDER_PASSWORD=${JIBRI_RECORDER_PASSWORD}
+      - JIBRI_XMPP_PASSWORD=${JIBRI_XMPP_PASSWORD}
+      - JIGASI_XMPP_PASSWORD=${JIGASI_XMPP_PASSWORD}
+      - JIGASI_TRANSCRIBER_PASSWORD=${JIGASI_TRANSCRIBER_PASSWORD}
+      - TZ=UTC
+      - LOG_LEVEL=info
+    networks:
+      meet.jitsi:
+        aliases:
+          - xmpp.meet.jitsi
+
+  # Conference focus component
+  jicofo:
+    image: jitsi/jicofo:stable-9753
+    restart: unless-stopped
+    volumes:
+      - /home/ga/.jitsi-meet-cfg/jicofo:/config:Z
+    environment:
+      - ENABLE_AUTH=0
+      - ENABLE_LOBBY=1
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_SERVER=xmpp.meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - JIBRI_RECORDER_PASSWORD=${JIBRI_RECORDER_PASSWORD}
+      - JIBRI_XMPP_PASSWORD=${JIBRI_XMPP_PASSWORD}
+      - TZ=UTC
+      - JICOFO_ENABLE_HEALTH_CHECKS=true
+    depends_on:
+      - prosody
+    networks:
+      meet.jitsi:
+
+  # Video bridge (SFU)
+  jvb:
+    image: jitsi/jvb:stable-9753
+    restart: unless-stopped
+    ports:
+      - '10000:10000/udp'
+      - '4443:4443'
+    volumes:
+      - /home/ga/.jitsi-meet-cfg/jvb:/config:Z
+    environment:
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_SERVER=xmpp.meet.jitsi
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - JVB_BREWERY_MUC=jvbbrewery
+      - JVB_PORT=10000
+      - JVB_TCP_HARVESTER_DISABLED=true
+      - JVB_ADVERTISE_IPS=127.0.0.1
+      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - COLIBRI_REST_ENABLED=true
+      - JVB_ENABLE_APIS=rest,colibri
+      - TZ=UTC
+    depends_on:
+      - prosody
+    networks:
+      meet.jitsi:
+
+networks:
+  meet.jitsi:
+    driver: bridge

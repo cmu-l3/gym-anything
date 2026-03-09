@@ -1,0 +1,27 @@
+{
+  "id": "traffic_rate_burst_analysis@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "Analyze the traffic patterns in the capture file '/home/ga/Documents/captures/200722_tcp_anon.pcapng' to identify bursts and idle periods. \n\nYou must produce a text report saved to '/home/ga/Documents/traffic_rate_report.txt'. \n\nThe report MUST contain the following fields, each on a new line in the format 'LABEL: value':\n\n1. CAPTURE_DURATION_SECS: Total duration in whole seconds (floor of last_timestamp - first_timestamp)\n2. TOTAL_PACKETS: Total number of packets\n3. AVERAGE_PPS: Average packets per second (total_packets / duration), rounded to 2 decimal places\n4. PEAK_PPS: Maximum packets observed in any single one-second interval\n5. PEAK_SECOND: The second offset (0-indexed) when the peak occurred (if tied, use earliest)\n6. IDLE_SECONDS: Count of one-second intervals with zero packets\n7. BURST_THRESHOLD: Calculated as floor(AVERAGE_PPS * 2)\n8. BURST_COUNT: Number of one-second intervals where packet count >= BURST_THRESHOLD\n\nAppended to the end of the report, provide a section header 'PER_SECOND_DATA:' followed by the packet count for every second from 0 to CAPTURE_DURATION_SECS-1, one per line in the format 'second_offset packet_count'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/traffic_rate_burst_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/traffic_rate_burst_analysis/export_result.sh"
+  },
+  "metadata": {
+    "pcap_file": "/home/ga/Documents/captures/200722_tcp_anon.pcapng",
+    "expected_output": "/home/ga/Documents/traffic_rate_report.txt",
+    "ground_truth_path": "/var/lib/wireshark/ground_truth.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_traffic_rate_burst_analysis"
+    }
+  }
+}

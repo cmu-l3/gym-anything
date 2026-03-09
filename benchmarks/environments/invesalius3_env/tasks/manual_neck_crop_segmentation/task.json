@@ -1,0 +1,29 @@
+{
+  "id": "manual_neck_crop_segmentation@1",
+  "version": "1.0",
+  "env_id": "invesalius3_env@0.1",
+  "description": "The CT Cranium DICOM scan is already loaded in InVesalius 3. A 3D printing technician needs to prepare a skull model but must remove the cervical vertebrae (neck bones) to ensure the model sits flat. \n\n1. Create a bone segmentation mask using the standard 'Bone' threshold (226 to 3071 HU) or similar.\n2. Use the Manual Segmentation / Slice Editor tools to ERASE the mask content completely from the bottom 10 axial slices (Axial Slice 1 through 10).\n3. Export the modified mask as a NIfTI file to '/home/ga/Documents/cleaned_skull.nii.gz'.\n\nEnsure the rest of the skull remains segmented. Login: username 'ga', password 'password123'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/manual_neck_crop_segmentation/setup_task.sh",
+    "post_task": "/workspace/tasks/manual_neck_crop_segmentation/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/cleaned_skull.nii.gz",
+    "dicom_series": "ct_cranium/0051",
+    "expected_shape": [512, 512, 108],
+    "slices_to_clear": 10,
+    "min_bone_voxels_center": 1000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_manual_neck_crop_segmentation"
+    }
+  }
+}

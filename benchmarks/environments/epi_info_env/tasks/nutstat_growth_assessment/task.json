@@ -1,0 +1,53 @@
+{
+  "id": "nutstat_growth_assessment@1",
+  "version": "1.0",
+  "env_id": "epi_info_env@0.1",
+  "description": "Use Epi Info 7's NutStat module to assess the nutritional status of four children based on their age, sex, height, and weight. \n\nGoal: Create a report file at 'C:\\Users\\Docker\\Documents\\nutstat_results.txt' containing the calculated Z-scores, percentiles, and nutritional classification for each child using the CDC 2000 growth reference.\n\nData:\n1. Child A (Male, DOB: 06/15/2021, Date of Msmt: 06/15/2024, Height: 96.1 cm, Weight: 14.3 kg)\n2. Child B (Female, DOB: 03/01/2022, Date of Msmt: 03/01/2024, Height: 80.0 cm, Weight: 10.5 kg)\n3. Child C (Male, DOB: 09/10/2019, Date of Msmt: 09/10/2024, Height: 112.0 cm, Weight: 24.0 kg)\n4. Child D (Female, DOB: 01/20/2020, Date of Msmt: 01/20/2024, Height: 100.0 cm, Weight: 12.5 kg)\n\nFormat the output file as follows for each child:\nChild [ID]: [Sex], Age [Months] months\n  Height-for-Age Z-score: [value] Percentile: [value]\n  Weight-for-Age Z-score: [value] Percentile: [value]\n  BMI-for-Age Z-score: [value] Percentile: [value]\n  Status: [Classification]\n\nClassifications:\n- 'Stunted' if Height-for-Age Z < -2.0\n- 'Underweight' if Weight-for-Age Z < -2.0\n- 'Overweight' if BMI Percentile > 95\n- 'At Risk of Overweight' if BMI Percentile > 85 and <= 95\n- 'Normal' otherwise",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\nutstat_growth_assessment\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\nutstat_growth_assessment\\export_result.ps1"
+  },
+  "metadata": {
+    "output_path": "C:\\Users\\Docker\\Documents\\nutstat_results.txt",
+    "expected_children": {
+      "Child A": {
+        "haz_target": 0.0,
+        "waz_target": 0.0,
+        "bmiz_target": 0.0,
+        "status": "Normal"
+      },
+      "Child B": {
+        "haz_target": -2.0,
+        "waz_target": -1.0,
+        "bmiz_target": 1.2,
+        "status": "Stunted"
+      },
+      "Child C": {
+        "haz_target": 1.0,
+        "waz_target": 2.0,
+        "bmiz_target": 1.8,
+        "status": "Overweight"
+      },
+      "Child D": {
+        "haz_target": 0.5,
+        "waz_target": -2.0,
+        "bmiz_target": -2.0,
+        "status": "Underweight"
+      }
+    },
+    "tolerance_z": 0.5,
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nutstat_growth_assessment"
+    }
+  }
+}

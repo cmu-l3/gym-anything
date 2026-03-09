@@ -1,0 +1,54 @@
+version: '3.8'
+
+# JFrog Artifactory OSS + PostgreSQL
+# UI: http://localhost:8082
+# Default credentials: admin / password
+# REST API: http://localhost:8082/artifactory/api/
+
+services:
+  postgresql:
+    image: postgres:13-alpine
+    container_name: artifactory-postgresql
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=artifactory
+      - POSTGRES_USER=artifactory
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U artifactory -d artifactory"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  artifactory:
+    image: releases-docker.jfrog.io/jfrog/artifactory-oss:7.77.3
+    container_name: artifactory
+    restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+      - "8082:8082"
+    environment:
+      - JF_SHARED_DATABASE_DRIVER=org.postgresql.Driver
+      - JF_SHARED_DATABASE_TYPE=postgresql
+      - JF_SHARED_DATABASE_USERNAME=artifactory
+      - JF_SHARED_DATABASE_PASSWORD=password
+      - JF_SHARED_DATABASE_URL=jdbc:postgresql://postgresql/artifactory
+      - JF_SHARED_NODE_IP=127.0.0.1
+      - JF_ROUTER_ENTRYPOINTS_EXTERNALPORT=8082
+    volumes:
+      - artifactory_data:/var/opt/jfrog/artifactory
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 32000
+        hard: 40000
+
+volumes:
+  postgresql_data:
+  artifactory_data:

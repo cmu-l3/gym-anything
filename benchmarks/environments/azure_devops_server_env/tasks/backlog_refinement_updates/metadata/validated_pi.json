@@ -1,0 +1,59 @@
+{
+    "task_id": "backlog_refinement_updates@1",
+    "dataset": "TailwindTraders backlog",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_name",
+            "metadata_value": "TailwindTraders",
+            "verified_value": "TailwindTraders",
+            "source": "setup_azure_devops.ps1 line 138 creates project with this exact name. Verified in task.json line 17 and setup script output.",
+            "status": "verified"
+        },
+        {
+            "key": "required_tags",
+            "metadata_value": "[\"release-v1.0\", \"critical-path\"]",
+            "verified_value": "[\"release-v1.0\", \"critical-path\"] - These are target tags to be added during task execution",
+            "source": "task.json lines 3-6 specify these tags must be added. verifier.py lines 67, 97, 127 confirm checking for these exact tags. Initial work_items.json (line 11, 54, 84) do not include these tags.",
+            "status": "verified"
+        },
+        {
+            "key": "target_priority",
+            "metadata_value": "2",
+            "verified_value": "2",
+            "source": "task.json line 5 requires changing 'Design REST API rate limiting' Priority to 2. work_items.json line 50 shows initial priority is 1. verifier.py line 89 checks for priority == 2.",
+            "status": "verified"
+        },
+        {
+            "key": "target_story_points",
+            "metadata_value": "8",
+            "verified_value": "8",
+            "source": "task.json line 2 requires updating 'Implement product inventory search' Story Points to 8. work_items.json line 11 (first user story item) has no story points initially. verifier.py line 59 checks for sp == 8.",
+            "status": "verified"
+        },
+        {
+            "key": "required_comment_snippet",
+            "metadata_value": "deferred to v2.0",
+            "verified_value": "deferred to v2.0",
+            "source": "task.json line 21 specifies required_comment_snippet as 'deferred to v2.0'. task.json line 6 requires comment: 'Deprioritized per refinement - rate limiting deferred to v2.0'. verifier.py line 108 checks if 'v2.0' is in comment text.",
+            "status": "verified"
+        },
+        {
+            "key": "CRITICAL_ISSUE_work_item_title_mismatch",
+            "metadata_value": "Task assumes work items match short titles",
+            "verified_value": "CRITICAL MISMATCH FOUND: Work item titles in work_items.json do not match task.json and verifier.py expectations",
+            "source": "work_items.json actual titles vs task.json/verifier.py expectations: (1) Line 4: 'Implement product inventory search with full-text filtering' vs expected 'Implement product inventory search', (2) Line 47: 'Design REST API rate limiting and authentication middleware' vs expected 'Design REST API rate limiting', (3) Line 78: 'Inventory count becomes negative after concurrent stock deduction requests' vs expected 'Inventory count goes negative'. verifier.py lines 53, 83, 121 use exact string matching with items.get() which will return None for all three items.",
+            "status": "contradicted"
+        },
+        {
+            "key": "verifier_will_fail",
+            "metadata_value": "Verifier should pass when all requirements met",
+            "verified_value": "VERIFIER WILL DEFINITELY FAIL due to work item title mismatch",
+            "source": "verifier.py code inspection: line 53: wi_search = items.get('Implement product inventory search') will be None because actual title is 'Implement product inventory search with full-text filtering'. Same issue for lines 83 and 121. When work items are not found, lines 79-80, 118, 133 provide feedback 'work item not found' and no points are awarded. Minimum 60 points required (line 135) cannot be reached with all three work items missing. Maximum possible score = 0.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The TailwindTraders project is created with synthetic work item data from work_items.json during environment setup (verified via setup_azure_devops.ps1). Target metadata values are all correctly specified: project_name='TailwindTraders', target_priority=2, target_story_points=8, required_tags=['release-v1.0', 'critical-path'], required_comment_snippet='deferred to v2.0'. HOWEVER, CRITICAL FAILURE CONDITION EXISTS: The work items created from work_items.json have extended titles ('Implement product inventory search with full-text filtering', 'Design REST API rate limiting and authentication middleware', 'Inventory count becomes negative after concurrent stock deduction requests') while the verifier.py uses exact string matching to find work items by shorter titles ('Implement product inventory search', 'Design REST API rate limiting', 'Inventory count goes negative'). This will cause the verifier to find zero work items and award zero points, guaranteeing task failure despite correct metadata values.",
+    "pi_confidence": "high"
+}

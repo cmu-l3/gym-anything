@@ -1,0 +1,32 @@
+{
+  "id": "classify_alk_inhibitor_tacrolimus_interactions@1",
+  "version": "1.0",
+  "env_id": "example.liverpool_cancer_ichart_env@0.1",
+  "description": "You are a transplant-oncology pharmacist. Your goal is to evaluate the drug-drug interactions between three ALK inhibitors (Crizotinib, Brigatinib, and Alectinib) and the immunosuppressant Tacrolimus using the Liverpool Cancer iChart app.\n\nFor EACH of the three cancer drugs:\n1. Search for the cancer drug.\n2. Select 'Tacrolimus' as the co-medication.\n3. Observe the interaction color.\n4. CRITICAL: Open the Interaction Details view to read the mechanism/management.\n5. Determine if the interaction INCREASES Tacrolimus levels (inhibition), DECREASES Tacrolimus levels (induction), or has NO/MINIMAL effect.\n\nCreate a report file at '/sdcard/alk_transplant_audit.txt' with exactly three lines:\n[Cancer Drug] : [Color] : [Effect]\n\nExample format:\nDrugName : Orange : Increases Tacrolimus\nDrugName : Red : Decreases Tacrolimus\nDrugName : Green : No Effect",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "sh /sdcard/tasks/classify_alk_inhibitor_tacrolimus_interactions/setup_task.sh",
+    "post_task": "sh /sdcard/tasks/classify_alk_inhibitor_tacrolimus_interactions/export_result.sh"
+  },
+  "metadata": {
+    "expected_file": "/sdcard/alk_transplant_audit.txt",
+    "drugs": ["Crizotinib", "Brigatinib", "Alectinib"],
+    "co_medication": "Tacrolimus",
+    "ground_truth": {
+      "Crizotinib": "increase",
+      "Brigatinib": "decrease",
+      "Alectinib": "neutral"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_alk_interactions"
+    }
+  }
+}

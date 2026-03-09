@@ -1,0 +1,34 @@
+{
+  "id": "smtp_email_forensics@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "Analyze the SMTP capture file at /home/ga/Documents/captures/smtp.pcap and produce a structured forensics report.\n\nExtract the following information and write it to a plain-text report file at /home/ga/Documents/smtp_report.txt. Each field must appear on its own line in exactly the format 'field_name: value' (one space after the colon).\n\nRequired fields:\n1. total_packets — Total number of packets in the entire capture file.\n2. smtp_packets — Number of packets identified as SMTP protocol.\n3. sender — The email address from the SMTP MAIL FROM command. Write only the email address (e.g. user@example.com), without angle brackets or the FROM: prefix.\n4. recipient — The email address from the SMTP RCPT TO command. Write only the email address, without angle brackets or the TO: prefix.\n5. smtp_server_ip — IPv4 address of the SMTP server (the host that sends the 220 service-ready greeting).\n6. smtp_client_ip — IPv4 address of the SMTP client (the host that initiates the connection).\n\nExample output format:\ntotal_packets: 42\nsmtp_packets: 20\nsender: alice@example.com\nrecipient: bob@example.com\nsmtp_server_ip: 192.168.1.1\nsmtp_client_ip: 192.168.1.2\n\nWireshark is already open with smtp.pcap loaded. You may use the GUI, tshark, or any tools available.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/smtp_email_forensics/setup_task.sh",
+    "post_task": "/workspace/tasks/smtp_email_forensics/export_result.sh"
+  },
+  "metadata": {
+    "pcap_file": "/home/ga/Documents/captures/smtp.pcap",
+    "output_file": "/home/ga/Documents/smtp_report.txt",
+    "fields": [
+      "total_packets",
+      "smtp_packets",
+      "sender",
+      "recipient",
+      "smtp_server_ip",
+      "smtp_client_ip"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_smtp_email_forensics"
+    }
+  }
+}

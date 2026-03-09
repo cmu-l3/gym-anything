@@ -1,0 +1,30 @@
+{
+  "id": "demand_forecast_inventory_model@1",
+  "version": "1.0",
+  "env_id": "microsoft_excel_env@0.1",
+  "description": "You are a supply chain analyst at an industrial equipment manufacturer conducting annual inventory planning. Microsoft Excel is open with demand_inventory.xlsx. The 'Historical_Sales' sheet has 24 months of FRED Industrial Production indices scaled as demand proxies (Jan 2022 - Dec 2023) for 20 manufacturing product categories with unit costs, holding cost percentages, lead times, and fixed ordering costs. Complete the 'Forecast_Sheet': for each SKU calculate average monthly demand (mean of 24 months), standard deviation, a 3-month moving average forecast (average of Oct/Nov/Dec 2023), exponential smoothing forecast with alpha=0.3 (starting from first month's actual, recursing through all 24 months), MAE for each method against 2023 actuals, select the best method (lower MAE), and project Jan/Feb/Mar 2024 forecasts using the best method. Complete the 'Inventory_Parameters' sheet: calculate annual demand (avg monthly × 12), EOQ using the classic formula sqrt(2 × Annual_Demand × Order_Cost / (Unit_Cost × Holding_Cost_pct/100)), safety stock at 95% service level (1.645 × daily_demand_stddev × sqrt(Lead_Time_Days), where daily_demand_stddev = monthly_stddev / sqrt(21.67)), reorder point (avg_daily_demand × Lead_Time_Days + Safety_Stock), min/max levels, annual holding cost (EOQ/2 × Unit_Cost × Holding_pct/100), annual order cost (Annual_Demand/EOQ × Order_Cost), total inventory cost, and inventory turns (Annual_Demand × Unit_Cost / (EOQ/2 × Unit_Cost)). Fill TOTAL row. Complete the 'ABC_Analysis' sheet: calculate annual revenue per SKU, sort by revenue descending to compute cumulative percentages, assign ABC classes (A: top 80% cumulative, B: next 15%, C: bottom 5%), and set cycle count frequencies (A=Monthly, B=Quarterly, C=Annual). Save as C:\\Users\\Docker\\Desktop\\ExcelTasks\\demand_inventory.xlsx using Ctrl+S.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\demand_forecast_inventory_model\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\demand_forecast_inventory_model\\export_result.ps1"
+  },
+  "metadata": {
+    "occupation": "Logisticians",
+    "industry": "Manufacturing / Industrial Supply Chain",
+    "onet_soc": "13-1081.00",
+    "data_source": "Federal Reserve Bank of St. Louis FRED Industrial Production indices (IPMAN, IPG3361T3S, etc.) Jan 2022-Dec 2023; unit costs from BLS PPI commodity prices Dec 2023; holding cost benchmarks from APICS CPIM; lead times from ISM Report on Business Dec 2023; EOQ model per Harris (1913)/Wilson formula; safety stock per Silver-Pyke-Peterson (1998)",
+    "excel_features": ["SQRT", "AVERAGE", "STDEV", "NORM.S.INV", "moving_average", "exponential_smoothing", "RANK", "SUMPRODUCT", "IF_nested", "multi_sheet"],
+    "expected_total_annual_inventory_cost_range": [60000, 120000]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_demand_forecast_inventory_model"
+    }
+  }
+}

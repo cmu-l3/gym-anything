@@ -1,0 +1,34 @@
+{
+  "id": "create_spreadsheet_parametric@1",
+  "version": "1.0",
+  "env_id": "freecad_envb@0.1",
+  "description": "Create a spreadsheet-driven parametric L-bracket in FreeCAD. The bracket's geometry must be fully controlled by named parameters in a FreeCAD Spreadsheet object, so that changing a value in the spreadsheet automatically updates the 3D model.\n\n**Step 1 — Create the Spreadsheet with parameters:**\nSwitch to the Spreadsheet workbench and create a new Spreadsheet. Define the following cells with aliases:\n\n| Cell | Alias            | Value |\n|------|------------------|-------|\n| A1   | base_length      | 60    |\n| A2   | base_width       | 40    |\n| A3   | upright_height   | 50    |\n| A4   | thickness        | 5     |\n\nAll values are in millimeters.\n\n**Step 2 — Create the L-bracket geometry:**\nSwitch to the Part Design workbench. Create a Body, then create a Sketch on the XZ plane. Draw a closed L-shaped profile (angle bracket cross-section):\n- The horizontal base extends base_length (60 mm) along X and is thickness (5 mm) tall\n- A vertical upright rises from one end of the base to a total height of upright_height (50 mm) and is thickness (5 mm) wide\n\nPad the L-profile sketch by base_width (40 mm) along the Y axis.\n\n**Step 3 — Link ALL dimensions to the Spreadsheet using expressions:**\nEvery constrained dimension in the sketch and the Pad length must be set via expressions referencing the Spreadsheet aliases (e.g., Spreadsheet.base_length). No hard-coded numeric values should remain for the four key dimensions.\n\n**Step 4 — Modify a parameter to verify parametric linking:**\nOpen the Spreadsheet and change upright_height from 50 to 70 mm. The 3D model should recompute automatically, producing a taller bracket.\n\n**Step 5 — Save:**\nSave the document as: ~/Documents/FreeCAD/parametric_bracket.FCStd",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_spreadsheet_parametric/setup_task.sh",
+    "post_task": "/workspace/tasks/create_spreadsheet_parametric/export_result.sh"
+  },
+  "metadata": {
+    "expected_file": "/home/ga/Documents/FreeCAD/parametric_bracket.FCStd",
+    "required_aliases": ["base_length", "base_width", "upright_height", "thickness"],
+    "target_values": {
+      "base_length": 60,
+      "base_width": 40,
+      "upright_height": 70,
+      "thickness": 5
+    },
+    "expected_bbox": [60, 40, 70],
+    "bbox_tolerance": 5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_spreadsheet_parametric"
+    }
+  }
+}

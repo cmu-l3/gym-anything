@@ -1,0 +1,34 @@
+{
+  "id": "nps_equation_classification@1",
+  "version": "1.0",
+  "env_id": "limesurvey_env@0.1",
+  "description": "Create a Net Promoter Score (NPS) survey with automatic respondent classification. Log in to LimeSurvey (admin/Admin123!) and create a survey titled 'Q4 2024 Customer Experience NPS Survey'. \n\nStructure requirements:\n1. Question Group 'NPS Rating':\n   - Question 'NPS': 'On a scale of 0 to 10, how likely are you to recommend our product/service to a friend or colleague?' (Mandatory, 0-10 input)\n   - Question 'NPSCat': Use an Equation question type to classify the score: 'Detractor' (0-6), 'Passive' (7-8), or 'Promoter' (9-10).\n\n2. Question Group 'Follow-Up Feedback':\n   - Question 'DetractorQ': 'We're sorry to hear that. What was the primary reason for your low score?' (Long Free Text). Show ONLY if classified as Detractor.\n   - Question 'PassiveQ': 'Thank you for your feedback. What one improvement would make you rate us higher?' (Long Free Text). Show ONLY if classified as Passive.\n   - Question 'PromoterQ': 'That's great to hear! What do you value most about our product/service?' (Long Free Text). Show ONLY if classified as Promoter.\n\n3. Settings:\n   - Set responses to Anonymized.\n   - Activate the survey.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nps_equation_classification/setup_task.sh",
+    "post_task": "/workspace/tasks/nps_equation_classification/export_result.sh"
+  },
+  "metadata": {
+    "expected_title_keywords": ["NPS", "Net Promoter", "Customer Experience"],
+    "nps_question_code": "NPS",
+    "equation_question_code": "NPSCat",
+    "classification_logic": {
+      "detractor_max": 6,
+      "passive_min": 7,
+      "passive_max": 8,
+      "promoter_min": 9
+    },
+    "follow_up_codes": ["DetractorQ", "PassiveQ", "PromoterQ"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nps_survey"
+    }
+  }
+}

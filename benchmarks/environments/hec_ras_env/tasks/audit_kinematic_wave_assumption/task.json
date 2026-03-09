@@ -1,0 +1,35 @@
+{
+  "id": "audit_kinematic_wave_assumption@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform a hydraulic validity check on the Muncie HEC-RAS model to test the Kinematic Wave assumption ($S_{wse} \\approx S_o$) during peak flow.\n\nYour goal is to:\n1. Ensure the unsteady flow simulation has been run (output file `Muncie.p04.hdf` exists). If not, run it using `RasUnsteady`.\n2. Identify the time step where the flow at the **most upstream** cross-section is at its maximum (peak inflow).\n3. Extract the **instantaneous** Water Surface Elevation (WSE) profile and the Channel Bed (Thalweg) profile for that specific time step.\n4. Compute the Water Surface Slope ($S_{wse}$) and Bed Slope ($S_o$) between consecutive cross-sections.\n5. Save the results to `/home/ga/Documents/hec_ras_results/kinematic_wave_audit.csv`.\n\nThe CSV must contain these columns: `Upstream_Station`, `Downstream_Station`, `Reach_Length_ft`, `Bed_Slope`, `WSE_Slope`, `Slope_Ratio`.\n\nSlope Formula: $(Y_{upstream} - Y_{downstream}) / Length$\nRatio Formula: $S_{wse} / S_o$\n\n**WARNING**: You must use the INSTANTANEOUS profile at peak time, NOT the maximum envelope profile.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_kinematic_wave_assumption/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_kinematic_wave_assumption/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "output_file": "kinematic_wave_audit.csv",
+    "expected_columns": [
+      "Upstream_Station",
+      "Downstream_Station",
+      "Reach_Length_ft",
+      "Bed_Slope",
+      "WSE_Slope",
+      "Slope_Ratio"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_kinematic_wave_assumption"
+    }
+  }
+}

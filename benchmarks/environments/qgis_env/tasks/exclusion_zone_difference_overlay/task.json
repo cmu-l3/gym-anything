@@ -1,0 +1,29 @@
+{
+  "id": "exclusion_zone_difference_overlay@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "Perform a suitability analysis to identify developable land by excluding restricted zones.\n\n1. Open QGIS (it should already be running).\n2. Load the candidate land parcels from `/home/ga/GIS_Data/sample_polygon.geojson` and the radar stations from `/home/ga/GIS_Data/sample_points.geojson`.\n3. The source data is in WGS84 (degrees). To perform accurate metric analysis, reproject both layers to **EPSG:32610** (WGS 84 / UTM zone 10N). You can do this by exporting each layer (Right-click > Export > Save Features As) or using the 'Reproject layer' tool.\n4. Create a **1 kilometer (1000 meters)** exclusion zone around the radar stations using the **Buffer** tool on your reprojected points.\n5. Remove these exclusion zones from the candidate land parcels using the **Difference** tool (Input: Land Parcels, Overlay: Buffered Points).\n6. Export the final suitable areas to `/home/ga/GIS_Data/exports/developable_areas.geojson` in GeoJSON format.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/exclusion_zone_difference_overlay/setup_task.sh",
+    "post_task": "/workspace/tasks/exclusion_zone_difference_overlay/export_result.sh"
+  },
+  "metadata": {
+    "input_polygons": "/home/ga/GIS_Data/sample_polygon.geojson",
+    "input_points": "/home/ga/GIS_Data/sample_points.geojson",
+    "expected_output": "/home/ga/GIS_Data/exports/developable_areas.geojson",
+    "buffer_radius_meters": 1000,
+    "target_crs": "EPSG:32610"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_exclusion_zone_difference_overlay"
+    }
+  }
+}

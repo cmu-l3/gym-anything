@@ -1,0 +1,49 @@
+{
+  "id": "max_aortic_csa@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Find the axial slice with the largest abdominal aortic cross-sectional area on the provided CT scan and measure the CSA. Calculate the equivalent diameter and provide a clinical classification. Save measurement to ~/Documents/SlicerData/AMOS/max_aorta_measurement.mrk.json, report to ~/Documents/SlicerData/AMOS/max_aorta_report.json with fields: max_csa_mm2, slice_z_mm, equivalent_diameter_mm, clinical_assessment, and screenshot to ~/Documents/SlicerData/Screenshots/max_aorta_screenshot.png.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 70,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/max_aortic_csa/setup_task.sh",
+    "post_task": "/workspace/tasks/max_aortic_csa/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/max_aorta_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/max_aorta_report.json",
+    "output_screenshot": "/home/ga/Documents/SlicerData/Screenshots/max_aorta_screenshot.png",
+    "aorta_label": 10,
+    "passing_thresholds": {
+      "csa_error_max_percent": 20,
+      "location_error_max_mm": 15,
+      "classification_required": true
+    },
+    "scoring_weights": {
+      "csa_accuracy_20pct": 30,
+      "csa_accuracy_10pct_bonus": 10,
+      "location_accuracy": 20,
+      "measurement_file_exists": 15,
+      "equivalent_diameter_correct": 10,
+      "clinical_assessment_correct": 10,
+      "screenshot_captured": 5
+    },
+    "anatomical_bounds": {
+      "min_csa_mm2": 200,
+      "max_csa_mm2": 2000
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_max_aortic_csa"
+    }
+  }
+}

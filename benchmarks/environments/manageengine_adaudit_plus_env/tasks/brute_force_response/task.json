@@ -1,0 +1,32 @@
+{
+  "id": "brute_force_response@1",
+  "version": "1.0",
+  "env_id": "manageengine_adaudit_plus_env@0.1",
+  "description": "ADAudit Plus is running at http://localhost:8081/ (login: admin/Admin@2024). Your threat intelligence team has flagged an ongoing brute-force credential attack targeting local Windows accounts. The attack targeted one specific account with a very high number of failed login attempts. Use ADAudit Plus to: (1) investigate and identify which specific local user account was the primary target of the brute-force attack — the account with the highest number of failed logon events in the audit trail; (2) create a new technician account for the incident response team: username 'incident_handler', full name 'Incident Handler', email 'handler@corp.local', password 'Handler@2025', role 'Operator'; (3) configure Admin > Notifications to send event collection alerts to 'security-alerts@corp.local' with a frequency of 1 hour; (4) document your investigation findings in C:\\Users\\Docker\\Desktop\\brute_force_analysis.txt — name the specific account that was most heavily targeted, the approximate number of failed login attempts observed, and your recommended response action.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 540,
+    "max_steps": 55,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\brute_force_response\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\brute_force_response\\export_result.ps1",
+    "pre_task_timeout": 900
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_brute_force_response"
+    }
+  },
+  "metadata": {
+    "expected_tech_username": "incident_handler",
+    "expected_tech_role": "Operator",
+    "expected_notification_email": "security-alerts@corp.local",
+    "primary_target_account": "rwilliams",
+    "total_failed_logons_rwilliams": 15,
+    "expected_report_file": "C:\\Users\\Docker\\Desktop\\brute_force_analysis.txt",
+    "result_file": "C:\\Users\\Docker\\brute_force_response_result.json"
+  }
+}

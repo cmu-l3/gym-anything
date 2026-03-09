@@ -1,0 +1,29 @@
+{
+  "id": "setup_detached_header_deniability@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Configure a VeraCrypt volume for Plausible Deniability using detached headers. \n\n1. Create a new 50MB VeraCrypt container at '/home/ga/SecureTransport/ghost_data.hc' using AES encryption, SHA-512 hash, and FAT filesystem. Set the password to 'ProtocolGhost2024!'.\n2. Mount the volume and copy the file '/workspace/assets/sample_data/SF312_Nondisclosure_Agreement.txt' into it.\n3. Create a backup of the volume header to '/home/ga/SecureTransport/ghost_header.vc'.\n4. Dismount the volume.\n5. Securely wipe (overwrite with random data or zeros) the embedded headers from the container file so it appears as random noise. You must wipe BOTH the primary header (first 128KB) and the embedded backup header (last 128KB) of the container file.\n6. Verify that the volume CANNOT be mounted normally, but CAN be mounted when providing the external header file.\n7. Leave the volume dismounted.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_detached_header_deniability/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_detached_header_deniability/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/SecureTransport/ghost_data.hc",
+    "header_path": "/home/ga/SecureTransport/ghost_header.vc",
+    "password": "ProtocolGhost2024!",
+    "sample_file": "SF312_Nondisclosure_Agreement.txt",
+    "header_size_bytes": 131072
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_detached_header"
+    }
+  }
+}

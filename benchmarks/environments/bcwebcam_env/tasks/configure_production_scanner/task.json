@@ -1,0 +1,29 @@
+{
+  "id": "configure_production_scanner@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "A Bosch automotive parts factory uses bcWebCam for inbound goods verification on a conveyor system. Parts arrive in clear plastic bags with Code 128 barcodes printed on the inner label. When bags are placed flat on the conveyor, the barcode is visible from above but mirrored/inverted. The current bcWebCam setup has image inversion disabled, linear barcode support disabled, uses Enter key, and no duplicate prevention. Configure bcWebCam for this production line use: enable image inversion to read mirrored labels (FlipBitmap), enable linear barcode scanning (Code 128 is the Bosch standard), set TAB as the terminating character (for data entry into the parts tracking spreadsheet), and set a 2-second duplicate prevention (the conveyor may present the same part twice during jams).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_production_scanner\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_production_scanner\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_flip_bitmap": "True",
+    "expected_barcode_l_enabled": true,
+    "expected_send_keys_postfix": "{TAB}",
+    "expected_bc_grace_period": "2",
+    "ini_path": "C:\\Users\\Docker\\AppData\\Local\\bcWebCam\\bcWebCam.ini"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_production_scanner"
+    }
+  }
+}

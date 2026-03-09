@@ -1,0 +1,33 @@
+services:
+  orangehrm-db:
+    image: mariadb:10.11
+    container_name: orangehrm-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass123
+      MYSQL_DATABASE: orangehrm
+      MYSQL_USER: orangeuser
+      MYSQL_PASSWORD: orangepass123
+    volumes:
+      - orangehrm_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass123"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  orangehrm:
+    image: orangehrm/orangehrm:5.8
+    container_name: orangehrm
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    depends_on:
+      orangehrm-db:
+        condition: service_healthy
+    volumes:
+      - orangehrm_app_data:/var/www/html
+
+volumes:
+  orangehrm_db_data:
+  orangehrm_app_data:

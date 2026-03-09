@@ -1,0 +1,32 @@
+{
+  "id": "configure_sla@1",
+  "version": "1.0",
+  "env_id": "manageservice_env@0.1",
+  "description": "Create a new Service Level Agreement (SLA) in ManageEngine ServiceDesk Plus.\n\n**Goal:** Configure a new SLA named \"Premium Support SLA\" with the following response and resolution time targets:\n\n| Priority | Response Time | Resolution Time |\n|---|---|---|\n| **Urgent** (or P1) | 15 minutes | 1 hour |\n| **High** (or P2) | 1 hour | 4 hours |\n| **Medium** (or P3) | 4 hours | 8 hours |\n| **Low** (or P4) | 8 hours | 24 hours (1 day) |\n\n**Steps:**\n1. Navigate to **Admin** > **Service Level Agreements** (under Helpdesk/Service Desk settings).\n2. Add a new SLA named exactly: **Premium Support SLA**.\n3. Configure the response and resolution times for the four priorities as listed above.\n4. Ensure the SLA is active/enabled and save it.\n\n**Note:** If prompted for operational hours, select 'Calendar Hours' (24x7).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_sla/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_sla/export_result.sh",
+    "pre_task_timeout": 3600
+  },
+  "metadata": {
+    "sla_name": "Premium Support SLA",
+    "expectations": {
+      "Urgent": { "response_min": 15, "resolution_min": 60 },
+      "High": { "response_min": 60, "resolution_min": 240 },
+      "Medium": { "response_min": 240, "resolution_min": 480 },
+      "Low": { "response_min": 480, "resolution_min": 1440 }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_sla"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "calculate_ls_ratio@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the liver-to-spleen (L/S) attenuation ratio on the provided abdominal CT (AMOS dataset) for hepatic steatosis assessment. Place ROIs in liver and spleen parenchyma, record mean HU values, and calculate the ratio. Save results to ~/Documents/SlicerData/Exports/ls_ratio_result.json with fields: liver_roi_hu_mean, liver_roi_hu_std, spleen_roi_hu_mean, spleen_roi_hu_std, ls_ratio, interpretation, slice_number.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/calculate_ls_ratio/setup_task.sh",
+    "post_task": "/workspace/tasks/calculate_ls_ratio/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_report": "/home/ga/Documents/SlicerData/Exports/ls_ratio_result.json",
+    "liver_hu_range": {"min": 10, "max": 100},
+    "spleen_hu_range": {"min": 30, "max": 80},
+    "liver_std_range": {"min": 3, "max": 30},
+    "spleen_std_range": {"min": 3, "max": 25},
+    "expected_ls_ratio_range": {"min": 0.5, "max": 1.5},
+    "ratio_calculation_tolerance": 0.02,
+    "scoring_weights": {
+      "output_file_exists": 15,
+      "liver_hu_valid": 15,
+      "spleen_hu_valid": 15,
+      "ratio_calculated_correctly": 20,
+      "interpretation_correct": 15,
+      "roi_placement_quality": 20
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_calculate_ls_ratio"
+    }
+  }
+}

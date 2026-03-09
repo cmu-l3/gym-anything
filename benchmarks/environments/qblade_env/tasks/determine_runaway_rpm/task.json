@@ -1,0 +1,33 @@
+{
+  "id": "determine_runaway_rpm@1",
+  "version": "1.0",
+  "env_id": "qblade_env@0.1",
+  "description": "Determine the runaway rotational speed (RPM) of a wind turbine rotor. \n\nStarting from a fresh QBlade session:\n1. Generate a NACA 4412 airfoil.\n2. Generate a polar for Re=1,000,000 (Range: -5 to 25 degrees).\n3. Design a simple 3-bladed rotor: Radius = 6m, Hub Radius = 0.5m, Chord = 0.5m (constant), Twist = 0 (constant), utilizing the NACA 4412 polar.\n4. Perform a BEM Rotor Simulation at a fixed Wind Speed of 15 m/s and Pitch of 0 degrees. You must perform an RPM Sweep (e.g., 50-300 RPM) to find the speed where aerodynamic torque/power drops to zero.\n5. Export the simulation graph data (Power vs RPM) to '/home/ga/Documents/projects/runaway_data.txt'.\n6. Identify the runaway RPM (zero-crossing) and write it to '/home/ga/Documents/projects/runaway_report.txt' in the format 'Runaway_RPM: <value>'.\n7. Save the project as '/home/ga/Documents/projects/safety_analysis.wpa'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/determine_runaway_rpm/setup_task.sh",
+    "post_task": "/workspace/tasks/determine_runaway_rpm/export_result.sh"
+  },
+  "metadata": {
+    "target_wind_speed": 15,
+    "target_airfoil": "NACA 4412",
+    "target_radius": 6,
+    "rpm_tolerance": 2.0,
+    "paths": {
+      "report": "/home/ga/Documents/projects/runaway_report.txt",
+      "data": "/home/ga/Documents/projects/runaway_data.txt",
+      "project": "/home/ga/Documents/projects/safety_analysis.wpa"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_runaway_rpm"
+    }
+  }
+}

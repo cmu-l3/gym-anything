@@ -1,0 +1,39 @@
+{
+  "id": "clean_segmentation_islands@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Clean the pre-loaded lung segmentation ('Lungs' segment) by removing small disconnected artifact islands, keeping only the main lung structures. Save the cleaned segmentation to ~/Documents/SlicerData/Exports/lungs_cleaned.seg.nrrd.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/clean_segmentation_islands/setup_task.sh",
+    "post_task": "/workspace/tasks/clean_segmentation_islands/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "data_dir": "/home/ga/Documents/SlicerData/ChestCT",
+    "output_segmentation": "/home/ga/Documents/SlicerData/Exports/lungs_cleaned.seg.nrrd",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "original_island_count_range": {"min": 15, "max": 30},
+    "expected_cleaned_island_count": {"min": 1, "max": 3},
+    "volume_retention_range": {"min": 0.85, "max": 1.0},
+    "scoring_weights": {
+      "output_file_exists": 15,
+      "island_count_reduced": 25,
+      "volume_preserved": 20,
+      "main_structures_intact": 20,
+      "appropriate_island_count": 10,
+      "vlm_visual_verification": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_clean_segmentation_islands"
+    }
+  }
+}

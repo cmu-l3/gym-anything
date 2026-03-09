@@ -1,0 +1,30 @@
+{
+  "id": "configure_patient_interface@1",
+  "version": "1.0",
+  "env_id": "jitsi_meet_env@0.1",
+  "description": "Configure the Jitsi Meet web interface to act as a 'Hospital Virtual Care' portal. You must modify the `interface_config.js` file inside the running Jitsi Web Docker container.\n\nExpected Configuration Changes:\n1. Find the running web container (e.g., via `docker ps`).\n2. Edit `interface_config.js` (typically found at `/usr/share/jitsi-meet/interface_config.js` or `/defaults/interface_config.js` inside the container).\n3. Set `DEFAULT_WELCOME_PAGE_TITLE` to exactly `\"Hospital Virtual Care\"`.\n4. Modify `SETTINGS_SECTIONS` so it contains ONLY `['devices', 'sounds']`. Remove all other tabs (profile, calendar, more).\n5. Set `MOBILE_APP_PROMO` to `false`.\n\nAfter applying changes, reload Firefox at http://localhost:8080, open the Settings dialog (gear icon) to verify the tabs are restricted, and take a screenshot of the open dialog. Save the screenshot to `~/Documents/restricted_settings.png`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_patient_interface/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_patient_interface/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "expected_title": "Hospital Virtual Care",
+    "expected_settings": ["devices", "sounds"],
+    "expected_promo": false,
+    "screenshot_path": "/home/ga/Documents/restricted_settings.png",
+    "config_path_in_container": "/usr/share/jitsi-meet/interface_config.js"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_patient_interface"
+    }
+  }
+}

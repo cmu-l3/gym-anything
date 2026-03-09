@@ -1,0 +1,29 @@
+{
+  "id": "configure_shared_workspace@1",
+  "version": "1.0",
+  "env_id": "virtualmin_env@0.1",
+  "description": "The creative team at Acme Corp needs a shared workspace to collaborate on the 'Campaign 2026' project. Currently, when Jordan and Alex share files, they run into permission errors because the files remain owned by the uploader.\n\nYou need to set up a robust shared environment:\n\n1. Create a new Unix group named 'creative_team'.\n2. Add the existing users 'jordan' and 'alex' to this group.\n3. Create a shared directory at '/home/acmecorp/campaign_2026'.\n4. Configure ownership and permissions so that:\n   - The directory is owned by user 'acmecorp' and group 'creative_team'.\n   - Members of the group have full Read/Write/Execute access.\n   - Users NOT in the group have NO access.\n   - CRITICAL: Enable the SetGID (Set Group ID) bit on the directory. This ensures that any new file created inside automatically inherits the 'creative_team' group ownership, rather than the creator's primary group.\n\nYou can use Webmin's 'Users and Groups' and 'File Manager' modules, or the command line terminal.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_shared_workspace/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_shared_workspace/export_result.sh"
+  },
+  "metadata": {
+    "group_name": "creative_team",
+    "target_users": ["jordan", "alex"],
+    "directory_path": "/home/acmecorp/campaign_2026",
+    "expected_permissions": "2770",
+    "expected_group_owner": "creative_team"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_shared_workspace"
+    }
+  }
+}

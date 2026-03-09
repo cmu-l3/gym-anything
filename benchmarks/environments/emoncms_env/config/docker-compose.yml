@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.11
+    container_name: emoncms-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: emoncms
+      MYSQL_USER: emoncms
+      MYSQL_PASSWORD: emoncms
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_INITDB_SKIP_TZINFO: "true"
+    volumes:
+      - emon-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "emoncms", "-pemoncms"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: emoncms-redis
+    restart: always
+    volumes:
+      - emon-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    image: openenergymonitor/emoncms:latest
+    container_name: emoncms-web
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=emoncms
+      - MYSQL_USER=emoncms
+      - MYSQL_PASSWORD=emoncms
+      - REDIS_ENABLED=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PREFIX=emoncms
+      # MQTT: disabled but env vars must be defined to prevent PHP errors
+      - MQTT_ENABLED=false
+      - MQTT_HOST=localhost
+      - MQTT_PORT=1883
+      - MQTT_USER=emonpi
+      - MQTT_PASSWORD=emonpimqtt2016
+      - MQTT_CLIENTID=emoncmsmqtt
+      - MQTT_BASETOPIC=emon
+      - PHPFINA_DIR=/var/opt/emoncms/phpfina/
+      - PHPTIMESERIES_DIR=/var/opt/emoncms/phptimeseries/
+      - PRODUCTION=true
+    volumes:
+      - emon-phpfina:/var/opt/emoncms/phpfina/
+      - emon-phptimeseries:/var/opt/emoncms/phptimeseries/
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  emon-db-data:
+  emon-redis-data:
+  emon-phpfina:
+  emon-phptimeseries:

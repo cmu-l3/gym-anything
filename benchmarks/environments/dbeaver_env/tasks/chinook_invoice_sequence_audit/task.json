@@ -1,0 +1,29 @@
+{
+  "id": "chinook_invoice_sequence_audit@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Database Administrator performing a compliance audit. A tax authority requires that all invoices be sequentially numbered without gaps. A modified Chinook database has been placed at /home/ga/Documents/databases/chinook_audit.db, which contains several missing invoice records.\n\nYour tasks:\n1. Connect to the database in DBeaver. Create a new SQLite connection named exactly 'ChinookAudit' pointing to /home/ga/Documents/databases/chinook_audit.db.\n\n2. Analyze the 'invoices' table to identify ALL gaps in the InvoiceId sequence. A gap exists whenever the sequence skips numbers (e.g., if IDs go 1, 2, 5, then 3 and 4 are missing).\n\n3. Export a gap analysis report to a CSV file at exactly: /home/ga/Documents/exports/gap_analysis.csv. The CSV must contain exactly these three columns: 'GapStartId' (the first missing ID in the range), 'GapEndId' (the last missing ID in the range), and 'MissingCount' (total IDs missing in that range).\n\n4. Save the SQL query used to perform this analysis to: /home/ga/Documents/scripts/audit_query.sql.\n\nExample Output Format:\nGapStartId,GapEndId,MissingCount\n3,4,2\n8,8,1\n...",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_invoice_sequence_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_invoice_sequence_audit/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook_audit.db",
+    "connection_name": "ChinookAudit",
+    "output_csv": "/home/ga/Documents/exports/gap_analysis.csv",
+    "output_sql": "/home/ga/Documents/scripts/audit_query.sql",
+    "required_columns": ["GapStartId", "GapEndId", "MissingCount"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_invoice_sequence_audit"
+    }
+  }
+}

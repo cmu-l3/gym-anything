@@ -1,0 +1,29 @@
+{
+  "id": "configure_build_safety_settings@1",
+  "version": "1.0",
+  "env_id": "jenkins_env@0.1",
+  "description": "Configure safety settings for the 'Production-Deploy' job to prevent race conditions. The job currently allows concurrent builds and triggers immediately, which causes issues. \n\nRequired changes:\n1. Disable concurrent builds (ensure 'Execute concurrent builds if necessary' is unchecked).\n2. Set a Quiet Period of exactly 120 seconds.\n3. Enable 'Block build when upstream project is building' (the upstream project is 'Backend-Build').\n\nYou are already logged in as admin. If prompted to log in, use Username: admin, Password: Admin123!",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_build_safety_settings/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_build_safety_settings/export_result.sh"
+  },
+  "metadata": {
+    "target_job": "Production-Deploy",
+    "upstream_job": "Backend-Build",
+    "expected_quiet_period": 120,
+    "expected_concurrent_build": false,
+    "expected_block_upstream": true
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_build_safety_settings"
+    }
+  }
+}

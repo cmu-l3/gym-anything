@@ -1,0 +1,45 @@
+version: '3.4'
+
+services:
+
+  nuxeo-postgres:
+    image: postgres:11
+    container_name: nuxeo-postgres
+    environment:
+      POSTGRES_DB: nuxeo
+      POSTGRES_USER: nuxeo
+      POSTGRES_PASSWORD: nuxeo
+    volumes:
+      - nuxeo_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nuxeo"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  nuxeo-app:
+    image: nuxeo:10.10
+    container_name: nuxeo-app
+    ports:
+      - "8080:8080"
+    environment:
+      NUXEO_DB_TYPE: postgresql
+      NUXEO_DB_HOST: nuxeo-postgres
+      NUXEO_DB_PORT: 5432
+      NUXEO_DB_NAME: nuxeo
+      NUXEO_DB_USER: nuxeo
+      NUXEO_DB_PASSWORD: nuxeo
+      # nuxeo-web-ui is pre-downloaded in the nuxeo:10.10 image's local package store,
+      # so it installs without marketplace authentication (no CLID required).
+      NUXEO_PACKAGES: nuxeo-web-ui
+    depends_on:
+      nuxeo-postgres:
+        condition: service_healthy
+    volumes:
+      - nuxeo_data:/var/lib/nuxeo
+    restart: unless-stopped
+
+volumes:
+  nuxeo_pg_data:
+  nuxeo_data:

@@ -1,0 +1,28 @@
+{
+  "id": "broken_fragment_identifier_audit@1",
+  "version": "1.0",
+  "env_id": "frog_seo_spider_env@0.1",
+  "description": "Configure Screaming Frog SEO Spider to audit broken fragment identifiers (bookmarks/anchors). By default, the spider ignores URL fragments (everything after '#'). You must: 1) Go to Configuration > Spider > Advanced and enable 'Crawl Fragment Identifiers'. 2) Crawl 'https://crawler-test.com/'. 3) After the crawl finishes, find the broken bookmarks (often under the 'Issues' tab > 'Broken Bookmark' or via the 'URL' tab). 4) Export the broken bookmark data to a CSV file in '~/Documents/SEO/exports/'. The exported CSV must contain the full URLs with their fragments (e.g., '.../page#section').",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/broken_fragment_identifier_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/broken_fragment_identifier_audit/export_result.sh"
+  },
+  "metadata": {
+    "target_url": "https://crawler-test.com/",
+    "export_dir": "/home/ga/Documents/SEO/exports",
+    "expected_fragment_string": "#broken_bookmark",
+    "required_columns": ["Address", "Destination", "Fragment"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_broken_fragment_audit"
+    }
+  }
+}

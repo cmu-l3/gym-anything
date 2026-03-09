@@ -1,0 +1,31 @@
+{
+  "id": "surface_mesh_optimization@1",
+  "version": "1.0",
+  "env_id": "invesalius3_env@0.1",
+  "description": "You are a biomedical engineer preparing a skull model for 3D printing. The CT Cranium DICOM series is already loaded in InVesalius 3. Printer specifications are in /home/ga/Documents/3d_print_specs.txt.\n\nComplete the full 3D printing preparation pipeline — the raw mesh from CT data contains acquisition noise and has too many triangles for the printer:\n1. Create a bone segmentation mask (use Hounsfield thresholds appropriate for bone tissue)\n2. Generate the initial 3D bone surface mesh from the mask\n3. Apply mesh smoothing to reduce CT acquisition noise and surface roughness (apply at least 15 smoothing iterations)\n4. Apply mesh decimation to reduce the triangle count and file size to meet the printer specification (target: fewer than 500,000 triangles)\n5. Export the optimized mesh in two formats:\n   - PLY format → /home/ga/Documents/skull_optimized.ply\n   - Binary STL format → /home/ga/Documents/skull_optimized.stl\n6. Save the complete InVesalius project to /home/ga/Documents/mesh_optimization.inv3\n\nLogin credentials: username=ga, password=password123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 70
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/surface_mesh_optimization/setup_task.sh",
+    "post_task": "/workspace/tasks/surface_mesh_optimization/export_result.sh"
+  },
+  "metadata": {
+    "output_ply_path": "/home/ga/Documents/skull_optimized.ply",
+    "output_stl_path": "/home/ga/Documents/skull_optimized.stl",
+    "output_project_path": "/home/ga/Documents/mesh_optimization.inv3",
+    "max_triangle_count": 500000,
+    "min_triangle_count": 1000,
+    "min_ply_size_bytes": 10240,
+    "min_stl_size_bytes": 10240,
+    "dicom_series": "ct_cranium/0051"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_surface_mesh_optimization"
+    }
+  }
+}

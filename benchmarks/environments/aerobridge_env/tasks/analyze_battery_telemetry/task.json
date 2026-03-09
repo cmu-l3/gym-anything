@@ -1,0 +1,27 @@
+{
+  "id": "analyze_battery_telemetry@1",
+  "version": "1.0",
+  "env_id": "aerobridge_env@0.1",
+  "description": "Analyze all FlightLog records in the Aerobridge database. You must write a script to parse the 'raw_log' text field of every flight log to extract the 'BATT_END' value (e.g., from 'BATT_END:12'). Identify all flight logs where the ending battery level is STRICTLY LESS THAN 15 (i.e., < 15). Generate a CSV report at '/home/ga/Documents/critical_battery_report.csv' with a header row 'flight_log_id,batt_end_value' listing these critical flights. The Aerobridge server is running at http://localhost:8000.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/analyze_battery_telemetry/setup_task.sh",
+    "post_task": "/workspace/tasks/analyze_battery_telemetry/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/Documents/critical_battery_report.csv",
+    "ground_truth_path": "/var/lib/aerobridge/battery_ground_truth.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_analyze_battery_telemetry"
+    }
+  },
+  "tags": ["data-analysis", "python", "django", "regex", "safety-compliance"]
+}

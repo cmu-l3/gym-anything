@@ -1,0 +1,38 @@
+{
+    "task_id": "assign_user_role@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_username",
+            "metadata_value": "jwilson",
+            "verified_value": "jwilson",
+            "source": "Code analysis: setup_task.sh creates this user via OpenMRS REST API (line 19, 99-109). The username is consistently used throughout task scripts and verified in export_result.sh (line 33, 39).",
+            "status": "verified"
+        },
+        {
+            "key": "target_role",
+            "metadata_value": "System Developer",
+            "verified_value": "System Developer",
+            "source": "OpenMRS official documentation (guide.openmrs.org) confirms 'System Developer' is one of three special predefined roles that cannot be deleted in OpenMRS core. It is automatically granted full access and should only be given to system administrators.",
+            "status": "verified"
+        },
+        {
+            "key": "required_baseline_role",
+            "metadata_value": "Provider",
+            "verified_value": "Provider (in Bahmni Lite context, but not an OpenMRS core predefined role)",
+            "source": "Code analysis: setup_task.sh line 102 assigns this role via OpenMRS REST API. However, OpenMRS official documentation (guide.openmrs.org) identifies only three special predefined roles: Anonymous, Authenticated, and System Developer. 'Provider' is documented as a healthcare provider entity class, not a core user role. The OpenMRS class Provider.java shows Provider as a clinical entity, not a user access role. Provider appears to be configured in Bahmni Lite's database image (bahmni/openmrs-db:1.0.0-lite-mysql5.6) but is not a predefined OpenMRS role.",
+            "status": "contradicted"
+        },
+        {
+            "key": "admin_url",
+            "metadata_value": "https://localhost/openmrs/admin",
+            "verified_value": "https://localhost/openmrs/admin",
+            "source": "OpenMRS administration interface standard URL pattern. Verified in task scripts: setup_task.sh line 125 uses BAHMNI_BASE_URL (https://localhost) + /openmrs/admin. OpenMRS documentation confirms /openmrs/admin is the standard admin interface path. Task description confirms this URL is where 'Manage Users' is accessed.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetic data: user 'jwilson' (James Wilson) is created dynamically during task setup via OpenMRS REST API. The task requires adding the 'System Developer' role, which is a legitimate OpenMRS core predefined role. The baseline role 'Provider' is configured in Bahmni Lite but is not an OpenMRS core predefined role—it is a custom/configuration role. The admin interface is accessible at https://localhost/openmrs/admin. Default Bahmni credentials are username 'superman' with password 'Admin123' (found in task_utils.sh and setup_task.sh). The task uses Bahmni Lite 1.0.0 with OpenMRS 1.0.1 (from docker-compose.yml).",
+    "pi_confidence": "high"
+}

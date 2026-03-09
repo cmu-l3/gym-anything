@@ -1,0 +1,30 @@
+{
+  "id": "apply_cql_filter_layer@1",
+  "version": "1.0",
+  "env_id": "geo_server_env@0.1",
+  "description": "You are a cartographer preparing map products focused on South American infrastructure. Your goal is to configure the existing 'ne_countries' layer in GeoServer so that it ONLY serves features where the continent is 'South America'.\n\nStarting state: The layer 'ne:ne_countries' (in workspace 'ne', store 'postgis_ne') currently displays all world countries.\n\nActions required:\n1. Log in to GeoServer at http://localhost:8080/geoserver/web/ (User: admin, Password: Admin123!).\n2. Navigate to the Layer configuration for 'ne:ne_countries'.\n3. Apply a CQL Filter to restrict features to those where the 'continent' attribute is 'South America'.\n   - Filter expression: continent = 'South America'\n4. Save the configuration.\n\nVerification:\n- A WFS GetFeature request to the layer must return ONLY South American countries (approx. 13 features).\n- The configuration must be persistent in GeoServer settings.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 30,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/apply_cql_filter_layer/setup_task.sh",
+    "post_task": "/workspace/tasks/apply_cql_filter_layer/export_result.sh"
+  },
+  "metadata": {
+    "target_layer": "ne:ne_countries",
+    "target_attribute": "continent",
+    "target_value": "South America",
+    "expected_feature_count_min": 10,
+    "expected_feature_count_max": 15,
+    "cql_fragment": "continent = 'South America'"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_apply_cql_filter"
+    }
+  }
+}

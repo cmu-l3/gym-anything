@@ -1,0 +1,48 @@
+{
+  "id": "kidney_asymmetry_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment both kidneys on the loaded abdominal CT with segments named 'Left Kidney' and 'Right Kidney'. Calculate volumes, asymmetry percentage, and classify the finding. Save segmentation to ~/Documents/SlicerData/AMOS/kidney_segmentation.seg.nrrd and report to ~/Documents/SlicerData/AMOS/kidney_asymmetry_report.json with fields: left_kidney_volume_ml, right_kidney_volume_ml, asymmetry_percentage, smaller_kidney, classification, clinical_recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/kidney_asymmetry_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/kidney_asymmetry_assessment/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/AMOS/kidney_segmentation.seg.nrrd",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/kidney_asymmetry_report.json",
+    "left_kidney_label": 3,
+    "right_kidney_label": 2,
+    "passing_thresholds": {
+      "dice_minimum": 0.60,
+      "volume_error_max_percent": 20,
+      "asymmetry_error_max_points": 5.0
+    },
+    "scoring_weights": {
+      "left_kidney_dice": 20,
+      "right_kidney_dice": 20,
+      "left_volume_accuracy": 10,
+      "right_volume_accuracy": 10,
+      "asymmetry_calculation": 15,
+      "smaller_kidney_correct": 5,
+      "classification_correct": 10,
+      "report_completeness": 10
+    },
+    "normal_kidney_volume_range_ml": [80, 250],
+    "clinical_context": "Screening for unilateral renal disease in hypertensive patient"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_kidney_asymmetry"
+    }
+  }
+}

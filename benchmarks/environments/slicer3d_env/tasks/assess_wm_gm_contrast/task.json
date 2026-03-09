@@ -1,0 +1,41 @@
+{
+  "id": "assess_wm_gm_contrast@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the white matter and gray matter intensity values on the loaded T1-weighted brain MRI by sampling representative regions, then calculate the WM/GM ratio and assess image quality. Save results to ~/Documents/SlicerData/Exports/wm_gm_contrast.json with fields: wm_intensity, gm_intensity, wm_gm_ratio, wm_position_ras, gm_position_ras, quality_assessment, notes.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/assess_wm_gm_contrast/setup_task.sh",
+    "post_task": "/workspace/tasks/assess_wm_gm_contrast/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "output_file": "/home/ga/Documents/SlicerData/Exports/wm_gm_contrast.json",
+    "expected_wm_gm_ratio_min": 1.05,
+    "expected_wm_gm_ratio_max": 1.80,
+    "physiological_ratio_range": {"min": 1.0, "max": 2.0},
+    "good_contrast_range": {"min": 1.1, "max": 1.5},
+    "data_source": "BraTS 2021 T1-weighted MRI",
+    "scoring_weights": {
+      "output_file_exists": 15,
+      "valid_json_structure": 10,
+      "wm_greater_than_gm": 20,
+      "ratio_in_range": 20,
+      "reasonable_intensities": 15,
+      "markup_nodes_created": 10,
+      "vlm_anatomically_plausible": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_wm_gm_contrast"
+    }
+  }
+}

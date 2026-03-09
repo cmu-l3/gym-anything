@@ -1,0 +1,49 @@
+{
+  "id": "dicom_metadata_verification@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Import the DICOM dataset from ~/Documents/SlicerData/LIDC/LIDC-IDRI-0001/DICOM/, load the CT series, and extract its metadata. Save a QA report to ~/Documents/SlicerData/LIDC/dicom_qa_report.json with structure: {\"qa_report\": {patient_id, study_date, modality, acquisition_parameters: {slice_thickness_mm, pixel_spacing_mm, rows, columns, number_of_slices}, equipment: {manufacturer, institution}, verification_status, verified_by}}. Save a screenshot to ~/Documents/SlicerData/LIDC/metadata_verification_screenshot.png.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dicom_metadata_verification/setup_task.sh",
+    "post_task": "/workspace/tasks/dicom_metadata_verification/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "dicom_dir": "/home/ga/Documents/SlicerData/LIDC/LIDC-IDRI-0001/DICOM",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/dicom_qa_report.json",
+    "output_screenshot": "/home/ga/Documents/SlicerData/LIDC/metadata_verification_screenshot.png",
+    "patient_id": "LIDC-IDRI-0001",
+    "expected_modality": "CT",
+    "passing_thresholds": {
+      "slice_thickness_tolerance_mm": 0.1,
+      "pixel_spacing_tolerance_mm": 0.1,
+      "min_screenshot_size_kb": 100
+    },
+    "scoring_weights": {
+      "dicom_import_success": 15,
+      "patient_id_correct": 10,
+      "modality_correct": 5,
+      "slice_thickness_accurate": 15,
+      "pixel_spacing_accurate": 15,
+      "dimensions_correct": 10,
+      "manufacturer_extracted": 5,
+      "report_format_valid": 10,
+      "screenshot_created": 10,
+      "study_date_correct": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dicom_metadata"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "sre_dns_ssl_audit@1",
+  "version": "1.0",
+  "env_id": "firefox_env@0.1",
+  "description": "You are a Site Reliability Engineer (SRE) responding to a Severity 2 incident. You need to audit the DNS and SSL status of three critical external domains: google.com, amazon.com, and microsoft.com. \n\n1. DNS Audit: Use 'Google Admin Toolbox Dig' (https://toolbox.googleapps.com/apps/dig/) to perform an A record lookup for each domain. Record the first IP address returned.\n\n2. SSL Audit: Use 'SSL Shopper' (https://www.sslshopper.com/ssl-checker.html) OR 'DigiCert SSL Checker' (https://www.digicert.com/help/) to check the SSL certificate for each domain. Record the Issuer (Organization) and the Expiration Date.\n\n3. Evidence: Create a Firefox bookmark folder named 'Incident 2411 Audit'. Bookmark the specific result page (or tool page) for EACH of the 6 checks (3 DNS + 3 SSL).\n\n4. Report: Create a JSON file at ~/Documents/audit_log.json with the following structure:\n{\n  \"google.com\": {\n    \"ip_address\": \"...\",\n    \"ssl_issuer\": \"...\",\n    \"ssl_expiry\": \"YYYY-MM-DD\"\n  },\n  \"amazon.com\": { ... },\n  \"microsoft.com\": { ... }\n}\n\nEnsure dates are in YYYY-MM-DD format.",
+  "difficulty": "medium",
+  "tags": ["firefox", "sre", "dns", "ssl", "research", "json"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sre_dns_ssl_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/sre_dns_ssl_audit/export_result.sh"
+  },
+  "metadata": {
+    "target_domains": ["google.com", "amazon.com", "microsoft.com"],
+    "required_bookmark_folder": "Incident 2411 Audit",
+    "required_output_file": "/home/ga/Documents/audit_log.json",
+    "dns_tool_domain": "toolbox.googleapps.com",
+    "ssl_tool_domains": ["sslshopper.com", "digicert.com"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sre_dns_ssl_audit"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "cpsc_recall_risk_assessment@1",
+  "version": "1.0",
+  "env_id": "firefox_env@0.1",
+  "description": "You are a Quality Control Inspector at a consumer products company. Management is evaluating entry into three new product markets: (1) Portable space heaters, (2) Portable chargers / power banks, and (3) Children's sleepwear. Before proceeding, you must research the CPSC recall database to understand the safety landscape.\n\nYour goal is to research recent CPSC product recalls in these three categories, organize findings in Firefox bookmarks, and produce a structured JSON risk assessment report.\n\nActions:\n1. Navigate to the CPSC Recalls database (https://www.cpsc.gov/Recalls) and SaferProducts.gov.\n2. Find at least 2 specific recalls for EACH of the three categories (6 total recalls minimum).\n3. Create a Firefox bookmark folder named 'Product Safety Research' containing at least 6 bookmarks relevant to your research.\n4. Save a JSON report to '~/Documents/cpsc_risk_assessment.json' with the following structure:\n\n{\n  \"space_heaters\": {\n    \"recalls_found\": [\n      {\n        \"recall_number\": \"XX-XXX\",\n        \"product_name\": \"...\",\n        \"hazard\": \"...\",\n        \"recall_date\": \"YYYY-MM-DD\",\n        \"manufacturer\": \"...\"\n      }\n    ],\n    \"common_hazards\": [\"...\"],\n    \"risk_level\": \"high|medium|low\"\n  },\n  \"power_banks\": { ... },\n  \"childrens_sleepwear\": { ... }\n}",
+  "difficulty": "hard",
+  "tags": ["firefox", "research", "cpsc", "government", "json", "safety"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cpsc_recall_risk_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/cpsc_recall_risk_assessment/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/cpsc_risk_assessment.json",
+    "required_categories": ["space_heaters", "power_banks", "childrens_sleepwear"],
+    "min_recalls_per_category": 2,
+    "recall_number_regex": "^\\d{2}-\\d{3,}$",
+    "bookmark_folder_name": "Product Safety Research",
+    "min_bookmarks": 6,
+    "required_domains": ["cpsc.gov", "saferproducts.gov"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cpsc_risk_assessment"
+    }
+  }
+}

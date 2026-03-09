@@ -1,0 +1,66 @@
+{
+    "task_id": "cherry_pick_security_fix@1",
+    "dataset": "TailwindTraders (Azure DevOps Server)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_name",
+            "metadata_value": "TailwindTraders",
+            "verified_value": "TailwindTraders",
+            "source": "setup_azure_devops.ps1 line 136 creates project with name 'TailwindTraders'",
+            "status": "verified"
+        },
+        {
+            "key": "repo_name",
+            "metadata_value": "TailwindTraders",
+            "verified_value": "TailwindTraders",
+            "source": "setup_azure_devops.ps1 line 312 retrieves repository with name 'TailwindTraders' as the default repo",
+            "status": "verified"
+        },
+        {
+            "key": "target_branch",
+            "metadata_value": "main",
+            "verified_value": "main",
+            "source": "setup_azure_devops.ps1 line 365 explicitly creates 'refs/heads/main' as the initial branch",
+            "status": "verified"
+        },
+        {
+            "key": "source_branch",
+            "metadata_value": "feature/api-improvements",
+            "verified_value": "feature/add-search-endpoint",
+            "source": "setup_azure_devops.ps1 line 386 creates 'refs/heads/feature/add-search-endpoint', not 'feature/api-improvements'",
+            "status": "contradicted"
+        },
+        {
+            "key": "fix_commit_message",
+            "metadata_value": "Fix SQL injection vulnerability in search endpoint",
+            "verified_value": null,
+            "source": "Cannot verify - setup_task.ps1 (referenced in pre_task hook at task.json line 13) does not exist in repository",
+            "status": "unverified"
+        },
+        {
+            "key": "unwanted_files",
+            "metadata_value": "[\"src/api/endpoints.js\", \"src/api/ratelimit.js\"]",
+            "verified_value": null,
+            "source": "Cannot verify - setup_task.ps1 is missing. However, repo_files directory structure contains Python files (app.py, routes.py, models.py), not JavaScript files in src/api/ structure",
+            "status": "unverified"
+        },
+        {
+            "key": "required_content",
+            "metadata_value": "[\"@searchTerm\", \"request.input\"]",
+            "verified_value": null,
+            "source": "Cannot verify - setup_task.ps1 is missing. These appear to be JavaScript parameterized query syntax markers, but repo_files contains Python SQLAlchemy ORM code",
+            "status": "unverified"
+        },
+        {
+            "key": "forbidden_content",
+            "metadata_value": "[\"${query}\"]",
+            "verified_value": null,
+            "source": "Cannot verify - setup_task.ps1 is missing. This is JavaScript template literal syntax not found in Python code",
+            "status": "unverified"
+        }
+    ],
+    "privileged_info_summary": "Verified: TailwindTraders project and repository exist on Azure DevOps with 'main' and 'feature/add-search-endpoint' branches initialized via setup_azure_devops.ps1. Contradicted: Task metadata claims source branch is 'feature/api-improvements' but environment setup creates 'feature/add-search-endpoint'. Critical issue: The task references pre_task hook setup_task.ps1 and post_task export_result.ps1 (task.json lines 13-14), but neither script exists in the filesystem, making task initialization and result extraction impossible. Unverifiable: All security fix metadata claims (commit message, file paths, code content checks) depend on the missing setup_task.ps1 script which should create the specific test scenario with JavaScript files and SQL injection vulnerability. Initial repo data is Python/Flask-based (app.py, routes.py, models.py), inconsistent with task's JavaScript context.",
+    "pi_confidence": "low"
+}

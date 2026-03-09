@@ -1,0 +1,33 @@
+{
+  "id": "flatfield_correction@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Flat-Field Illumination Correction",
+  "description": "Perform pseudo-flat-field correction to fix uneven illumination in the 'Blobs' sample image.\n\n1. Open 'Blobs (25K)' (File > Open Samples > Blobs).\n2. Measure the mean intensity in 4 quadrants (top-left, top-right, bottom-left, bottom-right) to document the uneven lighting.\n3. Create an illumination model by duplicating the image and applying a large Gaussian Blur (radius ~40-60).\n4. Use the Image Calculator (Process > Image Calculator) to divide the original image by the blurred model. (Note: Result may need 32-bit conversion or scaling to be visible).\n5. Measure the mean intensity of the same 4 quadrants on the corrected image to prove uniformity.\n6. Save the corrected image to ~/ImageJ_Data/results/flatfield_corrected.tif\n7. Save a CSV report with columns 'Quadrant', 'Mean_Before', 'Mean_After' to ~/ImageJ_Data/results/illumination_report.csv",
+  "difficulty": "medium",
+  "tags": ["image-processing", "microscopy", "filtering", "flat-field", "calibration", "image-arithmetic"],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/flatfield_correction/setup_task.sh",
+    "post_task": "/workspace/tasks/flatfield_correction/export_result.sh"
+  },
+  "metadata": {
+    "image_name": "Blobs (25K)",
+    "image_width": 256,
+    "image_height": 254,
+    "output_image_path": "/home/ga/ImageJ_Data/results/flatfield_corrected.tif",
+    "output_report_path": "/home/ga/ImageJ_Data/results/illumination_report.csv",
+    "min_blur_radius": 20,
+    "required_quadrants": 4
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_flatfield_correction"
+    }
+  }
+}

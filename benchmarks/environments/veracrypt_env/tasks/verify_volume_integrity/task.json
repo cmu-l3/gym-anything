@@ -1,0 +1,29 @@
+{
+  "id": "verify_volume_integrity@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "A security officer must verify the integrity of files stored inside an encrypted VeraCrypt volume by comparing SHA-256 checksums against a known-good manifest.\n\nThe encrypted volume is located at /home/ga/Volumes/data_volume.hc (password: 'MountMe2024', no keyfile, PIM: 0). A SHA-256 checksum manifest listing the expected checksums for all files in the volume is provided at /home/ga/Volumes/integrity_manifest.sha256.\n\nYour goal is to:\n1. Mount the volume /home/ga/Volumes/data_volume.hc to /home/ga/MountPoints/slot1 using the provided password.\n2. Compute SHA-256 checksums for every file inside the mounted volume.\n3. Compare the computed checksums against the manifest at ~/Volumes/integrity_manifest.sha256.\n4. Create an integrity report at /home/ga/Volumes/integrity_report.txt with the following exact format:\n   - Line 1: INTEGRITY VERIFICATION REPORT\n   - Line 2: Volume: data_volume.hc\n   - Line 3: Date: <current date>\n   - Line 4: Status: ALL FILES VERIFIED OK (or INTEGRITY CHECK FAILED if mismatches found)\n   - Remaining lines: For each file, format as: [OK] filename or [FAIL] filename\n5. Dismount the volume from /home/ga/MountPoints/slot1.\n\nThe volume contains confidential files that were placed during setup. All checksums should match if the volume is intact.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/verify_volume_integrity/setup_task.sh",
+    "post_task": "/workspace/tasks/verify_volume_integrity/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/data_volume.hc",
+    "manifest_path": "/home/ga/Volumes/integrity_manifest.sha256",
+    "report_path": "/home/ga/Volumes/integrity_report.txt",
+    "password": "MountMe2024",
+    "mount_point": "/home/ga/MountPoints/slot1"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_volume_integrity"
+    }
+  }
+}

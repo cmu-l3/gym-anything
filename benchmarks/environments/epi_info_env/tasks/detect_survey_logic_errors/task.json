@@ -1,0 +1,30 @@
+{
+  "id": "detect_survey_logic_errors@1",
+  "version": "1.0",
+  "env_id": "epi_info_env@0.1",
+  "description": "Perform data cleaning on a health survey dataset using Epi Info 7 Classic Analysis. \n\nGoal: Identify and export records that violate specific logic rules.\n\nScenario: You have received a raw dataset 'raw_health_survey.csv'. You must detect records containing logical inconsistencies based on these validation rules:\n1. Gender Conflict: Respondent is 'Male' BUT IsPregnant is 'Yes'.\n2. Skip Pattern Conflict: EverSmoked is 'No' BUT CigsPerDay is greater than 0.\n\nSteps:\n1. Open Classic Analysis and read 'C:\\Users\\Docker\\Documents\\SurveyData\\raw_health_survey.csv'.\n2. Define a new variable 'ErrorType'.\n3. Use IF/THEN logic to assign 'GenderConflict' or 'SkipConflict' to this variable for problematic records.\n4. Select ONLY the records that have an error.\n5. Export (WRITE) these specific records to 'C:\\Users\\Docker\\Documents\\SurveyData\\validation_errors.csv'. Ensure the output includes 'RespondentID' and 'ErrorType'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\detect_survey_logic_errors\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\detect_survey_logic_errors\\export_result.ps1"
+  },
+  "metadata": {
+    "input_file": "C:\\Users\\Docker\\Documents\\SurveyData\\raw_health_survey.csv",
+    "output_file": "C:\\Users\\Docker\\Documents\\SurveyData\\validation_errors.csv",
+    "ground_truth_file": "C:\\Users\\Docker\\Documents\\SurveyData\\ground_truth_errors.csv",
+    "total_records": 100,
+    "expected_error_count": 7,
+    "error_ids": ["15", "42", "78", "91", "5", "33", "60"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_detect_survey_logic_errors"
+    }
+  }
+}

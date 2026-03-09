@@ -1,0 +1,108 @@
+{
+    "task_id": "rotate_90_clockwise@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "primary_image_url",
+            "metadata_value": null,
+            "verified_value": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+            "source": "Found in setup_rotation_task.sh line 13. Verified by downloading and inspecting image properties.",
+            "status": "verified"
+        },
+        {
+            "key": "primary_image_dimensions",
+            "metadata_value": null,
+            "verified_value": "800×533 pixels (width × height), JPEG format, RGB color space, 143,826 bytes",
+            "source": "Downloaded and analyzed actual image from Unsplash using PIL library",
+            "status": "verified"
+        },
+        {
+            "key": "primary_image_is_non_square",
+            "metadata_value": null,
+            "verified_value": true,
+            "source": "Verified image dimensions 800×533 are non-square, making it suitable for rotation testing (swapped dimensions will be obviously different)",
+            "status": "verified"
+        },
+        {
+            "key": "fallback_image_url",
+            "metadata_value": null,
+            "verified_value": "https://images.unsplash.com/photo-1518709268805-4e9042af2176?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            "source": "Found in setup_rotation_task.sh line 15. Verified via HTTP request.",
+            "status": "contradicted"
+        },
+        {
+            "key": "fallback_image_accessibility",
+            "metadata_value": null,
+            "verified_value": "URL returns HTTP 404 Not Found - image no longer available",
+            "source": "HTTP request to fallback URL returned 404 error",
+            "status": "contradicted"
+        },
+        {
+            "key": "synthetic_fallback_mechanism",
+            "metadata_value": null,
+            "verified_value": true,
+            "source": "Script creates synthetic test image using ImageMagick 'convert' command if both Unsplash URLs fail (setup_rotation_task.sh line 18)",
+            "status": "verified"
+        },
+        {
+            "key": "synthetic_image_details",
+            "metadata_value": null,
+            "verified_value": "600×400 pixels with light blue background, red rectangle, black text annotations 'TOP' and 'BOTTOM'",
+            "source": "Analyzed shell script command: convert -size 600x400 xc:lightblue -fill red -draw 'rectangle 50,50 200,150' -fill black -pointsize 24 -gravity northwest -annotate +60+200 'TOP' -gravity southeast -annotate +60+200 'BOTTOM' flower_image.jpg",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_checks_dimension_swap",
+            "metadata_value": null,
+            "verified_value": true,
+            "source": "verifier.py function check_dimension_swap() at lines 32-43 verifies width and height are swapped within tolerance of 2 pixels",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_uses_ssim_comparison",
+            "metadata_value": null,
+            "verified_value": true,
+            "source": "verifier.py lines 57-86 implement SSIM (Structural Similarity Index) comparison with fallback to pixel difference if SSIM unavailable",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_ssim_threshold",
+            "metadata_value": null,
+            "verified_value": 0.95,
+            "source": "verifier.py line 86 checks 'similarity >= 0.95' for rotation success",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_minimum_criteria_for_pass",
+            "metadata_value": null,
+            "verified_value": "3 out of 4 criteria (75% score threshold)",
+            "source": "verifier.py lines 226-228: score >= 75 required to pass, checking dims_swapped, rotation_correct, image_rotated, and similarity >= 0.90",
+            "status": "verified"
+        },
+        {
+            "key": "task_timeout",
+            "metadata_value": null,
+            "verified_value": 60,
+            "source": "task.json init field, timeout_sec: 60 (lines 7)",
+            "status": "verified"
+        },
+        {
+            "key": "task_max_steps",
+            "metadata_value": null,
+            "verified_value": 10,
+            "source": "task.json init field, max_steps: 10 (line 8)",
+            "status": "verified"
+        },
+        {
+            "key": "missing_verification_utils_module",
+            "metadata_value": null,
+            "verified_value": "verification_utils.py module does not exist but is imported in verifier.py line 16",
+            "source": "Attempted to locate verification_utils.py in all task and environment directories - file not found",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task 'rotate_90_clockwise@1' downloads a real 800×533 JPEG flower image from Unsplash (photo-1441974231531) as primary data. This image is non-square, making rotation effects easily verifiable. The fallback Unsplash URL (photo-1518709268805) no longer exists (404 error). The task includes a synthetic image fallback (600×400 pixels with labeled directional elements) created via ImageMagick if both Unsplash downloads fail. The verifier checks three success criteria: dimension swap (width and height exchange), SSIM-based rotation verification (≥0.95 similarity to reference), and meaningful image modification. A 75% score (3 out of 4 criteria) is required to pass. Task timeout is 60 seconds with maximum 10 steps. Critical issue: verifier imports missing module 'verification_utils' which will cause runtime failure.",
+    "pi_confidence": "high"
+}

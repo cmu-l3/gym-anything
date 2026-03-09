@@ -1,0 +1,87 @@
+{
+  "task": "ibrutinib_comedication_contraindication_screen",
+  "timestamp": "2026-03-02",
+  "environment": {
+    "app_package": "com.liverpooluni.ichartoncology",
+    "platform": "Android AVD 34",
+    "resolution": "1080x2400"
+  },
+  "task_design": {
+    "cancer_drug": "Ibrutinib",
+    "co_medications_to_screen": [
+      "Acenocoumarol",
+      "Fluconazole",
+      "Ketoconazole"
+    ],
+    "expected_target_comedication": "Ketoconazole",
+    "expected_end_screen": "Interaction Details for Ibrutinib + Ketoconazole",
+    "expected_severity": "Do Not Coadminister (Red)",
+    "mechanism": "CYP3A4 inhibition by ketoconazole increases ibrutinib AUC \u2014 toxicity risk"
+  },
+  "verification_pipeline": {
+    "export_script": "export_result.sh",
+    "result_json_path": "/sdcard/ibrutinib_contraindication_result.json",
+    "xml_dump_path": "/sdcard/ibrutinib_contraindication_dump.xml",
+    "verifier_function": "verify_ibrutinib_comedication_contraindication_screen"
+  },
+  "do_nothing_baseline": {
+    "description": "App launched to Welcome screen, no agent interaction",
+    "expected_result_json": {
+      "ibrutinib_found": false,
+      "ketoconazole_found": false,
+      "fluconazole_found": false,
+      "acenocoumarol_found": false,
+      "severity_do_not_coadminister": false,
+      "on_interaction_details_page": false,
+      "mechanism_cyp3a4_found": false
+    },
+    "expected_score": 0,
+    "expected_passed": false
+  },
+  "scoring": {
+    "pass_threshold": 70,
+    "max_score": 100,
+    "criteria": [
+      {
+        "name": "gate_ibrutinib_identity",
+        "points": 0,
+        "type": "gate"
+      },
+      {
+        "name": "gate_ketoconazole_target",
+        "points": 5,
+        "type": "gate"
+      },
+      {
+        "name": "drug_pair_visible",
+        "points": 20
+      },
+      {
+        "name": "severity_do_not_coadminister",
+        "points": 25
+      },
+      {
+        "name": "interaction_details_page",
+        "points": 35
+      },
+      {
+        "name": "mechanism_cyp3a4_text",
+        "points": 20
+      }
+    ]
+  },
+  "setup_files": {
+    "pre_task_hook": "sh /sdcard/tasks/ibrutinib_comedication_contraindication_screen/setup_task.sh",
+    "post_task_hook": "sh /sdcard/tasks/ibrutinib_comedication_contraindication_screen/export_result.sh",
+    "app_start_state": "Welcome screen (force-stopped and relaunched)"
+  },
+  "notes": "No database queries needed \u2014 verification uses uiautomator UI dump only. App contains real drug interaction data from Liverpool Drug Interactions Group.",
+  "live_test_results": {
+    "do_nothing_test": "PASSED",
+    "do_nothing_score": 0,
+    "do_nothing_passed": false,
+    "mock_tests": "ALL PASSED (5 or 6 scenarios)",
+    "test_date": "2026-03-02",
+    "notes": "App launched to Welcome screen; uiautomator dump captured; all drug-name flags false; verifier returned score=0, passed=False"
+  }
+}

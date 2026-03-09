@@ -1,0 +1,46 @@
+{
+  "id": "audit_fix_gas_configs@1",
+  "version": "1.0",
+  "env_id": "subsurface_env@0.1",
+  "description": "Several dives in this logbook have cylinder configurations that are physically unsafe or incorrect. Some oxygen fractions exceed the safe maximum operating depth for the recorded dive profile, some cylinder sizes are implausibly small for the recorded dive duration, and some working pressures are too low to have sustained the dive. Review the gas data for all dives in the September 2011 Hoodsport trip (Dive #85 through #90), identify any gas management issues, and correct them to standard safe values. Save the corrected logbook.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_fix_gas_configs/setup_task.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "injected_errors": {
+      "dive_85": {
+        "field": "cylinder o2",
+        "wrong_value": "50.0%",
+        "reason": "50% O2 has MOD of ~18m at 1.4 ppO2, but dive max depth is ~27m - unsafe"
+      },
+      "dive_86": {
+        "field": "cylinder size",
+        "wrong_value": "3.0 l",
+        "reason": "3L cylinder cannot sustain a 40+ minute dive at depth"
+      },
+      "dive_87": {
+        "field": "cylinder workpressure",
+        "wrong_value": "50.0 bar",
+        "reason": "50 bar working pressure is far too low for any scuba cylinder"
+      }
+    },
+    "valid_ranges": {
+      "dive_85_o2_max": 32,
+      "dive_86_size_min_l": 7.0,
+      "dive_87_wp_min_bar": 150
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_fix_gas_configs"
+    }
+  }
+}

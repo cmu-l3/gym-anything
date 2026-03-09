@@ -1,0 +1,36 @@
+{
+  "id": "configure_multi_metric_pipeline@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "Configure the Emoncms input processing pipeline for the 'main_incomer' sensor to derive real-time Power, Carbon Footprint, and Cost metrics.\n\nRead the conversion factors from '~/Documents/utility_rates.txt'.\n\nNavigate to the Input configuration for 'main_incomer' (node: facility_meter) and configure a processing chain that:\n1. Logs the raw power (Watts) to a feed named 'facility_power_W'.\n2. Converts the power to Carbon Emission Rate (kgCO2/h) and logs to 'facility_carbon_kgph'.\n3. Converts the power to Cost Burn Rate ($/h) and logs to 'facility_cost_dollarsph'.\n\nAll feeds must use the PHPFina engine with a 10s interval.\n\nIMPORTANT: You must use the 'Reset to ZERO' and '+ input' (add input) processors to perform multiple independent calculations in a single chain. The input is in Watts, but rates are per kWh, so ensure your scaling math is correct (Watts -> kW -> Rate).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_multi_metric_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_multi_metric_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "input_name": "main_incomer",
+    "node_name": "facility_meter",
+    "rates_file": "/home/ga/Documents/utility_rates.txt",
+    "cost_rate_kwh": 0.24,
+    "carbon_rate_kwh": 0.42,
+    "test_input_value": 1000,
+    "expected_feeds": {
+      "facility_power_W": 1000.0,
+      "facility_carbon_kgph": 0.42,
+      "facility_cost_dollarsph": 0.24
+    },
+    "tolerance_percent": 2.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pipeline"
+    }
+  }
+}

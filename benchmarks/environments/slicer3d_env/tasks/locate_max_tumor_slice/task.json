@@ -1,0 +1,41 @@
+{
+  "id": "locate_max_tumor_slice@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Find the axial slice showing the maximum cross-sectional area of the tumor on the loaded FLAIR brain MRI and place a fiducial marker at the center of the tumor on that slice. The fiducial's Z-coordinate (slice position) will be evaluated for accuracy within ±3 slices.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 240,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/locate_max_tumor_slice/setup_task.sh",
+    "post_task": "/workspace/tasks/locate_max_tumor_slice/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "data_source": "BraTS 2021 (Brain Tumor Segmentation Challenge)",
+    "data_url": "https://www.kaggle.com/datasets/dschettler8845/brats-2021-task1",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "tolerance_slices": 3,
+    "exact_tolerance_slices": 1,
+    "acceptable_tolerance_slices": 5,
+    "scoring_weights": {
+      "fiducial_exists": 20,
+      "within_brain_volume": 10,
+      "slice_exact": 40,
+      "slice_close": 25,
+      "slice_acceptable": 15,
+      "xy_near_tumor": 15,
+      "vlm_tumor_visible": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_locate_max_tumor_slice"
+    }
+  }
+}

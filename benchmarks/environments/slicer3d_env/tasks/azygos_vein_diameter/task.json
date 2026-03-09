@@ -1,0 +1,48 @@
+{
+  "id": "azygos_vein_diameter@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the short-axis diameter of the azygos vein at the azygos arch on the provided chest CT and classify the finding. Save measurement markup to ~/Documents/SlicerData/LIDC/azygos_measurement.mrk.json and report to ~/Documents/SlicerData/LIDC/azygos_report.json with fields: diameter_mm, classification, slice_level, interpretation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/azygos_vein_diameter/setup_task.sh",
+    "post_task": "/workspace/tasks/azygos_vein_diameter/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/LIDC/azygos_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/azygos_report.json",
+    "anatomical_constraints": {
+      "min_diameter_mm": 3,
+      "max_diameter_mm": 25,
+      "normal_threshold_mm": 10,
+      "dilated_threshold_mm": 15
+    },
+    "passing_thresholds": {
+      "diameter_plausible": true,
+      "anatomical_location_correct": true
+    },
+    "scoring_weights": {
+      "measurement_exists": 15,
+      "anatomical_location": 25,
+      "diameter_plausible": 15,
+      "diameter_accurate": 15,
+      "classification_correct": 15,
+      "report_complete": 10,
+      "clinical_interpretation": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_azygos_vein_diameter"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "tcp_handshake_latency@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "Analyze the TCP capture file '200722_tcp_anon.pcapng' (located in ~/Documents/captures/) to measure the initial Round-Trip Time (RTT) for all successful TCP handshakes.\n\n1. Analyze the capture and extract the 'initial_rtt' for every completed handshake.\n2. Create a CSV file at '~/Documents/captures/handshake_latencies.csv' with the header: src_ip, dst_ip, src_port, dst_port, initial_rtt_seconds.\n   - Ensure values are in seconds (e.g., 0.0245).\n   - Each connection should appear only once.\n3. Create a summary text file at '~/Documents/captures/handshake_summary.txt' containing:\n   - Total number of connections measured\n   - Minimum RTT (in milliseconds)\n   - Maximum RTT (in milliseconds)\n   - Mean RTT (in milliseconds)\n   - The details (Src IP, Dst IP, Dst Port) of the connection with the SLOWEST (highest) RTT.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tcp_handshake_latency/setup_task.sh",
+    "post_task": "/workspace/tasks/tcp_handshake_latency/export_result.sh"
+  },
+  "metadata": {
+    "pcap_file": "~/Documents/captures/200722_tcp_anon.pcapng",
+    "csv_output": "~/Documents/captures/handshake_latencies.csv",
+    "summary_output": "~/Documents/captures/handshake_summary.txt",
+    "tolerances": {
+      "rtt_value_percent": 1.0,
+      "mean_value_percent": 5.0
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tcp_handshake_latency"
+    }
+  }
+}

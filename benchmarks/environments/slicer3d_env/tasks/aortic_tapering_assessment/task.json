@@ -1,0 +1,46 @@
+{
+  "id": "aortic_tapering_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the abdominal aorta diameter at three levels (suprarenal, infrarenal, and pre-bifurcation) on the provided CT, calculate tapering ratios, and identify any focal dilations. Save measurements markup to ~/Documents/SlicerData/AMOS/aortic_measurements.mrk.json and report to ~/Documents/SlicerData/AMOS/tapering_report.json with fields: suprarenal_diameter_mm, suprarenal_vertebral_level, infrarenal_diameter_mm, infrarenal_vertebral_level, bifurcation_diameter_mm, bifurcation_vertebral_level, infrarenal_suprarenal_ratio, bifurcation_suprarenal_ratio, focal_dilation_present, focal_dilation_max_diameter_mm, focal_dilation_location, tapering_assessment, clinical_recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/aortic_tapering_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/aortic_tapering_assessment/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/aortic_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/tapering_report.json",
+    "passing_thresholds": {
+      "diameter_error_max_mm": 4.0,
+      "ratio_error_max": 0.1,
+      "focal_dilation_size_error_mm": 5.0
+    },
+    "scoring_weights": {
+      "suprarenal_measurement": 12,
+      "infrarenal_measurement": 12,
+      "bifurcation_measurement": 12,
+      "measurement_locations_valid": 8,
+      "ratio_calculations_correct": 10,
+      "focal_dilation_detected": 15,
+      "focal_dilation_size": 8,
+      "tapering_assessment": 10,
+      "clinical_recommendation": 5,
+      "file_completeness": 8
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_aortic_tapering"
+    }
+  }
+}

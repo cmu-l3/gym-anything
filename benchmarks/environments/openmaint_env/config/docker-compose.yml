@@ -1,0 +1,48 @@
+services:
+  openmaint_db:
+    image: postgis/postgis:17-3.5-alpine
+    container_name: openmaint_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - openmaint_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  openmaint_app:
+    image: itmicus/cmdbuild:om-2.4-4.1.0
+    container_name: openmaint_app
+    restart: unless-stopped
+    depends_on:
+      openmaint_db:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_HOST: openmaint_db
+      POSTGRES_DB: openmaint
+      CMDBUILD_DUMP: demo.dump.xz
+      JAVA_OPTS: -Xmx3072m -Xms1536m
+    ports:
+      - "8090:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-L", "http://localhost:8080/cmdbuild/ui/"]
+      interval: 20s
+      timeout: 10s
+      retries: 18
+      start_period: 120s
+    volumes:
+      - openmaint_tomcat:/usr/local/tomcat
+
+volumes:
+  openmaint_db_data:
+  openmaint_tomcat:

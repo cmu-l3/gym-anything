@@ -1,0 +1,43 @@
+{
+  "id": "correct_ai_segmentation@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Correct the pre-loaded AI-generated brain tumor segmentation (ai_segmentation) on the BraTS brain MRI. Remove the false positive disconnected blob outside the tumor and fill in the under-segmented gap near the tumor boundary. Save the corrected segmentation to ~/Documents/SlicerData/BraTS/corrected_segmentation.nii.gz.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/correct_ai_segmentation/setup_task.sh",
+    "post_task": "/workspace/tasks/correct_ai_segmentation/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "ai_segmentation_path": "/home/ga/Documents/SlicerData/BraTS/ai_segmentation.nii.gz",
+    "expected_output_path": "/home/ga/Documents/SlicerData/BraTS/corrected_segmentation.nii.gz",
+    "min_dice_improvement": 0.05,
+    "min_dice_improvement_partial": 0.02,
+    "false_positive_reduction_threshold": 0.50,
+    "under_segmentation_recovery_threshold": 0.50,
+    "scoring_weights": {
+      "corrected_file_exists": 15,
+      "file_modified_after_start": 10,
+      "dice_improvement_partial": 15,
+      "dice_improvement_full": 15,
+      "false_positive_reduced": 15,
+      "under_segmentation_fixed": 15,
+      "segment_editor_used": 10,
+      "multi_slice_navigation": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_correct_ai_segmentation"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+    "task_id": "chinook_daily_revenue_gaps@1",
+    "dataset": "Chinook",
+    "case_id": "daily_revenue_2012",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_year",
+            "metadata_value": "2012",
+            "verified_value": "2021-2025 (in current public Chinook database)",
+            "source": "Downloaded Chinook database from https://github.com/lerocha/chinook-database and queried: SELECT DISTINCT strftime('%Y', InvoiceDate) FROM Invoice - returned years 2021, 2022, 2023, 2024, 2025. Zero invoices found for 2012.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_days",
+            "metadata_value": "366",
+            "verified_value": "366",
+            "source": "Verified using Python datetime: 2012 is a leap year (divisible by 4, not by 100 except by 400). Days from 2012-01-01 to 2012-12-31 inclusive = 366 days. Also confirmed via web search: https://kalender-365.de/leap-years.php, https://www.calendardate.com/2012.php",
+            "status": "verified"
+        },
+        {
+            "key": "columns",
+            "metadata_value": "[\"SalesDate\", \"DailyTotal\", \"IsWeekend\"]",
+            "verified_value": "[\"SalesDate\", \"DailyTotal\", \"IsWeekend\"]",
+            "source": "Task description in task.json explicitly specifies: 'The output must include three columns: SalesDate (YYYY-MM-DD), DailyTotal (revenue for that day, filling 0.00 for days with no sales), and IsWeekend (Yes for Saturday/Sunday, No for others)'.",
+            "status": "verified"
+        },
+        {
+            "key": "2012_is_leap_year",
+            "metadata_value": "implied true by expected_days=366",
+            "verified_value": "true",
+            "source": "Verified using Python: 2012 % 4 == 0 and 2012 % 100 != 0 confirms leap year. Also confirmed via web searches: https://www.enchantedlearning.com/time/leapyear/, https://leap-years.calculators.ro/is-this-a-leap-year-or-a-common.php?year=2012",
+            "status": "verified"
+        },
+        {
+            "key": "2012-01-01_is_sunday",
+            "metadata_value": "implicit in verifier weekend logic check",
+            "verified_value": "true",
+            "source": "Verified using Python datetime.date(2012, 1, 1).weekday() = 6 (Sunday in ISO weekday). Also verified: export_result.sh line 142 states '2012-01-01 was a Sunday'.",
+            "status": "verified"
+        },
+        {
+            "key": "2012-02-29_exists",
+            "metadata_value": "implicit in expected_days=366 and leap_day_present verification",
+            "verified_value": "true",
+            "source": "Verified using Python: datetime.date(2012, 2, 29) successfully creates Feb 29, 2012 (a Wednesday).",
+            "status": "verified"
+        },
+        {
+            "key": "chinook_database_is_real",
+            "metadata_value": "implied by database_path reference",
+            "verified_value": "true",
+            "source": "Chinook is a well-documented public sample database for SQL learning. Available at https://github.com/lerocha/chinook-database. Confirmed via multiple sources: https://www.sqlitetutorial.net/sqlite-sample-database/, https://medium.com/gitgirl/working-with-sqlite-sample-chinook-data-8c923cefbc16",
+            "status": "verified"
+        },
+        {
+            "key": "chinook_invoice_structure",
+            "metadata_value": "invoices table with InvoiceDate and Total columns (implicit)",
+            "verified_value": "true",
+            "source": "Queried downloaded Chinook database: PRAGMA table_info(Invoice) shows columns: InvoiceId, CustomerId, InvoiceDate (DATETIME), Total (NUMERIC). Confirmed with sqlite3 /tmp/chinook.db.",
+            "status": "verified"
+        },
+        {
+            "key": "database_setup_source",
+            "metadata_value": "implied to be at /workspace/data/chinook.db or downloadable",
+            "verified_value": "https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite",
+            "source": "Found in setup_dbeaver.sh lines 27-28: fallback download URL is from GitHub master branch. Successfully downloaded and verified.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Chinook database is a real, public sample database representing a digital media store. The current public version (v1.4.5, Feb 2024) contains invoice records from 2021-2025, not 2012 as the task metadata claims. The year 2012 is correctly identified as a leap year with 366 days, and all calendar dates for 2012 are correct (Jan 1 = Sunday, Feb 29 exists). The expected output columns (SalesDate, DailyTotal, IsWeekend) are explicitly specified in the task description. However, there is a critical contradiction: the public Chinook database contains NO invoice data for 2012—the task targets a year for which the source database has zero records.",
+    "pi_confidence": "high"
+}

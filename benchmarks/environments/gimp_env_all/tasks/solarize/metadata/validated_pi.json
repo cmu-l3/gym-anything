@@ -1,0 +1,80 @@
+{
+    "task_id": "solarize@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "description_filter_type",
+            "metadata_value": "GIMP's Solarize filter",
+            "verified_value": "GIMP Solarize filter applies selective tone inversion at threshold 127",
+            "source": "Task description, verifier.py implementation, Wikipedia solarization definition",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "Unsplash landscape images (two URLs provided)",
+            "verified_value": "Primary: photo-1506905925346-21bda4d32df4 (1000x600 RGB JPEG), Fallback: photo-1469474968028-56623f02e42e (1000x600 RGB JPEG). Both are real Unsplash landscape images with varied brightness distribution",
+            "source": "setup_solarize_task.sh wget URLs, verified by downloading both images directly",
+            "status": "verified"
+        },
+        {
+            "key": "solarization_threshold",
+            "metadata_value": "127 (midpoint of 0-255 brightness range)",
+            "verified_value": "127 as defined in verifier.py line 45",
+            "source": "verifier.py line 45: threshold = 127, WebSearch confirms this is standard midpoint for medium solarization",
+            "status": "verified"
+        },
+        {
+            "key": "bright_region_darkening_threshold",
+            "metadata_value": ">30% darkening (>76.5 intensity units)",
+            "verified_value": "76.5 intensity units required for darkening criterion (verifier.py line 62)",
+            "source": "verifier.py line 62: bright_darkening > 76.5 # ~30% darkening",
+            "status": "verified"
+        },
+        {
+            "key": "dark_region_preservation_threshold",
+            "metadata_value": "<20% change (<51 intensity units)",
+            "verified_value": "51 intensity units maximum for preservation criterion (verifier.py line 79)",
+            "source": "verifier.py line 79: dark_change < 51 # <20% change",
+            "status": "verified"
+        },
+        {
+            "key": "not_simple_inversion_criterion",
+            "metadata_value": "<85% similarity to complete inversion",
+            "verified_value": "inversion_similarity < 0.85 (verifier.py line 103)",
+            "source": "verifier.py line 103: not_simple_inversion = inversion_similarity < 0.85",
+            "status": "verified"
+        },
+        {
+            "key": "meaningful_modification_threshold",
+            "metadata_value": ">15% of pixels with >30 intensity change",
+            "verified_value": "change_percentage > 15 and diff > 30 (verifier.py line 133)",
+            "source": "verifier.py lines 129-133: significant_changes = np.sum(diff > 30), meaningfully_modified = change_percentage > 15",
+            "status": "verified"
+        },
+        {
+            "key": "success_criteria_count",
+            "metadata_value": "4 criteria required, score >= 75 (at least 3/4 met)",
+            "verified_value": "4 criteria: bright darkening, dark preservation, not simple inversion, meaningful modification. Score = (criteria_met/4)*100, passed = score >= 75",
+            "source": "verifier.py lines 211-232: total_criteria = 4, passed = score >= 75",
+            "status": "verified"
+        },
+        {
+            "key": "image_file_extensions_supported",
+            "metadata_value": "jpg, jpeg, png (inferred from setup and verifier)",
+            "verified_value": "Verifier searches for: .jpg, .png, .jpeg. Setup downloads .jpg from Unsplash",
+            "source": "verifier.py lines 159-163: possible_results list includes .jpg, .png, .jpeg files",
+            "status": "verified"
+        },
+        {
+            "key": "image_dimensions_actual",
+            "metadata_value": "800x600 expected (from setup script gradient fallback) or similar from Unsplash",
+            "verified_value": "Unsplash images both verified as 1000x600 RGB JPEG. Fallback synthetic gradient: 800x600 via ImageMagick convert command",
+            "source": "Direct download and PIL verification of both Unsplash URLs, setup_solarize_task.sh line 18 convert command",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The solarize task applies GIMP's Solarize filter with threshold at 127 (midpoint of 0-255 brightness range) to Unsplash landscape images. The primary image is from photo ID 1506905925346-21bda4d32df4 (1000x600, verified landscape with varied brightness), with fallback to photo ID 1469474968028-56623f02e42e (1000x600, verified). The verifier checks four criteria: bright regions darkened >30% (>76.5 intensity units), dark regions preserved <20% (<51 units), result not simple inversion (<85% similarity), and >15% of pixels meaningfully changed (>30 intensity units). Task passes with score ≥75% (3+ criteria met). All Unsplash image URLs are verified valid and return real landscape photographs. Solarization threshold of 127 is confirmed as standard in digital solarization literature and GIMP implementations.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,42 @@
+{
+    "id": "sales_trend_quarterly_analysis@1",
+    "version": "1.0",
+    "env_id": "ms_sql_server_env@0.1",
+    "description": "You are a business intelligence analyst at a manufacturing and retail company. Sales leadership needs a quarter-over-quarter trend analysis identifying which salespersons are consistently growing their revenue and who the top performers are within each territory.\n\nUsing Azure Data Studio connected to the local SQL Server (AdventureWorks2022 database), build a quarterly sales trend view and export a top performers report:\n\n- Create a view 'dbo.vw_SalesPersonQuarterlyTrend' in AdventureWorks2022 that shows each salesperson's quarterly sales aggregated from Sales.SalesOrderHeader, joined with their name (Person.Person), territory (Sales.SalesTerritory), and salesperson details (Sales.SalesPerson). The view must compute: quarterly sales totals grouped by salesperson, year, and quarter; the previous quarter's sales using a LAG window function partitioned by salesperson; the quarter-over-quarter growth percentage; and a DENSE_RANK ranking of salespersons within their territory and year by quarterly revenue.\n\n- Export the top 5 salespersons by average quarter-over-quarter growth (excluding first quarters with no prior period) to a CSV file at /home/ga/Documents/exports/top_sales_trends.csv with exactly 5 data rows and a header row.\n\nWhen complete: the view must exist in AdventureWorks2022 with >= 50 rows, PrevQuarterSales must contain actual lagged values, SalesRankInTerritory must start at 1, and the CSV must exist at the specified path with exactly 5 data rows.",
+    "difficulty": "very_hard",
+    "init": {
+        "timeout_sec": 1800,
+        "max_steps": 150,
+        "reward_type": "sparse"
+    },
+    "hooks": {
+        "pre_task": "/workspace/tasks/sales_trend_quarterly_analysis/setup_task.sh",
+        "post_task": "/workspace/tasks/sales_trend_quarterly_analysis/export_result.sh"
+    },
+    "metadata": {
+        "domain": "Sales Analytics / Business Intelligence",
+        "occupation": "Business Intelligence Analyst",
+        "soc_code": "15-2051.01",
+        "soc_major_group": "Computer and Mathematical",
+        "application": "Azure Data Studio + Microsoft SQL Server 2022",
+        "database": "AdventureWorks2022",
+        "dataset": "AdventureWorks2022 Sales schema (Microsoft sample database with multi-year sales order data)",
+        "key_tables": [
+            "Sales.SalesPerson",
+            "Person.Person",
+            "Sales.SalesTerritory",
+            "Sales.SalesOrderHeader"
+        ],
+        "required_objects": [
+            "dbo.vw_SalesPersonQuarterlyTrend view (10 specific columns)",
+            "/home/ga/Documents/exports/top_sales_trends.csv (5 data rows)"
+        ],
+        "difficulty_rationale": "Requires a complex view combining CTEs, LAG() window function with PARTITION BY, DENSE_RANK() within territory+year partition, QoQ percentage calculation with NULL handling, multi-table joins across Sales schema, and exporting query results to a CSV file."
+    },
+    "success": {
+        "mode": "program",
+        "spec": {
+            "program": "verifier.py::verify_sales_trend_quarterly_analysis"
+        }
+    }
+}

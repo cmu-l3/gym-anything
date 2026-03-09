@@ -1,0 +1,35 @@
+{
+  "id": "freezing_solidification_risk@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "A warehouse facility will lose heating during a storm where temperatures will drop to -15 \u00b0C. You must determine which stored chemicals are at risk of solidifying (freezing) and bursting their containers. \n\nUsing CAMEO Chemicals (https://cameochemicals.noaa.gov/), look up the Melting/Freezing Point for these five chemicals: \n1. Acetic acid, glacial\n2. Acetone\n3. Nitrobenzene\n4. Toluene\n5. Phenol\n\nCreate a report file at '~/Documents/freezing_risk_report.txt'. For each chemical, list its melting point and state YES or NO if it will solidify at -15 \u00b0C (it solidifies if its melting point is HIGHER than -15 \u00b0C).\n\nThe report MUST follow this exact format:\n\nCHEMICAL: Acetic acid, glacial | MELTING_POINT_C: <value> | SOLIDIFIES_AT_MINUS15: <YES/NO>\nCHEMICAL: Acetone | MELTING_POINT_C: <value> | SOLIDIFIES_AT_MINUS15: <YES/NO>\nCHEMICAL: Nitrobenzene | MELTING_POINT_C: <value> | SOLIDIFIES_AT_MINUS15: <YES/NO>\nCHEMICAL: Toluene | MELTING_POINT_C: <value> | SOLIDIFIES_AT_MINUS15: <YES/NO>\nCHEMICAL: Phenol | MELTING_POINT_C: <value> | SOLIDIFIES_AT_MINUS15: <YES/NO>\nTOTAL_AT_RISK: <number>\nPRIORITY_MOVE_LIST: <comma-separated names of chemicals that solidify>",
+  "difficulty": "medium",
+  "tags": ["cameo", "chemicals", "physical-properties", "safety", "risk-assessment"],
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/freezing_solidification_risk/setup_task.sh",
+    "post_task": "/workspace/tasks/freezing_solidification_risk/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/freezing_risk_report.txt",
+    "chemicals": {
+      "Acetic acid, glacial": {"mp_min": 14, "mp_max": 19, "solidifies": true},
+      "Acetone": {"mp_min": -98, "mp_max": -92, "solidifies": false},
+      "Nitrobenzene": {"mp_min": 3, "mp_max": 8, "solidifies": true},
+      "Toluene": {"mp_min": -98, "mp_max": -92, "solidifies": false},
+      "Phenol": {"mp_min": 38, "mp_max": 44, "solidifies": true}
+    },
+    "risk_threshold_temp": -15,
+    "expected_total_risk": 3
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_freezing_solidification_risk"
+    }
+  }
+}

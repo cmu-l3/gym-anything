@@ -1,0 +1,36 @@
+{
+  "id": "import_transform_export_tb@1",
+  "version": "1.0",
+  "env_id": "epi_info_env@0.1",
+  "description": "Import the WHO Tuberculosis Surveillance dataset (CSV) into Epi Info 7 Classic Analysis. The file is located at 'C:\\Users\\Docker\\Documents\\TBData\\who_tb_notifications.csv'. Perform the following data transformations:\n\n1. Define 'TotalCases' = tb_cases_new + tb_cases_relapse\n2. Define 'IncidenceRate' = (TotalCases / population) * 100000\n3. Define 'IncidenceTier' and RECODE 'IncidenceRate' into it:\n   - 0 to <50: \"Low\"\n   - 50 to <150: \"Medium\"\n   - 150 to <300: \"High\"\n   - 300+: \"Very High\"\n\nFilter the data (SELECT) to include ONLY records where 'who_region' is \"AFR\" AND 'year' is between 2015 and 2020 (inclusive).\n\nFinally, EXPORT (WRITE) the transformed and filtered dataset to 'C:\\Users\\Docker\\Documents\\TBData\\output\\afr_tb_2015_2020.csv' in CSV format. Ensure the new variables are included.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/import_transform_export_tb/setup_task.sh",
+    "post_task": "/workspace/tasks/import_transform_export_tb/export_result.sh"
+  },
+  "metadata": {
+    "input_file": "C:\\Users\\Docker\\Documents\\TBData\\who_tb_notifications.csv",
+    "output_file": "C:\\Users\\Docker\\Documents\\TBData\\output\\afr_tb_2015_2020.csv",
+    "region_filter": "AFR",
+    "year_min": 2015,
+    "year_max": 2020,
+    "expected_columns": ["TotalCases", "IncidenceRate", "IncidenceTier", "country", "iso3", "year"],
+    "recode_rules": {
+      "Low": [0, 50],
+      "Medium": [50, 150],
+      "High": [150, 300],
+      "Very High": [300, 999999]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_import_transform_export_tb"
+    }
+  }
+}

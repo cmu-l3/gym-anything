@@ -1,0 +1,71 @@
+version: "3.8"
+
+x-wger-service: &wger-service
+  image: docker.io/wger/server:latest
+  env_file:
+    - ./prod.env
+  volumes:
+    - wger-static:/home/wger/static
+    - wger-media:/home/wger/media
+  depends_on:
+    db:
+      condition: service_healthy
+    cache:
+      condition: service_healthy
+
+services:
+  web:
+    <<: *wger-service
+    container_name: wger-web
+    restart: unless-stopped
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8000/api/v2/ || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 300s
+
+  nginx:
+    image: docker.io/nginx:stable
+    container_name: wger-nginx
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - wger-static:/home/wger/static:ro
+      - wger-media:/home/wger/media:ro
+
+  db:
+    image: docker.io/postgres:15-alpine
+    container_name: wger-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wger
+      POSTGRES_USER: wger
+      POSTGRES_PASSWORD: wger
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wger"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cache:
+    image: docker.io/redis:alpine
+    container_name: wger-cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  wger-static:
+  wger-media:

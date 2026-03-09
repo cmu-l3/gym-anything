@@ -1,0 +1,53 @@
+{
+  "id": "sma_angle_measurement@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the aortomesenteric angle between the SMA and aorta, and the aortomesenteric distance on the loaded abdominal CT. Classify the findings. Save the angle markup to ~/Documents/SlicerData/AMOS/sma_angle.mrk.json and a report to ~/Documents/SlicerData/AMOS/sma_report.json with fields: sma_angle_degrees, aortomesenteric_distance_mm, classification ('normal', 'borderline', or 'sma_syndrome_likely'), clinical_notes.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sma_angle_measurement/setup_task.sh",
+    "post_task": "/workspace/tasks/sma_angle_measurement/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/sma_angle.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/sma_report.json",
+    "clinical_criteria": {
+      "normal_angle_min": 38,
+      "normal_angle_max": 65,
+      "normal_distance_min": 10,
+      "borderline_angle_min": 25,
+      "borderline_angle_max": 38,
+      "borderline_distance_min": 8,
+      "borderline_distance_max": 10,
+      "syndrome_angle_max": 25,
+      "syndrome_distance_max": 8
+    },
+    "passing_thresholds": {
+      "angle_error_max_degrees": 5.0,
+      "distance_error_max_mm": 3.0
+    },
+    "scoring_weights": {
+      "angle_accuracy": 30,
+      "anatomical_position": 15,
+      "distance_accuracy": 15,
+      "classification_correct": 15,
+      "markup_valid": 10,
+      "report_complete": 10,
+      "consistency": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sma_angle_measurement"
+    }
+  }
+}

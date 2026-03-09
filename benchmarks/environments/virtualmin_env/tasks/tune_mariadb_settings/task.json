@@ -1,0 +1,30 @@
+{
+  "id": "tune_mariadb_settings@1",
+  "version": "1.0",
+  "env_id": "virtualmin_env@0.1",
+  "description": "The MariaDB database server on this system is experiencing performance issues under load. Specifically, users are encountering 'Too many connections' errors, and query performance is sluggish due to insufficient memory allocation.\n\nYou need to optimize the database configuration using the Webmin/Virtualmin interface:\n\n1. Navigate to the **MySQL Database Server** module (found under Servers).\n2. Access the **MySQL System Variables** configuration.\n3. Change the following settings:\n   - **Max concurrent connections**: Increase to **250**.\n   - **Connection wait timeout**: Set to **300** seconds.\n   - **InnoDB buffer pool size**: Increase to **256M** (256 Megabytes).\n4. Save your configuration and **restart the database server** to ensure all changes take effect.\n\nNote: Some variables (like the buffer pool size) require a server restart to be applied to the running instance.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tune_mariadb_settings/setup_task.sh",
+    "post_task": "/workspace/tasks/tune_mariadb_settings/export_result.sh"
+  },
+  "metadata": {
+    "expected_max_connections": "250",
+    "expected_wait_timeout": "300",
+    "expected_buffer_pool_bytes": 268435456,
+    "buffer_pool_tolerance_bytes": 1048576,
+    "mysql_user": "root",
+    "mysql_pass": "GymAnything123!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tune_mariadb_settings"
+    }
+  }
+}

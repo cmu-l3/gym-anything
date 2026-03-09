@@ -1,0 +1,35 @@
+{
+  "id": "ofac_sanctions_compliance_screening@1",
+  "version": "1.0",
+  "env_id": "firefox_env@0.1",
+  "description": "You are an Export Compliance Officer. Your task is to screen four potential business entities against the US Department of the Treasury's Office of Foreign Assets Control (OFAC) Sanctions List. \n\n1. Navigate to the official OFAC Sanctions List Search tool (https://sanctionssearch.ofac.treas.gov/).\n2. Search for each of the following entities:\n   - Mahan Air\n   - Rosoboronexport\n   - Mozilla Corporation\n   - Lazarus Group\n3. Determine the sanction status for each. If an entity is found, record its List (e.g., SDN) and the first applicable Program code (e.g., IRAN, SDGT). If not found, record the status as 'Clear'.\n4. Create a Firefox bookmark folder named 'Compliance Tools' containing the OFAC search page.\n5. Generate a compliance audit report saved to '~/Documents/sanctions_audit.json' with the following structure:\n\n{\n  \"audit_date\": \"YYYY-MM-DD\",\n  \"auditor\": \"ComplianceAgent\",\n  \"results\": {\n    \"Mahan Air\": { \"status\": \"Sanctioned\", \"list\": \"SDN\", \"program\": \"...\" },\n    ...\n  }\n}",
+  "difficulty": "medium",
+  "tags": ["firefox", "compliance", "research", "regulatory", "ofac"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ofac_sanctions_compliance_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/ofac_sanctions_compliance_screening/export_result.sh"
+  },
+  "metadata": {
+    "required_entities": ["Mahan Air", "Rosoboronexport", "Mozilla Corporation", "Lazarus Group"],
+    "expected_results": {
+      "Mahan Air": {"status": "Sanctioned", "program_keywords": ["IRAN", "SDGT"]},
+      "Rosoboronexport": {"status": "Sanctioned", "program_keywords": ["UKRAINE", "RUSSIA", "SSI"]},
+      "Mozilla Corporation": {"status": "Clear"},
+      "Lazarus Group": {"status": "Sanctioned", "program_keywords": ["CYBER", "DPRK", "KOREA"]}
+    },
+    "output_file": "/home/ga/Documents/sanctions_audit.json",
+    "bookmark_folder": "Compliance Tools",
+    "target_url": "sanctionssearch.ofac.treas.gov"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ofac_sanctions_compliance_screening"
+    }
+  }
+}

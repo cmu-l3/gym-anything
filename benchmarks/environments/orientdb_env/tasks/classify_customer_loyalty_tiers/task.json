@@ -1,0 +1,41 @@
+{
+  "id": "classify_customer_loyalty_tiers@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "Customer success reported that no loyalty tier classification exists for a Q1 retention campaign. Use OrientDB Studio at http://localhost:2480/studio/index.html with server credentials root / GymAnything123! and connect to demodb. For each of four campaign customers (yuki.tanaka@example.com, carlos.lopez@example.com, thomas.schafer@example.com, piet.vanderberg@example.com), traverse their HasOrder edges to sum completed-order spend, apply the Bronze/Silver/Gold tiering ruleset, and persist the result in a new indexed LoyaltyTier vertex class.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 780,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/classify_customer_loyalty_tiers/setup_task.sh",
+    "post_task": "/workspace/tasks/classify_customer_loyalty_tiers/export_result.sh"
+  },
+  "metadata": {
+    "cohort_emails": [
+      "yuki.tanaka@example.com",
+      "carlos.lopez@example.com",
+      "thomas.schafer@example.com",
+      "piet.vanderberg@example.com"
+    ],
+    "expected_tiers": {
+      "yuki.tanaka@example.com":    { "Tier": "Gold",   "TotalSpend": 4500.0, "CompletedOrderCount": 2 },
+      "carlos.lopez@example.com":   { "Tier": "Bronze", "TotalSpend":  900.0, "CompletedOrderCount": 1 },
+      "thomas.schafer@example.com": { "Tier": "Silver", "TotalSpend": 2000.0, "CompletedOrderCount": 2 },
+      "piet.vanderberg@example.com":{ "Tier": "Silver", "TotalSpend": 1700.0, "CompletedOrderCount": 1 }
+    },
+    "tiering_rules": {
+      "Gold":   "TotalSpend >= 4000",
+      "Silver": "(CompletedOrderCount >= 2) OR (TotalSpend >= 1500 AND TotalSpend < 4000)",
+      "Bronze": "CompletedOrderCount < 2 AND TotalSpend < 1500"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_classify_customer_loyalty_tiers"
+    }
+  }
+}

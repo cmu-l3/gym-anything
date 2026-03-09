@@ -1,0 +1,36 @@
+{
+  "id": "analyze_geometry_containment@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform a Quality Assurance audit on the Muncie HEC-RAS model to detect 'glass-walling' (where water surface elevation exceeds maximum terrain elevation).\n\n1. Ensure the Unsteady Flow simulation has been run and results are available in 'Muncie.p04.hdf'.\n2. Create a Python script to extract data from the HDF5 file:\n   - For every Cross Section, determine the Maximum Terrain Elevation (highest point in station-elevation data).\n   - Extract the Maximum Water Surface Elevation (WSE) over the simulation duration.\n   - Calculate 'Geometry Freeboard' = Max_Terrain - Max_WSE.\n3. Identify the 5 most critical cross-sections (lowest freeboard values).\n4. Generate the following outputs in '/home/ga/Documents/hec_ras_results/':\n   - 'geometry_containment.csv': Columns [RiverStation, MaxTerrain_ft, MaxWSE_ft, Freeboard_ft], sorted by Freeboard ascending.\n   - 'critical_sections.json': A JSON list of the 5 critical River Station identifiers.\n   - 'containment_profile.png': A plot comparing Max Terrain vs Max WSE for all stations.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/analyze_geometry_containment/setup_task.sh",
+    "post_task": "/workspace/tasks/analyze_geometry_containment/export_result.sh"
+  },
+  "metadata": {
+    "output_dir": "/home/ga/Documents/hec_ras_results",
+    "files": {
+      "csv": "geometry_containment.csv",
+      "json": "critical_sections.json",
+      "plot": "containment_profile.png"
+    },
+    "scoring": {
+      "file_existence": 20,
+      "data_accuracy": 30,
+      "critical_identification": 30,
+      "plot_creation": 20
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_geometry_containment"
+    }
+  }
+}

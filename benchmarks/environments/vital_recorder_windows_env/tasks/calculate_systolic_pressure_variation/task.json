@@ -1,0 +1,33 @@
+{
+  "id": "calculate_systolic_pressure_variation@1",
+  "version": "1.0",
+  "env_id": "vital_recorder_windows_env@0.1",
+  "description": "Calculate Systolic Pressure Variation (SPV) manually from the arterial waveform in Vital Recorder.\n\nContext: You are analyzing a patient's fluid responsiveness. You need to measure the 'swing' in arterial blood pressure caused by mechanical ventilation.\n\nTask:\n1. Open Vital Recorder with Case #3 ('0003.vital') loaded.\n2. Navigate to the time window 00:45:00 - 00:45:15 (45 minutes into the case).\n3. Find the 'Solar8000/ART' (Arterial Pressure) waveform track.\n4. Identify the maximum systolic peak pressure and the minimum systolic peak pressure within this 15-second window.\n5. Calculate SPV = Max SBP - Min SBP.\n6. Create a report at 'C:\\Users\\Docker\\Documents\\spv_calculation.txt' with the format:\n   SPV REPORT\n   Time Window: 00:45:00 - 00:45:15\n   Max SBP: [Value] mmHg\n   Min SBP: [Value] mmHg\n   Calculated SPV: [Value] mmHg\n\n7. Take a screenshot of the waveform view used for calculation and save it to 'C:\\Users\\Docker\\Pictures\\spv_waveform.png'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\calculate_systolic_pressure_variation\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\calculate_systolic_pressure_variation\\export_result.ps1"
+  },
+  "metadata": {
+    "case_id": "3",
+    "target_window_start": "00:45:00",
+    "target_window_end": "00:45:15",
+    "output_report_path": "C:\\Users\\Docker\\Documents\\spv_calculation.txt",
+    "output_image_path": "C:\\Users\\Docker\\Pictures\\spv_waveform.png",
+    "min_sbp_plausible": 60,
+    "max_sbp_plausible": 200,
+    "min_spv_plausible": 1,
+    "max_spv_plausible": 40
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spv_calculation"
+    }
+  }
+}

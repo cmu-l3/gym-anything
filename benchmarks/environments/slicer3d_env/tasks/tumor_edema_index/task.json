@@ -1,0 +1,50 @@
+{
+  "id": "tumor_edema_index@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Calculate the Peritumoral Edema Index (PEI) from the pre-loaded tumor segmentation on the provided brain MRI. Compute edema volume (Label 2) and core volume (Label 1 + Label 4), then derive PEI = edema/core and classify the prognostic category. Save report to ~/Documents/SlicerData/BraTS/edema_analysis_report.json with fields: edema_volume_ml, core_volume_ml, pei_ratio, prognostic_class, patient_id.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tumor_edema_index/setup_task.sh",
+    "post_task": "/workspace/tasks/tumor_edema_index/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/edema_analysis_report.json",
+    "segmentation_file": "/home/ga/Documents/SlicerData/BraTS/tumor_segmentation.nii.gz",
+    "brats_labels": {
+      "necrotic": 1,
+      "edema": 2,
+      "enhancing": 4
+    },
+    "pei_thresholds": {
+      "low_max": 2.0,
+      "moderate_max": 4.0
+    },
+    "passing_thresholds": {
+      "volume_error_max_percent": 25,
+      "pei_error_max_percent": 30
+    },
+    "scoring_weights": {
+      "edema_volume_accuracy": 25,
+      "core_volume_accuracy": 25,
+      "pei_ratio_accuracy": 20,
+      "prognostic_classification": 15,
+      "report_completeness": 10,
+      "report_valid_json": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tumor_edema_index"
+    }
+  }
+}

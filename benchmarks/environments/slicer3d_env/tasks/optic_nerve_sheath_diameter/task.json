@@ -1,0 +1,47 @@
+{
+  "id": "optic_nerve_sheath_diameter@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure bilateral optic nerve sheath diameters (ONSD) at 3mm posterior to each globe on the loaded brain MRI. Calculate mean ONSD and assess for elevated intracranial pressure. Save right measurement to ~/Documents/SlicerData/BraTS/right_onsd.mrk.json, left to ~/Documents/SlicerData/BraTS/left_onsd.mrk.json, and report to ~/Documents/SlicerData/BraTS/onsd_report.json with fields: right_onsd_mm, left_onsd_mm, mean_onsd_mm, measurement_distance_from_globe_mm, elevated_icp_suspected, clinical_assessment.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/optic_nerve_sheath_diameter/setup_task.sh",
+    "post_task": "/workspace/tasks/optic_nerve_sheath_diameter/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_right_markup": "/home/ga/Documents/SlicerData/BraTS/right_onsd.mrk.json",
+    "output_left_markup": "/home/ga/Documents/SlicerData/BraTS/left_onsd.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/onsd_report.json",
+    "icp_threshold_mm": 5.0,
+    "measurement_tolerance_mm": 1.0,
+    "passing_thresholds": {
+      "onsd_error_max_mm": 1.0,
+      "asymmetry_max_mm": 1.5,
+      "min_onsd_mm": 2.0,
+      "max_onsd_mm": 10.0
+    },
+    "scoring_weights": {
+      "right_accuracy": 20,
+      "left_accuracy": 20,
+      "measurement_location": 15,
+      "bilateral_symmetry": 10,
+      "mean_correct": 10,
+      "icp_assessment": 15,
+      "report_completeness": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_optic_nerve_sheath_diameter"
+    }
+  }
+}

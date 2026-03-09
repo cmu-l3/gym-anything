@@ -1,0 +1,35 @@
+{
+  "id": "encrypt_existing_data@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Move all sensitive files from '/home/ga/SensitiveData/' into a new VeraCrypt encrypted container. \n\n1. Create a new volume at '/home/ga/Volumes/sensitive_encrypted.hc' (min 5MB, AES, SHA-512, FAT) with password 'SecureEncrypt2024!'.\n2. Mount it to '/home/ga/MountPoints/slot1'.\n3. Copy all files from 'SensitiveData' into the volume.\n4. Verify file integrity matches the provided 'data_manifest.sha256'.\n5. Create a text file in the volume named 'transfer_report.txt' containing the text \"FILES TRANSFERRED: 4\" and \"INTEGRITY: VERIFIED\".\n6. Dismount the volume.\n7. Securely delete the original files from '/home/ga/SensitiveData/'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/encrypt_existing_data/setup_task.sh",
+    "post_task": "/workspace/tasks/encrypt_existing_data/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/sensitive_encrypted.hc",
+    "source_dir": "/home/ga/SensitiveData",
+    "mount_point": "/home/ga/MountPoints/slot1",
+    "password": "SecureEncrypt2024!",
+    "expected_files": [
+      "SF312_Nondisclosure_Agreement.txt",
+      "FY2024_Revenue_Budget.csv",
+      "backup_authorized_keys",
+      "data_manifest.sha256"
+    ],
+    "report_filename": "transfer_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_encrypt_existing_data"
+    }
+  }
+}

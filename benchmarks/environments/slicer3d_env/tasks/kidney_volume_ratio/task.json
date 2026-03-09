@@ -1,0 +1,41 @@
+{
+  "id": "kidney_volume_ratio@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Compute bilateral kidney volumes using Segment Statistics on the pre-loaded 'KidneySegmentation' (Label 1: Right Kidney, Label 2: Left Kidney) with the 'AbdominalCT' volume. Calculate the volume ratio (larger/smaller) and recommend which kidney to preserve. Save a report to ~/Documents/SlicerData/Exports/kidney_analysis.txt with exactly 4 lines: right kidney volume (mL), left kidney volume (mL), volume ratio, and preservation recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/kidney_volume_ratio/setup_task.sh",
+    "post_task": "/workspace/tasks/kidney_volume_ratio/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_report": "/home/ga/Documents/SlicerData/Exports/kidney_analysis.txt",
+    "expected_module": "SegmentStatistics",
+    "volume_tolerance_percent": 10,
+    "ratio_tolerance": 0.05,
+    "scoring_weights": {
+      "report_exists": 10,
+      "right_volume_correct": 20,
+      "left_volume_correct": 20,
+      "ratio_correct": 20,
+      "recommendation_correct": 20,
+      "stats_computed": 10
+    },
+    "data_source": "AMOS 2022 Abdominal Multi-Organ Segmentation Dataset",
+    "data_url": "https://zenodo.org/records/7155725"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_kidney_volume_ratio"
+    }
+  }
+}

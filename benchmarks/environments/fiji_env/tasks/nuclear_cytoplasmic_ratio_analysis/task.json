@@ -1,0 +1,30 @@
+{
+  "id": "nuclear_cytoplasmic_ratio_analysis@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "You are a pharmacologist performing a nuclear translocation assay. Your goal is to measure the Nuclear-to-Cytoplasmic (N/C) intensity ratio of a protein of interest in a single cell.\n\nTwo images are prepared in ~/Fiji_Data/raw/translocation/:\n1. 'cell_dapi.tif' (Channel 1: Nuclear marker)\n2. 'cell_signal.tif' (Channel 2: Protein signal)\n\nSteps:\n1. Open 'cell_dapi.tif'. Create a selection/ROI around the nucleus (using Threshold or Wand tool). Add it to the ROI Manager.\n\n2. Create a 'Donut' ROI for the cytoplasm:\n   - Select the nuclear ROI.\n   - Enlarge it by 15 pixels (Edit > Selection > Enlarge).\n   - Create a ring shape that excludes the nucleus (using ROI Manager 'Make Band' or XOR operations) so the selection represents ONLY the cytoplasm.\n   - Add this Cytoplasmic ROI to the ROI Manager.\n\n3. Open 'cell_signal.tif'.\n\n4. Measure the Mean Gray Value of the signal image for BOTH the Nucleus ROI and the Cytoplasm ROI.\n\n5. Calculate the N/C Ratio: (Nucleus Mean / Cytoplasm Mean).\n\n6. Save the results:\n   - Create a text file at ~/Fiji_Data/results/translocation/ratio_report.txt containing the calculated ratio (e.g., 'Ratio: 1.5').\n   - Save your ROIs to ~/Fiji_Data/results/translocation/rois.zip via the ROI Manager.\n\nExpected Outcome:\n- A report file with the correct ratio.\n- An ROI zip file containing the nuclear and cytoplasmic selections.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nuclear_cytoplasmic_ratio_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/nuclear_cytoplasmic_ratio_analysis/export_result.sh"
+  },
+  "metadata": {
+    "dapi_path": "~/Fiji_Data/raw/translocation/cell_dapi.tif",
+    "signal_path": "~/Fiji_Data/raw/translocation/cell_signal.tif",
+    "report_path": "~/Fiji_Data/results/translocation/ratio_report.txt",
+    "rois_path": "~/Fiji_Data/results/translocation/rois.zip",
+    "enlarge_pixels": 15
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_translocation_ratio"
+    }
+  },
+  "tags": ["biology", "roi-manager", "measurements", "ratio-analysis"]
+}

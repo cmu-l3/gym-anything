@@ -1,0 +1,38 @@
+{
+  "id": "segment_ventricles@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment the lateral ventricles on the loaded T1-weighted brain MRI (MRHead) using a segment named 'Ventricles' and measure their combined volume. Save a JSON report to /home/ga/Documents/SlicerData/Exports/ventricle_measurement.json with fields: segment_name, volume_ml.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/segment_ventricles/setup_task.sh",
+    "post_task": "/workspace/tasks/segment_ventricles/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "sample_file": "/home/ga/Documents/SlicerData/SampleData/MRHead.nrrd",
+    "measurement_file": "/home/ga/Documents/SlicerData/Exports/ventricle_measurement.json",
+    "expected_volume_range_ml": {"min": 15, "max": 45},
+    "valid_volume_range_ml": {"min": 5, "max": 80},
+    "scoring_weights": {
+      "segmentation_exists": 25,
+      "measurement_file_created": 20,
+      "volume_in_valid_range": 25,
+      "volume_in_expected_range": 15,
+      "vlm_quality_check": 15
+    },
+    "pass_threshold": 70,
+    "required_criteria": ["segmentation_exists", "measurement_file_created"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_segment_ventricles"
+    }
+  }
+}

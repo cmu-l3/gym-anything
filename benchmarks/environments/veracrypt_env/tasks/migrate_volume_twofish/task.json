@@ -1,0 +1,35 @@
+{
+  "id": "migrate_volume_twofish@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Migrate all files from the existing AES-encrypted volume (/home/ga/Volumes/data_volume.hc) to a newly created Twofish-encrypted volume. \n\n1. Mount the source volume '/home/ga/Volumes/data_volume.hc' (Password: 'MountMe2024') to slot 1.\n2. Create a NEW 25MB encrypted volume at '/home/ga/Volumes/twofish_volume.hc'. Use 'Twofish' encryption algorithm, 'SHA-512' hash, FAT filesystem, and password 'SecureMigration2024!'.\n3. Mount the new volume to slot 2.\n4. Copy ALL files from the source volume to the new volume.\n5. Create a text file at '/home/ga/Documents/migration_manifest.txt' listing the filenames and their sizes in bytes.\n6. Dismount BOTH volumes.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/migrate_volume_twofish/setup_task.sh",
+    "post_task": "/workspace/tasks/migrate_volume_twofish/export_result.sh"
+  },
+  "metadata": {
+    "source_volume": "/home/ga/Volumes/data_volume.hc",
+    "source_password": "MountMe2024",
+    "destination_volume": "/home/ga/Volumes/twofish_volume.hc",
+    "destination_password": "SecureMigration2024!",
+    "expected_algo": "Twofish",
+    "manifest_path": "/home/ga/Documents/migration_manifest.txt",
+    "expected_files": [
+      "SF312_Nondisclosure_Agreement.txt",
+      "FY2024_Revenue_Budget.csv",
+      "backup_authorized_keys"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_migrate_volume_twofish"
+    }
+  }
+}

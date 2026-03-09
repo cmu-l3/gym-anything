@@ -1,0 +1,32 @@
+{
+  "id": "data_quality_audit_and_repair@1",
+  "version": "1.0",
+  "env_id": "urban_sim_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are a data quality analyst at the SF Planning Department. The city's UrbanSim modeling team has flagged the buildings database as containing multiple categories of data anomalies that are causing the simulation to produce unreliable outputs. Before the next planning cycle, you must conduct a full data quality audit of the buildings table, identify every category of anomaly, repair each category using a statistically defensible method, document all changes, and deliver a signed-off quality assurance report.\n\nThe buildings data to audit is at /home/ga/urbansim_projects/data/buildings_with_errors.csv (this file has been extracted from the HDF5 store and already contains the known anomalies). The original clean HDF5 data at /home/ga/urbansim_projects/data/sanfran_public.h5 can be used as a reference for determining valid value ranges.\n\nConduct a systematic audit. Do not assume you know in advance what categories of anomaly exist — discover them from the data. For each anomaly category you find:\n1. Name and describe the anomaly type\n2. Count the number of affected records\n3. Choose a repair method appropriate for the variable type and anomaly (e.g., median imputation, range clipping, IQR-based Winsorizing, or flagging for deletion)\n4. Apply the repair and log each changed record\n\nDeliver:\n- /home/ga/urbansim_projects/output/quality_report.csv — one row per anomaly category with columns: issue_type, records_affected, repair_method, records_repaired\n- /home/ga/urbansim_projects/output/buildings_repaired.csv — the full repaired dataset (same columns as input, all anomalies corrected)\n- /home/ga/urbansim_projects/output/quality_audit_chart.png — bar chart of records_affected per issue_type\n\nThe analysis must run in /home/ga/urbansim_projects/notebooks/data_quality_audit.ipynb using the UrbanSim (Python 3) kernel. Jupyter Lab is open at http://localhost:8888.",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 90
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/data_quality_audit_and_repair/setup_task.sh",
+    "post_task": "/workspace/tasks/data_quality_audit_and_repair/export_result.sh"
+  },
+  "metadata": {
+    "task_name": "data_quality_audit_and_repair",
+    "notebook_path": "/home/ga/urbansim_projects/notebooks/data_quality_audit.ipynb",
+    "report_csv": "/home/ga/urbansim_projects/output/quality_report.csv",
+    "repaired_csv": "/home/ga/urbansim_projects/output/buildings_repaired.csv",
+    "chart_path": "/home/ga/urbansim_projects/output/quality_audit_chart.png",
+    "errors_csv": "/home/ga/urbansim_projects/data/buildings_with_errors.csv",
+    "gt_path": "/tmp/data_quality_gt.json",
+    "min_issue_types": 3,
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_data_quality"
+    }
+  }
+}

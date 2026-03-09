@@ -1,0 +1,38 @@
+{
+  "id": "cell_spacing_distance_transform@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Analyze the spatial distribution of cells in a fluorescence microscopy image using Fiji's Distance Transform tools.\n\n1. Open the image at `~/Fiji_Data/workspace/cell_image.tif` (scale: 1 px = 0.65 µm).\n2. Segment the cells (Background Subtraction -> Threshold -> Watershed).\n3. Use 'Analyze Particles' to extract cell centroids and areas.\n4. Generate a Euclidean Distance Map (EDM) of the *intercellular space* (invert mask -> Process > Binary > Distance Map).\n5. Save the EDM image to `~/Fiji_Data/results/spacing/distance_map.tif`.\n6. Measure EDM statistics (mean, max) to quantify gap sizes.\n7. Calculate Nearest-Neighbor (NN) distances for all cells.\n8. Save per-cell data to `~/Fiji_Data/results/spacing/cell_measurements.csv` (columns: cell_id, centroid_x, centroid_y, area_px, nn_dist).\n9. Save a summary report to `~/Fiji_Data/results/spacing/spacing_report.txt` with keys: num_cells, cell_coverage_percent, mean_nn_distance_px, edm_mean_px, edm_max_px.\n10. Save a visual QC overlay (original image + cell outlines) to `~/Fiji_Data/results/spacing/qc_overlay.png`.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cell_spacing_distance_transform/setup_task.sh",
+    "post_task": "/workspace/tasks/cell_spacing_distance_transform/export_result.sh"
+  },
+  "metadata": {
+    "pixel_scale_um": 0.65,
+    "input_path": "~/Fiji_Data/workspace/cell_image.tif",
+    "output_csv": "~/Fiji_Data/results/spacing/cell_measurements.csv",
+    "output_map": "~/Fiji_Data/results/spacing/distance_map.tif",
+    "output_report": "~/Fiji_Data/results/spacing/spacing_report.txt",
+    "output_qc": "~/Fiji_Data/results/spacing/qc_overlay.png",
+    "data_source": "Broad Bioimage Benchmark Collection (BBBC005)",
+    "scoring": {
+      "file_existence": 35,
+      "data_completeness": 30,
+      "data_consistency": 20,
+      "process_verification": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cell_spacing"
+    }
+  },
+  "tags": ["bioimage-analysis", "fiji", "distance-transform", "spatial-analysis", "morphometry"]
+}

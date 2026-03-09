@@ -1,0 +1,28 @@
+{
+  "id": "secure_dind_socket_access@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "Configure the 'build-agent' service in /home/ga/build-agent/ to securely access the host's Docker socket. The container currently fails to access the socket because it runs as a non-root user. You must fix the configuration (e.g., in docker-compose.yml) so that the 'agent' user can run docker commands. \n\nCRITICAL SECURITY REQUIREMENTS:\n1. The container MUST continue to run as the 'agent' user (UID 1000). Do NOT change it to root.\n2. You MUST NOT change the permissions of /var/run/docker.sock on the host (no 'chmod 666').\n\nVerify your fix by ensuring 'docker compose up -d' starts the container and 'docker exec build-agent docker ps' works successfully.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/secure_dind_socket_access/setup_task.sh",
+    "post_task": "/workspace/tasks/secure_dind_socket_access/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/build-agent",
+    "container_name": "build-agent",
+    "target_user": "agent",
+    "target_uid": 1000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secure_dind_socket_access"
+    }
+  }
+}

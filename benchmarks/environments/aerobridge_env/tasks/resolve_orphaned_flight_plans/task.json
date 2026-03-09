@@ -1,0 +1,46 @@
+{
+  "id": "resolve_orphaned_flight_plans@1",
+  "version": "1.0",
+  "env_id": "aerobridge_env@0.1",
+  "description": "A data migration error has left several Flight Plans without an assigned Operator. Your task is to fix these 'orphaned' records.\n\n1. Log in to the Aerobridge admin panel (http://localhost:8000/admin/) using username 'admin' and password 'adminpass123'.\n2. Navigate to the Flight Plans section.\n3. Identify the flight plans with callsigns starting with 'MIG-ERR-'.\n4. For each of these flight plans:\n   - Check who the assigned Pilot is.\n   - Look up that Pilot in the 'Persons' (or People) registry to find which Company/Organization they belong to.\n   - Return to the Flight Plan and assign that Company to the 'Operator' field.\n   - Save the record.\n\nDo not modify any other flight plans.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/resolve_orphaned_flight_plans/setup_task.sh",
+    "post_task": "/workspace/tasks/resolve_orphaned_flight_plans/export_result.sh"
+  },
+  "metadata": {
+    "admin_url": "http://localhost:8000/admin/",
+    "credentials": {
+      "username": "admin",
+      "password": "adminpass123"
+    },
+    "targets": [
+      {
+        "callsign": "MIG-ERR-101",
+        "pilot": "John Skywalker",
+        "expected_operator": "SkyHigh Services"
+      },
+      {
+        "callsign": "MIG-ERR-102",
+        "pilot": "Sarah Fields",
+        "expected_operator": "AgriDrones Inc"
+      },
+      {
+        "callsign": "MIG-ERR-103",
+        "pilot": "John Skywalker",
+        "expected_operator": "SkyHigh Services"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_resolve_orphaned_flight_plans"
+    }
+  }
+}

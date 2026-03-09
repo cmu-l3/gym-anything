@@ -1,0 +1,38 @@
+{
+    "task_id": "configure_low_bandwidth_profile@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "config_path",
+            "metadata_value": "/home/ga/.jitsi-meet-cfg/web/config.js",
+            "verified_value": "/home/ga/.jitsi-meet-cfg/web/config.js",
+            "source": "Verified across setup_jitsi.sh (line 36 creates /home/ga/.jitsi-meet-cfg/{web,...}), docker-compose.yml (line 10 mounts /home/ga/.jitsi-meet-cfg/web:/config:Z for the web service), setup_task.sh (line 17 explicitly sets CONFIG_PATH=/home/ga/.jitsi-meet-cfg/web/config.js), and export_result.sh (line 9 uses the same path). This is the standard Docker volume mount location for Jitsi Meet web configuration.",
+            "status": "verified"
+        },
+        {
+            "key": "evidence_path",
+            "metadata_value": "/home/ga/bandwidth_test_evidence.png",
+            "verified_value": "/home/ga/bandwidth_test_evidence.png",
+            "source": "Verified across task.json description (line 5 specifies 'save it to /home/ga/bandwidth_test_evidence.png'), export_result.sh (line 10 checks this path and copies it to /tmp/evidence.png), and verifier.py (line 100 reads the evidence file from this path). This is the designated output path for the visual evidence screenshot.",
+            "status": "verified"
+        },
+        {
+            "key": "container_name",
+            "metadata_value": "jitsi-web",
+            "verified_value": "jitsi-web-1 or project_prefix-web-1",
+            "source": "docker-compose.yml (line 3 defines service name as 'web', not 'jitsi-web'); setup_task.sh (line 23 references 'jitsi_meet_env-web-1' when copying from container); export_result.sh (line 33 uses 'docker ps -qf \"name=web\"' for filtering). Standard docker-compose naming convention appends numeric suffix (-1) to service name. The metadata claims 'jitsi-web' which is incomplete; the service name is 'web' and the full container name would include a project prefix and numeric suffix.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_resolution",
+            "metadata_value": 360,
+            "verified_value": 360,
+            "source": "Verified across task.json description (lines 5-6 specify 'video.height.ideal: 360' and 'video.height.max: 360'); Jitsi Meet official configuration documentation (https://raw.githubusercontent.com/jitsi/jitsi-meet/master/config.js) shows default constraints are 'ideal: 720, max: 720, min: 240' for HD video. The task configures low bandwidth profile by reducing resolution to 360p. The expected value 360 represents the target video height in pixels for the low bandwidth optimization.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic task simulating a real-world system optimization scenario. The task configures Jitsi Meet (version stable-9753 in Docker) to enforce a low bandwidth profile. The config file is located at /home/ga/.jitsi-meet-cfg/web/config.js as a Docker volume mount from the jitsi/web container. The agent must modify two configuration parameters: set startAudioOnly to true (forces audio-only joining) and configure video constraints to use 360p resolution (ideal and max height of 360 pixels) instead of the default 720p, with a minimum height of 180 pixels. The container name should be 'web' (service name) or a full name like 'jitsi-meet-env-web-1' (depending on project prefix), not the claimed 'jitsi-web'. Evidence is saved to /home/ga/bandwidth_test_evidence.png as a screenshot showing the audio-only state after configuration. The Jitsi Meet version supports both the startAudioOnly option and W3C-compliant video constraints configuration.",
+    "pi_confidence": "high"
+}

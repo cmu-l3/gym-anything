@@ -1,0 +1,267 @@
+#VRML_SIM R2023b utf8
+# Pioneer 3-AT Field Robot Physics Configuration Scenario
+# The Pioneer 3-AT is a real four-wheel skid-steer robot by Omron Adept MobileRobots.
+# Actual Pioneer 3-AT specs:
+#   - Body mass: 12.5 kg (without payload)
+#   - Max speed: 0.5 m/s
+#   - Typical terrain: gravel, grass, packed dirt
+# This world has WRONG physics parameters that need correction:
+#   - Robot mass is 1.0 kg (too light, should be 12.5 kg per spec)
+#   - No ContactProperties for wheel-terrain interaction (needs friction coefficients
+#     appropriate for outdoor terrain: coulombFriction 0.7, softness 0.001)
+
+WorldInfo {
+  info [
+    "Pioneer 3-AT field robot physics setup for agricultural terrain navigation"
+    "Robot mass should be 12.5 kg per Pioneer 3-AT specification"
+    "Terrain contact properties: coulombFriction 0.7 (gravel/packed dirt)"
+  ]
+  title "Pioneer 3-AT Terrain Physics"
+  basicTimeStep 32
+  gravity 9.81
+}
+
+Viewpoint {
+  orientation -0.5773502691896258 0.5773502691896258 0.5773502691896258 2.09440
+  position 0 -6 4
+}
+
+Background {
+  skyColor [0.6 0.8 0.5]
+}
+
+DirectionalLight {
+  ambientIntensity 1
+  direction -0.2 -1 -0.5
+  intensity 1.0
+}
+
+Solid {
+  name "terrain"
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.55 0.43 0.28
+        }
+      }
+      geometry Box {
+        size 50 50 0.2
+      }
+    }
+  ]
+  translation 0 0 -0.1
+  boundingObject Box {
+    size 50 50 0.2
+  }
+}
+
+DEF PIONEER_ROBOT Robot {
+  translation 0 0 0.25
+  rotation 0 0 1 0
+  children [
+    DistanceSensor {
+      translation 0.22 0.12 0.1
+      rotation 0 0 1 0.35
+      name "front_right_sonar"
+      lookupTable [
+        0 0 0
+        0.5 500 0.05
+        5 1023 0
+      ]
+      numberOfRays 5
+      aperture 0.3
+    }
+    DistanceSensor {
+      translation 0.22 -0.12 0.1
+      rotation 0 0 1 -0.35
+      name "front_left_sonar"
+      lookupTable [
+        0 0 0
+        0.5 500 0.05
+        5 1023 0
+      ]
+      numberOfRays 5
+      aperture 0.3
+    }
+    Camera {
+      translation 0.22 0 0.15
+      name "front_camera"
+      width 320
+      height 240
+      near 0.1
+      far 50
+    }
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.2 0.2 0.6
+        }
+      }
+      geometry Box {
+        size 0.49 0.49 0.2
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor 0.17 0.19 0
+      }
+      device [
+        RotationalMotor {
+          name "front_right_wheel_motor"
+          maxVelocity 6.28
+        }
+      ]
+      endPoint Solid {
+        translation 0.17 0.19 0
+        rotation 1 0 0 0
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+                diffuseColor 0.1 0.1 0.1
+              }
+            }
+            geometry Cylinder {
+              radius 0.11
+              height 0.1
+            }
+          }
+        ]
+        name "front_right_wheel"
+        boundingObject Cylinder {
+          radius 0.11
+          height 0.1
+        }
+        physics Physics {
+          density 1100
+          mass -1
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor 0.17 -0.19 0
+      }
+      device [
+        RotationalMotor {
+          name "front_left_wheel_motor"
+          maxVelocity 6.28
+        }
+      ]
+      endPoint Solid {
+        translation 0.17 -0.19 0
+        rotation 1 0 0 0
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+                diffuseColor 0.1 0.1 0.1
+              }
+            }
+            geometry Cylinder {
+              radius 0.11
+              height 0.1
+            }
+          }
+        ]
+        name "front_left_wheel"
+        boundingObject Cylinder {
+          radius 0.11
+          height 0.1
+        }
+        physics Physics {
+          density 1100
+          mass -1
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor -0.17 0.19 0
+      }
+      device [
+        RotationalMotor {
+          name "rear_right_wheel_motor"
+          maxVelocity 6.28
+        }
+      ]
+      endPoint Solid {
+        translation -0.17 0.19 0
+        rotation 1 0 0 0
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+                diffuseColor 0.1 0.1 0.1
+              }
+            }
+            geometry Cylinder {
+              radius 0.11
+              height 0.1
+            }
+          }
+        ]
+        name "rear_right_wheel"
+        boundingObject Cylinder {
+          radius 0.11
+          height 0.1
+        }
+        physics Physics {
+          density 1100
+          mass -1
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor -0.17 -0.19 0
+      }
+      device [
+        RotationalMotor {
+          name "rear_left_wheel_motor"
+          maxVelocity 6.28
+        }
+      ]
+      endPoint Solid {
+        translation -0.17 -0.19 0
+        rotation 1 0 0 0
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+                diffuseColor 0.1 0.1 0.1
+              }
+            }
+            geometry Cylinder {
+              radius 0.11
+              height 0.1
+            }
+          }
+        ]
+        name "rear_left_wheel"
+        boundingObject Cylinder {
+          radius 0.11
+          height 0.1
+        }
+        physics Physics {
+          density 1100
+          mass -1
+        }
+      }
+    }
+  ]
+  name "pioneer_3at"
+  controller "<none>"
+  physics Physics {
+    density -1
+    mass 1.0
+  }
+  boundingObject Box {
+    size 0.49 0.49 0.2
+  }
+}

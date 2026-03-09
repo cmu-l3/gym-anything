@@ -1,0 +1,34 @@
+{
+  "id": "intake_form_validation@1",
+  "version": "1.0",
+  "env_id": "limesurvey_env@0.1",
+  "description": "Create a research participant intake form in LimeSurvey with strict field-level validation. \n\nLog in to the LimeSurvey admin interface (admin/Admin123!). \n\n1. Create a new survey titled 'CARDIA Follow-Up Study - Participant Intake Form 2024'.\n\n2. Create a question group named 'Demographic Information' with the following questions:\n   - Code 'email': 'Please enter your email address' (Short free text). Mandatory. Must use valid email validation.\n   - Code 'age': 'What is your current age in years?' (Numerical input). Mandatory. Minimum: 18, Maximum: 99.\n   - Code 'zipcode': 'Enter your 5-digit US ZIP code' (Short free text). Mandatory. Must use Regex validation for exactly 5 digits.\n   - Code 'income': 'What is your approximate annual household income in US dollars?' (Numerical input). Mandatory. Min: 0, Max: 10000000.\n   - Code 'children': 'How many children do you have?' (Numerical input). Mandatory. Min: 0, Max: 30.\n\n3. Create a question group named 'Contact Preferences' with:\n   - Code 'contactmethod': 'What is your preferred method of contact...?' (List (Radio)). Mandatory. Options: Email, Phone, Text Message, Postal Mail.\n   - Code 'notes': 'Please share any additional information...' (Long free text). Optional. Max characters: 500.\n\n4. Activate the survey.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/intake_form_validation/setup_task.sh",
+    "post_task": "/workspace/tasks/intake_form_validation/export_result.sh"
+  },
+  "metadata": {
+    "expected_title_keyword": "CARDIA",
+    "expected_group_count": 2,
+    "expected_question_count": 7,
+    "validation_rules": {
+        "age": {"min": 18, "max": 99},
+        "zipcode": {"regex_pattern": "\\d{5}"},
+        "income": {"min": 0, "max": 10000000},
+        "children": {"min": 0, "max": 30},
+        "notes": {"max_chars": 500}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_intake_form"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "sanitize_presentation_metadata@1",
+  "version": "1.0",
+  "env_id": "libreoffice_impress_env@0.1",
+  "description": "Sanitize a confidential presentation file before public release. Open '/home/ga/Documents/Presentations/incident_report_draft.odp' and remove all sensitive metadata and review artifacts. Specifically: 1) Delete all comments/annotations from slides. 2) Remove user data (Author/Created By/Modified By) from File Properties. 3) Remove the custom property 'Classification' set to 'Confidential'. 4) Uncheck 'Apply user data' to prevent re-adding your info. Save the sanitized file as 'incident_report_public.odp' in the same directory.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sanitize_presentation_metadata/setup_task.sh",
+    "post_task": "/workspace/tasks/sanitize_presentation_metadata/export_result.sh"
+  },
+  "metadata": {
+    "input_file": "/home/ga/Documents/Presentations/incident_report_draft.odp",
+    "expected_output_file": "/home/ga/Documents/Presentations/incident_report_public.odp",
+    "forbidden_strings": ["Internal Audit Team", "Confidential", "Reviewer"],
+    "forbidden_properties": ["Classification"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sanitize_metadata"
+    }
+  }
+}

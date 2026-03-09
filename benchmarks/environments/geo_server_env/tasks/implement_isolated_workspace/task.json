@@ -1,0 +1,27 @@
+{
+  "id": "implement_isolated_workspace@1",
+  "version": "1.0",
+  "env_id": "geo_server_env@0.1",
+  "description": "Configure a secure, multi-tenant environment for a new client 'Alpha Corp'.\n\n1. Login to GeoServer (http://localhost:8080/geoserver/web/) with 'admin' / 'Admin123!'.\n2. Create a new Workspace named 'alpha_corp' with URI 'http://www.alphacorp.com/data'.\n3. CRITICAL: Check the 'Isolated Workspace' box for this workspace to hide its contents from the global catalog.\n4. Create a new PostGIS Store in this workspace named 'alpha_ds' connecting to:\n   - Host: gs-postgis\n   - Database: gis\n   - User: geoserver\n   - Password: geoserver123\n5. Publish the 'ne_rivers' table as a layer named 'secure_rivers' with title 'Alpha Corp Secure Hydrography'.\n6. Verify the layer is enabled and advertised.\n\nThe goal is for this layer to NOT appear in the global WFS capabilities, but TO appear in the workspace-specific WFS capabilities.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/implement_isolated_workspace/setup_task.sh",
+    "post_task": "/workspace/tasks/implement_isolated_workspace/export_result.sh"
+  },
+  "metadata": {
+    "expected_workspace": "alpha_corp",
+    "expected_layer": "secure_rivers",
+    "expected_store": "alpha_ds"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_isolated_workspace"
+    }
+  }
+}

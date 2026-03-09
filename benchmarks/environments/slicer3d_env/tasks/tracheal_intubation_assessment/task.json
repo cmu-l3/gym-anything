@@ -1,0 +1,42 @@
+{
+  "id": "tracheal_intubation_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the inner tracheal diameter at the mid-trachea level on the provided chest CT for intubation planning. Document AP and transverse diameters, recommend an ETT size, and note any tracheal abnormalities. Save measurement markup to ~/Documents/SlicerData/LIDC/tracheal_measurement.mrk.json and report to ~/Documents/SlicerData/LIDC/tracheal_report.json with fields: tracheal_diameter_mm, ap_diameter_mm, transverse_diameter_mm, measurement_slice, recommended_ett_size_mm, trachea_shape, abnormalities.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tracheal_intubation_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/tracheal_intubation_assessment/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/LIDC/tracheal_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/tracheal_report.json",
+    "air_hu_threshold": -900,
+    "normal_trachea_range_mm": [13, 25],
+    "passing_thresholds": {
+      "diameter_error_max_mm": 3.0,
+      "ett_size_valid": true
+    },
+    "scoring_weights": {
+      "measurement_exists": 10,
+      "measurement_in_trachea": 15,
+      "diameter_accuracy": 40,
+      "ett_recommendation": 20,
+      "report_complete": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tracheal_measurement"
+    }
+  }
+}

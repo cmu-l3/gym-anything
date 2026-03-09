@@ -1,0 +1,45 @@
+{
+  "id": "migrate_hotel_type_to_tags@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "Refactor the 'Hotels' class in the 'demodb' database. Currently, hotels have a single 'Type' property (String). Your goal is to migrate this to a 'Tags' property (Embedded Set of Strings) to allow multiple categories per hotel.\n\nPerform the following steps:\n1. Create a new property 'Tags' on the 'Hotels' class of type EMBEDDEDSET (String).\n2. Migrate all existing data: The 'Tags' set for each hotel must contain its original 'Type' value.\n3. Enrich the data: Add the tag 'Luxury' to any hotel with 'Palace' in its name. Add the tag 'Resort' to any hotel with 'Resort' in its name. Add the tag 'Wellness' to any hotel with 'Spa' in its name. (Case-insensitive matching is preferred but case-sensitive is acceptable if consistent).\n4. Remove the legacy 'Type' property from the schema.\n\nYou can use the OrientDB Studio (SQL console) to execute these schema changes and data updates.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/migrate_hotel_type_to_tags/setup_task.sh",
+    "post_task": "/workspace/tasks/migrate_hotel_type_to_tags/export_result.sh"
+  },
+  "metadata": {
+    "database": "demodb",
+    "class": "Hotels",
+    "old_property": "Type",
+    "new_property": "Tags",
+    "test_cases": [
+      {
+        "name": "Copacabana Palace",
+        "original_type": "Historic",
+        "expected_tags": ["Historic", "Luxury"]
+      },
+      {
+        "name": "Terme di Saturnia Spa",
+        "original_type": "Luxury",
+        "expected_tags": ["Luxury", "Wellness"]
+      },
+      {
+        "name": "Hotel Artemide",
+        "original_type": "Boutique",
+        "expected_tags": ["Boutique"]
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_migrate_hotel_type_to_tags"
+    }
+  }
+}

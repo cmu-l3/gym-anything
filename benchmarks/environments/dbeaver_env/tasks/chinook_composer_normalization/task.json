@@ -1,0 +1,30 @@
+{
+  "id": "chinook_composer_normalization@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Data Engineer tasked with normalizing the Chinook database. The 'Composer' column in the 'tracks' table contains comma-separated values (e.g., 'Angus Young, Malcolm Young, Brian Johnson') which violates 1NF.\n\nYour goal is to normalize this into a proper relational schema.\n\nActions required:\n1. Connect to the database at '/home/ga/Documents/databases/chinook_normalize.db' using DBeaver. Name the connection 'ChinookNormalize'.\n2. Create a new table 'composers' with columns: 'ComposerId' (Integer PK AutoIncrement) and 'Name' (Text Unique).\n3. Create a bridge table 'track_composers' with columns: 'TrackId' and 'ComposerId'. Define composite PK and Foreign Keys.\n4. Parse the existing 'tracks.Composer' data (splitting on commas) to populate these new tables. Trim whitespace from names. Ignore NULL composers.\n5. Create a view 'v_track_composers' that joins tracks, track_composers, and composers to show TrackId, TrackName, and ComposerName.\n6. Export the Top 20 composers by track count to '/home/ga/Documents/exports/top_composers.csv' (Columns: ComposerName, TrackCount).\n7. Save your SQL script to '/home/ga/Documents/scripts/normalize_composers.sql'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_composer_normalization/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_composer_normalization/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook_normalize.db",
+    "connection_name": "ChinookNormalize",
+    "export_path": "/home/ga/Documents/exports/top_composers.csv",
+    "script_path": "/home/ga/Documents/scripts/normalize_composers.sql",
+    "required_tables": ["composers", "track_composers"],
+    "required_view": "v_track_composers"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_composer_normalization"
+    }
+  }
+}

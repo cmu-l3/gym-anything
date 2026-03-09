@@ -1,0 +1,49 @@
+{
+  "id": "portal_vein_surgical_mapping@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Map the portal vein anatomy on the loaded contrast-enhanced liver CT. Place fiducial markers named 'Bifurcation', 'RPV', 'LPV', and 'MPV' at the corresponding portal vein landmarks. Measure the MPV diameter and the shortest tumor-to-portal-branch distance. Save landmarks to ~/Documents/SlicerData/IRCADb/portal_landmarks.mrk.json and report to ~/Documents/SlicerData/IRCADb/surgical_planning_report.json with fields: portal_vein_diameter_mm, bifurcation_identified, rpv_identified, lpv_identified, min_tumor_vessel_distance_mm, tumor_vessel_relationship, resectability_assessment, surgical_notes.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/portal_vein_surgical_mapping/setup_task.sh",
+    "post_task": "/workspace/tasks/portal_vein_surgical_mapping/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "ircadb_dir": "/home/ga/Documents/SlicerData/IRCADb",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_landmarks": "/home/ga/Documents/SlicerData/IRCADb/portal_landmarks.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/IRCADb/surgical_planning_report.json",
+    "passing_thresholds": {
+      "bifurcation_distance_max_mm": 15.0,
+      "branch_distance_max_mm": 20.0,
+      "diameter_error_max_mm": 4.0,
+      "distance_error_max_mm": 5.0
+    },
+    "scoring_weights": {
+      "bifurcation_identified": 15,
+      "rpv_identified": 10,
+      "lpv_identified": 10,
+      "mpv_identified": 10,
+      "diameter_accurate": 15,
+      "distance_measured": 10,
+      "relationship_correct": 10,
+      "resectability_correct": 10,
+      "report_complete": 10
+    },
+    "data_source": "3D-IRCADb (3D Image Reconstruction for Comparison of Algorithm Database)",
+    "valid_relationships": ["Clear", "Close", "Abutting", "Involved"],
+    "valid_resectability": ["Resectable", "Potentially Resectable", "Likely Unresectable"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_portal_vein_mapping"
+    }
+  }
+}

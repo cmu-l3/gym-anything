@@ -1,0 +1,27 @@
+{
+  "id": "http_session_timeline_reconstruction@1",
+  "version": "1.0",
+  "env_id": "wireshark_env@0.1",
+  "description": "A DFIR analyst needs to reconstruct the HTTP browsing session from a packet capture. Using tshark (Wireshark's command-line tool), extract all HTTP packets (requests and responses) from /home/ga/Documents/captures/http.cap and produce a CSV file at /home/ga/Documents/captures/http_session_timeline.csv.\n\nThe CSV must have a header row with exactly these column names:\nframe_number,time_relative,source_ip,destination_ip,http_method,http_request_uri,http_host,http_response_code,http_content_type,frame_length\n\nField details:\n- frame_number: packet frame number\n- time_relative: seconds since capture start (decimal)\n- source_ip: source IPv4 address\n- destination_ip: destination IPv4 address\n- http_method: HTTP method (GET, POST, etc.) for requests; empty for responses\n- http_request_uri: request URI path for requests; empty for responses\n- http_host: Host header value for requests; empty for responses\n- http_response_code: status code (200, 304, etc.) for responses; empty for requests\n- http_content_type: Content-Type for responses; empty for requests\n- frame_length: total frame length in bytes\n\nOne row per HTTP packet, ordered by frame number (ascending).",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 30,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/http_session_timeline_reconstruction/setup_task.sh",
+    "post_task": "/workspace/tasks/http_session_timeline_reconstruction/export_result.sh"
+  },
+  "metadata": {
+    "pcap_file": "/home/ga/Documents/captures/http.cap",
+    "output_file": "/home/ga/Documents/captures/http_session_timeline.csv",
+    "expected_header": "frame_number,time_relative,source_ip,destination_ip,http_method,http_request_uri,http_host,http_response_code,http_content_type,frame_length",
+    "ground_truth_dir": "/var/lib/task/ground_truth"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_http_session_timeline"
+    }
+  }
+}

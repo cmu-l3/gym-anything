@@ -1,0 +1,40 @@
+{
+  "id": "particle_size_distribution@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Particle Size Distribution Characterization",
+  "description": "Perform a complete particle size distribution analysis on the 'Blobs' sample image.\n\n1. Open the 'Blobs (25K)' sample image in Fiji (File > Open Samples > Blobs).\n2. Segment the particles (suggested: Threshold > Default).\n3. Measure the **Area** and **Perimeter** of each particle (Analyze > Set Measurements). Filter out small noise (<10 px^2) and edge particles.\n4. Save the raw measurements to a file, then perform statistical analysis (you may use Python/pandas for this step) to generate a comprehensive report.\n\n5. Create a final CSV report at `~/ImageJ_Data/results/size_distribution.csv` containing two sections:\n   - **Individual Data**: A list of all particles with their Area, Perimeter, and calculated **Equivalent Circular Diameter** (d = 2 * sqrt(Area / pi)).\n   - **Summary Statistics**: A summary table reporting the Count, Mean Diameter, Median Diameter, Standard Deviation (of Diameter), Coefficient of Variation (CV = StdDev/Mean * 100), Min Diameter, and Max Diameter.\n   - **Size Bins**: Counts and percentages of particles in three bins: Small (d < 20), Medium (20 <= d <= 35), Large (d > 35).\n\nThe final file format is flexible but must contain all these metrics clearly labeled.",
+  "difficulty": "medium",
+  "tags": [
+    "microscopy",
+    "statistics",
+    "particle-analysis",
+    "data-processing",
+    "fiji"
+  ],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/particle_size_distribution/setup_task.sh",
+    "post_task": "/workspace/tasks/particle_size_distribution/export_result.sh"
+  },
+  "metadata": {
+    "result_path": "/home/ga/ImageJ_Data/results/size_distribution.csv",
+    "image_source": "Blobs (25K)",
+    "expected_count_min": 20,
+    "expected_count_max": 80,
+    "expected_mean_diameter_min": 15,
+    "expected_mean_diameter_max": 40,
+    "expected_cv_min": 10,
+    "expected_cv_max": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_particle_size_distribution"
+    }
+  }
+}

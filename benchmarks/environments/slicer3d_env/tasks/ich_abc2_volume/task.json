@@ -1,0 +1,46 @@
+{
+  "id": "ich_abc2_volume@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Estimate the intracerebral hemorrhage volume on the loaded head CT using the ABC/2 method. Measure the largest hemorrhage diameters (A, B) and calculate the craniocaudal extent (C). Save measurements to ~/Documents/SlicerData/ICH/agent_measurements.mrk.json and report to ~/Documents/SlicerData/ICH/hemorrhage_report.json with fields: measurement_A_cm, measurement_B_cm, slice_count_for_C, measurement_C_cm, calculated_volume_ml, exceeds_30ml_threshold, clinical_recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 70,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ich_abc2_volume/setup_task.sh",
+    "post_task": "/workspace/tasks/ich_abc2_volume/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "ich_dir": "/home/ga/Documents/SlicerData/ICH",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/ICH/agent_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/ICH/hemorrhage_report.json",
+    "passing_thresholds": {
+      "volume_error_max_percent": 20.0,
+      "threshold_correct": true,
+      "a_error_max_percent": 15.0,
+      "b_error_max_percent": 15.0,
+      "c_error_max_percent": 20.0
+    },
+    "scoring_weights": {
+      "volume_accuracy": 30,
+      "a_measurement": 10,
+      "b_measurement": 10,
+      "c_calculation": 15,
+      "formula_application": 10,
+      "surgical_threshold": 15,
+      "report_completeness": 10
+    },
+    "surgical_threshold_ml": 30
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ich_abc2_volume"
+    }
+  }
+}

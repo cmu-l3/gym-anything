@@ -1,0 +1,87 @@
+{
+    "task_id": "sem_fft_restoration@1",
+    "dataset": "Synthetic SEM-like microstructure",
+    "case_id": "alloy_microstructure_512x512",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "input_path",
+            "metadata_value": "/home/ga/Fiji_Data/raw/sem_noise/alloy_noisy.tif",
+            "verified_value": "/home/ga/Fiji_Data/raw/sem_noise/alloy_noisy.tif",
+            "source": "Verified in setup_task.sh (line 43, 104), export_result.sh (line 6), and task.json (line 17) - all consistent",
+            "status": "verified"
+        },
+        {
+            "key": "output_path",
+            "metadata_value": "/home/ga/Fiji_Data/results/sem_restoration/alloy_restored.tif",
+            "verified_value": "/home/ga/Fiji_Data/results/sem_restoration/alloy_restored.tif",
+            "source": "Verified in setup_task.sh (line 17), export_result.sh (line 5), and task.json (line 18) - all consistent",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_path",
+            "metadata_value": "/var/lib/fiji/ground_truth/alloy_clean.tif",
+            "verified_value": "/var/lib/fiji/ground_truth/alloy_clean.tif",
+            "source": "Verified in setup_task.sh (line 8, 18, 44) and export_result.sh (line 7) - all consistent",
+            "status": "verified"
+        },
+        {
+            "key": "min_ssim_improvement",
+            "metadata_value": "0.05",
+            "verified_value": "0.05",
+            "source": "Verified in verifier.py line 66: ssim_restored must be > (ssim_noisy + 0.05) for full credit",
+            "status": "verified"
+        },
+        {
+            "key": "min_detail_preservation",
+            "metadata_value": "0.02",
+            "verified_value": "0.02",
+            "source": "Verified in verifier.py line 77: ssim_restored must be > (ssim_blur + 0.02) for full credit",
+            "status": "verified"
+        },
+        {
+            "key": "base_image_url",
+            "metadata_value": "https://imagej.nih.gov/ij/images/AuPbSn40.jpg",
+            "verified_value": "https://imagej.net/ij/images/AuPbSn40.jpg (real file), but task uses incorrect URL",
+            "source": "URL test: imagej.nih.gov returns 404; imagej.net returns 200 OK with valid 600x412 SEM image. Setup script line 25 uses incorrect URL, causing fallback to synthetic data generation",
+            "status": "contradicted"
+        },
+        {
+            "key": "image_dimensions",
+            "metadata_value": "512x512 (implied by synthetic fallback in setup script)",
+            "verified_value": "512x512 pixels (synthetic data) OR 600x412 pixels (if real image were used)",
+            "source": "setup_task.sh lines 41-56: synthetic fallback generates 512x512. Real AuPbSn40.jpg is 600x412 pixels (verified via direct download from imagej.net)",
+            "status": "verified"
+        },
+        {
+            "key": "noise_characteristics",
+            "metadata_value": "Diagonal periodic noise (likely 60Hz interference)",
+            "verified_value": "Diagonal sine wave with fx=0.15, fy=0.15, amplitude=40, creating ~6.67 pixel wavelength",
+            "source": "setup_task.sh lines 68-69. Noise is synthetic sine wave, not actual 60Hz electrical interference",
+            "status": "verified"
+        },
+        {
+            "key": "data_provenance",
+            "metadata_value": "Real SEM image of eutectic alloy (implied by description)",
+            "verified_value": "Synthetic 512x512 data due to failed download from incorrect URL",
+            "source": "setup_task.sh attempts https://imagej.nih.gov/ij/images/AuPbSn40.jpg (404), then falls back to synthetic generation (lines 53-56)",
+            "status": "contradicted"
+        },
+        {
+            "key": "ssim_noisy_baseline",
+            "metadata_value": null,
+            "verified_value": "~0.7193 (SSIM between clean ground truth and noisy synthetic image)",
+            "source": "Calculated via simulated data generation using scikit-image.metrics.structural_similarity with data_range=255",
+            "status": "verified"
+        },
+        {
+            "key": "ssim_blur_baseline",
+            "metadata_value": null,
+            "verified_value": "~0.9701 (SSIM between clean ground truth and Gaussian blur baseline with sigma=2.0)",
+            "source": "Calculated in export_result.sh lines 71-74, uses scipy.ndimage.gaussian_filter",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses synthetic 512x512 pixel images rather than real SEM data, due to an incorrect download URL (imagej.nih.gov instead of imagej.net) in the setup script. The synthetic images consist of a sinusoidal base structure with diagonal periodic sine wave noise (frequency components fx=fy=0.15, amplitude=40). All file paths and SSIM thresholds (min_ssim_improvement=0.05, min_detail_preservation=0.02) are correctly specified and consistent across the setup, verifier, and export scripts. The task requires restoration SSIM > 0.769 (≈0.7193 + 0.05) and detail preservation SSIM > 0.990 (≈0.9701 + 0.02).",
+    "pi_confidence": "high"
+}

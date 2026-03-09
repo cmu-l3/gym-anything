@@ -1,0 +1,50 @@
+{
+  "id": "pectus_haller_index@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the Haller Index on the provided chest CT at the level of maximum sternal depression. Measure the maximum internal transverse diameter and minimum anteroposterior diameter, then calculate their ratio. Save transverse measurement to ~/Documents/SlicerData/LIDC/transverse_measurement.mrk.json, AP measurement to ~/Documents/SlicerData/LIDC/ap_measurement.mrk.json, and report to ~/Documents/SlicerData/LIDC/haller_index_report.json with fields: patient_id, measurement_slice, transverse_diameter_mm, ap_diameter_mm, haller_index, severity_classification, surgical_candidate.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pectus_haller_index/setup_task.sh",
+    "post_task": "/workspace/tasks/pectus_haller_index/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_transverse": "/home/ga/Documents/SlicerData/LIDC/transverse_measurement.mrk.json",
+    "output_ap": "/home/ga/Documents/SlicerData/LIDC/ap_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/haller_index_report.json",
+    "passing_thresholds": {
+      "transverse_error_max_mm": 10.0,
+      "ap_error_max_mm": 5.0,
+      "haller_index_error_max": 0.3
+    },
+    "scoring_weights": {
+      "transverse_measurement": 20,
+      "ap_measurement": 20,
+      "haller_index_correct": 15,
+      "severity_classification": 15,
+      "surgical_candidacy": 10,
+      "measurement_level": 10,
+      "report_complete": 10
+    },
+    "classification_thresholds": {
+      "normal_max": 2.5,
+      "mild_max": 3.2,
+      "moderate_max": 3.5,
+      "surgical_threshold": 3.25
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pectus_haller_index"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+    "task_id": "home_expiration_audit@1",
+    "dataset": "home_inventory_messy.csv",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "total_items",
+            "metadata_value": "~20",
+            "verified_value": "20",
+            "source": "Direct count from CSV in setup_task.sh",
+            "status": "verified"
+        },
+        {
+            "key": "expired_items_in_dataset",
+            "metadata_value": "~3-4",
+            "verified_value": "19 (as of 2026-03-07)",
+            "source": "Date parsing analysis of CSV data. Task executes with hardcoded dates; when run on 2026-03-07, 19 of 20 items are expired",
+            "status": "contradicted"
+        },
+        {
+            "key": "urgent_items_in_dataset",
+            "metadata_value": "~2-3",
+            "verified_value": "0 (as of 2026-03-07)",
+            "source": "Date calculation: 0 items fall in 0-30 day window on 2026-03-07",
+            "status": "contradicted"
+        },
+        {
+            "key": "timeout_seconds",
+            "metadata_value": "300",
+            "verified_value": "300",
+            "source": "task.json 'init.timeout_sec' field",
+            "status": "verified"
+        },
+        {
+            "key": "max_steps",
+            "metadata_value": "30",
+            "verified_value": "30",
+            "source": "task.json 'init.max_steps' field",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": "75% (6 out of 8 criteria)",
+            "verified_value": "75% (6 out of 8 criteria)",
+            "source": "verifier.py line 294: 'passed = score >= 75' and line 90: 'total_criteria = 8'",
+            "status": "verified"
+        },
+        {
+            "key": "number_of_verification_criteria",
+            "metadata_value": "8",
+            "verified_value": "8",
+            "source": "verifier.py line 90: 'total_criteria = 8'",
+            "status": "verified"
+        },
+        {
+            "key": "data_format",
+            "metadata_value": "CSV with inconsistent formatting",
+            "verified_value": "CSV with 6 columns, 20 data rows plus header. Inconsistent capitalization, date formats (MM/DD/YYYY, 'Month YYYY', 'Best by MM/YYYY', 'No expiration'), and location/category names",
+            "source": "setup_task.sh creates home_inventory_messy.csv with specified data",
+            "status": "verified"
+        },
+        {
+            "key": "synthetic_data_realism_issue",
+            "metadata_value": "N/A",
+            "verified_value": "Data uses hardcoded historical dates that become increasingly outdated. README claims '~3-4' expired items, but CSV contains 19 expired items as of task execution date 2026-03-07",
+            "source": "CSV expiration dates range from 2023-04 to 2025-12; README expectations appear calibrated for 2024 execution timeframe",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task contains a synthetic dataset with 20 items in CSV format with intentionally messy formatting (inconsistent locations, categories, date formats). When executed on 2026-03-07, the hardcoded expiration dates result in 19 expired items and 1 good item (no expiration). Task verification requires 8 criteria with 75% pass threshold (6/8). Timeout is 300 seconds with 30 max steps. CRITICAL FINDING: README claims '~3-4' expired items and '~2-3' urgent items, but actual data yields 19 expired, 0 urgent when processed as of 2026-03-07. This contradiction suggests the dataset dates are stale relative to documented expectations.",
+    "pi_confidence": "high"
+}

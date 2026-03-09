@@ -1,0 +1,32 @@
+{
+  "id": "chinook_northwind_market_overlap@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Perform a cross-database geographic market analysis using DBeaver. You must connect to two existing SQLite databases, analyze their data to find overlapping markets, and create a unified report.\n\nSteps:\n1. Connect to the Chinook database at `/home/ga/Documents/databases/chinook.db`. Name the connection 'Chinook'.\n2. Connect to the Northwind database at `/home/ga/Documents/databases/northwind.db`. Name the connection 'Northwind'.\n3. Create a NEW SQLite database named `market_analysis.db` at `/home/ga/Documents/databases/`.\n4. In this new database, create and populate three tables:\n   - `chinook_country_stats`: Columns `Country`, `CustomerCount`, `InvoiceCount`, `TotalRevenue` (sum of Invoice.Total). Source: Chinook DB.\n   - `northwind_country_stats`: Columns `Country`, `CustomerCount`, `OrderCount`, `TotalRevenue` (sum of OrderDetail.UnitPrice * Quantity * (1-Discount)). Source: Northwind DB.\n   - `market_overlap`: Columns `Country`, `ChinookCustomers`, `ChinookRevenue`, `NorthwindCustomers`, `NorthwindRevenue`, `CombinedCustomers`, `CombinedRevenue`. This table must ONLY contain countries present in BOTH databases. Sort by `CombinedRevenue` DESC.\n5. Export the `market_overlap` table to a CSV file at `/home/ga/Documents/exports/market_overlap_report.csv` (include header).\n6. Save your SQL analysis script(s) to `/home/ga/Documents/scripts/market_analysis.sql`.\n\nNote: Northwind uses 'UK' and Chinook uses 'United Kingdom'. You must normalize these to ensure they match as an overlapping market.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_northwind_market_overlap/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_northwind_market_overlap/export_result.sh"
+  },
+  "metadata": {
+    "chinook_path": "/home/ga/Documents/databases/chinook.db",
+    "northwind_path": "/home/ga/Documents/databases/northwind.db",
+    "analysis_db_path": "/home/ga/Documents/databases/market_analysis.db",
+    "csv_path": "/home/ga/Documents/exports/market_overlap_report.csv",
+    "sql_path": "/home/ga/Documents/scripts/market_analysis.sql",
+    "expected_tables": ["chinook_country_stats", "northwind_country_stats", "market_overlap"],
+    "min_overlap_rows": 15,
+    "max_overlap_rows": 22
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_market_overlap"
+    }
+  }
+}

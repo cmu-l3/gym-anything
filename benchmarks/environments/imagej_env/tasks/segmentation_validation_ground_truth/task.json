@@ -1,0 +1,38 @@
+{
+  "id": "segmentation_validation_ground_truth@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Validation of Segmentation against Ground Truth",
+  "description": "Perform a rigorous validation of a segmentation workflow by comparing it against ground truth data.\n\nYour goal is to process a synthetic cell image, generate a binary segmentation mask, and quantitatively compare it to the provided Ground Truth (GT) label image to calculate the pixel-level error.\n\n**Steps:**\n1. **Open Raw Image:** Navigate to `~/ImageJ_Data/raw/BBBC005/` and open the image `SIMCEPImages_A01_C1_F1_s01_w1.TIF`.\n2. **Open Ground Truth:** Navigate to `~/ImageJ_Data/raw/BBBC005_ground_truth/` and open the matching file `SIMCEPImages_A01_C1_F1_s01_w1.TIF`.\n3. **Prepare Images:**\n   - The Ground Truth image is likely 16-bit or 8-bit grayscale. You MUST convert it to a **Binary Mask** (Process > Binary > Make Binary) so it contains only black (0) and white (255) pixels.\n   - Process the Raw Image: Apply a slight Gaussian Blur (sigma=2) to reduce noise, then apply a Threshold (Image > Adjust > Threshold, use 'Otsu' or 'Default') to create a segmentation mask. Click 'Apply' to convert it to a Binary Mask.\n4. **Calculate Error (Difference):**\n   - Use **Process > Image Calculator**.\n   - Operation: **Difference** (or XOR).\n   - Image 1: Your processed raw image mask.\n   - Image 2: The ground truth mask.\n   - Create New Window: Yes.\n   - This results in a 'Difference Image' where white pixels represent errors (false positives or false negatives).\n5. **Quantify and Save:**\n   - Measure the **Mean Intensity** of this Difference Image (Analyze > Measure).\n   - Save the Difference Image as `~/ImageJ_Data/results/segmentation_difference.tif`.\n   - Save the Results table (containing the mean error value) as `~/ImageJ_Data/results/validation_metrics.csv`.",
+  "difficulty": "medium",
+  "tags": [
+    "validation",
+    "ground-truth",
+    "image-calculator",
+    "segmentation",
+    "binary-math",
+    "quality-control"
+  ],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/segmentation_validation_ground_truth/setup_task.sh",
+    "post_task": "/workspace/tasks/segmentation_validation_ground_truth/export_result.sh"
+  },
+  "metadata": {
+    "raw_image_name": "SIMCEPImages_A01_C1_F1_s01_w1.TIF",
+    "expected_result_path": "/home/ga/ImageJ_Data/results/segmentation_difference.tif",
+    "expected_metrics_path": "/home/ga/ImageJ_Data/results/validation_metrics.csv",
+    "target_mean_error_min": 0.1,
+    "target_mean_error_max": 50.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_segmentation_validation"
+    }
+  }
+}

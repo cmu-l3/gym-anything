@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  freescout-db:
+    image: mariadb:10.11
+    container_name: freescout-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass123
+      MYSQL_DATABASE: freescout
+      MYSQL_USER: freescout
+      MYSQL_PASSWORD: freescout123
+    volumes:
+      - db_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  freescout-app:
+    image: tiredofit/freescout:latest
+    container_name: freescout-app
+    restart: unless-stopped
+    depends_on:
+      - freescout-db
+    ports:
+      - "8080:80"
+    environment:
+      - DB_HOST=freescout-db
+      - DB_NAME=freescout
+      - DB_USER=freescout
+      - DB_PASS=freescout123
+      - DB_PORT=3306
+      - SITE_URL=http://localhost:8080
+      - ADMIN_EMAIL=admin@helpdesk.local
+      - ADMIN_FIRST_NAME=Admin
+      - ADMIN_LAST_NAME=User
+      - ADMIN_PASS=Admin123!
+      - SETUP_TYPE=AUTO
+      - ENABLE_AUTO_UPDATE=FALSE
+      - TIMEZONE=UTC
+    volumes:
+      - freescout_data:/www/html
+
+volumes:
+  db_data:
+  freescout_data:

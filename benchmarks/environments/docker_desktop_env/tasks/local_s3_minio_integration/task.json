@@ -1,0 +1,28 @@
+{
+  "id": "local_s3_minio_integration@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "Extend the Docker Compose project at `/home/ga/s3-project` to include a local MinIO service (S3 compatible) and configure the Flask application to use it. \n\nRequirements:\n1. Add a MinIO service to `docker-compose.yml` (image: `minio/minio`, command: `server /data --console-address \":9001\"`).\n2. Configure the `web` service with environment variables `S3_ENDPOINT_URL`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY` to point to the local MinIO service.\n3. Implement a mechanism to AUTOMATICALLY create a bucket named `company-assets` when the stack starts (e.g., using a create-bucket container/script, or a volume mapping approach). The bucket MUST exist after `docker compose up` without manual intervention.\n4. Ensure the application can upload files. The app is accessible at http://localhost:5000.\n\nNote: The Flask app uses `boto3` and expects the bucket to exist. Credentials can be set to any secure values (e.g., minioadmin/minioadmin).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/local_s3_minio_integration/setup_task.sh",
+    "post_task": "/workspace/tasks/local_s3_minio_integration/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/s3-project",
+    "bucket_name": "company-assets",
+    "expected_services": ["web", "minio"],
+    "test_file_name": "verification_test.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_local_s3_minio_integration"
+    }
+  }
+}

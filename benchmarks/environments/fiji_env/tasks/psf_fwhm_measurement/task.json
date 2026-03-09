@@ -1,0 +1,32 @@
+{
+  "id": "psf_fwhm_measurement@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Characterize the optical resolution of the microscope system by measuring the Point Spread Function (PSF).\n\n1. Open the bead image at `~/Fiji_Data/raw/psf_beads/bead_field.tif`.\n2. Set the spatial calibration using `Analyze > Set Scale`. The pixel size is **0.1625 µm/pixel** (or 6.154 pixels/µm).\n3. Measure the **Full Width at Half Maximum (FWHM)** of at least **5 isolated bead-like features**.\n   - Use the Line tool to draw a line across the center of a bead.\n   - Use `Analyze > Plot Profile` (Ctrl+K) to generate the intensity profile.\n   - Measure the width of the peak at half of its maximum intensity (FWHM).\n4. Save your measurements to `~/Fiji_Data/results/psf/fwhm_measurements.csv` with columns: `bead_id`, `fwhm_pixels`, `fwhm_um`, `peak_intensity`.\n5. Save one representative line profile plot as an image to `~/Fiji_Data/results/psf/line_profile.png`.\n6. Save a summary report to `~/Fiji_Data/results/psf/resolution_report.txt` stating the **mean FWHM in µm** (this is the system's lateral resolution).\n\nGoal: Accurately estimate the resolution. The FWHM should be consistent across beads.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 75,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/psf_fwhm_measurement/setup_task.sh",
+    "post_task": "/workspace/tasks/psf_fwhm_measurement/export_result.sh"
+  },
+  "metadata": {
+    "pixel_size_um": 0.1625,
+    "min_beads": 5,
+    "expected_fwhm_range_um": [0.2, 3.0],
+    "expected_fwhm_range_px": [1.5, 20.0],
+    "output_csv": "~/Fiji_Data/results/psf/fwhm_measurements.csv",
+    "output_report": "~/Fiji_Data/results/psf/resolution_report.txt",
+    "output_plot": "~/Fiji_Data/results/psf/line_profile.png"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_psf_measurement"
+    }
+  },
+  "tags": ["microscopy", "resolution", "calibration", "measurement", "fiji"]
+}

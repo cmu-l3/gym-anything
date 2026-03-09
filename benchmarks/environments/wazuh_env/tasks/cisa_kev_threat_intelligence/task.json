@@ -1,0 +1,28 @@
+{
+  "id": "cisa_kev_threat_intelligence@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "You are a Threat Intelligence Engineer at a company that needs to integrate the CISA Known Exploited Vulnerabilities (KEV) catalog into Wazuh's detection pipeline. CISA publishes a continuously updated catalog of CVEs that are actively being exploited in the wild — these represent the highest-priority patching targets for every enterprise. A copy of the real CISA KEV catalog has been downloaded and staged at /tmp/cisa_kev.json on this system. Your goal is to build the complete threat intelligence integration. The end state must include: (1) a Wazuh CDB (Constant Database) lookup list file in /var/ossec/etc/lists/ containing at least 10 CVE IDs from the CISA KEV catalog, formatted correctly as CDB entries (one CVE-YYYY-NNNNN: per line); (2) at least one custom detection rule that uses a CDB list lookup via the <list> element to generate an alert when a known exploited vulnerability identifier is referenced in event data — the rule must reference the CDB list you created; (3) the Wazuh vulnerability detection module (syscollector wodle) enabled and configured in ossec.conf; and (4) a threat intelligence integration report saved to /home/ga/Desktop/kev_integration_report.txt of at least 600 characters, explaining how the integration works, what data source was used (the CISA KEV catalog), and how the detection pipeline will generate alerts for actively exploited vulnerabilities. Log in to the Wazuh dashboard at https://localhost with username admin, password SecretPassword.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cisa_kev_threat_intelligence/setup_task.sh",
+    "post_task": "/workspace/tasks/cisa_kev_threat_intelligence/export_result.sh"
+  },
+  "metadata": {
+    "min_cve_entries": 10,
+    "kev_source_path": "/tmp/cisa_kev.json",
+    "report_path": "/home/ga/Desktop/kev_integration_report.txt",
+    "min_report_chars": 600,
+    "pass_threshold": 65
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cisa_kev_threat_intelligence"
+    }
+  }
+}

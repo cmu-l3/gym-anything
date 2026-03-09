@@ -1,0 +1,29 @@
+{
+  "id": "chinook_dynamic_pricing@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Implement a dynamic pricing strategy for the Chinook music store. \n\n1. Connect to the SQLite database at '/home/ga/Documents/databases/chinook_pricing.db'. Name the connection exactly 'ChinookPricing'.\n\n2. Update the 'tracks' table UnitPrice based on purchase popularity (count of records in invoice_items):\n   - Platinum (5+ purchases): $1.49\n   - Gold (2-4 purchases): $1.29\n   - Standard (1 purchase): $0.99\n   - Discount (0 purchases): $0.79\n\n3. Apply a Surcharge: For ANY track longer than 500,000 milliseconds, add $0.30 to the tier price calculated above.\n\n4. Update the 'invoice_items' table: Set UnitPrice to match the new track prices for all historical records.\n\n5. Export a summary report to '/home/ga/Documents/exports/pricing_summary.csv' with columns: 'Tier', 'TrackCount', 'AvgNewPrice', 'AvgOldPrice', 'RevenueImpact'. The RevenueImpact is the sum of (NewPrice - OldPrice) for all tracks in that tier.\n\n6. Save your SQL script to '/home/ga/Documents/scripts/pricing_update.sql'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_dynamic_pricing/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_dynamic_pricing/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook_pricing.db",
+    "connection_name": "ChinookPricing",
+    "csv_path": "/home/ga/Documents/exports/pricing_summary.csv",
+    "sql_path": "/home/ga/Documents/scripts/pricing_update.sql",
+    "expected_columns": ["Tier", "TrackCount", "AvgNewPrice", "AvgOldPrice", "RevenueImpact"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_dynamic_pricing"
+    }
+  }
+}

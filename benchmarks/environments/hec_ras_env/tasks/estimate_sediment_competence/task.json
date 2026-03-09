@@ -1,0 +1,32 @@
+{
+  "id": "estimate_sediment_competence@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Calculate the sediment transport competence of the White River during the modeled flood event. \n\nGoal: Determine the maximum particle size (Critical Diameter, Dc) that the flow can move at each cross-section during peak flow conditions and assess if 2.0-inch gravel would be stable.\n\nStarting State: Terminal open in '/home/ga/Documents/hec_ras_projects/Muncie'. Simulation results exist in 'Muncie.p04.tmp.hdf'.\n\nMethod:\n1. Extract the Channel Shear Stress (lb/sq ft) at the time of peak flow for each cross-section from the HDF5 results.\n2. Calculate Critical Diameter (Dc) in inches using the modified Shields equation:\n   Dc (in) = [ Shear_Stress / (0.047 * (165.36 - 62.4)) ] * 12\n   (Where: specific weight of water = 62.4, sediment specific weight = 165.36, Shields parameter = 0.047)\n3. Determine Stability: If Dc > 2.0, status is 'UNSTABLE'. If Dc <= 2.0, status is 'STABLE'.\n\nOutputs:\n1. Save a CSV to '/home/ga/Documents/hec_ras_results/sediment_competence.csv' with columns: 'River_Station', 'Shear_Stress_lb_sq_ft', 'Critical_Diameter_in', 'Stability_Status'.\n2. Save a text summary to '/home/ga/Documents/hec_ras_results/competence_summary.txt' stating which River Station has the highest critical diameter.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/estimate_sediment_competence/setup_task.sh",
+    "post_task": "/workspace/tasks/estimate_sediment_competence/export_result.sh"
+  },
+  "metadata": {
+    "output_csv": "/home/ga/Documents/hec_ras_results/sediment_competence.csv",
+    "output_summary": "/home/ga/Documents/hec_ras_results/competence_summary.txt",
+    "gravel_size_threshold": 2.0,
+    "constants": {
+      "gamma_w": 62.4,
+      "gamma_s": 165.36,
+      "tau_star_c": 0.047
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sediment_competence"
+    }
+  }
+}

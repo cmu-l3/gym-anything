@@ -1,0 +1,30 @@
+{
+  "id": "mitotic_spindle_intensity_tracking@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Quantify the fluorescence intensity of the left mitotic spindle pole over time in the 'Mitosis' sample image.\n\n1. Open the sample: File > Open Samples > Mitosis (2.6MB, 5D stack).\n2. Process the image:\n   - Create a Maximum Intensity Projection (Z Project) of the stack.\n   - Split the channels to isolate the Tubulin channel (green/channel 2).\n3. Measure the Mean Gray Value of the **left** spindle pole (the bright spot on the left side of the dividing cell) using a circular ROI (approx 15-20 px diameter).\n4. You must manually track the pole as it moves. Measure and record the mean intensity at these specific timeframes:\n   - Frame 1\n   - Frame 10\n   - Frame 20\n   - Frame 30\n   - Frame 40\n5. Save the results as a CSV file to `~/Fiji_Data/results/tracking/spindle_intensity.csv` with exactly two columns: `frame` and `mean_intensity`.\n\nExample CSV content:\nframe,mean_intensity\n1,150.5\n10,145.2\n...",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mitotic_spindle_intensity_tracking/setup_task.sh",
+    "post_task": "/workspace/tasks/mitotic_spindle_intensity_tracking/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Fiji_Data/results/tracking/spindle_intensity.csv",
+    "target_channel": "Tubulin (Green)",
+    "target_structure": "Left Spindle Pole",
+    "frames_to_measure": [1, 10, 20, 30, 40],
+    "min_intensity_threshold": 120,
+    "roi_size_hint": "15-20 pixels"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spindle_tracking"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "chinook_analytics_schema@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Data Engineer. A working copy of the Chinook database is located at /home/ga/Documents/databases/chinook_analytics.db. Your task is to extend this database with analytics objects and save your work.\n\n1. Create a new DBeaver connection named 'ChinookAnalytics' (case-sensitive) pointing to this SQLite database file.\n\n2. Create a VIEW named 'vw_monthly_revenue' that aggregates data from the 'invoices' table. It must have columns: Year, Month, TotalRevenue (sum of Total), InvoiceCount, and UniqueCustomers. Group by Year and Month, ordered chronologically.\n\n3. Create a TABLE named 'customer_lifetime_value' with columns: CustomerId (PK), FirstName, LastName, Email, Country, TotalSpent, InvoiceCount, FirstPurchaseDate, LastPurchaseDate, AvgInvoiceValue, CustomerSegment. Populate this table using data from 'customers' and 'invoices'.\n   - Calculate TotalSpent, InvoiceCount, dates, and average for each customer.\n   - Assign CustomerSegment: 'High' (TotalSpent >= 40.00), 'Medium' (20.00 <= TotalSpent < 40.00), 'Low' (TotalSpent < 20.00).\n\n4. Create INDEXES on the new table: 'idx_clv_segment' on CustomerSegment and 'idx_clv_country' on Country.\n\n5. Save all your SQL statements (CREATE VIEW, CREATE TABLE, INSERT/Population, CREATE INDEX) to a script file at /home/ga/Documents/scripts/analytics_schema.sql.\n\nNote: The database is SQLite. Use appropriate syntax (e.g., strftime for dates).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_analytics_schema/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_analytics_schema/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook_analytics.db",
+    "script_path": "/home/ga/Documents/scripts/analytics_schema.sql",
+    "connection_name": "ChinookAnalytics",
+    "view_name": "vw_monthly_revenue",
+    "table_name": "customer_lifetime_value",
+    "required_columns_view": ["Year", "Month", "TotalRevenue", "InvoiceCount", "UniqueCustomers"],
+    "required_columns_table": ["CustomerId", "FirstName", "LastName", "Email", "Country", "TotalSpent", "InvoiceCount", "FirstPurchaseDate", "LastPurchaseDate", "AvgInvoiceValue", "CustomerSegment"],
+    "segment_thresholds": {"high": 40.0, "medium": 20.0}
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_analytics_schema"
+    }
+  }
+}

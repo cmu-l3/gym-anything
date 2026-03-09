@@ -1,0 +1,29 @@
+{
+  "id": "comet_assay_analysis@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Quantify DNA damage in cells using the Comet Assay method.\n\n1. A fluorescence microscopy image (`comet_sample.tif`) is loaded in Fiji. It shows cells with damaged DNA migrating like 'comets'.\n2. Apply 'Subtract Background' (Rolling Ball radius ~50) to clean the image.\n3. Select the 3 most prominent/clear comets to analyze.\n4. For EACH of the 3 comets:\n   - Draw a ROI around the 'Whole Comet' (Head + Tail) and measure its Integrated Density (IntDen).\n   - Draw a ROI around just the 'Head' (the bright circular region) and measure its Integrated Density.\n   - Calculate `% Tail DNA = (Whole_IntDen - Head_IntDen) / Whole_IntDen * 100`.\n5. Save the results to `~/Fiji_Data/results/comet/comet_analysis.csv` with columns: `Comet_ID` (e.g., 1, 2, 3), `Whole_IntDen`, `Head_IntDen`, `Percent_Tail_DNA`.\n6. Save a screenshot showing your ROIs on the image to `~/Fiji_Data/results/comet/roi_overlay.png`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/comet_assay_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/comet_assay_analysis/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_csv": "~/Fiji_Data/results/comet/comet_analysis.csv",
+    "expected_output_png": "~/Fiji_Data/results/comet/roi_overlay.png",
+    "min_comets": 3,
+    "data_source": "OpenComet Repository (samples/1.tif)"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_comet_assay_analysis"
+    }
+  },
+  "tags": ["biology", "toxicology", "genotoxicity", "roi-management", "image-arithmetic"]
+}

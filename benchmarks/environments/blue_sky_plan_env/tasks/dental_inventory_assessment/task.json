@@ -1,0 +1,32 @@
+{
+  "id": "dental_inventory_assessment@1",
+  "version": "1.0",
+  "env_id": "blue_sky_plan_env@0.1",
+  "description": "Perform a comprehensive dental inventory on the loaded patient CBCT scan. \n\n1. Examine the Panoramic and Axial views to identify all present and missing teeth.\n2. Open the Tooth Chart module in Blue Sky Plan.\n3. Mark all missing teeth in the chart (default is present).\n4. Create a text file at 'C:\\Users\\Docker\\Documents\\dental_inventory.txt' listing the findings.\n\nThe text file must follow this exact format:\nDENTAL INVENTORY\nPresent teeth (Universal): 2, 3, ...\nMissing teeth (Universal): 1, 16, ...\nTotal present: XX\nTotal missing: XX\n\nUse the Universal Numbering System (1-32).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\dental_inventory_assessment\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\dental_inventory_assessment\\export_result.ps1"
+  },
+  "metadata": {
+    "output_path": "C:\\Users\\Docker\\Documents\\dental_inventory.txt",
+    "ground_truth": {
+      "sample_id": "Case_Study_04",
+      "present_teeth": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31],
+      "missing_teeth": [1, 16, 17, 30, 32],
+      "total_present": 27,
+      "total_missing": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dental_inventory"
+    }
+  }
+}

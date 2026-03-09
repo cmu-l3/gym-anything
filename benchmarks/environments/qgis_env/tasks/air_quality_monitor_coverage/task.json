@@ -1,0 +1,31 @@
+{
+  "id": "air_quality_monitor_coverage@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "You are an environmental compliance officer at the California Air Resources Board (CARB). The EPA has requested an audit of PM2.5 monitoring coverage across California counties: specifically, which counties have no active PM2.5 monitor within their boundaries, and what is the distance from each unmonitored county centroid to the nearest active monitor.\n\nUsing EPA Air Quality System (AQS) monitoring site data and California county boundaries, produce a coverage gap assessment.\n\nInput files:\n- /home/ga/GIS_Data/epa_pm25_monitors_ca.geojson  (EPA AQS active PM2.5 monitoring sites in California, point layer with 'site_id', 'county_name', and 'parameter' fields)\n- /home/ga/GIS_Data/ca_counties.geojson  (California's 58 counties, polygon layer with 'NAME' and 'FIPS' fields)\n\nDeliverable: /home/ga/GIS_Data/exports/pm25_coverage_gaps.geojson\n- GeoJSON FeatureCollection of all 58 California counties\n- Retain all original county fields and add:\n  * monitor_count    (integer: number of active PM2.5 monitoring sites within the county boundary)\n  * nearest_monitor_km  (float, 2 decimal places: for counties with monitor_count == 0, distance in km from county centroid to nearest monitor in any adjacent county; for counties with monitor_count >= 1, use 0.0)\n  * coverage_status  (string: 'monitored' if monitor_count >= 1, 'gap' if monitor_count == 0)\n  * monitoring_density  (float, 4 decimal places: monitor_count / county_area_km2 — monitors per km²; use county area in km²)\n\nAll distance and area calculations must be in a projected CRS (e.g., EPSG:3310 - California Albers). Export monitors per km2 with 4 decimal places.\n\nAlso export /home/ga/GIS_Data/exports/monitoring_coverage_report.csv with columns: county_name, fips, monitor_count, coverage_status, nearest_monitor_km, monitoring_density",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/air_quality_monitor_coverage/setup_task.sh",
+    "post_task": "/workspace/tasks/air_quality_monitor_coverage/export_result.sh"
+  },
+  "metadata": {
+    "monitors_source": "/home/ga/GIS_Data/epa_pm25_monitors_ca.geojson",
+    "counties_source": "/home/ga/GIS_Data/ca_counties.geojson",
+    "expected_geojson": "/home/ga/GIS_Data/exports/pm25_coverage_gaps.geojson",
+    "expected_csv": "/home/ga/GIS_Data/exports/monitoring_coverage_report.csv",
+    "expected_county_count": 58,
+    "expected_fields": ["monitor_count", "nearest_monitor_km", "coverage_status", "monitoring_density"],
+    "gt_file": "/tmp/gt_aq_coverage.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_air_quality_monitor_coverage"
+    }
+  }
+}

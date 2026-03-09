@@ -1,0 +1,52 @@
+{
+  "id": "tumor_sphericity_index@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment the complete tumor region on the provided brain MRI, compute shape metrics (volume, surface area, sphericity), and classify the tumor morphology. Save segmentation to ~/Documents/SlicerData/BraTS/agent_tumor_shape.nii.gz and report to ~/Documents/SlicerData/BraTS/tumor_shape_report.json with fields: volume_ml, surface_area_mm2, sphericity, morphology_class, clinical_notes.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tumor_sphericity_index/setup_task.sh",
+    "post_task": "/workspace/tasks/tumor_sphericity_index/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/BraTS/agent_tumor_shape.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/tumor_shape_report.json",
+    "modalities": ["flair", "t1", "t1ce", "t2"],
+    "tumor_labels": {
+      "background": 0,
+      "necrotic_net": 1,
+      "edema": 2,
+      "enhancing": 4
+    },
+    "passing_thresholds": {
+      "dice_whole_tumor": 0.5,
+      "sphericity_error_max": 0.15,
+      "volume_error_max_percent": 30,
+      "surface_area_error_max_percent": 40
+    },
+    "scoring_weights": {
+      "segmentation_dice": 30,
+      "segmentation_dice_bonus": 5,
+      "volume_accuracy": 15,
+      "surface_area_accuracy": 10,
+      "sphericity_accuracy": 20,
+      "morphology_class": 10,
+      "report_completeness": 10,
+      "visualization_3d": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tumor_sphericity"
+    }
+  }
+}

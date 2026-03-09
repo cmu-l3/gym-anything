@@ -1,0 +1,56 @@
+{
+  "task": "diabetic_care_gap_intervention",
+  "timestamp": "2026-03-07 00:00:00",
+  "testing_mode": "offline_mock",
+  "checks": {
+    "do_nothing_test": {
+      "passed": false,
+      "score": 0,
+      "feedback": "No flu vaccines added, no new encounters for care-gap patients"
+    },
+    "wrong_target_test": {
+      "injected": "noise pids 39/40 vaccinated extra, care-gap pids 36/37/38 untouched",
+      "passed": false,
+      "score": 0,
+      "result": "PASS: Noise patient vaccination not scored (not penalized either)"
+    },
+    "partial_completion_test": {
+      "injected": "pid 36 vaccinated + encounter (1/3 care-gap patients)",
+      "passed": false,
+      "score": 30,
+      "in_range": "0 < 30 < 60 (threshold)",
+      "result": "PASS: Partial completion gives score between 0 and threshold"
+    },
+    "full_completion_test": {
+      "injected": "all 3 care-gap pids vaccinated + encounters + bonus",
+      "passed": true,
+      "score": 100,
+      "result": "PASS (includes 10pt all-vaccinated bonus)"
+    }
+  },
+  "seeded_patients": {
+    "36": {"name": "Sandra Pratt", "dob": "1958-11-22", "diagnosis": "E11.9", "gap": "no flu vaccine, last encounter Jun 2023"},
+    "37": {"name": "Gregory Holt", "dob": "1952-06-17", "diagnosis": "E11.9", "gap": "no flu vaccine, last encounter Sep 2023"},
+    "38": {"name": "Wendy Kaufman", "dob": "1960-03-08", "diagnosis": "E11.9", "gap": "no flu vaccine, last encounter Nov 2023"},
+    "39": {"name": "Donald Peck", "dob": "1955-09-14", "diagnosis": "E11.9", "status": "flu Oct 2024, encounter Dec 2024 (noise)"},
+    "40": {"name": "Irene Foley", "dob": "1963-07-25", "diagnosis": "E11.9", "status": "flu Nov 2024, encounter Jan 2025 (noise)"}
+  },
+  "scoring": {
+    "per_patient_flu_vaccine": 20,
+    "per_patient_encounter": 10,
+    "all_3_vaccinated_bonus": 10,
+    "total": 100,
+    "pass_threshold": 60
+  },
+  "flu_detection": {
+    "method": "LOWER(imm_immunization) LIKE '%influenza%' OR '%flu%' OR imm_cvx IN ('141','150','88')",
+    "cvx_141": "Influenza, seasonal, injectable",
+    "cvx_150": "Influenza, seasonal, injectable, quadrivalent",
+    "cvx_88": "Influenza virus vaccine, unspecified"
+  },
+  "anti_pattern_checks": {
+    "difficulty_label_drift": "PASS: very_hard — description says 'recommended preventive care' not 'influenza vaccine'",
+    "baseline_order": "PASS: baseline recorded AFTER cleanup",
+    "partial_credit_overflow": "PASS: partial 1/3 = 30pts < 60 threshold"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "land_use_change_union_overlay@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "Perform a land use change analysis using a Union overlay.\n\n1. Open QGIS.\n2. Load the two land use layers: `/home/ga/GIS_Data/landuse_2015.geojson` and `/home/ga/GIS_Data/landuse_2025.geojson`.\n3. Perform a Union overlay (Vector > Geoprocessing Tools > Union) to create a new layer containing boundaries and attributes from both years. Use `landuse_2015` as the Input Layer and `landuse_2025` as the Overlay Layer.\n4. Open the attribute table of the resulting union layer. Enable editing and open the Field Calculator.\n5. Create a new Decimal (double) field named `transition_area_sqkm`.\n6. Calculate the area of each feature in square kilometers using the expression `$area / 1000000` (since the source data is in meters/UTM).\n7. Save edits and export the attribute table as a CSV file to `/home/ga/GIS_Data/exports/change_matrix.csv`. Ensure the output includes the class fields from both years and the calculated area.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/land_use_change_union_overlay/setup_task.sh",
+    "post_task": "/workspace/tasks/land_use_change_union_overlay/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/GIS_Data/exports/change_matrix.csv",
+    "expected_total_area_sqkm": 100.0,
+    "transitions": {
+      "forest_to_urban": 25.0,
+      "forest_to_forest": 25.0,
+      "farm_to_farm": 50.0
+    },
+    "tolerance_sqkm": 1.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_land_use_change"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "duodenal_diameter_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the maximum luminal diameter of the duodenum on the provided abdominal CT and identify which segment (D1/D2/D3/D4) is widest. Classify the degree of dilation. Save measurement markup to ~/Documents/SlicerData/AMOS/duodenal_measurement.mrk.json and report to ~/Documents/SlicerData/AMOS/duodenal_report.json with fields: maximum_diameter_mm, location, classification, clinical_interpretation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/duodenal_diameter_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/duodenal_diameter_assessment/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/duodenal_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/duodenal_report.json",
+    "duodenum_label": 14,
+    "passing_thresholds": {
+      "diameter_error_max_mm": 5.0,
+      "classification_correct": true
+    },
+    "scoring_weights": {
+      "diameter_accuracy": 35,
+      "classification_correct": 20,
+      "measurement_placed": 15,
+      "location_identified": 10,
+      "measurement_position": 10,
+      "report_completeness": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_duodenal_diameter"
+    }
+  }
+}

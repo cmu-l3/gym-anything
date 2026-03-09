@@ -1,0 +1,32 @@
+{
+  "id": "quarantine_infected_files@1",
+  "version": "1.0",
+  "env_id": "virtualmin_env@0.1",
+  "description": "A security breach has been detected on the 'greenleaf.test' website. Your task is to perform a malware cleanup.\n\nGoal: Identify and quarantine all PHP files in the document root (/home/greenleaf/public_html) that contain the malicious pattern: 'eval(base64_decode'.\n\nInstructions:\n1. Search the file structure for the malicious string.\n2. Move any infected files you find to the directory '/root/quarantine/'.\n3. Do NOT move files that contain 'base64_decode' without 'eval' (these are legitimate).\n4. Ensure the infected files are no longer in the public_html directory.\n\nNote: You can use the Virtualmin File Manager, Webmin Search, or command line tools like 'grep' and 'mv'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/quarantine_infected_files/setup_task.sh",
+    "post_task": "/workspace/tasks/quarantine_infected_files/export_result.sh"
+  },
+  "metadata": {
+    "infected_files": [
+      "index.php",
+      "wp-content/themes/twentytwentythree/functions.php",
+      "wp-includes/class-wp-http.php"
+    ],
+    "decoy_file": "wp-content/plugins/akismet/class.akismet.php",
+    "quarantine_dir": "/root/quarantine",
+    "doc_root": "/home/greenleaf/public_html"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_quarantine_infected_files"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "id": "segmentation_margin_expansion@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Expand the pre-existing 'GTV' tumor segmentation to create 'CTV' (5mm margin) and 'PTV' (8mm margin) segments while preserving the original GTV. All three segments must be properly nested (GTV inside CTV inside PTV). Save the segmentation to ~/Documents/SlicerData/BraTS/treatment_volumes.seg.nrrd and a volume report to ~/Documents/SlicerData/BraTS/treatment_volumes_report.json with fields: gtv_volume_ml, ctv_volume_ml, ptv_volume_ml, ctv_margin_mm, ptv_margin_mm.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/segmentation_margin_expansion/setup_task.sh",
+    "post_task": "/workspace/tasks/segmentation_margin_expansion/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/BraTS/treatment_volumes.seg.nrrd",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/treatment_volumes_report.json",
+    "ctv_margin_mm": 5,
+    "ptv_margin_mm": 8,
+    "volume_tolerance_percent": 15,
+    "scoring_weights": {
+      "gtv_preserved": 10,
+      "ctv_exists": 10,
+      "ptv_exists": 10,
+      "ctv_margin_accuracy": 20,
+      "ptv_margin_accuracy": 20,
+      "proper_nesting": 15,
+      "report_completeness": 10,
+      "report_accuracy": 5
+    },
+    "passing_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_segmentation_margin_expansion"
+    }
+  }
+}

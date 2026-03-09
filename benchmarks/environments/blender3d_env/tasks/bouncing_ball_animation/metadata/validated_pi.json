@@ -1,0 +1,73 @@
+{
+    "task_id": "bouncing_ball_animation@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "source_blend",
+            "metadata_value": "/home/ga/BlenderProjects/baseline_scene.blend",
+            "verified_value": "/home/ga/BlenderProjects/baseline_scene.blend",
+            "source": "Code analysis: setup_blender.sh (lines 165-225) creates this file synthetically via Python script. Output path explicitly stated in line 220: output_path = '/home/ga/BlenderProjects/baseline_scene.blend'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output",
+            "metadata_value": "/home/ga/BlenderProjects/bouncing_ball.blend",
+            "verified_value": "/home/ga/BlenderProjects/bouncing_ball.blend",
+            "source": "Confirmed in setup_task.sh (line 9), export_result.sh (line 10), and task.json description line 5",
+            "status": "verified"
+        },
+        {
+            "key": "min_bounces",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Task description (task.json line 5) states 'bounce on the ground... at least 3 times'. Verifier uses this value (verifier.py line 87) with default value 3 if not specified. Explicit verification: verifier.py line 89 checks 'if bounces >= min_bounces'",
+            "status": "verified"
+        },
+        {
+            "key": "min_horizontal_travel",
+            "metadata_value": 4.0,
+            "verified_value": 4.0,
+            "source": "Verifier.py line 9 in criteria documentation explicitly states 'Sphere travels horizontally >= 4 units (15 pts)'. Task description says 'must travel horizontally' and verifier.py line 100 enforces 4.0 as the minimum. Baseline scene has 20-unit ground plane, making 4 units (20%) a reasonable requirement.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_z_threshold",
+            "metadata_value": 1.2,
+            "verified_value": 1.5,
+            "source": "CRITICAL DISCREPANCY: Metadata claims 1.2, but export_result.sh line 117 hardcodes 'ground_threshold = 1.5' in the Python analysis script. This threshold is used directly for bounce detection on lines 139 and 142. The actual verification code uses 1.5, NOT the metadata value of 1.2.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_frame_start",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Task description (task.json line 5) explicitly states 'Set the timeline playback range to start at frame 1'. Verifier.py line 122 reads this value and line 126 checks it with tolerance. Setup baseline scene does not specify, defaulting to Blender standard of frame 1.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_frame_end",
+            "metadata_value": 120,
+            "verified_value": 120,
+            "source": "Task description (task.json line 5) explicitly states 'end at frame 120'. Verifier.py line 123 reads this value and line 126 checks it. Export_result.sh analysis samples frames from frame_start to frame_end in the loop (line 121).",
+            "status": "verified"
+        },
+        {
+            "key": "frame_range_tolerance",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Verifier.py line 124 reads this tolerance value from metadata with default 5. Line 126 uses it: 'if abs(f_start - exp_start) <= tol and abs(f_end - exp_end) <= tol:' allowing ±5 frame flexibility.",
+            "status": "verified"
+        },
+        {
+            "key": "blender_version",
+            "metadata_value": null,
+            "verified_value": "4.2.4 LTS",
+            "source": "install_blender.sh line 90 explicitly sets BLENDER_VERSION='4.2.4'. Line 93 constructs URL: https://download.blender.org/release/Blender4.2/blender-4.2.4-linux-x64.tar.xz. Web search confirms Blender 4.2 is an official LTS release. File URL returns error indicating file exists but exceeds download size limit (confirms URL validity).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The bouncing ball animation task uses Blender 4.2.4 LTS and requires creating an animation with a UV sphere that bounces at least 3 times, travels horizontally at least 4 units, with realistic physics (acceleration/deceleration). Expected animation frame range is 1-120 with ±5 frame tolerance. CRITICAL ISSUE FOUND: Metadata declares ground_z_threshold as 1.2, but the actual Python analysis script in export_result.sh (line 117) uses a hardcoded value of 1.5 for ground contact detection. This discrepancy affects bounce counting during verification. All input data is synthetically created via Python scripts (baseline_scene.blend is procedurally generated); no real external datasets are used.",
+    "pi_confidence": "high"
+}

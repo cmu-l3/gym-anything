@@ -1,0 +1,46 @@
+version: "3.8"
+
+volumes:
+  suitecrm_db_data:
+
+services:
+  suitecrm-db:
+    image: mariadb:10.11
+    container_name: suitecrm-db
+    restart: unless-stopped
+    volumes:
+      - suitecrm_db_data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: suitecrm
+      MYSQL_USER: suitecrm
+      MYSQL_PASSWORD: suitecrm_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+      --default-storage-engine=InnoDB
+      --sql-mode=NO_ENGINE_SUBSTITUTION
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_pass"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  suitecrm-app:
+    build:
+      context: /home/ga/suitecrm/docker
+      dockerfile: Dockerfile
+    container_name: suitecrm-app
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    environment:
+      DB_HOST: suitecrm-db
+      DB_PORT: "3306"
+      DB_NAME: suitecrm
+      DB_USER: suitecrm
+      DB_PASSWORD: suitecrm_pass
+    depends_on:
+      suitecrm-db:
+        condition: service_healthy

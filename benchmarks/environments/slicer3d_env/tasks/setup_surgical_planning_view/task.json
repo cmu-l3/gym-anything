@@ -1,0 +1,48 @@
+{
+  "id": "setup_surgical_planning_view@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Configure display properties for the three pre-loaded segments: set 'Liver' to tan/brown (~RGB 200,150,100) at 40% 3D opacity, 'Tumor' to bright red (~RGB 255,0,0) at 100% opacity, and 'PortalVein' to blue (~RGB 0,0,255) at 100% opacity. Ensure all three segments are visible in the 3D view.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_surgical_planning_view/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_surgical_planning_view/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "ircadb_dir": "/home/ga/Documents/SlicerData/IRCADb",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "expected_segments": ["Liver", "Tumor", "PortalVein"],
+    "expected_colors": {
+      "Liver": {"r_range": [150, 220], "g_range": [100, 170], "b_range": [60, 130]},
+      "Tumor": {"r_range": [200, 255], "g_range": [0, 80], "b_range": [0, 80]},
+      "PortalVein": {"r_range": [0, 80], "g_range": [0, 80], "b_range": [200, 255]}
+    },
+    "expected_opacities": {
+      "Liver": {"min": 0.30, "max": 0.50},
+      "Tumor": {"min": 0.90, "max": 1.0},
+      "PortalVein": {"min": 0.90, "max": 1.0}
+    },
+    "scoring_weights": {
+      "liver_color": 15,
+      "liver_opacity": 15,
+      "tumor_color": 15,
+      "tumor_opacity": 10,
+      "portalvein_color": 15,
+      "portalvein_opacity": 10,
+      "all_visible": 10,
+      "vlm_verification": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_setup_surgical_planning_view"
+    }
+  }
+}

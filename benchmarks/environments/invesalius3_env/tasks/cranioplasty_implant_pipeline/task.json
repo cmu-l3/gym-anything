@@ -1,0 +1,35 @@
+{
+  "id": "cranioplasty_implant_pipeline@1",
+  "version": "1.0",
+  "env_id": "invesalius3_env@0.1",
+  "description": "You are a biomedical engineer at a medical device company preparing a cranioplasty implant fabrication package for a patient requiring calvarial reconstruction. The workflow combines boolean mask operations with mesh optimisation — two distinct InVesalius capability areas that must be chained together in the correct order. The CT Cranium DICOM series is already loaded in InVesalius 3. Fabrication specifications are at /home/ga/Documents/cranioplasty/fab_specs.txt.\n\nComplete the full implant preparation pipeline:\n1. Create a FULL BONE mask (Hounsfield range approximately 226–3071 HU, capturing all osseous tissue).\n2. Create a COMPACT CORTICAL BONE mask (Hounsfield range approximately 662–3071 HU, capturing only the dense outer cortical shell).\n3. Apply the boolean MINUS operation: subtract the compact bone mask FROM the full bone mask to produce a CANCELLOUS BONE mask representing the porous internal spongy bone compartment.\n4. Generate 3D surfaces from BOTH the compact bone mask AND the cancellous bone mask (2 surfaces total).\n5. Apply mesh smoothing to the compact bone surface to remove CT noise — use at least 10 smoothing iterations.\n6. Apply mesh decimation to the compact bone surface to reduce file size for the implant printer — reduce to fewer than 400,000 triangles.\n7. Export the optimised compact bone surface in PLY format to /home/ga/Documents/cranioplasty/cortical_bone.ply\n8. Export the cancellous bone surface as an STL file to /home/ga/Documents/cranioplasty/cancellous_bone.stl\n9. Place at least 5 linear measurements to document the calvarial dimensions (thickness, span, curvature proxy) needed to size the implant.\n10. Save the complete InVesalius project (with all 3 masks, both surfaces, and all measurements) to /home/ga/Documents/cranioplasty/implant_fabrication.inv3\n\nLogin credentials: username=ga, password=password123",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 110
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cranioplasty_implant_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/cranioplasty_implant_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "output_dir": "/home/ga/Documents/cranioplasty",
+    "ply_path": "/home/ga/Documents/cranioplasty/cortical_bone.ply",
+    "stl_path": "/home/ga/Documents/cranioplasty/cancellous_bone.stl",
+    "project_path": "/home/ga/Documents/cranioplasty/implant_fabrication.inv3",
+    "full_bone_hu_min": 226,
+    "compact_bone_hu_min": 600,
+    "required_mask_count": 3,
+    "max_ply_triangles": 400000,
+    "min_ply_vertices": 1000,
+    "required_measurement_count": 5,
+    "min_measurement_mm": 10.0,
+    "dicom_series": "ct_cranium/0051"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cranioplasty_implant_pipeline"
+    }
+  }
+}

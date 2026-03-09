@@ -1,0 +1,44 @@
+{
+  "task": "geriatric_multimorbidity_assessment",
+  "task_id": "geriatric_multimorbidity_assessment@1",
+  "difficulty": "hard",
+  "features_tested": ["vitals_recording", "condition_problem_list", "medication_order"],
+  "patient": {
+    "name": "Corie Bergnaum",
+    "dob": "1925-02-04",
+    "lookup": "GET /openmrs/ws/rest/v1/patient?q=Corie+Bergnaum"
+  },
+  "setup_verification": {
+    "pre_existing_acetaminophen_orders_removed": "Any existing Acetaminophen/Paracetamol/Tylenol drug orders deleted before task starts",
+    "pre_existing_migraine_condition_removed": "Any existing migraine/headache condition deleted before task starts",
+    "vitals_encounters_cleared": "All prior vitals encounters deleted to ensure clean baseline",
+    "active_visit_created": "New facility visit created with current timestamp",
+    "patient_chart_preloaded": "Browser navigated to patient chart Patient Summary before agent starts",
+    "initial_order_count_recorded": "/tmp/geriatric_multimorbidity_assessment_initial_order_count saved"
+  },
+  "success_criteria": {
+    "criterion_1_vitals": {
+      "api_endpoint": "GET /openmrs/ws/rest/v1/obs?patient={UUID}&concept={CONCEPT_UUID}&limit=10&v=default",
+      "bp_systolic": {"concept": "5085AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "target": 162, "range": [154, 170]},
+      "weight_kg": {"concept": "5089AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "target": 62, "range": [57.0, 67.0]},
+      "pulse": {"concept": "5087AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "target": 72, "range": [64, 80]},
+      "temperature_c": {"concept": "5088AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "target": 36.8, "range": [36.5, 37.1]},
+      "scoring": "33 pts full, 7-15 pts partial"
+    },
+    "criterion_2_condition": {
+      "api_endpoint": "GET /openmrs/ws/rest/v1/condition?patient={UUID}&v=default",
+      "keywords": ["migraine", "headache"],
+      "date_check": "auditInfo.dateCreated >= task_start_timestamp",
+      "scoring": "34 pts full, no partial"
+    },
+    "criterion_3_medication": {
+      "api_endpoint": "GET /openmrs/ws/rest/v1/order?patient={UUID}&v=default&limit=100",
+      "drug_name_check": "drug.display or concept.display contains 'acetaminophen', 'paracetamol', or 'tylenol'",
+      "date_check": "dateActivated >= task_start_timestamp OR current_count > initial_order_count",
+      "scoring": "33 pts full, no partial"
+    }
+  },
+  "do_nothing_expected_score": 0,
+  "pass_threshold": 67,
+  "notes": "Screenshot captured by setup_task.sh at /tmp/geriatric_multimorbidity_assessment_start_screenshot.png inside the VM environment"
+}

@@ -1,0 +1,35 @@
+{
+  "id": "spindle_elongation_kinetics@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Calculate the elongation velocity of the mitotic spindle during anaphase using the built-in 'Mitosis' sample.\n\n1. Open the sample: File > Open Samples > Mitosis (26MB, 5D stack).\n2. Create a Maximum Intensity Projection (Z-Project) to flatten the Z-stack.\n3. Split Channels to isolate the spindle (Green/Tubulin) from the DNA (Red).\n4. Measure the pole-to-pole distance (center to center of the bright spindle poles) at Frame 30 and Frame 45.\n   - Use the Line tool to measure distance in microns (µm).\n   - Note: You must find the time interval between frames in Image > Properties to calculate velocity.\n5. Calculate the elongation velocity in µm/min.\n   Formula: (Distance_F45 - Distance_F30) / (Time_F45 - Time_F30)\n\n6. Save the processed green channel projection image to '~/Fiji_Data/results/spindle/spindle_projection.tif'.\n7. Create a text report at '~/Fiji_Data/results/spindle/velocity_report.txt' with the following format:\n   Distance_F30: [Value] um\n   Distance_F45: [Value] um\n   Time_Delta: [Value] min\n   Velocity: [Value] um/min",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/spindle_elongation_kinetics/setup_task.sh",
+    "post_task": "/workspace/tasks/spindle_elongation_kinetics/export_result.sh"
+  },
+  "metadata": {
+    "sample_source": "Fiji built-in 'Mitosis' (5D stack)",
+    "output_image": "~/Fiji_Data/results/spindle/spindle_projection.tif",
+    "output_report": "~/Fiji_Data/results/spindle/velocity_report.txt",
+    "ground_truth_ranges": {
+      "dist_30_min": 4.0,
+      "dist_30_max": 9.0,
+      "dist_45_min": 8.0,
+      "dist_45_max": 14.0,
+      "velocity_min": 0.3,
+      "velocity_max": 2.5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spindle_elongation_kinetics"
+    }
+  }
+}

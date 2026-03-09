@@ -1,0 +1,38 @@
+{
+    "task_id": "import_bank_statement@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "import_file_path",
+            "metadata_value": "/home/ga/Documents/bank_import.ofx",
+            "verified_value": "/home/ga/Documents/bank_import.ofx",
+            "source": "setup_task.sh line 17: OFX_FILE=\"/home/ga/Documents/bank_import.ofx\" - file is created at this exact path during task setup",
+            "status": "verified"
+        },
+        {
+            "key": "expected_transaction_count",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "setup_task.sh lines 65-88: Contains exactly 3 STMTTRN (Statement Transaction) XML elements in the generated OFX file",
+            "status": "verified"
+        },
+        {
+            "key": "expected_amounts",
+            "metadata_value": "[4500.00, -125.50, -85.20]",
+            "verified_value": "[-125.50, 4500.00, -85.20] (same amounts, different order in file)",
+            "source": "setup_task.sh lines 68, 76, 84: Transaction amounts are -125.50 (AGRI SUPPLY CO), 4500.00 (COOP GRAIN SALES), -85.20 (FUEL STATION). The verifier at verifier.py lines 81-85 checks amounts using set-based matching with 0.05 tolerance, so order is irrelevant for verification.",
+            "status": "verified"
+        },
+        {
+            "key": "account_name_hint",
+            "metadata_value": "Banque",
+            "verified_value": null,
+            "source": "No evidence found in code or documentation. The OFX file contains BANKID='12345' and ACCTID='FR761234567890' but no account name. The hint 'Banque' (French for 'Bank') is a user interface suggestion for which account to select during import, not a verifiable data element. Web searches for Ekylibre documentation did not confirm 'Banque' as a standard default account name.",
+            "status": "unverified"
+        }
+    ],
+    "privileged_info_summary": "The import_bank_statement task uses a synthetic OFX bank statement file generated dynamically at /home/ga/Documents/bank_import.ofx containing exactly 3 transactions with amounts -125.50, 4500.00, and -85.20. The file is created by setup_task.sh with transactions for AGRI SUPPLY CO (debit), COOP GRAIN SALES (credit), and FUEL STATION (debit). The verifier checks that a new bank statement is created in the Ekylibre database with matching transaction count and amounts, and validates that it is linked to a cash account.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,44 @@
+{
+  "id": "segmentation_qc@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Review and correct the pre-loaded AI-generated brain tumor segmentation by fixing under-segmentation, over-segmentation, and boundary errors. Save the corrected segmentation to ~/Documents/SlicerData/BraTS/corrected_segmentation.nii.gz and a QC report to ~/Documents/SlicerData/BraTS/qc_report.json.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/segmentation_qc/setup_task.sh",
+    "post_task": "/workspace/tasks/segmentation_qc/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "broken_segmentation": "/home/ga/Documents/SlicerData/BraTS/ai_segmentation.nii.gz",
+    "output_segmentation": "/home/ga/Documents/SlicerData/BraTS/corrected_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/qc_report.json",
+    "passing_thresholds": {
+      "dice_improved": true,
+      "dice_after_min": 0.80,
+      "preservation_min": 0.95,
+      "over_seg_recall_min": 0.50
+    },
+    "scoring_weights": {
+      "dice_improvement": 25,
+      "final_dice_quality": 20,
+      "under_seg_fixed": 15,
+      "over_seg_fixed": 15,
+      "preservation": 10,
+      "report_completeness": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_segmentation_qc"
+    }
+  }
+}

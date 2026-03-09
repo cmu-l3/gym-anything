@@ -1,0 +1,113 @@
+VALUE STREAM MAP (VSM) — CURRENT STATE MAPPING GUIDE
+======================================================
+Case Study: Toyota Steering Bracket Manufacturing
+Reference: Rother, M. & Shook, J. (1998). "Learning to See: Value Stream
+           Mapping to Create Value and Eliminate Muda."
+           Lean Enterprise Institute, Brookline, MA.
+Facility: Acme Stamping (tier-1 supplier to Toyota and Saturn)
+Product Family: Left-Hand Steering Bracket
+
+=== CUSTOMER DEMAND ===
+Toyota Motor Corp:  12,000 brackets/month  (trays of 20, daily truck delivery)
+Saturn Corp:         6,400 brackets/month  (trays of 20, daily truck delivery)
+Total demand:       18,400 brackets/month
+Working days:       20 per month
+Daily demand:          920 brackets/day  (2 shifts × 460 per shift)
+Available time/shift:  27,600 seconds (7.67 hours net)
+Required Takt Time:    60 seconds/bracket per shift
+
+=== SUPPLIER INFORMATION ===
+Supplier: Michigan Steel Coils Inc. (raw steel coil stock)
+Delivery: 3× per week (Mon / Wed / Fri)
+Order method: Daily EDI orders from Production Control
+
+=== INFORMATION FLOW ===
+Toyota & Saturn send: 6-week forecast + weekly firm order via EDI
+Production Control: receives orders → issues weekly MRP push schedule to PC Press
+All downstream steps: receive daily verbal/paper schedule (non-electronic push)
+
+=== VSM NOTATION REQUIREMENTS (draw.io Lean Mapping Library) ===
+
+USE draw.io's built-in LEAN MAPPING shape library:
+  - Manufacturing Process box: one rectangle per process step
+  - Inventory Triangle: between each adjacent step (shows WIP units)
+  - Push Arrow: straight arrow labeled "PUSH" between steps
+  - Supplier icon: factory/building shape on far left
+  - Customer icon: factory/building shape on far right
+  - Information flow (electronic): lightning bolt / zigzag arrow
+  - Information flow (manual): straight arrow with filled arrowhead
+  - Production Control box: rectangle at top center
+  - Kaizen Burst: starburst/sunburst shape on highest-waste steps
+  - Timeline: at the bottom, alternating process time / wait time bars
+
+=== PROCESS DATA TO SHOW IN EACH PROCESS BOX ===
+Each process box must contain (read from production_metrics.csv):
+  C/T    = Cycle Time in seconds
+  C/O    = Changeover time in seconds
+  Uptime = Machine Uptime %
+  Shifts = shifts per day
+  Ops    = operators per shift
+
+=== THE 5 PROCESS STEPS (left to right) ===
+
+Step 1 — PC Press:
+  C/T=1s, C/O=3600s, Uptime=85%, 3 shifts, 1 operator
+  WIP Inventory triangle AFTER this step: 4,600 units (coil stock)
+
+Step 2 — Spot Weld I:
+  C/T=39s, C/O=600s, Uptime=100%, 2 shifts, 1 operator
+  WIP Inventory triangle AFTER this step: 4,700 units
+
+Step 3 — Spot Weld II:
+  C/T=46s, C/O=600s, Uptime=80%, 2 shifts, 1 operator
+  WIP Inventory triangle AFTER this step: 1,100 units
+
+Step 4 — Assembly I:
+  C/T=62s, C/O=0, Uptime=100%, 2 shifts, 1 operator
+  WIP Inventory triangle AFTER this step: 1,600 units
+
+Step 5 — Assembly II:
+  C/T=40s, C/O=0, Uptime=100%, 2 shifts, 1 operator
+  WIP Inventory triangle AFTER this step: 1,200 units (finished goods)
+
+Then: SHIPPING (daily truck to Toyota + Saturn)
+
+=== TIMELINE AT BOTTOM ===
+Show alternating wait time / process time segments:
+  Wait time  = WIP_Inventory / 920 * 86,400 seconds
+  Value time = Cycle_Time for each step
+
+  Coil wait:        4,600/920*86,400 = ~432,000 sec  (~5.0 days)  |  PC Press: 1s
+  Spot Weld I wait: 4,700/920*86,400 = ~441,000 sec  (~5.1 days)  |  Spot Weld I: 39s
+  Spot Weld II wait:1,100/920*86,400 = ~103,000 sec  (~1.2 days)  |  Spot Weld II: 46s
+  Assembly I wait:  1,600/920*86,400 = ~150,000 sec  (~1.7 days)  |  Assembly I: 62s
+  Assembly II wait: 1,200/920*86,400 = ~113,000 sec  (~1.3 days)  |  Assembly II: 40s
+  FG wait:          1,200/920*86,400 = ~113,000 sec  (~1.3 days)
+
+  TOTAL LEAD TIME:        ~23.6 days
+  TOTAL VALUE-ADDED TIME: 188 seconds
+
+Label TOTAL LEAD TIME and TOTAL VALUE-ADDED TIME at the right end of the timeline.
+
+=== KAIZEN BURSTS (minimum 3) ===
+Place kaizen burst starburst shapes on the TOP 3 worst-waste areas.
+Waste = largest WIP inventory = longest wait time.
+
+Top 3 kaizen targets:
+  1. PC Press → Spot Weld I gap: 4,600 + 4,700 = 9,300 units WIP total
+     Label: "Batch EPE=1 wk — level to daily"
+  2. Spot Weld I output: 4,700 units before Spot Weld II (80% uptime bottleneck)
+     Label: "Weld II reliability — target 95% uptime"
+  3. Assembly I: C/T=62s exceeds takt time of 60s — production bottleneck!
+     Label: "Balance line — split task or cross-train"
+
+=== OUTPUT FILE ===
+Save as:    ~/Diagrams/current_state_vsm.drawio
+Export PDF: ~/Diagrams/current_state_vsm.pdf
+
+=== IMPORTANT ===
+Use draw.io's Lean Mapping shapes (via Shapes panel search "lean" or "VSM",
+or Extras > Edit Diagram). Key shape names in the lean_mapping library:
+  lean_mapping.manufacturing_process, lean_mapping.push_arrow,
+  lean_mapping.inventory_triangle, lean_mapping.supplier,
+  lean_mapping.customer, lean_mapping.kaizen_burst

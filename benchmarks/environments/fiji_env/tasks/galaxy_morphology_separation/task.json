@@ -1,0 +1,37 @@
+{
+  "id": "galaxy_morphology_separation@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "You are an astronomer analyzing the interacting galaxy pair M51 (Whirlpool Galaxy) and its companion NGC 5195 using Fiji. The image is loaded. Your task is to:\n\n1. Pre-process the image to reduce noise if necessary.\n2. Create a binary segmentation mask of the galaxies using global thresholding.\n3. The two galaxies are connected by a tidal bridge. Use the 'Watershed' command to separate the companion (top galaxy) from the main spiral (center).\n4. Measure the morphological properties of the COMPANION galaxy (NGC 5195) ONLY. Do not report the main spiral.\n   - Configure 'Set Measurements' to include: Area, Centroid, Mean Gray Value, Integrated Density, and Fit Ellipse.\n   - Use 'Analyze Particles' to generate the results.\n5. Save the measurements for the companion galaxy to '~/Fiji_Data/results/galaxy/companion_metrics.csv'.\n6. Save an image showing the segmentation (the binary mask or ROI outlines) to '~/Fiji_Data/results/galaxy/segmentation_map.png'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/galaxy_morphology_separation/setup_task.sh",
+    "post_task": "/workspace/tasks/galaxy_morphology_separation/export_result.sh"
+  },
+  "metadata": {
+    "target_object": "NGC 5195 (Companion)",
+    "image_source": "m51.tif (ImageJ sample)",
+    "expected_outputs": [
+      "companion_metrics.csv",
+      "segmentation_map.png"
+    ],
+    "validation_criteria": {
+      "area_min": 1000,
+      "area_max": 8000,
+      "centroid_y_max": 200,
+      "separation_check": "Area must be smaller than combined area (~20000+)"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_galaxy_morphology_separation"
+    }
+  },
+  "tags": ["astronomy", "morphology", "segmentation", "watershed", "measurement"]
+}

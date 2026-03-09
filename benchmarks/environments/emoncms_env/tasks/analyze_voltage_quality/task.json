@@ -1,0 +1,28 @@
+{
+  "id": "analyze_voltage_quality@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "Analyze the 'grid_voltage' feed (tag: 'mains') for the last 24 hours to determine the duration of over-voltage events. An over-voltage event is defined as any reading strictly greater than 253.0 Volts.\n\nRetrieve the data from Emoncms (you may use the API or export tools), analyze it, and generate a JSON report saved to '~/voltage_quality_report.json' with the following structure:\n\n{\n  \"feed_name\": \"grid_voltage\",\n  \"threshold_volts\": 253.0,\n  \"total_samples_analyzed\": <integer>,\n  \"samples_over_threshold\": <integer>,\n  \"minutes_over_threshold\": <float>,\n  \"max_observed_voltage\": <float>\n}\n\nThe 'minutes_over_threshold' should be calculated based on the 10-second feed interval.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/analyze_voltage_quality/setup_task.sh",
+    "post_task": "/workspace/tasks/analyze_voltage_quality/export_result.sh"
+  },
+  "metadata": {
+    "feed_name": "grid_voltage",
+    "threshold": 253.0,
+    "report_path": "/home/ga/voltage_quality_report.json",
+    "ground_truth_path": "/var/lib/emoncms/ground_truth/voltage_truth.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_analyze_voltage_quality"
+    }
+  }
+}

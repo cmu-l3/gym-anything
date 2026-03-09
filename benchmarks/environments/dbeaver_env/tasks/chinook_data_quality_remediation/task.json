@@ -1,0 +1,27 @@
+{
+  "id": "chinook_data_quality_remediation@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Software QA Analyst performing a data integrity audit on the Chinook digital media database. A copy of the production database with known data quality issues has been set up at /home/ga/Documents/databases/chinook_audit.db.\n\nYour tasks:\n\n1. Connect to the database in DBeaver with the connection name exactly 'ChinookAudit' (SQLite driver, path: /home/ga/Documents/databases/chinook_audit.db).\n\n2. Identify and DELETE all invoice_items rows that reference a non-existent Invoice (i.e., InvoiceId values in invoice_items with no matching row in invoices). These are orphaned records from a failed data import.\n\n3. For all tracks where the Composer field is NULL and the track's Genre is 'Rock', update the Composer field to the string value 'Unknown'.\n\n4. Identify all customers whose Email field does not contain both an '@' character and a '.' after the '@'. Do NOT modify them — just count them.\n\n5. Export an audit report CSV to exactly /home/ga/Documents/exports/quality_audit.csv with columns: IssueType, RecordsAffected, TableName, Action. Include one row per issue type found (orphaned_invoice_items, null_rock_composers, invalid_emails). The RecordsAffected column should reflect the actual count of affected records before your fix (for fixes) or the current count (for the email check).\n\nLogin: ga / password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 70
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_data_quality_remediation/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_data_quality_remediation/export_result.sh"
+  },
+  "metadata": {
+    "target_db": "/home/ga/Documents/databases/chinook_audit.db",
+    "connection_name": "ChinookAudit",
+    "output_csv": "/home/ga/Documents/exports/quality_audit.csv",
+    "source_db": "/home/ga/Documents/databases/chinook.db"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_data_quality_remediation"
+    }
+  }
+}

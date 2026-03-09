@@ -1,0 +1,29 @@
+{
+  "id": "transparent_database_encryption@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Migrate the legacy CRM database to an encrypted container while maintaining application access via symbolic links.\n\nScenario: The application expects its database at `/home/ga/LegacyCRM/data/customers.db`. You must encrypt this data at rest without changing the application code.\n\nSteps:\n1. Create a 50MB VeraCrypt volume at `/home/ga/Volumes/crm_encrypted.hc` (Password: `Compliance2024!`, Encryption: AES, Filesystem: EXT4 or FAT).\n2. Mount this volume to `/home/ga/MountPoints/secure_store`.\n3. Move the existing database `/home/ga/LegacyCRM/data/customers.db` into the mounted volume.\n4. Create a symbolic link at the original location (`/home/ga/LegacyCRM/data/customers.db`) pointing to the new file inside the encrypted volume (`/home/ga/MountPoints/secure_store/customers.db`).\n5. Verify the database is still readable through the original path.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/transparent_database_encryption/setup_task.sh",
+    "post_task": "/workspace/tasks/transparent_database_encryption/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/crm_encrypted.hc",
+    "mount_point": "/home/ga/MountPoints/secure_store",
+    "original_db_path": "/home/ga/LegacyCRM/data/customers.db",
+    "db_password": "Compliance2024!",
+    "expected_size_mb": 50
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_transparent_encryption"
+    }
+  }
+}

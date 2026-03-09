@@ -1,0 +1,37 @@
+{
+  "id": "waterway_spill_behavior_classification@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "Research the physical properties of five specific chemicals on CAMEO Chemicals (https://cameochemicals.noaa.gov/) to determine their behavior if spilled into a waterway. \n\nChemicals to analyze:\n1. Benzene (CAS 71-43-2)\n2. Carbon tetrachloride (CAS 56-23-5)\n3. Acetone (CAS 67-64-1)\n4. Chloroform (CAS 67-66-3)\n5. Toluene (CAS 108-88-3)\n\nFor each chemical, find its Specific Gravity and Water Solubility in the datasheet. Classify its spill behavior using these rules:\n- FLOATS: Specific Gravity < 1.0 AND Insoluble/Slightly Soluble\n- SINKS: Specific Gravity > 1.0 AND Insoluble/Slightly Soluble\n- DISSOLVES: Soluble or Miscible in water\n\nCreate two output files in ~/Documents/:\n\n1. 'spill_behavior_summary.csv' with columns: Chemical, CAS, Specific_Gravity, Spill_Behavior\n2. 'spill_behavior_report.txt' containing a detailed block for each chemical with Name, CAS, Specific Gravity, Water Solubility description, and determined Behavior, separated by dashes.",
+  "difficulty": "medium",
+  "tags": ["cameo", "chemistry", "hazmat", "environmental", "classification"],
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/waterway_spill_behavior_classification/setup_task.sh",
+    "post_task": "/workspace/tasks/waterway_spill_behavior_classification/export_result.sh"
+  },
+  "metadata": {
+    "ground_truth": {
+      "Benzene": {"sg": 0.88, "behavior": "FLOATS"},
+      "Carbon tetrachloride": {"sg": 1.59, "behavior": "SINKS"},
+      "Acetone": {"sg": 0.79, "behavior": "DISSOLVES"},
+      "Chloroform": {"sg": 1.49, "behavior": "SINKS"},
+      "Toluene": {"sg": 0.87, "behavior": "FLOATS"}
+    },
+    "tolerance_sg": 0.05,
+    "expected_files": [
+      "/home/ga/Documents/spill_behavior_summary.csv",
+      "/home/ga/Documents/spill_behavior_report.txt"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_waterway_spill_behavior_classification"
+    }
+  }
+}

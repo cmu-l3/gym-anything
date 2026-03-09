@@ -1,0 +1,34 @@
+{
+  "id": "mri_spinal_canal_stenosis_analysis@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Perform a quantitative analysis of spinal canal stenosis on the standard 'T1 Head' MRI dataset.\n\n1. Open the 'T1 Head' sample image (File > Open Samples > T1 Head).\n2. Navigate to Slices 10 through 19 (inclusive).\n3. On EACH of these 10 slices, segment the spinal canal (the dark, circular dural sac located centrally within the bright vertebra, posterior to the airway) using the Wand tool or Thresholding.\n4. Measure the Cross-Sectional Area for each slice.\n5. Save a CSV file to '~/Fiji_Data/results/stenosis/canal_measurements.csv' with two columns: 'Slice_ID' and 'Area'.\n6. Identify which slice has the SMALLEST area (maximum stenosis) and write that slice number (e.g., '14') to '~/Fiji_Data/results/stenosis/diagnosis.txt'.\n7. Save a screenshot showing your segmentation selection on that narrowest slice to '~/Fiji_Data/results/stenosis/segmentation_evidence.png'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mri_spinal_canal_stenosis_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/mri_spinal_canal_stenosis_analysis/export_result.sh"
+  },
+  "metadata": {
+    "image_source": "Fiji built-in T1 Head sample",
+    "target_slices": [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+    "expected_files": [
+      "canal_measurements.csv",
+      "diagnosis.txt",
+      "segmentation_evidence.png"
+    ],
+    "physiologically_reasonable_area_min": 50,
+    "physiologically_reasonable_area_max": 1500,
+    "ground_truth_narrowest_slice_range": [13, 17]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spinal_stenosis"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "id": "pericardial_effusion_quantification@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Quantify the pericardial effusion on the provided chest CT. Measure the maximum pericardial fluid thickness, segment the effusion to calculate total volume, and classify severity and distribution pattern. Save thickness measurement to ~/Documents/SlicerData/Cardiac/pericardial_thickness.mrk.json, segmentation to ~/Documents/SlicerData/Cardiac/pericardial_effusion_seg.nii.gz, and report to ~/Documents/SlicerData/Cardiac/pericardial_report.json with fields: max_thickness_mm, max_thickness_location, effusion_volume_ml, severity_classification, distribution_pattern.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 70,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pericardial_effusion_quantification/setup_task.sh",
+    "post_task": "/workspace/tasks/pericardial_effusion_quantification/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "cardiac_dir": "/home/ga/Documents/SlicerData/Cardiac",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/Cardiac/pericardial_thickness.mrk.json",
+    "output_segmentation": "/home/ga/Documents/SlicerData/Cardiac/pericardial_effusion_seg.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/Cardiac/pericardial_report.json",
+    "passing_thresholds": {
+      "thickness_error_max_mm": 3.0,
+      "volume_error_max_percent": 30,
+      "min_dice_coefficient": 0.4
+    },
+    "scoring_weights": {
+      "measurement_exists": 10,
+      "thickness_accuracy": 25,
+      "measurement_location_valid": 10,
+      "segmentation_exists": 10,
+      "segmentation_dice": 15,
+      "volume_accuracy": 10,
+      "severity_classification": 10,
+      "distribution_pattern": 5,
+      "report_completeness": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pericardial_effusion"
+    }
+  }
+}

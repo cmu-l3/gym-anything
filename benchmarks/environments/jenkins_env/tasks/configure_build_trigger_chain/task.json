@@ -1,0 +1,29 @@
+{
+  "id": "configure_build_trigger_chain@1",
+  "version": "1.0",
+  "env_id": "jenkins_env@0.1",
+  "description": "Three existing Jenkins freestyle jobs need to be chained together to form a continuous integration pipeline. Configure the jobs so that:\n\n1. 'inventory-build' automatically triggers 'inventory-test' when it completes successfully\n2. 'inventory-test' automatically triggers 'inventory-deploy' when it completes successfully\n\nThe three jobs already exist on the Jenkins dashboard: inventory-build, inventory-test, and inventory-deploy. They currently run independently with no triggers between them.\n\nYou can use EITHER approach:\n- Add 'Build other projects' post-build actions on the upstream jobs, OR\n- Add 'Build after other projects are built' triggers on the downstream jobs\n\nEnsure triggers fire only on successful builds (not on failure or unstable).\n\nLogin credentials: Username: admin, Password: Admin123!",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_build_trigger_chain/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_build_trigger_chain/export_result.sh"
+  },
+  "metadata": {
+    "jobs": ["inventory-build", "inventory-test", "inventory-deploy"],
+    "expected_chain": [
+      {"upstream": "inventory-build", "downstream": "inventory-test"},
+      {"upstream": "inventory-test", "downstream": "inventory-deploy"}
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_build_trigger_chain"
+    }
+  }
+}

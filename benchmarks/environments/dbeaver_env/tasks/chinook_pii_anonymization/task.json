@@ -1,0 +1,29 @@
+{
+  "id": "chinook_pii_anonymization@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Anonymize customer PII in the 'chinook_vendor.db' database to prepare it for external sharing. Connect DBeaver to '/home/ga/Documents/databases/chinook_vendor.db' (Connection name: 'ChinookVendor').\n\nUpdate the 'customers' table with the following rules:\n- FirstName: Set to literal 'Customer'\n- LastName: Set to 'C' followed by CustomerId zero-padded to 3 digits (e.g., 'C007')\n- Company: Set to 'REDACTED' if currently present, otherwise leave as NULL\n- Address: Set to literal 'REDACTED'\n- Phone and Fax: Set to NULL\n- Email: Set to 'customer' + CustomerId + '@example.com' (e.g., 'customer7@example.com')\n\nDo NOT modify other columns (City, Country, etc.). Verify referential integrity remains intact.\n\nGenerate an audit report CSV at '/home/ga/Documents/exports/anonymization_report.csv' with columns: Field, Action, RecordsAffected (7 rows for the 7 modified fields). Save your SQL script to '/home/ga/Documents/scripts/anonymize_customers.sql'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_pii_anonymization/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_pii_anonymization/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook_vendor.db",
+    "connection_name": "ChinookVendor",
+    "report_path": "/home/ga/Documents/exports/anonymization_report.csv",
+    "script_path": "/home/ga/Documents/scripts/anonymize_customers.sql",
+    "expected_customer_count": 59
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_pii_anonymization"
+    }
+  }
+}

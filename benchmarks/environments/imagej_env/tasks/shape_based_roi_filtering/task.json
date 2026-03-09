@@ -1,0 +1,32 @@
+{
+  "id": "shape_based_roi_filtering@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Shape-Based ROI Filtering and Curation",
+  "description": "You are a microbiologist needing to isolate specific cell morphologies. Open the built-in 'Blobs (25K)' sample image in Fiji (File > Open Samples > Blobs (25K)). Your goal is to identify and save ONLY the highly circular particles (representing single cells) while excluding irregular clumps.\n\n1. Configure 'Analyze > Set Measurements' to include 'Circularity' and 'Area'.\n2. threshold the image to identify particles.\n3. Filter the detected particles to retain ONLY those with Circularity >= 0.85.\n4. Save the filtered subset of regions to the ROI Manager.\n5. Save these specific ROIs to a zip file at '~/ImageJ_Data/results/circular_rois.zip'.\n6. Save the measurements for these specific ROIs to '~/ImageJ_Data/results/filtered_measurements.csv'.\n\nEnsure that irregular/clumped blobs (Circularity < 0.85) are excluded from your final saved files.",
+  "difficulty": "medium",
+  "tags": ["roi-manager", "filtering", "morphometry", "circularity", "particle-analysis"],
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/shape_based_roi_filtering/setup_task.sh",
+    "post_task": "/workspace/tasks/shape_based_roi_filtering/export_result.sh"
+  },
+  "metadata": {
+    "target_circularity_min": 0.85,
+    "target_circularity_max": 1.0,
+    "expected_roi_count_min": 10,
+    "expected_roi_count_max": 60,
+    "output_roi_path": "/home/ga/ImageJ_Data/results/circular_rois.zip",
+    "output_csv_path": "/home/ga/ImageJ_Data/results/filtered_measurements.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_shape_based_roi_filtering"
+    }
+  }
+}

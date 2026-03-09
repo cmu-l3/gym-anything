@@ -1,0 +1,28 @@
+{
+  "id": "configure_dedicated_blobstore@1",
+  "version": "1.0",
+  "env_id": "geo_server_env@0.1",
+  "description": "Optimize GeoServer storage by creating a dedicated tile cache location. \n\n1. Create a new directory at '/home/ga/geoserver/cache/countries'.\n2. In GeoServer (Tile Caching > BlobStores), create a new File System BlobStore named 'countries_store' pointing to this directory.\n3. Configure the 'ne:ne_countries' layer to use this new BlobStore instead of the default.\n4. trigger a seed of the 'ne:ne_countries' layer for zoom levels 00-03 to verify tiles are written to the new location.\n\nGeoServer is available at http://localhost:8080/geoserver/web/ (admin / Admin123!).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_dedicated_blobstore/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_dedicated_blobstore/export_result.sh"
+  },
+  "metadata": {
+    "expected_blobstore_name": "countries_store",
+    "expected_blobstore_path": "/home/ga/geoserver/cache/countries",
+    "expected_layer": "ne:ne_countries",
+    "min_tile_count": 10
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_dedicated_blobstore"
+    }
+  }
+}

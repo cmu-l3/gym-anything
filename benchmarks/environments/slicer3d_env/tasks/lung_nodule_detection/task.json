@@ -1,0 +1,44 @@
+{
+  "id": "lung_nodule_detection@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Detect all lung nodules >=3mm in diameter on the provided chest CT scan. Place a fiducial marker on each nodule and report its lobe location (RUL, RML, RLL, LUL, or LLL) and longest diameter in mm. Save fiducial markers to ~/Documents/SlicerData/LIDC/agent_fiducials.fcsv and report to ~/Documents/SlicerData/LIDC/nodule_report.json.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/lung_nodule_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/lung_nodule_detection/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_fiducials": "/home/ga/Documents/SlicerData/LIDC/agent_fiducials.fcsv",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/nodule_report.json",
+    "tolerance_mm": 15.0,
+    "minimum_nodule_diameter_mm": 3.0,
+    "passing_thresholds": {
+      "recall": 0.60,
+      "precision": 0.50,
+      "f1": 0.50
+    },
+    "scoring_weights": {
+      "recall": 30,
+      "precision": 20,
+      "diameter_accuracy": 15,
+      "lobe_accuracy": 10,
+      "window_level_correct": 10,
+      "report_completeness": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_lung_nodule_detection"
+    }
+  }
+}

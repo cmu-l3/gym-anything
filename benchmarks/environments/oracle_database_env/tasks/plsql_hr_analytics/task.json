@@ -1,0 +1,28 @@
+{
+  "id": "plsql_hr_analytics@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A compensation analytics package is needed for the HR Oracle database. Connect to the database (host=localhost, port=1521, database=XEPDB1, username=hr, password=hr123) and create a PL/SQL package named HR_ANALYTICS containing the following objects: (1) A function DEPT_SALARY_STATS(p_dept_id IN NUMBER) RETURN VARCHAR2 that returns a pipe-delimited string with the format 'AVG:nnn|MIN:nnn|MAX:nnn' for the given department. (2) A procedure BUILD_COMPENSATION_MATRIX that creates (replacing if it exists) a table COMPENSATION_MATRIX with columns EMPLOYEE_ID, FULL_NAME, JOB_TITLE, CURRENT_SALARY, DEPT_AVG_SALARY, SALARY_DEVIATION_PCT (percentage above/below department average, positive=above), and GRADE_LEVEL (A/B/C/D/E from the JOB_GRADES table based on salary). (3) A function REPORTING_CHAIN(p_emp_id IN NUMBER) RETURN VARCHAR2 that returns the pipe-delimited list of all manager IDs from the given employee up to the CEO (the employee with no manager). After creating the package, execute BUILD_COMPENSATION_MATRIX to populate the table, and save the query output of SELECT * FROM COMPENSATION_MATRIX ORDER BY EMPLOYEE_ID to /home/ga/Desktop/compensation_matrix.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 660,
+    "max_steps": 80
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/plsql_hr_analytics/setup_task.sh",
+    "post_task": "/workspace/tasks/plsql_hr_analytics/export_result.sh"
+  },
+  "metadata": {
+    "expected_package_name": "HR_ANALYTICS",
+    "expected_table_name": "COMPENSATION_MATRIX",
+    "expected_employee_count": 107,
+    "expected_grade_levels": ["A", "B", "C", "D", "E"],
+    "required_columns": ["EMPLOYEE_ID", "FULL_NAME", "JOB_TITLE", "CURRENT_SALARY", "DEPT_AVG_SALARY", "SALARY_DEVIATION_PCT", "GRADE_LEVEL"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_plsql_hr_analytics"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "id": "distance_to_coast_south_america@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "Calculate the distance from major South American cities to the nearest coastline.\n\n1. Open QGIS (ensure it is running).\n2. Load the populated places layer from '/home/ga/GIS_Data/natural_earth/ne_10m_populated_places_simple.shp'.\n3. Load the coastline layer from '/home/ga/GIS_Data/natural_earth/ne_10m_coastline.shp'.\n4. Filter the populated places layer to include ONLY cities in South America (e.g., use 'adm0name' or spatial selection). You should see cities like Lima, Sao Paulo, Bogota, etc.\n5. Reproject both the filtered cities and the coastline layer to 'South America Albers Equal Area Conic' (EPSG:102033) to ensure accurate metric distance calculation.\n6. Calculate the distance from each city to the nearest coastline. You can use 'Distance to nearest hub (line to hub)', 'Join attributes by nearest', or v.distance (GRASS).\n7. Ensure the result has a field containing the distance in kilometers. If the tool outputs meters, create a new field 'dist_km' and convert.\n8. Export the result as a CSV file to '/home/ga/GIS_Data/exports/sa_cities_coast_dist.csv'. The CSV must contain at least the city 'name' and the distance in kilometers.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/distance_to_coast_south_america/setup_task.sh",
+    "post_task": "/workspace/tasks/distance_to_coast_south_america/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "places_source": "https://naciscdn.org/naturalearth/10m/cultural/ne_10m_populated_places_simple.zip",
+    "coastline_source": "https://naciscdn.org/naturalearth/10m/physical/ne_10m_coastline.zip",
+    "expected_output": "/home/ga/GIS_Data/exports/sa_cities_coast_dist.csv",
+    "target_crs": "EPSG:102033",
+    "benchmark_cities": {
+      "Lima": {"min_km": 0, "max_km": 20},
+      "Brasilia": {"min_km": 800, "max_km": 1100},
+      "Bogota": {"min_km": 300, "max_km": 500},
+      "Santiago": {"min_km": 50, "max_km": 150},
+      "La Paz": {"min_km": 250, "max_km": 450}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_distance_to_coast_south_america"
+    }
+  }
+}

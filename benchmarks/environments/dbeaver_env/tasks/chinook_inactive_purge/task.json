@@ -1,0 +1,29 @@
+{
+  "id": "chinook_inactive_purge@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Implement a data retention policy by purging inactive customers from the Chinook database. \n\n1. Connect to the Chinook SQLite database at '/home/ga/Documents/databases/chinook.db'.\n\n2. Identify 'Inactive Customers': these are customers who have NOT placed any orders (invoices) in the year 2013 (InvoiceDate between '2013-01-01' and '2013-12-31').\n\n3. Export a list of these inactive customers to '/home/ga/Documents/exports/inactive_customers.csv'. The CSV must include exactly these columns: CustomerId, FirstName, LastName, Email, TotalSpent (sum of the 'Total' field from all their invoices).\n\n4. PERMANENTLY DELETE these inactive customers from the database. To maintain referential integrity, you must also delete their associated records in the 'invoices' and 'invoice_items' tables. \n\n5. Save the SQL script used for the entire process to '/home/ga/Documents/scripts/purge_process.sql'.\n\nNote: Customers who made purchases in 2013 must NOT be deleted.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_inactive_purge/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_inactive_purge/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook.db",
+    "export_path": "/home/ga/Documents/exports/inactive_customers.csv",
+    "script_path": "/home/ga/Documents/scripts/purge_process.sql",
+    "year_criteria": "2013",
+    "required_columns": ["CustomerId", "FirstName", "LastName", "Email", "TotalSpent"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_inactive_purge"
+    }
+  }
+}

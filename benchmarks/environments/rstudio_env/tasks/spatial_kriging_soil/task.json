@@ -1,0 +1,40 @@
+{
+  "id": "spatial_kriging_soil@1",
+  "version": "1.0",
+  "env_id": "rstudio_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are a remote sensing technician and spatial analyst working on soil contamination assessment for a flood plain monitoring project. You will use the classic Meuse river dataset (available in the sp package) which contains 155 georeferenced soil samples with heavy metal concentrations collected along the Meuse river in the Netherlands.\n\nYour complete geostatistical analysis must produce four deliverables:\n\n1. Fit an empirical variogram to the log-transformed zinc (log(zinc)) concentrations and fit a theoretical variogram model (spherical or exponential) using the gstat package. Write the fitted variogram parameters to /home/ga/RProjects/output/zinc_variogram.csv with columns: model, nugget, sill, range_m. Also write the empirical variogram points to /home/ga/RProjects/output/zinc_variogram_points.csv with columns: dist, gamma, np (number of pairs).\n\n2. Perform ordinary kriging to predict log(zinc) concentrations on a regular 40m x 40m prediction grid covering the Meuse flood plain. Write the prediction grid results to /home/ga/RProjects/output/zinc_kriging_predictions.csv with columns: x, y, zinc_pred (back-transformed to original scale as exp(prediction)), zinc_var (kriging variance).\n\n3. Assess spatial autocorrelation of the residuals using Moran's I test (ape package or spdep). Write the Moran test result to /home/ga/RProjects/output/zinc_moran_test.csv with columns: statistic, expected, variance, p_value, significant (TRUE/FALSE at alpha=0.05).\n\n4. Generate a 2-panel spatial figure: (left) bubble map of observed zinc concentrations at sample locations overlaid on the Meuse river outline, (right) kriging prediction map of the full flood plain with color scale. Save to /home/ga/RProjects/output/zinc_kriging_map.png.\n\nLogin: username=ga, password=password123. RStudio is open. Write your code in /home/ga/RProjects/spatial_analysis.R.",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 90
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/spatial_kriging_soil/setup_task.sh",
+    "post_task": "/workspace/tasks/spatial_kriging_soil/export_result.sh",
+    "pre_task_timeout": 420
+  },
+  "metadata": {
+    "dataset": "Meuse river soil zinc concentrations (sp package built-in dataset, 155 samples)",
+    "n_samples": 155,
+    "target_variable": "zinc (heavy metal, ppm)",
+    "packages_needed": ["gstat", "sp", "sf", "ape", "ggplot2", "dplyr", "viridis"],
+    "variogram_csv": "/home/ga/RProjects/output/zinc_variogram.csv",
+    "variogram_points_csv": "/home/ga/RProjects/output/zinc_variogram_points.csv",
+    "predictions_csv": "/home/ga/RProjects/output/zinc_kriging_predictions.csv",
+    "moran_csv": "/home/ga/RProjects/output/zinc_moran_test.csv",
+    "plot_png": "/home/ga/RProjects/output/zinc_kriging_map.png",
+    "script_path": "/home/ga/RProjects/spatial_analysis.R",
+    "expected_nugget_range": "0 to 0.3 (log scale)",
+    "expected_sill_range": "0.3 to 1.0 (log scale)",
+    "expected_range_m": "200 to 1500 meters",
+    "expected_zinc_range": "50 to 3000 ppm (back-transformed predictions)",
+    "occupation": "Remote Sensing Technician / Spatial Analyst",
+    "task_note": "Uses sp::meuse built-in data; gstat + sp + ape packages needed"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spatial_kriging_soil"
+    }
+  }
+}

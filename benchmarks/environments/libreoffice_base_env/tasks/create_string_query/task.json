@@ -1,0 +1,28 @@
+{
+  "id": "create_string_query@1",
+  "version": "1.0",
+  "env_id": "libreoffice_base_env@0.1",
+  "description": "Create a saved SQL query named 'CustomerDirectory' in the Chinook database. \n\nThe query must produce a formatted contact list from the 'Customer' table with these exact columns:\n1. 'CustomerId': The ID.\n2. 'FormattedName': Format as 'LASTNAME, Firstname' (Last Name in UPPERCASE).\n3. 'FullAddress': Combine Address, City, State, PostalCode, and Country into one string separated by commas. Use COALESCE to replace NULL State or PostalCode values with an empty string so the result doesn't show 'null'.\n4. 'EmailDomain': Extract only the domain part of the Email (everything after the '@' symbol).\n5. 'Phone': The phone number.\n6. 'Fax': The fax number.\n\nSort the results by Country (Ascending) then LastName (Ascending).\n\nSave the query as 'CustomerDirectory'.\n\nTechnical Hints for HSQLDB 1.8:\n- Use '||' for string concatenation.\n- Use 'UPPER(field)' for uppercase.\n- Use 'SUBSTRING(str, start, len)' and 'LOCATE(search, str)' for parsing the email domain.\n- Use 'COALESCE(col, '')' to handle nulls.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_string_query/setup_task.sh",
+    "post_task": "/workspace/tasks/create_string_query/export_result.sh"
+  },
+  "metadata": {
+    "expected_query_name": "CustomerDirectory",
+    "required_functions": ["UPPER", "COALESCE", "SUBSTRING", "LOCATE"],
+    "required_columns": ["CustomerId", "FormattedName", "FullAddress", "EmailDomain", "Phone", "Fax"],
+    "odb_path": "/home/ga/chinook.odb"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_string_query"
+    }
+  }
+}

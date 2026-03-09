@@ -1,0 +1,51 @@
+version: '3.7'
+
+services:
+  db:
+    image: mariadb:10.3
+    container_name: librehealth-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: m4ster_s3cret
+      MYSQL_DATABASE: libreehr
+      MYSQL_USER: libreehr
+      MYSQL_PASSWORD: s3cret
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pm4ster_s3cret"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  lh-ehr:
+    image: registry.gitlab.com/librehealth/ehr/lh-ehr:latest
+    container_name: librehealth-app
+    restart: always
+    ports:
+      - "8000:80"
+    environment:
+      LIBREHEALTH_DB_HOST: db
+      LIBREHEALTH_DB_PORT: 3306
+      LIBREHEALTH_DB_NAME: libreehr
+      LIBREHEALTH_DB_USER: libreehr
+      LIBREHEALTH_DB_PASSWORD: s3cret
+    volumes:
+      - sites_data:/var/www/html/sites
+    depends_on:
+      db:
+        condition: service_healthy
+
+  adminer:
+    image: adminer:4
+    container_name: librehealth-adminer
+    restart: always
+    ports:
+      - "8001:8080"
+    depends_on:
+      - db
+
+volumes:
+  db_data:
+  sites_data:

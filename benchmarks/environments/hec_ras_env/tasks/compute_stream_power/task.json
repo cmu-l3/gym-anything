@@ -1,0 +1,30 @@
+{
+  "id": "compute_stream_power@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "You are an environmental restoration planner assessing erosion potential along the White River in Muncie, Indiana. Stream power is the primary indicator of a river's ability to erode its bed and banks.\n\nYour goal is to write and execute a Python script that extracts hydraulic results from the Muncie HEC-RAS unsteady simulation output and computes the stream power profile at the time of peak discharge.\n\n**Prerequisites:**\nThe simulation results file (`Muncie.p04.tmp.hdf` or `Muncie.p04.hdf`) should already be present in `~/Documents/hec_ras_projects/Muncie`. If not, run the simulation first using `RasUnsteady`.\n\n**Task Requirements:**\n\n1. Create a Python script named `compute_stream_power.py` in `~/Documents/hec_ras_results/`.\n\n2. In the script, use `h5py` to read the HEC-RAS HDF5 output file.\n\n3. Extract the following data:\n   - Cross-section River Stations\n   - Flow (Q) time series for all cross-sections\n   - Water Surface Elevation (WSE) time series for all cross-sections\n   - *Hint: These are typically found under `Results/Unsteady/Output/Output Blocks/Base Output/Unsteady Time Series/Cross Sections`.*\n\n4. Perform the analysis:\n   - Identify the **time step index** where the **peak flow** occurs at the **most downstream** cross-section (smallest river station value).\n   - Extract Q and WSE for all cross-sections at this specific time step.\n   - Compute the Water Surface Slope ($S$) between consecutive cross-sections (ordered downstream to upstream):\n     $$ S_i = \\frac{|WSE_{i+1} - WSE_i|}{|Station_{i+1} - Station_i|} $$\n     *(Handle the boundaries appropriately, e.g., use the adjacent slope)*.\n   - Compute Stream Power per unit length ($ \\Omega $):\n     $$ \\Omega = \\gamma \\cdot Q \\cdot S $$\n     where $ \\gamma = 62.4 $ lb/ft³.\n\n5. Save the results to `~/Documents/hec_ras_results/stream_power_profile.csv` with these columns:\n   `Station`, `Flow_cfs`, `WSE_ft`, `WS_Slope`, `StreamPower`\n\n6. Save a summary to `~/Documents/hec_ras_results/stream_power_summary.txt` containing:\n   - `Max_StreamPower_Station: <station>`\n   - `Max_StreamPower_Value: <value>`\n   - `Peak_Flow_cfs: <value>`\n\n7. Execute your script to generate the output files.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_stream_power/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_stream_power/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "script_name": "compute_stream_power.py",
+    "csv_name": "stream_power_profile.csv",
+    "summary_name": "stream_power_summary.txt",
+    "gamma": 62.4
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_stream_power"
+    }
+  }
+}

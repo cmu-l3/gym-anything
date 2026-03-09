@@ -1,0 +1,37 @@
+{
+  "id": "radiation_tissue_atlas@1",
+  "version": "1.0",
+  "env_id": "invesalius3_env@0.1",
+  "description": "You are a medical physicist preparing a multi-tissue CT atlas for a brain radiation treatment planning system. Three distinct tissue compartments must be delineated as separate segmentation masks in InVesalius and exported as individual surface models. The CT Cranium DICOM series is already loaded in InVesalius 3. The treatment planning brief is at /home/ga/Documents/rt_planning/planning_brief.txt.\n\nCreate a complete 3-tissue radiation planning atlas:\n1. Create a BRAIN SOFT TISSUE mask — this is the primary target volume. Use a Hounsfield range centered near zero to capture brain parenchyma: the minimum HU must be >= -100 and the maximum HU must be <= 80. Example range: -50 to 50 HU.\n2. Create a COMPACT BONE (SKULL) mask — this is a critical radiation barrier structure. Use a Hounsfield range appropriate for dense cortical bone: the minimum HU must be >= 600. Example range: 662 to 2000 HU.\n3. Create a PERIORBITAL FAT mask — this is an organ at risk (OAR) adjacent to the treatment field. Use a Hounsfield range that captures fatty tissue: the maximum HU must be <= -20 and the minimum must be >= -300. Example range: -200 to -30 HU.\n4. Generate 3D surfaces from ALL THREE masks.\n5. Export each surface as a separate STL file:\n   - Brain tissue surface → /home/ga/Documents/rt_planning/brain_tissue.stl\n   - Skull/compact bone surface → /home/ga/Documents/rt_planning/skull_bone.stl\n   - Periorbital fat surface → /home/ga/Documents/rt_planning/periorbital_fat.stl\n6. Place at least 5 linear measurements documenting the distances between tissue compartments and the overall brain extent (these measurements help the physicist define isocenter placement and field margins).\n7. Save the complete InVesalius project (with all three masks, three surfaces, and all measurements) to /home/ga/Documents/rt_planning/rt_tissue_atlas.inv3\n\nLogin credentials: username=ga, password=password123",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1080,
+    "max_steps": 100
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/radiation_tissue_atlas/setup_task.sh",
+    "post_task": "/workspace/tasks/radiation_tissue_atlas/export_result.sh"
+  },
+  "metadata": {
+    "output_dir": "/home/ga/Documents/rt_planning",
+    "brain_stl_path": "/home/ga/Documents/rt_planning/brain_tissue.stl",
+    "bone_stl_path": "/home/ga/Documents/rt_planning/skull_bone.stl",
+    "fat_stl_path": "/home/ga/Documents/rt_planning/periorbital_fat.stl",
+    "output_project_path": "/home/ga/Documents/rt_planning/rt_tissue_atlas.inv3",
+    "brain_mask_min_hu": -100,
+    "brain_mask_max_hu": 80,
+    "bone_mask_min_hu": 600,
+    "fat_mask_max_hu": -20,
+    "fat_mask_min_hu": -300,
+    "required_mask_count": 3,
+    "required_stl_count": 3,
+    "required_measurement_count": 5,
+    "dicom_series": "ct_cranium/0051"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_radiation_tissue_atlas"
+    }
+  }
+}

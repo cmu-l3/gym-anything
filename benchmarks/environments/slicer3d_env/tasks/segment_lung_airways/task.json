@@ -1,0 +1,42 @@
+{
+  "id": "segment_lung_airways@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment the tracheobronchial airway tree (trachea and major bronchi) from the loaded chest CT scan. The airway segment should be named 'Airways' and must exclude external air outside the patient. Save the segmentation to ~/Documents/SlicerData/Exports/airways_segmentation.seg.nrrd.",
+  "difficulty": "intermediate",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/segment_lung_airways/setup_task.sh",
+    "post_task": "/workspace/tasks/segment_lung_airways/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "data_source": "LIDC-IDRI (Lung Image Database Consortium)",
+    "patient_id": "LIDC-IDRI-0001",
+    "expected_output_path": "/home/ga/Documents/SlicerData/Exports/airways_segmentation.seg.nrrd",
+    "volume_ml_min": 50,
+    "volume_ml_max": 300,
+    "max_components": 3,
+    "mean_hu_max": -800,
+    "scoring_weights": {
+      "segmentation_exists": 15,
+      "correct_location": 10,
+      "volume_valid": 20,
+      "isolated_correctly": 15,
+      "centroid_central": 15,
+      "air_density": 10,
+      "vlm_3d_visible": 10,
+      "vlm_workflow": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_segment_lung_airways"
+    }
+  }
+}

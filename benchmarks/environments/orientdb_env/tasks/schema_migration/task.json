@@ -1,0 +1,44 @@
+{
+  "id": "schema_migration@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "Perform a schema migration on the 'demodb' database (user: admin, pass: admin). \n\n1. Add a 'Rating' property (type DOUBLE) to the 'Restaurants' class.\n2. Add a 'Capacity' property (type INTEGER) to the 'Hotels' class.\n3. Make 'Hotels.Name' MANDATORY.\n4. Enforce constraints on 'Hotels.Stars': MIN = 1, MAX = 5.\n5. Create a composite index named 'Hotels_Country_Stars_idx' on 'Hotels' covering 'Country' and 'Stars' (type NOTUNIQUE).\n6. Backfill data: Set 'Rating' to 3.5 for ALL restaurants.\n7. Backfill data: Set 'Capacity' to 500 for 5-star hotels, and 200 for all other hotels.\n\nUse OrientDB Studio (http://localhost:2480/studio/index.html) or the Console to execute these changes.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/schema_migration/setup_task.sh",
+    "post_task": "/workspace/tasks/schema_migration/export_result.sh"
+  },
+  "metadata": {
+    "database": "demodb",
+    "checks": {
+      "properties": [
+        {"class": "Restaurants", "name": "Rating", "type": "DOUBLE"},
+        {"class": "Hotels", "name": "Capacity", "type": "INTEGER"}
+      ],
+      "constraints": [
+        {"class": "Hotels", "property": "Name", "attribute": "mandatory", "value": true},
+        {"class": "Hotels", "property": "Stars", "attribute": "min", "value": "1"},
+        {"class": "Hotels", "property": "Stars", "attribute": "max", "value": "5"}
+      ],
+      "indexes": [
+        {"name": "Hotels_Country_Stars_idx", "type": "NOTUNIQUE", "fields": ["Country", "Stars"]}
+      ],
+      "data_backfill": {
+        "restaurants_rating": 3.5,
+        "hotels_capacity_5star": 500,
+        "hotels_capacity_others": 200
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_schema_migration"
+    }
+  }
+}

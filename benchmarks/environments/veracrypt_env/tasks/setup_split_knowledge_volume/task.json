@@ -1,0 +1,33 @@
+{
+  "id": "setup_split_knowledge_volume@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Configure a high-security 'Split Knowledge' VeraCrypt volume. \n\n1. Create a new encrypted file container at '/home/ga/Volumes/master_keys.hc'.\n   - Size: 10 MB\n   - Encryption: AES\n   - Hash: SHA-512\n   - Filesystem: FAT\n\n2. Configure access control to require ALL of the following credentials (simulating a 3-person rule):\n   - Password: 'SharedAccess2025'\n   - Keyfile 1: '/home/ga/Dept_IT/it_token.bin'\n   - Keyfile 2: '/home/ga/Dept_Security/sec_cert.pem'\n   - Keyfile 3: '/home/ga/Dept_Compliance/audit_policy.pdf'\n   (You must add all three files as keyfiles)\n\n3. After creating the volume, mount it using these credentials.\n\n4. Move the sensitive seed file from '/home/ga/Sensitive/master_seed.txt' into the root of the mounted volume.\n\n5. Dismount the volume when finished.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_split_knowledge_volume/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_split_knowledge_volume/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/master_keys.hc",
+    "password": "SharedAccess2025",
+    "keyfiles": [
+      "/home/ga/Dept_IT/it_token.bin",
+      "/home/ga/Dept_Security/sec_cert.pem",
+      "/home/ga/Dept_Compliance/audit_policy.pdf"
+    ],
+    "seed_file_source": "/home/ga/Sensitive/master_seed.txt",
+    "seed_file_name": "master_seed.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_split_knowledge"
+    }
+  }
+}

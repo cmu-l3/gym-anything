@@ -1,0 +1,39 @@
+{
+  "id": "colony_counting_classification@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Perform a colony counting and size classification workflow on a microbiology plate image.\n\n1. Open the image at '~/Fiji_Data/raw/colonies/cell_colony.tif'.\n2. Convert to 8-bit grayscale, subtract background (Rolling Ball, radius 50), and threshold the image to segment the dark colonies.\n3. Use 'Analyze Particles' to count colonies (size 20-Infinity px^2, circularity 0.3-1.0). Ensure you separate touching colonies (Watershed) and exclude edge artifacts if necessary.\n4. Save the raw measurements to '~/Fiji_Data/results/colonies/colony_measurements.csv'. This file must include Area, Circularity, and Centroid (X, Y).\n5. Classify the colonies into three size categories based on Area:\n   - Small: < 100 px^2\n   - Medium: 100 - 500 px^2\n   - Large: > 500 px^2\n   Add a 'size_class' column to your measurements CSV or create a processed version with this classification.\n6. Generate a summary text report at '~/Fiji_Data/results/colonies/colony_summary.txt' containing the total count and the count per size class.\n7. Create a table '~/Fiji_Data/results/colonies/size_distribution.csv' with columns: size_class, count, percentage, mean_area.\n8. Save an annotated image showing the detected colony outlines/overlays to '~/Fiji_Data/results/colonies/colony_overlay.png'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/colony_counting_classification/setup_task.sh",
+    "post_task": "/workspace/tasks/colony_counting_classification/export_result.sh"
+  },
+  "metadata": {
+    "input_image": "~/Fiji_Data/raw/colonies/cell_colony.tif",
+    "output_dir": "~/Fiji_Data/results/colonies",
+    "expected_files": [
+      "colony_measurements.csv",
+      "colony_summary.txt",
+      "size_distribution.csv",
+      "colony_overlay.png"
+    ],
+    "classification_criteria": {
+      "small": "< 100",
+      "medium": "100-500",
+      "large": "> 500"
+    },
+    "expected_min_colonies": 10,
+    "expected_max_colonies": 300
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_colony_counting"
+    }
+  }
+}

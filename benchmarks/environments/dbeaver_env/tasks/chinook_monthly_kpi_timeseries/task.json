@@ -1,0 +1,28 @@
+{
+  "id": "chinook_monthly_kpi_timeseries@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Connect to the Chinook SQLite database in DBeaver (path: /home/ga/Documents/databases/chinook.db) and create a connection named 'Chinook'.\n\nWrite and execute a SQL query to generate a monthly financial KPI report. For every month in the invoices table (from earliest to latest), calculate:\n1. Month (format YYYY-MM)\n2. Revenue (sum of Total, rounded to 2 decimals)\n3. InvoiceCount (count of invoices)\n4. UniqueCustomers (count of distinct CustomerIds)\n5. NewCustomers (count of customers whose first-ever invoice was in that month)\n6. CumulativeRevenue (running total of Revenue from start, rounded to 2 decimals)\n7. MoMGrowthPct (Month-over-Month revenue growth %, rounded to 2 decimals; NULL for first month)\n\nSort results by Month ascending.\n\nExport the results to a CSV file at exactly: /home/ga/Documents/exports/monthly_kpi.csv\nSave your SQL script to exactly: /home/ga/Documents/scripts/monthly_kpi.sql",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_monthly_kpi_timeseries/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_monthly_kpi_timeseries/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook.db",
+    "expected_csv_path": "/home/ga/Documents/exports/monthly_kpi.csv",
+    "expected_sql_path": "/home/ga/Documents/scripts/monthly_kpi.sql",
+    "required_columns": ["Month", "Revenue", "InvoiceCount", "UniqueCustomers", "NewCustomers", "CumulativeRevenue", "MoMGrowthPct"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_monthly_kpi"
+    }
+  }
+}

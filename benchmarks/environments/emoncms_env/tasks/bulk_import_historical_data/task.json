@@ -1,0 +1,30 @@
+{
+  "id": "bulk_import_historical_data@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "A standalone logger has collected 24 hours of power data (144 readings, 10-minute intervals) for a new building annex. This data is provided in a CSV file at `/home/ga/annex_power_data.csv` (format: timestamp, value). \n\nYour task is to:\n1. Import this historical data into Emoncms using the `input/bulk.json` API endpoint. Use the node name `building_annex` and input key `power`.\n2. Once imported, go to the Emoncms Inputs page, find the `building_annex` node, and configure the `power` input to log to a new PHPFina feed named `annex_power` with a 10s interval.\n3. Verify that the feed contains the data and save the final data point count to `/home/ga/annex_import_result.txt` in the format `feed_name:annex_power,datapoints:NNN`.\n\nThe admin API write key is available in `/home/ga/emoncms_apikeys.sh`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/bulk_import_historical_data/setup_task.sh",
+    "post_task": "/workspace/tasks/bulk_import_historical_data/export_result.sh"
+  },
+  "metadata": {
+    "expected_feed_name": "annex_power",
+    "expected_input_name": "power",
+    "expected_node_name": "building_annex",
+    "min_data_points": 140,
+    "csv_path": "/home/ga/annex_power_data.csv",
+    "result_path": "/home/ga/annex_import_result.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bulk_import"
+    }
+  }
+}

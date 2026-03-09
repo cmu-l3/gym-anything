@@ -1,0 +1,48 @@
+{
+  "id": "mri_followup_alignment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Perform rigid registration to align the follow-up MRI (~/Documents/SlicerData/BraTS/followup_flair_misaligned.nii.gz) to the pre-loaded baseline FLAIR. Measure the lesion's maximum diameter on both baseline and registered follow-up. Save transform to ~/Documents/SlicerData/BraTS/followup_transform.h5, registered volume to ~/Documents/SlicerData/BraTS/followup_registered.nii.gz, and report to ~/Documents/SlicerData/BraTS/followup_report.json with fields: baseline_diameter_mm, followup_diameter_mm, percent_change, registration_verified.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mri_followup_alignment/setup_task.sh",
+    "post_task": "/workspace/tasks/mri_followup_alignment/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "baseline_volume": "baseline FLAIR (already loaded)",
+    "followup_misaligned": "/home/ga/Documents/SlicerData/BraTS/followup_flair_misaligned.nii.gz",
+    "output_transform": "/home/ga/Documents/SlicerData/BraTS/followup_transform.h5",
+    "output_registered": "/home/ga/Documents/SlicerData/BraTS/followup_registered.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/followup_report.json",
+    "passing_thresholds": {
+      "nmi_minimum": 0.65,
+      "ncc_minimum": 0.70,
+      "translation_error_max_mm": 5.0,
+      "rotation_error_max_deg": 5.0
+    },
+    "scoring_weights": {
+      "registration_nmi": 25,
+      "registration_ncc": 15,
+      "transform_accuracy": 20,
+      "registered_volume_saved": 10,
+      "transform_file_saved": 5,
+      "baseline_measurement": 10,
+      "followup_measurement": 10,
+      "report_completeness": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mri_followup_alignment"
+    }
+  }
+}

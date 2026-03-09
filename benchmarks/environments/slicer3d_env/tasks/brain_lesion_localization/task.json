@@ -1,0 +1,49 @@
+{
+  "id": "brain_lesion_localization@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Localize the glioma on the provided brain FLAIR MRI by placing a fiducial at the tumor centroid, capturing axial/coronal/sagittal screenshots, and documenting laterality. Save outputs to ~/Documents/SlicerData/BraTS/LocalizationReport/: lesion_axial.png, lesion_coronal.png, lesion_sagittal.png, lesion_centroid.mrk.json, and localization_report.json with fields: lesion_centroid_ras, laterality, midline_distance_mm, hemisphere_involvement.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/brain_lesion_localization/setup_task.sh",
+    "post_task": "/workspace/tasks/brain_lesion_localization/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "output_dir": "/home/ga/Documents/SlicerData/BraTS/LocalizationReport",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_files": {
+      "axial_screenshot": "lesion_axial.png",
+      "coronal_screenshot": "lesion_coronal.png",
+      "sagittal_screenshot": "lesion_sagittal.png",
+      "fiducial_markup": "lesion_centroid.mrk.json",
+      "report": "localization_report.json"
+    },
+    "passing_thresholds": {
+      "centroid_error_max_mm": 15.0,
+      "midline_distance_tolerance_mm": 10.0
+    },
+    "scoring_weights": {
+      "centroid_accuracy": 30,
+      "fiducial_placed": 10,
+      "axial_screenshot": 10,
+      "coronal_screenshot": 10,
+      "sagittal_screenshot": 10,
+      "laterality_correct": 10,
+      "midline_distance": 10,
+      "report_complete": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_brain_lesion_localization"
+    }
+  }
+}

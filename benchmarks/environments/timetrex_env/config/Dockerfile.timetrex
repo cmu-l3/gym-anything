@@ -1,0 +1,89 @@
+FROM php:7.4-apache
+
+# TimeTrex 12.7.2 requires PHP 7.2 - 8.0
+# PHP 7.4 is the recommended version for this release
+
+# Install PHP extensions required by TimeTrex
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    libpng-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libicu-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libzip-dev \
+    libldap2-dev \
+    libkrb5-dev \
+    libpspell-dev \
+    libonig-dev \
+    libcurl4-openssl-dev \
+    curl \
+    unzip \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure and install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-configure ldap \
+    && docker-php-ext-install -j$(nproc) \
+        pgsql \
+        pdo_pgsql \
+        gd \
+        gettext \
+        intl \
+        soap \
+        zip \
+        ldap \
+        xml \
+        xsl \
+        mbstring \
+        bcmath \
+        pspell \
+        opcache
+
+# Enable Apache modules
+RUN a2enmod rewrite headers
+
+# Download and install TimeTrex Community Edition from GitHub mirror
+WORKDIR /var/www/html
+RUN curl -L https://github.com/aydancoskun/timetrex-community-edition/archive/refs/heads/master.zip -o timetrex.zip \
+    && unzip timetrex.zip \
+    && mv timetrex-community-edition-master timetrex \
+    && rm timetrex.zip
+
+# Create required directories
+RUN mkdir -p /var/timetrex/storage /var/log/timetrex /tmp/timetrex \
+    && chown -R www-data:www-data /var/timetrex /var/log/timetrex /tmp/timetrex \
+    && chmod -R 775 /var/timetrex /var/log/timetrex /tmp/timetrex
+
+# Set proper ownership for TimeTrex
+RUN chown -R www-data:www-data /var/www/html/timetrex \
+    && chmod -R 755 /var/www/html/timetrex
+
+# Copy configuration file
+COPY timetrex.ini.php /var/www/html/timetrex/timetrex.ini.php
+RUN chown www-data:www-data /var/www/html/timetrex/timetrex.ini.php
+
+# Configure PHP
+RUN echo "upload_max_filesize = 128M" >> /usr/local/etc/php/php.ini \
+    && echo "post_max_size = 128M" >> /usr/local/etc/php/php.ini \
+    && echo "memory_limit = 512M" >> /usr/local/etc/php/php.ini \
+    && echo "max_execution_time = 300" >> /usr/local/etc/php/php.ini \
+    && echo "date.timezone = America/New_York" >> /usr/local/etc/php/php.ini
+
+# Apache configuration for TimeTrex
+RUN echo '<Directory /var/www/html/timetrex>' > /etc/apache2/conf-available/timetrex.conf \
+    && echo '    AllowOverride All' >> /etc/apache2/conf-available/timetrex.conf \
+    && echo '    Require all granted' >> /etc/apache2/conf-available/timetrex.conf \
+    && echo '</Directory>' >> /etc/apache2/conf-available/timetrex.conf \
+    && a2enconf timetrex
+
+# Set document root to TimeTrex
+ENV APACHE_DOCUMENT_ROOT /var/www/html/timetrex
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
+    && sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+EXPOSE 80
+
+CMD ["apache2-foreground"]

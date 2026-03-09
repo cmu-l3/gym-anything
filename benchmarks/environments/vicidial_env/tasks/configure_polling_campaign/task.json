@@ -1,0 +1,30 @@
+{
+  "id": "configure_polling_campaign@1",
+  "version": "1.0",
+  "env_id": "vicidial_env@0.1",
+  "description": "Create and configure a new outbound polling campaign in Vicidial.\n\nLogin to the Vicidial Admin Interface (User: 6666, Pass: andromeda). Note: If prompted by a browser popup, use the same credentials.\n\nTask Requirements:\n\n1. Create a new Campaign:\n   - Campaign ID: SENPOLL\n   - Campaign Name: Senate Office Polling 2026\n   - Active: Y\n   - Dial Method: RATIO\n   - Auto Dial Level: 1.0\n\n2. Add Custom Campaign Statuses (Dispositions) to the SENPOLL campaign:\n   - SVYCMP: \"Survey Complete\" (Selectable: Y, Human Answer: Y)\n   - REFUSD: \"Refused Participation\" (Selectable: Y, Human Answer: Y)\n   - LFTMSG: \"Left Message\" (Selectable: Y, Human Answer: N)\n   - WRGPRS: \"Wrong Person\" (Selectable: Y, Human Answer: Y)\n\n3. Create a new Script:\n   - Script ID: SENPOLLSC\n   - Script Name: Senate Polling Script\n   - Text: \"Good morning. My name is [agent_name]. I am calling from National Policy Research on behalf of a nonpartisan research initiative. We are conducting a brief survey about constituent services and legislative priorities. May I speak with a staff member who handles constituent communications? This call may be recorded for quality assurance purposes.\"\n\n4. Configuration:\n   - Assign the new script (SENPOLLSC) to the SENPOLL campaign.\n   - Assign the existing list 9001 (US Senators 2026) to the SENPOLL campaign (it is currently unassigned).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_polling_campaign/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_polling_campaign/export_result.sh"
+  },
+  "metadata": {
+    "campaign_id": "SENPOLL",
+    "campaign_name": "Senate Office Polling 2026",
+    "script_id": "SENPOLLSC",
+    "list_id": "9001",
+    "required_statuses": ["SVYCMP", "REFUSD", "LFTMSG", "WRGPRS"],
+    "script_text_keywords": ["National Policy Research", "constituent services", "legislative priorities"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_polling_campaign"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "task": "hl7_batch_file_processor",
+  "collected": "2026-03-03",
+  "environment": "nextgen_connect_integration_engine_env@0.1",
+  "occupation": "Healthcare IT Integration Specialist (SOC 15-1211.01)",
+  "checks": {
+    "target_entity": "NextGen Connect channel 'Nightly HL7 Batch Processor' with File Reader source (not TCP), batch splitting, DB writer to batch_processing_log, archive-on-process",
+    "initial_state": "No channels exist; batch_processing_log table does not exist. Directories /home/ga/hl7_batch_inbox/ and /home/ga/hl7_batch_archive/ exist. Sample batch file pre-placed in inbox.",
+    "service_status": "nextgen-connect container healthy; nextgen-postgres container healthy; directories created with proper permissions",
+    "sample_data_available": [
+      "/home/ga/hl7_batch_inbox/nightly_batch_20240115.hl7 (BHS/BTS batch with 4 ADT messages: A01 x2, A08 x1, A03 x1)",
+      "/home/ga/sample_batch.hl7 (reference copy of batch file)"
+    ],
+    "real_data_source": "HL7 v2.5 batch file using standard BHS/BTS envelope format per HL7 v2.5 specification. Messages represent realistic hospital ADT events (admissions, updates, discharges) with LOINC/standard segment structures. Patient identifiers are sample MRNs in standard format.",
+    "batch_file_structure": {
+      "bhs_segment": "BHS|^~\\&|BatchSystem|CityGeneralHospital|...|BATCH20240115001",
+      "message_count": 4,
+      "message_types": ["ADT^A01", "ADT^A01", "ADT^A08", "ADT^A03"],
+      "bts_segment": "BTS|4"
+    }
+  },
+  "setup_files_created": [
+    "/tmp/initial_batchproc_channel_count",
+    "/home/ga/hl7_batch_inbox/nightly_batch_20240115.hl7",
+    "/home/ga/hl7_batch_archive/ (directory)",
+    "/home/ga/hl7_batch_errors/ (directory)",
+    "/home/ga/sample_batch.hl7"
+  ],
+  "verification_approach": "export_result.sh searches channel by name patterns (batch/nightly/file processor), extracts XML to detect FileReceiverProperties (key differentiator from TCP-based tasks), processBatch or preprocessor keywords, DatabaseDispatcher with batch_processing_log, moveToDirectory/archive config. Checks batch_processing_log table and archive directory for moved files. verifier.py loads /tmp/hl7_batch_file_processor_result.json.",
+  "do_nothing_test": {
+    "expected_score": 0,
+    "expected_passed": false,
+    "reason": "No channels created; batch_processing_log does not exist; even though sample file is in inbox, it cannot be processed without a deployed File Reader channel"
+  },
+  "wrong_target_test": {
+    "method": "Modify JSON: has_file_reader=false (simulates agent using TCP instead of File Reader)",
+    "expected_score": 2,
+    "expected_passed": false,
+    "note": "Score would be 2 (minimal credit for channel existing) which is well below threshold 70"
+  },
+  "scoring_breakdown": {
+    "channel_exists_batch_name": 15,
+    "file_reader_source_not_tcp": 25,
+    "batch_splitting_logic": 20,
+    "db_writer_batch_processing_log": 15,
+    "archive_move_config": 10,
+    "batch_processing_log_table": 10,
+    "channel_deployed": 5,
+    "total": 100,
+    "pass_threshold": 70
+  }
+}

@@ -1,0 +1,23 @@
+-- OpenCAD Database Schema
+-- NOTE: This file is intentionally minimal. The actual schema is imported from
+-- the official OpenCAD install SQL at /opt/opencad-src/sql/oc_install.sql
+-- during setup_opencad.sh. That file uses <DB_PREFIX> placeholders which are
+-- replaced with empty string (matching DB_PREFIX='' in oc-config.php).
+--
+-- The setup script runs:
+--   sed 's/<DB_PREFIX>//g' /opt/opencad-src/sql/oc_install.sql > /tmp/oc_schema.sql
+--   mysql -u root -prootpass opencad < /tmp/oc_schema.sql
+--
+-- This ensures we always use the exact official schema rather than a
+-- hand-maintained copy that can drift out of sync.
+--
+-- Key tables created by the official SQL:
+--   users, civilian_names, ncic_names, ncic_plates, ncic_warrants,
+--   ncic_citations, ncic_weapons, ncic_arrests, calls, call_history,
+--   bolos_persons, bolos_vehicles, departments, streets, vehicles,
+--   colors, weapons, incident_types, statuses, tones, radio_codes,
+--   citation_types, warrant_types, warning_types, aop, active_users,
+--   dispatchers, calls_users, call_list, user_departments,
+--   user_departments_temp, config, genders
+--
+-- See seed_data.sql for the data that populates these tables after creation.

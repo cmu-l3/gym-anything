@@ -1,0 +1,32 @@
+{
+  "id": "mitochondrial_network_analysis@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Quantify mitochondrial network morphology in a fluorescence microscopy image.\n\n1. Open the raw image at `~/Fiji_Data/raw/mitochondria/mitochondria_raw.tif`.\n2. Preprocess the image to enhance fine structures (e.g., Subtract Background, Enhance Contrast, or Unsharp Mask).\n3. Create a binary segmentation (Threshold) isolating the mitochondrial network.\n4. Measure shape descriptors: Run `Analyze Particles` to calculate Aspect Ratio (AR) and Form Factor (Circularity). Save these measurements to `~/Fiji_Data/results/mitochondria/shape_metrics.csv`.\n5. Analyze network topology: Skeletonize the binary image (`Process > Binary > Skeletonize`) and run `Analyze Skeleton (2D/3D)`. Save the skeleton results table to `~/Fiji_Data/results/mitochondria/skeleton_metrics.csv`.\n6. Save the labeled skeleton map image (the visualization of the skeleton) to `~/Fiji_Data/results/mitochondria/skeleton_map.png`.\n\nSuccess requires valid CSV files with non-trivial data (Aspect Ratio > 1.5) and a skeleton visualization.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mitochondrial_network_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/mitochondrial_network_analysis/export_result.sh"
+  },
+  "metadata": {
+    "input_file": "~/Fiji_Data/raw/mitochondria/mitochondria_raw.tif",
+    "expected_shape_csv": "~/Fiji_Data/results/mitochondria/shape_metrics.csv",
+    "expected_skeleton_csv": "~/Fiji_Data/results/mitochondria/skeleton_metrics.csv",
+    "expected_skeleton_map": "~/Fiji_Data/results/mitochondria/skeleton_map.png",
+    "min_aspect_ratio": 1.5,
+    "min_branches": 50,
+    "data_source": "Fiji built-in HeLa Cells sample (Channel 2)"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mitochondrial_network"
+    }
+  },
+  "tags": ["bioimage", "morphometry", "skeletonization", "microscopy", "segmentation"]
+}

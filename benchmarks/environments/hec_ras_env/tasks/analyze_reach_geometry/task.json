@@ -1,0 +1,34 @@
+{
+  "id": "analyze_reach_geometry@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Perform a geometric quality control analysis on the Muncie HEC-RAS model. \n\nGoal: Create a Python script to parse the HEC-RAS HDF5 geometry data, calculate the channel slope and reach length for every river segment, and generate a CSV report.\n\nInput: The HEC-RAS simulation or geometry file (e.g., Muncie.p04.tmp.hdf) located in ~/Documents/hec_ras_projects/Muncie/.\n\nRequirements:\n1. Write a script at '~/Documents/hec_ras_results/geometry_analysis.py'.\n2. The script must read the HDF5 file using h5py.\n3. Extract River Stations, Channel Reach Lengths, and compute the Minimum Channel Elevation (Invert) for each cross-section.\n4. Calculate the Slope for each segment between consecutive cross-sections using the formula: Slope = (Invert_upstream - Invert_downstream) / Reach_Length.\n5. Save a CSV report to '~/Documents/hec_ras_results/reach_stats.csv' with exactly these columns: 'Upstream_RS', 'Downstream_RS', 'Reach_Length_ft', 'Upstream_Invert_ft', 'Downstream_Invert_ft', 'Slope_ft_ft'.\n\nNote: If the HDF5 file does not exist, you must run the geometry preprocessor (RasGeomPreprocess) or the simulation to generate it.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/analyze_reach_geometry/setup_task.sh",
+    "post_task": "/workspace/tasks/analyze_reach_geometry/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/hec_ras_results/reach_stats.csv",
+    "expected_script_path": "/home/ga/Documents/hec_ras_results/geometry_analysis.py",
+    "required_columns": [
+      "Upstream_RS",
+      "Downstream_RS",
+      "Reach_Length_ft",
+      "Upstream_Invert_ft",
+      "Downstream_Invert_ft",
+      "Slope_ft_ft"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_analyze_reach_geometry"
+    }
+  }
+}

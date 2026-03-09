@@ -1,0 +1,32 @@
+{
+  "id": "leaf_area_calibration@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Calibrated Leaf Area Measurement",
+  "description": "Calculate the specific leaf area (SLA) proxy by measuring the total projected area of a leaf blade.\n\n1. Open the built-in 'Leaf' sample image in Fiji (File > Open Samples > Leaf (36K)).\n\n2. Perform Spatial Calibration:\n   - The physical width of the image field of view is exactly 10 cm.\n   - Use Analyze > Set Scale to calibrate the image global scale based on this width.\n   - Ensure the unit is set to 'cm'.\n\n3. Segmentation and Measurement:\n   - Threshold the image to isolate the leaf structure.\n   - CRITICAL: The measurement must represent the SOLID leaf blade, not just the vein network. You must fill the internal holes in your binary mask (Process > Binary > Fill Holes) before measuring.\n   - Measure the Area of the leaf.\n\n4. Save Results:\n   - Save the measurement results to '~/ImageJ_Data/results/leaf_area.csv'.\n   - The file must contain the Area column with values in square centimeters (cm^2).",
+  "difficulty": "medium",
+  "tags": ["calibration", "morphometry", "plants", "thresholding", "binary-operations", "measurement"],
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/leaf_area_calibration/setup_task.sh",
+    "post_task": "/workspace/tasks/leaf_area_calibration/export_result.sh"
+  },
+  "metadata": {
+    "image_source": "Leaf (36K)",
+    "physical_width_cm": 10,
+    "expected_area_min": 45.0,
+    "expected_area_max": 65.0,
+    "unfilled_area_max": 40.0,
+    "result_file": "/home/ga/ImageJ_Data/results/leaf_area.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_leaf_area_calibration"
+    }
+  }
+}

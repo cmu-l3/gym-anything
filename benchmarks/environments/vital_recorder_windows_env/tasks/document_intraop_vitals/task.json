@@ -1,0 +1,33 @@
+{
+  "id": "document_intraop_vitals@1",
+  "version": "1.0",
+  "env_id": "vital_recorder_windows_env@0.1",
+  "description": "Perform a retrospective chart review of a surgical case using Vital Recorder. \n\nGoal: Open the surgical case file '0006.vital' and document specific vital signs at 5-minute intervals into a summary text file.\n\nInstructions:\n1. Open Vital Recorder (if not already open).\n2. Load the file '0006.vital' located at 'C:\\Users\\Docker\\Documents\\VitalData\\0006.vital'.\n3. You must read values for three parameters: Heart Rate (HR), SpO2, and Systolic Blood Pressure (ART_SBP or SBP).\n4. Navigate to the specific timestamps listed below and record the values displayed at that exact moment:\n   - 00:10:00 (10 minutes)\n   - 00:15:00 (15 minutes)\n   - 00:20:00 (20 minutes)\n   - 00:25:00 (25 minutes)\n   - 00:30:00 (30 minutes)\n\n5. Create a text file at 'C:\\Users\\Docker\\Documents\\vitals_summary.txt' with the following exact format (replace <value> with the integer number you read):\n\nINTRAOPERATIVE VITAL SIGNS SUMMARY\nCase: 0006\nPeriod: 00:10:00 - 00:30:00\n\nTime,HR,SpO2,SBP\n00:10:00,<value>,<value>,<value>\n00:15:00,<value>,<value>,<value>\n00:20:00,<value>,<value>,<value>\n00:25:00,<value>,<value>,<value>\n00:30:00,<value>,<value>,<value>\n\nIf a value is not available/blank at a timestamp, write 'N/A'. Round values to the nearest whole number.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\document_intraop_vitals\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\document_intraop_vitals\\export_result.ps1",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "output_path": "C:\\Users\\Docker\\Documents\\vitals_summary.txt",
+    "ground_truth_path": "C:\\ProgramData\\VitalTruth\\vitals_gt.json",
+    "data_url": "https://api.vitaldb.net/6",
+    "tolerances": {
+      "HR": 3,
+      "SpO2": 2,
+      "SBP": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_document_intraop_vitals"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "id": "create_aortic_cpr@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Create a curved planar reformation (CPR) of the abdominal aorta on the pre-loaded contrast-enhanced CT. Place an open curve with at least 8 control points along the aorta centerline spanning at least 100mm, then generate the CPR. Save the reformation image to ~/Documents/SlicerData/Exports/aorta_cpr.png and the curve markup to ~/Documents/SlicerData/Exports/aorta_centerline.json.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 70,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_aortic_cpr/setup_task.sh",
+    "post_task": "/workspace/tasks/create_aortic_cpr/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_cpr_image": "/home/ga/Documents/SlicerData/Exports/aorta_cpr.png",
+    "output_curve_file": "/home/ga/Documents/SlicerData/Exports/aorta_centerline.json",
+    "min_control_points": 8,
+    "min_curve_length_mm": 100,
+    "min_cpr_size_kb": 50,
+    "min_cpr_dimension": 256,
+    "aorta_centerline_tolerance_mm": 10,
+    "scoring_weights": {
+      "cpr_image_exists": 10,
+      "cpr_image_size_ok": 10,
+      "cpr_image_not_blank": 10,
+      "curve_file_exists": 10,
+      "min_control_points": 15,
+      "curve_length_adequate": 15,
+      "anatomical_alignment": 15,
+      "vlm_vessel_confirmation": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_aortic_cpr"
+    }
+  }
+}

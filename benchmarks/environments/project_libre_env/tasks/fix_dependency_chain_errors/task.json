@@ -1,0 +1,53 @@
+{
+  "id": "fix_dependency_chain_errors@1",
+  "version": "1.0",
+  "env_id": "project_libre_env@0.1",
+  "description": "A Commercial Construction project for a three-story office building is open in ProjectLibre. The project schedule was recently re-imported from a corrupted backup file and now contains multiple dependency errors across different phases. Some tasks reference incorrect predecessors, have wrong dependency types (e.g., Start-to-Finish instead of Finish-to-Start), are missing critical predecessor links, or have spurious dependencies that make no construction sense. Review the task dependency logic across all phases of the project and correct any sequencing errors so the schedule accurately reflects realistic commercial construction practice. Save the project when done.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 640,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fix_dependency_chain_errors/setup_task.sh"
+  },
+  "metadata": {
+    "project_file": "/home/ga/Projects/current_task.xml",
+    "injected_errors": [
+      {
+        "task_uid": 48,
+        "task_name": "Erect steel columns, beams and joist - 1st and 2nd floors",
+        "error": "Predecessor changed from UID=44 (Strip column piers) to UID=43 (Strip wall forms). Steel erection depends on foundation work, not elevator wall stripping.",
+        "correct_predecessor_uid": 44,
+        "wrong_predecessor_uid": 43
+      },
+      {
+        "task_uid": 57,
+        "task_name": "Pour 2nd floor slab",
+        "error": "Link type for predecessor UID=55 changed from FS(1) to SF(3). Start-to-Finish is physically impossible for forming-to-pouring.",
+        "predecessor_uid": 55,
+        "correct_link_type": 1,
+        "wrong_link_type": 3
+      },
+      {
+        "task_uid": 89,
+        "task_name": "Pour lightweight concrete roof fill",
+        "error": "Predecessor UID=88 (Install flashing at parapet walls) removed. Flashing must be installed before roof fill.",
+        "missing_predecessor_uid": 88
+      },
+      {
+        "task_uid": 111,
+        "task_name": "Set elevator equipment in shafts",
+        "error": "Spurious predecessor UID=109 (Pave parking lot) added. Paving has no relation to elevator installation.",
+        "spurious_predecessor_uid": 109
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fix_dependency_chain_errors"
+    }
+  }
+}

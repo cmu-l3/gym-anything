@@ -1,0 +1,42 @@
+{
+  "id": "measure_emphysema_laa@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Calculate the Low Attenuation Area percentage (LAA%) for emphysema assessment on the loaded LIDC-IDRI chest CT using a -950 HU threshold. Save results to /home/ga/Documents/SlicerData/Exports/emphysema_analysis.json with fields: patient_id, threshold_hu, total_lung_volume_ml, emphysema_volume_ml, laa_percent, classification.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/measure_emphysema_laa/setup_task.sh",
+    "post_task": "/workspace/tasks/measure_emphysema_laa/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "output_path": "/home/ga/Documents/SlicerData/Exports/emphysema_analysis.json",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "emphysema_threshold_hu": -950,
+    "lung_threshold_range_hu": {"min": -950, "max": -400},
+    "total_lung_volume_range_ml": {"min": 3000, "max": 8000},
+    "laa_percent_plausible_range": {"min": 0, "max": 50},
+    "laa_tolerance_percent": 5,
+    "scoring_weights": {
+      "json_file_exists": 15,
+      "required_fields_present": 15,
+      "total_lung_volume_valid": 15,
+      "laa_percent_calculated": 20,
+      "values_internally_consistent": 15,
+      "threshold_documented": 10,
+      "vlm_confirms_visualization": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_emphysema_laa"
+    }
+  }
+}

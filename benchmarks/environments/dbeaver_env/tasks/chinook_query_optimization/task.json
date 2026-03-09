@@ -1,0 +1,33 @@
+{
+  "id": "chinook_query_optimization@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Database Administrator tasked with optimizing query performance. A development database has been set up at /home/ga/Documents/databases/chinook_perf.db.\n\nYour Goal: Analyze four slow queries, create specific indexes to optimize them, and document your work.\n\n1. Connect to the database in DBeaver:\n   - Driver: SQLite\n   - Path: /home/ga/Documents/databases/chinook_perf.db\n   - Connection Name: 'ChinookPerf' (exact case)\n\n2. Analyze these four queries using 'Explain Execution Plan' (Ctrl+Shift+E) to understand why they are slow (full table scans):\n\n   Query 1 (Monthly Revenue): SELECT BillingCountry, strftime('%Y-%m', InvoiceDate) AS Month, SUM(Total) FROM invoices WHERE InvoiceDate BETWEEN '2010-01-01' AND '2012-12-31' GROUP BY BillingCountry, Month;\n\n   Query 2 (Customer Lookup): SELECT c.FirstName, c.LastName, COUNT(i.InvoiceId) FROM customers c JOIN invoices i ON c.CustomerId = i.CustomerId WHERE c.City = 'Berlin' GROUP BY c.CustomerId;\n\n   Query 3 (Composer Search): SELECT t.Name, t.Composer, a.Title FROM tracks t JOIN albums a ON t.AlbumId = a.AlbumId WHERE t.Composer LIKE 'AC/DC%' GROUP BY t.TrackId;\n\n   Query 4 (Long Tracks): SELECT t.Name, t.Milliseconds/1000, g.Name FROM tracks t JOIN genres g ON t.GenreId = g.GenreId WHERE t.Milliseconds > 400000 ORDER BY t.Milliseconds DESC;\n\n3. Create four indexes to optimize these queries. You must create indexes on these specific columns:\n   - invoices table: InvoiceDate\n   - customers table: City\n   - tracks table: Composer\n   - tracks table: Milliseconds\n\n4. Save the SQL for your indexes to: /home/ga/Documents/scripts/create_indexes.sql\n\n5. Create a CSV report at /home/ga/Documents/exports/optimization_report.csv with columns: QueryNumber, QueryDescription, IndexName, TableName, ColumnName, Rationale. Add one row for each of the 4 queries explaining the index you created.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_query_optimization/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_query_optimization/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook_perf.db",
+    "required_indexes": [
+      {"table": "invoices", "column": "InvoiceDate"},
+      {"table": "customers", "column": "City"},
+      {"table": "tracks", "column": "Composer"},
+      {"table": "tracks", "column": "Milliseconds"}
+    ],
+    "sql_file": "/home/ga/Documents/scripts/create_indexes.sql",
+    "report_file": "/home/ga/Documents/exports/optimization_report.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_query_optimization"
+    }
+  }
+}

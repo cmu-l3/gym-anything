@@ -1,0 +1,33 @@
+{
+  "id": "sakila_performance_optimization@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "The Sakila DVD rental database is experiencing significant query performance degradation due to missing indexes on critical columns. Using MySQL Workbench connected to the local MySQL server (host: localhost, user: ga, password: password123), diagnose and resolve the performance issues: run EXPLAIN on queries involving the rental, payment, and inventory tables to identify missing indexes, then restore all missing indexes to bring query execution plans back to efficient index scans. After restoring performance, create a database view named v_monthly_revenue in the sakila schema with columns payment_year, payment_month, and total_revenue that aggregates payment amounts by year and month. Also create a stored procedure named sp_monthly_revenue(p_year INT) in the sakila schema that returns monthly revenue data for the given year. Finally, call sp_monthly_revenue(2005) and export the results to /home/ga/Documents/exports/monthly_revenue_2005.csv. Login: user=ga, password=password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_performance_optimization/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_performance_optimization/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "dropped_indexes": [
+      {"table": "rental", "column": "customer_id", "original_name": "idx_fk_customer_id"},
+      {"table": "payment", "column": "rental_id", "original_name": "idx_fk_rental_id"},
+      {"table": "inventory", "column": "film_id", "original_name": "idx_fk_film_id"}
+    ],
+    "expected_view": "v_monthly_revenue",
+    "expected_procedure": "sp_monthly_revenue",
+    "expected_output_file": "/home/ga/Documents/exports/monthly_revenue_2005.csv",
+    "expected_month_count": 12
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_performance_optimization"
+    }
+  }
+}

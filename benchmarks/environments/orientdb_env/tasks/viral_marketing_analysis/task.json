@@ -1,0 +1,41 @@
+{
+  "id": "viral_marketing_analysis@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "A marketing campaign needs to identify 'Viral Hubs'—users who are connected to high-spending friends. \n\nGoal: \n1. Update the 'Profiles' schema to include two new properties: 'NetworkValue' (Double) and 'IsViralHub' (Boolean).\n2. Calculate the 'NetworkValue' for EVERY profile. This value is the SUM of the 'Price' of all Orders made by the profile's direct friends (out('HasFriend').out('HasOrder').Price).\n3. Flag profiles as 'IsViralHub = true' IF they have 3 or more direct friends AND their calculated 'NetworkValue' is greater than 1500. Otherwise set to false.\n\nStart by connecting to the 'demodb' database (root/GymAnything123!). You can use the SQL command interface or a server-side Javascript function to perform the calculation and updates.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/viral_marketing_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/viral_marketing_analysis/export_result.sh"
+  },
+  "metadata": {
+    "test_cases": {
+      "hub": {
+        "email": "liam.hub@test.com",
+        "expected_network_value": 1750.0,
+        "expected_is_hub": true
+      },
+      "popular_low_spender": {
+        "email": "damon.pop@test.com",
+        "expected_network_value": 50.0,
+        "expected_is_hub": false
+      },
+      "loner": {
+        "email": "graham.solo@test.com",
+        "expected_network_value": 0.0,
+        "expected_is_hub": false
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_viral_marketing_analysis"
+    }
+  }
+}

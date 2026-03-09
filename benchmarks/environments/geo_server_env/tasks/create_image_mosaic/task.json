@@ -1,0 +1,28 @@
+{
+  "id": "create_image_mosaic@1",
+  "version": "1.0",
+  "env_id": "geo_server_env@0.1",
+  "description": "Create a seamless Image Mosaic layer from a set of raster tiles. \n\nStarting from the GeoServer admin interface (http://localhost:8080/geoserver/web/, admin/Admin123!):\n1. Create a new workspace named 'imagery'.\n2. Create a new Data Store of type 'ImageMosaic' named 'world_mosaic_store' in the 'imagery' workspace.\n3. Point the connection URL to the directory 'file:mosaics/world_quadrants' (relative to the data directory) where 4 GeoTIFF tiles have been prepared.\n4. Publish the layer named 'global_mask'.\n5. Ensure the bounding boxes are computed correctly and the layer is enabled.\n\nThe goal is to have a single WMS layer that seamlessly combines the four quadrant images.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_image_mosaic/setup_task.sh",
+    "post_task": "/workspace/tasks/create_image_mosaic/export_result.sh"
+  },
+  "metadata": {
+    "expected_workspace": "imagery",
+    "expected_store": "world_mosaic_store",
+    "expected_layer": "global_mask",
+    "mosaic_dir_relative": "mosaics/world_quadrants"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_image_mosaic"
+    }
+  }
+}

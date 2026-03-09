@@ -1,0 +1,33 @@
+{
+  "id": "tobit_censored_script@1",
+  "version": "1.0",
+  "env_id": "gretl_env@0.1",
+  "description": "Write and execute a Gretl hansl script to compare OLS and Tobit models on the 'mroz.gdt' female labor supply dataset.\n\nGoal: Estimate the effect of children and education on working hours, accounting for the fact that many women work 0 hours (censored data).\n\nRequirements:\n1. Open 'mroz.gdt' (located in ~/Documents/gretl_data/).\n2. Create a new variable 'exper_sq' (experience squared).\n3. Estimate an OLS model: hours = b0 + b1*nwifeinc + b2*educ + b3*exper + b4*exper_sq + b5*age + b6*kidsl6 + b7*kids618.\n4. Estimate a Tobit model (censored at 0) using the same specification.\n5. Save a text file containing the coefficient estimates from both models to '/home/ga/Documents/gretl_output/tobit_ols_comparison.txt'.\n6. Save your script to '/home/ga/Documents/gretl_output/tobit_analysis.inp'.\n\nThe output text file must show the coefficients so they can be compared (e.g., showing that OLS underestimates the effect of young children).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tobit_censored_script/setup_task.sh",
+    "post_task": "/workspace/tasks/tobit_censored_script/export_result.sh"
+  },
+  "metadata": {
+    "dataset": "mroz.gdt",
+    "target_variable": "hours",
+    "key_regressor": "kidsl6",
+    "expected_ols_kidsl6": -342.0,
+    "expected_tobit_kidsl6": -894.0,
+    "tolerance_ols": 20.0,
+    "tolerance_tobit": 50.0,
+    "output_file": "/home/ga/Documents/gretl_output/tobit_ols_comparison.txt",
+    "script_file": "/home/ga/Documents/gretl_output/tobit_analysis.inp"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tobit_censored_script"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "query_optimization@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "You are a DBA tasked with optimizing slow queries in the 'demodb' travel agency database. \n\nDiagnose and optimize the following three slow queries:\n1. Find hotels in Rome: `SELECT FROM Hotels WHERE City = 'Rome'`\n2. Find high-rated hotels in Italy: `SELECT FROM Hotels WHERE Country = 'Italy' AND Stars >= 4`\n3. Find British profiles: `SELECT FROM Profiles WHERE Nationality = 'British'`\n\n**Your tasks:**\n1. Use the `EXPLAIN` command in the Studio 'Browse' tab (or Console) to confirm these queries currently perform full scans.\n2. Create the following indexes to optimize them:\n   - A **NOTUNIQUE** index on `Hotels.City`\n   - A **NOTUNIQUE COMPOSITE** index on `Hotels` covering both `Country` and `Stars` (in that order)\n   - A **NOTUNIQUE** index on `Profiles.Nationality`\n3. Verify the optimization by running `EXPLAIN` again to ensure indexes are used.\n4. Create a report file at `~/query_optimization_report.txt` containing the `EXPLAIN` output (or a summary) for all three queries **before** and **after** optimization, proving the performance improvement.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/query_optimization/setup_task.sh",
+    "post_task": "/workspace/tasks/query_optimization/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/query_optimization_report.txt",
+    "queries": [
+      "SELECT FROM Hotels WHERE City = 'Rome'",
+      "SELECT FROM Hotels WHERE Country = 'Italy' AND Stars >= 4",
+      "SELECT FROM Profiles WHERE Nationality = 'British'"
+    ],
+    "required_indexes": [
+      {"class": "Hotels", "props": ["City"], "type": "NOTUNIQUE"},
+      {"class": "Hotels", "props": ["Country", "Stars"], "type": "NOTUNIQUE"},
+      {"class": "Profiles", "props": ["Nationality"], "type": "NOTUNIQUE"}
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_query_optimization"
+    }
+  }
+}

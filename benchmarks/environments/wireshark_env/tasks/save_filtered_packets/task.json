@@ -1,0 +1,28 @@
+{
+  "id": "save_filtered_packets@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "You are an incident response analyst investigating potential port scanning activity. A colleague on the SOC team needs only the TCP SYN packets (initial connection attempts) from the capture file currently loaded in Wireshark (200722_tcp_anon.pcapng).\n\nYour task:\n1. Apply the display filter: tcp.flags.syn == 1 && tcp.flags.ack == 0\n   This selects only SYN-only packets (connection initiation), excluding SYN-ACK responses.\n2. Export ONLY the displayed (filtered) packets to a new capture file.\n   Use File > Export Specified Packets, and make sure 'Displayed' is selected (not 'All packets').\n3. Save the exported file as: /home/ga/Documents/captures/syn_packets.pcapng\n\nThe resulting file must contain only TCP SYN packets — no SYN-ACK, no data packets, no other traffic.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 30,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/save_filtered_packets/setup_task.sh",
+    "post_task": "/workspace/tasks/save_filtered_packets/export_result.sh"
+  },
+  "metadata": {
+    "source_pcap": "200722_tcp_anon.pcapng",
+    "output_file": "syn_packets.pcapng",
+    "filter_expression": "tcp.flags.syn == 1 && tcp.flags.ack == 0",
+    "expected_output_path": "/home/ga/Documents/captures/syn_packets.pcapng"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_save_filtered_packets"
+    }
+  }
+}

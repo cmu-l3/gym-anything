@@ -1,0 +1,176 @@
+version: '3.7'
+
+services:
+
+  proxy:
+    image: 'bahmni/proxy:1.0.0'
+    container_name: bahmni-proxy
+    ports:
+      - '80:80'
+      - '443:443'
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+
+  bahmni-config:
+    image: 'bahmni/clinic-config:1.0.0'
+    container_name: bahmni-config
+    volumes:
+      - 'bahmni-config:/usr/local/bahmni_config'
+    restart: unless-stopped
+
+  openmrs:
+    image: 'bahmni/openmrs:1.0.1'
+    container_name: bahmni-openmrs
+    environment:
+      TZ: UTC
+      OMRS_DB_NAME: openmrs
+      OMRS_DB_HOSTNAME: openmrsdb
+      OMRS_DB_USERNAME: openmrs-user
+      OMRS_DB_PASSWORD: password
+      OMRS_CREATE_TABLES: 'false'
+      OMRS_AUTO_UPDATE_DATABASE: 'true'
+      OMRS_MODULE_WEB_ADMIN: 'false'
+      OMRS_JAVA_SERVER_OPTS: ''
+      OMRS_JAVA_MEMORY_OPTS: ''
+      SEND_MAIL: 'false'
+      MAIL_TRANSPORT_PROTOCOL: smtps
+      MAIL_SMTP_HOST: ''
+      MAIL_SMTP_PORT: ''
+      MAIL_SMTP_AUTH: 'true'
+      MAIL_SMTP_STARTTLS_ENABLE: 'true'
+      MAIL_SMTP_SSL_ENABLE: 'true'
+      MAIL_DEBUG: 'false'
+      MAIL_FROM: ''
+      MAIL_USER: ''
+      MAIL_PASSWORD: ''
+      OMRS_DOCKER_ENV: 'true'
+      OMRS_C3P0_MAX_SIZE: '50'
+      WEIGHT_CONCEPT_UUID: 5089AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      HEIGHT_CONCEPT_UUID: 5090AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      OMRS_DB_EXTRA_ARGS: "&zeroDateTimeBehavior=convertToNull"
+      LUCENE_MATCH_TYPE: "START"
+      DOCUMENT_MAX_SIZE_MB: '7'
+    volumes:
+      - 'bahmni-config:/etc/bahmni_config/:ro'
+      - 'bahmni-lab-results:/home/bahmni/uploaded_results'
+      - 'bahmni-uploaded-files:/home/bahmni/uploaded-files'
+      - 'bahmni-patient-images:/home/bahmni/patient_images'
+      - 'bahmni-document-images:/home/bahmni/document_images'
+      - 'bahmni-clinical-forms:/home/bahmni/clinical_forms'
+      - 'configuration_checksums:/openmrs/data/configuration_checksums'
+      - 'sms-token:/openmrs/data/sms-token'
+    depends_on:
+      - openmrsdb
+    restart: unless-stopped
+
+  openmrsdb:
+    image: 'bahmni/openmrs-db:1.0.0-lite-mysql5.6'
+    container_name: bahmni-openmrsdb
+    restart: always
+    command: --character-set-server=utf8 --collation-server=utf8_general_ci
+    environment:
+      TZ: UTC
+      MYSQL_ROOT_PASSWORD: adminAdmin!123
+      MYSQL_DATABASE: openmrs
+      MYSQL_USER: openmrs-user
+      MYSQL_PASSWORD: password
+    volumes:
+      - 'openmrsdbdata:/var/lib/mysql'
+      - 'configuration_checksums:/configuration_checksums'
+
+  bahmni-web:
+    image: 'bahmni/bahmni-web:1.0.0'
+    container_name: bahmni-web
+    volumes:
+      - 'bahmni-config:/usr/local/apache2/htdocs/bahmni_config/:ro'
+    restart: unless-stopped
+
+  bahmni-apps-frontend:
+    image: 'bahmni/bahmni-apps-frontend:latest'
+    container_name: bahmni-apps-frontend
+    restart: unless-stopped
+
+  implementer-interface:
+    image: 'bahmni/implementer-interface:1.0.0'
+    container_name: bahmni-implementer-interface
+    depends_on:
+      - openmrs
+    restart: unless-stopped
+
+  patient-documents:
+    image: 'bahmni/patient-documents:1.0.0'
+    container_name: bahmni-patient-documents
+    volumes:
+      - 'bahmni-document-images:/usr/share/nginx/html/document_images'
+      - 'bahmni-lab-results:/usr/share/nginx/html/uploaded_results'
+      - 'bahmni-uploaded-files:/usr/share/nginx/html/uploaded-files'
+    environment:
+      TZ: UTC
+      OPENMRS_HOST: openmrs
+    depends_on:
+      - openmrs
+    restart: unless-stopped
+
+  appointments:
+    image: 'bahmni/appointments:1.0.0'
+    container_name: bahmni-appointments
+    restart: unless-stopped
+
+  bahmni-lab:
+    image: 'bahmni/bahmni-lab:1.0.0'
+    container_name: bahmni-lab
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+
+  reports:
+    image: 'bahmni/reports:1.0.0'
+    container_name: bahmni-reports
+    environment:
+      TZ: UTC
+      OPENMRS_DB_HOST: openmrsdb
+      OPENMRS_DB_NAME: openmrs
+      OPENMRS_DB_USERNAME: openmrs-user
+      OPENMRS_DB_PASSWORD: password
+      OPENMRS_HOST: openmrs
+      OPENMRS_PORT: 8080
+      REPORTS_DB_SERVER: reportsdb
+      REPORTS_DB_NAME: bahmni_reports
+      REPORTS_DB_USERNAME: reports-user
+      REPORTS_DB_PASSWORD: password
+      ICD10_LITE_INDICATOR: 'true'
+    volumes:
+      - 'bahmni-config:/etc/bahmni_config/:ro'
+      - 'bahmni-queued-reports:/home/bahmni/reports'
+    depends_on:
+      - reportsdb
+      - openmrsdb
+      - bahmni-web
+    restart: unless-stopped
+
+  reportsdb:
+    image: 'mysql:8.0'
+    container_name: bahmni-reportsdb
+    environment:
+      TZ: UTC
+      MYSQL_ROOT_PASSWORD: adminAdmin!123
+      MYSQL_DATABASE: bahmni_reports
+      MYSQL_USER: reports-user
+      MYSQL_PASSWORD: password
+    volumes:
+      - 'reportsdbdata:/var/lib/mysql'
+    restart: unless-stopped
+
+volumes:
+  openmrsdbdata:
+  bahmni-patient-images:
+  bahmni-document-images:
+  bahmni-clinical-forms:
+  bahmni-config:
+  configuration_checksums:
+  bahmni-lab-results:
+  bahmni-uploaded-files:
+  sms-token:
+  bahmni-queued-reports:
+  reportsdbdata:

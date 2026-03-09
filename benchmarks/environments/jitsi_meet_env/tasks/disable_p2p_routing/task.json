@@ -1,0 +1,28 @@
+{
+  "id": "disable_p2p_routing@1",
+  "version": "1.0",
+  "env_id": "jitsi_meet_env@0.1",
+  "description": "Configure Jitsi Meet to disable Peer-to-Peer (P2P) connections, forcing all video traffic through the Jitsi Videobridge (JVB). \n\n1. Edit or create the configuration override file at `/home/ga/.jitsi-meet-cfg/web/custom-config.js`. Add the setting: `config.p2p = { enabled: false };`\n2. Restart the Jitsi Meet web container to apply the changes.\n3. Verify the fix by simulating a 1-on-1 meeting:\n   - Open Firefox and join a room named `Telehealth-Test` as 'Doctor'.\n   - Open a SECOND Firefox window (Ctrl+N), join the same room (`Telehealth-Test`) as 'Patient'.\n   - Verify audio/video is connected for both.\n   - In one window, click the 'Connection Status' indicator (GSM bars icon on the thumbnail or toolbar) to reveal the transport type.\n   - Confirm it says 'JVB' or 'Bridge' (NOT 'P2P').\n4. Take a screenshot showing both windows and the open connection status popover. Save it to `/home/ga/p2p_disabled_evidence.png`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/disable_p2p_routing/setup_task.sh",
+    "post_task": "/workspace/tasks/disable_p2p_routing/export_result.sh"
+  },
+  "metadata": {
+    "config_path": "/home/ga/.jitsi-meet-cfg/web/custom-config.js",
+    "evidence_path": "/home/ga/p2p_disabled_evidence.png",
+    "target_room": "Telehealth-Test",
+    "required_config_string": "config.p2p = { enabled: false };"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_disable_p2p_routing"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+    "task_id": "add_flight_authorization@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_title",
+            "metadata_value": "Mumbai Port Area BVLOS Survey Authorization",
+            "verified_value": "Mumbai Port Area BVLOS Survey Authorization",
+            "source": "Task description lines 25-26; matches exact instruction text given to agent",
+            "status": "verified"
+        },
+        {
+            "key": "expected_max_height",
+            "metadata_value": 400,
+            "verified_value": 400,
+            "source": "Task description line 27; matches exact instruction value given to agent",
+            "status": "verified"
+        },
+        {
+            "key": "expected_ceiling",
+            "metadata_value": 500,
+            "verified_value": null,
+            "source": "Task description line 28; however, Aerobridge Authorization model (openskies-sh/aerobridge) does NOT have an 'operation_ceiling' field. Model only has: id, title, operation_max_height, operation_altitude_system, airspace_type, permit_to_fly_above_crowd, operation_area_type, risk_type, authorization_type, end_date, created_at, updated_at. Export script attempts to access auth.operation_ceiling (line 62) which will raise AttributeError at runtime.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_airspace_type",
+            "metadata_value": "Green",
+            "verified_value": "Green",
+            "source": "Aerobridge Authorization model defines AIRSPACE_CHOICES = ((0, 'NA'), (1, 'Green'), (2, 'Amber'), (3, 'Red')); 'Green' is choice index 1 and valid",
+            "status": "verified"
+        },
+        {
+            "key": "expected_crowd_permit",
+            "metadata_value": false,
+            "verified_value": false,
+            "source": "Task description line 31; matches exact instruction (Unchecked/No) and corresponds to Aerobridge permit_to_fly_above_crowd BooleanField default of False",
+            "status": "verified"
+        },
+        {
+            "key": "expected_start_date",
+            "metadata_value": "2024-06-01",
+            "verified_value": null,
+            "source": "Task description line 40; however, Aerobridge Authorization model does NOT have a 'start_date' field. Model only has 'end_date'. Export script attempts to access auth.start_date (line 67) which will raise AttributeError at runtime.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_end_date",
+            "metadata_value": "2024-12-31",
+            "verified_value": "2024-12-31",
+            "source": "Task description line 41 specifies '2024-12-31 23:59:00'; Aerobridge Authorization model has end_date as DateTimeField; partial match on date portion",
+            "status": "verified"
+        },
+        {
+            "key": "admin_url",
+            "metadata_value": "http://localhost:8000/admin/",
+            "verified_value": "http://localhost:8000/admin/",
+            "source": "Local development server URL; confirmed in task_utils.sh line 9 (AEROBRIDGE_ADMIN_URL='http://localhost:8000/admin/'); task setup launches Firefox to this URL (setup_task.sh line 70)",
+            "status": "verified"
+        },
+        {
+            "key": "target_model_url",
+            "metadata_value": "http://localhost:8000/admin/registry/authorization/add/",
+            "verified_value": "http://localhost:8000/admin/registry/authorization/add/",
+            "source": "Standard Django admin add-form URL pattern for registry.Authorization model; consistent with Django conventions for the path to the Authorization model add form",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic test task for the Aerobridge drone management system. The agent is instructed to create a flight authorization with these verified properties: Title='Mumbai Port Area BVLOS Survey Authorization', Max Height=400, Airspace Type='Green', Crowd Permit=False, End Date on 2024-12-31. The task uses a local development server at http://localhost:8000/admin/. CRITICAL: The task has design flaws—the expected_ceiling (500) and expected_start_date (2024-06-01) metadata fields do not correspond to fields in the actual Aerobridge Authorization model, which only has operation_max_height and end_date. The export_result.sh script will fail at runtime when attempting to access auth.operation_ceiling and auth.start_date due to AttributeError.",
+    "pi_confidence": "high"
+}

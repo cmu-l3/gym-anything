@@ -1,0 +1,87 @@
+=== Verifier Testing Results for All 8 SciNote Tasks ===
+Date: 2026-02-13 (live-tested)
+Method: Direct DB manipulation to simulate task completion, then run verifier
+
+All verifiers tested with two conditions:
+1. Baseline (no action): Expected score = 0
+2. After simulated completion: Expected max score and passed=true
+
+=== Task 1: create_project (easy) ===
+  Objective: Create project "Protein Crystallization Study"
+  Baseline: score=0, passed=false
+  After completion: score=100, passed=true
+  Subscores: name_match=true, count_increased=true, valid_id=true
+
+=== Task 2: create_experiment (easy) ===
+  Objective: Create experiment "HPLC Analysis Run 3" in project "Drug Discovery Pipeline"
+  Baseline: score=0, passed=false
+  After completion: score=100, passed=true
+  Subscores: name_match=true, correct_project=true, count_increased=true, valid_id=true
+
+=== Task 3: add_task_to_experiment (medium) ===
+  Objective: Add task "Run Mass Spec Calibration" to experiment "LC-MS Compound Screening"
+  Baseline: score=0, passed=false
+  After completion: score=100, passed=true
+  Subscores: name_match=true, correct_experiment=true, count_increased=true, correct_project=true
+
+=== Task 4: create_protocol (medium) ===
+  Objective: Create protocol "Western Blot Analysis v2" in protocol repository
+  Baseline: score=0, passed=false
+  After completion: score=100, passed=true
+  Subscores: name_match=true, count_increased=true, valid_id=true
+
+=== Task 5: create_inventory_item (medium) ===
+  Objective: Create inventory "Lab Reagents" with item "Tris-HCl Buffer pH 7.4"
+  Baseline: score=0, passed=false
+  After completion: score=100, passed=true
+  Subscores: inventory_name=true, count_increased=true, item_name=true, row_count_increased=true
+
+=== Task 6: add_protocol_steps (hard) === [LIVE TESTED 2026-02-13]
+  Objective: Add 2 named steps with text content + checklist to "Enzyme Kinetics Assay" protocol
+  Baseline: score=0, passed=false
+    feedback="Step 'Prepare Substrate Solutions' not found | Cannot check step 1 text (step not found) | Step 'Record Absorbance Readings' not found | Cannot check checklist (step 2 not found)"
+  After completion: score=80 (max), passed=true
+    feedback="Step 'Prepare Substrate Solutions' found | Step 1 text contains 'serial dilution' | Step 'Record Absorbance Readings' found | Checklist 'Equipment Checklist' found with 2 items"
+  Subscores: step1_exists=true, step1_has_text_keyword=true, step2_exists=true, step2_has_checklist=true
+  Note: Max score is 80 (4 criteria x 20 pts). All 4 criteria met.
+  Note: Steps table requires user_id NOT NULL.
+
+=== Task 7: connect_experiment_tasks (hard) === [LIVE TESTED 2026-02-13]
+  Objective: Connect tasks "Sample Collection" -> "DNA Extraction" -> "PCR Amplification"
+  Baseline: score=0, passed=false
+    JSON export produces valid JSON: {"connection_1_to_2": false, "connection_2_to_3": false, ...}
+  After completion: score=100, passed=true
+    feedback="Connection 'Sample Collection' -> 'DNA Extraction' found | Connection 'DNA Extraction' -> 'PCR Amplification' found | Connection count increased (0 -> 2)"
+  Subscores: conn_sample_to_dna=true, conn_dna_to_pcr=true, count_increased=true
+  Note: Export script rewritten to fix JSON construction bug. Now uses individual SQL queries per connection + python3 JSON validation.
+
+=== Task 8: setup_inventory_columns (hard) === [LIVE TESTED 2026-02-13]
+  Objective: Create "Antibody Stock" inventory with "Catalog Number" column and 2 items
+  Baseline: score=0, passed=false
+    JSON export: {"repository_found": false, "columns": [], "items": [], ...}
+  After completion: score=80 (max), passed=true
+    feedback="Inventory 'Antibody Stock' found | Column 'Catalog Number' found | Item 'Anti-CD3 mAb' found | Catalog 'AB-10042' correct for 'Anti-CD3 mAb' | Item 'Anti-CD8 mAb' found | Catalog 'AB-20078' correct for 'Anti-CD8 mAb'"
+  Subscores: inventory_found=true, custom_column_exists=true, items_found=2, catalogs_correct=2
+  Note: Max score is 80 (6 criteria with weighted scoring). All criteria met.
+  Note: repository_columns.data_type is integer enum (0=RepositoryTextValue).
+  Note: repository_rows and repository_text_values require last_modified_by_id NOT NULL.
+
+=== Summary ===
+All 8 tasks: baseline=0 (correct), after completion=max score with passed=true
+Tasks 1-5: max score=100; Tasks 6,8: max score=80; Task 7: max score=100
+Verification pattern: export_result.sh queries PostgreSQL -> writes JSON to /tmp -> verifier.py reads via copy_from_env
+
+=== Schema Notes (from live testing) ===
+- steps.user_id: NOT NULL (must be provided in SQL inserts)
+- repository_columns.data_type: integer enum (0=Text, 1=Date, 2=List, etc.)
+- repository_rows.last_modified_by_id: NOT NULL
+- repository_text_values.created_by_id and last_modified_by_id: NOT NULL
+- connections table: simple (id, input_id, output_id) - output_id is source, input_id is destination
+
+=== Fixes Applied ===
+1. connect_experiment_tasks export script rewritten for robust JSON construction
+2. Docker health checks + HTTP readiness wait loop added to task_utils.sh
+3. user_assignments records created for all SQL-inserted prerequisite data
+4. Projects created with visibility=1 (visible) instead of visibility=0 (hidden)
+5. Firefox profile updated with comprehensive first-run dialog suppression
+6. connect_experiment_tasks description reduced (removed drag-and-drop hint)

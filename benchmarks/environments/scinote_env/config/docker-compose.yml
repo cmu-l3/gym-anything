@@ -1,0 +1,77 @@
+version: '2'
+
+services:
+  db:
+    container_name: scinote_db
+    image: postgres:15
+    restart: always
+    volumes:
+      - scinote_postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    container_name: scinote_web
+    image: scinote_web_production
+    build:
+      context: /home/ga/scinote-web
+      dockerfile: Dockerfile.production
+    stdin_open: true
+    tty: true
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    command: bash -c "rm -f /usr/src/app/tmp/pids/server.pid && bundle exec rails s -b 0.0.0.0"
+    environment:
+      - RAILS_ENV=production
+      - DATABASE_URL=postgresql://postgres:mysecretpassword@db/scinote_production
+      - SECRET_KEY_BASE=a5nT7NjlG7lpO6VNq2FY9UZJI2FRzrNSmP3x8k4wB9hR1cD5eF7gH0jK2mN4pQ6sT8vX0zA3bC5dE7fG9hJ1kL3mN5pQ7rS9tV1wX3yA5bC7dE9fF1gH3jK5lM7nP9qR1sT3uV5wX7yZ
+      - PAPERCLIP_HASH_SECRET=b6oU8OklH8mqP7WOr3GZ0VAKJ3GSasOTnQ4y9k5wC0iS2dE6fG8hI1jK3mL5nO7pQ9rS1tU3vW5xY7zA2bC4dE6fG8hI0jK2lM4nO6pQ8rS0tU2vW4xY6zA8bC0dE2fG4hI6jK8lM
+      - PAPERCLIP_STORAGE=filesystem
+      - MAIL_FROM=scinote@localhost
+      - MAIL_REPLYTO=scinote@localhost
+      - MAIL_SERVER_URL=localhost:3000
+      - ENABLE_RECAPTCHA=false
+      - ENABLE_USER_CONFIRMATION=false
+      - ENABLE_USER_REGISTRATION=true
+      - DEFACE_ENABLED=false
+      - RAILS_SERVE_STATIC_FILES=true
+      - RAILS_LOG_TO_STDOUT=true
+    volumes:
+      - scinote_storage:/usr/src/app/storage
+
+  jobs:
+    container_name: scinote_jobs
+    image: scinote_web_production
+    tty: true
+    depends_on:
+      db:
+        condition: service_healthy
+    command: bundle exec rake jobs:work
+    environment:
+      - RAILS_ENV=production
+      - DATABASE_URL=postgresql://postgres:mysecretpassword@db/scinote_production
+      - SECRET_KEY_BASE=a5nT7NjlG7lpO6VNq2FY9UZJI2FRzrNSmP3x8k4wB9hR1cD5eF7gH0jK2mN4pQ6sT8vX0zA3bC5dE7fG9hJ1kL3mN5pQ7rS9tV1wX3yA5bC7dE9fF1gH3jK5lM7nP9qR1sT3uV5wX7yZ
+      - PAPERCLIP_HASH_SECRET=b6oU8OklH8mqP7WOr3GZ0VAKJ3GSasOTnQ4y9k5wC0iS2dE6fG8hI1jK3mL5nO7pQ9rS1tU3vW5xY7zA2bC4dE6fG8hI0jK2lM4nO6pQ8rS0tU2vW4xY6zA8bC0dE2fG4hI6jK8lM
+      - PAPERCLIP_STORAGE=filesystem
+      - MAIL_FROM=scinote@localhost
+      - MAIL_REPLYTO=scinote@localhost
+      - MAIL_SERVER_URL=localhost:3000
+      - ENABLE_RECAPTCHA=false
+      - ENABLE_USER_CONFIRMATION=false
+      - ENABLE_USER_REGISTRATION=true
+      - DEFACE_ENABLED=false
+    volumes:
+      - scinote_storage:/usr/src/app/storage
+
+volumes:
+  scinote_postgres:
+  scinote_storage:

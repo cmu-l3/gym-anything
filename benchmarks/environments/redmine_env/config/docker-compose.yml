@@ -1,0 +1,42 @@
+version: "3.8"
+
+volumes:
+  redmine_db_data:
+  redmine_files:
+
+services:
+  redmine-db:
+    image: postgres:16
+    container_name: redmine-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: redmine
+      POSTGRES_USER: redmine
+      POSTGRES_PASSWORD: redmine_pass
+    volumes:
+      - redmine_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U redmine -d redmine"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+
+  redmine:
+    image: redmine:6.0-bookworm
+    container_name: redmine
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      REDMINE_DB_POSTGRES: redmine-db
+      REDMINE_DB_PORT: "5432"
+      REDMINE_DB_USERNAME: redmine
+      REDMINE_DB_PASSWORD: redmine_pass
+      REDMINE_DB_DATABASE: redmine
+      REDMINE_SECRET_KEY_BASE: "redmine_env_secret_key_base_do_not_use_in_production_xyz123"
+    volumes:
+      - redmine_files:/usr/src/redmine/files
+    depends_on:
+      redmine-db:
+        condition: service_healthy

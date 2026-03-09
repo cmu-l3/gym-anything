@@ -1,0 +1,50 @@
+{
+  "id": "disc_height_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the L4-L5 intervertebral disc height (anterior and posterior) and a reference vertebral body height on the provided lumbar CT. Calculate the Disc Height Index (DHI) and classify degeneration severity. Save measurement markups to ~/Documents/SlicerData/AMOS/disc_measurements.mrk.json and report to ~/Documents/SlicerData/AMOS/disc_report.json with fields: anterior_height_mm, posterior_height_mm, vertebral_height_mm, mean_disc_height_mm, disc_height_index, degeneration_grade, vertebral_level.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 70,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/disc_height_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/disc_height_assessment/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/disc_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/disc_report.json",
+    "target_level": "L4-L5",
+    "passing_thresholds": {
+      "anterior_error_max_mm": 2.0,
+      "posterior_error_max_mm": 2.0,
+      "vertebral_error_max_mm": 3.0,
+      "dhi_error_max": 0.05
+    },
+    "scoring_weights": {
+      "anterior_accuracy": 20,
+      "posterior_accuracy": 20,
+      "vertebral_measured": 15,
+      "dhi_calculated": 15,
+      "classification_correct": 15,
+      "correct_level": 10,
+      "report_complete": 5
+    },
+    "normal_ranges": {
+      "anterior_height_mm": [10, 16],
+      "posterior_height_mm": [5, 10],
+      "vertebral_height_mm": [25, 35]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_disc_height_assessment"
+    }
+  }
+}

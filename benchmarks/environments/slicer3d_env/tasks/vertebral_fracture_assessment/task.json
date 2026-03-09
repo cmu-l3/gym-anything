@@ -1,0 +1,47 @@
+{
+  "id": "vertebral_fracture_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Identify and assess vertebral compression fractures on the provided thoracolumbar spine CT. Measure the anterior and posterior vertebral body heights of the fractured vertebra, calculate the compression ratio, and apply the Genant classification. Save measurements to ~/Documents/SlicerData/Spine/vertebral_measurements.mrk.json and report to ~/Documents/SlicerData/Spine/fracture_report.json with fields: vertebral_level, anterior_height_mm, posterior_height_mm, compression_ratio, genant_grade, morphology.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/vertebral_fracture_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/vertebral_fracture_assessment/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "spine_dir": "/home/ga/Documents/SlicerData/Spine",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/Spine/vertebral_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/Spine/fracture_report.json",
+    "passing_thresholds": {
+      "anterior_height_error_max_mm": 3.0,
+      "posterior_height_error_max_mm": 3.0,
+      "ratio_error_max": 0.05,
+      "level_must_match": true
+    },
+    "scoring_weights": {
+      "correct_level_id": 25,
+      "anterior_height_accuracy": 20,
+      "posterior_height_accuracy": 15,
+      "compression_ratio_accuracy": 15,
+      "genant_grade_correct": 15,
+      "report_completeness": 10
+    },
+    "vertebral_height_range_mm": {
+      "min": 5,
+      "max": 40
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vertebral_fracture_assessment"
+    }
+  }
+}

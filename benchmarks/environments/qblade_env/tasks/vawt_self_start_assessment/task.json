@@ -1,0 +1,41 @@
+{
+  "id": "vawt_self_start_assessment@1",
+  "version": "1.0",
+  "env_id": "example.qblade_env@0.1",
+  "description": "Perform a self-starting capability assessment for a Vertical Axis Wind Turbine (VAWT) in QBlade.\n\nYour goal is to design a 3-bladed H-Darrieus rotor using a NACA 0021 airfoil and analyze its performance at low tip speed ratios.\n\nSteps:\n1. Open QBlade (it may take a few seconds to start).\n2. Generate a NACA 0021 airfoil (symmetric, 21% thickness) using the NACA Airfoil Generator.\n3. Perform an XFoil analysis/polar generation for this airfoil at Reynolds number 300,000 (Re=300k) for Angles of Attack (AoA) from -10 to 20 degrees.\n4. Extrapolate the generated polar to a full 360-degree range. This is CRITICAL for VAWT simulation.\n5. Design a VAWT rotor (Blade Design -> VAWT) with these specifications:\n   - Blade Height: 3.0 m\n   - Rotor Radius: 1.5 m\n   - Blade Chord: 0.2 m\n   - Number of Blades: 3\n   - Airfoil: NACA 0021\n6. Set up a DMS (Double Multiple Streamtube) simulation:\n   - Wind Speed: 8 m/s\n   - TSR Range: 0.5 to 5.0 (Step 0.5 or similar)\n7. Run the simulation and examine the Torque (Cq/Cm) and Power (Cp) vs TSR curves.\n8. Determine if the turbine is self-starting (look for positive torque at TSR < 1.0).\n9. Save the project as '/home/ga/Documents/projects/vawt_selfstart.wpa'.\n10. Create a report file at '/home/ga/Documents/projects/vawt_selfstart_report.txt' with the following 5 lines:\n    - Self-starting assessment: [YES/NO]\n    - Lowest positive torque TSR: [Value or N/A]\n    - Optimal TSR: [Value at max Cp]\n    - Maximum Cp: [Value]\n    - Rotor solidity: [Calculate N*c / (2*pi*R)]",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/vawt_self_start_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/vawt_self_start_assessment/export_result.sh"
+  },
+  "metadata": {
+    "project_path": "/home/ga/Documents/projects/vawt_selfstart.wpa",
+    "report_path": "/home/ga/Documents/projects/vawt_selfstart_report.txt",
+    "design_specs": {
+      "blades": 3,
+      "chord": 0.2,
+      "radius": 1.5,
+      "height": 3.0,
+      "airfoil": "NACA 0021"
+    },
+    "physics_ranges": {
+      "solidity_min": 0.05,
+      "solidity_max": 0.08,
+      "cp_max_min": 0.1,
+      "cp_max_max": 0.55,
+      "opt_tsr_min": 1.5,
+      "opt_tsr_max": 5.0
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vawt_self_start"
+    }
+  }
+}

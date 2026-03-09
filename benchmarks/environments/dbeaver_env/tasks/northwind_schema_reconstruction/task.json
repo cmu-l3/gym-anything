@@ -1,0 +1,35 @@
+{
+  "id": "northwind_schema_reconstruction@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Data Engineer tasked with restoring a database from a legacy flat-file backup.\n\nA CSV file containing denormalized sales data is located at `/home/ga/Documents/imports/legacy_sales_dump.csv`. Your goal is to normalize this data into a new SQLite database.\n\nInstructions:\n1. Create a new SQLite database connection in DBeaver named `NorthwindRestored` pointing to a new file at `/home/ga/Documents/databases/northwind_restored.db`.\n2. Import the data and restructure it into 4 normalized tables with the following exact names and primary keys:\n   - `Customers` (Primary Key: CustomerID)\n   - `Products` (Primary Key: ProductID)\n   - `Orders` (Primary Key: OrderID - preserve the `LegacyOrderID` from CSV)\n   - `OrderItems` (Primary Key: OrderItemID, Foreign Keys to Orders and Products)\n3. Ensure data consistency: The number of rows in `OrderItems` must match the CSV row count.\n4. Export a verification report to `/home/ga/Documents/exports/restoration_check.csv`. This CSV must contain `CustomerName` and `TotalRevenue` (calculated as Quantity * UnitPrice), sorted by revenue descending.\n\nNote: You may need to use SQL `INSERT INTO ... SELECT DISTINCT ...` patterns to populate the normalized tables from a temporary staging table.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/northwind_schema_reconstruction/setup_task.sh",
+    "post_task": "/workspace/tasks/northwind_schema_reconstruction/export_result.sh"
+  },
+  "metadata": {
+    "expected_db_path": "/home/ga/Documents/databases/northwind_restored.db",
+    "source_csv_path": "/home/ga/Documents/imports/legacy_sales_dump.csv",
+    "expected_report_path": "/home/ga/Documents/exports/restoration_check.csv",
+    "required_tables": ["Customers", "Products", "Orders", "OrderItems"],
+    "approx_counts": {
+      "Customers": 89,
+      "Products": 77,
+      "Orders": 830,
+      "OrderItems": 2155
+    },
+    "tolerance_percent": 5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_northwind_schema_reconstruction"
+    }
+  }
+}

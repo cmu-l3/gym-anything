@@ -1,0 +1,34 @@
+{
+  "id": "intersection_safety_audit@1",
+  "version": "1.0",
+  "env_id": "sumo_env@0.1",
+  "description": "You are an occupational health and safety specialist contracted by the City of Bologna to conduct a surrogate safety analysis of the signalized intersections in the Acosta corridor. The city has received citizen complaints about near-miss incidents and needs a data-driven safety audit. Using SUMO's Surrogate Safety Measures (SSM) device, you must: (1) Configure the Bologna Acosta simulation to output SSM data by enabling the ssm device for all vehicles, tracking at minimum Time-To-Collision (TTC) and Deceleration Rate to Avoid Crash (DRAC) measures, with appropriate thresholds (TTC threshold <= 3.0 seconds, DRAC threshold >= 3.5 m/s^2). The SSM output should be written to /home/ga/SUMO_Output/ssm_output.xml. (2) Run the simulation to completion (all vehicles depart and the network clears or simulation end time is reached). (3) Parse the SSM output XML to identify conflict events. For each signalized junction in the network, count the number of TTC-critical events (TTC < 1.5s) and DRAC-critical events (DRAC > 5.0 m/s^2). (4) Produce a safety audit report as a CSV file at /home/ga/SUMO_Output/intersection_safety_report.csv with columns: junction_id, junction_type, num_ttc_critical, num_drac_critical, total_conflicts, risk_rating. The risk_rating column should classify each junction as 'HIGH' (>= 10 total conflicts), 'MEDIUM' (5-9), or 'LOW' (< 5). (5) Write a summary finding to /home/ga/SUMO_Output/safety_audit_summary.txt identifying the highest-risk junction and recommending specific countermeasures. The scenario data is at /home/ga/SUMO_Scenarios/bologna_acosta/. SUMO tools are available at $SUMO_HOME.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/intersection_safety_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/intersection_safety_audit/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Occupational Health and Safety Specialists (29-9011.00)",
+    "industry": "Protective Service",
+    "scenario": "bologna_acosta",
+    "ssm_output_path": "/home/ga/SUMO_Output/ssm_output.xml",
+    "report_path": "/home/ga/SUMO_Output/intersection_safety_report.csv",
+    "summary_path": "/home/ga/SUMO_Output/safety_audit_summary.txt",
+    "ttc_threshold": 3.0,
+    "drac_threshold": 3.5,
+    "ttc_critical": 1.5,
+    "drac_critical": 5.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_intersection_safety_audit"
+    }
+  }
+}

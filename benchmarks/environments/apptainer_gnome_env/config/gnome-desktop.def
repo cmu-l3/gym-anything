@@ -1,0 +1,46 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%labels
+    Maintainer "gym-anything team"
+    Name "gnome-desktop-rootless"
+
+%environment
+    export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    export XDG_RUNTIME_DIR=/tmp/runtime-ga
+    export PULSE_SERVER=unix:/tmp/pulse/native
+    export HOME=/workspace/home/ga
+    export USER=ga
+
+%post
+    set -eu
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt-get update
+    apt-get install -y --no-install-recommends locales sudo ca-certificates
+    locale-gen en_US.UTF-8
+
+    # Core desktop + utilities
+    apt-get install -y --no-install-recommends \
+        ubuntu-desktop-minimal gnome-shell gnome-session gnome-flashback \
+        gnome-terminal gnome-text-editor gsettings-desktop-schemas \
+        x11-apps x11-utils xdotool xvfb x11vnc openbox \
+        dbus dbus-x11 pulseaudio ffmpeg \
+        python3-minimal less
+
+    # Create the default user (uid 1000 matches runner expectations)
+    userdel -r ubuntu 2>/dev/null || true
+    mkdir -p /workspace/home/ga
+    useradd -M -d /workspace/home/ga -s /bin/bash ga || true
+    chown -R ga:ga /workspace/home/ga
+    echo "ga ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ga
+    chmod 0440 /etc/sudoers.d/ga
+
+    mkdir -p /workspace
+
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+%runscript
+    echo "This image is intended to be launched via apptainer instance start"

@@ -1,0 +1,38 @@
+{
+  "id": "fret_sensitized_emission_analysis@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Perform Sensitized Emission FRET correction on a set of fluorescence microscopy images. You are provided with three images in '~/Fiji_Data/raw/fret_experiment/': 'donor_channel.tif' (CFP), 'acceptor_channel.tif' (YFP), and 'fret_raw_channel.tif'.\n\nYour goal is to create a 'corrected_fret.tif' image by mathematically removing spectral bleed-through using the following formula:\n\nCorrected_FRET = Raw_FRET - (0.28 * Donor) - (0.19 * Acceptor)\n\nSteps:\n1. Open all three images.\n2. Convert them to 32-bit float (Image > Type > 32-bit) to ensure precision.\n3. Use 'Process > Image Calculator' to perform the subtraction. You may need to generate intermediate scaled images (e.g., Donor * 0.28) first.\n4. Save the final result as 'corrected_fret.tif' in '~/Fiji_Data/results/fret/'.\n\nThe result should show high intensity only in the interaction region (bottom blob) and near-zero intensity in the bleed-through controls (top blobs).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fret_sensitized_emission_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/fret_sensitized_emission_analysis/export_result.sh"
+  },
+  "metadata": {
+    "coefficients": {
+      "beta": 0.28,
+      "gamma": 0.19
+    },
+    "rois": {
+      "donor_only": [50, 200, 50, 200],
+      "acceptor_only": [50, 200, 312, 462],
+      "fret_positive": [312, 462, 181, 331]
+    },
+    "expected_values": {
+      "donor_only_max": 10.0,
+      "acceptor_only_max": 10.0,
+      "fret_positive_min": 50.0
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fret_sensitized_emission_analysis"
+    }
+  }
+}

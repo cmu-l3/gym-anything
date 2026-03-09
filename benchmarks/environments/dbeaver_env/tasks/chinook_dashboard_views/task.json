@@ -1,0 +1,33 @@
+{
+  "id": "chinook_dashboard_views@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a database developer. Create a sales dashboard backend for the Chinook database.\n\n1. Connect to the Chinook SQLite database at `/home/ga/Documents/databases/chinook.db`. Name the connection `Chinook`.\n\n2. Create the following three SQL Views:\n\n   **View 1: `v_customer_spending`**\n   - Columns: `CustomerId`, `CustomerName` (First+Last), `Country`, `InvoiceCount`, `TotalSpending` (sum of totals, rounded to 2 decimals), `AvgInvoiceAmount` (rounded to 2 decimals).\n   - Logic: Join customers and invoices. Group by customer. Order by TotalSpending descending.\n\n   **View 2: `v_genre_revenue`**\n   - Columns: `GenreId`, `GenreName`, `TrackCount`, `TimesPurchased` (count of invoice items), `TotalRevenue` (sum of UnitPrice*Quantity, rounded to 2 decimals).\n   - Logic: Join genres, tracks, and invoice_items. Use LEFT JOIN for invoice_items to include genres with no sales. Group by genre. Order by TotalRevenue descending.\n\n   **View 3: `v_employee_sales_summary`**\n   - Columns: `EmployeeId`, `EmployeeName` (First+Last), `Title`, `HireDate`, `CustomerCount`, `InvoiceCount` (from those customers), `TotalRevenue` (sum of totals from those customers, rounded to 2 decimals).\n   - Logic: Join employees, customers, and invoices. Filter/Join to include only employees who support customers. Group by employee. Order by TotalRevenue descending.\n\n3. Save the SQL script used to create these views to `/home/ga/Documents/scripts/dashboard_views.sql`.\n\n4. Export the data from each view to CSV files in `/home/ga/Documents/exports/`:\n   - `customer_spending.csv`\n   - `genre_revenue.csv`\n   - `employee_sales.csv`\n   (Headers required)",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_dashboard_views/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_dashboard_views/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook.db",
+    "expected_views": ["v_customer_spending", "v_genre_revenue", "v_employee_sales_summary"],
+    "export_dir": "/home/ga/Documents/exports",
+    "script_path": "/home/ga/Documents/scripts/dashboard_views.sql",
+    "ground_truth": {
+      "customer_count": 59,
+      "genre_count": 25,
+      "employee_count": 3
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_dashboard_views"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "nonprofit_financial_due_diligence@1",
+  "version": "1.0",
+  "env_id": "firefox_env@0.1",
+  "description": "Perform financial due diligence on three technology-focused non-profits using ProPublica Nonprofit Explorer (projects.propublica.org/nonprofits/).\n\nTarget Organizations:\n1. Mozilla Foundation (EIN ending in 3644)\n2. Wikimedia Foundation (EIN ending in 9703)\n3. Electronic Frontier Foundation (EIN ending in 5670)\n\nFor EACH organization, find their most recent available tax filing (Form 990) and extract:\n- Tax Year\n- Total Revenue\n- Total Functional Expenses\n- Net Assets (or Fund Balances) at end of year\n- Name of the person listed as 'Principal Officer' or the highest compensated individual explicitly listed in the summary section.\n\nActions Required:\n1. Navigate to ProPublica Nonprofit Explorer.\n2. Create a Firefox bookmark folder named 'Grant Diligence' and bookmark the ProPublica profile page for each of the three organizations.\n3. Download the full Form 990 PDF for the **Mozilla Foundation** only. Save it to '/home/ga/Documents/mozilla_990.pdf'.\n4. Create a JSON summary file at '/home/ga/Documents/nonprofit_financials.json' with the extracted data.\n\nJSON Format:\n{\n  \"mozilla_foundation\": {\n    \"tax_year\": 2023,\n    \"total_revenue\": 123456,\n    \"total_expenses\": 123456,\n    \"net_assets\": 123456,\n    \"highest_compensated_person\": \"Name\"\n  },\n  \"wikimedia_foundation\": { ... },\n  \"eff\": { ... }\n}",
+  "difficulty": "hard",
+  "tags": ["firefox", "research", "data-extraction", "financial", "bookmarks", "pdf"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nonprofit_financial_due_diligence/setup_task.sh",
+    "post_task": "/workspace/tasks/nonprofit_financial_due_diligence/export_result.sh"
+  },
+  "metadata": {
+    "propublica_url": "projects.propublica.org",
+    "required_bookmarks_folder": "Grant Diligence",
+    "required_pdf_path": "/home/ga/Documents/mozilla_990.pdf",
+    "required_json_path": "/home/ga/Documents/nonprofit_financials.json",
+    "min_revenue_threshold": 1000000,
+    "target_orgs": ["mozilla_foundation", "wikimedia_foundation", "eff"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nonprofit_financial_due_diligence"
+    }
+  }
+}

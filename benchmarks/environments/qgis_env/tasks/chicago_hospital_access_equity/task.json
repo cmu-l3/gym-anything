@@ -1,0 +1,31 @@
+{
+  "id": "chicago_hospital_access_equity@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "You are a public health GIS analyst at the Cook County Department of Public Health. The department is conducting a health equity study to identify Chicago community areas with inadequate hospital access. Your analysis will inform resource allocation for mobile health clinics.\n\nUsing Chicago open data, calculate hospital proximity metrics for all 77 official community areas and identify which have inadequate hospital coverage.\n\nInput files:\n- /home/ga/GIS_Data/chicago_hospitals.geojson  (Chicago-area hospital locations from HIFLD open data, point layer)\n- /home/ga/GIS_Data/chicago_community_areas.geojson  (Chicago's 77 community areas, polygon layer with 'community' name field and 'pop_2020' estimated population)\n\nDeliverable: /home/ga/GIS_Data/exports/hospital_access_equity.geojson\n- A GeoJSON FeatureCollection of all 77 community areas\n- Retain all original community area fields and add:\n  * nearest_hosp_km  (float, 2 decimal places: straight-line distance in km from the community area centroid to the nearest hospital; use a projected CRS such as EPSG:26916 or EPSG:3435 for accurate distance computation)\n  * hosp_count_5km   (integer: number of hospitals whose point location falls within 5 km of the community area centroid)\n  * access_tier      (string: 'high' if hosp_count_5km >= 3, 'medium' if hosp_count_5km 1-2, 'low' if hosp_count_5km == 0)\n\nAdditionally export a summary CSV to /home/ga/GIS_Data/exports/access_tier_summary.csv with columns: access_tier, community_count, total_population\n\nAll distance calculations must be in projected coordinates (meters), not geographic degrees.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chicago_hospital_access_equity/setup_task.sh",
+    "post_task": "/workspace/tasks/chicago_hospital_access_equity/export_result.sh"
+  },
+  "metadata": {
+    "hospitals_source": "/home/ga/GIS_Data/chicago_hospitals.geojson",
+    "community_areas_source": "/home/ga/GIS_Data/chicago_community_areas.geojson",
+    "expected_geojson": "/home/ga/GIS_Data/exports/hospital_access_equity.geojson",
+    "expected_csv": "/home/ga/GIS_Data/exports/access_tier_summary.csv",
+    "expected_community_count": 77,
+    "expected_fields": ["nearest_hosp_km", "hosp_count_5km", "access_tier"],
+    "gt_file": "/tmp/gt_hospital_access.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chicago_hospital_access_equity"
+    }
+  }
+}

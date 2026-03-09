@@ -1,0 +1,41 @@
+{
+  "id": "epa_refrigerant_compliance@1",
+  "version": "1.0",
+  "env_id": "firefox_env@0.1",
+  "description": "You are an HVAC maintenance supervisor. Research the EPA's AIM Act refrigerant phasedown regulations and create a compliance guide for your team. \n\nYour tasks:\n1. Research the AIM Act phasedown schedule (percentage reductions by year).\n2. Identify at least 3 approved alternative refrigerants to replace R-410A (e.g., R-32, R-454B, R-290, etc.) and find their GWP (Global Warming Potential) and ASHRAE safety classification.\n3. Check if Section 608 certification requirements apply to these new refrigerants.\n4. Create a Firefox bookmark folder named 'HVAC Regulatory Research' and save at least 4 relevant bookmarks from EPA.gov and industry sources (e.g., AHRI, manufacturers).\n5. Compile your findings into a JSON file at '~/Documents/refrigerant_compliance_guide.json' with the following structure:\n\n{\n  \"aim_act\": {\n    \"signed_into_law\": \"YYYY\",\n    \"phasedown_2024_pct\": <number>,\n    \"phasedown_2029_pct\": <number>,\n    \"phasedown_2036_pct\": <number>\n  },\n  \"refrigerants\": {\n    \"R-410A\": { \"gwp\": <number>, \"ashrae_safety_class\": \"A1\" },\n    \"<Alternative_1>\": { \"gwp\": <number>, \"ashrae_safety_class\": \"...\" },\n    \"<Alternative_2>\": { \"gwp\": <number>, \"ashrae_safety_class\": \"...\" },\n    \"<Alternative_3>\": { \"gwp\": <number>, \"ashrae_safety_class\": \"...\" }\n  },\n  \"section_608\": {\n    \"certification_required\": <boolean>,\n    \"venting_prohibited\": <boolean>,\n    \"recordkeeping_required\": <boolean>\n  }\n}",
+  "difficulty": "hard",
+  "tags": ["firefox", "research", "regulatory", "epa", "hvac", "compliance"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/epa_refrigerant_compliance/setup_task.sh",
+    "post_task": "/workspace/tasks/epa_refrigerant_compliance/export_result.sh"
+  },
+  "metadata": {
+    "output_file": "/home/ga/Documents/refrigerant_compliance_guide.json",
+    "required_bookmark_folder": "HVAC Regulatory Research",
+    "min_bookmarks": 4,
+    "required_domains": ["epa.gov"],
+    "phasedown_targets": {
+      "2024": 40,
+      "2029": 70,
+      "2036": 85
+    },
+    "refrigerant_data": {
+      "R-410A": {"gwp_min": 1900, "gwp_max": 2200, "class": "A1"},
+      "R-32": {"gwp_min": 600, "gwp_max": 750, "class": "A2L"},
+      "R-454B": {"gwp_min": 400, "gwp_max": 500, "class": "A2L"},
+      "R-290": {"gwp_min": 0, "gwp_max": 10, "class": "A3"},
+      "R-1234yf": {"gwp_min": 0, "gwp_max": 5, "class": "A2L"}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_epa_refrigerant_compliance"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "configure_tax_inclusive_pricing@1",
+  "version": "1.0",
+  "env_id": "copper_point_of_sale_env@0.1",
+  "description": "Configure Copper POS to calculate taxes as 'Inclusive' (VAT style) and verify the setup with a test sale.\n\nGoal: Change the tax setting so item prices include tax, set the tax rate to 20%, and process a sale for 'Premium Wool Scarf' (Price: 120.00) to confirm the tax is calculated backwards (20.00 tax included) rather than added on top.\n\nStarting State: Copper POS is open. Item 'Premium Wool Scarf' exists @ 120.00. Default tax settings are active (Tax Exclusive).\n\nExpected Actions:\n1. Go to Options > Tax.\n2. Create/Set a tax rate of 20% (name it 'VAT').\n3. Enable the checkbox 'Item prices are tax inclusive'.\n4. Save settings.\n5. Process a sale for 1x 'Premium Wool Scarf'.\n6. Verify Total is 120.00 and Tax is 20.00.\n7. Finalize the sale (Cash).\n8. Save a screenshot of the receipt/transaction success screen to 'C:\\Users\\Docker\\Documents\\vat_test_receipt.png'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_tax_inclusive_pricing\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_tax_inclusive_pricing\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_total": "120.00",
+    "expected_tax": "20.00",
+    "item_name": "Premium Wool Scarf",
+    "receipt_path": "C:\\Users\\Docker\\Documents\\vat_test_receipt.png",
+    "config_registry_key": "HKCU:\\Software\\NCH Software\\Copper"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_tax_inclusive_pricing"
+    }
+  }
+}

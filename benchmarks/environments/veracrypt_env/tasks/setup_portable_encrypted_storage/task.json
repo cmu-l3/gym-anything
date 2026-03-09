@@ -1,0 +1,30 @@
+{
+  "id": "setup_portable_encrypted_storage@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Create a self-contained portable encrypted storage kit in directory '/home/ga/PortableDrive/'.\n\nRequirements:\n1. Create the directory '/home/ga/PortableDrive/'.\n2. Copy the system 'veracrypt' binary to this directory so it is portable.\n3. Create a 128MB VeraCrypt volume named 'secure_storage.hc' inside this directory using AES encryption, SHA-512 hash, FAT filesystem, and password 'Tr@vel3r2024!'.\n4. Create a mount point directory named 'mnt' inside 'PortableDrive'.\n5. Create a shell script 'mount.sh' in 'PortableDrive' that accepts a password as an argument and mounts 'secure_storage.hc' to 'mnt' using the LOCAL 'veracrypt' binary (./veracrypt). It must run non-interactively.\n6. Create a shell script 'unmount.sh' in 'PortableDrive' that dismounts the volume using the LOCAL binary.\n7. Create a 'README.txt' explaining the tool is 'Portable Encrypted Storage' and referencing the scripts.\n8. Mount the volume and copy '/etc/os-release' and '/etc/hostname' into it.\n9. Ensure the volume is dismounted when finished.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_portable_encrypted_storage/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_portable_encrypted_storage/export_result.sh"
+  },
+  "metadata": {
+    "target_dir": "/home/ga/PortableDrive",
+    "volume_name": "secure_storage.hc",
+    "volume_password": "Tr@vel3r2024!",
+    "expected_size_mb": 128,
+    "required_files": ["veracrypt", "secure_storage.hc", "mnt", "mount.sh", "unmount.sh", "README.txt"],
+    "content_files": ["os-release", "hostname"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_portable_storage"
+    }
+  }
+}

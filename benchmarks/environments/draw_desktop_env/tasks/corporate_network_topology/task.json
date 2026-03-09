@@ -1,0 +1,38 @@
+{
+  "id": "corporate_network_topology@1",
+  "version": "1.0",
+  "env_id": "draw_desktop_env@0.1",
+  "description": "Create a corporate network topology diagram in draw.io Desktop based on the device inventory provided in '~/Desktop/network_inventory.txt'.\n\n1. Open the inventory file to understand the network structure (21 devices across 6 zones).\n2. Create a diagram in draw.io with the following requirements:\n   - Use Network shapes (Routers, Switches, Firewalls, Servers, etc.).\n   - Group devices into visual zones/containers: WAN/Edge, DMZ, Core/Distribution, Server Farm, Wireless, Management.\n   - Label each device with its hostname (e.g., 'FW-01', 'CORE-SW-01') and IP address.\n   - Draw connections between devices as specified in the inventory.\n   - Add text annotations for VLANs/Subnets (e.g., 'VLAN 10 - 10.1.1.0/24').\n3. Create a SECOND PAGE titled 'IP Addressing' and list the subnet allocation table there (text or table).\n4. Save the diagram as '~/Desktop/network_topology.drawio'.\n5. Export Page 1 (Topology) as a PNG image to '~/Desktop/network_topology.png'.\n\nCRITICAL: The verification checks for the presence of specific device hostnames and the file modification time.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/corporate_network_topology/setup_task.sh",
+    "post_task": "/workspace/tasks/corporate_network_topology/export_result.sh"
+  },
+  "metadata": {
+    "inventory_file": "/home/ga/Desktop/network_inventory.txt",
+    "expected_drawio": "/home/ga/Desktop/network_topology.drawio",
+    "expected_png": "/home/ga/Desktop/network_topology.png",
+    "device_list": [
+      "ISP-RTR-01", "EDGE-RTR-01", "FW-01", "DMZ-SW-01", "WEB-SRV-01", 
+      "MAIL-GW-01", "DNS-EXT-01", "CORE-SW-01", "DIST-SW-F1", "DIST-SW-F2", 
+      "SRV-SW-01", "AD-DC-01", "FILE-SRV-01", "DB-SRV-01", "APP-SRV-01", 
+      "BKP-SRV-01", "WLC-01", "AP-F1-01", "AP-F2-01", "MGMT-SW-01", 
+      "NMS-01", "SYSLOG-01", "RADIUS-01"
+    ],
+    "zones": ["WAN", "DMZ", "Core", "Server", "Wireless", "Management"],
+    "min_devices_threshold": 15,
+    "min_edges_threshold": 12,
+    "min_zones_threshold": 4
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_corporate_network_topology"
+    }
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "task": "local_registry_image_workflow",
+  "timestamp": "2026-02-28",
+  "difficulty": "very_hard",
+  "environment": "docker_desktop_env",
+  "checks": {
+    "initial_state": "Flask API service code at /home/ga/api-service/ with Dockerfile and requirements.txt. registry:2 Docker image pre-pulled but NOT started. No running registry container. No api-service image built. No docker-compose.yml in app dir. Agent must: start registry, build+push image with both v1.0.0 and latest tags, create compose file using registry image, deploy app.",
+    "pre_pulled_images": [
+      "registry:2"
+    ],
+    "app_source": "Python Flask REST API with gunicorn, /health endpoint, /api/v1/items CRUD endpoints",
+    "registry_port": 5000,
+    "app_port": 7080,
+    "task_start_files": [
+      "/tmp/task_start_timestamp",
+      "/tmp/initial_registry_images"
+    ]
+  },
+  "scoring": {
+    "total_points": 100,
+    "pass_threshold": 70,
+    "mandatory_for_pass": "registry_accessible AND has_v100_tag AND api_http_code == '200' AND score >= 70",
+    "criteria": [
+      {
+        "name": "registry_running_on_5000",
+        "points": 20,
+        "type": "programmatic",
+        "check": "registry:2 running, /v2/ returns 200"
+      },
+      {
+        "name": "v1_0_0_tag_in_registry",
+        "points": 20,
+        "type": "programmatic",
+        "check": "localhost:5000/v2/api-service/tags/list contains v1.0.0"
+      },
+      {
+        "name": "latest_tag_in_registry",
+        "points": 15,
+        "type": "programmatic",
+        "check": "tags/list contains latest"
+      },
+      {
+        "name": "compose_uses_registry_image",
+        "points": 20,
+        "type": "programmatic",
+        "check": "image: localhost:5000/api-service in compose, no build: directive"
+      },
+      {
+        "name": "api_accessible_port_7080",
+        "points": 25,
+        "type": "programmatic",
+        "check": "HTTP 200 on port 7080"
+      }
+    ]
+  },
+  "phase5_validation": {
+    "do_nothing": {
+      "score": 0,
+      "passed": false,
+      "status": "CONFIRMED (VM + verifier)"
+    },
+    "partial_test_1": {
+      "description": "Registry running, only v1.0.0 pushed (no latest), compose not updated, API not deployed",
+      "injected": {
+        "registry_accessible": true,
+        "has_v100_tag": true,
+        "has_latest_tag": false,
+        "compose_uses_registry": false,
+        "api_http_code": "000"
+      },
+      "result": {
+        "score": 40,
+        "passed": false
+      },
+      "status": "CONFIRMED"
+    },
+    "partial_test_2": {
+      "description": "Registry + both tags + compose updated, but API container not yet started",
+      "injected": {
+        "registry_accessible": true,
+        "has_v100_tag": true,
+        "has_latest_tag": true,
+        "compose_uses_registry": true,
+        "compose_has_build": false,
+        "api_http_code": "000"
+      },
+      "result": {
+        "score": 75,
+        "passed": false
+      },
+      "note": "Score 75 but passed=False because mandatory condition api_http_code==200 not met. Agent must actually deploy the container, not just configure compose.",
+      "status": "CONFIRMED"
+    },
+    "full_completion": {
+      "score": 100,
+      "passed": true,
+      "status": "CONFIRMED"
+    }
+  },
+  "occupation_data": {
+    "primary_occupation": "Software Developers, Computer Systems Engineers/Architects",
+    "gdp_contribution_usd": 18000000000,
+    "rationale": "Local registry workflows are foundational to CI/CD pipelines and air-gapped enterprise deployments; pushing versioned images to an internal registry is standard DevOps practice"
+  },
+  "notes": "The local registry pattern (registry:2) is the canonical approach for private Docker image hosting. The task requires the agent to understand the full docker build \u2192 tag \u2192 push \u2192 pull workflow and the compose 'image:' vs 'build:' distinction.",
+  "phase4_vm_test": {
+    "status": "CONFIRMED",
+    "method": "Manual SSH pipeline on QEMU VM (port 2380, pre_start checkpoint)",
+    "setup_output": "registry:2 image pre-pulled; api-service code at /home/ga/api-service",
+    "export_output": {
+      "registry_running": false,
+      "registry_accessible": false,
+      "has_v100_tag": false,
+      "has_latest_tag": false,
+      "compose_uses_registry": false,
+      "api_http_code": "000"
+    },
+    "verifier_result": {
+      "score": 0,
+      "passed": false
+    },
+    "screenshot": "evidence/phase4_vm_state.png"
+  }
+}

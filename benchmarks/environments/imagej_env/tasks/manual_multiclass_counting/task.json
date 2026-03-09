@@ -1,0 +1,31 @@
+{
+  "id": "manual_multiclass_counting@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Manual Multi-Class Phenotyping",
+  "description": "You are a researcher preparing a ground-truth dataset for a cell classification model. Using Fiji (ImageJ), manually classify objects in the 'Blobs (25K)' sample image into two categories: 'Round' and 'Elongated'.\n\n1. Open the 'Blobs (25K)' sample image (File > Open Samples > Blobs).\n2. Select the Multi-point Tool.\n3. Configure the tool to use distinct counters for different classes (e.g., double-click the tool icon to set specific counters/types).\n4. Mark at least 5 'Round' objects (high circularity) using one counter type.\n5. Mark at least 5 'Elongated' objects (stretched/deformed) using a DIFFERENT counter type.\n6. Measure/Export the list of points to a CSV file named 'manual_counts.csv' in '~/ImageJ_Data/results/'.\n\nThe output CSV must contain columns for coordinates (X, Y) and the Counter/Type/Slice information to distinguish the two classes.",
+  "difficulty": "medium",
+  "tags": ["manual-annotation", "phenotyping", "multi-point-tool", "classification", "ground-truth"],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/manual_multiclass_counting/setup_task.sh",
+    "post_task": "/workspace/tasks/manual_multiclass_counting/export_result.sh"
+  },
+  "metadata": {
+    "image_name": "Blobs (25K)",
+    "expected_output_path": "/home/ga/ImageJ_Data/results/manual_counts.csv",
+    "min_points_per_class": 5,
+    "round_circularity_threshold": 0.85,
+    "elongated_circularity_threshold": 0.80
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_manual_multiclass_counting"
+    }
+  }
+}

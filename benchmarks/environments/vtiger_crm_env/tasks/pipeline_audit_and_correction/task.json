@@ -1,0 +1,35 @@
+{
+  "id": "pipeline_audit_and_correction@1",
+  "version": "1.0",
+  "env_id": "vtiger_crm_env@0.1",
+  "description": "You are the Sales Manager at Meridian Technology Partners. The quarterly board review is in two days and the CRM pipeline has multiple data quality issues that need to be corrected. Your job is to audit the entire deals pipeline and fix ALL of the following categories of problems:\n\n1. Probability-stage inconsistencies: Each sales stage has an expected probability range. Any deal whose probability falls outside the expected range for its stage must be corrected. The correct mappings are: 'Closed Won' = 100%, 'Closed Lost' = 0%, 'Negotiation/Review' = 70–90%, 'Proposal/Price Quote' = 40–70%, 'Needs Analysis' = 20–50%, 'Perception Analysis' = 10–30%, 'Qualification' = 20–40%, 'Value Proposition' = 30–60%.\n\n2. Stale deals: Any deal whose closing date is in the past AND whose sales stage is not 'Closed Won' or 'Closed Lost' must be moved to 'Closed Lost' with probability set to 0. These represent deals that were never followed up and are no longer active.\n\n3. One specific update: The 'Horizon 5G Network Planning' deal scope was expanded — update its amount to $320,000 to reflect the revised contract value.\n\nLogin credentials: admin / password. Vtiger CRM is at http://localhost:8000",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pipeline_audit_and_correction/setup_task.sh",
+    "post_task": "/workspace/tasks/pipeline_audit_and_correction/export_result.sh"
+  },
+  "metadata": {
+    "injected_errors": [
+      {"deal": "Nexus SCADA Security Assessment", "error": "Closed Won stage but probability set to 65 (must be 100)"},
+      {"deal": "GreenLeaf IoT Factory Monitoring", "error": "Needs Analysis stage but probability set to 88 (must be 20-50)"},
+      {"deal": "Atlas Supply Chain Analytics", "error": "Perception Analysis stage but closingdate set to 2025-06-30 (past, stale)"},
+      {"deal": "Catalyst LIMS Implementation", "error": "Needs Analysis stage but closingdate set to 2025-09-15 (past, stale)"}
+    ],
+    "explicit_update": {
+      "deal": "Horizon 5G Network Planning",
+      "field": "amount",
+      "new_value": 320000
+    },
+    "pass_threshold": 65
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pipeline_audit_and_correction"
+    }
+  }
+}

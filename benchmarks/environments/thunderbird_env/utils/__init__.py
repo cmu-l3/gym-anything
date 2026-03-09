@@ -1,0 +1,1 @@
+"""Thunderbird environment verification utilities."""

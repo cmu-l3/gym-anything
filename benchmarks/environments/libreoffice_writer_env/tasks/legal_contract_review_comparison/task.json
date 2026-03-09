@@ -1,0 +1,38 @@
+{
+  "id": "legal_contract_review_comparison@1",
+  "version": "1.0",
+  "env_id": "libreoffice_writer_env@0.1",
+  "description": "You are a Corporate Counsel reviewing a 'Service Level Agreement'. The vendor has returned a modified version (contract_v2_vendor.odt) of your original draft (contract_v1_original.odt). You need to generate a redline comparison and then create a final resolved version.\n\n1. Open '/home/ga/Documents/contract_v1_original.odt'.\n2. Use 'Track Changes > Compare Document' to compare it with '/home/ga/Documents/contract_v2_vendor.odt'.\n3. Save the resulting comparison document (showing all redlines) as '/home/ga/Documents/contract_comparison.odt'.\n4. In this comparison document, process the changes:\n   - ACCEPT the change to Payment Terms (30 days -> 45 days).\n   - ACCEPT the added 'Force Majeure' clause.\n   - REJECT the deletion of the 'Arbitration' clause (keep the Arbitration clause).\n   - REJECT the change to 'Limitation of Liability' (keep it at $1,000,000, reject the reduction to $500,000).\n5. Save the final clean version (with changes accepted/rejected) as '/home/ga/Documents/contract_final_resolved.odt'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/legal_contract_review_comparison/setup_task.sh",
+    "post_task": "/workspace/tasks/legal_contract_review_comparison/export_result.sh"
+  },
+  "metadata": {
+    "original_path": "/home/ga/Documents/contract_v1_original.odt",
+    "vendor_path": "/home/ga/Documents/contract_v2_vendor.odt",
+    "comparison_path": "/home/ga/Documents/contract_comparison.odt",
+    "final_path": "/home/ga/Documents/contract_final_resolved.odt",
+    "required_strings": [
+      "45 days",
+      "Force Majeure",
+      "Arbitration",
+      "$1,000,000"
+    ],
+    "forbidden_strings": [
+      "30 days",
+      "$500,000"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_legal_contract_review"
+    }
+  }
+}

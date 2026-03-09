@@ -1,0 +1,35 @@
+{
+  "id": "forensic_evidence_extraction@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Perform a forensic extraction of the encrypted evidence volume located at /home/ga/Volumes/data_volume.hc. \n\n1. Mount the volume to /home/ga/MountPoints/slot1 using the password 'MountMe2024' (PIM: 0, Keyfiles: none).\n2. Create a directory /home/ga/Evidence/extracted/ and copy all files from the volume into it.\n3. Compute SHA-256 checksums for every extracted file.\n4. Create a manifest file at /home/ga/Evidence/manifest.sha256 containing the checksums in standard 'sha256sum' format (hash followed by filename).\n5. Create a report at /home/ga/Evidence/extraction_report.txt containing the extraction Date, Source volume path, number of Files extracted, and total Size of extracted data.\n6. Securely dismount the volume.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/forensic_evidence_extraction/setup_task.sh",
+    "post_task": "/workspace/tasks/forensic_evidence_extraction/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/data_volume.hc",
+    "mount_point": "/home/ga/MountPoints/slot1",
+    "password": "MountMe2024",
+    "evidence_dir": "/home/ga/Evidence/extracted",
+    "manifest_path": "/home/ga/Evidence/manifest.sha256",
+    "report_path": "/home/ga/Evidence/extraction_report.txt",
+    "expected_files": [
+      "SF312_Nondisclosure_Agreement.txt",
+      "FY2024_Revenue_Budget.csv",
+      "backup_authorized_keys"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_forensic_extraction"
+    }
+  }
+}

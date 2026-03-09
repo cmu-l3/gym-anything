@@ -1,0 +1,37 @@
+{
+  "id": "implement_qc_workflow@1",
+  "version": "1.0",
+  "env_id": "libreoffice_base_env@0.1",
+  "description": "The Chinook music store database is open in LibreOffice Base. You need to implement a Quality Control (QC) workflow for the audio tracks.\n\n1. Modify the 'Track' table: Add a new column named 'QC_Status' (VARCHAR/TEXT type) to store the review status.\n\n2. Populate the 'QC_Status' column using SQL updates based on the 'MediaTypeId' (you can find these IDs in the MediaType table or by querying):\n   - Set status to 'Approved' for all tracks with Media Type 'MPEG audio file'.\n   - Set status to 'Pending Review' for all tracks with Media Type 'Protected AAC audio file'.\n   - Set status to 'Legacy' for all tracks with Media Type 'Purchased AAC audio file'.\n   - Leave other types as NULL.\n\n3. Create a view/query named 'v_QC_Pending_List' that selects 'TrackId', 'Name', 'Composer', and 'QC_Status' for only the tracks marked 'Pending Review'.\n\n4. Save the database (Ctrl+S) to persist your changes.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/implement_qc_workflow/setup_task.sh",
+    "post_task": "/workspace/tasks/implement_qc_workflow/export_result.sh"
+  },
+  "metadata": {
+    "target_table": "Track",
+    "new_column": "QC_Status",
+    "view_name": "v_QC_Pending_List",
+    "mappings": {
+      "1": "Approved",
+      "2": "Pending Review",
+      "4": "Legacy"
+    },
+    "mediatype_names": {
+      "1": "MPEG audio file",
+      "2": "Protected AAC audio file",
+      "4": "Purchased AAC audio file"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_implement_qc_workflow"
+    }
+  }
+}

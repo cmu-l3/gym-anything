@@ -1,0 +1,33 @@
+{
+  "id": "concentration_variant_shipping_audit@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "You are auditing a shipping manifest. Your task is to look up the specific UN Number and DOT Hazard Labels for 5 chemical products using CAMEO Chemicals (https://cameochemicals.noaa.gov/).\n\nThe products are listed in `~/Desktop/manifest_list.txt`. Note that shipping regulations depend on specific concentrations and physical forms.\n\nCreate a CSV file at `~/Desktop/shipping_audit.csv` with the headers `Product,UN_Number,Hazard_Labels`. For each product, record the UN Number and the Domestic (U.S.) Hazard Labels found in the 'Chemical Identifiers' section of the datasheet. Be careful to select the search result that exactly matches the description (e.g., 'Solution' vs 'Anhydrous', specific percentage ranges).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/concentration_variant_shipping_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/concentration_variant_shipping_audit/export_result.sh"
+  },
+  "metadata": {
+    "manifest_file": "/home/ga/Desktop/manifest_list.txt",
+    "output_file": "/home/ga/Desktop/shipping_audit.csv",
+    "expected_data": {
+      "Ammonia, Anhydrous": {"un": "1005", "labels": ["2.2", "Non-Flammable Gas"]},
+      "Ammonia, 25% Solution": {"un": "2672", "labels": ["8", "Corrosive"]},
+      "Hydrogen Peroxide, 50% Solution": {"un": "2014", "labels": ["5.1", "Oxidizer", "8", "Corrosive"]},
+      "Hydrogen Peroxide, 15% Solution": {"un": "2984", "labels": ["5.1", "Oxidizer"]},
+      "Nitric Acid, Red Fuming": {"un": "2032", "labels": ["8", "Corrosive", "5.1", "Oxidizer", "6.1", "Poison"]}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_concentration_variant_shipping_audit"
+    }
+  }
+}

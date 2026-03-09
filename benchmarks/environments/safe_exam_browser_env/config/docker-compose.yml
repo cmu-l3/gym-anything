@@ -1,0 +1,56 @@
+version: '3.5'
+services:
+  mariadb:
+    image: "mariadb:10.5"
+    container_name: seb-server-mariadb
+    environment:
+      - MYSQL_ROOT_PASSWORD=sebserver123
+      - MARIADB_AUTO_UPGRADE=1
+    volumes:
+      - seb-server-mariadb:/var/lib/mysql
+      - ./mariadb_config.cnf:/etc/mysql/conf.d/config.cnf
+    networks:
+      - seb-server-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  seb-server:
+    image: "anhefti/seb-server:v2.2-stable"
+    container_name: seb-server
+    environment:
+      - JAVA_HEAP_MIN=512M
+      - JAVA_HEAP_MAX=3G
+      - spring_profiles_active=bundled,demo
+      - sebserver_password=sebserver123
+      - sebserver_mariadb_password=sebserver123
+      - datastore_mariadb_server_address=seb-server-mariadb
+      - datastore_mariadb_server_port=3306
+      - spring_flyway_locations=classpath:config/sql/base,classpath:config/sql/demo
+      - sebserver_webservice_http_external_scheme=http
+      - sebserver_webservice_http_external_servername=localhost
+      - sebserver_webservice_http_external_port=8080
+      - sebserver_webservice_autologin_url=http://localhost
+      - sebserver_feature_exam_seb_screenProctoring_bundled_url=http://localhost:8090
+      - sps_sebserver_client_secret=sebserver123
+      - sps_sebserver_password=sebserver123
+    ports:
+      - "8080:8080"
+    networks:
+      - seb-server-network
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  seb-server-network:
+    name: seb-server-network
+
+volumes:
+  seb-server-mariadb:
+    name: seb-server-db

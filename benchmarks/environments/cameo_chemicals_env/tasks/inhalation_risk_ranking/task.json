@@ -1,0 +1,39 @@
+{
+  "id": "inhalation_risk_ranking@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "Perform a comparative inhalation risk assessment for five industrial solvents using data from CAMEO Chemicals (https://cameochemicals.noaa.gov/).\n\nTask Steps:\n1. Search for each of the following chemicals: Methanol, Toluene, Acetone, Carbon Disulfide, and Ethylene Oxide.\n2. For each chemical, open its datasheet and find:\n   - The IDLH (Immediately Dangerous to Life or Health) value in ppm (found in Health Hazards or Exposure Limits sections).\n   - The Vapor Pressure in mmHg (found in Physical Properties section).\n3. Calculate the Inhalation Risk Ratio = (Vapor Pressure in mmHg) / (IDLH in ppm).\n4. Create a CSV file named 'inhalation_risk_assessment.csv' in '/home/ga/Documents/'.\n5. The CSV must have the header: 'Chemical,CAS,IDLH_ppm,Vapor_Pressure_mmHg,VP_IDLH_Ratio,Risk_Rank'.\n6. Populate the CSV with the data, SORTED by 'Risk_Rank' from 1 (Highest Ratio/Highest Risk) to 5 (Lowest Ratio/Lowest Risk).\n   - Round VP_IDLH_Ratio to 3 decimal places.\n\nExample row format: 'Ethylene Oxide,75-21-8,800,1095,1.369,1'",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/inhalation_risk_ranking/setup_task.sh",
+    "post_task": "/workspace/tasks/inhalation_risk_ranking/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/inhalation_risk_assessment.csv",
+    "chemicals": {
+      "Ethylene Oxide": {"cas": "75-21-8", "idlh": 800, "vp_approx": 1095},
+      "Carbon Disulfide": {"cas": "75-15-0", "idlh": 500, "vp_approx": 300},
+      "Acetone": {"cas": "67-64-1", "idlh": 2500, "vp_approx": 180},
+      "Toluene": {"cas": "108-88-3", "idlh": 500, "vp_approx": 22},
+      "Methanol": {"cas": "67-56-1", "idlh": 6000, "vp_approx": 96}
+    },
+    "expected_ranking": [
+      "Ethylene Oxide",
+      "Carbon Disulfide",
+      "Acetone",
+      "Toluene",
+      "Methanol"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_inhalation_risk_ranking"
+    }
+  }
+}

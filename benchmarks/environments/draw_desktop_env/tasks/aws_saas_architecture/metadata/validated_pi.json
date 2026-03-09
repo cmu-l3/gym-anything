@@ -1,0 +1,87 @@
+{
+    "task_id": "aws_saas_architecture@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "required_components",
+            "metadata_value": "[\"vpc\", \"subnet\", \"ec2\", \"rds\", \"s3\", \"alb\", \"cloudfront\", \"route53\", \"elasticache\", \"igw\", \"nat\"]",
+            "verified_value": "[\"vpc\", \"subnet\", \"ec2\", \"rds\", \"s3\", \"alb\", \"cloudfront\", \"route53\", \"elasticache\", \"igw\", \"nat\", \"asg\"]",
+            "source": "Task description explicitly states 'COMPUTE LAYER: ... An Auto Scaling Group encompassing the EC2 instances.' Lines 5 of task.json and setup_task.sh requirements document item '1 x Auto Scaling Group (ASG)' confirm ASG is required but it is missing from metadata list.",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_shapes",
+            "metadata_value": "15",
+            "verified_value": "15",
+            "source": "README.md success criteria table and verifier.py line 48 confirm minimum of 15 shapes required for full points. Task description mentions: VPC, 4 subnets, IGW, 2 NAT gateways, ALB, 2 EC2 instances, ASG, RDS, ElastiCache, S3, CloudFront, Route 53, plus 3 security zone rectangles = ~20 minimum shapes, so 15 is a reasonable threshold.",
+            "status": "verified"
+        },
+        {
+            "key": "min_edges",
+            "metadata_value": "8",
+            "verified_value": "8",
+            "source": "README.md success criteria table and verifier.py line 49 confirm minimum of 8 connection edges. Task description requires connections between: ALB-EC2, EC2-RDS, EC2-ElastiCache, CloudFront-ALB, Route53-CloudFront, IGW-ALB, and subnet interconnections. 8 edges is achievable and verified.",
+            "status": "verified"
+        },
+        {
+            "key": "min_pages",
+            "metadata_value": "2",
+            "verified_value": "2",
+            "source": "Task description line 5 explicitly states: 'Create a second page titled Data Flow' and README.md section 'DIAGRAM REQUIREMENTS' specifies 'Page 1 — Architecture Overview' and 'Page 2 — Data Flow'. Verifier.py line 146 checks for >= 2 pages.",
+            "status": "verified"
+        },
+        {
+            "key": "output_drawio",
+            "metadata_value": "/home/ga/Desktop/aws_architecture.drawio",
+            "verified_value": "/home/ga/Desktop/aws_architecture.drawio",
+            "source": "Task description says 'Save as ~/Desktop/aws_architecture.drawio'. User is 'ga' (from login: username=ga). Expanded path is /home/ga/Desktop/aws_architecture.drawio. Verified in setup_task.sh line 22 and verifier.py line 53.",
+            "status": "verified"
+        },
+        {
+            "key": "output_png",
+            "metadata_value": "/home/ga/Desktop/aws_architecture.png",
+            "verified_value": "/home/ga/Desktop/aws_architecture.png",
+            "source": "Task description says 'export page 1 as ~/Desktop/aws_architecture.png'. User is 'ga'. Expanded path is /home/ga/Desktop/aws_architecture.png. Verified in setup_task.sh line 23 and verifier.py export_result.sh line 9.",
+            "status": "verified"
+        },
+        {
+            "key": "aws_services_referenced",
+            "metadata_value": "VPC, subnet, EC2, RDS PostgreSQL, ElastiCache Redis, S3, ALB, CloudFront, Route 53, NAT Gateway, Internet Gateway, Auto Scaling Group, WAF, Certificate Manager, CloudWatch",
+            "verified_value": "All mentioned services are real AWS services verified via AWS documentation and AWS Well-Architected Framework",
+            "source": "Cross-referenced with AWS official documentation at docs.aws.amazon.com. All services are real and documented as part of multi-tenant SaaS architecture patterns.",
+            "status": "verified"
+        },
+        {
+            "key": "architecture_pattern_basis",
+            "metadata_value": "Based on AWS Well-Architected Framework (SaaS Lens)",
+            "verified_value": "AWS Well-Architected Framework SaaS Lens exists and documents multi-tenant SaaS patterns. AWS Prescriptive Guidance provides specific PostgreSQL multi-tenant implementation patterns.",
+            "source": "AWS official documentation: https://docs.aws.amazon.com/wellarchitected/latest/saas-lens/welcome.html and https://docs.aws.amazon.com/prescriptive-guidance/latest/saas-multitenant-managed-postgresql/welcome.html confirm the reference architecture basis is real and documented.",
+            "status": "verified"
+        },
+        {
+            "key": "rds_postgresql_version",
+            "metadata_value": "PostgreSQL 14",
+            "verified_value": "PostgreSQL 14 is a valid RDS engine option. Released October 2021. Current as of 2026 for multi-tenant SaaS applications.",
+            "source": "AWS RDS documentation confirms PostgreSQL 14 support and AWS prescriptive guidance for multi-tenant SaaS with PostgreSQL confirms version 14 is current.",
+            "status": "verified"
+        },
+        {
+            "key": "elasticache_redis_with_rds",
+            "metadata_value": "ElastiCache Redis cluster paired with RDS PostgreSQL is valid architecture",
+            "verified_value": "ElastiCache Redis is documented as a caching layer for RDS PostgreSQL. AWS prescriptive guidance confirms this combination for multi-tenant SaaS.",
+            "source": "AWS blogs and documentation at aws.amazon.com/blogs/database/ confirm ElastiCache Redis with RDS PostgreSQL is a standard multi-AZ, high-availability pattern with 55% cost savings and up to 80x faster read performance.",
+            "status": "verified"
+        },
+        {
+            "key": "multi_az_deployment",
+            "metadata_value": "2 Availability Zones (us-east-1a, us-east-1b) with matching public and private subnets",
+            "verified_value": "Multi-AZ deployment across 2 availability zones is a standard AWS architecture pattern documented in Well-Architected Framework for high availability.",
+            "source": "Setup_task.sh requirements document specifies us-east-1 region (real AWS region) with 2 AZs and 4 subnets (2 public, 2 private). This matches AWS best practices.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The aws_saas_architecture task requires agents to create a multi-page AWS architecture diagram using draw.io. The task is based on real AWS services and the verified AWS Well-Architected Framework SaaS Lens documentation. Required components include VPC, 4 subnets across 2 availability zones, EC2 instances, RDS PostgreSQL Multi-AZ, ElastiCache Redis, S3, ALB, CloudFront, Route 53, NAT Gateways, Internet Gateway, and Auto Scaling Groups. The diagram requires minimum 15 shapes and 8 connection edges. Two pages are required: an Architecture Overview page and a Data Flow sequence page. Output files are aws_architecture.drawio (draw.io format) and aws_architecture.png (PNG export). One discrepancy noted: the task description explicitly requires Auto Scaling Group but it is missing from the metadata's required_components list.",
+    "pi_confidence": "high"
+}

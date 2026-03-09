@@ -1,0 +1,34 @@
+{
+    "id": "fix_async_server@1",
+    "version": "1.0",
+    "env_id": "pycharm_env@0.1",
+    "description": "You are a backend engineer at a logistics company. A colleague wrote a Python asyncio-based job scheduling service that tracks package routing jobs. The service is broken in production — jobs that should run concurrently are running sequentially, some jobs never complete, and under load the status counters become inconsistent.\n\nThe project is already open in PyCharm at /home/ga/PycharmProjects/async_scheduler.\n\nThe CI pipeline is failing. Your task is to:\n1. Run the tests to understand what's failing: python -m pytest tests/ -v\n2. Find and fix all async/concurrency bugs in the source code under server/\n3. Ensure all tests pass\n\nDo NOT change the test files or the public API (function signatures). Only fix bugs in server/ source files.\n\nHint: the bugs involve async/await correctness, asyncio task creation patterns, and shared mutable state access.",
+    "difficulty": "very_hard",
+    "init": {
+        "timeout_sec": 900,
+        "max_steps": 100
+    },
+    "hooks": {
+        "pre_task": "/workspace/tasks/fix_async_server/setup_task.sh",
+        "post_task": "/workspace/tasks/fix_async_server/export_result.sh"
+    },
+    "metadata": {
+        "project_dir": "/home/ga/PycharmProjects/async_scheduler",
+        "num_bugs": 4,
+        "bug_locations": [
+            "server/worker.py:process_job — missing await on async_sleep call (blocks event loop)",
+            "server/worker.py:run_workers — uses asyncio.coroutine pattern instead of asyncio.gather",
+            "server/registry.py:JobRegistry.update_status — not using asyncio.Lock for concurrent updates",
+            "server/client.py:fetch_job_status — missing await on aiohttp response.json()"
+        ],
+        "pass_threshold": 65,
+        "occupation": "Software Developers",
+        "industry": "Computer Systems Design and Related Services"
+    },
+    "success": {
+        "mode": "program",
+        "spec": {
+            "program": "verifier.py::verify_fix_async_server"
+        }
+    }
+}

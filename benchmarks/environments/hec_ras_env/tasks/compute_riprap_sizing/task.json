@@ -1,0 +1,33 @@
+{
+  "id": "compute_riprap_sizing@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Calculate the required riprap size for scour protection on the White River. \n\n1. Ensure the Muncie unsteady flow simulation has been run (output file Muncie.p04.hdf exists). If not, run it using `RasUnsteady Muncie.p04.tmp.hdf x04`.\n2. Write a Python script to analyze the HDF5 results. Find the cross-section with the MAXIMUM channel velocity across the entire reach and simulation time.\n3. Calculate the required median stone diameter (D50) using the Isbash equation:\n   D50 = (V_max^2) / (C^2 * 2g * (Sg - 1))\n   Where:\n   - C (Turbulence Coefficient) = 1.20\n   - g (Gravity) = 32.174 ft/s^2\n   - Sg (Specific Gravity) = 2.65\n4. Save the results to '/home/ga/Documents/hec_ras_results/riprap_design.csv' with columns: `river_station`, `max_velocity_fps`, `required_d50_ft`, `required_d50_in`.\n5. Save a brief summary text file to '/home/ga/Documents/hec_ras_results/riprap_summary.txt'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_riprap_sizing/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_riprap_sizing/export_result.sh"
+  },
+  "metadata": {
+    "constants": {
+      "C": 1.2,
+      "g": 32.174,
+      "Sg": 2.65
+    },
+    "output_csv": "/home/ga/Documents/hec_ras_results/riprap_design.csv",
+    "output_txt": "/home/ga/Documents/hec_ras_results/riprap_summary.txt",
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "result_hdf": "Muncie.p04.hdf"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_riprap_sizing"
+    }
+  }
+}

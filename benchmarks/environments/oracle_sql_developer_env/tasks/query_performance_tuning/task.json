@@ -1,0 +1,30 @@
+{
+  "id": "query_performance_tuning@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "The application team has filed 5 performance tickets for slow-running queries. These queries are documented in the HR.TUNING_QUERIES table (query_id, description, sql_text, performance_issue). A large test table HR.PERFORMANCE_ORDERS exists with 11,449 rows to simulate production load. Using Oracle SQL Developer: (1) retrieve and run each of the 5 queries from HR.TUNING_QUERIES through SQL Developer's Explain Plan feature to analyze their execution plans; (2) identify the performance bottleneck in each (look for TABLE ACCESS FULL operations on HR.PERFORMANCE_ORDERS); (3) create appropriate indexes on HR.PERFORMANCE_ORDERS to eliminate the full table scans — at minimum create indexes on the ORDER_AMOUNT, ORDER_DATE, and CUSTOMER_ID columns; (4) export a tuning analysis report to /home/ga/Documents/exports/tuning_report.txt documenting which queries were analyzed, what execution plan issues were found, and what indexes were created. HR credentials: hr/hr123. System credentials if needed: system/OraclePassword123.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/query_performance_tuning/setup_task.sh",
+    "post_task": "/workspace/tasks/query_performance_tuning/export_result.sh"
+  },
+  "metadata": {
+    "target_table": "PERFORMANCE_ORDERS",
+    "target_schema": "HR",
+    "expected_row_count": 11449,
+    "required_indexed_columns": ["ORDER_AMOUNT", "ORDER_DATE", "CUSTOMER_ID"],
+    "tuning_queries_table": "HR.TUNING_QUERIES",
+    "output_file": "/home/ga/Documents/exports/tuning_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_query_performance_tuning"
+    }
+  }
+}

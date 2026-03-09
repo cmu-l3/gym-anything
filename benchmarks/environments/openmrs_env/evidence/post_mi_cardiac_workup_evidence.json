@@ -1,0 +1,42 @@
+{
+  "task": "post_mi_cardiac_workup",
+  "task_id": "post_mi_cardiac_workup@1",
+  "difficulty": "hard",
+  "features_tested": ["allergy_documentation", "condition_problem_list", "lab_order"],
+  "patient": {
+    "name": "Jesse Becker",
+    "dob": "1943-02-04",
+    "lookup": "GET /openmrs/ws/rest/v1/patient?q=Jesse+Becker"
+  },
+  "setup_verification": {
+    "pre_existing_codeine_allergy_removed": "Any existing Codeine allergy deleted before task starts",
+    "pre_existing_diabetes_condition_removed": "Any existing diabetes/T2DM condition deleted before task starts",
+    "active_visit_created": "New facility visit created with current timestamp",
+    "patient_chart_preloaded": "Browser navigated to patient chart Patient Summary before agent starts",
+    "initial_order_count_recorded": "/tmp/post_mi_cardiac_workup_initial_order_count saved"
+  },
+  "success_criteria": {
+    "criterion_1_allergy": {
+      "api_endpoint": "GET /openmrs/ws/rest/v1/allergy?patient={UUID}&v=default",
+      "allergen_check": "allergen.codedAllergen.display contains 'codeine' (case-insensitive)",
+      "severity_check": "severity.display contains 'moderate'",
+      "reaction_check": "reactions[].reaction.display contains 'nausea', 'vomit', or 'emesis'",
+      "scoring": "33 pts full, 15 pts partial (allergen only)"
+    },
+    "criterion_2_condition": {
+      "api_endpoint": "GET /openmrs/ws/rest/v1/condition?patient={UUID}&v=default",
+      "keywords": ["diabet", "type 2", "t2dm", "dm2", "type ii"],
+      "date_check": "auditInfo.dateCreated >= task_start_timestamp",
+      "scoring": "34 pts full, no partial"
+    },
+    "criterion_3_lab_order": {
+      "api_endpoint": "GET /openmrs/ws/rest/v1/order?patient={UUID}&v=default&limit=100",
+      "concept_check": "concept.display contains 'creatinine' or 'serum creatinine'",
+      "date_check": "dateActivated >= task_start_timestamp OR current_count > initial_order_count",
+      "scoring": "33 pts full, no partial"
+    }
+  },
+  "do_nothing_expected_score": 0,
+  "pass_threshold": 67,
+  "notes": "Screenshot captured by setup_task.sh at /tmp/post_mi_cardiac_workup_start_screenshot.png inside the VM environment"
+}

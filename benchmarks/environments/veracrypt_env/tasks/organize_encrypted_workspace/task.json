@@ -1,0 +1,40 @@
+{
+  "id": "organize_encrypted_workspace@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Mount the encrypted volume '/home/ga/Volumes/data_volume.hc' (Password: 'MountMe2024', PIM: 0). The volume is currently formatted as FAT, which does not support secure permissions. You must backup the files, reformat the volume to ext4, and then restore and organize the files.\n\nOrganization Requirements:\n1. Create directories: 'legal', 'financial', 'credentials'.\n2. Move 'SF312_Nondisclosure_Agreement.txt' to 'legal/'.\n3. Move 'FY2024_Revenue_Budget.csv' to 'financial/'.\n4. Move 'backup_authorized_keys' to 'credentials/'.\n5. Set 'credentials/' directory permissions to 700 (drwx------).\n6. Set 'credentials/backup_authorized_keys' permissions to 600 (-rw-------).\n7. Create a 'manifest.sha256' file at the volume root containing SHA-256 checksums of the three organized files.\n\nFinally, dismount the volume. Ensure no sensitive files remain in the root directory.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/organize_encrypted_workspace/setup_task.sh",
+    "post_task": "/workspace/tasks/organize_encrypted_workspace/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/data_volume.hc",
+    "password": "MountMe2024",
+    "files": [
+      "SF312_Nondisclosure_Agreement.txt",
+      "FY2024_Revenue_Budget.csv",
+      "backup_authorized_keys"
+    ],
+    "expected_structure": {
+      "legal": ["SF312_Nondisclosure_Agreement.txt"],
+      "financial": ["FY2024_Revenue_Budget.csv"],
+      "credentials": ["backup_authorized_keys"]
+    },
+    "permissions": {
+      "credentials": "700",
+      "backup_authorized_keys": "600"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_organize_encrypted_workspace"
+    }
+  }
+}

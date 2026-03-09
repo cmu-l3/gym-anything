@@ -1,0 +1,54 @@
+{
+  "id": "pancreas_size_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the anteroposterior diameter of the pancreatic head, body, and tail on the loaded abdominal CT. Classify atrophy severity and identify affected segments. Save measurements to ~/Documents/SlicerData/AMOS/pancreas_measurements.mrk.json and report to ~/Documents/SlicerData/AMOS/pancreas_report.json with fields: head_ap_mm, body_ap_mm, tail_ap_mm, atrophy_classification, affected_segments.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 70,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pancreas_size_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/pancreas_size_assessment/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/AMOS/pancreas_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/pancreas_report.json",
+    "pancreas_label": 11,
+    "normal_ranges": {
+      "head_min": 20,
+      "head_max": 30,
+      "body_min": 15,
+      "body_max": 25,
+      "tail_min": 15,
+      "tail_max": 25
+    },
+    "atrophy_thresholds": {
+      "head": 18,
+      "body": 12,
+      "tail": 12
+    },
+    "passing_thresholds": {
+      "measurement_error_max_mm": 5.0
+    },
+    "scoring_weights": {
+      "head_accuracy": 25,
+      "body_accuracy": 25,
+      "tail_accuracy": 20,
+      "classification_correct": 15,
+      "report_completeness": 10,
+      "markup_exists": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pancreas_size_assessment"
+    }
+  }
+}

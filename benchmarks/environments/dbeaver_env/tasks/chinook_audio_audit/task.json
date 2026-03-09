@@ -1,0 +1,29 @@
+{
+  "id": "chinook_audio_audit@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Perform a technical audit of the Chinook media catalog to identify high-fidelity audio tracks. \n\n1. Connect to the SQLite database at `/home/ga/Documents/databases/chinook.db` (Connection name: 'Chinook').\n\n2. Create a Database View named `v_track_bitrates` that calculates the bitrate in kbps for every track using the formula: `(Bytes * 8) / Milliseconds`. The view must include columns: `TrackId`, `Name`, `Composer`, `MediaType` (joined from media_types), `Genre` (joined from genres), and `BitrateKbps` (rounded to nearest integer). \n\nIMPORTANT: The view must EXCLUDE all video files (filter out any MediaType containing 'video').\n\n3. Export a list of all tracks with a bitrate STRICTLY GREATER THAN 280 kbps to `/home/ga/Documents/exports/hifi_candidates.csv`. The CSV should contain the columns from your view.\n\n4. Write a SQL query to find the Top 5 Genres by average bitrate. Save this query to `/home/ga/Documents/scripts/genre_quality.sql`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_audio_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_audio_audit/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook.db",
+    "expected_csv_path": "/home/ga/Documents/exports/hifi_candidates.csv",
+    "expected_sql_path": "/home/ga/Documents/scripts/genre_quality.sql",
+    "bitrate_threshold": 280,
+    "view_name": "v_track_bitrates"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_audio_audit"
+    }
+  }
+}

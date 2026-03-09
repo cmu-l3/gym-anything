@@ -1,0 +1,29 @@
+{
+  "id": "document_signal_dropouts@1",
+  "version": "1.0",
+  "env_id": "vital_recorder_windows_env@0.1",
+  "description": "You are a biomedical data engineer auditing VitalDB case #6 for a research database. Vital Recorder is open with this case loaded. Your task is to examine the Solar8000/PLETH_SPO2 track (pulse oximetry SpO2) across the entire recording and identify ALL episodes where the signal drops out (no data, flat-line at zero, or trace disappears).\n\nNavigate through the full recording timeline carefully.\n\nCreate a structured report at C:\\Users\\Docker\\Documents\\dropout_report.txt with this exact format:\n\nSIGNAL DROPOUT REPORT\n=====================\nCase: VitalDB #6\nTrack: Solar8000/PLETH_SPO2\nDate of Audit: [today's date]\n\nTotal dropout episodes found: [N]\n\nEpisode 1:\n  Start: [HH:MM:SS]\n  End: [HH:MM:SS]\n  Duration: [seconds]\n\n[...for each episode...]\n\nTotal dropout time: [seconds]\nSignal availability: [percentage]%\n\nTimes should be relative to recording start (00:00:00). Navigate through the ENTIRE recording - do not skip sections. Include every dropout episode lasting 10 seconds or longer.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\document_signal_dropouts\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\document_signal_dropouts\\export_result.ps1",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "expected_output_path": "C:\\Users\\Docker\\Documents\\dropout_report.txt",
+    "vital_file_url": "https://api.vitaldb.net/v1/vital/0006",
+    "track_name": "Solar8000/PLETH_SPO2",
+    "ground_truth_path": "C:\\workspace\\ground_truth\\dropout_ground_truth.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_document_signal_dropouts"
+    }
+  }
+}

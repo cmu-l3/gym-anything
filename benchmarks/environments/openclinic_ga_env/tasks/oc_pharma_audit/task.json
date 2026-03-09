@@ -1,0 +1,33 @@
+{
+  "id": "oc_pharma_audit@1",
+  "version": "1.0",
+  "env_id": "openclinic_ga_env@0.1",
+  "description": "You are a Clinical Pharmacist conducting a monthly Medication Safety Audit at a community hospital. Review the chronic medication records for four ward patients: Fatima Al-Rashid (ID 10003), Priya Sharma (ID 10007), Mohammed Hassan (ID 10008), and Li Wei (ID 10009). Identify and correct any medication safety issues present in their chronic medication lists. Issues to look for include: (1) medications that are inherently short-term therapies being listed as chronic medications, (2) duplicate prescriptions of the same drug, and (3) drug-disease contraindications that become apparent when cross-referencing recent laboratory results. Make the necessary corrections directly in the system — do not merely document the issues. Access the system at http://localhost:10088/openclinic using username '4' and password 'openclinic'.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/oc_pharma_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/oc_pharma_audit/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/oc_pharma_audit_result.json",
+    "audit_patients": [10003, 10007, 10008, 10009],
+    "injected_errors": [
+      {"patient_id": 10003, "patient": "Fatima Al-Rashid", "product_id": 9001, "product": "Amoxicillin 500mg", "error": "antibiotic listed as chronic medication"},
+      {"patient_id": 10007, "patient": "Priya Sharma", "product_id": 9004, "product": "Amlodipine 5mg", "error": "duplicate entry (2 entries exist)"},
+      {"patient_id": 10008, "patient": "Mohammed Hassan", "product_id": 9002, "product": "Metformin 500mg", "error": "contraindicated — CREAT=4.5 mg/dL (severe renal failure)"}
+    ],
+    "correct_decoy": {"patient_id": 10009, "patient": "Li Wei", "product_id": 9005, "product": "Atorvastatin 20mg", "note": "appropriate chronic medication — must NOT be removed"},
+    "pass_threshold": 75
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_oc_pharma_audit"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "id": "normalize_address_table@1",
+  "version": "1.0",
+  "env_id": "libreoffice_base_env@0.1",
+  "description": "Perform a database normalization task in LibreOffice Base using the Chinook database. \n\nGoal: Extract address information from the 'Customer' table into a new dedicated table named 'CustomerAddress'.\n\n1. Open the SQL tool (Tools > SQL).\n2. Create a new table named 'CustomerAddress' with the following columns:\n   - AddressId (INTEGER, Primary Key)\n   - CustomerId (INTEGER, Not Null)\n   - Address (VARCHAR(70))\n   - City (VARCHAR(40))\n   - State (VARCHAR(40))\n   - Country (VARCHAR(40))\n   - PostalCode (VARCHAR(10))\n\n3. Populate this new table by selecting data from the existing 'Customer' table. Use the 'CustomerId' as the 'AddressId' for the new table. The mapping should be:\n   - AddressId <- CustomerId\n   - CustomerId <- CustomerId\n   - Address <- Address\n   - City <- City\n   - State <- State\n   - Country <- Country\n   - PostalCode <- PostalCode\n\n4. Execute the SQL commands to create the table and insert the data (expecting 59 rows).\n5. Close the SQL window and SAVE the database file (File > Save) to persist changes.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/normalize_address_table/setup_task.sh",
+    "post_task": "/workspace/tasks/normalize_address_table/export_result.sh"
+  },
+  "metadata": {
+    "database_path": "/home/ga/chinook.odb",
+    "expected_table": "CustomerAddress",
+    "expected_row_count": 59,
+    "spot_checks": [
+      {
+        "id": 1,
+        "city": "São José dos Campos",
+        "country": "Brazil"
+      },
+      {
+        "id": 14,
+        "city": "Edmonton",
+        "country": "Canada"
+      },
+      {
+        "id": 46,
+        "city": "Dublin",
+        "country": "Ireland"
+      },
+      {
+        "id": 59,
+        "city": "Bangalore",
+        "country": "India"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_normalize_address_table"
+    }
+  }
+}

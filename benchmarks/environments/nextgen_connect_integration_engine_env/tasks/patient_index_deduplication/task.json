@@ -1,0 +1,29 @@
+{
+  "id": "patient_index_deduplication@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "You are a Health Information Management (HIM) Specialist maintaining the Patient Master Index (PMI) for a multi-facility hospital system. Multiple EHR systems send ADT^A31 (Update Patient Information) messages when demographics change, frequently causing duplicate patient records due to concurrent updates. Build a NextGen Connect channel named 'Patient Master Index Sync' that: (1) Listens on TCP port 6665 for HL7 ADT messages (A28, A31, A08 - all demographic updates). (2) Contains a JavaScript transformer that extracts the following fields from the PID segment: mrn (PID-3, first repetition, CX.1 component), last_name (PID-5.1), first_name (PID-5.2), dob (PID-7, formatted as YYYYMMDD), gender (PID-8), ssn (PID-19, may be empty). The transformer must set these as channel map variables. (3) Uses a Database Writer destination that performs a PostgreSQL UPSERT using 'INSERT INTO patient_master_index (mrn, last_name, first_name, dob, gender, ssn, last_updated, update_count) VALUES (...) ON CONFLICT (mrn) DO UPDATE SET last_name=EXCLUDED.last_name, first_name=EXCLUDED.first_name, dob=EXCLUDED.dob, gender=EXCLUDED.gender, ssn=EXCLUDED.ssn, last_updated=NOW(), update_count=patient_master_index.update_count+1'. The patient_master_index table must exist with mrn as PRIMARY KEY or UNIQUE constraint. (4) Includes a Response Transformer that constructs a valid HL7 ACK message using the MSH-10 (Message Control ID) from the incoming message, with acknowledgment code 'AA'. (5) The channel must be deployed. The patient_master_index table can be created manually or by the channel. Sample ADT A31 message is at /home/ga/sample_adt_a31.hl7. PostgreSQL is accessible from inside the NextGen Connect container at jdbc:postgresql://nextgen-postgres:5432/mirthdb (username: postgres, password: postgres). Direct DB access: docker exec nextgen-postgres psql -U postgres -d mirthdb. REST API: https://localhost:8443/api (credentials: admin/admin). All REST API calls require the header 'X-Requested-With: OpenAPI'. Channel XML must include a <responseTransformer> element.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/patient_index_deduplication/setup_task.sh",
+    "post_task": "/workspace/tasks/patient_index_deduplication/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Patient Master Index Sync",
+    "listen_port": "6665",
+    "db_table": "patient_master_index",
+    "occupation": "Health Information Management Specialist",
+    "soc_code": "11-9111.00"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_patient_index_deduplication"
+    }
+  }
+}

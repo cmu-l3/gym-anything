@@ -1,0 +1,31 @@
+{
+  "id": "phase_confluence_analysis@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Calculate the confluence (percentage of area covered by cells) of the HeLa cell phase contrast image located at ~/Fiji_Data/raw/confluence/hela-cells.tif.\n\nPerform the following steps:\n1. Open the image (it is a 16-bit or 12-bit phase contrast image).\n2. Pre-process the image to highlight cell bodies and separate them from the background (e.g., convert to 8-bit, use variance/texture filters, find edges, or morphological operations). Simple thresholding will not work due to the halo effect.\n3. Create a binary mask where white pixels (255) represent cells and black pixels (0) represent background.\n4. Save this binary mask to ~/Fiji_Data/results/confluence/confluence_mask.png.\n5. Measure the area fraction (confluence) and save the single numeric percentage value (e.g., 78.5) to a text file at ~/Fiji_Data/results/confluence/confluence_report.txt.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/phase_confluence_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/phase_confluence_analysis/export_result.sh"
+  },
+  "metadata": {
+    "input_image": "~/Fiji_Data/raw/confluence/hela-cells.tif",
+    "output_mask": "~/Fiji_Data/results/confluence/confluence_mask.png",
+    "output_report": "~/Fiji_Data/results/confluence/confluence_report.txt",
+    "ground_truth_path": "/var/lib/fiji/ground_truth/hela_gt.png",
+    "ground_truth_value_path": "/var/lib/fiji/ground_truth/expected_confluence.txt",
+    "iou_threshold": 0.6,
+    "confluence_tolerance": 15.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_phase_confluence_analysis"
+    }
+  }
+}

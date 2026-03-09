@@ -1,0 +1,42 @@
+#!/bin/bash
+# set -euo pipefail
+
+# Source shared utilities
+source /workspace/scripts/task_utils.sh
+
+echo "=== Exporting Recipe Scaling Result ==="
+
+# Focus Calc window
+wid=$(get_calc_window_id)
+if [ -n "$wid" ]; then
+    focus_window "$wid"
+    sleep 0.5
+fi
+
+# Save file (Ctrl+S)
+echo "Saving file..."
+safe_xdotool ga :1 key --delay 200 ctrl+s
+sleep 1
+
+# Wait for file to be saved/updated
+if wait_for_file "/home/ga/Documents/recipe_scaling.ods" 5; then
+    echo "✅ File saved: /home/ga/Documents/recipe_scaling.ods"
+    ls -lh /home/ga/Documents/recipe_scaling.ods
+else
+    echo "⚠️ Warning: File not found or not recently modified"
+fi
+
+# Close Calc (Ctrl+Q)
+echo "Closing LibreOffice Calc..."
+safe_xdotool ga :1 key --delay 200 ctrl+q
+sleep 1
+
+# Verify file exists for verification
+if [ -f "/home/ga/Documents/recipe_scaling.ods" ]; then
+    echo "✅ Recipe scaling file ready for verification"
+    echo "   Size: $(stat -c%s /home/ga/Documents/recipe_scaling.ods) bytes"
+else
+    echo "❌ ERROR: Recipe scaling file not found"
+fi
+
+echo "=== Export Complete ==="

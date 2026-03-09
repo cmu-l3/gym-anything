@@ -1,0 +1,29 @@
+{
+  "id": "security_privilege_audit@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "Five Oracle database user accounts have been flagged by a security review for excessive privileges. As a Compliance Officer, audit and remediate all five accounts: revoke the DBA role from DEV_USER, revoke CREATE TABLE and SELECT ANY TABLE from REPORT_USER2, revoke RESOURCE and UNLIMITED TABLESPACE from APP_USER, lock LEGACY_USER, and leave ANALYST_USER with only CREATE SESSION and CREATE VIEW. Then create and enable an Oracle Unified Audit policy named PRIVILEGE_ESCALATION_AUDIT covering GRANT ANY PRIVILEGE, CREATE USER, DROP USER, ALTER USER, and CREATE ROLE. Finally export a security remediation report to /home/ga/Documents/exports/security_remediation.txt documenting what was found and fixed for each account.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "final"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/security_privilege_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/security_privilege_audit/export_result.sh"
+  },
+  "metadata": {
+    "target_users": ["DEV_USER", "REPORT_USER2", "ANALYST_USER", "APP_USER", "LEGACY_USER"],
+    "audit_policy_name": "PRIVILEGE_ESCALATION_AUDIT",
+    "report_path": "/home/ga/Documents/exports/security_remediation.txt",
+    "system_user": "system",
+    "system_pwd": "OraclePassword123"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_security_privilege_audit"
+    }
+  }
+}

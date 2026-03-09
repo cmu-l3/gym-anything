@@ -1,0 +1,33 @@
+{
+  "id": "generate_downsampled_matlab@1",
+  "version": "1.0",
+  "env_id": "vital_recorder_windows_env@0.1",
+  "description": "Export the ECG and Plethysmogram (SpO2) waveforms for the first 5 minutes of the case to a MATLAB (.mat) file, downsampled to exactly 100 Hz.\n\nContext: You are preparing a dataset for a heart rate variability analysis algorithm that requires lower-resolution data.\n\nStarting State: Vital Recorder is open with VitalDB Case #6 loaded (a general anesthesia case).\n\nYour Task:\n1. Open the Export dialog (File > Export).\n2. Configure the export settings:\n   - Output Format: MATLAB (.mat)\n   - Time Range: Start 0 sec, End 300 sec (5 minutes)\n   - Tracks: Select ONLY 'SNUADC/ECG_II' and 'SNUADC/PLETH'. Uncheck all others.\n   - Resampling/Frequency: Change the sampling rate to 100 Hz (downsampling from the original 500 Hz).\n3. Save the file to 'C:\\Users\\Docker\\Documents\\VitalRecorder\\engineering_data.mat'.\n4. Ensure the file is saved successfully.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\generate_downsampled_matlab\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\generate_downsampled_matlab\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_output_path": "C:\\Users\\Docker\\Documents\\VitalRecorder\\engineering_data.mat",
+    "target_sampling_rate_hz": 100,
+    "original_sampling_rate_hz": 500,
+    "target_duration_sec": 300,
+    "expected_samples": 30000,
+    "sample_tolerance": 500,
+    "required_tracks": ["ECG_II", "PLETH"],
+    "data_source_url": "https://api.vitaldb.net/cases/6",
+    "data_file_path": "C:\\Users\\Docker\\Documents\\VitalRecorder\\case6.vital"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_matlab_export"
+    }
+  }
+}

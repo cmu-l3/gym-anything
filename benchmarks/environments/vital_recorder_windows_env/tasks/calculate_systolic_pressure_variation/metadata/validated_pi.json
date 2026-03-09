@@ -1,0 +1,73 @@
+{
+    "task_id": "calculate_systolic_pressure_variation@1",
+    "dataset": "VitalDB (Seoul National University Hospital)",
+    "case_id": "3",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "case_id",
+            "metadata_value": "3",
+            "verified_value": "3",
+            "source": "File 0003.vital exists in VitalDB dataset and loads successfully. Case is 1 hour 13 minutes 14 seconds (4394.2 seconds) with 81 tracks from 5 device categories (BIS, Orchestra, Primus, SNUADC, Solar8000)",
+            "status": "verified"
+        },
+        {
+            "key": "target_window_start",
+            "metadata_value": "00:45:00",
+            "verified_value": "00:45:00",
+            "source": "2700 seconds (00:45:00) is within Case 3's total duration of 4394.2 seconds. VitalDB data confirms samples available at this timestamp.",
+            "status": "verified"
+        },
+        {
+            "key": "target_window_end",
+            "metadata_value": "00:45:15",
+            "verified_value": "00:45:15",
+            "source": "2715 seconds (00:45:15) is within Case 3's total duration of 4394.2 seconds. VitalDB data confirms samples available at this timestamp.",
+            "status": "verified"
+        },
+        {
+            "key": "waveform_track_name",
+            "metadata_value": "Solar8000/ART (Arterial Pressure)",
+            "verified_value": "Solar8000/NIBP_SBP (Non-Invasive Systolic Blood Pressure)",
+            "source": "Code inspection of Case 3 reveals NO ART (Arterial) tracks exist. Case 3 contains only NIBP (Non-Invasive) tracks: Solar8000/NIBP_SBP, Solar8000/NIBP_MBP, Solar8000/NIBP_DBP. Only Case 1 (0001.vital) has ART tracks (SNUADC/ART, Solar8000/ART_SBP, etc.). Task description references non-existent track in specified case.",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_sbp_plausible",
+            "metadata_value": "60 mmHg",
+            "verified_value": "60 mmHg",
+            "source": "Case 3 data at 00:45:00-00:45:15 shows NIBP_SBP=107 mmHg; Case 1 data shows ART_SBP=180-184 mmHg. Both values exceed 60 mmHg minimum. Medically plausible for awake/anesthetized surgical patients. Systolic BP <60 mmHg is typically hypotensive crisis.",
+            "status": "verified"
+        },
+        {
+            "key": "max_sbp_plausible",
+            "metadata_value": "200 mmHg",
+            "verified_value": "200 mmHg",
+            "source": "Case 1 data at 00:45:00-00:45:15 shows max ART_SBP=184 mmHg, which is <200 mmHg. Case 3 NIBP_SBP=107 mmHg is also <200. Medically plausible range; hypertensive surgical patients may reach 200+ but 200 is reasonable upper bound for typical anesthesia.",
+            "status": "verified"
+        },
+        {
+            "key": "min_spv_plausible",
+            "metadata_value": "1 mmHg",
+            "verified_value": "0 mmHg (from actual data)",
+            "source": "Case 3 NIBP_SBP data in window 00:45:00-00:45:15 shows constant value of 107 mmHg (SPV=0). Medical literature indicates normal SPV <10 mmHg, but SPV=0 is physiologically possible when BP is stable and non-invasive reading doesn't update frequently. Minimum plausible should be 0, not 1.",
+            "status": "contradicted"
+        },
+        {
+            "key": "max_spv_plausible",
+            "metadata_value": "40 mmHg",
+            "verified_value": "40 mmHg",
+            "source": "Medical literature from LITFL and clinical literature shows normal SPV typically <10 mmHg, abnormal >10 mmHg. Case 1 ART_SBP at window 00:45:00-00:45:15 shows SPV=4.0 mmHg. Maximum of 40 mmHg is high but theoretically possible in extreme hypovolemia or pathological states. Verified as plausible upper bound.",
+            "status": "verified"
+        },
+        {
+            "key": "dataset_source",
+            "metadata_value": "VitalDB from Seoul National University Hospital",
+            "verified_value": "VitalDB v1.0.0 - open dataset containing 6,388 surgical cases from Seoul National University Hospital, Aug 2016 - Jun 2017, with high-fidelity multi-parameter vital signs monitoring",
+            "source": "VitalDB documentation on PhysioNet (https://physionet.org/content/vitaldb/1.0.0/) and Nature Scientific Data publication. Previously verified file sizes: 0001.vital (21MB), 0002.vital (21MB), 0003.vital (6.3MB) match VitalDB inventory.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Case 3 (0003.vital) is a 1-hour 13-minute surgical recording from the VitalDB open dataset containing real vital signs data from Seoul National University Hospital. The data includes 81 physiological tracks from multiple devices (BIS, Orchestra, Primus, SNUADC, Solar8000). However, CRITICAL TASK DESIGN FLAW IDENTIFIED: The task description asks agents to find 'Solar8000/ART' (arterial pressure) waveform in Case 3, but this track does not exist in Case 3. Case 3 contains only non-invasive blood pressure (NIBP_SBP) data with constant value of 107 mmHg in the target window (00:45:00-00:45:15), yielding SPV=0 mmHg. Only Case 1 (0001.vital) contains ART tracks needed for the task. At the specified time window in Case 1, arterial systolic pressure ranges 180-184 mmHg with SPV=4 mmHg. Metadata plausibility range min_spv_plausible=1 is contradicted by actual Case 3 data showing SPV=0.",
+    "pi_confidence": "high"
+}

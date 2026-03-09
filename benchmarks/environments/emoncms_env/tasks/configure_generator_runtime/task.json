@@ -1,0 +1,28 @@
+{
+  "id": "configure_generator_runtime@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "A backup generator is reporting its status to Emoncms (1 = Running, 0 = Stopped) on the input 'generator_status'.\n\nYour goal is to configure an input processing chain that tracks the **total running hours** of the generator.\n\n1. Locate the 'generator_status' input.\n2. Configure a process chain that converts this binary signal into cumulative hours.\n   - **Critical Hint:** Use the 'Power to kWh' process for integration. Remember that 1 kWh = 1000 Watts for 1 Hour. You need to scale the input status (0/1) so that 1 hour of 'Running' results in an increment of 1.0 in the feed.\n3. Log the result to a new feed named 'generator_hours' (Tag: 'generator', Engine: PHPFina, Interval: 10s).\n\nThe outcome should be a feed that increments by approx 1.0 for every hour the generator runs.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_generator_runtime/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_generator_runtime/export_result.sh"
+  },
+  "metadata": {
+    "expected_feed_name": "generator_hours",
+    "expected_scale_factor": 1000,
+    "expected_slope_10s": 0.00277,
+    "slope_tolerance": 0.0005
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_generator_runtime"
+    }
+  }
+}

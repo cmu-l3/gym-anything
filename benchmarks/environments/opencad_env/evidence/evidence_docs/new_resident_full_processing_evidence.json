@@ -1,0 +1,110 @@
+{
+  "task_id": "new_resident_full_processing@1",
+  "difficulty": "very_hard",
+  "profession": "NCIC Records Technician",
+  "date_tested": "2026-03-03",
+  "pass_threshold": 70,
+  "max_score": 100,
+
+  "seed_data": {
+    "new_civilian": "Lamar Davis",
+    "dob": "1988-09-05",
+    "address": "1432 Forum Drive, Davis, Los Santos",
+    "gender": "Male",
+    "race": "Black or African American",
+    "dl_status": "Valid",
+    "vehicle_plate": "LAM-8844",
+    "vehicle_make": "Bravado",
+    "vehicle_model": "Baller",
+    "vehicle_color": "White",
+    "vehicle_state": "Los Santos",
+    "warrant_name": "Receiving Stolen Property",
+    "issuing_agency": "Blaine County Sheriff Office"
+  },
+
+  "db_baselines": {
+    "note": "Baselines recorded at setup_task.sh runtime inside VM",
+    "tables": ["ncic_names", "ncic_plates", "ncic_warrants"],
+    "baseline_files": [
+      "/tmp/nrfp_baseline_name",
+      "/tmp/nrfp_baseline_plate",
+      "/tmp/nrfp_baseline_warrant"
+    ],
+    "preexisting_ncic_names": "IDs 1-4 (Michael, Franklin, Trevor, Amanda)",
+    "new_civilian_id_expected": "ID > 4"
+  },
+
+  "scoring_breakdown": {
+    "section_1_civilian": {
+      "points_possible": 25,
+      "is_gate": true,
+      "wrong_target_gate": true,
+      "gate_description": "No civilian found -> score=0",
+      "wrong_target_description": "Civilian name != Lamar Davis -> score=0",
+      "criteria": [
+        {"criterion": "name_lamar_davis", "points": 15},
+        {"criterion": "dob_1988_09_05", "points": 7},
+        {"criterion": "gender_male", "points": 3}
+      ]
+    },
+    "section_2_vehicle": {
+      "points_possible": 35,
+      "criteria": [
+        {"criterion": "vehicle_found", "points": 10},
+        {"criterion": "plate_lam_8844", "points": 15},
+        {"criterion": "vehicle_linked_to_lamar_davis", "points": 10}
+      ]
+    },
+    "section_3_warrant": {
+      "points_possible": 40,
+      "criteria": [
+        {"criterion": "warrant_found", "points": 15},
+        {"criterion": "warrant_name_stolen_property_receiving", "points": 15},
+        {"criterion": "issuing_agency_blaine_sheriff", "points": 10}
+      ]
+    }
+  },
+
+  "test_results": {
+    "do_nothing_test": {
+      "score": 0,
+      "passed": false,
+      "feedback": "No new civilian record found in database",
+      "status": "PASS"
+    },
+    "wrong_target_test": {
+      "scenario": "Civilian created with wrong name (John Doe instead of Lamar Davis)",
+      "injected_civilian_name": "John Doe",
+      "expected_score": 0,
+      "actual_score": 0,
+      "passed": false,
+      "status": "PASS",
+      "note": "Wrong-target gate zeroes entire score"
+    },
+    "partial_completion_test_1": {
+      "scenario": "Civilian only (no vehicle, no warrant)",
+      "injected_civilian": "Lamar Davis",
+      "expected_score": 25,
+      "actual_score": 25,
+      "passed": false,
+      "status": "PASS"
+    },
+    "partial_completion_test_2": {
+      "scenario": "Civilian + vehicle linked (no warrant)",
+      "injected_civilian": "Lamar Davis",
+      "injected_vehicle_plate": "LAM-8844",
+      "injected_linked": true,
+      "expected_score": 60,
+      "actual_score": 60,
+      "passed": false,
+      "status": "PASS"
+    }
+  },
+
+  "screenshot": "new_resident_full_processing_screenshot.png",
+  "notes": [
+    "Agent must create civilian FIRST; vehicle and warrant name_id must match the new ID (> 4)",
+    "Plate comparison is dash-normalized: LAM8844 == LAM-8844",
+    "DOB flexible matching: checks for year 1988 + month 09 + day 05 in any format"
+  ]
+}

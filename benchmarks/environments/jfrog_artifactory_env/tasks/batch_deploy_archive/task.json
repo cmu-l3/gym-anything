@@ -1,0 +1,39 @@
+{
+  "id": "batch_deploy_archive@1",
+  "version": "1.0",
+  "env_id": "jfrog_artifactory_env@0.1",
+  "description": "Upload the archive file 'migration-bundle.zip' from the Desktop to the 'example-repo-local' repository. IMPORTANT: You must configure the deployment to automatically extract (explode) the archive contents so that the internal directory structure is preserved in the repository. The archive contains two library files that should appear under a 'libs' directory in the repository root. Log in to Artifactory at http://localhost:8082 using username 'admin' and password 'password'. Navigate to Artifacts > Deploy, select 'example-repo-local', upload the zip file, check the 'Explode this archive' (or 'Deploy as Bundle') option, and deploy.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/batch_deploy_archive/setup_task.sh",
+    "post_task": "/workspace/tasks/batch_deploy_archive/export_result.sh"
+  },
+  "metadata": {
+    "repo_key": "example-repo-local",
+    "archive_name": "migration-bundle.zip",
+    "expected_artifacts": [
+      {
+        "path": "libs/commons-lang3.jar",
+        "name": "commons-lang3.jar"
+      },
+      {
+        "path": "libs/commons-io.jar",
+        "name": "commons-io.jar"
+      }
+    ],
+    "admin_user": "admin",
+    "admin_pass": "password",
+    "artifactory_url": "http://localhost:8082"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_batch_deploy_archive"
+    }
+  }
+}

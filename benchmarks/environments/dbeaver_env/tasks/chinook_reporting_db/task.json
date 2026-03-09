@@ -1,0 +1,42 @@
+{
+  "id": "chinook_reporting_db@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Create a new SQLite reporting database named 'ChinookReports' in DBeaver. \n\n1. Create a new SQLite connection named 'ChinookReports' pointing to /home/ga/Documents/databases/chinook_reports.db (DBeaver will create the file).\n2. Populate this new database with data derived from the source Chinook database (/home/ga/Documents/databases/chinook.db). You may attach the source database or query it via a separate connection.\n\nCreate and populate these three tables in chinook_reports.db:\n\n- 'artist_summary': One row per artist (including those with 0 albums). Columns: ArtistId, ArtistName, AlbumCount, TrackCount, TotalDurationMinutes, AvgTrackDurationSeconds.\n\n- 'genre_revenue': One row per genre (only those with revenue > 0). Columns: GenreId, GenreName, TrackCount, TotalRevenue, AvgTrackPrice, UniqueCustomers. Sort by TotalRevenue descending.\n\n- 'monthly_sales': One row per month. Columns: YearMonth (format 'YYYY-MM'), InvoiceCount, TotalRevenue, UniqueCustomers, AvgInvoiceTotal. Sort by YearMonth ascending.\n\n3. Save your SQL work as a script to /home/ga/Documents/scripts/create_reports_db.sql.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_reporting_db/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_reporting_db/export_result.sh"
+  },
+  "metadata": {
+    "report_db_path": "/home/ga/Documents/databases/chinook_reports.db",
+    "source_db_path": "/home/ga/Documents/databases/chinook.db",
+    "script_path": "/home/ga/Documents/scripts/create_reports_db.sql",
+    "connection_name": "ChinookReports",
+    "tables": [
+      {
+        "name": "artist_summary",
+        "columns": ["ArtistId", "ArtistName", "AlbumCount", "TrackCount", "TotalDurationMinutes", "AvgTrackDurationSeconds"]
+      },
+      {
+        "name": "genre_revenue",
+        "columns": ["GenreId", "GenreName", "TrackCount", "TotalRevenue", "AvgTrackPrice", "UniqueCustomers"]
+      },
+      {
+        "name": "monthly_sales",
+        "columns": ["YearMonth", "InvoiceCount", "TotalRevenue", "UniqueCustomers", "AvgInvoiceTotal"]
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_reporting_db"
+    }
+  }
+}

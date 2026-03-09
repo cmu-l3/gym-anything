@@ -1,0 +1,31 @@
+{
+  "id": "particle_solidity_screening@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Particle Solidity and Roughness Screening",
+  "description": "Perform a shape morphometry analysis to find the 'roughest' particle in the sample image.\n\n1. Open the built-in 'Blobs (25K)' sample image in Fiji (File > Open Samples > Blobs (25K)).\n2. Configure measurement settings to include 'Solidity', 'Area', and 'Display Label'. Solidity is a measure of surface roughness/irregularity (Area / Convex Area).\n3. Threshold the image to create a binary mask (ensure particles are selected, typically black on white or white on black depending on settings).\n4. Analyze particles to generate a results table. Filter out small noise (e.g., area < 50 pixels).\n5. Identify the single particle with the LOWEST Solidity value (this represents the roughest/most irregular particle).\n6. Save the full results table to '~/ImageJ_Data/results/solidity_measurements.csv'.\n7. Create a text file '~/ImageJ_Data/results/roughest_particle.txt' containing the Label/ID and the Solidity value of that specific particle (e.g., 'Label: 42, Solidity: 0.785').",
+  "difficulty": "medium",
+  "tags": ["imagej", "morphometry", "shape-analysis", "solidity", "convexity", "screening"],
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/particle_solidity_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/particle_solidity_screening/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/ImageJ_Data/results/solidity_measurements.csv",
+    "expected_txt_path": "/home/ga/ImageJ_Data/results/roughest_particle.txt",
+    "expected_min_solidity_range": [0.6, 0.85],
+    "expected_particle_count_min": 40,
+    "expected_particle_count_max": 80
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_particle_solidity_screening"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "id": "tumor_ventricle_proximity@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the minimum distance from the tumor edge to the nearest lateral ventricle wall on the provided brain MRI. Classify the spatial relationship, identify the nearest ventricle component, and assess whether ventricular invasion is suspected. Save measurement markup to ~/Documents/SlicerData/BraTS/ventricle_distance.mrk.json and report to ~/Documents/SlicerData/BraTS/proximity_report.json with fields: minimum_distance_mm, classification, nearest_ventricle_component, ventricular_invasion_suspected.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tumor_ventricle_proximity/setup_task.sh",
+    "post_task": "/workspace/tasks/tumor_ventricle_proximity/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/BraTS/ventricle_distance.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/proximity_report.json",
+    "modalities": ["flair", "t1", "t1ce", "t2"],
+    "classification_thresholds": {
+      "contact": 0,
+      "adjacent_max": 5,
+      "close_max": 10
+    },
+    "passing_thresholds": {
+      "distance_error_max_mm": 5.0
+    },
+    "scoring_weights": {
+      "distance_accuracy": 35,
+      "classification_correct": 20,
+      "measurement_placed": 15,
+      "ventricle_component": 10,
+      "invasion_assessment": 10,
+      "report_completeness": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tumor_ventricle_proximity"
+    }
+  }
+}

@@ -1,0 +1,143 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+    Author gym-anything
+    Version 1.0
+    Description GPU-enabled fluxbox desktop for Gym-Anything with CUDA support
+
+%post
+    # Prevent interactive prompts
+    export DEBIAN_FRONTEND=noninteractive
+
+    # Update package lists
+    apt-get update
+
+    # Install core X11 and desktop packages
+    apt-get install -y --no-install-recommends \
+        xvfb \
+        x11vnc \
+        fluxbox \
+        xterm \
+        wmctrl \
+        xdotool \
+        x11-utils \
+        x11-xserver-utils
+
+    # Install multimedia and capture tools
+    apt-get install -y --no-install-recommends \
+        ffmpeg \
+        scrot \
+        imagemagick
+
+    # Install Python and dependencies
+    apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        python3-tk \
+        python3-dev \
+        python3-xlib
+
+    # Install fonts
+    apt-get install -y --no-install-recommends \
+        fonts-dejavu \
+        fonts-liberation \
+        fonts-freefont-ttf
+
+    # Install D-Bus (needed by some apps)
+    apt-get install -y --no-install-recommends \
+        dbus-x11
+
+    # Install OpenGL/Mesa libraries (for GPU apps)
+    apt-get install -y --no-install-recommends \
+        libgl1-mesa-dri \
+        libgl1-mesa-glx \
+        libegl1-mesa \
+        libglu1-mesa \
+        mesa-utils \
+        libxv1 \
+        libxrender1 \
+        libxrandr2 \
+        libxinerama1 \
+        libxcursor1 \
+        libxi6
+
+    # Install utilities
+    apt-get install -y --no-install-recommends \
+        wget \
+        curl \
+        ca-certificates \
+        sudo \
+        locales \
+        tzdata
+
+    # Clean up
+    rm -rf /var/lib/apt/lists/*
+
+    # Install Python packages
+    pip3 install --no-cache-dir \
+        pyautogui \
+        Pillow \
+        pyscreeze \
+        python-xlib
+
+    # Configure locales
+    locale-gen en_US.UTF-8
+
+    # Create ga user (uid 1000 for compatibility)
+    useradd -m -s /bin/bash -u 1000 ga || true
+    echo "ga ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+    # Create required directories
+    mkdir -p /workspace /tmp/.X11-unix
+    chmod 1777 /tmp/.X11-unix
+    chown -R 1000:1000 /workspace
+
+    # Configure fluxbox for ga user
+    mkdir -p /home/ga/.fluxbox
+    cat > /home/ga/.fluxbox/init << 'FLUXBOX_INIT'
+session.screen0.toolbar.visible: false
+session.screen0.tabs.usePixmap: false
+session.screen0.window.focus.alpha: 255
+session.screen0.window.unfocus.alpha: 255
+session.screen0.slit.autoHide: true
+session.screen0.toolbar.autoHide: true
+FLUXBOX_INIT
+
+    # Create fluxbox menu
+    cat > /home/ga/.fluxbox/menu << 'FLUXBOX_MENU'
+[begin] (Gym-Anything)
+  [exec] (Terminal) {xterm}
+  [exec] (File Manager) {pcmanfm}
+  [separator]
+  [exit] (Exit)
+[end]
+FLUXBOX_MENU
+
+    # Create startup script
+    cat > /home/ga/.fluxbox/startup << 'FLUXBOX_STARTUP'
+#!/bin/bash
+xsetroot -solid "#2E3440"
+exec fluxbox
+FLUXBOX_STARTUP
+    chmod +x /home/ga/.fluxbox/startup
+
+    # Set ownership
+    chown -R 1000:1000 /home/ga
+
+%environment
+    export HOME=/home/ga
+    export USER=ga
+    export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    export XDG_RUNTIME_DIR=/tmp/runtime-ga
+    export DISPLAY=:99
+
+%runscript
+    exec "$@"
+
+%startscript
+    # Create runtime directory
+    mkdir -p /tmp/runtime-ga
+    chmod 700 /tmp/runtime-ga
+    chown 1000:1000 /tmp/runtime-ga

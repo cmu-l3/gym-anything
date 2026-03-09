@@ -1,0 +1,50 @@
+{
+  "id": "thoracic_inlet_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the thoracic inlet AP and transverse diameters at the T1 vertebral level on the chest CT, calculate the Thoracic Inlet Index (AP/Transverse), classify the findings, and check for cervical rib. Data location: ~/Documents/SlicerData/LIDC/. Save AP measurement to ~/Documents/SlicerData/LIDC/thoracic_inlet_ap.mrk.json, transverse measurement to ~/Documents/SlicerData/LIDC/thoracic_inlet_trans.mrk.json, and report to ~/Documents/SlicerData/LIDC/thoracic_inlet_report.json with fields: ap_diameter_mm, transverse_diameter_mm, thoracic_inlet_index, classification, cervical_rib_present, slice_number.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/thoracic_inlet_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/thoracic_inlet_assessment/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_ap_measurement": "/home/ga/Documents/SlicerData/LIDC/thoracic_inlet_ap.mrk.json",
+    "output_trans_measurement": "/home/ga/Documents/SlicerData/LIDC/thoracic_inlet_trans.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/thoracic_inlet_report.json",
+    "tolerances": {
+      "anatomical_level_mm": 10,
+      "ap_diameter_mm": 5,
+      "transverse_diameter_mm": 8
+    },
+    "clinical_references": {
+      "normal_ap_range_mm": "40-55",
+      "normal_transverse_range_mm": "100-130",
+      "normal_index_range": "0.40-0.50"
+    },
+    "scoring_weights": {
+      "correct_level_identified": 20,
+      "ap_diameter_accuracy": 20,
+      "transverse_diameter_accuracy": 20,
+      "index_calculated_correctly": 10,
+      "classification_correct": 15,
+      "cervical_rib_assessment": 5,
+      "report_completeness": 10
+    },
+    "passing_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_thoracic_inlet_assessment"
+    }
+  }
+}

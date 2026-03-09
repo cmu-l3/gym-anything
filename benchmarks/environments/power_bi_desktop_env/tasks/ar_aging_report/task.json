@@ -1,0 +1,29 @@
+{
+  "id": "ar_aging_report@1",
+  "version": "1.0",
+  "env_id": "power_bi_desktop_env@0.1",
+  "description": "You are a collections manager needing to track overdue payments. A CSV file named `invoices.csv` is available at `C:\\Users\\Docker\\Desktop\\PowerBITasks\\invoices.csv` containing ~2000 rows of invoice data (columns: Invoice_ID, Customer_Name, Invoice_Date, Due_Date, Amount, Status).\n\nYour goal is to build an AR Aging Report in Power BI Desktop and save it as `AR_Aging_Report.pbix` on the Desktop (`C:\\Users\\Docker\\Desktop\\`).\n\nThe report must meet these specific requirements:\n1. **Data Loading**: Import `invoices.csv`.\n2. **Filtering**: The report should only analyze invoices where `Status` is 'Unpaid'.\n3. **Calculated Columns** (Data Model):\n   - `Days_Overdue`: Calculate the days overdue assuming the current analysis date is **2024-12-31**. (Formula: 2024-12-31 minus Due_Date).\n   - `Aging_Bucket`: Categorize `Days_Overdue` into these exact text values:\n     - 'Current' (if Days_Overdue <= 0)\n     - '1-30 Days'\n     - '31-60 Days'\n     - '61-90 Days'\n     - '>90 Days'\n4. **Measure**: Create a measure `Total_Outstanding` that sums the `Amount` field.\n5. **Visuals**:\n   - A **Matrix** visual with `Customer_Name` on Rows, `Aging_Bucket` on Columns, and `Total_Outstanding` as Values.\n   - A **Clustered Bar Chart** showing `Total_Outstanding` by `Aging_Bucket`.\n\nSave the final report as `AR_Aging_Report.pbix` on the Desktop.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\ar_aging_report\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\ar_aging_report\\export_result.ps1"
+  },
+  "metadata": {
+    "output_file": "C:\\Users\\Docker\\Desktop\\AR_Aging_Report.pbix",
+    "required_visuals": ["pivotTable", "clusteredBarChart"],
+    "required_columns": ["Days_Overdue", "Aging_Bucket"],
+    "required_buckets": ["1-30 Days", "31-60 Days", ">90 Days"],
+    "analysis_date": "2024-12-31"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ar_aging_report"
+    }
+  }
+}

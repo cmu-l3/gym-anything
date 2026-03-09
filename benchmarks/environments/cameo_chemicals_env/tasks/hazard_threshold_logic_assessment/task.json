@@ -1,0 +1,68 @@
+{
+  "id": "hazard_threshold_logic_assessment@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "Determine the hazard status ('SAFE', 'TOXIC', 'EXPLOSIVE', or 'TOXIC AND EXPLOSIVE') for five chemical leak scenarios. You are provided with detected concentrations in ppm. For each chemical, look up the Lower Explosive Limit (LEL) and the 60-minute AEGL-3 toxic limit (or ERPG-3/TEEL-3 if AEGL is unavailable) on CAMEO Chemicals (https://cameochemicals.noaa.gov/). Convert LEL from % to ppm (1% = 10,000 ppm). Compare the detected concentration to these limits to determine the status. Save the results as a CSV file to '~/Documents/alarm_logic_assessment.csv' with columns: Chemical, Detected_ppm, LEL_ppm, Toxic_Limit_ppm, Hazard_Status. \n\nScenarios (Chemical - Detected Concentration):\n1. Acetone - 12,000 ppm\n2. Methanol - 80,000 ppm\n3. Chlorine - 100 ppm\n4. Propane - 15,000 ppm\n5. Propylene Oxide - 500 ppm",
+  "difficulty": "medium",
+  "tags": ["cameo", "logic", "hazard-assessment", "unit-conversion", "safety-limits"],
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hazard_threshold_logic_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/hazard_threshold_logic_assessment/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/alarm_logic_assessment.csv",
+    "scenarios": [
+      {
+        "name": "Acetone",
+        "detected": 12000,
+        "expected_lel_percent": 2.5,
+        "expected_toxic_limit": 5700,
+        "toxic_type": "AEGL-3 (60 min)",
+        "expected_status": "TOXIC"
+      },
+      {
+        "name": "Methanol",
+        "detected": 80000,
+        "expected_lel_percent": 6.0,
+        "expected_toxic_limit": 7200,
+        "toxic_type": "AEGL-3 (60 min)",
+        "expected_status": "TOXIC AND EXPLOSIVE"
+      },
+      {
+        "name": "Chlorine",
+        "detected": 100,
+        "expected_lel_percent": null,
+        "expected_toxic_limit": 50,
+        "toxic_type": "AEGL-3 (60 min)",
+        "expected_status": "TOXIC"
+      },
+      {
+        "name": "Propane",
+        "detected": 15000,
+        "expected_lel_percent": 2.1,
+        "expected_toxic_limit": 21000,
+        "toxic_type": "TEEL-3",
+        "expected_status": "SAFE"
+      },
+      {
+        "name": "Propylene Oxide",
+        "detected": 500,
+        "expected_lel_percent": 2.3,
+        "expected_toxic_limit": 750,
+        "toxic_type": "AEGL-3 (60 min)",
+        "expected_status": "SAFE"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hazard_threshold_logic_assessment"
+    }
+  }
+}

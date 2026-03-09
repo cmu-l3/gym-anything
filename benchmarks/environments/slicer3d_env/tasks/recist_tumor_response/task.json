@@ -1,0 +1,45 @@
+{
+  "id": "recist_tumor_response@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Perform a RECIST 1.1 tumor response assessment on the provided abdominal CT. Identify and measure the longest axial diameter of 3 target liver lesions, calculate the current sum of longest diameters (SLD), and determine the response category relative to the baseline. Baseline reference is at ~/Documents/SlicerData/IRCADb/baseline_info.json. Save measurements to ~/Documents/SlicerData/IRCADb/recist_measurements.mrk.json and report to ~/Documents/SlicerData/IRCADb/recist_report.json with fields: lesion_measurements, current_sld_mm, baseline_sld_mm, percent_change, response_category.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/recist_tumor_response/setup_task.sh",
+    "post_task": "/workspace/tasks/recist_tumor_response/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "ircadb_dir": "/home/ga/Documents/SlicerData/IRCADb",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/IRCADb/recist_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/IRCADb/recist_report.json",
+    "baseline_sld_mm": 65,
+    "passing_thresholds": {
+      "measurement_tolerance_mm": 5.0,
+      "percent_change_tolerance": 2.0,
+      "min_lesions_correct": 2
+    },
+    "scoring_weights": {
+      "lesion_1_measurement": 15,
+      "lesion_2_measurement": 15,
+      "lesion_3_measurement": 15,
+      "sld_calculation": 10,
+      "percent_change": 10,
+      "response_category": 20,
+      "report_completeness": 10,
+      "markup_valid": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_recist_tumor_response"
+    }
+  }
+}

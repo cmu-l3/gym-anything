@@ -1,0 +1,27 @@
+{
+  "id": "verify_evidence_chain_of_custody@1",
+  "version": "1.0",
+  "env_id": "arkcase_env@0.1",
+  "description": "Perform a digital forensics audit on a seized evidence file. A server access log file has been recovered and placed at '~/evidence/server_access_logs.txt'. You must verify its integrity against the Chain of Custody record stored in ArkCase.\n\n1. Calculate the SHA256 hash of the local file '~/evidence/server_access_logs.txt'.\n2. Log in to ArkCase (admin/ArkCase1234!) and locate the complaint case specified in '~/case_to_audit.txt'.\n3. Navigate to the case's 'Notes' section to find the 'Chain of Custody Record' which contains the original SHA256 hash.\n4. Compare the calculated hash with the recorded hash.\n5. Create an audit report at '~/evidence_audit_report.txt' with the format:\n   AUDIT REPORT\n   Case Number: [Case ID]\n   Filename: server_access_logs.txt\n   Recorded Hash: [Hash from Note]\n   Current Hash: [Calculated Hash]\n   Status: [INTACT or COMPROMISED]",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/verify_evidence_chain_of_custody/setup_task.sh",
+    "post_task": "/workspace/tasks/verify_evidence_chain_of_custody/export_result.sh"
+  },
+  "metadata": {
+    "evidence_path": "/home/ga/evidence/server_access_logs.txt",
+    "report_path": "/home/ga/evidence_audit_report.txt",
+    "case_info_path": "/home/ga/case_to_audit.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_evidence_audit"
+    }
+  }
+}

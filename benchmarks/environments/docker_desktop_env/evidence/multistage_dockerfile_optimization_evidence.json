@@ -1,0 +1,123 @@
+{
+  "task": "multistage_dockerfile_optimization",
+  "timestamp": "2026-02-28",
+  "difficulty": "very_hard",
+  "environment": "docker_desktop_env",
+  "checks": {
+    "initial_state": "Node.js todo application at /home/ga/todo-app/ with intentionally bloated single-stage Dockerfile (FROM node:20, installs all devDependencies + global tools: nodemon, eslint). Original image 'todo-app:original' pre-built and cached. Size ~1100MB. todo-app:optimized removed to ensure clean slate.",
+    "application_source": "Based on Docker's official getting-started tutorial app (https://github.com/docker/getting-started-app). Real Node.js application with express, better-sqlite3, uuid dependencies.",
+    "baseline_files": [
+      "/tmp/original_image_size_mb",
+      "/tmp/initial_dockerfile_mtime",
+      "/tmp/task_start_timestamp"
+    ],
+    "target_image_tag": "todo-app:optimized",
+    "target_port": 13000
+  },
+  "scoring": {
+    "total_points": 100,
+    "pass_threshold": 70,
+    "mandatory_for_pass": "is_multistage AND optimized_image_exists AND optimized_mb < 250 AND score >= 70",
+    "criteria": [
+      {
+        "name": "multistage_dockerfile",
+        "points": 20,
+        "type": "programmatic",
+        "check": "FROM count >= 2"
+      },
+      {
+        "name": "optimized_image_exists",
+        "points": 15,
+        "type": "programmatic",
+        "check": "docker image inspect todo-app:optimized"
+      },
+      {
+        "name": "image_size_threshold",
+        "points": 30,
+        "type": "programmatic",
+        "check": "<250MB full, 250-400MB partial (+10)"
+      },
+      {
+        "name": "size_reduction_50pct",
+        "points": 20,
+        "type": "programmatic",
+        "check": "optimized < 50% of original"
+      },
+      {
+        "name": "app_functional",
+        "points": 15,
+        "type": "programmatic",
+        "check": "HTTP 200 on port 13000"
+      }
+    ]
+  },
+  "phase5_validation": {
+    "do_nothing": {
+      "score": 0,
+      "passed": false,
+      "status": "CONFIRMED (VM + verifier)"
+    },
+    "partial_test_1": {
+      "description": "Multi-stage Dockerfile, optimized image 320MB (above target), app running",
+      "injected": {
+        "is_multistage": true,
+        "from_count": 2,
+        "optimized_image_exists": true,
+        "optimized_size_mb": 320,
+        "original_size_mb": 1100,
+        "app_http_code": "200"
+      },
+      "result": {
+        "score": 80,
+        "passed": false
+      },
+      "note": "Score 80 but passed=False because mandatory criterion optimized_mb < 250 not met. Correct gate logic.",
+      "status": "CONFIRMED"
+    },
+    "partial_test_2": {
+      "description": "Multi-stage Dockerfile, good size 180MB, but app not yet running",
+      "injected": {
+        "is_multistage": true,
+        "from_count": 2,
+        "optimized_image_exists": true,
+        "optimized_size_mb": 180,
+        "original_size_mb": 1100,
+        "app_http_code": "000"
+      },
+      "result": {
+        "score": 85,
+        "passed": true
+      },
+      "note": "Passes without HTTP since mandatory conditions (multistage + exists + <250MB) are all met at score 85. This is correct \u2014 building the image is the main task, HTTP is bonus.",
+      "status": "CONFIRMED"
+    },
+    "full_completion": {
+      "score": 100,
+      "passed": true,
+      "status": "CONFIRMED"
+    }
+  },
+  "occupation_data": {
+    "primary_occupation": "Software Developers",
+    "gdp_contribution_usd": 18000000000,
+    "rationale": "Image size optimization with multi-stage builds is a core production DevOps skill; reduces cloud container storage and pull time costs"
+  },
+  "notes": "App code based on real Docker tutorial application. Original image ~1100MB (node:20 full + devDeps + global tools). Expected optimized image: node:20-alpine final stage ~150-200MB.",
+  "phase4_vm_test": {
+    "status": "CONFIRMED",
+    "method": "Manual SSH pipeline on QEMU VM (port 2380, pre_start checkpoint)",
+    "setup_output": "todo-app:original (427MB) built; Dockerfile at /home/ga/todo-app/Dockerfile ready for optimization",
+    "export_output": {
+      "dockerfile_modified": false,
+      "is_multistage": false,
+      "optimized_image_exists": false,
+      "original_size_mb": 427,
+      "app_http_code": "000"
+    },
+    "verifier_result": {
+      "score": 0,
+      "passed": false
+    },
+    "screenshot": "evidence/phase4_vm_state.png"
+  }
+}

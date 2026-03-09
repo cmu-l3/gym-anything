@@ -1,0 +1,47 @@
+{
+  "id": "subcarinal_lymph_node_assessment@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Assess the subcarinal lymph node station (Station 7) on the loaded chest CT. Measure the short-axis diameter of the largest lymph node if present and classify the finding. Save measurement to ~/Documents/SlicerData/LIDC/subcarinal_measurement.mrk.json and report to ~/Documents/SlicerData/LIDC/lymph_node_report.json with fields: station, lymph_node_identified, short_axis_mm, classification, slice_position_mm.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/subcarinal_lymph_node_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/subcarinal_lymph_node_assessment/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/LIDC/subcarinal_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/lymph_node_report.json",
+    "station": "7",
+    "station_name": "Subcarinal",
+    "size_thresholds": {
+      "normal_max_mm": 10,
+      "indeterminate_max_mm": 15
+    },
+    "passing_thresholds": {
+      "location_tolerance_mm": 30,
+      "measurement_tolerance_mm": 3
+    },
+    "scoring_weights": {
+      "correct_anatomical_location": 25,
+      "mediastinal_window": 10,
+      "measurement_accuracy": 20,
+      "classification_correct": 20,
+      "report_completeness": 15,
+      "internal_consistency": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_subcarinal_lymph_node_assessment"
+    }
+  }
+}

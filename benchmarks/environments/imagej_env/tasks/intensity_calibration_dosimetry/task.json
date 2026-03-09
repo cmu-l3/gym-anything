@@ -1,0 +1,33 @@
+{
+  "id": "intensity_calibration_dosimetry@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Radiochromic Film Dosimetry Calibration",
+  "description": "Perform an optical density calibration to convert a scanned film image into a radiation dose map.\n\nScenario: You are a medical physicist QAing a radiation treatment plan. You have a scanned radiochromic film where darker regions indicate higher radiation dose.\n\n1. Open the 'Blobs (25K)' sample image (File > Open Samples > Blobs).\n2. Calibrate the image intensity (Analyze > Calibrate) using a 'Straight Line' function with the following known standards:\n   - Pixel Intensity 0 (Black) = 5.0 Gy\n   - Pixel Intensity 255 (White) = 0.0 Gy\n   - Unit: 'Gy'\n3. After calibration, measure the image to generate statistics (Analyze > Measure). Ensure the results show the physical dose values (approx 0.0 to 5.0), not raw pixel values.\n4. Save the calibrated image as a TIFF file to '~/ImageJ_Data/results/calibrated_dose_map.tif'.\n5. Save the measurement results table to '~/ImageJ_Data/results/dose_report.csv'.",
+  "difficulty": "medium",
+  "tags": ["calibration", "medical-physics", "dosimetry", "image-processing", "quantitative"],
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/intensity_calibration_dosimetry/setup_task.sh",
+    "post_task": "/workspace/tasks/intensity_calibration_dosimetry/export_result.sh"
+  },
+  "metadata": {
+    "expected_unit": "Gy",
+    "min_expected_max_dose": 3.0,
+    "max_expected_max_dose": 6.0,
+    "min_expected_mean_dose": 0.5,
+    "max_expected_mean_dose": 2.5,
+    "result_image_path": "/home/ga/ImageJ_Data/results/calibrated_dose_map.tif",
+    "result_csv_path": "/home/ga/ImageJ_Data/results/dose_report.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dosimetry"
+    }
+  }
+}

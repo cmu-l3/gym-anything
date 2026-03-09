@@ -1,0 +1,156 @@
+[
+  {
+    "type": "User Story",
+    "title": "Implement product inventory search with full-text filtering",
+    "description": "<p>As a warehouse manager, I need to search the product inventory by name, SKU, or category so that I can quickly locate items for order fulfillment.</p><p><strong>Details:</strong></p><ul><li>Search should support partial string matching</li><li>Results should be paginated (20 items per page)</li><li>Filter by category, price range, and stock status</li><li>Response time must be under 200ms for up to 10,000 products</li></ul>",
+    "state": "New",
+    "priority": 1,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 1",
+    "acceptanceCriteria": "<ul><li>Search returns results within 200ms</li><li>Partial name matching works (e.g., 'lap' finds 'Laptop')</li><li>Filters can be combined (category AND price range)</li><li>Empty search returns all products (paginated)</li></ul>",
+    "tags": "API; Search; Sprint1"
+  },
+  {
+    "type": "User Story",
+    "title": "Add real-time stock level notifications for low inventory",
+    "description": "<p>As a procurement specialist, I want to receive notifications when product stock levels fall below configurable thresholds so that I can initiate reorder workflows before stockouts occur.</p><p><strong>Technical requirements:</strong></p><ul><li>WebSocket-based real-time notification system</li><li>Configurable threshold per product category</li><li>Email digest option for non-real-time users</li><li>Integration with existing procurement dashboard</li></ul>",
+    "state": "New",
+    "priority": 2,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 2",
+    "acceptanceCriteria": "<ul><li>Notifications trigger within 30 seconds of stock falling below threshold</li><li>Thresholds configurable per product and per category</li><li>Email digest sends at configurable interval (default: daily)</li></ul>",
+    "tags": "Notifications; WebSocket; Sprint2"
+  },
+  {
+    "type": "User Story",
+    "title": "Create supplier management module with order tracking",
+    "description": "<p>As a supply chain manager, I need to manage supplier information and track purchase orders so that I can monitor delivery timelines and supplier performance metrics.</p><p><strong>Required features:</strong></p><ul><li>CRUD operations for supplier profiles</li><li>Purchase order creation with line items</li><li>Order status tracking (pending, confirmed, shipped, received)</li><li>Supplier performance dashboard (on-time delivery %, quality score)</li></ul>",
+    "state": "New",
+    "priority": 2,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 2",
+    "acceptanceCriteria": "<ul><li>Supplier profile contains: name, contact, lead time, minimum order, payment terms</li><li>Purchase orders link to existing products</li><li>Status transitions are logged with timestamps</li></ul>",
+    "tags": "Suppliers; Orders; Sprint2"
+  },
+  {
+    "type": "User Story",
+    "title": "Implement barcode scanning for warehouse receiving",
+    "description": "<p>As a warehouse operator, I need to scan product barcodes during the receiving process so that I can quickly update inventory counts and verify shipment contents against purchase orders.</p><p><strong>Scope:</strong></p><ul><li>Support EAN-13 and UPC-A barcode formats</li><li>Mobile-friendly web interface using camera API</li><li>Batch scanning mode for high-volume receiving</li><li>Automatic quantity adjustment on scan</li></ul>",
+    "state": "New",
+    "priority": 3,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 3",
+    "tags": "Barcode; Mobile; Sprint3"
+  },
+  {
+    "type": "User Story",
+    "title": "Design REST API rate limiting and authentication middleware",
+    "description": "<p>As a platform engineer, I need to implement API rate limiting and token-based authentication so that the inventory API is protected against abuse and unauthorized access.</p><p><strong>Requirements:</strong></p><ul><li>JWT-based authentication with refresh tokens</li><li>Rate limiting: 100 requests/minute for standard users, 1000 for admin</li><li>API key management for third-party integrations</li><li>Audit logging of all authentication events</li></ul>",
+    "state": "New",
+    "priority": 1,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 1",
+    "acceptanceCriteria": "<ul><li>JWT tokens expire after 15 minutes</li><li>Refresh tokens valid for 7 days</li><li>Rate limit returns HTTP 429 with Retry-After header</li><li>All auth events logged with IP, user agent, timestamp</li></ul>",
+    "tags": "Security; API; Authentication; Sprint1"
+  },
+  {
+    "type": "Bug",
+    "title": "Product price calculation returns incorrect values for bulk discount tiers",
+    "description": "<p><strong>Reproduction Steps:</strong></p><ol><li>Navigate to Products > Pricing</li><li>Select product 'Industrial Ethernet Switch' (SKU: TT-NET-4821)</li><li>Add to cart with quantity 150 (bulk tier 3: 10% discount)</li><li>Observe the calculated unit price</li></ol><p><strong>Expected:</strong> Unit price should be $89.10 (10% off $99.00)</p><p><strong>Actual:</strong> Unit price shows $94.05 (5% discount applied instead of 10%)</p><p><strong>Root cause investigation:</strong> The discount tier lookup uses &lt; instead of &lt;= comparison, so exactly 150 units falls into tier 2 instead of tier 3.</p><p><strong>Impact:</strong> Affects all orders at exact tier boundaries. Estimated revenue impact: $12,400/month based on order history analysis.</p>",
+    "state": "New",
+    "priority": 1,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 1",
+    "tags": "Pricing; P1-Critical; Sprint1"
+  },
+  {
+    "type": "Bug",
+    "title": "API returns 500 error when filtering products with special characters in category name",
+    "description": "<p><strong>Reproduction Steps:</strong></p><ol><li>Send GET request: /api/v1/products?category=Electronics%20%26%20Components</li><li>Observe HTTP 500 response</li></ol><p><strong>Expected:</strong> Returns products in the 'Electronics & Components' category</p><p><strong>Actual:</strong> HTTP 500 Internal Server Error with stack trace showing unescaped SQL parameter</p><p><strong>Stack trace excerpt:</strong></p><pre>sqlalchemy.exc.ProgrammingError: (psycopg2.errors.SyntaxError)\nERROR: syntax error at or near \"Components\"\nLINE 1: ...WHERE products.category = 'Electronics & Components'...</pre><p><strong>Severity:</strong> High - potential SQL injection vector. Category names with ampersands, quotes, or backslashes trigger the same error.</p>",
+    "state": "New",
+    "priority": 1,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 1",
+    "tags": "Security; API; SQL-Injection; P1-Critical; Sprint1"
+  },
+  {
+    "type": "Bug",
+    "title": "Inventory count becomes negative after concurrent stock deduction requests",
+    "description": "<p><strong>Reproduction Steps:</strong></p><ol><li>Set product 'Wireless Mouse' (SKU: TT-ACC-1092) stock to 5</li><li>Send 10 simultaneous POST requests to /api/v1/inventory/deduct with quantity=1</li><li>Check resulting stock level</li></ol><p><strong>Expected:</strong> Stock level should be 0, with 5 requests succeeding and 5 returning HTTP 409 Conflict</p><p><strong>Actual:</strong> Stock level is -5. All 10 requests succeed because there is no row-level locking or optimistic concurrency check.</p><p><strong>Impact:</strong> Overselling occurs during high-traffic periods. 23 incidents logged in past 30 days.</p>",
+    "state": "New",
+    "priority": 1,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 1",
+    "tags": "Concurrency; Database; P1-Critical; Sprint1"
+  },
+  {
+    "type": "Bug",
+    "title": "Dashboard chart renders blank when date range exceeds 90 days",
+    "description": "<p><strong>Reproduction Steps:</strong></p><ol><li>Navigate to Analytics > Sales Dashboard</li><li>Set date range to Jan 1, 2025 - Dec 31, 2025 (365 days)</li><li>Click 'Apply Filter'</li></ol><p><strong>Expected:</strong> Line chart displays monthly aggregated sales data</p><p><strong>Actual:</strong> Chart area is blank. Browser console shows: 'Error: Maximum data points exceeded (limit: 90)'</p><p><strong>Workaround:</strong> Users must select date ranges of 90 days or less, which prevents quarterly and annual reporting.</p>",
+    "state": "New",
+    "priority": 2,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 2",
+    "tags": "Dashboard; Charts; Sprint2"
+  },
+  {
+    "type": "Task",
+    "title": "Set up PostgreSQL database migration scripts for v2.0 schema changes",
+    "description": "<p>Create Alembic migration scripts for the following schema changes:</p><ul><li>Add 'supplier_id' foreign key to products table</li><li>Create 'suppliers' table with performance metrics columns</li><li>Add 'barcode' column to products (nullable, unique index)</li><li>Create 'stock_notifications' table for threshold alerts</li><li>Add composite index on (category, price) for search optimization</li></ul><p>Ensure migrations are reversible and include data backfill for existing records.</p>",
+    "state": "New",
+    "priority": 2,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 1",
+    "tags": "Database; Migration; Sprint1"
+  },
+  {
+    "type": "Task",
+    "title": "Configure CI/CD pipeline for automated testing and staging deployment",
+    "description": "<p>Set up Azure Pipelines YAML configuration:</p><ul><li>Trigger on push to main and feature/* branches</li><li>Run pytest suite with coverage report (minimum 80%)</li><li>Run ESLint and Black formatter checks</li><li>Build Docker image and push to Azure Container Registry</li><li>Deploy to staging environment on successful main branch build</li><li>Add Slack notification on build failure</li></ul>",
+    "state": "New",
+    "priority": 2,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 1",
+    "tags": "CI/CD; Pipeline; DevOps; Sprint1"
+  },
+  {
+    "type": "Task",
+    "title": "Write integration tests for inventory deduction API endpoint",
+    "description": "<p>Create comprehensive integration tests for the /api/v1/inventory/deduct endpoint:</p><ul><li>Test successful single deduction</li><li>Test deduction exceeding available stock (expect 409)</li><li>Test concurrent deductions using threading (race condition)</li><li>Test deduction with invalid product ID (expect 404)</li><li>Test deduction with negative quantity (expect 400)</li><li>Test deduction with zero quantity (expect 400)</li><li>Test authenticated vs unauthenticated requests</li></ul><p>Use pytest fixtures with test database isolation.</p>",
+    "state": "New",
+    "priority": 2,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 1",
+    "tags": "Testing; API; Sprint1"
+  },
+  {
+    "type": "User Story",
+    "title": "Build product import/export functionality for CSV and Excel formats",
+    "description": "<p>As a catalog manager, I need to bulk import and export product data using CSV and Excel files so that I can efficiently manage large product catalogs without manual data entry.</p><p><strong>Requirements:</strong></p><ul><li>Import: CSV and XLSX file upload with validation</li><li>Export: Download current product catalog as CSV or XLSX</li><li>Validation: Check required fields, data types, duplicate SKUs</li><li>Error reporting: Row-level error details in import response</li><li>Limit: Support up to 50,000 products per import</li></ul>",
+    "state": "New",
+    "priority": 3,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 3",
+    "tags": "Import; Export; CSV; Sprint3"
+  },
+  {
+    "type": "User Story",
+    "title": "Add multi-warehouse support with transfer order management",
+    "description": "<p>As a logistics coordinator, I need to manage inventory across multiple warehouse locations and create transfer orders between them so that I can optimize stock distribution based on regional demand.</p><p><strong>Requirements:</strong></p><ul><li>Warehouse CRUD with location metadata (address, capacity, zone)</li><li>Per-warehouse stock levels for each product</li><li>Transfer order creation with approval workflow</li><li>Transit tracking with estimated delivery dates</li><li>Dashboard view showing stock distribution across warehouses</li></ul>",
+    "state": "New",
+    "priority": 2,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 3",
+    "tags": "Warehouse; Logistics; Sprint3"
+  },
+  {
+    "type": "Task",
+    "title": "Implement Redis caching layer for frequently accessed product data",
+    "description": "<p>Add Redis caching to reduce database load for read-heavy product endpoints:</p><ul><li>Cache product detail responses (TTL: 5 minutes)</li><li>Cache category listing responses (TTL: 15 minutes)</li><li>Cache search results for common queries (TTL: 2 minutes)</li><li>Implement cache invalidation on product updates</li><li>Add cache hit/miss metrics to monitoring dashboard</li></ul><p>Expected outcome: 60% reduction in database read queries for product endpoints.</p>",
+    "state": "New",
+    "priority": 2,
+    "areaPath": "TailwindTraders",
+    "iterationPath": "TailwindTraders\\Sprint 2",
+    "tags": "Performance; Redis; Caching; Sprint2"
+  }
+]

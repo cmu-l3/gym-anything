@@ -1,0 +1,30 @@
+{
+  "id": "add_postgis_attribute_reconfigure@1",
+  "version": "1.0",
+  "env_id": "geo_server_env@0.1",
+  "description": "Add a new computed attribute to a PostGIS layer and update GeoServer to serve it.\n\n1. Access the PostGIS database (container 'gs-postgis', user 'geoserver', db 'gis', password 'geoserver123').\n2. Add a new column 'pop_density' (type float/double) to the 'ne_countries' table.\n3. Calculate and populate the column: population density = 'pop_est' divided by area in square kilometers. Hint: Use ST_Area(geom::geography) to get area in square meters, then convert to sq km.\n4. Reconfigure the 'ne_countries' feature type in GeoServer (workspace 'ne') so the new attribute is recognized and published.\n5. Verify the attribute is exposed via WFS by saving a GetFeature response (JSON format, at least 3 features) to '/home/ga/output/wfs_countries_with_density.json'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/add_postgis_attribute_reconfigure/setup_task.sh",
+    "post_task": "/workspace/tasks/add_postgis_attribute_reconfigure/export_result.sh"
+  },
+  "metadata": {
+    "expected_column": "pop_density",
+    "expected_layer": "ne:ne_countries",
+    "expected_output_path": "/home/ga/output/wfs_countries_with_density.json",
+    "min_density_threshold": 0,
+    "max_density_threshold": 50000,
+    "expected_feature_count": 177
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_add_postgis_attribute"
+    }
+  }
+}

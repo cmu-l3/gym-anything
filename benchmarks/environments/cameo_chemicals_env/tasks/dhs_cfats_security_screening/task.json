@@ -1,0 +1,56 @@
+{
+  "id": "dhs_cfats_security_screening@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "You are a facility security officer conducting a DHS Chemical Facility Anti-Terrorism Standards (CFATS) audit. A list of chemicals to screen is provided on the Desktop in 'cfats_audit_list.txt'.\n\nFor each chemical in the list:\n1. Search for it on the CAMEO Chemicals website (https://cameochemicals.noaa.gov/).\n2. Navigate to the 'Regulatory Information' section of its datasheet.\n3. Determine if it is regulated under DHS CFATS (look for 'DHS Chemical Facility Anti-Terrorism Standards').\n4. If regulated, extract the 'Security Issue' and the 'Screening Threshold Quantity (STQ)' in pounds.\n\nCreate a CSV report at '/home/ga/Documents/cfats_security_report.csv' with the following exact headers:\nChemical,Regulated,Security_Issue,STQ_lb\n\nFor 'Regulated', write 'Yes' or 'No'. If 'No', leave Security_Issue and STQ_lb as 'N/A'.\n\nChemicals to screen: Chlorine, Propane, Ammonium Nitrate, Triethanolamine, Sodium Chloride, and Hydrogen Peroxide (concentration > 35%).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dhs_cfats_security_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/dhs_cfats_security_screening/export_result.sh"
+  },
+  "metadata": {
+    "input_file": "/home/ga/Desktop/cfats_audit_list.txt",
+    "expected_output_file": "/home/ga/Documents/cfats_security_report.csv",
+    "ground_truth": {
+      "Chlorine": {
+        "regulated": true,
+        "stq": 500,
+        "issue_keyword": "Toxic"
+      },
+      "Propane": {
+        "regulated": true,
+        "stq": 10000,
+        "issue_keyword": "Flammable"
+      },
+      "Ammonium Nitrate": {
+        "regulated": true,
+        "stq": 400,
+        "issue_keyword": "Theft"
+      },
+      "Triethanolamine": {
+        "regulated": true,
+        "stq": 220,
+        "issue_keyword": "Theft"
+      },
+      "Sodium Chloride": {
+        "regulated": false
+      },
+      "Hydrogen Peroxide": {
+        "regulated": true,
+        "stq": 400,
+        "issue_keyword": "Theft"
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dhs_cfats_security_screening"
+    }
+  }
+}

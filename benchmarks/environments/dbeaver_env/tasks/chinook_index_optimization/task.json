@@ -1,0 +1,30 @@
+{
+  "id": "chinook_index_optimization@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Database Administrator. The Chinook digital media store database at /home/ga/Documents/databases/chinook.db is experiencing performance problems with three production queries that do full table scans. Your job is to analyze the queries, identify missing indexes, create them, and document the results.\n\nThe three slow queries are:\n\nQuery A (Track search by duration and price):\nSELECT t.Name, ar.Name as Artist, al.Title as Album, t.Milliseconds, t.UnitPrice FROM tracks t JOIN albums al ON t.AlbumId=al.AlbumId JOIN artists ar ON al.ArtistId=ar.ArtistId WHERE t.Milliseconds BETWEEN 180000 AND 420000 AND t.UnitPrice = 0.99 ORDER BY t.Milliseconds DESC;\n\nQuery B (Revenue by country and date range):\nSELECT i.InvoiceDate, c.Country, SUM(i.Total) as DailyTotal, COUNT(*) as OrderCount FROM invoices i JOIN customers c ON i.CustomerId=c.CustomerId WHERE i.InvoiceDate >= '2011-01-01' AND i.InvoiceDate < '2013-01-01' GROUP BY date(i.InvoiceDate), c.Country ORDER BY DailyTotal DESC;\n\nQuery C (Genre track statistics):\nSELECT g.Name as Genre, COUNT(DISTINCT t.TrackId) as TrackCount, AVG(t.Milliseconds)/1000.0 as AvgDurationSec, AVG(t.UnitPrice) as AvgPrice FROM tracks t JOIN genres g ON t.GenreId=g.GenreId WHERE t.Composer IS NOT NULL GROUP BY g.GenreId ORDER BY TrackCount DESC;\n\nYour tasks:\n1. Connect to the database in DBeaver with connection name exactly 'Chinook' (SQLite driver, path: /home/ga/Documents/databases/chinook.db).\n2. Run EXPLAIN QUERY PLAN for each of the three queries in DBeaver to see the current execution plan.\n3. Create at least 3 indexes (one targeted at each query's bottleneck). Use descriptive names like idx_tracks_milliseconds, idx_invoices_date, idx_tracks_composer.\n4. Write a performance report to /home/ga/Documents/reports/index_report.txt documenting for each query: the index created, which columns it covers, and why it helps that query.\n\nLogin: ga / password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 70
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_index_optimization/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_index_optimization/export_result.sh"
+  },
+  "metadata": {
+    "target_db": "/home/ga/Documents/databases/chinook.db",
+    "connection_name": "Chinook",
+    "output_report": "/home/ga/Documents/reports/index_report.txt",
+    "expected_indexes": ["idx_tracks_milliseconds", "idx_invoices_date", "idx_tracks_composer"],
+    "slow_queries": ["Query A: tracks filter on Milliseconds+UnitPrice",
+                     "Query B: invoices filter on InvoiceDate",
+                     "Query C: tracks filter on Composer NOT NULL"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_index_optimization"
+    }
+  }
+}

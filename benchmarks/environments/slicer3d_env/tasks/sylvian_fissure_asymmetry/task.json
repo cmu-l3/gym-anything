@@ -1,0 +1,46 @@
+{
+  "id": "sylvian_fissure_asymmetry@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the bilateral Sylvian fissure widths on the loaded brain FLAIR MRI and calculate the Sylvian Fissure Asymmetry Index (SFAI). Save left measurement to ~/Documents/SlicerData/BraTS/left_sylvian.mrk.json, right measurement to ~/Documents/SlicerData/BraTS/right_sylvian.mrk.json, and report to ~/Documents/SlicerData/BraTS/sylvian_asymmetry_report.json with fields: left_width_mm, right_width_mm, asymmetry_index_percent, classification, wider_side, measurement_level.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 70,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sylvian_fissure_asymmetry/setup_task.sh",
+    "post_task": "/workspace/tasks/sylvian_fissure_asymmetry/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_left_measurement": "/home/ga/Documents/SlicerData/BraTS/left_sylvian.mrk.json",
+    "output_right_measurement": "/home/ga/Documents/SlicerData/BraTS/right_sylvian.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/sylvian_asymmetry_report.json",
+    "normal_sylvian_range_mm": [3, 15],
+    "passing_thresholds": {
+      "measurement_error_max_mm": 3.0,
+      "sfai_calculation_error_max_percent": 1.0,
+      "level_difference_max_mm": 5.0
+    },
+    "scoring_weights": {
+      "left_measurement_accuracy": 20,
+      "right_measurement_accuracy": 20,
+      "level_consistency": 10,
+      "sfai_calculation_correct": 15,
+      "classification_correct": 15,
+      "wider_side_correct": 10,
+      "markup_files_present": 5,
+      "report_complete": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sylvian_asymmetry"
+    }
+  }
+}

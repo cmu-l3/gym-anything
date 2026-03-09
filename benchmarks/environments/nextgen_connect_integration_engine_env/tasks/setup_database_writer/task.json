@@ -1,0 +1,26 @@
+{
+  "id": "setup_database_writer@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a channel in NextGen Connect that extracts patient data from HL7 messages and writes it to a PostgreSQL database table. The channel should be named 'Patient DB Writer', listen on TCP port 6663 for HL7 messages, and use a Database Writer destination to INSERT patient information (extracted from the PID segment) into a table called 'patient_records'. The table should have columns for patient_id, last_name, first_name, date of birth, and gender. The PostgreSQL database is accessible from inside the NextGen Connect container at jdbc:postgresql://nextgen-postgres:5432/mirthdb (username: postgres, password: postgres). A sample ADT message is at /home/ga/sample_adt_message.hl7. You can use the terminal window to interact with the system. The REST API is at https://localhost:8443/api (credentials: admin/admin). All REST API calls require the header 'X-Requested-With: OpenAPI'. The web dashboard at https://localhost:8443 is monitoring-only. Channel XML must include a <responseTransformer> element in destination connectors.",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_database_writer/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_database_writer/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Patient DB Writer",
+    "db_table": "patient_records",
+    "listen_port": "6663"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_setup_database_writer"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "classify_populated_places@1",
+  "version": "1.0",
+  "env_id": "gvsig_desktop_env@0.1",
+  "description": "Classify populated places based on population size in gvSIG Desktop.\n\ngvSIG Desktop is open. You need to load the 'Populated Places' shapefile and classify the cities.\n\n**1. Load Data:**\n   - Add the shapefile located at: `/home/ga/gvsig_data/cities/ne_110m_populated_places.shp`\n\n**2. Modify Schema:**\n   - Start editing the layer.\n   - Open the Attribute Table.\n   - Add a new string/text field named `URBAN_CAT` (length 20).\n\n**3. Calculate Values:**\n   - Select all cities with `POP_MAX` greater than or equal to `10,000,000` (10 million).\n   - Use the Field Calculator to set `URBAN_CAT` to `\"Megacity\"` for these selected features.\n   - Invert the selection (so cities < 10 million are selected).\n   - Calculate `URBAN_CAT` as `\"City\"` for these features.\n   - Stop editing and SAVE your changes.\n\n**Final Goal:** The shapefile should have a populated `URBAN_CAT` field where large cities are 'Megacity' and others are 'City'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/classify_populated_places/setup_task.sh",
+    "post_task": "/workspace/tasks/classify_populated_places/export_result.sh"
+  },
+  "metadata": {
+    "shapefile_path": "/home/ga/gvsig_data/cities/ne_110m_populated_places.shp",
+    "megacity_threshold": 10000000,
+    "field_name": "URBAN_CAT",
+    "cat_large": "Megacity",
+    "cat_small": "City"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_classify_populated_places"
+    }
+  }
+}

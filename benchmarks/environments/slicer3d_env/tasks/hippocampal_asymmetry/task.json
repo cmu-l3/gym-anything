@@ -1,0 +1,54 @@
+{
+  "id": "hippocampal_asymmetry@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment both hippocampi on the loaded brain MRI using Segment Editor with segments named 'Left_Hippocampus' and 'Right_Hippocampus'. Calculate volumes and the Hippocampal Asymmetry Index (HAI). Save segmentation to ~/Documents/SlicerData/BraTS/hippocampal_segmentation.nii.gz and report to ~/Documents/SlicerData/BraTS/hippocampal_report.json with fields: left_volume_ml, right_volume_ml, asymmetry_index_percent, classification.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hippocampal_asymmetry/setup_task.sh",
+    "post_task": "/workspace/tasks/hippocampal_asymmetry/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/BraTS/hippocampal_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/hippocampal_report.json",
+    "expected_labels": {
+      "left_hippocampus": "Left_Hippocampus",
+      "right_hippocampus": "Right_Hippocampus"
+    },
+    "anatomical_bounds": {
+      "volume_min_ml": 1.5,
+      "volume_max_ml": 6.0,
+      "volume_ratio_min": 0.5,
+      "volume_ratio_max": 2.0
+    },
+    "classification_thresholds": {
+      "normal_max": 10,
+      "borderline_max": 15
+    },
+    "scoring_weights": {
+      "left_segment_present": 15,
+      "right_segment_present": 15,
+      "left_location_correct": 10,
+      "right_location_correct": 10,
+      "volume_plausibility": 10,
+      "no_midline_crossover": 10,
+      "asymmetry_calculated": 10,
+      "classification_correct": 10,
+      "report_complete": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hippocampal_asymmetry"
+    }
+  }
+}

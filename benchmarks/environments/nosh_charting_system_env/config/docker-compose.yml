@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  nosh-db:
+    image: mariadb:10.11
+    container_name: nosh-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: nosh
+      MYSQL_USER: asuser
+      MYSQL_PASSWORD: noshpassword
+    volumes:
+      - nosh_dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  nosh-app:
+    image: shihjay2/nosh2:latest
+    container_name: nosh-app
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_KEY: "base64:jmwtyRJvY4/JhUKDi79WJ9o3MOojEvj5tgh/8H6/XqU="
+      APP_URL: "http://localhost"
+      DB_CONNECTION: mysql
+      DB_HOST: nosh-db
+      DB_PORT: "3306"
+      DB_DATABASE: nosh
+      DB_USERNAME: asuser
+      DB_PASSWORD: noshpassword
+      CACHE_DRIVER: file
+      SESSION_DRIVER: file
+      QUEUE_DRIVER: sync
+    volumes:
+      - nosh_storage:/var/www/nosh/storage
+      - nosh_public:/var/www/nosh/public
+      - nosh_documents:/noshdocuments
+    depends_on:
+      nosh-db:
+        condition: service_healthy
+
+  nosh-nginx:
+    image: nginx:alpine
+    container_name: nosh-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - nosh_public:/var/www/nosh/public:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - nosh-app
+
+volumes:
+  nosh_dbdata:
+  nosh_storage:
+  nosh_public:
+  nosh_documents:

@@ -1,0 +1,33 @@
+{
+  "id": "count_particles@1",
+  "name": "Count and Measure Particles in Microscopy Image",
+  "description": "You have access to Fiji (ImageJ) with a sample microscopy image called 'blobs'.\n\nYour task is to perform particle analysis on this image:\n\n1. Open the 'blobs' sample image via File > Open Samples > Blobs (25K)\n\n2. Convert the image to binary (black and white) using thresholding:\n   - Go to Image > Adjust > Threshold\n   - Use the 'Default' threshold method (should be selected by default)\n   - Click 'Apply' to convert to binary\n   - When prompted, select 'Convert to Mask'\n\n3. CRITICAL: Invert the binary image so particles are WHITE on BLACK background:\n   - Go to Edit > Invert (or press Ctrl+Shift+I)\n   - This step is REQUIRED - Analyze Particles counts WHITE objects on BLACK background\n   - After inversion, particles should appear white and background black\n\n4. Analyze the particles:\n   - Go to Analyze > Analyze Particles\n   - Size (pixel^2): 10-Infinity (to exclude noise)\n   - Circularity: 0.00-1.00 (accept all shapes)\n   - Show: Outlines (optional, for visualization)\n   - Check 'Display results' to see individual measurements\n   - Check 'Summarize' to see aggregate statistics\n   - Click OK to run the analysis\n\n5. Save Results:\n   - In the Results window, go to File > Save As and save to ~/ImageJ_Data/results/Results.csv\n   - In the Summary window, go to File > Save As and save to ~/ImageJ_Data/results/Summary.csv\n\nExpected Results:\n- Total particle count: approximately 60-70 particles\n- Average particle area: approximately 300-400 pixels\n\nReport:\n- Total particle count from Summary table\n- Average particle area from Summary table (labeled 'Average Size')",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "metadata": {
+    "image_name": "blobs",
+    "image_size": [256, 254],
+    "expected_particle_count_min": 50,
+    "expected_particle_count_max": 80,
+    "expected_avg_area_min": 100,
+    "expected_avg_area_max": 500,
+    "threshold_type": "default",
+    "min_particle_size": 10,
+    "data_source": "ImageJ built-in sample (blobs.gif)"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/count_particles/setup_task.sh",
+    "post_task": "/workspace/tasks/count_particles/export_result.sh"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_count_particles"
+    }
+  },
+  "difficulty": "easy",
+  "tags": ["microscopy", "particle-analysis", "segmentation", "thresholding", "cell-counting"]
+}

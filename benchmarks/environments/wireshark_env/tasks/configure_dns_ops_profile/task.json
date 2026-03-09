@@ -1,0 +1,35 @@
+{
+  "id": "configure_dns_ops_profile@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "Create a custom Wireshark Configuration Profile named 'DNS_Ops' optimized for DNS troubleshooting.\n\nInstructions:\n1. Create a new profile named 'DNS_Ops' and switch to it.\n2. Customize the Packet List columns:\n   - Remove the default 'Length' column.\n   - Add a new column titled 'TransID' showing the DNS Transaction ID (field: dns.id).\n   - Add a new column titled 'Query' showing the DNS Query Name (field: dns.qry.name).\n3. Create a new Coloring Rule:\n   - Name: 'DNS_Fail'\n   - Filter: dns.flags.rcode != 0\n   - Background Color: Red (any shade).\n4. Verify your view using the loaded dns.cap file.\n5. Take a screenshot of the packet list showing the new columns and coloring, saved to /home/ga/Documents/dns_ops_view.png.\n\nEnsure you are using the 'DNS_Ops' profile when finished.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_dns_ops_profile/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_dns_ops_profile/export_result.sh"
+  },
+  "metadata": {
+    "profile_name": "DNS_Ops",
+    "required_columns": [
+      { "title": "TransID", "field": "dns.id" },
+      { "title": "Query", "field": "dns.qry.name" }
+    ],
+    "forbidden_columns": ["Length"],
+    "coloring_rule": {
+      "name": "DNS_Fail",
+      "filter": "dns.flags.rcode != 0"
+    },
+    "expected_screenshot": "/home/ga/Documents/dns_ops_view.png"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_dns_ops_profile"
+    }
+  }
+}

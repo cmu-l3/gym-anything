@@ -1,0 +1,32 @@
+{
+  "id": "contract_redline_generation@1",
+  "version": "1.0",
+  "env_id": "libreoffice_writer_env@0.1",
+  "description": "Compare the original contract '/home/ga/Documents/supply_agreement_v1_sent.docx' with the vendor's returned version '/home/ga/Documents/supply_agreement_v2_vendor.docx' to identify undisclosed changes. Use the 'Track Changes > Compare Document' feature to merge the differences into the original document. Verify that the vendor changed Payment Terms (Net 30 to Net 60), Liability Cap ($1M to $500k), and Termination Notice (15 days to 90 days). Save the resulting document showing all tracked changes as '/home/ga/Documents/supply_agreement_redline.docx'. Do not manually edit the text; use the programmatic comparison tool.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/contract_redline_generation/setup_task.sh",
+    "post_task": "/workspace/tasks/contract_redline_generation/export_result.sh"
+  },
+  "metadata": {
+    "v1_path": "/home/ga/Documents/supply_agreement_v1_sent.docx",
+    "v2_path": "/home/ga/Documents/supply_agreement_v2_vendor.docx",
+    "output_path": "/home/ga/Documents/supply_agreement_redline.docx",
+    "expected_diffs": [
+      {"original": "Net 30", "new": "Net 60", "type": "payment"},
+      {"original": "$1,000,000", "new": "$500,000", "type": "liability"},
+      {"original": "15 days", "new": "90 days", "type": "termination"}
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_contract_redline"
+    }
+  }
+}

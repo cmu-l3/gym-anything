@@ -1,0 +1,46 @@
+{
+  "id": "brain_midline_shift@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the maximum brain midline shift on the provided brain MRI. Document the shift distance (mm) and direction (left/right). Save measurement markup to ~/Documents/SlicerData/BraTS/midline_measurement.mrk.json and report to ~/Documents/SlicerData/BraTS/midline_shift_report.json with fields: shift_mm, direction, severity, slice_location, clinical_recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 75,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/brain_midline_shift/setup_task.sh",
+    "post_task": "/workspace/tasks/brain_midline_shift/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/BraTS/midline_measurement.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/midline_shift_report.json",
+    "passing_thresholds": {
+      "measurement_error_max_mm": 5.0,
+      "direction_correct": true
+    },
+    "scoring_weights": {
+      "measurement_accuracy": 35,
+      "direction_correct": 20,
+      "severity_classification": 15,
+      "markup_created": 10,
+      "slice_selection": 10,
+      "report_completeness": 10
+    },
+    "severity_thresholds_mm": {
+      "minimal": 3,
+      "moderate": 5,
+      "severe": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_brain_midline_shift"
+    }
+  }
+}

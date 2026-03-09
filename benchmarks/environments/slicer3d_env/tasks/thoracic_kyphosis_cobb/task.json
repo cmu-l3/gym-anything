@@ -1,0 +1,45 @@
+{
+  "id": "thoracic_kyphosis_cobb@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the thoracic kyphosis Cobb angle on the loaded chest CT by identifying the most tilted superior and inferior thoracic vertebrae and measuring the angle between their endplates. Classify the kyphosis. Save landmarks to ~/Documents/SlicerData/LIDC/kyphosis_landmarks.mrk.json and report to ~/Documents/SlicerData/LIDC/kyphosis_report.json with fields: superior_vertebra, inferior_vertebra, cobb_angle_degrees, classification.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/thoracic_kyphosis_cobb/setup_task.sh",
+    "post_task": "/workspace/tasks/thoracic_kyphosis_cobb/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_landmarks": "/home/ga/Documents/SlicerData/LIDC/kyphosis_landmarks.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/kyphosis_report.json",
+    "acceptable_superior_vertebrae": ["T2", "T3", "T4", "T5", "T6"],
+    "acceptable_inferior_vertebrae": ["T9", "T10", "T11", "T12", "L1"],
+    "angle_tolerance_degrees": 8,
+    "passing_thresholds": {
+      "angle_error_max_degrees": 8,
+      "min_score": 60
+    },
+    "scoring_weights": {
+      "angle_accuracy": 35,
+      "superior_level": 10,
+      "inferior_level": 10,
+      "anatomical_placement": 15,
+      "classification": 15,
+      "report_complete": 10,
+      "visualization": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_thoracic_kyphosis_cobb"
+    }
+  }
+}

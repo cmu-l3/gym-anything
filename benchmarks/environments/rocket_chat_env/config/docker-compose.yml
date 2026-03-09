@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: docker.io/mongodb/mongodb-community-server:8.2-ubi8
+    container_name: rc-mongodb
+    restart: unless-stopped
+    command:
+      - mongod
+      - --bind_ip_all
+      - --replSet
+      - rs0
+    volumes:
+      - rc_mongodb_data:/data/db
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - mongodb://localhost:27017/?directConnection=true
+        - --eval
+        - "db.adminCommand({ ping: 1 }).ok"
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+
+  nats:
+    image: docker.io/nats:2.11-alpine
+    container_name: rc-nats
+    restart: unless-stopped
+    command:
+      - --http_port
+      - "8222"
+
+  rocketchat:
+    image: registry.rocket.chat/rocketchat/rocket.chat:8.1.0
+    container_name: rc-rocketchat
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+      - nats
+    ports:
+      - "3000:3000"
+    environment:
+      ROOT_URL: http://localhost:3000
+      PORT: 3000
+      DEPLOY_METHOD: docker
+      DEPLOY_PLATFORM: compose
+      MONGO_URL: mongodb://mongodb:27017/rocketchat?replicaSet=rs0
+      TRANSPORTER: monolith+nats://nats:4222
+      INITIAL_USER: "true"
+      ADMIN_USERNAME: admin
+      ADMIN_NAME: Rocket Chat Admin
+      ADMIN_EMAIL: admin@rocketchat.local
+      ADMIN_PASS: Admin1234!
+      OVERWRITE_SETTING_Show_Setup_Wizard: completed
+      OVERWRITE_SETTING_Accounts_AllowUserRegistration: "false"
+      OVERWRITE_SETTING_Accounts_AllowAnonymousRead: "false"
+
+volumes:
+  rc_mongodb_data:
+    driver: local

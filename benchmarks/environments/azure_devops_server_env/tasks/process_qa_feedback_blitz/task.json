@@ -1,0 +1,51 @@
+{
+  "id": "process_qa_feedback_blitz@1",
+  "version": "1.0",
+  "env_id": "azure_devops_server_env@0.1",
+  "description": "You are a Team Lead managing the 'TailwindTraders' project in Azure DevOps. The team has just completed a 'QA Blitz' testing session. Testers have left comments on 5 specific User Stories in the backlog but did not update the work item states.\n\nYour task is to review these 5 User Stories, read the latest 'QA Note' comment in the Discussion section, and update the State and Tags based on the following rules:\n\n1. If the comment indicates SUCCESS (e.g., 'Verified', 'Passed', 'Looks good'):\n   - Set State to 'Closed'\n   - No specific tags required\n\n2. If the comment indicates FAILURE (e.g., 'Found a bug', 'Failed validation'):\n   - Set State to 'Active'\n   - Add the tag 'QA-Fail'\n\n3. If the comment indicates a BLOCKER (e.g., 'Cannot test', 'Blocked'):\n   - Set State to 'Active'\n   - Add the tag 'Blocked'\n\nThe 5 User Stories to process are:\n- 'Update customer profile photo'\n- 'Export order history to CSV'\n- 'Mobile push notifications for delivery'\n- 'Dark mode toggle on settings'\n- 'Guest checkout flow'\n\nNavigate to Boards > Work Items or Backlogs to find and update these items.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\process_qa_feedback_blitz\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\process_qa_feedback_blitz\\export_result.ps1"
+  },
+  "metadata": {
+    "items": {
+      "Update customer profile photo": {
+        "expected_state": "Active",
+        "expected_tag": "QA-Fail",
+        "qa_comment": "QA Note: Failed validation. Image doesn't crop correctly on upload."
+      },
+      "Export order history to CSV": {
+        "expected_state": "Closed",
+        "expected_tag": null,
+        "qa_comment": "QA Note: Verified successfully. The CSV downloads with all correct columns."
+      },
+      "Mobile push notifications for delivery": {
+        "expected_state": "Active",
+        "expected_tag": "Blocked",
+        "qa_comment": "QA Note: Blocked. The notification server is unreachable from the test environment."
+      },
+      "Dark mode toggle on settings": {
+        "expected_state": "Closed",
+        "expected_tag": null,
+        "qa_comment": "QA Note: Looks good. Colors match the design specs."
+      },
+      "Guest checkout flow": {
+        "expected_state": "Active",
+        "expected_tag": "QA-Fail",
+        "qa_comment": "QA Note: Found a bug. Validation error appears even when email format is correct."
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_process_qa_feedback_blitz"
+    }
+  }
+}

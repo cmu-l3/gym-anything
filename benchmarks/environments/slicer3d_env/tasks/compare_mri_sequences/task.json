@@ -1,0 +1,43 @@
+{
+  "id": "compare_mri_sequences@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Load all four BraTS MRI sequences (T1, T1ce, T2, FLAIR) from ~/Documents/SlicerData/BraTS/ and display them in a multi-panel layout with each viewer showing a different sequence. Navigate to the tumor region and save a screenshot to ~/Documents/SlicerData/Screenshots/mri_comparison.png.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compare_mri_sequences/setup_task.sh",
+    "post_task": "/workspace/tasks/compare_mri_sequences/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "screenshot_path": "/home/ga/Documents/SlicerData/Screenshots/mri_comparison.png",
+    "expected_volume_count": 4,
+    "expected_sequences": ["t1", "t1ce", "t2", "flair"],
+    "min_screenshot_size_kb": 50,
+    "expected_dimensions": [240, 240, 155],
+    "dimension_tolerance": 20,
+    "scoring_weights": {
+      "t1_loaded": 10,
+      "t1ce_loaded": 10,
+      "t2_loaded": 10,
+      "flair_loaded": 10,
+      "layout_changed": 20,
+      "multiple_contrasts_visible": 15,
+      "screenshot_saved": 10,
+      "correct_dimensions": 10,
+      "consistent_region": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compare_mri_sequences"
+    }
+  }
+}

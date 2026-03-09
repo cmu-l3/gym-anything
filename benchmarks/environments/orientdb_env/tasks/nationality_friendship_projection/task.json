@@ -1,0 +1,36 @@
+{
+  "id": "nationality_friendship_projection@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "Perform a graph projection to summarize the social network by nationality. \n\nStarting from the 'demodb' database (user: admin, pass: admin), you must:\n1. Create a vertex class 'NationalityNode' with properties 'Name' (String) and 'ProfileCount' (Integer).\n2. Populate it with one vertex for each distinct nationality in the 'Profiles' class. 'ProfileCount' must match the number of profiles of that nationality.\n3. Create an edge class 'NationalityLink' with property 'FriendshipCount' (Integer).\n4. Create edges between NationalityNodes representing aggregated friendships. If profiles of Nationality A have 'HasFriend' edges with profiles of Nationality B, create a single NationalityLink from the alphabetically earlier nationality to the later one (e.g. American -> British). Set 'FriendshipCount' to the total number of such friendships (in either direction).\n5. Generate a report file at '/home/ga/nationality_network_report.txt' listing the total number of nationalities, total connections, the strongest connection, and a list of all connections with their counts.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nationality_friendship_projection/setup_task.sh",
+    "post_task": "/workspace/tasks/nationality_friendship_projection/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/nationality_network_report.txt",
+    "expected_node_count": 11,
+    "expected_edge_count": 14,
+    "strongest_link": {"from": "French", "to": "German", "count": 2},
+    "spot_check_profiles": {
+      "British": 3,
+      "American": 2,
+      "French": 2,
+      "German": 2,
+      "Japanese": 2,
+      "Spanish": 1
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nationality_friendship_projection"
+    }
+  }
+}

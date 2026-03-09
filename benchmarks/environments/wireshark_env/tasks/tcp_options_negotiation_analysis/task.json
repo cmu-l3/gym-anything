@@ -1,0 +1,28 @@
+{
+  "id": "tcp_options_negotiation_analysis@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "A network performance engineer is investigating suboptimal throughput. They need to audit TCP options negotiated during connection setup across all connections in a capture file.\n\nAnalyze all initial TCP SYN packets (SYN flag set, ACK flag NOT set) in the file /home/ga/Documents/captures/200722_tcp_anon.pcapng and produce two output files:\n\n1. A CSV report at /home/ga/Documents/tcp_options_report.csv with these columns (include a header row):\n   - frame_number: the packet frame number\n   - src_ip: source IP address\n   - dst_ip: destination IP address\n   - src_port: source TCP port\n   - dst_port: destination TCP port\n   - mss: TCP Maximum Segment Size value (empty string if not present)\n   - window_scale: TCP Window Scale shift count (empty string if not present)\n   - sack_permitted: 'yes' if SACK Permitted option present, 'no' otherwise\n   - timestamp_present: 'yes' if TCP Timestamps option present, 'no' otherwise\n   - initial_window_size: the TCP window size value from the SYN header\n\n2. A summary text file at /home/ga/Documents/tcp_options_summary.txt with exactly these lines:\n   - Line 1: total_syn_packets: <N>\n   - Line 2: unique_mss_values: <comma-separated sorted list of distinct MSS values>\n   - Line 3: unique_window_scale_values: <comma-separated sorted list of distinct window scale shift values>\n   - Line 4: sack_permitted_percentage: <N>%  (rounded to nearest integer)\n   - Line 5: timestamp_present_percentage: <N>%  (rounded to nearest integer)\n   - Line 6: most_common_mss: <value>\n   - Line 7: most_common_dst_port: <port>\n\nYou may use tshark, Wireshark GUI, or any combination. The capture file is already available at the specified path.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tcp_options_negotiation_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/tcp_options_negotiation_analysis/export_result.sh"
+  },
+  "metadata": {
+    "pcap_file": "/home/ga/Documents/captures/200722_tcp_anon.pcapng",
+    "csv_output_path": "/home/ga/Documents/tcp_options_report.csv",
+    "summary_output_path": "/home/ga/Documents/tcp_options_summary.txt",
+    "ground_truth_dir": "/var/lib/wireshark_ground_truth"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tcp_options_negotiation_analysis"
+    }
+  }
+}

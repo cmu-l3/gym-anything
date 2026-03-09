@@ -1,0 +1,27 @@
+{
+  "id": "tcp_rtt_latency_analysis@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "Configure Wireshark to display TCP latency metrics and isolate the worst connection.\n\n1. Open the capture file `~/Documents/captures/200722_tcp_anon.pcapng`.\n2. Add a custom column titled \"Stream\" showing the TCP Stream Index (`tcp.stream`).\n3. Add a custom column titled \"RTT\" showing the TCP Round Trip Time (`tcp.analysis.ack_rtt`).\n4. Sort by the new RTT column to identify the packet with the highest latency (highest RTT value).\n5. Create a report file at `~/Documents/captures/latency_report.txt` containing the details of this packet in the following format:\n   max_rtt_packet_number: <Packet Number>\n   max_rtt_value_seconds: <RTT Value>\n   bad_stream_index: <Stream Index>\n6. Filter or follow the stream for this worst packet and export ONLY that TCP stream to a new file named `~/Documents/captures/slow_stream.pcapng`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tcp_rtt_latency_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/tcp_rtt_latency_analysis/export_result.sh"
+  },
+  "metadata": {
+    "pcap_file": "200722_tcp_anon.pcapng",
+    "report_file": "latency_report.txt",
+    "export_file": "slow_stream.pcapng"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tcp_rtt_latency_analysis"
+    }
+  }
+}

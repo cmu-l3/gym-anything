@@ -1,0 +1,34 @@
+{
+  "id": "northwind_db_diff@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "You are a Database Administrator at Northwind Traders. You need to prepare a difference report and synchronization script between the Production database and a Staging database.\n\nTwo SQLite database files are located in `/home/ga/Documents/databases/`:\n1. `northwind_prod.db` (The current clean production state)\n2. `northwind_staging.db` (Contains pending changes: new products, price updates, customer removals, etc.)\n\nYour tasks:\n1. Open DBeaver and create two SQLite connections: named exactly 'NorthwindProd' and 'NorthwindStaging' pointing to the respective files.\n\n2. Compare the data in these tables: `Product`, `Customer`, `Category`, and `OrderDetail`.\n\n3. Create a CSV report at `/home/ga/Documents/exports/db_diff_report.csv` listing ALL data differences found. The CSV must have these headers: `ChangeType`, `TableName`, `RecordIdentifier`, `FieldName`, `OldValue`, `NewValue`.\n   - ChangeType should be INSERT, UPDATE, or DELETE.\n   - RecordIdentifier should be the Primary Key ID (e.g., '10248' or 'ALFKI').\n   - For INSERT/DELETE, use '*' for FieldName. For UPDATE, specify the column name.\n\n4. Create a SQL synchronization script at `/home/ga/Documents/scripts/sync_prod_to_staging.sql`. This script must contain the valid SQL INSERT, UPDATE, and DELETE statements required to apply the Staging changes to the Production database.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/northwind_db_diff/setup_task.sh",
+    "post_task": "/workspace/tasks/northwind_db_diff/export_result.sh"
+  },
+  "metadata": {
+    "prod_db_path": "/home/ga/Documents/databases/northwind_prod.db",
+    "staging_db_path": "/home/ga/Documents/databases/northwind_staging.db",
+    "expected_csv_path": "/home/ga/Documents/exports/db_diff_report.csv",
+    "expected_sql_path": "/home/ga/Documents/scripts/sync_prod_to_staging.sql",
+    "diff_counts": {
+      "Product": 8,
+      "Customer": 2,
+      "Category": 1,
+      "OrderDetail": 4
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_northwind_db_diff"
+    }
+  }
+}

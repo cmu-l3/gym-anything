@@ -1,0 +1,35 @@
+{
+  "id": "multimodal_person_trip_analysis@1",
+  "version": "1.0",
+  "env_id": "sumo_env@0.1",
+  "description": "You are a multimodal transportation planner at SRM (Servizio Ferroviario Metropolitano) Bologna, tasked with evaluating transit accessibility along the Acosta corridor. The network has 35 bus stops served by 157 bus vehicles alongside private car traffic. Your task is to analyze bus transit performance, identify service gaps, and propose improvements. Using the Bologna Acosta scenario at /home/ga/SUMO_Scenarios/bologna_acosta/: (1) Run the baseline simulation and enable both tripinfo output AND stop-output (SUMO's --stop-output option which records per-stop dwell times and passenger data for public transit vehicles). The stop output should be saved as /home/ga/SUMO_Scenarios/bologna_acosta/stop_output.xml. Parse the tripinfo to compute separate performance metrics for buses vs. private vehicles: average travel time, average speed, average time loss, and number of vehicles for each mode. Save to /home/ga/SUMO_Output/modal_performance.csv with columns: mode,metric,value (modes: bus, private_car). (2) Parse the stop-output XML to analyze bus stop performance. For each bus stop, compute: number of buses serving it, total dwell time, and average headway between consecutive buses. Save to /home/ga/SUMO_Output/bus_stop_analysis.csv with columns: stop_id,num_buses_served,total_dwell_time_s,avg_headway_s. (3) Identify transit service gaps: find bus stops with fewer than 3 bus visits during the simulation period, and stops with average headway exceeding 20 minutes (1200 seconds). These are underserved stops. Save the list to /home/ga/SUMO_Output/underserved_stops.csv with columns: stop_id,num_visits,avg_headway_s,gap_reason. (4) Propose a service improvement by creating a new bus route that serves at least 3 of the underserved stops. Create a new route file at /home/ga/SUMO_Scenarios/bologna_acosta/acosta_new_bus_route.rou.xml containing at least 2 new bus vehicles with stops at the underserved locations. Create a modified sumocfg at /home/ga/SUMO_Scenarios/bologna_acosta/run_improved_transit.sumocfg that includes the new bus route file. (5) Write a transit accessibility assessment at /home/ga/SUMO_Output/transit_assessment_report.txt documenting: modal split analysis, bus stop utilization statistics, identified service gaps, proposed improvements, and expected impact on transit accessibility.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 90,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multimodal_person_trip_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/multimodal_person_trip_analysis/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Urban and Regional Planners (19-3051.00)",
+    "industry": "Professional, Scientific, and Technical Services",
+    "scenario": "bologna_acosta",
+    "num_bus_stops": 35,
+    "num_bus_vehicles": 157,
+    "modal_performance_path": "/home/ga/SUMO_Output/modal_performance.csv",
+    "bus_stop_analysis_path": "/home/ga/SUMO_Output/bus_stop_analysis.csv",
+    "underserved_stops_path": "/home/ga/SUMO_Output/underserved_stops.csv",
+    "new_bus_route_path": "/home/ga/SUMO_Scenarios/bologna_acosta/acosta_new_bus_route.rou.xml",
+    "improved_cfg_path": "/home/ga/SUMO_Scenarios/bologna_acosta/run_improved_transit.sumocfg",
+    "report_path": "/home/ga/SUMO_Output/transit_assessment_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multimodal_person_trip_analysis"
+    }
+  }
+}

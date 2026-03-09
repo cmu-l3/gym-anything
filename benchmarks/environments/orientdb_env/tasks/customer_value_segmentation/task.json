@@ -1,0 +1,31 @@
+{
+  "id": "customer_value_segmentation@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "The marketing team needs a customer segmentation system based on lifetime spending. \n\nYour goal is to:\n1. Open OrientDB Studio and connect to the 'demodb' database (root / GymAnything123!).\n2. Add a new property named 'CustomerTier' (type STRING) to the 'Profiles' class.\n3. Calculate the total spending for ALL customers by summing the 'Price' of their connected Orders (via 'HasOrder' edge).\n4. Update the 'CustomerTier' for every profile based on these rules:\n   - 'Platinum': Total spending > 3000\n   - 'Gold': Total spending between 1000 and 3000 (inclusive)\n   - 'Silver': Total spending < 1000 OR no orders\n5. Export a list of all Platinum customers to a JSON file at '/home/ga/platinum_customers.json'. The JSON should be a list of objects containing 'Name', 'Surname', 'Email', and 'CustomerTier'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/customer_value_segmentation/setup_task.sh",
+    "post_task": "/workspace/tasks/customer_value_segmentation/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/platinum_customers.json",
+    "tracers": {
+      "vip": {"email": "vip_tracer@example.com", "expected_tier": "Platinum", "spend": 3500},
+      "mid": {"email": "mid_tracer@example.com", "expected_tier": "Gold", "spend": 1500},
+      "low": {"email": "low_tracer@example.com", "expected_tier": "Silver", "spend": 500},
+      "zero": {"email": "inactive_tracer@example.com", "expected_tier": "Silver", "spend": 0}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_customer_value_segmentation"
+    }
+  }
+}

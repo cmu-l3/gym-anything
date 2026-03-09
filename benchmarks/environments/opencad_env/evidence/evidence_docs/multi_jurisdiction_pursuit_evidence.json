@@ -1,0 +1,122 @@
+{
+  "task_id": "multi_jurisdiction_pursuit@1",
+  "difficulty": "very_hard",
+  "profession": "Communications Center Supervisor",
+  "date_tested": "2026-03-03",
+  "pass_threshold": 70,
+  "max_score": 100,
+
+  "seed_data": {
+    "target_person": "Trevor Philips",
+    "target_name_id": 3,
+    "street1": "Del Perro Boulevard",
+    "vehicle_plate": "BLC-4491",
+    "vehicle_make": "Pegassi",
+    "vehicle_model": "Infernus",
+    "vehicle_color": "Red",
+    "warrant_name": "Evading Police Officer - Felony",
+    "issuing_agency": "San Andreas Highway Patrol",
+    "citation_name": "Reckless Driving",
+    "citation_fine": 750.00,
+    "call_type": "10-80"
+  },
+
+  "db_baselines": {
+    "note": "CRITICAL: Trevor has 2 pre-existing warrants and 1 pre-existing citation — baselines prevent false positives",
+    "tables": ["calls", "call_history", "bolos_vehicles", "ncic_warrants", "ncic_citations"],
+    "baseline_files": [
+      "/tmp/mjp_baseline_active_call",
+      "/tmp/mjp_baseline_history_call",
+      "/tmp/mjp_baseline_bolo_vehicle",
+      "/tmp/mjp_baseline_warrant",
+      "/tmp/mjp_baseline_citation"
+    ],
+    "preexisting_trevor_warrants": "IDs 1,2 (will not be counted — id > baseline only)",
+    "preexisting_trevor_citation": "ID 1 (Speeding, $250 — will not be counted)"
+  },
+
+  "scoring_breakdown": {
+    "section_1_call": {
+      "points_possible": 15,
+      "is_gate": true,
+      "criteria": [
+        {"criterion": "call_type_10_80_pursuit", "points": 10},
+        {"criterion": "street1_del_perro_boulevard", "points": 5}
+      ]
+    },
+    "section_2_vehicle_bolo": {
+      "points_possible": 20,
+      "criteria": [
+        {"criterion": "vehicle_bolo_created", "points": 10},
+        {"criterion": "plate_blc_4491", "points": 10}
+      ]
+    },
+    "section_3_warrant": {
+      "points_possible": 30,
+      "wrong_target_gate": true,
+      "wrong_target_description": "Warrant not for Trevor Philips (name_id=3) -> section score=0",
+      "criteria": [
+        {"criterion": "trevor_warrant_confirmed", "points": 15},
+        {"criterion": "warrant_name_contains_evad_or_felony", "points": 15}
+      ]
+    },
+    "section_4_citation": {
+      "points_possible": 35,
+      "wrong_target_gate": true,
+      "wrong_target_description": "Citation not for Trevor Philips (name_id=3) -> section score=0",
+      "criteria": [
+        {"criterion": "trevor_citation_confirmed", "points": 15},
+        {"criterion": "citation_name_contains_reckless", "points": 15},
+        {"criterion": "fine_matches_750", "points": 5}
+      ]
+    }
+  },
+
+  "test_results": {
+    "do_nothing_test": {
+      "score": 0,
+      "passed": false,
+      "feedback": "No dispatch call found in database",
+      "status": "PASS"
+    },
+    "wrong_target_test_warrant": {
+      "scenario": "Warrant for name_id=99 instead of Trevor (name_id=3)",
+      "injected_call": true,
+      "injected_warrant_name_id": 99,
+      "expected_score": 15,
+      "actual_score": 15,
+      "passed": false,
+      "status": "PASS"
+    },
+    "wrong_target_test_citation": {
+      "scenario": "Correct warrant (Trevor) but citation for name_id=99",
+      "injected_call": true,
+      "injected_vehicle_bolo": "BLC-4491",
+      "injected_warrant_name_id": 3,
+      "injected_citation_name_id": 99,
+      "expected_score": 65,
+      "actual_score": 65,
+      "passed": false,
+      "status": "PASS",
+      "note": "65 < 70 so still fails even though close"
+    },
+    "partial_completion_test": {
+      "scenario": "Call + vehicle BOLO only",
+      "injected_call": true,
+      "injected_vehicle_bolo": "BLC-4491",
+      "expected_score": 35,
+      "actual_score": 35,
+      "passed": false,
+      "status": "PASS"
+    }
+  },
+
+  "screenshot": "multi_jurisdiction_pursuit_screenshot.png",
+  "notes": [
+    "Most complex task: 4 independent subtasks required simultaneously",
+    "Trevor's pre-existing records (warrants 1,2 + citation 1) must be baselined to avoid false positives",
+    "Vehicle BOLO plate normalized: BLC4491 == BLC-4491",
+    "Warrant partial match: 'evad' = 15 pts; 'felony'/'pursuit'/'flee' = 8 pts",
+    "Citation partial match: 'reckless driving' = 15 pts; 'reckless' alone = 8 pts"
+  ]
+}

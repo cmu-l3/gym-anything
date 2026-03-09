@@ -1,0 +1,45 @@
+{
+  "id": "measure_vertebral_compression_ratio@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the anterior and posterior heights of the L1 vertebral body on the loaded spine CT and calculate the compression ratio (anterior/posterior). Classify compression severity. Save report to ~/Documents/SlicerData/Exports/l1_compression_measurements.json with fields: vertebral_level, anterior_height_mm, posterior_height_mm, compression_ratio, classification.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/measure_vertebral_compression_ratio/setup_task.sh",
+    "post_task": "/workspace/tasks/measure_vertebral_compression_ratio/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "data_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_report": "/home/ga/Documents/SlicerData/Exports/l1_compression_measurements.json",
+    "expected_anterior_height_mm": 28.5,
+    "expected_posterior_height_mm": 32.0,
+    "expected_compression_ratio": 0.8906,
+    "expected_classification": "Normal",
+    "height_tolerance_mm": 3.0,
+    "ratio_tolerance": 0.05,
+    "plausible_height_range_mm": {"min": 15, "max": 45},
+    "scoring_weights": {
+      "report_exists": 15,
+      "all_fields_present": 10,
+      "anterior_height_accurate": 15,
+      "posterior_height_accurate": 15,
+      "ratio_correctly_calculated": 15,
+      "classification_correct": 10,
+      "markup_nodes_present": 10,
+      "vlm_visual_confirmation": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vertebral_compression_ratio"
+    }
+  }
+}

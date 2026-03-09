@@ -1,0 +1,32 @@
+{
+  "id": "pneumocephalus_air_segmentation@1",
+  "version": "1.0",
+  "env_id": "invesalius3_env@0.1",
+  "description": "You are a trauma radiologist reviewing a cranial CT scan to document intracranial air (pneumocephalus) and paranasal sinus air space distribution following head trauma. The CT Cranium DICOM series is already loaded in InVesalius 3. A radiology request form is at /home/ga/Documents/air_analysis/radiology_request.txt.\n\nCreate a complete pneumocephalus documentation package:\n1. Create a segmentation mask for intracranial and sinus air spaces using a Hounsfield threshold range that captures air. Air is approximately -1024 to -200 HU — your air mask maximum threshold must be at or below -200 HU to exclude soft tissue.\n2. Generate a 3D surface mesh from the air space mask.\n3. Export the air space surface as an STL file to /home/ga/Documents/air_analysis/air_spaces.stl\n4. Create a second segmentation mask for brain soft tissue (Hounsfield range that includes values near 0 HU, specifically the maximum must be >= 50 HU and the minimum must be >= -200 HU, e.g. approximately -100 to 80 HU for brain parenchyma).\n5. Place at least 4 linear measurements documenting the extent of major air pockets or sinus cavity dimensions in the slice views.\n6. Save the complete InVesalius project (with both masks and all measurements) to /home/ga/Documents/air_analysis/pneumocephalus_study.inv3\n\nLogin credentials: username=ga, password=password123",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pneumocephalus_air_segmentation/setup_task.sh",
+    "post_task": "/workspace/tasks/pneumocephalus_air_segmentation/export_result.sh"
+  },
+  "metadata": {
+    "output_dir": "/home/ga/Documents/air_analysis",
+    "output_stl_path": "/home/ga/Documents/air_analysis/air_spaces.stl",
+    "output_project_path": "/home/ga/Documents/air_analysis/pneumocephalus_study.inv3",
+    "air_mask_max_hu": -200,
+    "soft_tissue_mask_min_hu": -200,
+    "soft_tissue_mask_max_hu_min": 50,
+    "required_measurement_count": 4,
+    "min_measurement_mm": 5.0,
+    "dicom_series": "ct_cranium/0051"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pneumocephalus_air_segmentation"
+    }
+  }
+}

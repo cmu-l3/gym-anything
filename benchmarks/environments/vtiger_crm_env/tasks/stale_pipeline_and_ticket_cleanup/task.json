@@ -1,0 +1,37 @@
+{
+  "id": "stale_pipeline_and_ticket_cleanup@1",
+  "version": "1.0",
+  "env_id": "vtiger_crm_env@0.1",
+  "description": "You are the Sales Operations Manager at Meridian Technology Partners. End-of-quarter CRM hygiene is mandatory before the board review. You have received the following directive:\n\n---\nSUBJECT: Q1 CRM Cleanup — Action Required Before EOD\n\nTeam,\n\nOur CRM data quality audit has flagged the following issues that must be resolved before the board presentation:\n\n**PIPELINE HYGIENE (Deals):**\nReview ALL deals in the pipeline. Any deal that:\n  - Has a closing date that has already passed (before today's date)\n  - AND is still in an active sales stage (not 'Closed Won' or 'Closed Lost')\n\n...must be updated to stage 'Closed Lost' with probability set to 0%. These are dead deals that were never properly closed out.\n\n**TICKET HYGIENE:**\nReview the support ticket queue. Find any ticket that:\n  - Has status 'Closed' (meaning the support team closed it)\n  - BUT has severity 'Critical' or priority 'Urgent'\n\n...and update those tickets: change their status to 'Resolved' (not Closed — we need them in the resolved queue for SLA reporting), and add a note to the description field prepending '[SLA-AUDIT] Reclassified from Closed to Resolved per Q1 hygiene protocol. '\n\n**ACCOUNT PROFILE UPDATE:**\nThe account 'Blackstone Industrial' is missing its industry classification and description. Update it:\n  - Industry: 'Industrial Machinery & Equipment'\n  - Description: 'Enterprise client specializing in industrial automation and factory systems integration.'\n\nPlease complete all three cleanup tasks in vtiger CRM. There may be multiple records requiring attention — find and fix ALL of them.\n---\n\nComplete all three cleanup tasks now. Login credentials: admin / password. Vtiger CRM is at http://localhost:8000",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 90,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/stale_pipeline_and_ticket_cleanup/setup_task.sh",
+    "post_task": "/workspace/tasks/stale_pipeline_and_ticket_cleanup/export_result.sh"
+  },
+  "metadata": {
+    "injected_stale_deals": [
+      {"deal": "Nexus SCADA Security Assessment", "error": "closingdate injected to past date, active stage"},
+      {"deal": "Atlas Supply Chain Analytics", "error": "closingdate injected to past date, active stage"}
+    ],
+    "injected_ticket_issue": {
+      "ticket": "Data breach incident response",
+      "error": "status=Closed but severity=Critical/priority=Urgent — must be reclassified to Resolved"
+    },
+    "target_account": "Blackstone Industrial",
+    "expected_industry": "Industrial Machinery & Equipment",
+    "expected_account_description": "Enterprise client specializing in industrial automation and factory systems integration.",
+    "expected_ticket_sla_marker": "[SLA-AUDIT]",
+    "pass_threshold": 65
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_stale_pipeline_and_ticket_cleanup"
+    }
+  }
+}

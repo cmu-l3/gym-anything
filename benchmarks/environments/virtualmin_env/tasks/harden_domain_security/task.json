@@ -1,0 +1,31 @@
+{
+  "id": "harden_domain_security@1",
+  "version": "1.0",
+  "env_id": "virtualmin_env@0.1",
+  "name": "Harden Domain Security Configuration for acmecorp.test",
+  "description": "The acmecorp.test domain needs several security hardening measures applied. Perform the following through Virtualmin:\n\n1. Add an SPF DNS record for acmecorp.test that authorizes the server's IP to send mail (a basic SPF record like 'v=spf1 a mx ~all' as a TXT record for acmecorp.test).\n2. Enable DKIM signing for outgoing mail from acmecorp.test.\n3. Configure the Apache website for acmecorp.test to redirect HTTP to HTTPS (enable SSL redirect).\n4. Add an Apache security header: set X-Content-Type-Options to 'nosniff' in the acmecorp.test Apache configuration.\n5. Disable the Apache directory listing (Options -Indexes) for acmecorp.test's web directory.\n\nLogin credentials: root / GymAnything123!",
+  "difficulty": "hard",
+  "tags": ["security", "spf", "dkim", "apache", "ssl", "dns", "multi-feature"],
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/harden_domain_security/setup_task.sh",
+    "post_task": "/workspace/tasks/harden_domain_security/export_result.sh"
+  },
+  "metadata": {
+    "target_domain": "acmecorp.test",
+    "expected_spf": "v=spf1",
+    "expected_dkim": true,
+    "expected_ssl_redirect": true,
+    "expected_nosniff_header": "nosniff",
+    "expected_no_indexes": true
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_harden_domain_security"
+    }
+  }
+}

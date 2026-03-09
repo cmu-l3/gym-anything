@@ -1,0 +1,42 @@
+{
+  "id": "who_bidimensional_measurement@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Perform a WHO bidimensional tumor measurement on the provided brain MRI (T1-contrast enhanced). Measure the longest diameter (D1) and longest perpendicular diameter (D2) on the axial slice of maximum tumor extent; the two lines must be perpendicular. Save measurement markups to ~/Documents/SlicerData/BraTS/who_measurements.mrk.json and report to ~/Documents/SlicerData/BraTS/who_report.json with fields: longest_diameter_mm, perpendicular_diameter_mm, bidimensional_product_mm2, measurement_slice.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/who_bidimensional_measurement/setup_task.sh",
+    "post_task": "/workspace/tasks/who_bidimensional_measurement/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurements": "/home/ga/Documents/SlicerData/BraTS/who_measurements.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/BraTS/who_report.json",
+    "passing_thresholds": {
+      "diameter_error_max_mm": 5.0,
+      "perpendicularity_tolerance_deg": 10.0
+    },
+    "scoring_weights": {
+      "d1_accuracy": 20,
+      "d2_accuracy": 20,
+      "perpendicularity": 20,
+      "slice_selection": 10,
+      "product_correct": 15,
+      "markups_saved": 10,
+      "report_complete": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_who_bidimensional_measurement"
+    }
+  }
+}

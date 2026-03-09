@@ -1,0 +1,30 @@
+{
+  "id": "monitor_carbon_footprint@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "Configure a real-time carbon monitoring pipeline. \n\n1. Go to the Inputs page. Find the input 'facility_main_power' (Node: main_meter). \n2. Configure its Input Processing to: \n   a. Scale to kW (multiply by 0.001). \n   b. Apply Carbon Factor (multiply by 0.475). \n   c. Log to a new Feed named 'current_carbon_intensity' (Tag: Environment). \n3. Create a Dashboard named 'Sustainability_Display'. \n4. Add a Dial (or Gauge) widget to the dashboard linked to the 'current_carbon_intensity' feed. Set the max value to 100. \n5. Save the dashboard.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/monitor_carbon_footprint/setup_task.sh",
+    "post_task": "/workspace/tasks/monitor_carbon_footprint/export_result.sh"
+  },
+  "metadata": {
+    "input_name": "facility_main_power",
+    "input_node": "main_meter",
+    "target_feed_name": "current_carbon_intensity",
+    "target_dashboard_name": "Sustainability_Display",
+    "carbon_factor": 0.475,
+    "scale_factor": 0.001
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_carbon_footprint"
+    }
+  }
+}

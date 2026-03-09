@@ -1,0 +1,86 @@
+{
+    "task_id": "resolve_maven_dependencies@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/IdeaProjects/data-processor",
+            "verified_value": "/home/ga/IdeaProjects/data-processor",
+            "source": "setup_task.sh line 6, matches pom.xml project configuration",
+            "status": "verified"
+        },
+        {
+            "key": "project_name",
+            "metadata_value": "data-processor",
+            "verified_value": "data-processor",
+            "source": "pom.xml artifactId field, setup_task.sh line 6",
+            "status": "verified"
+        },
+        {
+            "key": "bug1_artifact",
+            "metadata_value": "junit",
+            "verified_value": "junit",
+            "source": "pom.xml line 22-26, confirmed as test-only dependency in RecordProcessorTest.java",
+            "status": "verified"
+        },
+        {
+            "key": "bug1_wrong_scope",
+            "metadata_value": "compile",
+            "verified_value": "compile",
+            "source": "pom.xml line 25: <scope>compile</scope>",
+            "status": "verified"
+        },
+        {
+            "key": "bug1_correct_scope",
+            "metadata_value": "test",
+            "verified_value": "test",
+            "source": "junit is imported only in RecordProcessorTest.java (test file), not in TextRecord.java or RecordProcessor.java (production files), so 'test' scope is correct",
+            "status": "verified"
+        },
+        {
+            "key": "bug2_artifact",
+            "metadata_value": "joda-time",
+            "verified_value": "joda-time",
+            "source": "pom.xml lines 30-38, confirmed in use in TextRecord.java (lines 3-5) and RecordProcessor.java (line 3) production code",
+            "status": "verified"
+        },
+        {
+            "key": "bug2_duplicate_versions",
+            "metadata_value": [
+                "2.9.2",
+                "2.10.13"
+            ],
+            "verified_value": [
+                "2.9.2",
+                "2.10.13"
+            ],
+            "source": "pom.xml line 32 (version 2.9.2) and line 37 (version 2.10.13), both versions confirmed as real releases in Maven Central",
+            "status": "verified"
+        },
+        {
+            "key": "bug2_keep_version",
+            "metadata_value": "2.10.13",
+            "verified_value": "2.10.13",
+            "source": "2.10.13 > 2.9.2, so keeping the higher version follows Maven best practices",
+            "status": "verified"
+        },
+        {
+            "key": "bug3_unused_artifact",
+            "metadata_value": "commons-codec",
+            "verified_value": "commons-codec",
+            "source": "pom.xml line 42-45, searched all Java source files (TextRecord.java, RecordProcessor.java, RecordProcessorTest.java) and found zero imports or usage of commons-codec",
+            "status": "verified"
+        },
+        {
+            "key": "source_attribution",
+            "metadata_value": "Data processing patterns adapted from Apache Commons / real production patterns",
+            "verified_value": "Data processing patterns adapted from Apache Commons / real production patterns",
+            "source": "pom.xml line 2 comment matches claim, TextRecord.java line 12 and RecordProcessor.java line 11 both confirm adaptation from real patterns",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The data-processor Maven project contains three correctly identified dependency management issues: (1) junit 4.12 is declared with 'compile' scope but used only in test code and should have 'test' scope; (2) joda-time is declared twice with versions 2.9.2 and 2.10.13, requiring removal of the duplicate and retention of the higher version 2.10.13, which is actively used in production code; (3) commons-codec 1.15 is declared in pom.xml but never imported or used in any source file (TextRecord.java, RecordProcessor.java, or RecordProcessorTest.java) and should be removed entirely. All dependency versions are real releases available in Maven Central Repository. The project is synthetic (created for this task) but accurately demonstrates real Maven dependency anti-patterns found in production systems.",
+    "pi_confidence": "high"
+}

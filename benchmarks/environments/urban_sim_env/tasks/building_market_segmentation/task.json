@@ -1,0 +1,32 @@
+{
+  "id": "building_market_segmentation@1",
+  "version": "1.0",
+  "env_id": "urban_sim_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are a senior appraiser at the San Francisco Assessor-Recorder's office. The department has been ordered to reform its mass appraisal methodology after a Civil Grand Jury report found that assessment values diverge systematically from market prices for certain building types — a known form of assessment inequity.\n\nYour task is to perform an unsupervised market segmentation of SF's residential building stock to identify structurally distinct market segments. The segmentation will replace the current one-size-fits-all regression with segment-specific models. The analysis must use real building characteristics from the UrbanSim dataset at /home/ga/urbansim_projects/data/sanfran_public.h5.\n\nRequirements:\n- Identify exactly 3 market segments that differentiate the residential building stock. Use k-means clustering (or a well-reasoned alternative) on relevant building features. Your feature engineering decisions — including how to derive price per square foot, how to handle missing values, and which features to standardize — are yours to make.\n- The three clusters must be meaningfully distinct: the highest-cluster mean price-per-sqft must be at least 1.5x the lowest-cluster mean price-per-sqft.\n- Map each building's cluster back to the zone level (via the parcels table) to produce a zone-level cluster distribution summary.\n\nDeliver:\n- /home/ga/urbansim_projects/output/building_clusters.csv — one row per building (residential_units > 0, building_sqft > 0, valid price), with columns: building_id, cluster_id, price_per_sqft\n- /home/ga/urbansim_projects/output/cluster_profiles.csv — exactly 3 rows (one per cluster), with columns: cluster_id, mean_price_per_sqft, mean_age_years, mean_stories, mean_units, building_count\n- /home/ga/urbansim_projects/output/market_segmentation_chart.png — scatter plot with price_per_sqft on y-axis, building age (2025 - year_built) on x-axis, colored by cluster\n\nThe analysis must run in /home/ga/urbansim_projects/notebooks/market_segmentation.ipynb using the UrbanSim (Python 3) kernel. Jupyter Lab is open at http://localhost:8888.",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 90
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/building_market_segmentation/setup_task.sh",
+    "post_task": "/workspace/tasks/building_market_segmentation/export_result.sh"
+  },
+  "metadata": {
+    "task_name": "building_market_segmentation",
+    "notebook_path": "/home/ga/urbansim_projects/notebooks/market_segmentation.ipynb",
+    "building_clusters_csv": "/home/ga/urbansim_projects/output/building_clusters.csv",
+    "cluster_profiles_csv": "/home/ga/urbansim_projects/output/cluster_profiles.csv",
+    "chart_path": "/home/ga/urbansim_projects/output/market_segmentation_chart.png",
+    "gt_path": "/tmp/building_segmentation_gt.json",
+    "required_clusters": 3,
+    "min_price_ratio": 1.5,
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_building_segmentation"
+    }
+  }
+}

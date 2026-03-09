@@ -1,0 +1,47 @@
+{
+  "id": "rib_vertebral_localization@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Count the ribs and determine the vertebral level of the pre-placed 'Nodule' fiducial on the provided chest CT. Check for anatomical variants (cervical rib, lumbar rib, bifid rib). Place reference fiducials at the centers of T1, T6, and T12 vertebral bodies. Save fiducials to ~/Documents/SlicerData/LIDC/vertebral_landmarks.mrk.json and report to ~/Documents/SlicerData/LIDC/rib_count_report.json with fields: total_rib_pairs, first_rib_identified, twelfth_rib_identified, anatomical_variants (cervical_rib, lumbar_rib, bifid_rib, bifid_rib_level), nodule_vertebral_level, confidence.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rib_vertebral_localization/setup_task.sh",
+    "post_task": "/workspace/tasks/rib_vertebral_localization/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "lidc_dir": "/home/ga/Documents/SlicerData/LIDC",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_landmarks": "/home/ga/Documents/SlicerData/LIDC/vertebral_landmarks.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/LIDC/rib_count_report.json",
+    "expected_rib_pairs": 12,
+    "vertebral_level_tolerance": 1,
+    "t1_t12_distance_min_mm": 200,
+    "t1_t12_distance_max_mm": 320,
+    "passing_thresholds": {
+      "nodule_level_exact": true,
+      "rib_count_correct": true
+    },
+    "scoring_weights": {
+      "nodule_level_exact": 35,
+      "nodule_level_within_1": 20,
+      "rib_count_correct": 15,
+      "t1_landmark_placed": 10,
+      "t12_landmark_placed": 10,
+      "variant_detection": 10,
+      "report_complete": 10,
+      "fiducial_consistency": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rib_vertebral_localization"
+    }
+  }
+}

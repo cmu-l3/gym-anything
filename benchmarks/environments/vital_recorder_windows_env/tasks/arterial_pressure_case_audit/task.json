@@ -1,0 +1,36 @@
+{
+  "id": "arterial_pressure_case_audit@1",
+  "version": "1.0",
+  "env_id": "vital_recorder_windows_env@0.1",
+  "description": "Vital Recorder is open on the Windows desktop. Three real intraoperative vital signs recordings from the VitalDB open dataset are available in C:\\Users\\Docker\\Desktop\\VitalRecorderData\\: 0001.vital, 0002.vital, and 0003.vital. Each recording is from a different noncardiac surgical case at Seoul National University Hospital and contains a different set of physiological monitoring tracks.\n\nThe anesthesia quality department has commissioned a hemodynamic monitoring audit. Your task is to identify which of the three case recordings include invasive arterial blood pressure monitoring (ART track), as only those cases are eligible for a hypotension threshold analysis.\n\nYou must:\n1. Open and review each of the three recordings to determine which contain ART (invasive arterial line) waveform data.\n2. For any case(s) that include the ART track, export the full vital signs dataset to a CSV file on the Desktop named art_case_export.csv.\n3. Produce a written audit report saved as C:\\Users\\Docker\\Desktop\\art_audit_report.txt that documents: (a) which case(s) contain invasive arterial monitoring and which do not, (b) the recording duration of each case you reviewed, (c) a brief clinical rationale for why invasive arterial monitoring is important for hemodynamic management in noncardiac surgery.\n\nThe audit report must be comprehensive enough that a department head could use it as a stand-alone quality document. Do not guess — you must examine each file's track list in Vital Recorder to determine which has ART data.\n\nLogin: Windows Desktop user (no Vital Recorder login required).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 90,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\arterial_pressure_case_audit\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\arterial_pressure_case_audit\\export_result.ps1"
+  },
+  "metadata": {
+    "data_dir": "C:\\Users\\Docker\\Desktop\\VitalRecorderData",
+    "case_files": ["0001.vital", "0002.vital", "0003.vital"],
+    "art_case": "0001.vital",
+    "art_case_id": "0001",
+    "non_art_cases": ["0002.vital", "0003.vital"],
+    "case_0001_tracks": ["ART", "ECG_II", "ECG_V5", "PLETH", "CO2", "AWP", "INSP_SEVO", "EXP_SEVO"],
+    "case_0002_tracks": ["ECG_II", "PLETH", "HR", "ST_II", "ST_V5", "NIBP_SYS", "NIBP_DIA", "NIBP_MEAN", "SpO2", "VENT_TV", "VENT_PEEP", "VENT_RR"],
+    "case_0003_tracks": ["ECG_II", "ECG_V5", "PLETH", "COMPLIANCE", "INSP_SEVO", "EXP_SEVO", "PAMB_MBAR", "MAWP_MBAR", "PPLAT_MBAR"],
+    "expected_csv": "C:\\Users\\Docker\\Desktop\\art_case_export.csv",
+    "expected_report": "C:\\Users\\Docker\\Desktop\\art_audit_report.txt",
+    "result_json_path": "C:\\Users\\Docker\\task_result_art_audit.json",
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_arterial_pressure_case_audit"
+    }
+  }
+}

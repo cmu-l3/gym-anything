@@ -1,0 +1,42 @@
+{
+  "id": "safer_solvent_substitution_screening@1",
+  "version": "1.0",
+  "env_id": "cameo_chemicals_env@0.1",
+  "description": "Evaluate five candidate solvents (Benzene, Acetone, Dimethyl Sulfoxide, Methylene Chloride, Acetophenone) on CAMEO Chemicals (https://cameochemicals.noaa.gov/) to find a safer substitute for a cleaning process. \n\nScreen each solvent against these three criteria:\n1. **Fire Safety**: Flash Point must be > 140°F (60°C) OR Non-flammable.\n2. **Process Efficiency**: Water Solubility must be 'Soluble', 'Very soluble', 'Miscible', or 'Complete'. (Reject 'Slightly soluble', 'Insoluble', etc.)\n3. **Health Safety**: Must NOT be listed as a known or suspected 'carcinogen' or cause 'cancer' in the Hazards sections.\n\nCreate a report at `/home/ga/Documents/solvent_screening_matrix.txt`. For each chemical, list the Flash Point, Water Solubility, Carcinogen status, and whether it PASSES or FAILS each criterion. Finally, state the single passing solvent as the RECOMMENDATION.",
+  "difficulty": "medium",
+  "tags": ["cameo", "solvent", "substitution", "green-chemistry", "safety", "screening"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/safer_solvent_substitution_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/safer_solvent_substitution_screening/export_result.sh"
+  },
+  "metadata": {
+    "candidates": [
+      "Benzene",
+      "Acetone",
+      "Dimethyl Sulfoxide",
+      "Methylene Chloride",
+      "Acetophenone"
+    ],
+    "correct_winner": "Dimethyl Sulfoxide",
+    "correct_winner_aliases": ["DMSO", "Methyl sulfoxide"],
+    "output_path": "/home/ga/Documents/solvent_screening_matrix.txt",
+    "scoring": {
+      "file_exists": 10,
+      "all_candidates_checked": 15,
+      "correct_winner_identified": 25,
+      "logic_checks": 40,
+      "vlm_verification": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_solvent_screening"
+    }
+  }
+}

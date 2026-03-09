@@ -1,0 +1,59 @@
+{
+    "task_id": "enable_time_dimension_layer@1",
+    "dataset": "USGS Earthquake Events (M5.0+, January-March 2024)",
+    "case_id": "PostGIS earthquakes table in seismic workspace",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "workspace",
+            "metadata_value": "seismic",
+            "verified_value": "seismic",
+            "source": "setup_task.sh line 61-63: curl POST to /rest/workspaces with name=seismic",
+            "status": "verified"
+        },
+        {
+            "key": "layer",
+            "metadata_value": "earthquakes",
+            "verified_value": "earthquakes",
+            "source": "setup_task.sh line 93: curl POST to featuretypes with name=earthquakes",
+            "status": "verified"
+        },
+        {
+            "key": "expected_attribute",
+            "metadata_value": "event_time",
+            "verified_value": "event_time",
+            "source": "setup_task.sh line 27: PostGIS table schema includes 'event_time TIMESTAMP WITH TIME ZONE' column",
+            "status": "verified"
+        },
+        {
+            "key": "expected_presentation",
+            "metadata_value": "LIST",
+            "verified_value": "LIST",
+            "source": "GeoServer 2.28.0 User Manual (docs.geoserver.org): LIST is the enum value for 'Each value separately' presentation mode for WMS time dimension",
+            "status": "verified"
+        },
+        {
+            "key": "expected_strategy",
+            "metadata_value": "MAXIMUM",
+            "verified_value": "MAXIMUM",
+            "source": "GeoServer 2.28.0 User Manual (docs.geoserver.org): MAXIMUM is the enum value for 'Biggest domain value' default value strategy, used to show most recent events by default",
+            "status": "verified"
+        },
+        {
+            "key": "wms_time_test_url",
+            "metadata_value": "seismic/wms?service=WMS&version=1.1.1&request=GetMap&layers=seismic:earthquakes&styles=&bbox=-180,-90,180,90&width=800&height=400&srs=EPSG:4326&format=image/png&TIME=2024-01-01T00:00:00Z/2024-03-31T23:59:59Z",
+            "verified_value": "http://localhost:8080/geoserver/seismic/wms?service=WMS&version=1.1.1&request=GetMap&layers=seismic:earthquakes&styles=&bbox=-180,-90,180,90&width=800&height=400&srs=EPSG:4326&format=image/png&TIME=2024-01-01T00:00:00Z/2024-03-31T23:59:59Z",
+            "source": "export_result.sh line 23: URL is constructed as ${GS_URL}/seismic/wms?... where GS_URL=http://localhost:8080/geoserver. Metadata value is relative URL (missing protocol/host). Time range 2024-01-01 to 2024-03-31 matches data insertion dates in setup_task.sh lines 42-52.",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_description",
+            "metadata_value": "real USGS earthquake events (M5.0+, January–March 2024)",
+            "verified_value": "Hardcoded subset of real USGS earthquake data from January 2024. All events have magnitude 5.0-5.7. Event IDs follow USGS ComCat format (us7000xxxx). Example: us7000lr3s is Noto Peninsula, Japan earthquake, confirmed as real USGS event occurring around January 2024.",
+            "source": "setup_task.sh lines 40-52: 10 hardcoded INSERT statements with real USGS event IDs and coordinates. Verified Noto Peninsula event at 37.227N, 138.517E from GeoServer documentation and USGS/Wikipedia sources.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task configures WMS time dimension on the earthquakes layer in the seismic GeoServer workspace. The earthquakes table is populated with 10 real USGS earthquake events from January 2024 (M5.0-5.7 magnitude range, hardcoded in PostGIS). The time dimension attribute is 'event_time', the presentation mode is LIST (showing all available time values individually), and the default value strategy is MAXIMUM (displaying most recent events by default). The WMS test URL uses the time range 2024-01-01T00:00:00Z to 2024-03-31T23:59:59Z which encompasses all inserted data. All metadata values are correct and consistent with GeoServer 2.28.0 documentation standards.",
+    "pi_confidence": "high"
+}

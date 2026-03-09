@@ -1,0 +1,27 @@
+{
+  "id": "temporal_travel_anomaly@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "The Fraud Department has detected travel accounts that may be shared by multiple people. A clear indicator is 'Teleportation': a single account having active hotel stays in two DIFFERENT cities on the same date.\n\nYour task is to analyze the 'demodb' database and flag these accounts:\n\n1. Identify Profiles that have overlapping 'HasStayed' intervals in different cities.\n   - The 'HasStayed' edges have 'CheckIn' (Date) and 'Nights' (Integer) properties.\n   - An overlap occurs if the date ranges intersect.\n   - Only flag if the stays are in DIFFERENT cities.\n\n2. Mark these profiles by setting a new boolean property 'Suspicious' to 'true' on the Profile vertex.\n\n3. Save a JSON list of the email addresses of these suspicious profiles to '/home/ga/suspicious_travelers.json'.\n   Format: [\"email1@example.com\", \"email2@example.com\"]\n\nYou may use OrientDB Studio, the Console, or write a script (Python/Bash) using the REST API. The database is 'demodb' (user: admin, pass: admin).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/temporal_travel_anomaly/setup_task.sh",
+    "post_task": "/workspace/tasks/temporal_travel_anomaly/export_result.sh"
+  },
+  "metadata": {
+    "db_name": "demodb",
+    "output_path": "/home/ga/suspicious_travelers.json",
+    "ground_truth_path": "/var/lib/orientdb/ground_truth_anomalies.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_temporal_travel_anomaly"
+    }
+  }
+}

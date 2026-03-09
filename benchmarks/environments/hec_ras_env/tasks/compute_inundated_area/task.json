@@ -1,0 +1,31 @@
+{
+  "id": "compute_inundated_area@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "Calculate the total water surface area (in acres) for the 'Maximum' water surface profile of the Muncie HEC-RAS model.\n\nRequired steps:\n1. Open the Muncie project and ensure results exist (run RasUnsteady if needed).\n2. Write a Python script to:\n   - Extract the 'Top Width' for the Maximum Water Surface profile for each cross-section from the HEC-RAS HDF5 results (Muncie.p04.hdf).\n   - Extract the main channel 'Downstream Reach Length' for each cross-section from the Geometry data.\n   - Calculate the surface area between cross-sections using the trapezoidal rule: Area = ((W1 + W2) / 2) * L.\n   - Sum the total area and convert to acres.\n\n3. Save the results:\n   - A text file at `~/Documents/hec_ras_results/inundated_area_report.txt` containing the text: \"Total Inundated Area: X acres\" (where X is your calculated value).\n   - A CSV file at `~/Documents/hec_ras_results/reach_data.csv` with columns: `River_Station`, `Top_Width_ft`, `Reach_Length_ft`.\n   - A plot at `~/Documents/hec_ras_results/top_width_profile.png` showing Top Width (ft) vs River Station.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_inundated_area/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_inundated_area/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/hec_ras_projects/Muncie",
+    "results_dir": "/home/ga/Documents/hec_ras_results",
+    "result_hdf": "Muncie.p04.hdf",
+    "output_report": "inundated_area_report.txt",
+    "output_csv": "reach_data.csv",
+    "output_plot": "top_width_profile.png",
+    "tolerance_percent": 5.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_inundated_area"
+    }
+  }
+}

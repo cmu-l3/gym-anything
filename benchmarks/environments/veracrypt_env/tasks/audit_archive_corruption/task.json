@@ -1,0 +1,32 @@
+{
+  "id": "audit_archive_corruption@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Perform a forensic audit on four VeraCrypt encrypted volumes located in '~/Volumes/Evidence/'. All volumes (and backups) use the password 'Evidence2024'.\n\nFor each volume (case_001.hc through case_004.hc):\n1. Attempt to mount the volume.\n2. If it fails to mount, check if a header backup exists in '~/Documents/Recovery/' and attempt to Restore Volume Header.\n3. Diagnose the status based on the result:\n   - 'Healthy': Mounts successfully and files are readable.\n   - 'Header_Repaired': Failed initially, but mounts successfully after restoring the volume header.\n   - 'Filesystem_Corrupt': Mounts successfully (with or without repair), but the filesystem is unreadable, empty, or throws OS errors.\n   - 'Inaccessible': Cannot be mounted even after attempting header recovery (or no backup exists).\n\nCreate a CSV report at '~/Documents/audit_report.csv' with two columns: 'Filename,Status'.\nExample:\ncase_001.hc,Healthy\ncase_002.hc,Inaccessible\n...",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_archive_corruption/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_archive_corruption/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/Documents/audit_report.csv",
+    "password": "Evidence2024",
+    "expected_statuses": {
+      "case_001.hc": "Healthy",
+      "case_002.hc": "Header_Repaired",
+      "case_003.hc": "Filesystem_Corrupt",
+      "case_004.hc": "Inaccessible"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_report"
+    }
+  }
+}

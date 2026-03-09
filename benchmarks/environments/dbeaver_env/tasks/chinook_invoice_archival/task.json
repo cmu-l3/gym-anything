@@ -1,0 +1,27 @@
+{
+  "id": "chinook_invoice_archival@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "Perform a database archival operation. You are provided with a working copy of the Chinook database at `/home/ga/Documents/databases/chinook_working.db`.\n\nYour goal is to archive data from years 2009 and 2010 into a separate database, replace the data in the working database with a summary, and verify the integrity.\n\n1. **Connect** to the working database in DBeaver. Name the connection 'ChinookWorking'.\n\n2. **Create** a new SQLite database at `/home/ga/Documents/databases/chinook_archive.db` and connect to it as 'ChinookArchive'. Create `invoices` and `invoice_items` tables in it with the same schema as the original.\n\n3. **Migrate** (Copy) all `invoices` and `invoice_items` dated from **2009 and 2010** into the archive database.\n\n4. **Clean** the working database: Delete the 2009-2010 `invoices` and `invoice_items` from `chinook_working.db`. Do not delete data from 2011 onwards.\n\n5. **Summarize**: In `chinook_working.db`, create a table named `archived_yearly_summary` with columns: `Year` (INTEGER), `InvoiceCount` (INTEGER), `TotalRevenue` (REAL), `UniqueCustomers` (INTEGER), `AvgInvoiceTotal` (REAL). Insert aggregated data for 2009 and 2010.\n\n6. **Report**: Create a CSV file at `/home/ga/Documents/exports/archival_reconciliation.csv` with columns `Metric,OriginalCount,WorkingCount,ArchiveCount,Status`. Include rows for 'total_invoices', 'total_invoice_items', 'revenue_2009', and 'revenue_2010' to prove no data was lost.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_invoice_archival/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_invoice_archival/export_result.sh"
+  },
+  "metadata": {
+    "working_db": "/home/ga/Documents/databases/chinook_working.db",
+    "archive_db": "/home/ga/Documents/databases/chinook_archive.db",
+    "export_file": "/home/ga/Documents/exports/archival_reconciliation.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_invoice_archival"
+    }
+  }
+}

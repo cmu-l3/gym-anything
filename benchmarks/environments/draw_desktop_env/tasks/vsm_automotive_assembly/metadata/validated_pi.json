@@ -1,0 +1,73 @@
+{
+    "task_id": "vsm_automotive_assembly@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_filename",
+            "metadata_value": "acme_vsm.drawio",
+            "verified_value": "acme_vsm.drawio",
+            "source": "setup_task.sh defines DRAWIO_FILE=/home/ga/Desktop/acme_vsm.drawio; export_result.sh checks for same file",
+            "status": "verified"
+        },
+        {
+            "key": "expected_png",
+            "metadata_value": "acme_vsm.png",
+            "verified_value": "acme_vsm.png",
+            "source": "setup_task.sh and export_result.sh both reference /home/ga/Desktop/acme_vsm.png",
+            "status": "verified"
+        },
+        {
+            "key": "data_file",
+            "metadata_value": "acme_stamping_data.txt",
+            "verified_value": "acme_stamping_data.txt",
+            "source": "setup_task.sh creates file at /home/ga/Desktop/acme_stamping_data.txt",
+            "status": "verified"
+        },
+        {
+            "key": "process_names",
+            "metadata_value": "[\"Stamping\", \"Welding\", \"Assembly\"]",
+            "verified_value": "[\"Stamping\", \"Welding I\", \"Welding II\", \"Assembly I\", \"Assembly II\"]",
+            "source": "setup_task.sh explicitly defines 5 process steps with these exact names; task.json description also states '5 Process Steps' with these names",
+            "status": "contradicted"
+        },
+        {
+            "key": "cycle_times",
+            "metadata_value": "[1, 38, 46, 62, 40]",
+            "verified_value": "[1, 38, 46, 62, 40]",
+            "source": "setup_task.sh defines: Stamping C/T=1s, Welding I=38s, Welding II=46s, Assembly I=62s, Assembly II=40s",
+            "status": "verified"
+        },
+        {
+            "key": "inventory_counts",
+            "metadata_value": "[4600, 1100, 1600, 1200, 2700]",
+            "verified_value": "[4600, 1100, 1600, 1200, 2700]",
+            "source": "setup_task.sh defines inventory between each process step with these exact quantities",
+            "status": "verified"
+        },
+        {
+            "key": "processing_time",
+            "metadata_value": "187",
+            "verified_value": "187",
+            "source": "Sum of cycle_times: 1+38+46+62+40 = 187 seconds (verified by code calculation)",
+            "status": "verified"
+        },
+        {
+            "key": "takt_time",
+            "metadata_value": "60",
+            "verified_value": "30",
+            "source": "setup_task.sh specifies Daily Demand=920 pieces/day and Available Time=27,600 seconds/shift. Takt Time = 27,600/920 = 30 seconds/piece",
+            "status": "contradicted"
+        },
+        {
+            "key": "lead_time",
+            "metadata_value": "23.6",
+            "verified_value": "12.17 to 17.17 (depending on inclusion of raw material)",
+            "source": "Inventory counts sum to 11,200 pieces. With daily demand of 920 pieces/day: lead_time = 11,200/920 = 12.17 days (without raw material) or 17.17 days (with 5-day raw material inventory mentioned in setup). The claimed 23.6 results from using incorrect takt_time of 60: 11,200/(27,600/60) = 24.35 ≈ 23.6",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task creates synthetic VSM data with 5 process steps (Stamping, Welding I, Welding II, Assembly I, Assembly II) with cycle times of [1, 38, 46, 62, 40] seconds totaling 187 seconds processing time. Inventory quantities are [4600, 1100, 1600, 1200, 2700] pieces with daily demand of 920 pieces/day. The correct takt_time is 30 seconds/piece (not 60 as claimed), and actual lead time is approximately 12-17 days (not 23.6 days). The 23.6 day value appears to result from using an incorrect takt_time of 60 seconds in the calculation.",
+    "pi_confidence": "high"
+}

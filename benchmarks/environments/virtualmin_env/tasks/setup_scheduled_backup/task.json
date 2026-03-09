@@ -1,0 +1,30 @@
+{
+  "id": "setup_scheduled_backup@1",
+  "version": "1.0",
+  "env_id": "virtualmin_env@0.1",
+  "name": "Configure Scheduled Backup for All Domains",
+  "description": "Set up a scheduled backup job in Virtualmin that backs up all three virtual servers (acmecorp.test, brightstar.test, greenvalley.test). Configure the backup with the following requirements:\n\n1. The backup should include ALL three domains.\n2. The backup destination should be a local directory: /backup/virtualmin/ (create this directory if it does not exist).\n3. The backup should be scheduled to run daily.\n4. The backup should include these features: home directory files, mail files, MySQL databases, and DNS zone.\n5. Set the backup to keep only the 7 most recent backups (delete older ones).\n\nLogin credentials: root / GymAnything123!",
+  "difficulty": "hard",
+  "tags": ["backup", "scheduled-task", "disaster-recovery", "multi-domain", "multi-feature"],
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_scheduled_backup/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_scheduled_backup/export_result.sh"
+  },
+  "metadata": {
+    "target_domains": ["acmecorp.test", "brightstar.test", "greenvalley.test"],
+    "backup_dir": "/backup/virtualmin/",
+    "schedule": "daily",
+    "features": ["dir", "mail", "mysql", "dns"],
+    "retention_count": 7
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_setup_scheduled_backup"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "solar_suitability_analysis@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "Perform a multi-criteria suitability analysis to identify land suitable for a solar farm.\n\n1. Open the provided Digital Elevation Model (DEM) at `/home/ga/GIS_Data/elevation.tif`.\n2. Calculate the **Slope** (in degrees) from the DEM.\n3. Calculate the **Aspect** (in degrees) from the DEM.\n4. Use the Raster Calculator to identify areas that meet BOTH of the following criteria:\n   - **Flat Terrain**: Slope is less than 10 degrees.\n   - **South-Facing**: Aspect is between 135 and 225 degrees.\n5. Save the final result as a binary GeoTIFF file (1=suitable, 0=unsuitable) to `/home/ga/GIS_Data/exports/solar_candidates.tif`.",
+  "difficulty": "intermediate",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/solar_suitability_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/solar_suitability_analysis/export_result.sh"
+  },
+  "metadata": {
+    "input_dem": "/home/ga/GIS_Data/elevation.tif",
+    "output_path": "/home/ga/GIS_Data/exports/solar_candidates.tif",
+    "criteria": {
+      "max_slope": 10,
+      "min_aspect": 135,
+      "max_aspect": 225
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_solar_suitability"
+    }
+  }
+}

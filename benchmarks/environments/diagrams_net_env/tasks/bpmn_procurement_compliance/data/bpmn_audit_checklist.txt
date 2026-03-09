@@ -1,0 +1,60 @@
+BPMN 2.0 COMPLIANCE AUDIT CHECKLIST
+======================================
+Process: Purchase-to-Pay (P2P) Procurement
+Auditor Reference: ISO/IEC 19510:2013 (BPMN 2.0)
+Date: 2024-11-15
+
+=== IDENTIFIED COMPLIANCE VIOLATIONS ===
+
+VIOLATION 1 — Missing Swimlane Lanes (Severity: HIGH)
+  The current process has a single lane "Procurement Department" but the
+  procurement workflow involves multiple organizational roles. Each role
+  that performs activities must be represented as a separate swimlane lane:
+  Required lanes: Requester, Budget Owner / Manager, Procurement Officer, Finance / AP
+  Action: Add 3 additional lanes and redistribute tasks to the appropriate owner lane.
+
+VIOLATION 2 — Unnamed Start Event (Severity: MEDIUM)
+  BPMN 2.0 §10.4.1: All flow elements SHOULD have a name.
+  The start event has no label. The process trigger must be named.
+  Action: Label the start event (e.g., "Purchase Need Identified" or "PR Submitted").
+
+VIOLATION 3 — Incorrect Gateway Type (Severity: HIGH)
+  The "Budget Approved?" gateway uses a PARALLEL gateway symbol (+),
+  which means ALL outgoing flows are activated simultaneously.
+  This is an either/or decision — it MUST use an EXCLUSIVE (XOR) gateway (X symbol).
+  Action: Change gateway type to Exclusive (XOR / data-based).
+
+VIOLATION 4 — Unlabeled Gateway Sequence Flows (Severity: HIGH)
+  BPMN 2.0 §10.6.1: Sequence flows from exclusive gateways MUST be labeled
+  to indicate the condition. Currently no labels exist on any gateway exit.
+  Action: Label flows from the gateway as "Approved" and "Rejected".
+  A "Rejected" path must also be added leading to an appropriate end event
+  or back to the requester (add a rejection notification task).
+
+VIOLATION 5 — Wrong Element Type for Supplier Communication (Severity: MEDIUM)
+  "Send PO to Supplier" is modeled as an Intermediate Message Throw Event.
+  Sending a document (Purchase Order) to an external party is a SERVICE TASK
+  or SEND TASK, not an intermediate event. Intermediate events represent
+  points where the process waits or signals within a flow.
+  Action: Replace with a Send Task (envelope icon on task rectangle).
+
+VIOLATION 6 — Missing Data Objects (Severity: MEDIUM)
+  The process handles critical documents (Purchase Request, Purchase Order,
+  Invoice) but no data objects are shown. Key data objects must be associated
+  with the tasks that create or consume them.
+  Action: Add data objects for: Purchase Request, Purchase Order, Goods Receipt,
+  Invoice. Connect them to the relevant tasks with data associations.
+
+=== REQUIRED CORRECTED DIAGRAM STRUCTURE ===
+- 4 swimlane lanes (Requester, Budget Owner, Procurement Officer, Finance/AP)
+- Named start event
+- Exclusive (XOR) gateway with labeled flows: "Approved" and "Rejected"
+- Rejection path: new "Notify Requester of Rejection" task + End Event (rejected)
+- Send Task (not message event) for PO transmission
+- Minimum 4 data objects with data associations
+- All other tasks reassigned to appropriate lanes
+
+=== EXPORT REQUIREMENTS ===
+After correcting all violations, export the diagram:
+  PDF: ~/Diagrams/procurement_process.pdf
+  PNG: ~/Diagrams/procurement_process.png

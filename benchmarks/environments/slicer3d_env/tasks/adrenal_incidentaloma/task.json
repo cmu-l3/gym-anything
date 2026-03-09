@@ -1,0 +1,48 @@
+{
+  "id": "adrenal_incidentaloma@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Characterize the incidental adrenal nodule on the provided abdominal CT according to ACR guidelines. Measure the maximum diameter and mean HU density of the nodule, then classify it. Save measurement markup to ~/Documents/SlicerData/Adrenal/nodule_measurement.mrk.json, density ROI to ~/Documents/SlicerData/Adrenal/density_roi.mrk.json, and report to ~/Documents/SlicerData/Adrenal/adrenal_report.json with fields: laterality, size_mm, density_hu, classification, recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/adrenal_incidentaloma/setup_task.sh",
+    "post_task": "/workspace/tasks/adrenal_incidentaloma/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "adrenal_dir": "/home/ga/Documents/SlicerData/Adrenal",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_measurement": "/home/ga/Documents/SlicerData/Adrenal/nodule_measurement.mrk.json",
+    "output_roi": "/home/ga/Documents/SlicerData/Adrenal/density_roi.mrk.json",
+    "output_report": "/home/ga/Documents/SlicerData/Adrenal/adrenal_report.json",
+    "passing_thresholds": {
+      "diameter_error_max_mm": 3.0,
+      "density_error_max_hu": 15.0
+    },
+    "scoring_weights": {
+      "nodule_located": 10,
+      "laterality_correct": 10,
+      "size_accuracy": 25,
+      "density_accuracy": 25,
+      "classification_correct": 20,
+      "report_complete": 10
+    },
+    "acr_classification_rules": {
+      "benign_adenoma": "size < 10mm OR (size < 40mm AND hu <= 10)",
+      "likely_benign": "size 10-40mm AND hu 11-30",
+      "indeterminate": "size 10-40mm AND hu > 30",
+      "concerning": "size >= 40mm"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_adrenal_incidentaloma"
+    }
+  }
+}

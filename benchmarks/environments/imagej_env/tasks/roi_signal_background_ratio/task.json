@@ -1,0 +1,32 @@
+{
+  "id": "roi_signal_background_ratio@1",
+  "version": "1.0",
+  "env_id": "imagej_env@0.1",
+  "name": "Multi-ROI Fluorescence Signal-to-Background Ratio",
+  "description": "Perform a quantitative signal-to-background ratio (SBR) analysis on the 'Fluorescent Cells' sample image in Fiji.\n\n1. Open the sample image: File > Open Samples > Fluorescent Cells.\n2. Open the ROI Manager (Analyze > Tools > ROI Manager).\n3. Define ROIs for different regions:\n   - Draw at least 2 ROIs over bright cell structures. Add to ROI Manager and rename them to include 'signal' or 'cell' (e.g., 'cell_1', 'signal_nucleus').\n   - Draw at least 1 ROI over a dim cytoplasmic region. Add and rename with 'cytoplasm' or 'dim'.\n   - Draw at least 1 ROI over the dark background (no cells). Add and rename with 'background' or 'bg'.\n4. Measure intensities:\n   - Select all ROIs in the manager and click Measure.\n   - Ensure 'Mean', 'Standard Deviation', and 'Area' are recorded.\n5. Compute the Signal-to-Background Ratio (SBR):\n   - Calculation: (Average Mean of Signal ROIs) / (Mean of Background ROI).\n   - You can do this manually or in a spreadsheet/calculator.\n6. Save results:\n   - Save the measurements table to '~/ImageJ_Data/results/roi_measurements.csv'.\n   - Save the ROI set to '~/ImageJ_Data/results/roi_set.zip' (ROI Manager > More > Save...).\n   - IMPORTANT: The SBR value must be included in the CSV file (you can add it as a new row, a comment, or a separate column, but it must be labeled 'SBR' or 'Ratio').",
+  "difficulty": "medium",
+  "tags": ["roi-manager", "quantification", "fluorescence", "sbr", "microscopy"],
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/roi_signal_background_ratio/setup_task.sh",
+    "post_task": "/workspace/tasks/roi_signal_background_ratio/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/ImageJ_Data/results/roi_measurements.csv",
+    "expected_zip_path": "/home/ga/ImageJ_Data/results/roi_set.zip",
+    "min_rois": 4,
+    "required_columns": ["Label", "Mean", "Area"],
+    "sbr_min": 1.5,
+    "sbr_max": 100.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_roi_signal_background_ratio"
+    }
+  }
+}

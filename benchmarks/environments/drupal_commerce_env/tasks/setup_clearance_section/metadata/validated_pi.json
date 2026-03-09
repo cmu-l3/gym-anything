@@ -1,0 +1,45 @@
+{
+    "task_id": "setup_clearance_section@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_field_name",
+            "metadata_value": "field_clearance",
+            "verified_value": "field_clearance",
+            "source": "Code analysis: setup_task.sh line 17 queries 'field.storage.commerce_product.field_clearance', export_result.sh line 13 queries the same field, verifier.py expects 'field_clearance'. Standard Drupal naming convention.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_path",
+            "metadata_value": "/clearance",
+            "verified_value": "/clearance",
+            "source": "Code analysis: task description explicitly states 'Create a new View page at path /clearance', setup_task.sh line 37 navigates to the product types page (contextual), export_result.sh line 53 queries router table for '/clearance', verifier.py checks path_exists_in_router for '/clearance'",
+            "status": "verified"
+        },
+        {
+            "key": "target_products[0]",
+            "metadata_value": "Sony WH-1000XM5 Wireless Headphones",
+            "verified_value": "Sony WH-1000XM5 Wireless Headphones",
+            "source": "seed_products.php line 45: ['title' => 'Sony WH-1000XM5 Wireless Headphones', 'sku' => 'SONY-WH1000XM5']. Web search confirms Sony WH-1000XM5 is a real product.",
+            "status": "verified"
+        },
+        {
+            "key": "target_products[1]",
+            "metadata_value": "Logitech MX Master 3S",
+            "verified_value": "Logitech MX Master 3S Wireless Mouse",
+            "source": "seed_products.php line 49: ['title' => 'Logitech MX Master 3S Wireless Mouse', 'sku' => 'LOGI-MXM3S']. Metadata claims 'Logitech MX Master 3S' but actual seeded product is 'Logitech MX Master 3S Wireless Mouse'. export_result.sh line 20 calls get_product_id_by_title('Logitech MX Master 3S') which uses exact TRIM/LOWER match and will NOT find 'Logitech MX Master 3S Wireless Mouse'.",
+            "status": "contradicted"
+        },
+        {
+            "key": "excluded_products[0]",
+            "metadata_value": "Apple AirPods Pro",
+            "verified_value": null,
+            "source": "seed_products.php contains 12 products (lines 45-56). No 'Apple AirPods Pro' exists in seeded products. The Apple product in the environment is 'Apple MacBook Air M2 13-inch' (line 46). export_result.sh line 21 calls get_product_id_by_title('Apple AirPods Pro') which will return empty/null because the product does not exist. Web search confirms Apple AirPods Pro is a real product, but it is NOT seeded in this environment.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The setup_clearance_section task requires creating a Drupal Commerce field named 'field_clearance' at path '/clearance'. The verified target products are: Sony WH-1000XM5 Wireless Headphones (correctly named in metadata and seeded). However, the metadata contains contradictions: (1) The Logitech product is seeded as 'Logitech MX Master 3S Wireless Mouse' but metadata claims 'Logitech MX Master 3S' - the get_product_id_by_title function uses exact matching and will fail to find the product. (2) The excluded product 'Apple AirPods Pro' does not exist in the seeded environment; the Apple product present is 'Apple MacBook Air M2 13-inch'. Both discrepancies will cause the export verification script to fail to locate these products. The data is synthetic (created for test environment).",
+    "pi_confidence": "high"
+}

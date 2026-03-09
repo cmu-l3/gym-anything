@@ -1,0 +1,123 @@
+#!/bin/bash
+# Setup script for Fractal Venation Analysis task
+
+source /workspace/scripts/task_utils.sh 2>/dev/null || true
+
+echo "=== Setting up Fractal Venation Analysis Task ==="
+
+DATA_DIR="/home/ga/ImageJ_Data"
+RESULTS_DIR="$DATA_DIR/results"
+
+# Ensure directories exist and have correct permissions
+mkdir -p "$RESULTS_DIR"
+chown -R ga:ga "$DATA_DIR" 2>/dev/null || true
+
+# Clear previous results for this specific task
+rm -f "$RESULTS_DIR/fractal_venation_results.csv" 2>/dev/null || true
+rm -f /tmp/fractal_venation_analysis_result.json 2>/dev/null || true
+
+# Record task start timestamp (critical for anti-gaming)
+date +%s > /tmp/task_start_timestamp
+echo "Task start: $(date)"
+
+# ============================================================
+# Kill any existing Fiji instance
+# ============================================================
+echo "Ensuring clean Fiji state..."
+kill_fiji 2>/dev/null || pkill -f "fiji\|ImageJ" 2>/dev/null || true
+sleep 2
+
+# ============================================================
+# Find Fiji executable
+# ============================================================
+FIJI_PATH=$(find_fiji_executable 2>/dev/null)
+if [ -z "$FIJI_PATH" ]; then
+    # Fallback search
+    if [ -x "/opt/fiji/Fiji.app/ImageJ-linux64" ]; then
+        FIJI_PATH="/opt/fiji/Fiji.app/ImageJ-linux64"
+    elif [ -x "/usr/local/bin/fiji" ]; then
+        FIJI_PATH="/usr/local/bin/fiji"
+    else
+        echo "ERROR: Fiji not found!"
+        exit 1
+    fi
+fi
+echo "Found Fiji at: $FIJI_PATH"
+
+export DISPLAY=:1
+xhost +local: 2>/dev/null || true
+
+# ============================================================
+# ROBUST FIJI LAUNCH WITH RETRY
+# ============================================================
+launch_and_verify_fiji() {
+    local attempt=$1
+    echo "=== Fiji launch attempt $attempt ==="
+    pkill -f "fiji\|ImageJ" 2>/dev/null || true
+    sleep 2
+
+    # Launch as user 'ga'
+    su - ga -c "DISPLAY=:1 _JAVA_OPTIONS='-Xmx4g' '$FIJI_PATH' > /tmp/fiji_ga.log 2>&1" &
+
+    echo "Waiting for Fiji window..."
+    local started=false
+    for i in $(seq 1 60); do
+        if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "ImageJ\|Fiji"; then
+            echo "Fiji window detected after ${i}s"
+            started=true
+            break
+        fi
+        sleep 1
+    done
+
+    [ "$started" = false ] && return 1
+
+    sleep 5
+
+    # Dismiss ImageJ Updater if it appears
+    if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "Updater"; then
+        UPDATER_WID=$(DISPLAY=:1 wmctrl -l | grep -i "Updater" | head -1 | awk '{print $1}')
+        [ -n "$UPDATER_WID" ] && DISPLAY=:1 wmctrl -i -a "$UPDATER_WID" 2>/dev/null || true
+        sleep 0.5
+        DISPLAY=:1 xdotool key Escape 2>/dev/null || true
+        sleep 1
+    fi
+
+    local fiji_count=$(DISPLAY=:1 wmctrl -l 2>/dev/null | grep -i "ImageJ\|Fiji" | grep -v "Updater" | wc -l)
+    [ "$fiji_count" -gt 0 ] && return 0 || return 1
+}
+
+FIJI_RUNNING=false
+for attempt in 1 2 3; do
+    if launch_and_verify_fiji $attempt; then
+        FIJI_RUNNING=true
+        break
+    else
+        echo "Attempt $attempt failed, retrying..."
+        kill_fiji 2>/dev/null || true
+        sleep 3
+    fi
+done
+
+if [ "$FIJI_RUNNING" = false ]; then
+    echo "CRITICAL ERROR: Failed to start Fiji after 3 attempts"
+    cat /tmp/fiji_ga.log 2>/dev/null | tail -20
+    exit 1
+fi
+
+# Maximize and focus Fiji
+WID=$(DISPLAY=:1 wmctrl -l 2>/dev/null | grep -iE "ImageJ|Fiji" | head -1 | awk '{print $1}')
+if [ -n "$WID" ]; then
+    DISPLAY=:1 wmctrl -i -r "$WID" -b add,maximized_vert,maximized_horz 2>/dev/null || true
+    DISPLAY=:1 wmctrl -i -a "$WID" 2>/dev/null || true
+fi
+sleep 1
+
+# Take initial screenshot
+DISPLAY=:1 scrot /tmp/task_start_screenshot.png 2>/dev/null || true
+
+echo ""
+echo "=== Setup Complete ==="
+echo "Task: Fractal Dimension Analysis of Leaf Venation"
+echo "Target: Open 'Leaf (36K)', Threshold, Run Fractal Box Count"
+echo "Output: ~/ImageJ_Data/results/fractal_venation_results.csv"

@@ -1,0 +1,63 @@
+{
+  "task": "full_security_audit_configuration",
+  "difficulty": "very_hard",
+  "timestamp": "2026-03-02",
+  "checks": {
+    "environment": "Windows 11 VM, ManageEngine ADAudit Plus at http://localhost:8081",
+    "pre_task_events": {
+      "bruteforce1_failed_logons": "25 failed logon events (primary threat, highest count)",
+      "testattacker_failed_logons": "8 failed logon events (secondary threat)",
+      "wrongadmin_failed_logons": "5 failed logon events (noise)",
+      "jsmith_file_access": "Accessed Confidential files in C:\\AuditTestFolder\\Confidential\\ (quarterly_report_Q4.txt, employee_records.txt, security_policy.txt)",
+      "mjohnson_normal_activity": "Account description modified (normal baseline activity)"
+    },
+    "agent_must_discover": [
+      "bruteforce1 has the most failed logon attempts (25) - primary threat",
+      "testattacker has secondary failed logon activity (8)",
+      "jsmith accessed confidential files (file audit trail)",
+      "The distinction between attack traffic and normal user activity"
+    ],
+    "expected_configurations": {
+      "technician": {
+        "username": "security_ops",
+        "role": "Operator",
+        "full_name": "Security Operations",
+        "email": "secops@corp.local",
+        "password": "SecOps@2025"
+      },
+      "notification": "Email notification with threshold-based alerting (failed logon > 5 in 10 min)",
+      "scheduled_report": "Security Summary (daily)"
+    },
+    "expected_assessment_file": "C:\\Users\\Docker\\Desktop\\threat_assessment.txt",
+    "assessment_must_contain": [
+      "bruteforce1 (primary threat - 25 failed logons)",
+      "Threat classification and analysis",
+      "Prioritized remediation steps",
+      "At least 300 characters of substantive content"
+    ],
+    "verification_strategy": {
+      "technician_check": "DB query for security_ops in TechnicianInfo with role=Operator",
+      "notification_check": "DB query for notification email in NotificationProfile/AlertProfile tables",
+      "report_check": "DB query for 'security' AND ('summary' OR 'daily') in scheduled reports",
+      "file_freshness": "threat_assessment.txt mod_time > task_start_ts_full_security_audit_configuration.txt",
+      "content_check": "Case-insensitive search for bruteforce1, threat language, remediation"
+    },
+    "service_status": "ADAudit Plus web server at port 8081, PostgreSQL at port 33307",
+    "timestamp_file": "C:\\Users\\Docker\\task_start_ts_full_security_audit_configuration.txt"
+  },
+  "setup_files_created": [
+    "C:\\Users\\Docker\\task_start_ts_full_security_audit_configuration.txt",
+    "C:\\Users\\Docker\\initial_tech_count_full_security.txt",
+    "C:\\Users\\Docker\\Desktop\\threat_assessment.txt (removed if stale)"
+  ],
+  "scoring_breakdown": {
+    "tech_security_ops_operator": "20 pts",
+    "notification_configured": "15 pts (partial: 8 pts without threshold)",
+    "security_summary_daily_report": "20 pts (partial: 10 pts for security report without summary/daily)",
+    "assessment_file_fresh": "10 pts",
+    "assessment_has_bruteforce1": "20 pts (partial: 8 pts if threat language without bruteforce1)",
+    "assessment_substantial_300_chars": "15 pts (tiered: >=600=15, >=300=10, >=100=5)"
+  },
+  "pass_threshold": 60,
+  "occupation_context": "SOC Analyst performing initial ADAudit Plus deployment hardening while simultaneously responding to active multi-vector security incident"
+}

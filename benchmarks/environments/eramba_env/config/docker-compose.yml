@@ -1,0 +1,73 @@
+version: "3.8"
+
+volumes:
+  eramba_app:
+  eramba_data:
+  eramba_logs:
+  eramba_db:
+
+services:
+  eramba-db:
+    image: mysql:8.4-oracle
+    container_name: eramba-db
+    command: ["mysqld", "--disable-log-bin"]
+    restart: unless-stopped
+    volumes:
+      - eramba_db:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: eramba
+      MYSQL_USER: eramba
+      MYSQL_PASSWORD: eramba_db_pass
+      MYSQL_ROOT_PASSWORD: eramba_root_pass
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-peramba_root_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  eramba-cache:
+    image: redis:7-alpine
+    container_name: eramba-cache
+    restart: unless-stopped
+
+  eramba-app:
+    image: ghcr.io/eramba/eramba:latest
+    container_name: eramba-app
+    restart: unless-stopped
+    ports:
+      - "8443:443"
+      - "8080:80"
+    volumes:
+      - eramba_app:/app
+      - eramba_data:/data
+      - eramba_logs:/logs
+    environment:
+      DB_HOST: eramba-db
+      DB_DATABASE: eramba
+      DB_USERNAME: eramba
+      DB_PASSWORD: eramba_db_pass
+      CACHE_URL: redis://eramba-cache:6379
+      PUBLIC_ADDRESS: http://localhost:8080
+    depends_on:
+      eramba-db:
+        condition: service_healthy
+
+  eramba-cron:
+    image: ghcr.io/eramba/eramba:latest
+    container_name: eramba-cron
+    restart: unless-stopped
+    command: ["/docker-cron-entrypoint.sh"]
+    volumes:
+      - eramba_app:/app
+      - eramba_logs:/logs
+    environment:
+      DB_HOST: eramba-db
+      DB_DATABASE: eramba
+      DB_USERNAME: eramba
+      DB_PASSWORD: eramba_db_pass
+      CACHE_URL: redis://eramba-cache:6379
+      PUBLIC_ADDRESS: http://localhost:8080
+    depends_on:
+      eramba-db:
+        condition: service_healthy

@@ -1,0 +1,63 @@
+{
+  "task": "multi_role_access_governance",
+  "difficulty": "very_hard",
+  "timestamp": "2026-03-02",
+  "checks": {
+    "environment": "Windows 11 VM, ManageEngine ADAudit Plus at http://localhost:8081",
+    "pre_task_events": {
+      "unauthorized_group_changes": [
+        "jsmith added to Administrators group (high-privilege escalation, Event ID 4732)",
+        "abrown added to Security_Team group (Event ID 4732)"
+      ],
+      "noise_events": [
+        "mjohnson added to IT_Support (non-privileged, Event ID 4732)",
+        "rwilliams added to Server_Admins (non-privileged, Event ID 4732)"
+      ]
+    },
+    "agent_must_discover": [
+      "jsmith was added to Administrators (unauthorized privilege escalation)",
+      "abrown was added to Security_Team (unauthorized change)",
+      "Distinguish privileged group changes from noise (IT_Support, Server_Admins are less critical)"
+    ],
+    "expected_configurations": {
+      "technicians": [
+        {"username": "gov_lead", "role": "Auditor", "email": "gov.lead@corp.local"},
+        {"username": "risk_analyst", "role": "Operator", "email": "risk.analyst@corp.local"},
+        {"username": "change_manager", "role": "Operator", "email": "change.manager@corp.local"}
+      ],
+      "scheduled_report": "Group Membership Changes Weekly"
+    },
+    "expected_audit_file": "C:\\Users\\Docker\\Desktop\\governance_audit.txt",
+    "audit_must_contain": [
+      "jsmith (added to Administrators)",
+      "abrown (added to Security_Team)",
+      "Group membership change details",
+      "Remediation recommendations"
+    ],
+    "verification_strategy": {
+      "technician_checks": "DB query for each of gov_lead (Auditor), risk_analyst (Operator), change_manager (Operator)",
+      "report_check": "DB query for 'Group Membership' or 'group+weekly' in scheduled reports",
+      "file_freshness": "governance_audit.txt mod_time > task_start_ts_multi_role_access_governance.txt",
+      "content_check": "Case-insensitive search for jsmith and abrown in audit file"
+    },
+    "service_status": "ADAudit Plus web server at port 8081, PostgreSQL at port 33307",
+    "timestamp_file": "C:\\Users\\Docker\\task_start_ts_multi_role_access_governance.txt"
+  },
+  "setup_files_created": [
+    "C:\\Users\\Docker\\task_start_ts_multi_role_access_governance.txt",
+    "C:\\Users\\Docker\\initial_techs_multi_role.txt",
+    "C:\\Users\\Docker\\initial_admin_members_multi_role.txt",
+    "C:\\Users\\Docker\\Desktop\\governance_audit.txt (removed if stale)"
+  ],
+  "scoring_breakdown": {
+    "tech_gov_lead_auditor": "15 pts",
+    "tech_risk_analyst_operator": "10 pts",
+    "tech_change_manager_operator": "10 pts",
+    "scheduled_report_group_membership_weekly": "20 pts",
+    "audit_file_fresh": "15 pts",
+    "audit_has_jsmith": "15 pts",
+    "audit_has_abrown": "15 pts"
+  },
+  "pass_threshold": 60,
+  "occupation_context": "IT Auditor / Governance Officer investigating unauthorized Windows group membership changes using ADAudit Plus"
+}

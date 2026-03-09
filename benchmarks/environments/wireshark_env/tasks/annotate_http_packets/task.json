@@ -1,0 +1,39 @@
+{
+  "id": "annotate_http_packets@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "A security analyst needs to annotate key packets in an HTTP capture for an incident report. Open the HTTP capture file that is already loaded in Wireshark (from /home/ga/Documents/captures/http.cap) and perform the following:\n\n1. Find the first HTTP GET request packet. You can use the display filter: http.request.method == \"GET\"\n2. Right-click that packet and select 'Packet Comment...' (or use Edit > Packet Comment). Enter the comment exactly: Initial HTTP GET request to server\n3. Find the first HTTP 200 OK response packet. You can use the display filter: http.response.code == 200\n4. Add a packet comment to that packet with exactly: Server responded with 200 OK\n5. Clear any display filter so all packets are visible\n6. Save the annotated capture using File > Save As to: /home/ga/Documents/captures/http_annotated.pcapng\n   Make sure the file format is pcapng (Wireshark/pcapng), as the pcap format does not support packet comments.\n\nThe output file must contain all 43 original packets with the two comments embedded on the correct packets.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/annotate_http_packets/setup_task.sh",
+    "post_task": "/workspace/tasks/annotate_http_packets/export_result.sh"
+  },
+  "metadata": {
+    "input_file": "/home/ga/Documents/captures/http.cap",
+    "output_file": "/home/ga/Documents/captures/http_annotated.pcapng",
+    "expected_packet_count": 43,
+    "expected_comments": [
+      {
+        "type": "GET",
+        "filter": "http.request.method == \"GET\"",
+        "text": "Initial HTTP GET request"
+      },
+      {
+        "type": "200 OK",
+        "filter": "http.response.code == 200",
+        "text": "Server responded with 200 OK"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_annotate_http_packets"
+    }
+  }
+}

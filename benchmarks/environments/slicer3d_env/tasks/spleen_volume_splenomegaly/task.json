@@ -1,0 +1,48 @@
+{
+  "id": "spleen_volume_splenomegaly@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Segment the spleen on the loaded abdominal CT using a segment named 'Spleen', measure its volume, and classify for splenomegaly. Save the segmentation to ~/Documents/SlicerData/AMOS/spleen_segmentation.nii.gz and a report to ~/Documents/SlicerData/AMOS/spleen_report.json with fields: volume_ml, classification, recommendation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/spleen_volume_splenomegaly/setup_task.sh",
+    "post_task": "/workspace/tasks/spleen_volume_splenomegaly/export_result.sh",
+    "pre_task_timeout": 1200
+  },
+  "metadata": {
+    "amos_dir": "/home/ga/Documents/SlicerData/AMOS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "output_segmentation": "/home/ga/Documents/SlicerData/AMOS/spleen_segmentation.nii.gz",
+    "output_report": "/home/ga/Documents/SlicerData/AMOS/spleen_report.json",
+    "spleen_label": 1,
+    "clinical_thresholds": {
+      "normal_max_ml": 200,
+      "mild_max_ml": 400,
+      "moderate_max_ml": 800
+    },
+    "passing_thresholds": {
+      "dice_min": 0.60,
+      "volume_error_max_percent": 15
+    },
+    "scoring_weights": {
+      "dice_coefficient": 35,
+      "volume_accuracy": 20,
+      "classification_correct": 15,
+      "segmentation_saved": 10,
+      "report_complete": 10,
+      "anatomical_location": 5,
+      "no_oversegmentation": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spleen_volume"
+    }
+  }
+}

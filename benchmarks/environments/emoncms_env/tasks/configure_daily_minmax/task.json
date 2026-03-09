@@ -1,0 +1,33 @@
+{
+  "id": "configure_daily_minmax@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "Configure the input processing pipeline for the 'greenhouse_temp' input (node: environment) to log three specific metrics.\n\nRequired Configuration:\n1. **Raw Temperature**: Log the real-time value to a feed named 'greenhouse_temp_raw'.\n2. **Daily Maximum**: Calculate and log the daily maximum to a feed named 'greenhouse_temp_max'.\n3. **Daily Minimum**: Calculate and log the daily minimum to a feed named 'greenhouse_temp_min'.\n\nAll feeds must use the **PHPFina** engine with a **10s** interval.\n\nCRITICAL: You must ensure the logic flow is correct. The output of one process becomes the input of the next. Ensure the daily minimum is calculated from the original raw temperature, not from the result of the daily maximum calculation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_daily_minmax/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_daily_minmax/export_result.sh"
+  },
+  "metadata": {
+    "input_name": "greenhouse_temp",
+    "node_name": "environment",
+    "feeds": {
+      "raw": "greenhouse_temp_raw",
+      "max": "greenhouse_temp_max",
+      "min": "greenhouse_temp_min"
+    },
+    "engine": 5,
+    "interval": 10
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_daily_minmax"
+    }
+  }
+}

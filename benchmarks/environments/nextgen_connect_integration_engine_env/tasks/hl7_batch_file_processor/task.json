@@ -1,0 +1,30 @@
+{
+  "id": "hl7_batch_file_processor@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "You are a Healthcare IT Integration Specialist at a reference laboratory that receives nightly batch HL7 files from 12 hospital clients. Each batch file contains multiple HL7 messages wrapped in BHS/BTS (Batch Header/Trailer Segment) envelope. The current manual processing creates a 4-hour backlog each morning. Build a NextGen Connect channel named 'Nightly HL7 Batch Processor' that: (1) Uses a File Reader source connector (NOT a TCP Listener) that polls the directory /home/ga/hl7_batch_inbox/ for files matching the pattern *.hl7 every 30 seconds. (2) Contains a JavaScript preprocessor (not a regular transformer - use the Preprocessor script area in the channel) that splits the batch file: iterates through the batch content, strips BHS/BTS envelope segments, and splits the content into individual HL7 messages by detecting segment boundaries, returning an array of individual messages. Alternatively, configure the channel with batch processing enabled and a custom batch script. (3) Uses a Database Writer destination that INSERTs each processed message record into a PostgreSQL table 'batch_processing_log' with columns: batch_file VARCHAR(255), message_seq INTEGER, patient_mrn VARCHAR(50), message_type VARCHAR(20), processed_at TIMESTAMP DEFAULT NOW(). The channel should extract patient MRN from PID-3 and message type from MSH-9. (4) After processing, the File Reader should be configured to MOVE processed files to /home/ga/hl7_batch_archive/ (use the 'After Processing Action' = Move setting). (5) The channel must be deployed. A sample batch file is pre-placed at /home/ga/hl7_batch_inbox/nightly_batch_20240115.hl7. Create the required directories and table before or during setup. PostgreSQL: jdbc:postgresql://nextgen-postgres:5432/mirthdb (user: postgres, password: postgres). Direct: docker exec nextgen-postgres psql -U postgres -d mirthdb. REST API: https://localhost:8443/api (admin:admin). All API calls require header: X-Requested-With: OpenAPI.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_batch_file_processor/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_batch_file_processor/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Nightly HL7 Batch Processor",
+    "inbox_dir": "/home/ga/hl7_batch_inbox",
+    "archive_dir": "/home/ga/hl7_batch_archive",
+    "db_table": "batch_processing_log",
+    "occupation": "Healthcare IT Integration Specialist",
+    "soc_code": "15-1211.01"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_batch_file_processor"
+    }
+  }
+}

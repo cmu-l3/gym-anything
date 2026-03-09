@@ -1,0 +1,40 @@
+{
+  "id": "measure_pulmonary_artery@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Measure the main pulmonary artery (MPA) diameter at the level of its bifurcation on the loaded chest CT scan. Save results to /home/ga/Documents/SlicerData/Exports/pa_measurement.json with fields: diameter_mm, slice_number (optional), clinical_interpretation (optional).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/measure_pulmonary_artery/setup_task.sh",
+    "post_task": "/workspace/tasks/measure_pulmonary_artery/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "output_file": "/home/ga/Documents/SlicerData/Exports/pa_measurement.json",
+    "valid_range_mm": {"min": 15, "max": 45},
+    "normal_range_mm": {"min": 20, "max": 29},
+    "enlarged_threshold_mm": 29,
+    "data_source": "LIDC-IDRI from The Cancer Imaging Archive",
+    "anatomical_region": "mediastinum",
+    "measurement_type": "vascular_diameter",
+    "scoring_weights": {
+      "measurement_file_exists": 20,
+      "valid_measurement_value": 25,
+      "markup_exists": 15,
+      "file_created_during_task": 10,
+      "vlm_visual_confirmation": 15,
+      "clinical_interpretation": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_measure_pulmonary_artery"
+    }
+  }
+}

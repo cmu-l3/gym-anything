@@ -1,0 +1,40 @@
+{
+  "id": "compute_segmentation_metrics@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Compare the AI-generated segmentation (~/Documents/SlicerData/BraTS/ai_segmentation.nii.gz) against the reference segmentation (/var/lib/slicer/ground_truth/BraTS2021_00000_seg.nii.gz) by computing Dice coefficient and Hausdorff distance. Save results to ~/Documents/SlicerData/Exports/segmentation_metrics.json with fields: dice_coefficient, hausdorff_distance_mm, compare_segmentation, reference_segmentation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_segmentation_metrics/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_segmentation_metrics/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "brats_dir": "/home/ga/Documents/SlicerData/BraTS",
+    "ground_truth_dir": "/var/lib/slicer/ground_truth",
+    "ai_segmentation_path": "/home/ga/Documents/SlicerData/BraTS/ai_segmentation.nii.gz",
+    "reference_segmentation_path": "/var/lib/slicer/ground_truth/BraTS2021_00000_seg.nii.gz",
+    "output_report_path": "/home/ga/Documents/SlicerData/Exports/segmentation_metrics.json",
+    "expected_dice_range": {"min": 0.70, "max": 0.90},
+    "expected_hausdorff_range_mm": {"min": 5, "max": 35},
+    "scoring_weights": {
+      "ai_segmentation_loaded": 15,
+      "reference_segmentation_loaded": 15,
+      "segment_comparison_used": 20,
+      "dice_computed": 20,
+      "hausdorff_computed": 15,
+      "report_exported": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_segmentation_metrics"
+    }
+  }
+}
