@@ -58,6 +58,7 @@ If you need a field in runtime code, make sure it exists in the dataclass and in
 ### Security and Connectivity
 
 - `security`
+- `recording`
 - `vnc`
 - `ssh`
 - `adb`
@@ -203,6 +204,7 @@ Recognized action fields:
 - `cap_add`
 - `devices`
 - `seccomp_profile`
+- `network_allowlist`
 - `secrets_ref`
 - `privileged`
 - `use_systemd`
