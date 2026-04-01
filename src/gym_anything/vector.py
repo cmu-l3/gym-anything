@@ -1,3 +1,9 @@
+"""Internal multi-process batch runner (not part of the public API).
+
+This module provides a simple fire-and-forget parallel runner for running
+multiple environment instances. It is not exported from gym_anything.__init__.
+"""
+
 from __future__ import annotations
 
 import multiprocessing as mp
