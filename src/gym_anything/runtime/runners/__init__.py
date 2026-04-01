@@ -4,6 +4,7 @@ from .browser import BrowserRunner
 from .local import LocalRunner
 from .qemu_apptainer import QemuApptainerRunner
 from .apptainer_direct import ApptainerDirectRunner
+from .avd_apptainer import AVDApptainerRunner
 
 __all__ = [
     "BaseRunner",
@@ -12,4 +13,5 @@ __all__ = [
     "BrowserRunner",
     "QemuApptainerRunner",
     "ApptainerDirectRunner",
+    "AVDApptainerRunner",
 ]

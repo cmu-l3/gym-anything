@@ -80,25 +80,25 @@ def from_config(
     env_dir: Union[str, os.PathLike],
     task_id: Optional[str] = None,
 ) -> GymAnythingEnv:
-    """Load `env.yaml|json` (and optional `tasks/<task_id>/task.yaml|json`) from a folder.
+    """Load `env.yaml|yml|json` (and optional `tasks/<task_id>/task.yaml|yml|json`) from a folder.
 
     If `task_id` is omitted and there is exactly one task folder, that task is used.
     """
     env_dir = Path(env_dir)
     env_spec_path: Optional[Path] = None
-    for candidate in (env_dir / "env.yaml", env_dir / "env.json"):
+    for candidate in (env_dir / "env.yaml", env_dir / "env.yml", env_dir / "env.json"):
         if candidate.exists():
             env_spec_path = candidate
             break
     if env_spec_path is None:
-        print('Env dir:', env_dir)
-        raise FileNotFoundError(f"No env.yaml or env.json found in {env_dir}")
+        raise FileNotFoundError(f"No env.yaml, env.yml, or env.json found in {env_dir}")
 
     # Resolve task file
     task_spec_path: Optional[Path] = None
     if task_id:
         for candidate in (
             env_dir / "tasks" / task_id / "task.yaml",
+            env_dir / "tasks" / task_id / "task.yml",
             env_dir / "tasks" / task_id / "task.json",
         ):
             if candidate.exists():
@@ -109,7 +109,7 @@ def from_config(
     else:
         tasks_dir = env_dir / "tasks"
         if tasks_dir.exists() and tasks_dir.is_dir():
-            candidates = [p for p in tasks_dir.glob("*/task.*") if p.suffix in (".yaml", ".json")]
+            candidates = [p for p in tasks_dir.glob("*/task.*") if p.suffix in (".yaml", ".yml", ".json")]
             if len(candidates) == 1:
                 task_spec_path = candidates[0]
 
