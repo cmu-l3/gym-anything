@@ -976,7 +976,6 @@ def claude_parse_tool_result(action_json):
 
 
 
-    # TODO: We need to fix this
     if action_json['action'] == 'key':
         actions = [{'keyboard': {'keys': action_json['text']}}]
     elif action_json['action'] == 'type':

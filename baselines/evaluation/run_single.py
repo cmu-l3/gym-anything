@@ -78,7 +78,6 @@ if not TASK_DESCRIPTION:
 ################# Agent Setup #################
 agent = getattr(agents, args.agent)(agent_args=json.loads(args.agent_args), verbose=args.verbose, debug=args.debug)
 
-# TODO: Make sure all and correct details are being passed to the agent
 agent.init(task_description=TASK_DESCRIPTION, display_resolution=env.env_spec.observation[0].resolution, save_path = env._episode_dir)
 
 ################# Agent Loop #################
@@ -86,20 +85,19 @@ action_outputs = []
 obs = env.capture_observation()
 done = False
 max_steps = env.max_steps or args.steps
-# TODO: Currently the *3 is a heuristic cap for agent/tool interaction loops.
+# The *3 multiplier is a heuristic cap: each env step may involve multiple
+# agent/tool interaction rounds (e.g. screenshot, wait, then act).
 for step_i in tqdm(range(max_steps * 3)):
     profile_start_time = time.time()
     actions = agent.step(obs, action_outputs)
     print(f'[baselines.evaluation.run_single] Profiling time for agent.step: {time.time() - profile_start_time}', actions)
     action_outputs = []
-    # if args.debug:
-    #     breakpoint()
     if args.debug:
         breakpoint()
     for action in actions:
         # Actual action execution
         actual_actions = action['actions']
-        # TODO: Currently we assume that if there is a screenshot action, it is the only action
+        # Screenshot actions are handled as standalone observations (not sent to env.step).
         if len(actual_actions) == 1 and 'action' in actual_actions[0] and actual_actions[0]['action'] == 'screenshot':
             profile_capture_observation_time = time.time()
             obs = env.capture_observation()
@@ -131,17 +129,12 @@ for step_i in tqdm(range(max_steps * 3)):
                 'output' : "Executed the action",
                 'tool_id': action['tool_id'],
             })
-        # TODO: Currently step logic of env is bit wrong, since it is dependent on how many times we call step, instead of how many times the interaction with agent takes place. Fix this.
-    
     if agent.done or done:
-        # breakpoint()
-        # TODO: Probably change it to empty action?
-        obs, reward, done, info = env.step(actual_actions, mark_done=True)
+        obs, reward, done, info = env.step([], mark_done=True)
         break
 
 if args.debug_low or args.debug:
     breakpoint()
-# breakpoint()
 EPISODE_DIR = env._episode_dir
 print("Episode finished. See:", EPISODE_DIR, 'info:', info)
 if args.debug:

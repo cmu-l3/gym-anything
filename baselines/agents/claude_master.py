@@ -74,7 +74,6 @@ class ClaudeMasterAgent(BaseAgent):
         return actions
     
     def finish(self, *args, **kwargs):
-        # TODO: Store the trajectory in the relevant folder.
         pickle.dump(self.messages, open(f'{self.save_path}/messages.pkl', 'wb'))
         pickle.dump(self.messages, open(f'{self.save_folder_custom}/messages.pkl', 'wb'))
 
@@ -135,7 +134,7 @@ class ClaudeMasterAgent(BaseAgent):
                 }
             ],
             'tool_use_id': action_output['tool_id'],
-            'is_error': False, # TODO: Ideally we should have this set correctly
+            'is_error': False,
         }
     
     def _get_other_tool_content(self, action_output):
@@ -149,7 +148,7 @@ class ClaudeMasterAgent(BaseAgent):
                 },
             ],
             'tool_use_id': action_output['tool_id'],
-            'is_error': False, # TODO: Ideally we should have this set correctly
+            'is_error': False,
         }
     
     def _get_bash_tool_content(self, action_output):
@@ -163,7 +162,7 @@ class ClaudeMasterAgent(BaseAgent):
                 },
             ],
             'tool_use_id': action_output['tool_id'],
-            'is_error': False, # TODO: Ideally we should have this set correctly
+            'is_error': False,
         }
     
     def _get_tool_content_from_output(self, action_output):

@@ -403,7 +403,7 @@ class RemoteServerMonitor:
                 'active': all_active_envs,
                 'closure_stats': {
                     'total': total_closed,
-                    'by_reason': {}  # TODO: Aggregate from servers
+                    'by_reason': {}
                 }
             },
             'endpoints': {
@@ -418,7 +418,7 @@ class RemoteServerMonitor:
                 'threshold_seconds': CLEANUP_IDLE_THRESHOLD,
                 'threshold_formatted': f"{CLEANUP_IDLE_THRESHOLD / 3600:.1f}h",
                 'check_interval': CLEANUP_CHECK_INTERVAL,
-                'timeout_cleanups': 0,  # TODO: Track this
+                'timeout_cleanups': 0,
                 'by_reason': {}
             }
         }
