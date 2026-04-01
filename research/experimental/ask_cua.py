@@ -61,8 +61,10 @@ messages = [
     }
 ]
 
-# client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-client = openai.OpenAI(base_url="https://adb-139772925381842.2.azuredatabricks.net/serving-endpoints", api_key="dapi2896e91e0b410ee488ff0436a564ea4b-3")
+client = openai.OpenAI(
+    base_url=os.environ.get("DATABRICKS_BASE_URL", "https://YOUR_DATABRICKS_WORKSPACE.azuredatabricks.net/serving-endpoints"),
+    api_key=os.environ.get("DATABRICKS_API_KEY", ""),
+)
 
 
 # response = client.beta.messages.create(

@@ -95,13 +95,8 @@ def call_llm(messages, model, temperature, top_p, top_k = -1, max_tokens=4096, r
             #     client = openai.OpenAI(base_url="http://localhost:4243/v1", api_key="EMPTY")
             # else:
             print('model: ', model)
-            if 'Qwen3.5-397B-A17B' in model or model == 'qwen':
-                client = openai.OpenAI(base_url="http://localhost:8080/v1", api_key="EMPTY")
-            elif model == 'Qwen/Qwen3.5-122B-A10B':
-                # breakpoint()
-                client = openai.OpenAI(base_url="http://babel-s5-32:8000/v1", api_key="EMPTY")
-            else:
-                client = openai.OpenAI(base_url="http://babel-m5-32:8080/v1", api_key="EMPTY")
+            vlm_base_url = os.environ.get("VLM_BASE_URL", "http://localhost:8080/v1")
+            client = openai.OpenAI(base_url=vlm_base_url, api_key="EMPTY")
             
             response = client.chat.completions.create(
                 model=model,
@@ -247,8 +242,11 @@ def call_gemini(messages, model, temperature, top_p, top_k = -1, max_tokens=1638
     return response.choices[0].message.content
 
 def call_claude_databricks(messages, model, temperature, top_p, top_k = -1, max_tokens=4096, quit_on_error=False, thinking_budget=2048):
-    client = openai.OpenAI(base_url="https://adb-139772925381842.2.azuredatabricks.net/serving-endpoints", api_key="dapi2896e91e0b410ee488ff0436a564ea4b-3")
-    
+    client = openai.OpenAI(
+        base_url=os.environ.get("DATABRICKS_BASE_URL", "https://YOUR_DATABRICKS_WORKSPACE.azuredatabricks.net/serving-endpoints"),
+        api_key=os.environ.get("DATABRICKS_API_KEY", ""),
+    )
+
     response = None
     for attempt in range(5):
         try:
@@ -344,8 +342,10 @@ def call_claude_databricks(messages, model, temperature, top_p, top_k = -1, max_
     return str(content)
 
 def call_claude_databricks_litellm(messages, model, temperature, top_p, top_k = -1, max_tokens=4096):
-    client = openai.OpenAI(base_url="https://adb-139772925381842.2.azuredatabricks.net/serving-endpoints", api_key="dapi2896e91e0b410ee488ff0436a564ea4b-3")
-    # breakpoint()
+    client = openai.OpenAI(
+        base_url=os.environ.get("DATABRICKS_BASE_URL", "https://YOUR_DATABRICKS_WORKSPACE.azuredatabricks.net/serving-endpoints"),
+        api_key=os.environ.get("DATABRICKS_API_KEY", ""),
+    )
     response = client.chat.completions.create(
         model=model,
         messages=messages,
@@ -381,7 +381,6 @@ def call_claude_with_retry(client, model, max_tokens, messages, system_prompt, t
                            
 
 def call_claude(messages, model, temperature, top_p, thinking_budget = 8192, system_prompt = CLAUDE_SYSTEM_PROMPT, use_all_tools = False, use_no_tools = False):
-    # client = Anthropic(api_key='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')
     client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
     tool_version = "20250124"
