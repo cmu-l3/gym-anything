@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 
 DEFAULT_VLM_BACKEND = os.environ.get("VLM_BACKEND", "local")
-DEFAULT_VLM_BASE_URL = os.environ.get("VLM_BASE_URL", "http://babel-s9-28:8080/v1")
+DEFAULT_VLM_BASE_URL = os.environ.get("VLM_BASE_URL", "http://localhost:8080/v1")
 DEFAULT_VLM_MODEL = os.environ.get("VLM_MODEL", "Qwen/Qwen3-VL-4B-Thinking")
 
 ################# ARGUMENT PARSER #################

@@ -3,8 +3,8 @@ import os
 import time
 import shutil
 
-ROOT = "/home/pranjala/.cache/gym-anything/qemu/work/"
-ROOT = "/compute/babel-u5-28/pranjala/qemu_cache/work/"
+ROOT = os.environ.get("GYM_ANYTHING_QEMU_CACHE", os.path.expanduser("~/.cache/gym-anything/qemu"))
+ROOT = os.path.join(ROOT, "work") + "/"
 MAX_AGE_SECONDS = 60 * 60
 SLEEP_SECONDS = 600
 

@@ -41,7 +41,7 @@ from .vnc_utils import VNCConnectionPool
 from .windows_pyautogui_client import PyAutoGUIClient, PyAutoGUIClientError
 
 # Configuration via environment variables
-QEMU_CACHE = Path(os.environ.get("GYM_ANYTHING_QEMU_CACHE", "/compute/babel-u5-28/pranjala/qemu_cache"))
+QEMU_CACHE = Path(os.environ.get("GYM_ANYTHING_QEMU_CACHE", os.path.expanduser("~/.cache/gym-anything/qemu")))
 QEMU_CONTAINER = os.environ.get("GYM_ANYTHING_QEMU_CONTAINER", "docker://ghcr.io/dockur/windows:latest")
 BASE_QCOW2_URL = os.environ.get("GYM_ANYTHING_BASE_QCOW2", "")  # URL to download base image
 # Work directory for instance overlays (defaults to QEMU_CACHE/work if not set)
