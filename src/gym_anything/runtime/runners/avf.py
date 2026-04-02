@@ -308,13 +308,17 @@ class AVFRunner(BaseRunner):
                 port=self.vnc_port,
                 password=self.vnc_password,
             )
-            conn = self._vnc_pool.get_connection(retry_count=5, retry_delay=2.0)
+            conn = self._vnc_pool.get_connection(retry_count=3, retry_delay=1.0)
             if conn:
                 print(f"[AVF] VNC available at localhost:{self.vnc_port} ({conn.resolution[0]}x{conn.resolution[1]})")
             else:
-                print(f"[AVF] VNC port forwarded (localhost:{self.vnc_port}) but connection not verified")
+                print(f"[AVF] VNC port forwarded (localhost:{self.vnc_port}) but connection pending")
+                self._vnc_pool = None  # Don't use broken pool
         except Exception as e:
-            print(f"[AVF] VNC setup failed: {e} (screenshots will use ffmpeg/SSH fallback)")
+            print(f"[AVF] VNC setup failed: {e}")
+            self._vnc_pool = None
+        if not self._vnc_pool:
+            print(f"[AVF] VNC not available; screenshots via ffmpeg/SSH")
 
     def _expose_port_via_gvproxy(self, api_sock: Path, host_port: int, guest_port: int) -> None:
         """Expose a guest port on the host via gvproxy's HTTP API."""
