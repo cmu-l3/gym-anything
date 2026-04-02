@@ -277,6 +277,8 @@ class QemuNativeRunner(QemuApptainerRunner):
           dhcp6: true
     NPEOF
   - netplan generate || true
+  # Install x11vnc for AVFRunner VNC support (x0vncserver not available on arm64)
+  - apt-get install -y -qq x11vnc || true
 """
         # Insert before the final_message line
         cloud_init = CLOUD_INIT_USER_DATA.replace(

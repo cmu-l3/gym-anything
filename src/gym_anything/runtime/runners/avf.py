@@ -274,33 +274,30 @@ class AVFRunner(BaseRunner):
         serving the same framebuffer that QEMU's built-in VNC would serve.
         """
         try:
-            # Set VNC password in guest
-            self._ssh_exec("mkdir -p /home/ga/.vnc", timeout=10)
+            # Install x11vnc if not present (attaches to existing X display)
+            result = self._ssh_exec("which x11vnc 2>&1", timeout=10, capture=True)
+            if "x11vnc" not in result:
+                print("[AVF] Installing x11vnc...")
+                self._ssh_exec("sudo apt-get update -qq && sudo apt-get install -y -qq x11vnc", timeout=120)
+
+            # Start x11vnc on the existing display :1
             self._ssh_exec(
-                f"echo '{self.vnc_password}' | vncpasswd -f > /home/ga/.vnc/passwd && chmod 600 /home/ga/.vnc/passwd",
-                timeout=10
+                f"x11vnc -display :1 -passwd {self.vnc_password} "
+                f"-rfbport 5900 -shared -forever -bg -o /tmp/x11vnc.log 2>&1",
+                timeout=15
             )
 
-            # Start x0vncserver on the existing display :1
-            self._ssh_exec(
-                "sudo -u ga bash -c '"
-                "DISPLAY=:1 nohup x0vncserver -PasswordFile /home/ga/.vnc/passwd "
-                "-rfbport 5900 -AlwaysShared "
-                ">/tmp/x0vncserver.log 2>&1 &'",
-                timeout=10
-            )
+            # Wait for x11vnc to bind
+            for _ in range(10):
+                result = self._ssh_exec("ss -tlnp | grep 5900", timeout=5, capture=True)
+                if "5900" in result:
+                    break
+                time.sleep(1)
 
             # Allocate host VNC port and expose via gvproxy
             with self._lock:
                 self.vnc_port = _find_free_port(5900)
             self._expose_port_via_gvproxy(self._gvproxy_api_sock, self.vnc_port, 5900)
-
-            # Wait for x0vncserver to bind (check via SSH)
-            for _ in range(10):
-                result = self._ssh_exec("ss -tlnp | grep 5900", timeout=5, capture=True)
-                if "5900" in result:
-                    break
-                time.sleep(2)
 
             # Create VNC connection pool (same as QemuApptainerRunner)
             self._vnc_pool = VNCConnectionPool(
@@ -308,12 +305,9 @@ class AVFRunner(BaseRunner):
                 port=self.vnc_port,
                 password=self.vnc_password,
             )
-            conn = self._vnc_pool.get_connection(retry_count=3, retry_delay=1.0)
+            conn = self._vnc_pool.get_connection(retry_count=5, retry_delay=2.0)
             if conn:
                 print(f"[AVF] VNC available at localhost:{self.vnc_port} ({conn.resolution[0]}x{conn.resolution[1]})")
-            else:
-                print(f"[AVF] VNC port forwarded (localhost:{self.vnc_port}) but connection pending")
-                self._vnc_pool = None  # Don't use broken pool
         except Exception as e:
             print(f"[AVF] VNC setup failed: {e}")
             self._vnc_pool = None
