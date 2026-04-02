@@ -212,8 +212,8 @@ class AVFRunner(BaseRunner):
 
         print(f"[AVF] Guest IP: {self._guest_ip}")
 
-        # Wait for SSH to be responsive
-        if not self._wait_for_ssh(timeout=120):
+        # Wait for SSH to be responsive (vfkit boot can take 60-120s)
+        if not self._wait_for_ssh(timeout=300):
             self._dump_logs()
             self.stop()
             raise RuntimeError("VM failed to boot (SSH not available)")
