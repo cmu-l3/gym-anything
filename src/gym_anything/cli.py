@@ -12,7 +12,7 @@ from .compatibility import (
     get_runner_compatibility_matrix,
     render_compatibility_text,
 )
-from .doctor import render_doctor_text, run_doctor
+from .doctor import render_doctor_text, render_doctor_rich, run_doctor
 from .verification import (
     build_missing_hook_reference_manifest,
     build_task_status_manifest,
@@ -82,6 +82,57 @@ def cmd_validate(args):
 
 def cmd_run(args):
     env = from_config(args.env_dir, task_id=args.task)
+
+    if args.interactive:
+        # Interactive mode: boot environment, print connection info, keep alive
+        print(f"Booting environment: {args.env_dir}")
+        if args.task:
+            print(f"Task: {args.task}")
+        print()
+
+        obs = env.reset(seed=args.seed)
+
+        runner = env._runner
+        print()
+        print("=" * 60)
+        print("  Environment ready!")
+        print("=" * 60)
+        print()
+
+        vnc_port = getattr(runner, "vnc_port", None)
+        ssh_port = getattr(runner, "ssh_port", None)
+        guest_ip = getattr(runner, "_guest_ip", None)
+
+        if vnc_port:
+            print(f"  VNC:  vnc://localhost:{vnc_port}")
+            vnc_pw = getattr(runner, "vnc_password", "password")
+            print(f"        password: {vnc_pw}")
+        if ssh_port:
+            user = getattr(runner, "_ssh_user", "ga")
+            pw = getattr(runner, "_ssh_password", "password123")
+            print(f"  SSH:  ssh -p {ssh_port} {user}@localhost")
+            print(f"        password: {pw}")
+        if guest_ip and not ssh_port:
+            user = getattr(runner, "_ssh_user", "ga")
+            print(f"  SSH:  ssh {user}@{guest_ip}")
+
+        print()
+        print(f"  Artifacts: {env._episode_dir}")
+        print()
+        print("Press Ctrl+C to stop the environment.")
+        print()
+
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nStopping environment...")
+
+        env.close()
+        print("Environment stopped.")
+        return 0
+
+    # Non-interactive mode: run steps
     obs = env.reset(seed=args.seed)
     print("Episode started. Artifacts will be saved under:", env._episode_dir)
     steps = args.steps or (env.task_spec.init.max_steps if env.task_spec else 10)
@@ -120,6 +171,10 @@ def cmd_doctor(args):
     if args.json:
         _print_json(report.to_dict())
     else:
+        # Show the rich platform-aware output first
+        print(render_doctor_rich(report))
+        print()
+        # Then the per-check details
         print(render_doctor_text(report))
     return 0 if report.ok else 1
 
@@ -161,10 +216,12 @@ def main(argv=None):
     p_val.add_argument("--task")
     p_val.set_defaults(func=cmd_validate)
 
-    p_run = sub.add_parser("run", help="Run an episode")
-    p_run.add_argument("env_dir")
-    p_run.add_argument("--task")
-    p_run.add_argument("--steps", type=int)
+    p_run = sub.add_parser("run", help="Run an environment")
+    p_run.add_argument("env_dir", help="Path to environment directory (e.g. benchmarks/environments/moodle_env)")
+    p_run.add_argument("--task", help="Task ID to load")
+    p_run.add_argument("--interactive", "-i", action="store_true",
+                       help="Keep environment alive for interactive use (VNC/SSH). Press Ctrl+C to stop.")
+    p_run.add_argument("--steps", type=int, help="Number of steps to run (non-interactive mode)")
     p_run.add_argument("--seed", type=int, default=42)
     p_run.add_argument("--debug", action="store_true")
     p_run.set_defaults(func=cmd_run)

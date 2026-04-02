@@ -72,7 +72,9 @@ def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
         checks.append(_check_binary("docker_cli", "docker", probe=["docker", "version", "--format", "{{.Client.Version}}"]))
         checks.append(_check_binary("docker_daemon", "docker", probe=["docker", "info"]))
     if target in {"all", "qemu", "avd", "apptainer"}:
-        checks.append(_check_binary("apptainer", "apptainer", probe=["apptainer", "--version"]))
+        # Apptainer is Linux-only; don't fail on macOS
+        required = _IS_LINUX
+        checks.append(_check_binary("apptainer", "apptainer", probe=["apptainer", "--version"], required=required))
     if target in {"all", "qemu"}:
         checks.append(_check_binary("qemu_system", "qemu-system-x86_64", probe=["qemu-system-x86_64", "--version"]))
         checks.append(_check_binary("qemu_img", "qemu-img", probe=["qemu-img", "--version"]))
@@ -145,6 +147,214 @@ def render_doctor_text(report: DoctorReport) -> str:
     for check in report.checks:
         status = "ok" if check.ok else ("warn" if not check.required else "fail")
         lines.append(f"{status}: {check.name} - {check.detail}")
+    return "\n".join(lines)
+
+
+# --- Platform-aware install hints ---
+
+import platform as _platform
+import sys as _sys
+
+_IS_MACOS = _sys.platform == "darwin"
+_IS_LINUX = _sys.platform == "linux"
+_IS_ARM = _platform.machine() in ("arm64", "aarch64")
+
+# Maps binary name -> (description, install command per platform)
+_INSTALL_HINTS: Dict[str, Dict[str, str]] = {
+    "docker": {
+        "desc": "Container runtime",
+        "macos": "brew install --cask docker  # then open Docker.app",
+        "linux": "curl -fsSL https://get.docker.com | sh",
+    },
+    "qemu-system-x86_64": {
+        "desc": "x86_64 VM emulator",
+        "macos": "brew install qemu",
+        "linux": "sudo apt install qemu-system-x86",
+    },
+    "qemu-system-aarch64": {
+        "desc": "ARM64 VM emulator (used on Apple Silicon)",
+        "macos": "brew install qemu",
+        "linux": "sudo apt install qemu-system-arm",
+    },
+    "qemu-img": {
+        "desc": "QEMU disk image tool",
+        "macos": "brew install qemu",
+        "linux": "sudo apt install qemu-utils",
+    },
+    "mkisofs": {
+        "desc": "ISO creation tool (for cloud-init)",
+        "macos": "brew install cdrtools",
+        "linux": "sudo apt install genisoimage",
+    },
+    "apptainer": {
+        "desc": "Container runtime for HPC/SLURM",
+        "macos": "N/A (Linux only)",
+        "linux": "See https://apptainer.org/docs/admin/main/installation.html",
+    },
+    "vfkit": {
+        "desc": "Apple Virtualization Framework CLI (macOS only)",
+        "macos": "brew install vfkit",
+        "linux": "N/A (macOS only)",
+    },
+    "gvproxy": {
+        "desc": "Virtual network daemon for VM isolation",
+        "macos": "curl -L -o /usr/local/bin/gvproxy https://github.com/containers/gvisor-tap-vsock/releases/latest/download/gvproxy-darwin && chmod +x /usr/local/bin/gvproxy",
+        "linux": "curl -L -o /usr/local/bin/gvproxy https://github.com/containers/gvisor-tap-vsock/releases/latest/download/gvproxy-linux && chmod +x /usr/local/bin/gvproxy",
+    },
+    "ffmpeg": {
+        "desc": "Screenshot and video capture",
+        "macos": "brew install ffmpeg",
+        "linux": "sudo apt install ffmpeg",
+    },
+    "adb": {
+        "desc": "Android Debug Bridge",
+        "macos": "brew install android-platform-tools",
+        "linux": "sudo apt install adb",
+    },
+}
+
+# Which binaries each runner needs
+_RUNNER_DEPS: Dict[str, List[str]] = {
+    "docker": ["docker"],
+    "qemu": ["apptainer", "qemu-system-x86_64", "qemu-img"],
+    "qemu_native": ["qemu-img", "mkisofs"],  # qemu-system-* auto-detected
+    "avf": ["vfkit", "gvproxy", "qemu-img", "mkisofs"],
+    "avd": ["apptainer", "adb"],
+    "avd_native": ["adb"],
+    "apptainer": ["apptainer"],
+    "local": [],
+}
+
+
+def get_runner_status() -> Dict[str, Dict]:
+    """Get status of all runners with dependency info."""
+    import os
+
+    results = {}
+    for runner_key, deps in _RUNNER_DEPS.items():
+        # Platform check
+        if runner_key == "avf" and not _IS_MACOS:
+            results[runner_key] = {"available": False, "reason": "macOS only", "deps": {}}
+            continue
+        if runner_key in ("qemu", "avd") and _IS_MACOS:
+            results[runner_key] = {"available": False, "reason": "requires Apptainer (Linux only)", "deps": {}}
+            continue
+        if runner_key == "apptainer" and _IS_MACOS:
+            results[runner_key] = {"available": False, "reason": "Linux only", "deps": {}}
+            continue
+
+        dep_status = {}
+        all_ok = True
+        for dep in deps:
+            found = shutil.which(dep)
+            dep_status[dep] = {
+                "installed": found is not None,
+                "path": found,
+                "desc": _INSTALL_HINTS.get(dep, {}).get("desc", ""),
+                "install": _INSTALL_HINTS.get(dep, {}).get("macos" if _IS_MACOS else "linux", ""),
+            }
+            if not found:
+                all_ok = False
+
+        # Special: qemu_native needs either qemu-system-x86_64 or qemu-system-aarch64
+        if runner_key == "qemu_native":
+            if _IS_MACOS and _IS_ARM:
+                qemu_bin = "qemu-system-aarch64"
+            else:
+                qemu_bin = "qemu-system-x86_64"
+            found = shutil.which(qemu_bin)
+            dep_status[qemu_bin] = {
+                "installed": found is not None,
+                "path": found,
+                "desc": _INSTALL_HINTS.get(qemu_bin, {}).get("desc", ""),
+                "install": _INSTALL_HINTS.get(qemu_bin, {}).get("macos" if _IS_MACOS else "linux", ""),
+            }
+            if not found:
+                all_ok = False
+
+        # Special: avf needs base image or ability to build
+        if runner_key == "avf":
+            from pathlib import Path as _Path
+            base = _Path.home() / ".cache/gym-anything/qemu/avf/base_ubuntu_gnome_arm64.raw"
+            dep_status["base_image"] = {
+                "installed": base.exists(),
+                "path": str(base) if base.exists() else None,
+                "desc": "ARM64 Ubuntu base image (auto-built on first run)",
+                "install": "Built automatically on first run (~5 min)",
+            }
+
+        results[runner_key] = {"available": all_ok, "deps": dep_status}
+    return results
+
+
+def render_doctor_rich(report: DoctorReport) -> str:
+    """Render a user-friendly doctor output with runner status and install hints."""
+    lines: List[str] = []
+
+    # Platform info
+    lines.append(f"Platform: {_sys.platform} ({_platform.machine()})")
+    lines.append("")
+
+    # Runner status
+    runner_status = get_runner_status()
+
+    # Determine recommended runner
+    recommended = None
+    if _IS_MACOS and _IS_ARM:
+        for r in ["avf", "qemu_native", "docker"]:
+            if runner_status.get(r, {}).get("available"):
+                recommended = r
+                break
+        if not recommended:
+            recommended = "avf"  # Recommend even if not yet installed
+    elif _IS_MACOS:
+        for r in ["qemu_native", "docker"]:
+            if runner_status.get(r, {}).get("available"):
+                recommended = r
+                break
+    elif _IS_LINUX:
+        for r in ["qemu", "docker"]:
+            if runner_status.get(r, {}).get("available"):
+                recommended = r
+                break
+
+    lines.append("Runners:")
+    lines.append("")
+
+    for runner_key, status in runner_status.items():
+        reason = status.get("reason")
+        if reason:
+            lines.append(f"  {runner_key}: -- ({reason})")
+            continue
+
+        available = status["available"]
+        tag = "READY" if available else "MISSING DEPS"
+        rec = " (recommended)" if runner_key == recommended else ""
+        lines.append(f"  {runner_key}: {tag}{rec}")
+
+        for dep, info in status["deps"].items():
+            if info["installed"]:
+                lines.append(f"    [ok] {dep} -> {info['path']}")
+            else:
+                lines.append(f"    [!!] {dep} -- not installed")
+                if info["install"]:
+                    lines.append(f"         Install: {info['install']}")
+
+    # Missing deps summary
+    missing = []
+    if recommended and not runner_status.get(recommended, {}).get("available"):
+        for dep, info in runner_status[recommended]["deps"].items():
+            if not info["installed"]:
+                missing.append((dep, info["install"]))
+
+    if missing:
+        lines.append("")
+        lines.append(f"To set up the recommended runner ({recommended}):")
+        lines.append("")
+        for dep, install_cmd in missing:
+            if install_cmd:
+                lines.append(f"  {install_cmd}")
+
     return "\n".join(lines)
 
 
