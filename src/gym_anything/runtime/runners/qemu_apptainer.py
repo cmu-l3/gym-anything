@@ -82,42 +82,6 @@ def _check_kvm() -> bool:
     return os.path.exists("/dev/kvm") and os.access("/dev/kvm", os.R_OK | os.W_OK)
 
 
-def _run_qemu_img(args: List[str], bind_paths: Optional[List[str]] = None) -> subprocess.CompletedProcess:
-    """Run qemu-img command inside Apptainer container.
-    
-    Args:
-        args: Arguments for qemu-img
-        bind_paths: Optional list of paths to bind into the container
-    """
-    cmd = [
-        "apptainer", "exec",
-        "--contain",
-    ]
-    
-    # Auto-detect paths from args and bind them
-    paths_to_bind = set()
-    if bind_paths:
-        paths_to_bind.update(bind_paths)
-    
-    for arg in args:
-        if arg.startswith("/") and not arg.startswith("/dev"):
-            parent = str(Path(arg).parent)
-            if parent != "/":
-                paths_to_bind.add(parent)
-    
-    # Also bind the cache directory
-    paths_to_bind.add(str(QEMU_CACHE))
-    
-    for path in paths_to_bind:
-        if os.path.exists(path):
-            cmd.extend(["--bind", f"{path}:{path}"])
-    
-    cmd.append(QEMU_CONTAINER)
-    cmd.extend(["qemu-img"] + args)
-    
-    return subprocess.run(cmd, capture_output=True, text=True)
-
-
 def _get_env_hash(spec: EnvSpec) -> str:
     """Generate hash for environment (for caching checkpoints)."""
     # Hash based on: preset/image + hooks + scripts
@@ -145,8 +109,7 @@ class QemuApptainerRunner(BaseRunner):
     def __init__(self, spec: EnvSpec):
         super().__init__(spec)
 
-        if not _check_apptainer():
-            raise RuntimeError("Apptainer not found")
+        self._check_prerequisites()
 
         self.instance_id = uuid.uuid4().hex[:12]
         self.instance_name = f"ga_qemu_{self.instance_id}"
@@ -206,7 +169,7 @@ class QemuApptainerRunner(BaseRunner):
         # Resources
         self.memory = f"{spec.resources.mem_gb or 8}G"
         self.cpus = int(spec.resources.cpu or 4)
-        self.enable_kvm = _check_kvm()
+        self.enable_kvm = self._detect_acceleration()
 
         # GPU support - check if GPU is requested
         self.enable_gpu = bool(spec.resources.gpu and spec.resources.gpu > 0)
@@ -243,6 +206,48 @@ class QemuApptainerRunner(BaseRunner):
         # When True: saves full VM state (instant restore, preserves running processes)
         # When False: only saves disk state (requires full reboot on restore)
         self._use_savevm: bool = False
+
+    def _check_prerequisites(self) -> None:
+        """Check that required system tools are available. Subclasses override."""
+        if not _check_apptainer():
+            raise RuntimeError(
+                "Apptainer not found. Install Apptainer or set "
+                "GYM_ANYTHING_RUNNER=qemu_native if QEMU is installed directly."
+            )
+
+    def _detect_acceleration(self) -> bool:
+        """Detect hardware acceleration. Returns True if available. Subclasses override."""
+        return _check_kvm()
+
+    def _run_qemu_img(self, args: List[str], bind_paths: Optional[List[str]] = None) -> subprocess.CompletedProcess:
+        """Run qemu-img command inside Apptainer container. Subclasses override."""
+        cmd = [
+            "apptainer", "exec",
+            "--contain",
+        ]
+
+        # Auto-detect paths from args and bind them
+        paths_to_bind = set()
+        if bind_paths:
+            paths_to_bind.update(bind_paths)
+
+        for arg in args:
+            if arg.startswith("/") and not arg.startswith("/dev"):
+                parent = str(Path(arg).parent)
+                if parent != "/":
+                    paths_to_bind.add(parent)
+
+        # Also bind the cache directory
+        paths_to_bind.add(str(QEMU_CACHE))
+
+        for path in paths_to_bind:
+            if os.path.exists(path):
+                cmd.extend(["--bind", f"{path}:{path}"])
+
+        cmd.append(QEMU_CONTAINER)
+        cmd.extend(["qemu-img"] + args)
+
+        return subprocess.run(cmd, capture_output=True, text=True)
 
     def supports_checkpoint_caching(self) -> bool:
         return True
@@ -295,7 +300,7 @@ class QemuApptainerRunner(BaseRunner):
 
         # Run qemu-img inside Apptainer (qemu-img not on host)
         # Boot from base image directly (hooks handled by env.py)
-        result = _run_qemu_img([
+        result = self._run_qemu_img([
             "create", "-f", "qcow2",
             "-b", str(self.base_qcow2.absolute()),
             "-F", "qcow2",
@@ -397,7 +402,12 @@ class QemuApptainerRunner(BaseRunner):
 
         self._running = True
         print(f"[QemuApptainer] VM ready! Resolution: {conn.resolution}")
-    
+
+        settle = self._post_boot_settle_seconds()
+        if settle > 0:
+            print(f"[QemuApptainer] Waiting {settle}s for compositor to render...")
+            time.sleep(settle)
+
     def _create_base_qcow2(self) -> None:
         """Create or download the base Ubuntu Desktop QCOW2 image.
         
@@ -461,80 +471,92 @@ class QemuApptainerRunner(BaseRunner):
     # NOTE: _create_env_checkpoint removed - hooks are now handled by env.py
     # Checkpointing is done via create_checkpoint() called from env.py
 
-    def _build_qemu_cmd(self, disk: Path, vnc_port: int, ssh_port: int, work_dir: Path, loadvm_snapshot: Optional[str] = None) -> List[str]:
-        """Build QEMU command.
-
-        QEMU VNC: -vnc :N means port 5900+N
-        We use the VNC port directly with -vnc localhost:<port>
-
-        Args:
-            loadvm_snapshot: If provided, start QEMU with -loadvm to restore from this snapshot.
-                            This is the correct way to restore a savevm snapshot - much simpler
-                            than sending loadvm via monitor after boot.
-        """
-        # Debug: show savevm state when building command
-        if self.is_windows:
-            print(f"[QemuApptainer] Building QEMU command: _use_savevm={self._use_savevm}, loadvm={loadvm_snapshot}")
+    def _build_container_prefix(self, work_dir: Path, disk: Path) -> List[str]:
+        """Build the container wrapper prefix. Subclasses override (e.g. return [])."""
         work_dir_abs = str(work_dir.absolute())
-        disk_abs = str(disk.absolute())
         cache_dir_abs = str(QEMU_CACHE.absolute())
-        
+
         cmd = [
             "apptainer", "exec",
             "--contain", "--writable-tmpfs",
         ]
-        
+
         if self.enable_kvm:
             cmd.extend(["--bind", "/dev/kvm"])
 
         # GPU support: Bind GPU devices and use --nv for NVIDIA
         if self.enable_gpu:
             if self._has_nvidia:
-                # NVIDIA GPU: use --nv flag for NVIDIA container support
                 cmd.append("--nv")
-                # Bind NVIDIA devices explicitly
                 for dev in ["/dev/nvidia0", "/dev/nvidiactl", "/dev/nvidia-uvm", "/dev/nvidia-modeset"]:
                     if os.path.exists(dev):
                         cmd.extend(["--bind", dev])
             if self._has_dri:
-                # DRI (Intel/AMD/Mesa): bind /dev/dri for GPU access
                 cmd.extend(["--bind", "/dev/dri"])
 
         # Bind paths at same location inside/outside container
         cmd.extend(["--bind", f"{work_dir_abs}:{work_dir_abs}"])
         cmd.extend(["--bind", f"{cache_dir_abs}:{cache_dir_abs}"])
-        
+
         artifacts_dir = Path(self._artifacts_root)
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         artifacts_abs = str(artifacts_dir.absolute())
         cmd.extend(["--bind", f"{artifacts_abs}:{artifacts_abs}"])
-        
+
         cmd.append(QEMU_CONTAINER)
-        cmd.append("qemu-system-x86_64")
-        
+        return cmd
+
+    def _get_accel_args(self) -> List[str]:
+        """Return QEMU acceleration arguments. Subclasses override for HVF etc."""
         if self.enable_kvm:
-            cmd.extend(["-accel", "kvm"])
-        
+            return ["-accel", "kvm"]
+        return []
+
+    def _get_cpu_model(self) -> str:
+        """Return CPU model for -cpu flag. Subclasses override for TCG."""
+        return "host"
+
+    def _get_linux_display_device(self, width: int, height: int) -> str:
+        """Return the display device for Linux guests. Subclasses override for TCG."""
+        return f"virtio-vga,xres={width},yres={height}"
+
+    def _post_boot_settle_seconds(self) -> int:
+        """Seconds to wait after desktop is ready for compositor to render.
+        Subclasses override for TCG where software rendering is slow."""
+        return 0
+
+    def _build_qemu_cmd(self, disk: Path, vnc_port: int, ssh_port: int, work_dir: Path, loadvm_snapshot: Optional[str] = None) -> List[str]:
+        """Build QEMU command. Delegates to overridable helpers for container/accel."""
+        # Debug: show savevm state when building command
+        if self.is_windows:
+            print(f"[QemuApptainer] Building QEMU command: _use_savevm={self._use_savevm}, loadvm={loadvm_snapshot}")
+        disk_abs = str(disk.absolute())
+
+        # Stage 1: Container prefix (overridable — empty for native runner)
+        cmd = self._build_container_prefix(work_dir, disk)
+
+        # Stage 2: QEMU binary + acceleration
+        cmd.append("qemu-system-x86_64")
+        cmd.extend(self._get_accel_args())
+
         # Calculate VNC display number from port (port 5900 = display :0)
         vnc_display = vnc_port - 5900
-        
+
         # Use virtio-gpu with specific resolution for proper display
         width, height = self.resolution
-        
+
         # Build netdev with port forwards
-        # SSH is always forwarded for Linux/Windows; ADB port forwarded for Android
         if self.is_android:
             port_forwards = f"hostfwd=tcp::{self.adb_port}-:{self._adb_guest_port}"
         else:
             port_forwards = f"hostfwd=tcp::{ssh_port}-:22"
             if self.is_windows:
-                # Forward dynamic host port to fixed guest port 5555 (where server listens)
                 port_forwards += f",hostfwd=tcp::{self.pyautogui_port}-:5555"
 
         cmd.extend([
             "-m", self.memory,
             "-smp", str(self.cpus),
-            "-cpu", "host",  # Enable nested virtualization
+            "-cpu", self._get_cpu_model(),
         ])
 
         if self.is_android:
@@ -602,7 +624,7 @@ class QemuApptainerRunner(BaseRunner):
             # For now, use standard virtio-vga with software rendering.
             # GPU devices are still passed through for applications that
             # access them directly (e.g., DaVinci Resolve uses OpenCL).
-            display_device = f"virtio-vga,xres={width},yres={height}"
+            display_device = self._get_linux_display_device(width, height)
             display_backend = "none"
 
             cmd.extend([
@@ -2713,7 +2735,7 @@ class QemuApptainerRunner(BaseRunner):
                 if self._use_savevm:
                     # First, verify the snapshot exists in the original overlay
                     print(f"[QemuApptainer] Checking for snapshot in original overlay: {self._instance_qcow2}")
-                    pre_copy_result = _run_qemu_img([
+                    pre_copy_result = self._run_qemu_img([
                         "snapshot", "-l", str(self._instance_qcow2)
                     ])
                     print(f"[QemuApptainer] Original overlay snapshots: {pre_copy_result.stdout.strip() or '(none)'}")
@@ -2726,7 +2748,7 @@ class QemuApptainerRunner(BaseRunner):
                     shutil.copy2(str(self._instance_qcow2), str(checkpoint_path))
 
                     # Verify the snapshot was preserved
-                    verify_result = _run_qemu_img([
+                    verify_result = self._run_qemu_img([
                         "snapshot", "-l", str(checkpoint_path)
                     ])
                     if SAVEVM_SNAPSHOT_NAME in verify_result.stdout:
@@ -2738,7 +2760,7 @@ class QemuApptainerRunner(BaseRunner):
                     print(f"[QemuApptainer]   Note: checkpoint references base image via backing chain")
                 else:
                     # Convert to standalone qcow2 (flattens backing chain, loses any snapshots)
-                    result = _run_qemu_img([
+                    result = self._run_qemu_img([
                         "convert", "-O", "qcow2",
                         str(self._instance_qcow2), str(checkpoint_path)
                     ])
@@ -2822,7 +2844,7 @@ class QemuApptainerRunner(BaseRunner):
             print(f"[QemuApptainer] Checkpoint copied ({size_gb:.2f} GB) from {base_image.name}")
         else:
             # Create COW overlay (fast, but snapshots stay in backing file)
-            result = _run_qemu_img([
+            result = self._run_qemu_img([
                 "create", "-f", "qcow2",
                 "-b", str(base_image.absolute()),
                 "-F", "qcow2",
@@ -2907,6 +2929,11 @@ class QemuApptainerRunner(BaseRunner):
 
         self._running = True
         print(f"[QemuApptainer] VM ready! Resolution: {conn.resolution}")
+
+        settle = self._post_boot_settle_seconds()
+        if settle > 0:
+            print(f"[QemuApptainer] Waiting {settle}s for compositor to render...")
+            time.sleep(settle)
 
     def _boot_vm_with_loadvm(self, seed: Optional[int] = None) -> None:
         """Boot VM and restore state using QEMU's -loadvm command-line option.

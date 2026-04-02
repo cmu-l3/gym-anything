@@ -41,18 +41,6 @@ _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
             "This is the only runner with live FFmpeg episode recording built into reset().",
         ],
     ),
-    "browser": RunnerCompatibility(
-        runner="browser",
-        display_name="BrowserRunner",
-        live_recording=True,
-        screenshot_video_assembly=True,
-        checkpoint_caching=True,
-        savevm=False,
-        user_accounts_mode="provision_from_spec",
-        notes=[
-            "BrowserRunner inherits DockerRunner runtime behavior and adds browser-specific API calls.",
-        ],
-    ),
     "qemu": RunnerCompatibility(
         runner="qemu",
         display_name="QemuApptainerRunner",
@@ -66,6 +54,20 @@ _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
             "EnvSpec.user_accounts is treated as declared credential metadata rather than guest-side provisioning.",
         ],
     ),
+    "qemu_native": RunnerCompatibility(
+        runner="qemu_native",
+        display_name="QemuNativeRunner",
+        live_recording=False,
+        screenshot_video_assembly=True,
+        checkpoint_caching=True,
+        savevm=True,
+        user_accounts_mode="preprovisioned_accounts",
+        notes=[
+            "Runs QEMU directly without Apptainer; works on macOS and bare-metal Linux.",
+            "Uses HVF acceleration on Intel Macs, KVM on Linux, TCG (slow) on Apple Silicon.",
+            "Identical VM behavior to QemuApptainerRunner; only the QEMU launch mechanism differs.",
+        ],
+    ),
     "avd": RunnerCompatibility(
         runner="avd",
         display_name="AVDApptainerRunner",
@@ -76,6 +78,20 @@ _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
         user_accounts_mode="metadata_only",
         notes=[
             "Android user_accounts fields describe expected credentials or roles; they are not provisioned by the runner.",
+        ],
+    ),
+    "avd_native": RunnerCompatibility(
+        runner="avd_native",
+        display_name="AVDNativeRunner",
+        live_recording=False,
+        screenshot_video_assembly=True,
+        checkpoint_caching=True,
+        savevm=False,
+        user_accounts_mode="metadata_only",
+        notes=[
+            "Runs Android emulator directly without Apptainer; works on macOS and bare-metal Linux.",
+            "Uses HVF acceleration on macOS, KVM on Linux.",
+            "Identical behavior to AVDApptainerRunner; only the emulator launch mechanism differs.",
         ],
     ),
     "apptainer": RunnerCompatibility(
@@ -126,9 +142,10 @@ def infer_runner_key_from_name(name: str) -> Optional[str]:
     normalized = name.lower()
     aliases = {
         "dockerrunner": "docker",
-        "browserrunner": "browser",
         "qemuapptainerrunner": "qemu",
+        "qemunativerunner": "qemu_native",
         "avdapptainerrunner": "avd",
+        "avdnativerunner": "avd_native",
         "apptainerdirectrunner": "apptainer",
         "localrunner": "local",
     }

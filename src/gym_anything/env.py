@@ -13,10 +13,10 @@ from .runtime.recording.ffmpeg import FFmpegRecorder, RecordingHandle
 from .runtime.recording.frames import assemble_step_video
 from .runtime.runners.avd_apptainer import AVDApptainerRunner
 from .runtime.runners.base import BaseRunner
-from .runtime.runners.browser import BrowserRunner
 from .runtime.runners.docker import DockerRunner
 from .runtime.runners.local import LocalRunner
 from .runtime.runners.qemu_apptainer import QemuApptainerRunner
+from .runtime.runners.qemu_native import QemuNativeRunner
 from .utils.jsonl import JSONLWriter
 from .verification.runner import VerifierRunner
 import base64
@@ -56,57 +56,55 @@ class GymAnythingEnv:
         """Select the appropriate runner based on environment and configuration.
 
         Runner selection:
-        - GYM_ANYTHING_RUNNER=avd : Use AVDApptainerRunner (Android AVD emulator)
-        - GYM_ANYTHING_RUNNER=qemu : Use QemuApptainerRunner (for SLURM/HPC)
+        - GYM_ANYTHING_RUNNER=avd : Use AVD runner (auto-selects native on macOS)
+        - GYM_ANYTHING_RUNNER=avd_native : Force AVDNativeRunner
+        - GYM_ANYTHING_RUNNER=qemu : Use QEMU runner (auto-selects native on macOS)
+        - GYM_ANYTHING_RUNNER=qemu_native : Force QemuNativeRunner
         - GYM_ANYTHING_RUNNER=apptainer : Use ApptainerDirectRunner (GPU-enabled, no QEMU)
         - GYM_ANYTHING_RUNNER=docker : Use DockerRunner (explicit)
         - Default: Auto-detect based on spec.runner field, then Docker, fallback to QEMU
 
-        The SAME env.json files work with both runners!
+        The SAME env.json files work with all runners!
         """
         runner_override = os.environ.get("GYM_ANYTHING_RUNNER", "").lower()
 
-        # Check for AVD runner (from env var or spec)
         spec_runner = getattr(spec, 'runner', None)
         spec_base = getattr(spec, 'base', None)
+
+        # --- AVD runners ---
+        if runner_override == "avd_native" or spec_runner == "avd_native":
+            from .runtime.runners.avd_native import AVDNativeRunner
+            print("[gym-anything] Using AVDNativeRunner (no Apptainer)")
+            return AVDNativeRunner(spec)
+
         if runner_override == "avd" or spec_runner == "avd":
-            print("[gym-anything] Using AVDApptainerRunner (Android AVD emulator)")
-            return AVDApptainerRunner(spec)
+            return self._make_avd_runner(spec)
 
-        if runner_override == "browser" or spec_runner == "browser" or spec_base == "browser-chrome":
-            print("[gym-anything] Using BrowserRunner")
-            return BrowserRunner(spec)
-
-        # Check for direct Apptainer runner (GPU-enabled, no QEMU)
+        # --- Direct Apptainer runner (GPU-enabled, no QEMU) ---
         if runner_override == "apptainer" or spec_runner == "apptainer":
             print("[gym-anything] Using ApptainerDirectRunner (GPU-enabled)")
             from .runtime.runners.apptainer_direct import ApptainerDirectRunner
             return ApptainerDirectRunner(spec)
 
-        if runner_override == "qemu":
-            print("[gym-anything] Using QemuApptainerRunner (GYM_ANYTHING_RUNNER=qemu)")
-            return QemuApptainerRunner(spec)
+        # --- QEMU runners ---
+        if runner_override == "qemu_native":
+            print("[gym-anything] Using QemuNativeRunner (GYM_ANYTHING_RUNNER=qemu_native)")
+            return QemuNativeRunner(spec)
 
-        if runner_override == "local":
-            print("[gym-anything] Using LocalRunner (GYM_ANYTHING_RUNNER=local)")
+        if runner_override == "qemu" or spec_runner == "qemu":
+            return self._make_qemu_runner(spec)
+
+        # --- Explicit simple runners ---
+        if runner_override == "local" or spec_runner == "local":
+            print("[gym-anything] Using LocalRunner")
             return LocalRunner(spec)
 
         if runner_override == "docker":
-            # Explicit docker request
             pass  # Fall through to docker runner
         elif runner_override:
             print(f"[gym-anything] Warning: Unknown runner '{runner_override}', using default")
 
-        # Check spec.runner field if no env override
-        if spec_runner == "qemu":
-            print("[gym-anything] Using QemuApptainerRunner (spec.runner=qemu)")
-            return QemuApptainerRunner(spec)
-
-        if spec_runner == "local":
-            print("[gym-anything] Using LocalRunner (spec.runner=local)")
-            return LocalRunner(spec)
-
-        # Auto-detect: check if Docker is available
+        # --- Auto-detect fallback ---
         if not runner_override:
             docker_available = self._check_docker_available()
             if not docker_available:
@@ -114,8 +112,11 @@ class GymAnythingEnv:
                 if apptainer_available:
                     print("[gym-anything] Docker not available, using QemuApptainerRunner")
                     return QemuApptainerRunner(spec)
+                elif self._check_qemu_native_available():
+                    print("[gym-anything] Docker/Apptainer not available, using QemuNativeRunner")
+                    return QemuNativeRunner(spec)
                 else:
-                    print("[gym-anything] Neither Docker nor Apptainer available!")
+                    print("[gym-anything] No runtime available (Docker/Apptainer/QEMU all missing)")
                     return LocalRunner(spec)
 
         # Default: Docker
@@ -126,6 +127,38 @@ class GymAnythingEnv:
         # Fallback: LocalRunner for testing
         print("[gym-anything] Using LocalRunner (no container)")
         return LocalRunner(spec)
+
+    def _make_qemu_runner(self, spec: EnvSpec) -> BaseRunner:
+        """Auto-select between QemuApptainerRunner and QemuNativeRunner."""
+        import sys
+        if sys.platform == "darwin":
+            print("[gym-anything] Using QemuNativeRunner (macOS detected)")
+            return QemuNativeRunner(spec)
+        if self._check_apptainer_available():
+            print("[gym-anything] Using QemuApptainerRunner")
+            return QemuApptainerRunner(spec)
+        if self._check_qemu_native_available():
+            print("[gym-anything] Apptainer not found, using QemuNativeRunner")
+            return QemuNativeRunner(spec)
+        raise RuntimeError(
+            "runner=qemu but neither Apptainer nor native QEMU found. "
+            "Install Apptainer or QEMU (brew install qemu / apt install qemu-system-x86)."
+        )
+
+    def _make_avd_runner(self, spec: EnvSpec) -> BaseRunner:
+        """Auto-select between AVDApptainerRunner and AVDNativeRunner."""
+        import sys
+        if sys.platform == "darwin":
+            from .runtime.runners.avd_native import AVDNativeRunner
+            print("[gym-anything] Using AVDNativeRunner (macOS detected)")
+            return AVDNativeRunner(spec)
+        if self._check_apptainer_available():
+            print("[gym-anything] Using AVDApptainerRunner")
+            return AVDApptainerRunner(spec)
+        # Fallback to native if Apptainer missing
+        from .runtime.runners.avd_native import AVDNativeRunner
+        print("[gym-anything] Apptainer not found, using AVDNativeRunner")
+        return AVDNativeRunner(spec)
     
     def _check_docker_available(self) -> bool:
         """Check if Docker daemon is available and running."""
@@ -152,6 +185,11 @@ class GymAnythingEnv:
             return result.returncode == 0
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return False
+
+    def _check_qemu_native_available(self) -> bool:
+        """Check if QEMU is installed directly on the host."""
+        import shutil
+        return shutil.which("qemu-system-x86_64") is not None
 
     # Public API
     def reset(self, seed: Optional[int] = None, use_cache: bool = False,

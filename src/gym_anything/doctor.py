@@ -68,7 +68,7 @@ def _check_binary(name: str, binary: str, *, probe: Optional[List[str]] = None, 
 def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
     target = runner or "all"
     checks: List[DoctorCheck] = []
-    if target in {"all", "docker", "browser"}:
+    if target in {"all", "docker"}:
         checks.append(_check_binary("docker_cli", "docker", probe=["docker", "version", "--format", "{{.Client.Version}}"]))
         checks.append(_check_binary("docker_daemon", "docker", probe=["docker", "info"]))
     if target in {"all", "qemu", "avd", "apptainer"}:
@@ -77,7 +77,13 @@ def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
         checks.append(_check_binary("qemu_system", "qemu-system-x86_64", probe=["qemu-system-x86_64", "--version"]))
         checks.append(_check_binary("qemu_img", "qemu-img", probe=["qemu-img", "--version"]))
         checks.append(_check_binary("adb", "adb", probe=["adb", "version"], required=False))
+    if target in {"all", "qemu_native"}:
+        checks.append(_check_binary("qemu_system", "qemu-system-x86_64", probe=["qemu-system-x86_64", "--version"]))
+        checks.append(_check_binary("qemu_img", "qemu-img", probe=["qemu-img", "--version"]))
     if target in {"all", "avd"}:
+        checks.append(_check_binary("adb", "adb", probe=["adb", "version"]))
+        checks.append(_check_binary("emulator", "emulator", probe=["emulator", "-version"]))
+    if target in {"all", "avd_native"}:
         checks.append(_check_binary("adb", "adb", probe=["adb", "version"]))
         checks.append(_check_binary("emulator", "emulator", probe=["emulator", "-version"]))
     if target in {"all", "apptainer", "qemu", "avd"}:

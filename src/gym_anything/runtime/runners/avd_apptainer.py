@@ -207,7 +207,7 @@ class AVDApptainerRunner(BaseRunner):
         self.mem_gb = int(mem_val) if mem_val is not None else 4
         cpu_val = getattr(spec.resources, 'cpu', None) if spec.resources else None
         self.cpus = int(cpu_val) if cpu_val is not None else 4
-        self.enable_kvm = _check_kvm()
+        self.enable_kvm = self._detect_acceleration()
 
         # Screen resolution
         screen_spec = next((o for o in spec.observation if o.type == "rgb_screen"), None)
@@ -240,6 +240,59 @@ class AVDApptainerRunner(BaseRunner):
         # Each instance gets its own AVD copy with COW overlays to prevent
         # userdata corruption when running multiple instances in parallel
         self._instance_avd_home: Optional[Path] = None
+
+    def _detect_acceleration(self) -> bool:
+        """Detect hardware acceleration. Returns True if available. Subclasses override."""
+        return _check_kvm()
+
+    def _ensure_container(self) -> Optional[Path]:
+        """Ensure container image exists. Returns path to SIF. Subclasses override (return None)."""
+        return _ensure_avd_container()
+
+    def _build_launch_cmd(self, startup_script: Path, container_sif: Optional[Path],
+                          sdk_root: str, avd_home: str, android_home: str,
+                          work_dir: str) -> List[str]:
+        """Build the command to launch the emulator. Subclasses override to remove Apptainer.
+
+        Args:
+            startup_script: Path to the shell script that runs the emulator
+            container_sif: Path to the Apptainer container image (None for native)
+            sdk_root: Android SDK root path
+            avd_home: AVD home directory path
+            android_home: Android home directory path
+            work_dir: Working directory path
+
+        Returns:
+            Command list for subprocess.Popen
+        """
+        cmd = [
+            "apptainer", "exec",
+            "--compat",
+            "--contain",
+            "--writable-tmpfs",
+            "--no-home",
+        ]
+
+        if self.enable_kvm:
+            cmd.extend(["--bind", "/dev/kvm"])
+
+        cmd.extend([
+            "--bind", sdk_root,
+            "--bind", avd_home,
+            "--bind", android_home,
+            "--bind", work_dir,
+            "--bind", "/tmp",
+        ])
+
+        cmd.extend([
+            "--env", f"ANDROID_SDK_ROOT={sdk_root}",
+            "--env", f"ANDROID_AVD_HOME={avd_home}",
+            "--env", "ADB_MDNS=0",
+        ])
+
+        cmd.append(str(container_sif))
+        cmd.append(str(startup_script))
+        return cmd
 
     def supports_checkpoint_caching(self) -> bool:
         return True
@@ -360,11 +413,10 @@ class AVDApptainerRunner(BaseRunner):
         with COW overlays, ensuring parallel instances don't corrupt each other's
         userdata. The -read-only flag is also used for additional protection.
         """
-        # Ensure container image exists
-        container_sif = _ensure_avd_container()
+        # Ensure container image exists (returns None for native runner)
+        container_sif = self._ensure_container()
 
         # Ensure ADB server is running on host (idempotent - won't restart if already running)
-        # This allows multiple emulator instances to share the same ADB server
         env = os.environ.copy()
         env["ADB_MDNS"] = "0"
         subprocess.run(
@@ -373,13 +425,12 @@ class AVDApptainerRunner(BaseRunner):
         )
 
         # Build paths for bind mounts
-        # Use per-instance AVD home to ensure parallel instances don't corrupt each other
         sdk_root = str(self.sdk_manager.sdk_root.absolute())
         avd_home = str(self._instance_avd_home.absolute())
         android_home = str(self._instance_avd_home.parent.absolute())
         work_dir = str(self._work_dir.absolute())
 
-        # Create startup script that runs emulator inside container
+        # Build emulator arguments
         startup_script = self._work_dir / "start_emulator.sh"
         emulator_args = [
             "-avd", self._avd_name,
@@ -405,61 +456,28 @@ export ADB_MDNS=0
 export ANDROID_SDK_ROOT={sdk_root}
 export ANDROID_AVD_HOME={avd_home}
 
-# NOTE: ADB server runs on host, not inside container.
-# The emulator will auto-register with the host's ADB server
-# since network namespace is shared (no --net isolation).
-# This enables multiple parallel emulator instances.
-
 # Run emulator (exec replaces shell process)
 exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
 """
         startup_script.write_text(script_content)
         startup_script.chmod(0o755)
 
-        # Build Apptainer command with full isolation
-        apptainer_cmd = [
-            "apptainer", "exec",
-            "--compat",  # Required for KVM device access
-            "--contain",  # Full filesystem isolation
-            "--writable-tmpfs",  # Writable overlay
-            "--no-home",  # Don't mount host home (avoids bashrc issues)
-        ]
+        # Build launch command (Apptainer-wrapped or direct, depending on subclass)
+        launch_cmd = self._build_launch_cmd(
+            startup_script, container_sif,
+            sdk_root, avd_home, android_home, work_dir
+        )
 
-        # Bind KVM device if available
-        if self.enable_kvm:
-            apptainer_cmd.extend(["--bind", "/dev/kvm"])
-
-        # Bind required paths
-        apptainer_cmd.extend([
-            "--bind", sdk_root,
-            "--bind", avd_home,
-            "--bind", android_home,
-            "--bind", work_dir,
-            "--bind", "/tmp",  # For ADB server socket and temp files
-        ])
-
-        # Environment variables
-        apptainer_cmd.extend([
-            "--env", f"ANDROID_SDK_ROOT={sdk_root}",
-            "--env", f"ANDROID_AVD_HOME={avd_home}",
-            "--env", "ADB_MDNS=0",
-        ])
-
-        # Add container image and startup script
-        apptainer_cmd.append(str(container_sif))
-        apptainer_cmd.append(str(startup_script))
-
-        print(f"[AVD Runner] Launching emulator inside Apptainer (--contain)...")
-        print(f"[AVD Runner] Container: {container_sif}")
+        print(f"[AVD Runner] Launching emulator...")
         print(f"[AVD Runner] Ports: console={self.console_port}, adb={self.adb_port}")
 
         log_file = self._work_dir / "emulator.log"
         with open(log_file, "w") as lf:
             self._emulator_process = subprocess.Popen(
-                apptainer_cmd,
+                launch_cmd,
                 stdout=lf,
                 stderr=subprocess.STDOUT,
-                preexec_fn=os.setsid  # New process group for cleanup
+                preexec_fn=os.setsid
             )
 
         # Give emulator a moment to start
@@ -1660,7 +1678,7 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
         Instead, boots fresh from checkpoint's userdata (apps already installed).
         Uses -read-only flag because emulator enforces single-instance by AVD name.
         """
-        container_sif = _ensure_avd_container()
+        container_sif = self._ensure_container()
 
         # Ensure ADB server is running
         env = os.environ.copy()
@@ -1681,21 +1699,12 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
         work_dir = str(self._work_dir.absolute())
 
         # Emulator args
-        # MUST use -read-only: emulator enforces single-instance per AVD NAME (not directory)
-        # Without -read-only, it refuses to start if another emulator uses same AVD name
-        # The COW overlays handle writes, so -read-only doesn't prevent state changes
-        #
-        # NOTE: We do NOT use -snapshot flag because:
-        # 1. Snapshots capture port/network state from when they were saved
-        # 2. Loading snapshot with different port causes crashes (SIGSEGV)
-        # 3. Instead, we boot fresh from checkpoint's userdata (apps already installed)
-        # 4. This is ~30s boot vs ~10s snapshot, but much more reliable
         emulator_args = [
             "-avd", self._avd_name,
             "-port", str(self.console_port),
             "-no-window", "-no-audio", "-no-boot-anim",
-            "-read-only",  # Required for parallel instances with same AVD name
-            "-no-snapshot-save", "-no-snapshot-load",  # Don't use snapshots (port conflicts)
+            "-read-only",
+            "-no-snapshot-save", "-no-snapshot-load",
             "-no-metrics",
             "-gpu", "swiftshader_indirect",
             "-memory", str(self.mem_gb * 1024),
@@ -1723,41 +1732,18 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
         startup_script.write_text(script_content)
         startup_script.chmod(0o755)
 
-        # Build Apptainer command
-        apptainer_cmd = [
-            "apptainer", "exec",
-            "--compat",
-            "--contain",
-            "--writable-tmpfs",
-            "--no-home",
-        ]
+        # Build launch command (Apptainer-wrapped or direct)
+        launch_cmd = self._build_launch_cmd(
+            startup_script, container_sif,
+            sdk_root, avd_home, android_home, work_dir
+        )
 
-        if self.enable_kvm:
-            apptainer_cmd.extend(["--bind", "/dev/kvm"])
-
-        apptainer_cmd.extend([
-            "--bind", sdk_root,
-            "--bind", avd_home,
-            "--bind", android_home,
-            "--bind", work_dir,
-            "--bind", "/tmp",
-        ])
-
-        apptainer_cmd.extend([
-            "--env", f"ANDROID_SDK_ROOT={sdk_root}",
-            "--env", f"ANDROID_AVD_HOME={avd_home}",
-            "--env", "ADB_MDNS=0",
-        ])
-
-        apptainer_cmd.append(str(container_sif))
-        apptainer_cmd.append(str(startup_script))
-
-        print(f"[AVD Runner] Launching emulator from checkpoint userdata (no snapshot - fresh boot)...")
+        print(f"[AVD Runner] Launching emulator from checkpoint userdata (fresh boot)...")
 
         log_file = self._work_dir / "emulator.log"
         with open(log_file, "w") as lf:
             self._emulator_process = subprocess.Popen(
-                apptainer_cmd,
+                launch_cmd,
                 stdout=lf,
                 stderr=subprocess.STDOUT,
                 preexec_fn=os.setsid

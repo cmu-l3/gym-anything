@@ -19,13 +19,15 @@ import zipfile
 from pathlib import Path
 from typing import List, Optional, Tuple
 import urllib.request
+import sys
 import tempfile
 
 
 # SDK component URLs and versions
 # Command-line tools: https://developer.android.com/studio#command-tools
 CMDLINE_TOOLS_VERSION = "11076708"  # Latest as of 2024
-CMDLINE_TOOLS_URL = f"https://dl.google.com/android/repository/commandlinetools-linux-{CMDLINE_TOOLS_VERSION}_latest.zip"
+_CMDLINE_TOOLS_PLATFORM = "mac" if sys.platform == "darwin" else "linux"
+CMDLINE_TOOLS_URL = f"https://dl.google.com/android/repository/commandlinetools-{_CMDLINE_TOOLS_PLATFORM}-{CMDLINE_TOOLS_VERSION}_latest.zip"
 
 # Default cache directory
 DEFAULT_CACHE_DIR = Path.home() / ".cache" / "gym-anything"

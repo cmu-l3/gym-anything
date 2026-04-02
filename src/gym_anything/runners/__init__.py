@@ -9,9 +9,9 @@ from ..runtime.runners import __all__  # noqa: F401
 _RUNNER_MODULES = (
     "apptainer_direct",
     "avd_apptainer",
+    "avd_native",
     "avd_sdk_manager",
     "base",
-    "browser",
     "build_android_qcow2_apptainer",
     "build_base_qcow2",
     "build_base_qcow2_nodocker",
@@ -20,6 +20,7 @@ _RUNNER_MODULES = (
     "docker",
     "local",
     "qemu_apptainer",
+    "qemu_native",
     "vnc_utils",
     "windows_pyautogui_client",
 )
