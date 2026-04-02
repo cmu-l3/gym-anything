@@ -109,6 +109,8 @@ class AVFRunner(BaseRunner):
         # State
         self._running = False
         self._vfkit_process: Optional[subprocess.Popen] = None
+        self._gvproxy_process: Optional[subprocess.Popen] = None
+        self._gvproxy_api_sock: Optional[Path] = None
         self._work_dir: Optional[Path] = None
         self._instance_raw: Optional[Path] = None
         self._lock = threading.Lock()

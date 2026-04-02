@@ -110,29 +110,41 @@ class GymAnythingEnv:
         elif runner_override:
             print(f"[gym-anything] Warning: Unknown runner '{runner_override}', using default")
 
-        # --- Auto-detect fallback ---
+        # --- Auto-detect: pick the best available runner for this platform ---
         if not runner_override:
-            docker_available = self._check_docker_available()
-            if not docker_available:
-                apptainer_available = self._check_apptainer_available()
-                if apptainer_available:
-                    print("[gym-anything] Docker not available, using QemuApptainerRunner")
-                    return QemuApptainerRunner(spec)
-                elif self._check_qemu_native_available():
-                    print("[gym-anything] Docker/Apptainer not available, using QemuNativeRunner")
+            import sys as _sys
+            import platform as _platform
+
+            if _sys.platform == "darwin" and _platform.machine() == "arm64":
+                # Apple Silicon: prefer AVF (Rosetta) > QemuNative (aarch64+HVF) > Docker
+                if self._check_avf_available():
+                    from .runtime.runners.avf import AVFRunner
+                    print("[gym-anything] Using AVFRunner (Apple Silicon, auto-detected)")
+                    return AVFRunner(spec)
+                if self._check_qemu_native_available():
+                    print("[gym-anything] Using QemuNativeRunner (Apple Silicon, auto-detected)")
                     return QemuNativeRunner(spec)
-                else:
-                    print("[gym-anything] No runtime available (Docker/Apptainer/QEMU all missing)")
-                    return LocalRunner(spec)
+            elif _sys.platform == "darwin":
+                # Intel Mac: prefer QemuNative (x86+HVF) > Docker
+                if self._check_qemu_native_available():
+                    print("[gym-anything] Using QemuNativeRunner (Intel Mac, auto-detected)")
+                    return QemuNativeRunner(spec)
+            else:
+                # Linux: prefer QemuApptainer > QemuNative > Docker
+                if self._check_apptainer_available():
+                    print("[gym-anything] Using QemuApptainerRunner (auto-detected)")
+                    return QemuApptainerRunner(spec)
+                if self._check_qemu_native_available():
+                    print("[gym-anything] Using QemuNativeRunner (auto-detected)")
+                    return QemuNativeRunner(spec)
 
-        # Default: Docker
-        if spec.image or spec.dockerfile:
-            print("[gym-anything] Using DockerRunner")
-            return DockerRunner(spec)
+            # Fallback: Docker
+            if self._check_docker_available() and (spec.image or spec.dockerfile):
+                print("[gym-anything] Using DockerRunner (fallback)")
+                return DockerRunner(spec)
 
-        # Fallback: LocalRunner for testing
-        print("[gym-anything] Using LocalRunner (no container)")
-        return LocalRunner(spec)
+            print("[gym-anything] No suitable runtime found. Run: gym-anything doctor")
+            return LocalRunner(spec)
 
     def _make_qemu_runner(self, spec: EnvSpec) -> BaseRunner:
         """Auto-select between QemuApptainerRunner and QemuNativeRunner."""
@@ -195,7 +207,16 @@ class GymAnythingEnv:
     def _check_qemu_native_available(self) -> bool:
         """Check if QEMU is installed directly on the host."""
         import shutil
+        import platform
+        if platform.machine() in ("arm64", "aarch64"):
+            return shutil.which("qemu-system-aarch64") is not None
         return shutil.which("qemu-system-x86_64") is not None
+
+    def _check_avf_available(self) -> bool:
+        """Check if Apple Virtualization Framework tooling is available."""
+        import shutil
+        return (shutil.which("vfkit") is not None
+                and shutil.which("gvproxy") is not None)
 
     # Public API
     def reset(self, seed: Optional[int] = None, use_cache: bool = False,
