@@ -35,6 +35,7 @@ from typing import Any, Dict, List, Optional
 from ...specs import EnvSpec
 from .base import BaseRunner
 from .qemu_apptainer import QEMU_CACHE, _get_env_hash, _find_free_port
+from .vnc_utils import VNCConnectionPool
 
 # Cache for converted raw images
 AVF_CACHE = QEMU_CACHE / "avf"
@@ -91,9 +92,15 @@ class AVFRunner(BaseRunner):
         # SSH
         self._ssh_user = "ga"
         self._ssh_password = "password123"
-        self.ssh_port: int = 22  # Direct SSH to guest IP (NAT mode)
+        self.ssh_port: int = 22
         self._guest_ip: Optional[str] = None
         self._mac_address: Optional[str] = None
+
+        # VNC (x0vncserver in guest, exposed via gvproxy)
+        vnc_cfg = getattr(spec, "vnc", None)
+        self.vnc_password = vnc_cfg.password if vnc_cfg and vnc_cfg.password else "password"
+        self.vnc_port: Optional[int] = None
+        self._vnc_pool: Optional[VNCConnectionPool] = None
 
         # Base image (raw, converted from arm64 QCOW2)
         AVF_CACHE.mkdir(parents=True, exist_ok=True)
@@ -179,7 +186,8 @@ class AVFRunner(BaseRunner):
 
         # Networking: gvproxy provides isolated network per VM + port forwarding
         gvproxy_vm_sock = self._work_dir / "net.sock"
-        gvproxy_api_sock = self._work_dir / "api.sock"
+        self._gvproxy_api_sock = self._work_dir / "api.sock"
+        gvproxy_api_sock = self._gvproxy_api_sock
         self._gvproxy_process = subprocess.Popen(
             [
                 "gvproxy",
@@ -248,6 +256,9 @@ class AVFRunner(BaseRunner):
         # Wait for desktop
         self._wait_for_desktop(timeout=120)
 
+        # Start VNC server in guest (x0vncserver attaches to existing display)
+        self._start_guest_vnc()
+
         # Set up mounts
         mounts = getattr(self.spec, "mounts", [])
         if mounts:
@@ -255,6 +266,49 @@ class AVFRunner(BaseRunner):
 
         self._running = True
         print(f"[AVF] VM ready!")
+
+    def _start_guest_vnc(self) -> None:
+        """Start x0vncserver in the guest and expose via gvproxy.
+
+        x0vncserver (from TigerVNC) attaches to the running Xorg display,
+        serving the same framebuffer that QEMU's built-in VNC would serve.
+        """
+        try:
+            # Set VNC password in guest
+            self._ssh_exec("mkdir -p /home/ga/.vnc", timeout=10)
+            self._ssh_exec(
+                f"echo '{self.vnc_password}' | vncpasswd -f > /home/ga/.vnc/passwd && chmod 600 /home/ga/.vnc/passwd",
+                timeout=10
+            )
+
+            # Start x0vncserver on the existing display :1
+            self._ssh_exec(
+                "sudo -u ga bash -c '"
+                "DISPLAY=:1 nohup x0vncserver -PasswordFile /home/ga/.vnc/passwd "
+                "-rfbport 5900 -AlwaysShared "
+                ">/tmp/x0vncserver.log 2>&1 &'",
+                timeout=10
+            )
+            time.sleep(2)
+
+            # Allocate host VNC port and expose via gvproxy
+            with self._lock:
+                self.vnc_port = _find_free_port(5900)
+            self._expose_port_via_gvproxy(self._gvproxy_api_sock, self.vnc_port, 5900)
+
+            # Create VNC connection pool (same as QemuApptainerRunner)
+            self._vnc_pool = VNCConnectionPool(
+                host="localhost",
+                port=self.vnc_port,
+                password=self.vnc_password,
+            )
+            conn = self._vnc_pool.get_connection(retry_count=5, retry_delay=2.0)
+            if conn:
+                print(f"[AVF] VNC available at localhost:{self.vnc_port} ({conn.resolution[0]}x{conn.resolution[1]})")
+            else:
+                print(f"[AVF] VNC port forwarded (localhost:{self.vnc_port}) but connection not verified")
+        except Exception as e:
+            print(f"[AVF] VNC setup failed: {e} (screenshots will use ffmpeg/SSH fallback)")
 
     def _expose_port_via_gvproxy(self, api_sock: Path, host_port: int, guest_port: int) -> None:
         """Expose a guest port on the host via gvproxy's HTTP API."""
@@ -383,6 +437,13 @@ class AVFRunner(BaseRunner):
 
     def stop(self) -> None:
         self._stop_event.set()
+        # Close VNC pool
+        if self._vnc_pool:
+            try:
+                self._vnc_pool.close()
+            except Exception:
+                pass
+            self._vnc_pool = None
         # Kill vfkit
         if self._vfkit_process:
             try:
@@ -503,10 +564,22 @@ class AVFRunner(BaseRunner):
         return {}
 
     def capture_screenshot(self, host_path) -> bool:
-        """Capture screenshot via ffmpeg x11grab over SSH."""
+        """Capture screenshot via VNC (primary) or ffmpeg x11grab (fallback)."""
         host_path = Path(host_path)
         host_path.parent.mkdir(parents=True, exist_ok=True)
 
+        # Primary: VNC capture (same as QemuApptainerRunner)
+        if self._vnc_pool:
+            conn = self._vnc_pool.get_connection()
+            if conn:
+                try:
+                    result = conn.capture_screenshot(save_path=host_path)
+                    if result is not None:
+                        return True
+                except Exception:
+                    pass
+
+        # Fallback: ffmpeg x11grab via SSH
         remote_tmp = f"/tmp/ga_screenshot_{uuid.uuid4().hex[:8]}.png"
         width, height = self.resolution
         cmd = (
@@ -514,8 +587,7 @@ class AVFRunner(BaseRunner):
             f"-video_size {width}x{height} -i :1 -vframes 1 {remote_tmp}"
         )
         try:
-            result = self._ssh_exec(f"bash -lc '{cmd}'", timeout=30, capture=True)
-            # Copy file from VM
+            self._ssh_exec(f"bash -lc '{cmd}'", timeout=30)
             self.copy_from(remote_tmp, str(host_path))
             self._ssh_exec(f"rm -f {remote_tmp}", timeout=10)
             return host_path.exists() and host_path.stat().st_size > 0
