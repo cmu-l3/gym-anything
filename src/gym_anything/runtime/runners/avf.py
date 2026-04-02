@@ -24,6 +24,7 @@ from __future__ import annotations
 import os
 import shutil
 import signal
+import socket
 import subprocess
 import tempfile
 import threading
@@ -296,10 +297,10 @@ class AVFRunner(BaseRunner):
                     break
                 time.sleep(1)
 
-            # Allocate host VNC port and expose via gvproxy
+            # Tunnel VNC through SSH (more reliable than gvproxy HTTP API)
             with self._lock:
                 self.vnc_port = _find_free_port(5900)
-            self._expose_port_via_gvproxy(self._gvproxy_api_sock, self.vnc_port, 5900)
+            self._start_vnc_tunnel(self.vnc_port, 5900)
 
             # Create VNC connection pool (same as QemuApptainerRunner)
             self._vnc_pool = VNCConnectionPool(
@@ -315,6 +316,69 @@ class AVFRunner(BaseRunner):
             self._vnc_pool = None
         if not self._vnc_pool:
             print(f"[AVF] VNC not available; screenshots via ffmpeg/SSH")
+
+    def _start_vnc_tunnel(self, local_port: int, remote_port: int) -> None:
+        """Create an SSH tunnel for VNC: localhost:local_port -> guest:remote_port."""
+        import paramiko
+        import select
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                    password=self._ssh_password, timeout=15, look_for_keys=False,
+                    banner_timeout=10)
+        transport = ssh.get_transport()
+
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(("0.0.0.0", local_port))
+        server.listen(5)
+        server.settimeout(1.0)
+
+        def _forward_conn(local_conn):
+            try:
+                chan = transport.open_channel("direct-tcpip",
+                                              ("localhost", remote_port),
+                                              local_conn.getpeername())
+                if chan is None:
+                    local_conn.close()
+                    return
+                while not self._stop_event.is_set():
+                    r, _, _ = select.select([local_conn, chan], [], [], 1.0)
+                    if local_conn in r:
+                        data = local_conn.recv(4096)
+                        if not data:
+                            break
+                        chan.send(data)
+                    if chan in r:
+                        data = chan.recv(4096)
+                        if not data:
+                            break
+                        local_conn.send(data)
+            except Exception:
+                pass
+            finally:
+                try:
+                    chan.close()
+                except Exception:
+                    pass
+                local_conn.close()
+
+        def _accept_loop():
+            while not self._stop_event.is_set():
+                try:
+                    conn, _ = server.accept()
+                    t = threading.Thread(target=_forward_conn, args=(conn,), daemon=True)
+                    t.start()
+                except socket.timeout:
+                    continue
+                except Exception:
+                    break
+            server.close()
+            ssh.close()
+
+        tunnel_thread = threading.Thread(target=_accept_loop, daemon=True)
+        tunnel_thread.start()
 
     def _expose_port_via_gvproxy(self, api_sock: Path, host_port: int, guest_port: int) -> None:
         """Expose a guest port on the host via gvproxy's HTTP API."""
