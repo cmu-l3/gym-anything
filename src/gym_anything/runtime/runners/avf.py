@@ -297,20 +297,14 @@ class AVFRunner(BaseRunner):
                     break
                 time.sleep(1)
 
-            # Tunnel VNC through SSH (more reliable than gvproxy HTTP API)
+            # Tunnel VNC through SSH
             with self._lock:
                 self.vnc_port = _find_free_port(5900)
             self._start_vnc_tunnel(self.vnc_port, 5900)
+            print(f"[AVF] VNC tunnel at localhost:{self.vnc_port}")
 
-            # Create VNC connection pool (same as QemuApptainerRunner)
-            self._vnc_pool = VNCConnectionPool(
-                host="localhost",
-                port=self.vnc_port,
-                password=self.vnc_password,
-            )
-            conn = self._vnc_pool.get_connection(retry_count=5, retry_delay=2.0)
-            if conn:
-                print(f"[AVF] VNC available at localhost:{self.vnc_port} ({conn.resolution[0]}x{conn.resolution[1]})")
+            # Defer VNC pool creation to first use (avoids threading deadlock during start)
+            # The pool will be created lazily in capture_screenshot
         except Exception as e:
             print(f"[AVF] VNC setup failed: {e}")
             self._vnc_pool = None
@@ -651,6 +645,17 @@ class AVFRunner(BaseRunner):
         """Capture screenshot via VNC (primary) or ffmpeg x11grab (fallback)."""
         host_path = Path(host_path)
         host_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Lazily create VNC pool on first screenshot
+        if self._vnc_pool is None and self.vnc_port:
+            try:
+                self._vnc_pool = VNCConnectionPool(
+                    host="localhost",
+                    port=self.vnc_port,
+                    password=self.vnc_password,
+                )
+            except Exception:
+                pass
 
         # Primary: VNC capture (same as QemuApptainerRunner)
         if self._vnc_pool:
