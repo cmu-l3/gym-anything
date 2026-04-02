@@ -91,7 +91,9 @@ class AVFRunner(BaseRunner):
         # SSH
         self._ssh_user = "ga"
         self._ssh_password = "password123"
-        self.ssh_port: Optional[int] = None
+        self.ssh_port: int = 22  # Direct SSH to guest IP (NAT mode)
+        self._guest_ip: Optional[str] = None
+        self._mac_address: Optional[str] = None
 
         # Base image (raw, converted from arm64 QCOW2)
         AVF_CACHE.mkdir(parents=True, exist_ok=True)
@@ -100,7 +102,6 @@ class AVFRunner(BaseRunner):
         # State
         self._running = False
         self._vfkit_process: Optional[subprocess.Popen] = None
-        self._gvproxy_process: Optional[subprocess.Popen] = None
         self._work_dir: Optional[Path] = None
         self._instance_raw: Optional[Path] = None
         self._lock = threading.Lock()
@@ -120,11 +121,6 @@ class AVFRunner(BaseRunner):
     def _check_prerequisites(self) -> None:
         if not shutil.which("vfkit"):
             raise RuntimeError("vfkit not found. Install: brew install vfkit")
-        if not shutil.which("gvproxy"):
-            raise RuntimeError(
-                "gvproxy not found. Download from: "
-                "https://github.com/containers/gvisor-tap-vsock/releases"
-            )
         if not shutil.which("qemu-img"):
             raise RuntimeError("qemu-img not found. Install: brew install qemu")
 
@@ -177,60 +173,29 @@ class AVFRunner(BaseRunner):
                        check=True, capture_output=True)
         print(f"[AVF] APFS COW overlay created")
 
-        # Allocate SSH port
-        with self._lock:
-            self.ssh_port = _find_free_port(2222)
-        print(f"[AVF] SSH port: {self.ssh_port}")
-
-        # Create gvproxy socket path
-        gvproxy_sock = self._work_dir / "net.sock"
-
-        # Start gvproxy for networking + SSH port forwarding
-        gvproxy_log = self._work_dir / "gvproxy.log"
-        with open(gvproxy_log, "w") as lf:
-            self._gvproxy_process = subprocess.Popen(
-                [
-                    "gvproxy",
-                    "-listen-vfkit", f"unixgram://{gvproxy_sock}",
-                    "-ssh-port", str(self.ssh_port),
-                    "-pid-file", str(self._work_dir / "gvproxy.pid"),
-                    "-log-file", str(gvproxy_log),
-                ],
-                stdout=lf, stderr=subprocess.STDOUT,
-                preexec_fn=os.setsid,
-            )
-        time.sleep(1)  # Let gvproxy start and create socket
-
-        if not gvproxy_sock.exists():
-            time.sleep(2)
-        if not gvproxy_sock.exists():
-            raise RuntimeError(f"gvproxy socket not created at {gvproxy_sock}")
+        # Generate a unique MAC address for this instance
+        h = uuid.uuid4().hex
+        self._mac_address = f"52:54:00:{h[:2]}:{h[2:4]}:{h[4:6]}"
 
         # EFI variable store
         efi_store = self._work_dir / "efi-variable-store"
 
-        # Write Rosetta setup script to disk (will be run after boot via SSH)
-        rosetta_script = self._work_dir / "setup_rosetta.sh"
-        rosetta_script.write_text(ROSETTA_SETUP_SCRIPT)
-
-        # Build vfkit command
+        # Build vfkit command — using NAT networking (macOS handles DHCP)
         vfkit_cmd = [
             "vfkit",
             "--cpus", str(self.cpus),
             "--memory", str(self.memory),
             "--bootloader", f"efi,variable-store={efi_store},create",
             "--device", f"virtio-blk,path={self._instance_raw}",
-            "--device", f"virtio-net,unixSocketPath={gvproxy_sock},mac=52:54:00:{uuid.uuid4().hex[:2]}:{uuid.uuid4().hex[:2]}:{uuid.uuid4().hex[:2]}",
+            "--device", f"virtio-net,nat,mac={self._mac_address}",
             "--device", "virtio-rng",
-            "--device", "virtio-serial,logFilePath=" + str(self._work_dir / "serial.log"),
             # Rosetta for x86_64 binary translation
             "--device", "rosetta,mountTag=rosetta-share",
-            "--restful-uri", f"tcp://localhost:{_find_free_port(8080)}",
         ]
 
         # Start vfkit
         vfkit_log = self._work_dir / "vfkit.log"
-        print(f"[AVF] Starting vfkit VM...")
+        print(f"[AVF] Starting vfkit VM (NAT mode)...")
         with open(vfkit_log, "w") as lf:
             self._vfkit_process = subprocess.Popen(
                 vfkit_cmd,
@@ -238,13 +203,22 @@ class AVFRunner(BaseRunner):
                 preexec_fn=os.setsid,
             )
 
-        # Wait for SSH
-        if not self._wait_for_ssh(timeout=180):
+        # Discover guest IP from macOS DHCP leases
+        self._guest_ip = self._discover_guest_ip(timeout=180)
+        if not self._guest_ip:
+            self._dump_logs()
+            self.stop()
+            raise RuntimeError("VM failed to get network (no DHCP lease found)")
+
+        print(f"[AVF] Guest IP: {self._guest_ip}")
+
+        # Wait for SSH to be responsive
+        if not self._wait_for_ssh(timeout=120):
             self._dump_logs()
             self.stop()
             raise RuntimeError("VM failed to boot (SSH not available)")
 
-        print(f"[AVF] SSH available on port {self.ssh_port}")
+        print(f"[AVF] SSH available at {self._guest_ip}:22")
 
         # Set up Rosetta in the guest
         self._setup_rosetta()
@@ -260,15 +234,43 @@ class AVFRunner(BaseRunner):
         self._running = True
         print(f"[AVF] VM ready!")
 
-    def _wait_for_ssh(self, timeout: float = 180) -> bool:
-        """Poll until SSH is actually responsive (not just port open)."""
+    def _discover_guest_ip(self, timeout: float = 180) -> Optional[str]:
+        """Find guest IP by matching MAC address in macOS DHCP leases.
+
+        The lease file format uses "1," prefix and strips leading zeros from
+        MAC octets (e.g., 52:54:00:ab:cd:ef → 1,52:54:0:ab:cd:ef).
+        """
+        import re
+        lease_file = Path("/var/db/dhcpd_leases")
+
+        # Normalize our MAC to match the lease format:
+        # strip leading zero from each octet, e.g. "00" → "0", "0a" → "a"
+        our_octets = self._mac_address.lower().split(":")
+        our_normalized = ":".join(o.lstrip("0") or "0" for o in our_octets)
+        # Lease format: "1,<normalized_mac>"
+        target = f"1,{our_normalized}"
+
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if lease_file.exists():
+                content = lease_file.read_text()
+                for block in content.split("}"):
+                    if target in block:
+                        ip_match = re.search(r"ip_address=(\S+)", block)
+                        if ip_match:
+                            return ip_match.group(1)
+            time.sleep(3)
+        return None
+
+    def _wait_for_ssh(self, timeout: float = 120) -> bool:
+        """Poll until SSH is actually responsive at the guest IP."""
         import paramiko
         deadline = time.time() + timeout
         while time.time() < deadline:
             try:
                 client = paramiko.SSHClient()
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                client.connect(self._guest_ip, port=22, username=self._ssh_user,
                               password=self._ssh_password, timeout=10, look_for_keys=False)
                 client.close()
                 return True
@@ -338,18 +340,6 @@ class AVFRunner(BaseRunner):
                     pass
             self._vfkit_process = None
 
-        # Kill gvproxy
-        if self._gvproxy_process:
-            try:
-                os.killpg(os.getpgid(self._gvproxy_process.pid), signal.SIGTERM)
-                self._gvproxy_process.wait(timeout=5)
-            except Exception:
-                try:
-                    os.killpg(os.getpgid(self._gvproxy_process.pid), signal.SIGKILL)
-                except Exception:
-                    pass
-            self._gvproxy_process = None
-
         # Cleanup work dir
         if self._work_dir and self._work_dir.exists():
             shutil.rmtree(self._work_dir, ignore_errors=True)
@@ -373,7 +363,7 @@ class AVFRunner(BaseRunner):
         import paramiko
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+        client.connect(self._guest_ip, port=22, username=self._ssh_user,
                       password=self._ssh_password, timeout=15, look_for_keys=False)
         _, stdout, stderr = client.exec_command(cmd, timeout=timeout)
         out = stdout.read().decode()
@@ -471,7 +461,7 @@ class AVFRunner(BaseRunner):
         import paramiko
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+        client.connect(self._guest_ip, port=22, username=self._ssh_user,
                       password=self._ssh_password, timeout=15, look_for_keys=False)
         sftp = client.open_sftp()
 
@@ -503,7 +493,7 @@ class AVFRunner(BaseRunner):
         import paramiko
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+        client.connect(self._guest_ip, port=22, username=self._ssh_user,
                       password=self._ssh_password, timeout=15, look_for_keys=False)
         sftp = client.open_sftp()
         sftp.get(container_src, host_dst)
