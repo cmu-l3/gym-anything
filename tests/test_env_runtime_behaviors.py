@@ -111,14 +111,6 @@ def _make_env_spec(output_dir: str, *, runner: str | None = None, recording: boo
 
 
 class RuntimeBehaviorTests(unittest.TestCase):
-    def test_browser_runner_is_selectable(self) -> None:
-        env = GymAnythingEnv.__new__(GymAnythingEnv)
-        spec = _make_env_spec("./artifacts", runner="browser")
-
-        runner = GymAnythingEnv._select_runner(env, spec)
-
-        self.assertEqual(runner.__class__.__name__, "BrowserRunner")
-
     def test_close_runs_post_task_hook_for_unfinished_episode(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runner = _FakeRunner()

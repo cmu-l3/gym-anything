@@ -12,7 +12,6 @@ LINUX_PRESETS = (
     "ubuntu-gnome-systemd",
     "ubuntu-gnome-systemd_highres",
     "ubuntu-gnome-systemd_highres_gimp",
-    "browser-chrome",
     "apptainer-xfce-gpu",
 )
 
