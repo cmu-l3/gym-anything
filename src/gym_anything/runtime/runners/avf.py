@@ -289,12 +289,18 @@ class AVFRunner(BaseRunner):
                 ">/tmp/x0vncserver.log 2>&1 &'",
                 timeout=10
             )
-            time.sleep(2)
 
             # Allocate host VNC port and expose via gvproxy
             with self._lock:
                 self.vnc_port = _find_free_port(5900)
             self._expose_port_via_gvproxy(self._gvproxy_api_sock, self.vnc_port, 5900)
+
+            # Wait for x0vncserver to bind (check via SSH)
+            for _ in range(10):
+                result = self._ssh_exec("ss -tlnp | grep 5900", timeout=5, capture=True)
+                if "5900" in result:
+                    break
+                time.sleep(2)
 
             # Create VNC connection pool (same as QemuApptainerRunner)
             self._vnc_pool = VNCConnectionPool(
