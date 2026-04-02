@@ -260,6 +260,30 @@ class QemuNativeRunner(QemuApptainerRunner):
             get_cloud_init_meta_data,
         )
 
+        # Append wildcard netplan config so the image works on both QEMU and vfkit.
+        # QEMU uses ens3/enp0s*, vfkit uses enp0s* or different names.
+        # A renderer: NetworkManager config with a match-all rule handles both.
+        NETPLAN_FIXUP = """
+  - |
+    cat > /etc/netplan/99-wildcard-dhcp.yaml << 'NPEOF'
+    network:
+      version: 2
+      renderer: NetworkManager
+      ethernets:
+        all-en:
+          match:
+            name: "en*"
+          dhcp4: true
+          dhcp6: true
+    NPEOF
+  - netplan generate || true
+"""
+        # Insert before the final_message line
+        cloud_init = CLOUD_INIT_USER_DATA.replace(
+            "\nfinal_message:",
+            NETPLAN_FIXUP + "\nfinal_message:",
+        )
+
         QEMU_CACHE.mkdir(parents=True, exist_ok=True)
 
         # Select cloud image based on guest architecture
@@ -290,7 +314,7 @@ class QemuNativeRunner(QemuApptainerRunner):
             # Create cloud-init ISO
             ci_dir = work_dir / "cloud-init"
             ci_dir.mkdir(exist_ok=True)
-            (ci_dir / "user-data").write_text(CLOUD_INIT_USER_DATA)
+            (ci_dir / "user-data").write_text(cloud_init)
             (ci_dir / "meta-data").write_text(get_cloud_init_meta_data())
 
             iso_path = work_dir / "cloud-init.iso"

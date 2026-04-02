@@ -224,7 +224,7 @@ class AVFRunner(BaseRunner):
             "--device", "virtio-rng",
             "--device", "virtio-serial,logFilePath=" + str(self._work_dir / "serial.log"),
             # Rosetta for x86_64 binary translation
-            "--device", "rosetta,mountTag=rosetta-share,install,ignoreIfMissing",
+            "--device", "rosetta,mountTag=rosetta-share",
             "--restful-uri", f"tcp://localhost:{_find_free_port(8080)}",
         ]
 
@@ -261,17 +261,19 @@ class AVFRunner(BaseRunner):
         print(f"[AVF] VM ready!")
 
     def _wait_for_ssh(self, timeout: float = 180) -> bool:
-        """Poll until SSH is available."""
-        import socket
+        """Poll until SSH is actually responsive (not just port open)."""
+        import paramiko
         deadline = time.time() + timeout
         while time.time() < deadline:
             try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.settimeout(3)
-                    s.connect(("localhost", self.ssh_port))
-                    return True
-            except (OSError, socket.timeout):
-                time.sleep(2)
+                client = paramiko.SSHClient()
+                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                              password=self._ssh_password, timeout=10, look_for_keys=False)
+                client.close()
+                return True
+            except Exception:
+                time.sleep(3)
         return False
 
     def _setup_rosetta(self) -> None:
