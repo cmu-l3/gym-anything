@@ -10,6 +10,7 @@ _RUNNER_MODULES = (
     "apptainer_direct",
     "avd_apptainer",
     "avd_native",
+    "avf",
     "avd_sdk_manager",
     "base",
     "build_android_qcow2_apptainer",

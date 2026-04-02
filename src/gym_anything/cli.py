@@ -170,12 +170,12 @@ def main(argv=None):
     p_run.set_defaults(func=cmd_run)
 
     p_compat = sub.add_parser("compatibility", help="Show the runner compatibility checklist")
-    p_compat.add_argument("--runner", choices=["docker", "qemu", "qemu_native", "avd", "avd_native", "apptainer", "local"])
+    p_compat.add_argument("--runner", choices=["docker", "qemu", "qemu_native", "avd", "avd_native", "avf", "apptainer", "local"])
     p_compat.add_argument("--json", action="store_true")
     p_compat.set_defaults(func=cmd_compatibility)
 
     p_doctor = sub.add_parser("doctor", help="Check system prerequisites and optional verifier imports")
-    p_doctor.add_argument("--runner", choices=["docker", "qemu", "qemu_native", "avd", "avd_native", "apptainer", "local"])
+    p_doctor.add_argument("--runner", choices=["docker", "qemu", "qemu_native", "avd", "avd_native", "avf", "apptainer", "local"])
     p_doctor.add_argument("--verification-root")
     p_doctor.add_argument("--json", action="store_true")
     p_doctor.set_defaults(func=cmd_doctor)

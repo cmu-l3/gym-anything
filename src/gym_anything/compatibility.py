@@ -107,6 +107,20 @@ _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
             "EnvSpec.user_accounts is compatible as credential/config metadata, not as general-purpose account provisioning.",
         ],
     ),
+    "avf": RunnerCompatibility(
+        runner="avf",
+        display_name="AVFRunner",
+        live_recording=False,
+        screenshot_video_assembly=True,
+        checkpoint_caching=False,
+        savevm=False,
+        user_accounts_mode="preprovisioned_accounts",
+        notes=[
+            "Uses Apple Virtualization Framework with Rosetta for x86_64 binary translation.",
+            "Near-native speed (~80% of native) for x86 binaries on Apple Silicon.",
+            "Requires macOS 13+ on Apple Silicon, vfkit, and gvproxy.",
+        ],
+    ),
     "local": RunnerCompatibility(
         runner="local",
         display_name="LocalRunner",
@@ -146,6 +160,7 @@ def infer_runner_key_from_name(name: str) -> Optional[str]:
         "qemunativerunner": "qemu_native",
         "avdapptainerrunner": "avd",
         "avdnativerunner": "avd_native",
+        "avfrunner": "avf",
         "apptainerdirectrunner": "apptainer",
         "localrunner": "local",
     }

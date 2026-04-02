@@ -71,6 +71,12 @@ class GymAnythingEnv:
         spec_runner = getattr(spec, 'runner', None)
         spec_base = getattr(spec, 'base', None)
 
+        # --- AVF runner (Apple Virtualization Framework + Rosetta) ---
+        if runner_override == "avf" or spec_runner == "avf":
+            from .runtime.runners.avf import AVFRunner
+            print("[gym-anything] Using AVFRunner (Apple Virtualization Framework + Rosetta)")
+            return AVFRunner(spec)
+
         # --- AVD runners ---
         if runner_override == "avd_native" or spec_runner == "avd_native":
             from .runtime.runners.avd_native import AVDNativeRunner

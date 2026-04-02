@@ -83,6 +83,10 @@ def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
     if target in {"all", "avd"}:
         checks.append(_check_binary("adb", "adb", probe=["adb", "version"]))
         checks.append(_check_binary("emulator", "emulator", probe=["emulator", "-version"]))
+    if target in {"all", "avf"}:
+        checks.append(_check_binary("vfkit", "vfkit", probe=["vfkit", "--version"]))
+        checks.append(_check_binary("gvproxy", "gvproxy"))
+        checks.append(_check_binary("qemu_img", "qemu-img", probe=["qemu-img", "--version"]))
     if target in {"all", "avd_native"}:
         checks.append(_check_binary("adb", "adb", probe=["adb", "version"]))
         checks.append(_check_binary("emulator", "emulator", probe=["emulator", "-version"]))
