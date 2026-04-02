@@ -447,13 +447,13 @@ class AVFRunner(BaseRunner):
 
     def exec(self, cmd: str, env: Optional[Dict[str, str]] = None,
              user: Optional[str] = None, use_pty: bool = True, timeout: int = 600) -> int:
-        """Execute a command in the VM."""
+        """Execute a command in the VM via gvproxy SSH forwarding."""
         full_cmd = f"sudo -E {cmd}" if user is None or user == "root" else cmd
         try:
             import paramiko
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(self._guest_ip, port=22, username=self._ssh_user,
+            client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
                           password=self._ssh_password, timeout=15, look_for_keys=False)
             _, stdout, stderr = client.exec_command(full_cmd, timeout=timeout, get_pty=use_pty)
             exit_code = stdout.channel.recv_exit_status()
