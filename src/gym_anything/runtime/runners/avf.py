@@ -377,21 +377,35 @@ class AVFRunner(BaseRunner):
             time.sleep(3)
         return None
 
-    def _wait_for_ssh(self, timeout: float = 120) -> bool:
+    def _wait_for_ssh(self, timeout: float = 300) -> bool:
         """Poll until SSH is responsive via gvproxy port forwarding."""
         import paramiko
+        import logging
+        # Suppress paramiko's noisy error logging during retries
+        paramiko_logger = logging.getLogger("paramiko")
+        old_level = paramiko_logger.level
+        paramiko_logger.setLevel(logging.CRITICAL)
+
+        print("[AVF] Waiting for VM to boot...", end="", flush=True)
         deadline = time.time() + timeout
-        while time.time() < deadline:
-            try:
-                client = paramiko.SSHClient()
-                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                              password=self._ssh_password, timeout=10, look_for_keys=False)
-                client.close()
-                return True
-            except Exception:
-                time.sleep(3)
-        return False
+        try:
+            while time.time() < deadline:
+                try:
+                    client = paramiko.SSHClient()
+                    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                    client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                                  password=self._ssh_password, timeout=10, look_for_keys=False,
+                                  banner_timeout=10)
+                    client.close()
+                    print(" ready!", flush=True)
+                    return True
+                except Exception:
+                    print(".", end="", flush=True)
+                    time.sleep(3)
+            print(" timeout!", flush=True)
+            return False
+        finally:
+            paramiko_logger.setLevel(old_level)
 
     def _setup_rosetta(self) -> None:
         """Mount Rosetta and register binfmt_misc in the guest."""
