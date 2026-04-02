@@ -189,6 +189,8 @@ class AVFRunner(BaseRunner):
             "--device", f"virtio-blk,path={self._instance_raw}",
             "--device", f"virtio-net,nat,mac={self._mac_address}",
             "--device", "virtio-rng",
+            # Display device (required for GDM/Xorg to start, even headless)
+            "--device", f"virtio-gpu,width={self.resolution[0]},height={self.resolution[1]}",
             # Rosetta for x86_64 binary translation
             "--device", "rosetta,mountTag=rosetta-share",
         ]
@@ -386,7 +388,7 @@ class AVFRunner(BaseRunner):
             import paramiko
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+            client.connect(self._guest_ip, port=22, username=self._ssh_user,
                           password=self._ssh_password, timeout=15, look_for_keys=False)
             _, stdout, stderr = client.exec_command(full_cmd, timeout=timeout, get_pty=use_pty)
             exit_code = stdout.channel.recv_exit_status()
