@@ -25,11 +25,35 @@ from .verification import (
 from .verification.pipeline import verify_task_pipeline
 from .verification.reports import render_task_pipeline_result_text
 
+_ENV_SEARCH_PATHS = [
+    "benchmarks/environments",
+]
+
+
+def _resolve_env_dir(name: str) -> str:
+    """Resolve a short env name (e.g. 'moodle_env') to its full path."""
+    # Already a valid path
+    if Path(name).is_dir() and (Path(name) / "env.json").exists():
+        return name
+    # Search standard locations
+    for base in _ENV_SEARCH_PATHS:
+        candidate = Path(base) / name
+        if candidate.is_dir() and (candidate / "env.json").exists():
+            return str(candidate)
+    # Fuzzy: try appending _env
+    if not name.endswith("_env"):
+        return _resolve_env_dir(name + "_env")
+    print(f"Error: environment '{name}' not found.", file=sys.stderr)
+    print(f"Run 'gym-anything list' to see available environments.", file=sys.stderr)
+    sys.exit(1)
+
+
 def _print_json(data) -> None:
     print(json.dumps(data, indent=2, sort_keys=True))
 
 
 def cmd_verify_spec(args):
+    args.env_dir = _resolve_env_dir(args.env_dir)
     summary = verify_environment_dir(args.env_dir, task_id=args.task)
     if args.json:
         _print_json(summary.to_dict())
@@ -54,6 +78,7 @@ def cmd_verify_corpus(args):
 
 
 def cmd_verify_task(args):
+    args.env_dir = _resolve_env_dir(args.env_dir)
     result = verify_task_pipeline(
         env_dir=args.env_dir,
         task_id=args.task,
@@ -70,6 +95,7 @@ def cmd_verify_task(args):
 
 
 def cmd_validate(args):
+    args.env_dir = _resolve_env_dir(args.env_dir)
     summary = verify_environment_dir(args.env_dir, task_id=args.task)
     if summary.ok:
         first_task = next((record.spec_id for record in summary.records if record.kind == "task"), None)
@@ -80,56 +106,58 @@ def cmd_validate(args):
     return 1
 
 
+def _pick_random_task(env_dir: str) -> str:
+    """Pick a random task from the environment's tasks directory."""
+    import random
+    tasks_dir = Path(env_dir) / "tasks"
+    if not tasks_dir.is_dir():
+        return None
+    tasks = [t.name for t in tasks_dir.iterdir() if t.is_dir()]
+    if not tasks:
+        return None
+    chosen = random.choice(tasks)
+    return chosen
+
+
 def cmd_run(args):
+    args.env_dir = _resolve_env_dir(args.env_dir)
+    if not args.task:
+        args.task = _pick_random_task(args.env_dir)
+        if args.task:
+            print(f"No task specified, randomly selected: {args.task}")
     env = from_config(args.env_dir, task_id=args.task)
 
     if args.interactive:
-        # Interactive mode: boot environment, print connection info, keep alive
-        print(f"Booting environment: {args.env_dir}")
-        if args.task:
-            print(f"Task: {args.task}")
-        print()
+        from .tui.progress import create_reporter
+        from .tui.session import InteractiveSession
 
-        obs = env.reset(seed=args.seed)
+        env_name = Path(args.env_dir).name
+        reporter = create_reporter(env_name=env_name, task_name=args.task or "")
+        env.set_reporter(reporter)
 
-        runner = env._runner
-        print()
-        print("=" * 60)
-        print("  Environment ready!")
-        print("=" * 60)
-        print()
+        reporter.define_stages([
+            ("instance", "Initializing instance"),
+            ("base_image", "Base image check"),
+            ("cow_overlay", "COW overlay"),
+            ("networking", "Network setup"),
+            ("vm_launch", "Launching VM"),
+            ("port_forward", "Port forwarding"),
+            ("ssh_wait", "Waiting for SSH"),
+            ("rosetta", "Rosetta setup"),
+            ("desktop_wait", "Waiting for desktop"),
+            ("vnc_setup", "VNC setup"),
+            ("mounts", "File mounts"),
+            ("pre_start_hook", "Pre-start hook"),
+            ("post_start_hook", "Post-start hook"),
+            ("pre_task_hook", "Pre-task hook"),
+            ("ready", "Ready"),
+        ])
 
-        vnc_port = getattr(runner, "vnc_port", None)
-        ssh_port = getattr(runner, "ssh_port", None)
-        guest_ip = getattr(runner, "_guest_ip", None)
+        with reporter:
+            obs = env.reset(seed=args.seed)
 
-        if vnc_port:
-            print(f"  VNC:  vnc://localhost:{vnc_port}")
-            vnc_pw = getattr(runner, "vnc_password", "password")
-            print(f"        password: {vnc_pw}")
-        if ssh_port:
-            user = getattr(runner, "_ssh_user", "ga")
-            pw = getattr(runner, "_ssh_password", "password123")
-            print(f"  SSH:  ssh -p {ssh_port} {user}@localhost")
-            print(f"        password: {pw}")
-        if guest_ip and not ssh_port:
-            user = getattr(runner, "_ssh_user", "ga")
-            print(f"  SSH:  ssh {user}@{guest_ip}")
-
-        print()
-        print(f"  Artifacts: {env._episode_dir}")
-        print()
-        print("Press Ctrl+C to stop the environment.")
-        print()
-
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("\nStopping environment...")
-
-        env.close()
-        print("Environment stopped.")
+        session = InteractiveSession(env, auto_open_vnc=getattr(args, "open_vnc", False))
+        session.run()
         return 0
 
     # Non-interactive mode: run steps
@@ -160,6 +188,33 @@ def cmd_compatibility(args):
         _print_json([item.to_dict() for item in compatibilities])
     else:
         print(render_compatibility_text(compatibilities))
+    return 0
+
+
+def cmd_list(args):
+    for base in _ENV_SEARCH_PATHS:
+        base_path = Path(base)
+        if not base_path.is_dir():
+            continue
+        envs = sorted(
+            d.name for d in base_path.iterdir()
+            if d.is_dir() and (d / "env.json").exists()
+        )
+        if not envs:
+            continue
+        for env_name in envs:
+            env_dir = base_path / env_name
+            tasks = sorted(
+                t.name for t in (env_dir / "tasks").iterdir()
+                if t.is_dir()
+            ) if (env_dir / "tasks").is_dir() else []
+            if args.verbose:
+                print(f"{env_name}  ({len(tasks)} tasks)")
+                for t in tasks:
+                    print(f"  - {t}")
+            else:
+                task_str = f"  ({len(tasks)} tasks)" if tasks else ""
+                print(f"{env_name}{task_str}")
     return 0
 
 
@@ -216,14 +271,20 @@ def main(argv=None):
     p_val.add_argument("--task")
     p_val.set_defaults(func=cmd_validate)
 
+    p_list = sub.add_parser("list", help="List available environments")
+    p_list.add_argument("-v", "--verbose", action="store_true", help="Show tasks for each environment")
+    p_list.set_defaults(func=cmd_list)
+
     p_run = sub.add_parser("run", help="Run an environment")
-    p_run.add_argument("env_dir", help="Path to environment directory (e.g. benchmarks/environments/moodle_env)")
+    p_run.add_argument("env_dir", help="Environment name (e.g. moodle_env) or path")
     p_run.add_argument("--task", help="Task ID to load")
     p_run.add_argument("--interactive", "-i", action="store_true",
                        help="Keep environment alive for interactive use (VNC/SSH). Press Ctrl+C to stop.")
     p_run.add_argument("--steps", type=int, help="Number of steps to run (non-interactive mode)")
     p_run.add_argument("--seed", type=int, default=42)
     p_run.add_argument("--debug", action="store_true")
+    p_run.add_argument("--open-vnc", action="store_true",
+                       help="Automatically open VNC viewer after boot (macOS: Screen Sharing)")
     p_run.set_defaults(func=cmd_run)
 
     p_compat = sub.add_parser("compatibility", help="Show the runner compatibility checklist")

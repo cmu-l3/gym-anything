@@ -16,6 +16,34 @@ class BaseRunner(abc.ABC):
 
     def __init__(self, spec: EnvSpec):
         self.spec = spec
+        self._reporter = None
+
+    def set_reporter(self, reporter) -> None:
+        self._reporter = reporter
+
+    def _report_start(self, key: str, detail: str = "") -> None:
+        if self._reporter:
+            self._reporter.stage_start(key, detail)
+
+    def _report_done(self, key: str, detail: str = "") -> None:
+        if self._reporter:
+            self._reporter.stage_done(key, detail)
+
+    def _report_update(self, key: str, detail: str) -> None:
+        if self._reporter:
+            self._reporter.stage_update(key, detail)
+
+    def _report_skip(self, key: str, reason: str = "") -> None:
+        if self._reporter:
+            self._reporter.stage_skip(key, reason)
+
+    def _report_fail(self, key: str, error: str) -> None:
+        if self._reporter:
+            self._reporter.stage_fail(key, error)
+
+    def _report_log(self, message: str) -> None:
+        if self._reporter:
+            self._reporter.log(message)
 
     @abc.abstractmethod
     def start(self, seed: Optional[int] = None) -> None:

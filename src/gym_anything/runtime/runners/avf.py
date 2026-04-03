@@ -111,9 +111,9 @@ class AVFRunner(BaseRunner):
         self._running = False
         self._vfkit_process: Optional[subprocess.Popen] = None
         self._gvproxy_process: Optional[subprocess.Popen] = None
-        self._gvproxy_api_sock: Optional[Path] = None
         self._work_dir: Optional[Path] = None
         self._instance_raw: Optional[Path] = None
+        self._ssh_tunnel_process: Optional[subprocess.Popen] = None
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
         self._consecutive_ssh_failures = 0
@@ -125,8 +125,19 @@ class AVFRunner(BaseRunner):
         self.is_android = False
         self.env_hash = _get_env_hash(spec)
 
+        # Checkpoint caching
+        self._checkpoint_cache_level: str = "pre_start"
+        self._checkpoint_task_id: Optional[str] = None
+
         # Recording dir
         self._artifacts_root = os.path.abspath(spec.recording.output_dir)
+
+    def _log(self, msg: str) -> None:
+        """Print a log message, suppressed when TUI reporter is active."""
+        if self._reporter:
+            self._reporter.log(msg)
+        else:
+            print(msg, flush=True)
 
     def _check_prerequisites(self) -> None:
         if not shutil.which("vfkit"):
@@ -166,44 +177,112 @@ class AVFRunner(BaseRunner):
         size_gb = self._base_raw.stat().st_size / (1024**3)
         print(f"[AVF] Raw base image ready: {self._base_raw} ({size_gb:.1f} GB)")
 
+    @staticmethod
+    def _cleanup_orphans() -> None:
+        """Kill orphaned vfkit/gvproxy processes from previous crashed runs."""
+        work_base = AVF_CACHE / "work"
+        if not work_base.exists():
+            return
+        for d in work_base.iterdir():
+            if not d.is_dir() or not d.name.startswith("ga_avf_"):
+                continue
+            # Check if the owning process is still alive by looking for a pidfile
+            pid_file = d / "runner.pid"
+            if pid_file.exists():
+                try:
+                    pid = int(pid_file.read_text().strip())
+                    os.kill(pid, 0)  # Check if process exists
+                    continue  # Still alive, don't touch
+                except (ValueError, ProcessLookupError, PermissionError):
+                    pass  # Dead process, clean up
+            # Kill any processes using sockets in this work dir
+            for sock in d.glob("*.sock"):
+                try:
+                    # Find and kill processes using this socket
+                    result = subprocess.run(
+                        ["lsof", "-t", str(sock)],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    for pid_str in result.stdout.strip().split():
+                        try:
+                            os.kill(int(pid_str), signal.SIGKILL)
+                        except (ProcessLookupError, PermissionError):
+                            pass
+                except Exception:
+                    pass
+            shutil.rmtree(d, ignore_errors=True)
+
     def start(self, seed: Optional[int] = None) -> None:
-        print(f"[AVF] Instance: {self.instance_name}")
+        self._report_start("instance", self.instance_name)
+        self._log(f"[AVF] Instance: {self.instance_name}")
+
+        # Clean up orphaned processes from previous crashed runs
+        self._cleanup_orphans()
+
+        # Register atexit handler so stop() runs even on unhandled exceptions
+        import atexit
+        atexit.register(self.stop)
+
+        self._report_done("instance", self.instance_name)
 
         # Ensure base image
+        self._report_start("base_image", "checking cache")
         self._ensure_base_raw()
+        self._report_done("base_image", "cached")
 
         # Create work directory
         work_base = AVF_CACHE / "work"
         work_base.mkdir(parents=True, exist_ok=True)
         self._work_dir = Path(tempfile.mkdtemp(prefix=f"ga_avf_{self.instance_id}_", dir=work_base))
 
+        # Write PID file so future runs can detect orphans
+        (self._work_dir / "runner.pid").write_text(str(os.getpid()))
+
         # Create COW overlay using APFS clonefile (instant, no extra disk space)
         self._instance_raw = self._work_dir / "disk.raw"
         subprocess.run(["cp", "-c", str(self._base_raw), str(self._instance_raw)],
                        check=True, capture_output=True)
-        print(f"[AVF] APFS COW overlay created")
+        self._report_done("cow_overlay", "APFS clonefile")
+        self._log(f"[AVF] APFS COW overlay created")
 
         # Allocate a unique SSH port for this instance
         with self._lock:
             self.ssh_port = _find_free_port(2222)
 
-        # Networking: gvproxy provides isolated network per VM + port forwarding
+        # Networking: gvproxy provides isolated network per VM.
+        # -ssh-port is set to a throwaway port to prevent gvproxy binding to default 2222
+        # (which conflicts in parallel runs). Actual SSH forwarding is done via the HTTP API
+        # to the correct guest IP (192.168.127.3), not gvproxy's hardcoded .2.
         gvproxy_vm_sock = self._work_dir / "net.sock"
-        self._gvproxy_api_sock = self._work_dir / "api.sock"
-        gvproxy_api_sock = self._gvproxy_api_sock
-        self._gvproxy_process = subprocess.Popen(
-            [
-                "gvproxy",
-                "-listen-vfkit", f"unixgram://{gvproxy_vm_sock}",
-                "-listen", f"unix://{gvproxy_api_sock}",
-            ],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            preexec_fn=os.setsid,
-        )
-        time.sleep(2)
+        gvproxy_api_sock = self._work_dir / "api.sock"
+        gvproxy_dummy_ssh = _find_free_port(10000)  # throwaway, just to avoid 2222 conflict
+        gvproxy_log = self._work_dir / "gvproxy.log"
+        with open(gvproxy_log, "w") as gl:
+            self._gvproxy_process = subprocess.Popen(
+                [
+                    "gvproxy",
+                    "-listen-vfkit", f"unixgram://{gvproxy_vm_sock}",
+                    "-listen", f"unix://{gvproxy_api_sock}",
+                    "-ssh-port", str(gvproxy_dummy_ssh),
+                ],
+                stdout=gl, stderr=subprocess.STDOUT,
+                preexec_fn=os.setsid,
+            )
+        # Wait for socket — check process liveness on every iteration
+        for _ in range(10):
+            if gvproxy_vm_sock.exists():
+                break
+            if self._gvproxy_process.poll() is not None:
+                err = gvproxy_log.read_text()[:500] if gvproxy_log.exists() else "no log"
+                raise RuntimeError(
+                    f"gvproxy exited immediately (code {self._gvproxy_process.returncode}): {err}"
+                )
+            time.sleep(0.5)
         if not gvproxy_vm_sock.exists():
-            raise RuntimeError("gvproxy failed to start (no VM socket)")
-        print(f"[AVF] gvproxy started (isolated network, SSH port {self.ssh_port})")
+            err = gvproxy_log.read_text()[:500] if gvproxy_log.exists() else "no log"
+            raise RuntimeError(f"gvproxy failed to create socket after 5s: {err}")
+        self._report_done("networking", f"SSH port {self.ssh_port}")
+        self._log(f"[AVF] gvproxy started (isolated network, SSH port {self.ssh_port})")
 
         # Generate a unique MAC address
         h = uuid.uuid4().hex
@@ -227,7 +306,8 @@ class AVFRunner(BaseRunner):
 
         # Start vfkit
         vfkit_log = self._work_dir / "vfkit.log"
-        print(f"[AVF] Starting vfkit VM...")
+        self._report_start("vm_launch", f"{self.cpus} CPU, {self.memory} MiB")
+        self._log(f"[AVF] Starting vfkit VM...")
         with open(vfkit_log, "w") as lf:
             self._vfkit_process = subprocess.Popen(
                 vfkit_cmd,
@@ -239,36 +319,70 @@ class AVFRunner(BaseRunner):
         # gvproxy assigns 192.168.127.3 via its built-in DHCP
         self._guest_ip = "192.168.127.3"  # gvproxy's default guest IP
 
-        # Set up port forwarding via gvproxy HTTP API
-        # Wait for guest to boot and get network before exposing ports
-        time.sleep(30)  # Give VM time to boot and get DHCP
-        self._expose_port_via_gvproxy(gvproxy_api_sock, self.ssh_port, 22)
-        print(f"[AVF] Port forwarding: localhost:{self.ssh_port} → {self._guest_ip}:22")
+        # Wait for VM to boot, then set up SSH forwarding via gvproxy HTTP API.
+        # The API forwards to 192.168.127.3 (actual guest IP from DHCP),
+        # unlike -ssh-port which hardcodes 192.168.127.2.
+        for i in range(60):
+            if self._vfkit_process.poll() is not None:
+                self._dump_logs()
+                self.stop()
+                raise RuntimeError(
+                    f"vfkit exited during boot (code {self._vfkit_process.returncode})"
+                )
+            if i >= 15:  # Try port forwarding after ~15s
+                try:
+                    self._expose_port_via_gvproxy(gvproxy_api_sock, self.ssh_port, 22)
+                    self._report_done("port_forward", f"localhost:{self.ssh_port} \u2192 guest:22")
+                    self._log(f"[AVF] Port forwarding: localhost:{self.ssh_port} → {self._guest_ip}:22")
+                    break
+                except Exception:
+                    pass  # Guest not ready yet, retry
+            time.sleep(1)
+        else:
+            self._dump_logs()
+            self.stop()
+            raise RuntimeError("Failed to set up port forwarding after 60s")
 
-        # Wait for SSH to be responsive
+        # Wait for SSH — check vfkit and gvproxy liveness on every iteration
+        self._report_start("ssh_wait")
         if not self._wait_for_ssh(timeout=300):
             self._dump_logs()
             self.stop()
             raise RuntimeError("VM failed to boot (SSH not available)")
 
-        print(f"[AVF] SSH available at localhost:{self.ssh_port}")
+        self._report_done("ssh_wait")
+        self._log(f"[AVF] SSH available at localhost:{self.ssh_port}")
 
         # Set up Rosetta in the guest
+        self._report_start("rosetta")
         self._setup_rosetta()
+        self._report_done("rosetta")
 
         # Wait for desktop
+        self._report_start("desktop_wait")
         self._wait_for_desktop(timeout=120)
+        self._report_done("desktop_wait")
 
-        # Start VNC server in guest (x0vncserver attaches to existing display)
+        # Start VNC server in guest
+        self._report_start("vnc_setup")
         self._start_guest_vnc()
+        if self._vnc_pool:
+            self._report_done("vnc_setup", f"localhost:{self.vnc_port}")
+        else:
+            self._report_fail("vnc_setup", "VNC not available")
 
         # Set up mounts
         mounts = getattr(self.spec, "mounts", [])
         if mounts:
+            self._report_start("mounts", f"{len(mounts)} mounts")
             self._setup_mounts()
+            self._report_done("mounts")
+        else:
+            self._report_skip("mounts", "none configured")
 
         self._running = True
-        print(f"[AVF] VM ready!")
+        self._report_done("ready")
+        self._log(f"[AVF] VM ready!")
 
     def _start_guest_vnc(self) -> None:
         """Start x0vncserver in the guest and expose via gvproxy.
@@ -280,7 +394,7 @@ class AVFRunner(BaseRunner):
             # Install x11vnc if not present (attaches to existing X display)
             result = self._ssh_exec("which x11vnc 2>&1", timeout=10, capture=True)
             if "x11vnc" not in result:
-                print("[AVF] Installing x11vnc...")
+                self._log("[AVF] Installing x11vnc...")
                 self._ssh_exec("sudo apt-get update -qq && sudo apt-get install -y -qq x11vnc", timeout=120)
 
             # Start x11vnc on the existing display :1
@@ -290,115 +404,60 @@ class AVFRunner(BaseRunner):
                 timeout=15
             )
 
-            # Wait for x11vnc to bind
+            # Wait for x11vnc to bind — verify the process is alive each iteration
+            vnc_bound = False
             for _ in range(10):
+                proc_check = self._ssh_exec("pgrep -x x11vnc", timeout=5, capture=True)
+                if not proc_check.strip():
+                    log = self._ssh_exec("cat /tmp/x11vnc.log 2>&1 | tail -5", timeout=5, capture=True)
+                    raise RuntimeError(f"x11vnc exited immediately: {log}")
                 result = self._ssh_exec("ss -tlnp | grep 5900", timeout=5, capture=True)
                 if "5900" in result:
+                    vnc_bound = True
                     break
                 time.sleep(1)
+            if not vnc_bound:
+                raise RuntimeError("x11vnc started but not listening on port 5900")
 
-            # Tunnel VNC through SSH
+            # Tunnel VNC through SSH (more reliable than gvproxy HTTP API)
             with self._lock:
                 self.vnc_port = _find_free_port(5900)
             self._start_vnc_tunnel(self.vnc_port, 5900)
-            print(f"[AVF] VNC tunnel at localhost:{self.vnc_port}")
 
-            # Defer VNC pool creation to first use (avoids threading deadlock during start)
-            # The pool will be created lazily in capture_screenshot
+            # Create VNC connection pool (same as QemuApptainerRunner)
+            self._vnc_pool = VNCConnectionPool(
+                host="localhost",
+                port=self.vnc_port,
+                password=self.vnc_password,
+            )
+            conn = self._vnc_pool.get_connection(retry_count=5, retry_delay=2.0)
+            if not conn:
+                self._vnc_pool = None
+                raise RuntimeError("VNC handshake failed after 5 retries")
+            self._log(f"[AVF] VNC available at localhost:{self.vnc_port} ({conn.resolution[0]}x{conn.resolution[1]})")
         except Exception as e:
-            print(f"[AVF] VNC setup failed: {e}")
+            self._log(f"[AVF] VNC setup failed: {e}")
             self._vnc_pool = None
-        if not self._vnc_pool:
-            print(f"[AVF] VNC not available; screenshots via ffmpeg/SSH")
-
-    def _start_vnc_tunnel(self, local_port: int, remote_port: int) -> None:
-        """Create an SSH tunnel for VNC: localhost:local_port -> guest:remote_port."""
-        import paramiko
-        import select
-
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                    password=self._ssh_password, timeout=15, look_for_keys=False,
-                    banner_timeout=10)
-        transport = ssh.get_transport()
-
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.bind(("0.0.0.0", local_port))
-        server.listen(5)
-        server.settimeout(1.0)
-
-        def _forward_conn(local_conn):
-            try:
-                chan = transport.open_channel("direct-tcpip",
-                                              ("localhost", remote_port),
-                                              local_conn.getpeername())
-                if chan is None:
-                    local_conn.close()
-                    return
-                while not self._stop_event.is_set():
-                    r, _, _ = select.select([local_conn, chan], [], [], 1.0)
-                    if local_conn in r:
-                        data = local_conn.recv(4096)
-                        if not data:
-                            break
-                        chan.send(data)
-                    if chan in r:
-                        data = chan.recv(4096)
-                        if not data:
-                            break
-                        local_conn.send(data)
-            except Exception:
-                pass
-            finally:
-                try:
-                    chan.close()
-                except Exception:
-                    pass
-                local_conn.close()
-
-        def _accept_loop():
-            while not self._stop_event.is_set():
-                try:
-                    conn, _ = server.accept()
-                    t = threading.Thread(target=_forward_conn, args=(conn,), daemon=True)
-                    t.start()
-                except socket.timeout:
-                    continue
-                except Exception:
-                    break
-            server.close()
-            ssh.close()
-
-        tunnel_thread = threading.Thread(target=_accept_loop, daemon=True)
-        tunnel_thread.start()
 
     def _expose_port_via_gvproxy(self, api_sock: Path, host_port: int, guest_port: int) -> None:
         """Expose a guest port on the host via gvproxy's HTTP API."""
-        import urllib.request
+        import http.client
         import json
 
-        url = f"http://localhost/services/forwarder/expose"
         data = json.dumps({
             "local": f":{host_port}",
             "remote": f"{self._guest_ip}:{guest_port}",
         }).encode()
 
-        # Use unix socket connection to gvproxy's API
-        import http.client
-        import socket
-
-        class UnixHTTPConnection(http.client.HTTPConnection):
+        class _UnixConn(http.client.HTTPConnection):
             def __init__(self, sock_path):
                 super().__init__("localhost")
                 self._sock_path = sock_path
-
             def connect(self):
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.connect(self._sock_path)
 
-        conn = UnixHTTPConnection(str(api_sock))
+        conn = _UnixConn(str(api_sock))
         conn.request("POST", "/services/forwarder/expose", body=data,
                      headers={"Content-Type": "application/json"})
         resp = conn.getresponse()
@@ -406,6 +465,50 @@ class AVFRunner(BaseRunner):
             body = resp.read().decode()
             raise RuntimeError(f"gvproxy expose failed ({resp.status}): {body}")
         conn.close()
+
+    def _start_vnc_tunnel(self, local_port: int, remote_port: int) -> None:
+        """Create an SSH -L tunnel for VNC: localhost:local_port -> guest:remote_port."""
+        askpass = self._work_dir / "askpass.sh"
+        askpass.write_text(f"#!/bin/sh\necho '{self._ssh_password}'\n")
+        askpass.chmod(0o700)
+        env = {**os.environ, "SSH_ASKPASS": str(askpass), "SSH_ASKPASS_REQUIRE": "force"}
+
+        tunnel_log = self._work_dir / "ssh_tunnel.log"
+        with open(tunnel_log, "w") as tl:
+            self._ssh_tunnel_process = subprocess.Popen(
+                [
+                    "ssh",
+                    "-L", f"{local_port}:localhost:{remote_port}",
+                    "-N",
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "UserKnownHostsFile=/dev/null",
+                    "-o", "ControlMaster=no",
+                    "-o", "ControlPath=none",
+                    "-o", "LogLevel=ERROR",
+                    "-p", str(self.ssh_port),
+                    f"{self._ssh_user}@localhost",
+                ],
+                stdin=subprocess.DEVNULL,
+                stdout=tl,
+                stderr=subprocess.STDOUT,
+                env=env,
+                preexec_fn=os.setsid,
+            )
+        # Wait for tunnel — check it didn't exit immediately
+        for _ in range(10):
+            if self._ssh_tunnel_process.poll() is not None:
+                err = tunnel_log.read_text()[:500] if tunnel_log.exists() else "no log"
+                raise RuntimeError(
+                    f"SSH tunnel exited immediately (code {self._ssh_tunnel_process.returncode}): {err}"
+                )
+            # Check if port is actually listening
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(1)
+                    s.connect(("localhost", local_port))
+                    break
+            except (ConnectionRefusedError, OSError):
+                time.sleep(0.5)
 
     def _discover_guest_ip(self, timeout: float = 180) -> Optional[str]:
         """Find guest IP by matching MAC address in macOS DHCP leases.
@@ -436,18 +539,25 @@ class AVFRunner(BaseRunner):
         return None
 
     def _wait_for_ssh(self, timeout: float = 300) -> bool:
-        """Poll until SSH is responsive via gvproxy port forwarding."""
+        """Poll until SSH is responsive. Checks vfkit/gvproxy liveness each iteration."""
         import paramiko
         import logging
-        # Suppress paramiko's noisy error logging during retries
         paramiko_logger = logging.getLogger("paramiko")
         old_level = paramiko_logger.level
         paramiko_logger.setLevel(logging.CRITICAL)
 
-        print("[AVF] Waiting for VM to boot...", end="", flush=True)
+        if not self._reporter:
+            print("[AVF] Waiting for VM to boot...", end="", flush=True)
         deadline = time.time() + timeout
         try:
             while time.time() < deadline:
+                # Check that vfkit and gvproxy are still alive
+                if self._vfkit_process and self._vfkit_process.poll() is not None:
+                    self._log(f"[AVF] vfkit died (code {self._vfkit_process.returncode})")
+                    return False
+                if self._gvproxy_process and self._gvproxy_process.poll() is not None:
+                    self._log(f"[AVF] gvproxy died (code {self._gvproxy_process.returncode})")
+                    return False
                 try:
                     client = paramiko.SSHClient()
                     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -455,19 +565,24 @@ class AVFRunner(BaseRunner):
                                   password=self._ssh_password, timeout=10, look_for_keys=False,
                                   banner_timeout=10)
                     client.close()
-                    print(" ready!", flush=True)
+                    if not self._reporter:
+                        print(" ready!", flush=True)
                     return True
                 except Exception:
-                    print(".", end="", flush=True)
+                    elapsed = int(time.time() - (deadline - timeout))
+                    self._report_update("ssh_wait", f"{elapsed}s elapsed")
+                    if not self._reporter:
+                        print(".", end="", flush=True)
                     time.sleep(3)
-            print(" timeout!", flush=True)
+            if not self._reporter:
+                print(" timeout!", flush=True)
             return False
         finally:
             paramiko_logger.setLevel(old_level)
 
     def _setup_rosetta(self) -> None:
         """Mount Rosetta and register binfmt_misc in the guest."""
-        print("[AVF] Setting up Rosetta for x86_64 translation...")
+        self._log("[AVF] Setting up Rosetta for x86_64 translation...")
         try:
             # Mount Rosetta VirtioFS share
             self._ssh_exec("sudo mkdir -p /mnt/rosetta", timeout=10)
@@ -485,36 +600,79 @@ class AVFRunner(BaseRunner):
                 timeout=10
             )
 
+            # Enable multi-arch so dpkg can install x86_64 .deb packages.
+            # Newer base images have this baked in; older ones need runtime setup.
+            has_amd64 = self._ssh_exec("dpkg --print-foreign-architectures 2>&1", timeout=10, capture=True)
+            if "amd64" not in has_amd64:
+                self._ssh_exec("sudo dpkg --add-architecture amd64", timeout=10)
+                self._ssh_exec(
+                    r"sudo sed -i 's|^deb http://ports|deb [arch=arm64] http://ports|g' /etc/apt/sources.list",
+                    timeout=10,
+                )
+                self._ssh_exec(
+                    "sudo tee /etc/apt/sources.list.d/amd64.list > /dev/null << 'AMDEOF'\n"
+                    "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse\n"
+                    "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse\n"
+                    "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-security main restricted universe multiverse\n"
+                    "AMDEOF",
+                    timeout=10,
+                )
+                self._ssh_exec("sudo apt-get update -qq 2>/dev/null", timeout=120)
+
+            # Install x86_64 core runtime + common GUI libs so Rosetta can run
+            # any x86_64 binary (bundled JREs, Qt apps, GTK apps, etc.)
+            has_libc_amd64 = self._ssh_exec("dpkg -s libc6:amd64 2>&1", timeout=10, capture=True)
+            if "Status: install ok" not in has_libc_amd64:
+                self._log("[AVF] Installing x86_64 runtime + GUI libraries...")
+                self._ssh_exec(
+                    "sudo apt-get install -y -qq "
+                    "libc6:amd64 libstdc++6:amd64 "
+                    "libx11-6:amd64 libxext6:amd64 libxrender1:amd64 libxtst6:amd64 "
+                    "libxi6:amd64 libxrandr2:amd64 libxcursor1:amd64 libxfixes3:amd64 "
+                    "libxinerama1:amd64 libxcomposite1:amd64 libxdamage1:amd64 "
+                    "libfreetype6:amd64 libfontconfig1:amd64 "
+                    "libgl1:amd64 libglx-mesa0:amd64 libglu1-mesa:amd64 "
+                    "libsm6:amd64 libice6:amd64 "
+                    "2>/dev/null",
+                    timeout=180,
+                )
+
             # Verify
             result = self._ssh_exec("file /mnt/rosetta/rosetta 2>&1", timeout=10, capture=True)
             if "Mach-O" in result or "executable" in result:
-                print("[AVF] Rosetta mounted and registered for x86_64 translation")
+                self._log("[AVF] Rosetta + multi-arch amd64 ready")
             else:
-                print(f"[AVF] WARNING: Rosetta may not be available: {result[:100]}")
+                self._log(f"[AVF] WARNING: Rosetta may not be available: {result[:100]}")
         except Exception as e:
-            print(f"[AVF] WARNING: Rosetta setup failed: {e}")
-            print("[AVF] x86_64 binaries will not be translated (arm64-native packages still work)")
+            self._log(f"[AVF] WARNING: Rosetta setup failed: {e}")
+            self._log("[AVF] x86_64 binaries will not be translated (arm64-native packages still work)")
 
     def _wait_for_desktop(self, timeout: float = 120) -> bool:
-        """Wait for GNOME desktop to be ready."""
+        """Wait for GNOME desktop to be ready. Checks vfkit liveness each iteration."""
         deadline = time.time() + timeout
         while time.time() < deadline:
+            if self._vfkit_process and self._vfkit_process.poll() is not None:
+                self._log(f"[AVF] vfkit died while waiting for desktop (code {self._vfkit_process.returncode})")
+                return False
             try:
                 result = self._ssh_exec(
                     "DISPLAY=:1 xdotool getdisplaygeometry 2>&1",
                     timeout=10, capture=True
                 )
                 if result and any(c.isdigit() for c in result):
-                    print(f"[AVF] Desktop ready: {result.strip()}")
+                    self._log(f"[AVF] Desktop ready: {result.strip()}")
                     return True
             except Exception:
                 pass
             time.sleep(3)
-        print("[AVF] WARNING: Desktop not detected within timeout")
+        self._log("[AVF] WARNING: Desktop not detected within timeout")
         return False
 
     def stop(self) -> None:
+        if not self._running and not self._vfkit_process and not self._gvproxy_process:
+            return
         self._stop_event.set()
+
         # Close VNC pool
         if self._vnc_pool:
             try:
@@ -522,29 +680,20 @@ class AVFRunner(BaseRunner):
             except Exception:
                 pass
             self._vnc_pool = None
-        # Kill vfkit
-        if self._vfkit_process:
-            try:
-                os.killpg(os.getpgid(self._vfkit_process.pid), signal.SIGTERM)
-                self._vfkit_process.wait(timeout=10)
-            except Exception:
-                try:
-                    os.killpg(os.getpgid(self._vfkit_process.pid), signal.SIGKILL)
-                except Exception:
-                    pass
-            self._vfkit_process = None
 
-        # Kill gvproxy
-        if self._gvproxy_process:
-            try:
-                os.killpg(os.getpgid(self._gvproxy_process.pid), signal.SIGTERM)
-                self._gvproxy_process.wait(timeout=5)
-            except Exception:
+        # Kill processes in reverse dependency order: tunnel → vfkit → gvproxy
+        for proc_attr in ("_ssh_tunnel_process", "_vfkit_process", "_gvproxy_process"):
+            proc = getattr(self, proc_attr, None)
+            if proc and proc.poll() is None:
                 try:
-                    os.killpg(os.getpgid(self._gvproxy_process.pid), signal.SIGKILL)
+                    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                    proc.wait(timeout=5)
                 except Exception:
-                    pass
-            self._gvproxy_process = None
+                    try:
+                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                    except Exception:
+                        pass
+            setattr(self, proc_attr, None)
 
         # Cleanup work dir
         if self._work_dir and self._work_dir.exists():
@@ -565,51 +714,77 @@ class AVFRunner(BaseRunner):
     # ---- SSH helpers (reusing paramiko pattern from QEMU runner) ----
 
     def _ssh_exec(self, cmd: str, timeout: int = 600, capture: bool = False) -> str:
-        """Execute command in VM via SSH."""
+        """Execute command in VM via SSH. Tracks consecutive failures."""
+        if self._consecutive_ssh_failures >= self._max_consecutive_ssh_failures:
+            raise RuntimeError(
+                f"VM unresponsive: {self._consecutive_ssh_failures} consecutive SSH failures. Aborting."
+            )
         import paramiko
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                      password=self._ssh_password, timeout=15, look_for_keys=False)
-        _, stdout, stderr = client.exec_command(cmd, timeout=timeout)
-        out = stdout.read().decode()
-        err = stderr.read().decode()
-        exit_code = stdout.channel.recv_exit_status()
-        client.close()
-        if capture:
+        try:
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                          password=self._ssh_password, timeout=15, look_for_keys=False)
+            _, stdout, stderr = client.exec_command(cmd, timeout=timeout)
+            out = stdout.read().decode()
+            err = stderr.read().decode()
+            exit_code = stdout.channel.recv_exit_status()
+            client.close()
+            self._consecutive_ssh_failures = 0
+            if capture:
+                return out
+            if exit_code != 0:
+                print(f"[AVF] SSH cmd failed (exit {exit_code}): {err[:200]}")
             return out
-        if exit_code != 0:
-            print(f"[AVF] SSH cmd failed (exit {exit_code}): {err[:200]}")
-        return out
+        except Exception as e:
+            self._consecutive_ssh_failures += 1
+            if capture:
+                return ""
+            raise
 
     # ---- BaseRunner interface ----
 
     def exec(self, cmd: str, env: Optional[Dict[str, str]] = None,
              user: Optional[str] = None, use_pty: bool = True, timeout: int = 600) -> int:
-        """Execute a command in the VM via gvproxy SSH forwarding."""
-        full_cmd = f"sudo -E {cmd}" if user is None or user == "root" else cmd
+        """Execute a command in the VM. Matches QemuApptainerRunner's sudo wrapping."""
+        env = self.merge_exec_env(env)
+        from ...security import wrap_posix_command_with_env
+        wrapped_cmd = f"sudo -E {wrap_posix_command_with_env(cmd, env)}"
         try:
             import paramiko
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
                           password=self._ssh_password, timeout=15, look_for_keys=False)
-            _, stdout, stderr = client.exec_command(full_cmd, timeout=timeout, get_pty=use_pty)
+            _, stdout, stderr = client.exec_command(wrapped_cmd, timeout=timeout, get_pty=use_pty)
             exit_code = stdout.channel.recv_exit_status()
+            err = stderr.read().decode()
             client.close()
+            # SSH connected successfully — reset failure counter regardless of command exit code
+            self._consecutive_ssh_failures = 0
+            if exit_code != 0 and err:
+                print(f"[AVF] exec failed (exit {exit_code}): {err[:200]}")
             return exit_code
+        except RuntimeError:
+            raise
         except Exception as e:
+            # Connection-level failure (SSH unreachable, auth failed, timeout)
+            self._consecutive_ssh_failures += 1
             print(f"[AVF] exec failed: {e}")
             return 1
 
     def exec_capture(self, cmd: str) -> str:
-        return self._ssh_exec(f"sudo -E {cmd}", capture=True)
+        env = self.default_exec_env()
+        from ...security import wrap_posix_command_with_env
+        return self._ssh_exec(f"sudo -E {wrap_posix_command_with_env(cmd, env)}", capture=True)
 
     def run_reset(self, reset_script: str, seed: Optional[int] = None) -> None:
-        self.exec(f"bash -lc {reset_script}")
+        env_vars = {"SEED": str(seed)} if seed is not None else None
+        self.exec(f"bash -lc {repr(reset_script)}", env=env_vars)
 
     def run_task_init(self, init_script: str) -> None:
-        self.exec(f"bash -lc {init_script}")
+        # use_pty=False prevents SIGHUP from killing background processes
+        self.exec(f"bash -lc {repr(init_script)}", use_pty=False)
 
     def inject_action(self, action: Dict[str, Any]) -> None:
         """Inject mouse/keyboard action via xdotool."""
@@ -645,17 +820,6 @@ class AVFRunner(BaseRunner):
         """Capture screenshot via VNC (primary) or ffmpeg x11grab (fallback)."""
         host_path = Path(host_path)
         host_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Lazily create VNC pool on first screenshot
-        if self._vnc_pool is None and self.vnc_port:
-            try:
-                self._vnc_pool = VNCConnectionPool(
-                    host="localhost",
-                    port=self.vnc_port,
-                    password=self.vnc_password,
-                )
-            except Exception:
-                pass
 
         # Primary: VNC capture (same as QemuApptainerRunner)
         if self._vnc_pool:
@@ -733,7 +897,7 @@ class AVFRunner(BaseRunner):
         mounts = getattr(self.spec, "mounts", [])
         if not mounts:
             return
-        print(f"[AVF] Setting up {len(mounts)} mounts...")
+        self._log(f"[AVF] Setting up {len(mounts)} mounts...")
         for mount in mounts:
             if isinstance(mount, dict):
                 source = mount.get("source", "")
@@ -747,9 +911,9 @@ class AVFRunner(BaseRunner):
             if not source_path.is_absolute():
                 source_path = Path.cwd() / source_path
             if not source_path.exists():
-                print(f"[AVF] Mount source not found: {source_path}")
+                self._log(f"[AVF] Mount source not found: {source_path}")
                 continue
             self._ssh_exec(f"sudo mkdir -p {target}", timeout=10)
             self._ssh_exec(f"sudo chown ga:ga {target}", timeout=10)
-            print(f"[AVF] Copying {source_path} -> {target}")
+            self._log(f"[AVF] Copying {source_path} -> {target}")
             self.copy_to(str(source_path), target)

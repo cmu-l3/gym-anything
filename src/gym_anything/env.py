@@ -34,6 +34,7 @@ class GymAnythingEnv:
     def __init__(self, env_spec: EnvSpec, task_spec: Optional[TaskSpec] = None):
         self.env_spec = env_spec
         self.task_spec = task_spec
+        self._reporter = None
         self._runner: BaseRunner = self._select_runner(env_spec)
         self._recorder: Optional[FFmpegRecorder] = None
         self._rec_handle: Optional[RecordingHandle] = None
@@ -212,6 +213,10 @@ class GymAnythingEnv:
             return shutil.which("qemu-system-aarch64") is not None
         return shutil.which("qemu-system-x86_64") is not None
 
+    def set_reporter(self, reporter) -> None:
+        self._reporter = reporter
+        self._runner.set_reporter(reporter)
+
     def _check_avf_available(self) -> bool:
         """Check if Apple Virtualization Framework tooling is available."""
         import shutil
@@ -375,6 +380,8 @@ class GymAnythingEnv:
         # Skip if checkpoint_loaded and checkpoint was at pre_start or later
         if loaded_level_num < level_order["pre_start"]:
             if getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("pre_start"):
+                if self._reporter:
+                    self._reporter.stage_start("pre_start_hook")
                 print("[gym-anything] Running pre_start hook...")
                 try:
                     hook_cmd = self.env_spec.hooks['pre_start']
@@ -387,8 +394,12 @@ class GymAnythingEnv:
                         self._runner.exec(hook_cmd)
                     else:
                         self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=1800)
+                    if self._reporter:
+                        self._reporter.stage_done("pre_start_hook")
                 except Exception as e:
                     print(f"[gym-anything] pre_start hook failed: {e}")
+                    if self._reporter:
+                        self._reporter.stage_fail("pre_start_hook", str(e))
 
         # Create checkpoint after pre_start if this is the target level
         # Also creates when we started from scratch with a higher cache_level target
@@ -410,6 +421,8 @@ class GymAnythingEnv:
         # Skip if checkpoint_loaded and checkpoint was at post_start or later
         if loaded_level_num < level_order["post_start"]:
             if getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("post_start"):
+                if self._reporter:
+                    self._reporter.stage_start("post_start_hook")
                 print("[gym-anything] Running post_start hook...")
                 try:
                     hook_cmd = self.env_spec.hooks['post_start']
@@ -422,8 +435,12 @@ class GymAnythingEnv:
                         self._runner.exec(hook_cmd)
                     else:
                         self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=1800)
+                    if self._reporter:
+                        self._reporter.stage_done("post_start_hook")
                 except Exception as e:
                     print(f"[gym-anything] post_start hook failed: {e}")
+                    if self._reporter:
+                        self._reporter.stage_fail("post_start_hook", str(e))
 
         # Create checkpoint after post_start if this is the target level
         # Also creates when we loaded from a lower level (e.g., pre_start fallback)
@@ -455,6 +472,8 @@ class GymAnythingEnv:
         # Skip if checkpoint_loaded and checkpoint was at post_task
         if loaded_level_num < level_order["post_task"]:
             if self.task_spec and self.task_spec.hooks and self.task_spec.hooks.pre_task:
+                if self._reporter:
+                    self._reporter.stage_start("pre_task_hook")
                 print("[gym-anything] Running pre_task hook...")
                 try:
                     hook_cmd = self.task_spec.hooks.pre_task
@@ -470,8 +489,12 @@ class GymAnythingEnv:
                         hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
                         self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/task_pre_task.log 2>&1", use_pty=False, timeout=hook_timeout)
                     self._capture_observation()
+                    if self._reporter:
+                        self._reporter.stage_done("pre_task_hook")
                 except Exception as e:
                     print(f"[gym-anything] pre_task hook failed: {e}")
+                    if self._reporter:
+                        self._reporter.stage_fail("pre_task_hook", str(e))
 
             # === TASK INIT SCRIPT ===
             if self.task_spec and self.task_spec.init.init_script:

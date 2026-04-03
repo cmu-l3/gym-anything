@@ -279,6 +279,18 @@ class QemuNativeRunner(QemuApptainerRunner):
   - netplan generate || true
   # Install x11vnc for AVFRunner VNC support (x0vncserver not available on arm64)
   - apt-get install -y -qq x11vnc || true
+  # Enable multi-arch amd64 so x86_64 .deb packages can be installed (Rosetta handles execution)
+  - dpkg --add-architecture amd64
+  - sed -i 's|^deb http://ports|deb [arch=arm64] http://ports|g' /etc/apt/sources.list
+  - |
+    cat > /etc/apt/sources.list.d/amd64.list << 'AMDEOF'
+    deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse
+    deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse
+    deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-security main restricted universe multiverse
+    AMDEOF
+  - apt-get update -qq || true
+  # Install x86_64 core runtime + common GUI libs for Rosetta binary translation
+  - apt-get install -y -qq libc6:amd64 libstdc++6:amd64 libx11-6:amd64 libxext6:amd64 libxrender1:amd64 libxtst6:amd64 libxi6:amd64 libxrandr2:amd64 libxcursor1:amd64 libxfixes3:amd64 libxinerama1:amd64 libxcomposite1:amd64 libxdamage1:amd64 libfreetype6:amd64 libfontconfig1:amd64 libgl1:amd64 libglx-mesa0:amd64 libglu1-mesa:amd64 libsm6:amd64 libice6:amd64 || true
 """
         # Insert before the final_message line
         cloud_init = CLOUD_INIT_USER_DATA.replace(

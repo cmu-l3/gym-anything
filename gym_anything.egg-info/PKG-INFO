@@ -1,0 +1,186 @@
+Metadata-Version: 2.4
+Name: gym-anything
+Version: 0.1.0
+Summary: A unified runtime and benchmark suite for computer-use agent research.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: jsonschema>=4.20
+Requires-Dist: numpy>=1.26
+Requires-Dist: paramiko>=3.4
+Requires-Dist: Pillow>=10.0
+Requires-Dist: pycryptodome>=3.20
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: requests>=2.31
+Requires-Dist: rich>=13.0
+Provides-Extra: benchmark
+Requires-Dist: openpyxl>=3.1; extra == "benchmark"
+Requires-Dist: Pillow>=10.0; extra == "benchmark"
+Requires-Dist: statsmodels>=0.14; extra == "benchmark"
+Provides-Extra: services
+Requires-Dist: Flask>=3.0; extra == "services"
+Requires-Dist: flask-cors>=4.0; extra == "services"
+Requires-Dist: httpx>=0.27; extra == "services"
+Requires-Dist: hypercorn>=0.17; extra == "services"
+Requires-Dist: psutil>=5.9; extra == "services"
+Requires-Dist: quart>=0.19; extra == "services"
+Requires-Dist: quart-cors>=0.7; extra == "services"
+Requires-Dist: requests>=2.31; extra == "services"
+Provides-Extra: vlm
+Requires-Dist: anthropic>=0.30; extra == "vlm"
+Requires-Dist: openai>=1.0; extra == "vlm"
+Provides-Extra: baselines
+Requires-Dist: anthropic>=0.30; extra == "baselines"
+Requires-Dist: backoff>=2.2; extra == "baselines"
+Requires-Dist: litellm>=1.52; extra == "baselines"
+Requires-Dist: loguru>=0.7; extra == "baselines"
+Requires-Dist: openai>=1.0; extra == "baselines"
+Requires-Dist: python-dotenv>=1.0; extra == "baselines"
+Requires-Dist: tqdm>=4.66; extra == "baselines"
+
+# Gym-Anything
+
+Gym-Anything is a runtime and benchmark repository for turning existing software into Gym-like environments for computer-use agents.
+
+It has four distinct layers:
+
+- `src/gym_anything/`: the core runtime library
+- `benchmarks/environments/`: the benchmark corpus
+- `baselines/`: reference agents and evaluation harnesses
+- `services/`: remote execution infrastructure
+
+Tutorial examples live under `examples/tutorials/`. Archived or superseded benchmark variants live under `benchmarks/archive/`.
+
+This distinction matters. The core runtime is the stable product surface. The benchmark corpus is large and heterogeneous. The baseline scripts are useful reference harnesses, but they are not the primary product surface.
+
+## Current Repository State
+
+In this checkout, the benchmark corpus contains:
+
+- `195` environment specs (`env.json` or `env.yaml`)
+- `7,662` task specs (`task.json`, `task.yaml`, or `task.yml`)
+
+The corpus changes over time. Treat those numbers as a snapshot of the current repository, not a permanent contract.
+
+## What Is Implemented Today
+
+- Environment construction via `make()` and `from_config()`
+- Core environment lifecycle via `GymAnythingEnv.reset()`, `step()`, and `close()`
+- Runner backends for Docker, QEMU-in-Apptainer, Android AVD-in-Apptainer, direct Apptainer, and local smoke tests
+- Checkpoint caching for Docker, QEMU, and AVD runners
+- Optional QEMU `savevm`/`loadvm` fast restore
+- Programmatic verifiers and SSIM image matching
+- Host-side verifier helpers for file transfer, command capture, and VLM queries
+- Step-by-step screenshot trajectories on all working runners
+- Remote execution through master/worker/dashboard services and `RemoteGymEnv`
+- First-class verification commands for spec, corpus, and task-pipeline checks
+
+## Important Caveats
+
+- The spec dataclasses are smaller than the benchmark JSON files. Extra keys in `env.json` and `task.json` are usually tolerated but ignored by the core loader unless code reads them separately.
+- `TaskSpec` now preserves common top-level task metadata such as `description`, `version`, `name`, and `tags`, but benchmark-specific extra keys are still passthrough metadata rather than first-class runtime behavior.
+- Supported verifier modes are currently `program`, `image_match`, and `multi`.
+- Runner differences such as recording, checkpointing, `use_savevm`, and `user_accounts` are part of the supported compatibility contract. See [docs/compatibility.md](docs/compatibility.md).
+- `python -m baselines.evaluation.run_single` and `run_batch` are reference harnesses. They still include optional runner-specific setup behavior.
+- `pip install -e .` now installs the Python runtime dependencies for the shipped package surface. System dependencies such as Docker, Apptainer, QEMU, and host `ffmpeg` are still external prerequisites, but `gym-anything doctor` now checks them explicitly.
+- As of March 8, 2026, `gym-anything verify corpus benchmarks/environments` reports `7,277` verified tasks and `385` failed tasks. The current failures are all missing hook asset references (`763` `missing_hook_reference` issues).
+- `benchmarks/splits/verified.json` is the verifier-backed supported task surface for release-facing evaluation. The raw corpus remains available.
+
+## Quick Start
+
+### Install
+
+```bash
+git clone <repo-url>
+cd <repo-dir>
+pip install -e .
+```
+
+Check system prerequisites before your first real run:
+
+```bash
+PYTHONPATH=src python -m gym_anything.cli doctor
+```
+
+Optional extras:
+
+```bash
+pip install -e ".[services]"
+pip install -e ".[baselines]"
+pip install -e ".[vlm]"
+```
+
+System dependencies depend on the runner you use:
+
+- Docker workflows need a working Docker daemon.
+- QEMU workflows need Apptainer and usually `/dev/kvm`.
+- Android AVD workflows need Apptainer plus emulator support.
+
+See [Getting Started](docs/getting-started.md) for a fuller setup checklist.
+
+### Load and Run a Task
+
+```python
+from gym_anything import from_config
+
+env = from_config(
+    "benchmarks/environments/zotero_env",
+    task_id="create_saved_search",
+)
+
+obs = env.reset(seed=42, use_cache=False)
+
+obs, reward, done, info = env.step([
+    {"mouse": {"left_click": [300, 200]}},
+    {"keyboard": {"text": "Papers Since 2010"}},
+])
+
+# When the agent believes the task is complete, explicitly finalize:
+obs, reward, done, info = env.step([], mark_done=True)
+
+print(reward, info.get("verifier"))
+env.close()
+```
+
+### Run a Reference Agent
+
+```bash
+python -m baselines.evaluation.run_single \
+  --env_dir benchmarks/environments/zotero_env \
+  --task create_saved_search \
+  --agent ClaudeAgent \
+  --agent_args '{"model":"claude-opus-4","exp_name":"demo"}'
+```
+
+## Where To Read Next
+
+- [docs/index.md](docs/index.md): documentation overview
+- [docs/getting-started.md](docs/getting-started.md): installation and first run
+- [docs/api.md](docs/api.md): public Python API
+- [docs/specs.md](docs/specs.md): runtime-recognized spec fields
+- [docs/compatibility.md](docs/compatibility.md): supported runner capability contract
+- [docs/runners.md](docs/runners.md): backend behavior and selection
+- [docs/tasks-verifiers.md](docs/tasks-verifiers.md): task layout and verifier contracts
+- [docs/environment-authoring.md](docs/environment-authoring.md): authoring environments and tasks
+- [docs/distributed-services.md](docs/distributed-services.md): remote execution stack
+- [docs/current-limitations.md](docs/current-limitations.md): known implementation gaps
+
+## Repository Layout
+
+```text
+.
+├── src/gym_anything/          core runtime library
+├── benchmarks/environments/   benchmark environments and tasks
+├── benchmarks/archive/        archived benchmark variants
+├── benchmarks/splits/         train/test split definitions
+├── benchmarks/registry/       split loaders and registry helpers
+├── examples/tutorials/        lightweight tutorial environments
+├── baselines/agents/          reference agents
+├── baselines/evaluation/      single-run and batch harnesses
+├── services/                  remote execution services
+├── scripts/maintenance/       repo audit and maintenance scripts
+├── tools/                     offline utilities
+├── docs/                      reference documentation
+└── research/                  experimental and archived code
+```
+
+See [docs/repository-structure.md](docs/repository-structure.md) for placement rules.

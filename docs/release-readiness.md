@@ -1,5 +1,9 @@
 # Release Readiness Tracker
 
+Use [Release Audit Checklist](release-audit-checklist.md) as the actual release gate for public-claim accuracy and consistency.
+
+This page is a tracker for workstreams and open questions. It is not the audit instrument and may contain historical status notes.
+
 This file tracks the work required to move Gym-Anything from a strong research codebase to a release-ready public runtime without breaking the current benchmark corpus.
 
 ## Principles
