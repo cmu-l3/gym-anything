@@ -134,6 +134,20 @@ class RuntimeBehaviorTests(unittest.TestCase):
             )
             self.assertEqual(runner.stop_calls, 1)
 
+    def test_close_without_post_task_hook_does_not_sleep(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None)
+            env._verifier = _FakeVerifier()
+
+            env.reset(seed=1)
+            with mock.patch("gym_anything.env.time.sleep") as sleep_mock:
+                env.close()
+
+            sleep_mock.assert_not_called()
+            self.assertEqual(runner.stop_calls, 1)
+
     def test_reset_reuses_env_by_closing_previous_episode_first(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runner = _FakeRunner()

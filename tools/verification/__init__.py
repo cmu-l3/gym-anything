@@ -1,2 +1,0 @@
-"""Offline verification tools."""
-

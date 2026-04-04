@@ -836,6 +836,13 @@ class GymAnythingEnv:
             pass
 
     def _post_task_settle_seconds(self) -> float:
+        has_post_task_hook = bool(
+            self.task_spec
+            and self.task_spec.hooks
+            and self.task_spec.hooks.post_task
+        )
+        if not has_post_task_hook:
+            return 0.0
         if "GYM_ANYTHING_POST_TASK_SETTLE_SEC" in os.environ:
             try:
                 return max(0.0, float(os.environ["GYM_ANYTHING_POST_TASK_SETTLE_SEC"]))

@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest import mock
 
-from services.worker.reset_policy import (
+from gym_anything.remote.worker_reset_policy import (
     BASELINE_SETUP_WORKER_RESET_POLICY,
     DEFAULT_WORKER_RESET_POLICY,
     InvalidResetPolicyError,
@@ -43,7 +43,7 @@ class WorkerResetPolicyTests(unittest.TestCase):
     def test_baseline_setup_policy_runs_setup_and_crash_reporter_disable(self) -> None:
         env = _FakeEnv()
 
-        with mock.patch("services.worker.reset_policy.apply_post_reset_setup") as setup_env:
+        with mock.patch("gym_anything.remote.worker_reset_policy.apply_post_reset_setup") as setup_env:
             timings = apply_worker_reset_policy(env, BASELINE_SETUP_WORKER_RESET_POLICY)
 
         setup_env.assert_called_once_with(env, setup_code="auto", steps=50)

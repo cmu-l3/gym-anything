@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym-Anything Remote Server Dashboard</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --dark-bg: #212529;
+            --card-bg: #ffffff;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .dashboard-container {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 15px 0;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-icon {
+            font-size: 3rem;
+            opacity: 0.2;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+        }
+        
+        .section-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #495057;
+        }
+        
+        .env-table {
+            width: 100%;
+        }
+        
+        .env-table th {
+            background-color: #f1f3f5;
+            font-weight: 600;
+            padding: 12px;
+            border: none;
+        }
+        
+        .env-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .env-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .badge-idle-green {
+            background-color: var(--success-color);
+        }
+        
+        .badge-idle-yellow {
+            background-color: var(--warning-color);
+        }
+        
+        .badge-idle-red {
+            background-color: var(--danger-color);
+        }
+        
+        .activity-log {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            padding: 12px;
+            border-left: 3px solid #dee2e6;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .activity-item.created {
+            border-left-color: var(--success-color);
+        }
+        
+        .activity-item.closed {
+            border-left-color: var(--danger-color);
+        }
+        
+        .activity-item.reset {
+            border-left-color: var(--warning-color);
+        }
+        
+        .activity-item.error {
+            border-left-color: var(--danger-color);
+            background-color: #ffe5e5;
+        }
+        
+        .refresh-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .refresh-indicator.updating {
+            color: var(--success-color);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .session-selector {
+            max-width: 300px;
+        }
+        
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .stat-value {
+                font-size: 2rem;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+        }
+        
+        .endpoint-row {
+            cursor: pointer;
+        }
+        
+        .endpoint-row:hover {
+            background-color: #e9ecef;
+        }
+        
+        .progress-thin {
+            height: 5px;
+        }
+        
+        .text-truncate-env {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .updating-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div>
+                    <h1><i class="bi bi-speedometer2"></i> Gym-Anything Dashboard</h1>
+                    <p class="mb-0">Real-time monitoring for Remote Server</p>
+                </div>
+                <div class="d-flex gap-3 align-items-center flex-wrap mt-3 mt-md-0">
+                    <div class="session-selector">
+                        <label class="form-label text-white mb-1">Session:</label>
+                        <select class="form-select form-select-sm" id="sessionSelect">
+                            <option value="current">Current Session</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="refresh-indicator" id="refreshIndicator">
+                            <i class="bi bi-arrow-clockwise"></i> 
+                            Auto-refresh: <span id="refreshCountdown">30</span>s
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Overview Cards -->
+        <div class="row">
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card position-relative">
+                    <i class="bi bi-boxes stat-icon text-primary"></i>
+                    <div class="stat-label">Active Environments</div>
+                    <div class="stat-value text-primary" id="activeEnvs">-</div>
+                    <small class="text-muted">
+                        <span id="responsiveEnvs">-</span> responsive
+                    </small>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card position-relative">
+                    <i class="bi bi-graph-up stat-icon text-success"></i>
+                    <div class="stat-label">Total Created</div>
+                    <div class="stat-value text-success" id="totalEnvs">-</div>
+                    <small class="text-muted">
+                        <span id="closedEnvs">-</span> closed
+                    </small>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card position-relative">
+                    <i class="bi bi-activity stat-icon text-info"></i>
+                    <div class="stat-label">Total Requests</div>
+                    <div class="stat-value text-info" id="totalRequests">-</div>
+                    <small class="text-muted">
+                        <span id="errorRate">-</span>% errors
+                    </small>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card position-relative">
+                    <i class="bi bi-clock-history stat-icon text-warning"></i>
+                    <div class="stat-label">Server Uptime</div>
+                    <div class="stat-value text-warning" id="uptime" style="font-size: 1.8rem;">-</div>
+                    <small class="text-muted" id="sessionId">Session: -</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Environments Table -->
+        <div class="section-card">
+            <h2 class="section-title">
+                <i class="bi bi-list-task"></i> Active Environments
+                <span class="badge bg-primary" id="activeEnvCount">0</span>
+            </h2>
+            <div class="table-responsive">
+                <table class="env-table table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Env ID</th>
+                            <th>Env Dir</th>
+                            <th>Task ID</th>
+                            <th>Created</th>
+                            <th>Last Activity</th>
+                            <th>Idle Time</th>
+                            <th>Steps</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activeEnvTable">
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">No active environments</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Charts Row -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="section-card">
+                    <h2 class="section-title">
+                        <i class="bi bi-graph-up-arrow"></i> Active Environments Timeline
+                    </h2>
+                    <div class="chart-container">
+                        <canvas id="activeEnvsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="section-card">
+                    <h2 class="section-title">
+                        <i class="bi bi-bar-chart-fill"></i> Requests Per Minute
+                    </h2>
+                    <div class="chart-container">
+                        <canvas id="requestsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Endpoint Statistics -->
+        <div class="section-card">
+            <h2 class="section-title">
+                <i class="bi bi-diagram-3"></i> Endpoint Statistics
+            </h2>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="chart-container">
+                        <canvas id="endpointRequestsChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Requests</th>
+                                    <th>Avg Latency</th>
+                                    <th>P95</th>
+                                    <th>Errors</th>
+                                </tr>
+                            </thead>
+                            <tbody id="endpointStatsTable">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Row: Activity Log and System Health -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="section-card">
+                    <h2 class="section-title">
+                        <i class="bi bi-clock-history"></i> Recent Activity
+                    </h2>
+                    <div class="activity-log" id="activityLog">
+                        <p class="text-center text-muted">Loading activity...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="section-card">
+                    <h2 class="section-title">
+                        <i class="bi bi-heart-pulse"></i> System Health
+                    </h2>
+                    <div id="systemHealth">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Environment Closures</label>
+                            <div class="progress progress-thin mb-2">
+                                <div class="progress-bar bg-success" id="closureManualBar" style="width: 0%"></div>
+                                <div class="progress-bar bg-warning" id="closureTimeoutBar" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted">
+                                <span class="badge bg-success" id="closureManual">0</span> manual |
+                                <span class="badge bg-warning" id="closureTimeout">0</span> timeout
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Peak Concurrent Envs</label>
+                            <div class="stat-value text-primary" style="font-size: 2rem;" id="peakEnvs">-</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cleanup Operations</label>
+                            <div class="stat-value text-warning" style="font-size: 2rem;" id="cleanupCount">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="text-center text-muted mt-4 mb-3">
+            <small>
+                <i class="bi bi-info-circle"></i> 
+                Dashboard updates every 30 seconds | 
+                Last updated: <span id="lastUpdate">-</span>
+            </small>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border text-light" role="status" style="width: 4rem; height: 4rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Dashboard Logic -->
+    <script>
+        let charts = {};
+        let refreshTimer;
+        let countdownTimer;
+        let countdownSeconds = 30;
+        const REFRESH_INTERVAL = 30000; // 30 seconds
+        
+        // Initialize charts
+        function initCharts() {
+            // Active Environments Timeline
+            const activeEnvsCtx = document.getElementById('activeEnvsChart').getContext('2d');
+            charts.activeEnvs = new Chart(activeEnvsCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Active Environments',
+                        data: [],
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    }
+                }
+            });
+            
+            // Requests Per Minute
+            const requestsCtx = document.getElementById('requestsChart').getContext('2d');
+            charts.requests = new Chart(requestsCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Requests/min',
+                        data: [],
+                        borderColor: '#198754',
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+            
+            // Endpoint Requests Bar Chart
+            const endpointCtx = document.getElementById('endpointRequestsChart').getContext('2d');
+            charts.endpoints = new Chart(endpointCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Requests',
+                        data: [],
+                        backgroundColor: 'rgba(13, 110, 253, 0.8)',
+                        borderColor: '#0d6efd',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+        
+        // Fetch and update metrics
+        async function updateDashboard() {
+            try {
+                const indicator = document.getElementById('refreshIndicator');
+                indicator.classList.add('updating', 'updating-pulse');
+                
+                const response = await fetch('/api/metrics');
+                if (!response.ok) throw new Error('Failed to fetch metrics');
+                
+                const data = await response.json();
+                
+                // Update overview cards
+                document.getElementById('activeEnvs').textContent = data.environments.active_count;
+                document.getElementById('responsiveEnvs').textContent = data.environments.responsive_count;
+                document.getElementById('totalEnvs').textContent = data.environments.total_created;
+                document.getElementById('closedEnvs').textContent = data.environments.total_closed;
+                document.getElementById('totalRequests').textContent = data.endpoints.total_requests;
+                document.getElementById('errorRate').textContent = (data.endpoints.error_rate * 100).toFixed(2);
+                document.getElementById('uptime').textContent = data.server.uptime_formatted;
+                document.getElementById('sessionId').textContent = 'Session: ' + data.server.session_id;
+                
+                // Update active environments table
+                updateActiveEnvsTable(data.environments.active);
+                
+                // Update charts
+                updateCharts(data);
+                
+                // Update endpoint statistics
+                updateEndpointStats(data.endpoints.stats);
+                
+                // Update activity log
+                updateActivityLog(data.activity_log);
+                
+                // Update system health
+                updateSystemHealth(data);
+                
+                // Update last update time
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                
+                indicator.classList.remove('updating', 'updating-pulse');
+                
+            } catch (error) {
+                console.error('Error updating dashboard:', error);
+                showError('Failed to update dashboard: ' + error.message);
+            }
+        }
+        
+        function updateActiveEnvsTable(envs) {
+            const tbody = document.getElementById('activeEnvTable');
+            document.getElementById('activeEnvCount').textContent = envs.length;
+            
+            if (envs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No active environments</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = envs.map(env => {
+                const idleSeconds = env.idle_time;
+                let badgeClass = 'badge-idle-green';
+                if (idleSeconds > 900) badgeClass = 'badge-idle-red'; // 15 min
+                else if (idleSeconds > 300) badgeClass = 'badge-idle-yellow'; // 5 min
+                
+                const createdDate = new Date(env.created_at * 1000);
+                const lastActivityDate = new Date(env.last_activity * 1000);
+                
+                return `
+                    <tr>
+                        <td><code class="text-truncate-env" title="${env.env_id}">${env.env_id.substring(0, 8)}...</code></td>
+                        <td class="text-truncate-env" title="${env.env_dir || '-'}">${env.env_dir ? env.env_dir.split('/').pop() : '-'}</td>
+                        <td>${env.task_id || '-'}</td>
+                        <td><small>${createdDate.toLocaleTimeString()}</small></td>
+                        <td><small>${lastActivityDate.toLocaleTimeString()}</small></td>
+                        <td>${formatSeconds(idleSeconds)}</td>
+                        <td><span class="badge bg-secondary">${env.step_count}</span></td>
+                        <td><span class="badge ${badgeClass}">${env.is_responsive ? 'Responsive' : 'Idle'}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function updateCharts(data) {
+            // Timeline data
+            const timeline = data.timeline.slice(-60); // Last 60 points
+            
+            if (timeline.length > 0) {
+                const labels = timeline.map(p => new Date(p.timestamp).toLocaleTimeString());
+                const activeEnvData = timeline.map(p => p.active_envs);
+                const requestsData = timeline.map(p => p.requests_per_minute);
+                
+                charts.activeEnvs.data.labels = labels;
+                charts.activeEnvs.data.datasets[0].data = activeEnvData;
+                charts.activeEnvs.update();
+                
+                charts.requests.data.labels = labels;
+                charts.requests.data.datasets[0].data = requestsData;
+                charts.requests.update();
+            }
+            
+            // Endpoint chart
+            const endpoints = data.endpoints.stats.slice(0, 10); // Top 10
+            if (endpoints.length > 0) {
+                charts.endpoints.data.labels = endpoints.map(e => e.name);
+                charts.endpoints.data.datasets[0].data = endpoints.map(e => e.request_count);
+                charts.endpoints.update();
+            }
+        }
+        
+        function updateEndpointStats(stats) {
+            const tbody = document.getElementById('endpointStatsTable');
+            
+            if (stats.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No endpoint data</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = stats.slice(0, 10).map(ep => `
+                <tr class="endpoint-row">
+                    <td><code>${ep.name}</code></td>
+                    <td>${ep.request_count}</td>
+                    <td>${ep.avg_latency.toFixed(3)}s</td>
+                    <td>${ep.p95_latency.toFixed(3)}s</td>
+                    <td>
+                        ${ep.error_count > 0 ? 
+                          `<span class="badge bg-danger">${ep.error_count}</span>` : 
+                          '<span class="text-success">0</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function updateActivityLog(activities) {
+            const logDiv = document.getElementById('activityLog');
+            
+            if (activities.length === 0) {
+                logDiv.innerHTML = '<p class="text-center text-muted">No recent activity</p>';
+                return;
+            }
+            
+            logDiv.innerHTML = activities.map(activity => {
+                const timestamp = new Date(activity.timestamp * 1000);
+                const eventClass = activity.event_type.replace('_', '-');
+                const icon = getEventIcon(activity.event_type);
+                
+                return `
+                    <div class="activity-item ${eventClass}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <i class="bi ${icon}"></i>
+                                <strong>${activity.event_type.replace('_', ' ')}</strong>
+                            </div>
+                            <small class="text-muted">${timestamp.toLocaleTimeString()}</small>
+                        </div>
+                        <small class="text-muted">${formatActivityDetails(activity)}</small>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateSystemHealth(data) {
+            const closureStats = data.environments.closure_stats.by_reason || {};
+            const manual = closureStats.manual || 0;
+            const timeout = closureStats.timeout || 0;
+            const total = manual + timeout || 1;
+            
+            document.getElementById('closureManual').textContent = manual;
+            document.getElementById('closureTimeout').textContent = timeout;
+            document.getElementById('closureManualBar').style.width = ((manual / total) * 100) + '%';
+            document.getElementById('closureTimeoutBar').style.width = ((timeout / total) * 100) + '%';
+            
+            document.getElementById('peakEnvs').textContent = data.environments.peak_concurrent;
+            document.getElementById('cleanupCount').textContent = data.cleanup.timeout_cleanups;
+        }
+        
+        function getEventIcon(eventType) {
+            const icons = {
+                'env_created': 'bi-plus-circle',
+                'env_closed': 'bi-x-circle',
+                'env_reset': 'bi-arrow-clockwise',
+                'request_error': 'bi-exclamation-triangle'
+            };
+            return icons[eventType] || 'bi-circle';
+        }
+        
+        function formatActivityDetails(activity) {
+            const details = activity.details;
+            if (activity.event_type === 'env_created') {
+                return `Env: ${details.env_dir || 'unknown'} | Task: ${details.task_id || 'none'}`;
+            } else if (activity.event_type === 'env_closed') {
+                return `Reason: ${details.reason} | Lifetime: ${formatSeconds(details.lifetime)} | Steps: ${details.steps}`;
+            } else if (activity.event_type === 'env_reset') {
+                return `Env ID: ${details.env_id.substring(0, 8)}...`;
+            } else if (activity.event_type === 'request_error') {
+                return `${details.endpoint}: ${details.error}`;
+            }
+            return JSON.stringify(details);
+        }
+        
+        function formatSeconds(seconds) {
+            if (seconds < 60) return `${Math.floor(seconds)}s`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
+            return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+        }
+        
+        function showError(message) {
+            console.error(message);
+            // Could add toast notifications here
+        }
+        
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/sessions');
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                const select = document.getElementById('sessionSelect');
+                
+                select.innerHTML = '<option value="current">Current Session</option>';
+                data.sessions.forEach(session => {
+                    const option = document.createElement('option');
+                    option.value = session.session_id;
+                    option.textContent = `${session.session_id} (${session.total_envs_created} envs)`;
+                    if (session.is_current) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+        
+        async function switchSession(sessionId) {
+            if (sessionId === 'current') {
+                location.reload();
+                return;
+            }
+            
+            try {
+                document.getElementById('loadingOverlay').classList.add('active');
+                const response = await fetch(`/api/sessions/load/${sessionId}`, { method: 'POST' });
+                if (response.ok) {
+                    await updateDashboard();
+                }
+            } catch (error) {
+                showError('Failed to switch session: ' + error.message);
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }
+        }
+        
+        function startRefreshCountdown() {
+            countdownSeconds = 30;
+            if (countdownTimer) clearInterval(countdownTimer);
+            
+            countdownTimer = setInterval(() => {
+                countdownSeconds--;
+                document.getElementById('refreshCountdown').textContent = countdownSeconds;
+                
+                if (countdownSeconds <= 0) {
+                    countdownSeconds = 30;
+                }
+            }, 1000);
+        }
+        
+        function startAutoRefresh() {
+            // Initial update
+            updateDashboard();
+            
+            // Set up periodic refresh
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(updateDashboard, REFRESH_INTERVAL);
+            
+            // Start countdown
+            startRefreshCountdown();
+        }
+        
+        // Event listeners
+        document.getElementById('sessionSelect').addEventListener('change', (e) => {
+            switchSession(e.target.value);
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            loadSessions();
+            startAutoRefresh();
+        });
+        
+        // Cleanup on unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshTimer) clearInterval(refreshTimer);
+            if (countdownTimer) clearInterval(countdownTimer);
+        });
+    </script>
+</body>
+</html>
+

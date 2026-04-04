@@ -5,9 +5,9 @@ Gym-Anything is a runtime and benchmark repository for turning existing software
 It has four distinct layers:
 
 - `src/gym_anything/`: the core runtime library
+- `src/gym_anything/remote/`: distributed execution infrastructure
 - `benchmarks/environments/`: the benchmark corpus
 - `baselines/`: reference agents and evaluation harnesses
-- `services/`: remote execution infrastructure
 
 Tutorial examples live under `examples/tutorials/`. Archived or superseded benchmark variants live under `benchmarks/archive/`.
 
@@ -137,7 +137,7 @@ python -m baselines.evaluation.run_single \
 ├── examples/tutorials/        lightweight tutorial environments
 ├── baselines/agents/          reference agents
 ├── baselines/evaluation/      single-run and batch harnesses
-├── services/                  remote execution services
+├── src/gym_anything/remote/   remote client, master, worker, dashboard, monitoring
 ├── scripts/maintenance/       repo audit and maintenance scripts
 ├── tools/                     offline utilities
 ├── docs/                      reference documentation
