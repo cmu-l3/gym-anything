@@ -13,7 +13,7 @@ When behavior changes:
 
 ## Benchmark Hygiene
 
-For `benchmarks/environments/`:
+For `benchmarks/cua_world/environments/`:
 
 - keep runtime files separate from audit material
 - keep `docs/` for environment-local guides and snippets
@@ -31,23 +31,23 @@ PYTHONDONTWRITEBYTECODE=1 python scripts/maintenance/audit_repo_structure.py
 Run the spec-loading audit before calling a benchmark ingest or release pass complete:
 
 ```bash
-PYTHONPATH=src python -m gym_anything.cli verify corpus benchmarks/environments
+PYTHONPATH=src python -m gym_anything.cli verify corpus benchmarks/cua_world/environments
 ```
 
 The release-backed benchmark surface is regenerated with:
 
 ```bash
 PYTHONPATH=src python -m gym_anything.cli verify corpus \
-  benchmarks/environments \
-  --write-status-manifest benchmarks/splits/verification_status.json \
-  --write-verified-split benchmarks/splits/verified.json \
-  --write-missing-hook-manifest benchmarks/splits/missing_hook_references.json
+  benchmarks/cua_world/environments \
+  --write-status-manifest benchmarks/cua_world/splits/verification_status.json \
+  --write-verified-split benchmarks/cua_world/splits/verified.json \
+  --write-missing-hook-manifest benchmarks/cua_world/splits/missing_hook_references.json
 ```
 
 For quick triage of the current hook-asset backlog, use:
 
-- `benchmarks/splits/missing_hook_references.json` for structured task and asset details
-- `benchmarks/splits/missing_hook_task_dirs.txt` for a flat list of task directory paths
+- `benchmarks/cua_world/splits/missing_hook_references.json` for structured task and asset details
+- `benchmarks/cua_world/splits/missing_hook_task_dirs.txt` for a flat list of task directory paths
 
 The compatibility wrapper script still exists:
 
@@ -83,4 +83,4 @@ Before cutting a public release or publishing benchmark results:
 - run `scripts/maintenance/audit_repo_structure.py`
 - compare declared spec fields against actual runner usage
 - compare benchmark JSON conventions against what `TaskSpec` and `EnvSpec` preserve
-- compare `benchmarks/splits/verified.json` against the currently published benchmark surface
+- compare `benchmarks/cua_world/splits/verified.json` against the currently published benchmark surface

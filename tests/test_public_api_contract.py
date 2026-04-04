@@ -41,7 +41,7 @@ class TaskSpecCompatibilityTests(unittest.TestCase):
 
     def test_real_corpus_task_description_is_available(self) -> None:
         task_path = Path(
-            "benchmarks/environments/zotero_env/tasks/update_preprints_to_proceedings/task.json"
+            "benchmarks/cua_world/environments/zotero_env/tasks/update_preprints_to_proceedings/task.json"
         )
         data = json.loads(task_path.read_text(encoding="utf-8"))
 

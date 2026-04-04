@@ -5,7 +5,7 @@ This page documents the authoring pattern that matches the current runtime.
 ## Canonical Directory Layout
 
 ```text
-benchmarks/environments/<env_name>/
+benchmarks/cua_world/environments/<env_name>/
 ├── env.json
 ├── scripts/
 ├── tasks/
@@ -66,8 +66,8 @@ Typical fields:
     {"type": "keyboard"}
   ],
   "mounts": [
-    {"source": "benchmarks/environments/zotero_env/scripts", "target": "/workspace/scripts", "mode": "ro"},
-    {"source": "benchmarks/environments/zotero_env/tasks", "target": "/workspace/tasks", "mode": "ro"}
+    {"source": "benchmarks/cua_world/environments/zotero_env/scripts", "target": "/workspace/scripts", "mode": "ro"},
+    {"source": "benchmarks/cua_world/environments/zotero_env/tasks", "target": "/workspace/tasks", "mode": "ro"}
   ],
   "hooks": {
     "pre_start": "/workspace/scripts/install_zotero.sh",

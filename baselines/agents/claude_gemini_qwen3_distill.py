@@ -10,7 +10,7 @@ import base64
 import numpy as np
 
 
-# python -m baselines.evaluation.run_single --env_dir benchmarks/environments/gimp_env_all_fast --task saturation_increase --agent 'ClaudeDatabricksAgent' --agent_args "{\"model\":\"databricks/claude-4-5-sonnet\", \"exp_name\":\"claude-4-5-sonnet\", \"task_name\": \"saturation_increase\"}"
+# python -m baselines.evaluation.run_single --env_dir benchmarks/cua_world/environments/gimp_env_all_fast --task saturation_increase --agent 'ClaudeDatabricksAgent' --agent_args "{\"model\":\"databricks/claude-4-5-sonnet\", \"exp_name\":\"claude-4-5-sonnet\", \"task_name\": \"saturation_increase\"}"
 
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):

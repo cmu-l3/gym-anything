@@ -64,7 +64,7 @@ If you want to use the package without installing it, run commands with `PYTHONP
 from gym_anything import from_config
 
 env = from_config(
-    "benchmarks/environments/zotero_env",
+    "benchmarks/cua_world/environments/zotero_env",
     task_id="create_saved_search",
 )
 
@@ -116,9 +116,9 @@ Current caching support:
 The built-in CLI is small and useful for validation and smoke tests:
 
 ```bash
-PYTHONPATH=src python -m gym_anything.cli verify spec benchmarks/environments/zotero_env --task create_saved_search
+PYTHONPATH=src python -m gym_anything.cli verify spec benchmarks/cua_world/environments/zotero_env --task create_saved_search
 PYTHONPATH=src python -m gym_anything.cli doctor --runner docker
-PYTHONPATH=src python -m gym_anything.cli run benchmarks/environments/zotero_env --task create_saved_search --steps 3
+PYTHONPATH=src python -m gym_anything.cli run benchmarks/cua_world/environments/zotero_env --task create_saved_search --steps 3
 ```
 
 The `run` subcommand is not a full agent runner. It performs a simple episode loop with empty actions.
@@ -129,7 +129,7 @@ The research harnesses live in `baselines/evaluation/`:
 
 ```bash
 python -m baselines.evaluation.run_single \
-  --env_dir benchmarks/environments/zotero_env \
+  --env_dir benchmarks/cua_world/environments/zotero_env \
   --task create_saved_search \
   --agent ClaudeAgent \
   --agent_args '{"model":"claude-opus-4","exp_name":"demo"}'

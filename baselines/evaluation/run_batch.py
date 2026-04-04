@@ -6,7 +6,7 @@ import subprocess
 import sys
 import time
 
-from benchmarks.registry import get_tasks_for_environment, resolve_environment_dir, resolve_environment_key
+from benchmarks.cua_world.registry import get_tasks_for_environment, resolve_environment_dir, resolve_environment_key
 
 
 parser = argparse.ArgumentParser()

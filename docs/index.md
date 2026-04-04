@@ -5,7 +5,7 @@ Gym-Anything is a configurable runtime for wrapping existing software as environ
 The repository combines:
 
 - a product library in `src/gym_anything/`
-- a large benchmark corpus in `benchmarks/environments/`
+- a large benchmark corpus in `benchmarks/cua_world/environments/`
 - reference agents and evaluation harnesses in `baselines/`
 - remote execution services in `services/`
 

@@ -18,16 +18,16 @@ class VerificationStatusTests(unittest.TestCase):
     def test_build_verified_task_split_only_includes_ok_tasks(self):
         summary = VerificationSummary(
             scope="corpus",
-            root="benchmarks/environments",
+            root="benchmarks/cua_world/environments",
             records=[
                 VerificationRecord(
                     kind="task",
-                    path="benchmarks/environments/env_a/tasks/task_ok/task.json",
+                    path="benchmarks/cua_world/environments/env_a/tasks/task_ok/task.json",
                     spec_id="task_ok@1",
                 ),
                 VerificationRecord(
                     kind="task",
-                    path="benchmarks/environments/env_a/tasks/task_bad/task.json",
+                    path="benchmarks/cua_world/environments/env_a/tasks/task_bad/task.json",
                     spec_id="task_bad@1",
                     issues=[VerificationIssue(code="missing_hook_reference", message="missing", severity="error")],
                 ),
@@ -42,16 +42,16 @@ class VerificationStatusTests(unittest.TestCase):
     def test_status_manifest_counts_issue_codes(self):
         summary = VerificationSummary(
             scope="corpus",
-            root="benchmarks/environments",
+            root="benchmarks/cua_world/environments",
             records=[
                 VerificationRecord(
                     kind="task",
-                    path="benchmarks/environments/env_a/tasks/task_ok/task.json",
+                    path="benchmarks/cua_world/environments/env_a/tasks/task_ok/task.json",
                     spec_id="task_ok@1",
                 ),
                 VerificationRecord(
                     kind="task",
-                    path="benchmarks/environments/env_b/tasks/task_bad/task.json",
+                    path="benchmarks/cua_world/environments/env_b/tasks/task_bad/task.json",
                     spec_id="task_bad@1",
                     issues=[VerificationIssue(code="invalid_program_verifier", message="bad", severity="error")],
                 ),
@@ -74,11 +74,11 @@ class VerificationStatusTests(unittest.TestCase):
     def test_missing_hook_reference_manifest_includes_task_dirs_and_assets(self):
         summary = VerificationSummary(
             scope="corpus",
-            root="benchmarks/environments",
+            root="benchmarks/cua_world/environments",
             records=[
                 VerificationRecord(
                     kind="task",
-                    path="benchmarks/environments/env_a/tasks/task_bad/task.json",
+                    path="benchmarks/cua_world/environments/env_a/tasks/task_bad/task.json",
                     spec_id="task_bad@1",
                     issues=[
                         VerificationIssue(
@@ -102,7 +102,7 @@ class VerificationStatusTests(unittest.TestCase):
         self.assertEqual(manifest["environment_count"], 1)
         self.assertEqual(
             manifest["tasks"][0]["task_dir"],
-            "benchmarks/environments/env_a/tasks/task_bad",
+            "benchmarks/cua_world/environments/env_a/tasks/task_bad",
         )
         self.assertEqual(
             manifest["tasks"][0]["missing_hook_assets"],

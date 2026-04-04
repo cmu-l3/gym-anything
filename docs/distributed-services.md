@@ -48,7 +48,7 @@ from gym_anything import RemoteGymEnv
 
 env = RemoteGymEnv.from_config(
     remote_url="http://localhost:5000",
-    env_dir="benchmarks/environments/zotero_env",
+    env_dir="benchmarks/cua_world/environments/zotero_env",
     task_id="create_saved_search",
 )
 ```

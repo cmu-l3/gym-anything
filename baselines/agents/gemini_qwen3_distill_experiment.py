@@ -27,7 +27,7 @@ class GeminiQwen3DistillAgentExperiment(GeminiQwen3Agent):
     - All <think> content comes from explicit model output, not implicit reasoning_content
 
     Usage:
-        python -m baselines.evaluation.run_single --env_dir benchmarks/environments/gimp_env_all_fast --task saturation_increase \
+        python -m baselines.evaluation.run_single --env_dir benchmarks/cua_world/environments/gimp_env_all_fast --task saturation_increase \
             --agent 'GeminiQwen3DistillAgentExperiment' \
             --agent_args '{"model":"gemini-3-flash-preview", "exp_name":"gemini-claude-style-exp0", "task_name":"saturation_increase", "reasoning_effort":"none"}'
     """

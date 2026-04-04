@@ -15,7 +15,7 @@ parser.add_argument('--test_only', action="store_true")
 parser.add_argument('--train_only', action="store_true")
 parser.add_argument('--temperature', type=float, required=False, default=1.0)
 parser.add_argument('--repeat', type=int, required=False, default=1)
-parser.add_argument('--env_dir', type=str, required=False, default="benchmarks/environments/gimp_env_all_fast")
+parser.add_argument('--env_dir', type=str, required=False, default="benchmarks/cua_world/environments/gimp_env_all_fast")
 parser.add_argument('--max_steps', type=int, required=False, default=50)
 args = parser.parse_args()
 
@@ -43,16 +43,16 @@ if IS_OSW:
 # osw_export_rename      osw_open_vignette          osw_theme_light
 # osw_green_background   osw_palette_convert        osw_triangle_center
     all_tasks = ["osw_add_layer_square", "osw_green_background_fill", "osw_remove_background", "osw_undo_steps_100", "osw_brightness_reduce", "osw_hide_docks", "osw_resize_layer_512", "osw_vignette_filter_open", "osw_contrast_increase", "osw_horizontal_mirror", "osw_saturation_increase", "osw_export_rename", "osw_open_vignette", "osw_theme_light", "osw_green_background", "osw_palette_convert", "osw_triangle_center"]
-    ENV_DIR = "benchmarks/environments/gimp_env_osw"
+    ENV_DIR = "benchmarks/cua_world/environments/gimp_env_osw"
 elif IS_NC:
     # ['auto_white_balance', 'vignette', 'layer_opacity', 'layer_offset', 'plasma_render', 'offset_image', 'render_grid', 'color_balance', 'dilate', 'tile_seamless', 'newsprint', 'scale_image', 'offset_wrap', 'cartoon']
     all_tasks = ['auto_white_balance', 'vignette', 'layer_opacity', 'layer_offset', 'plasma_render', 'offset_image', 'render_grid', 'color_balance', 'dilate', 'tile_seamless', 'newsprint', 'scale_image', 'offset_wrap', 'cartoon']
-    ENV_DIR = "benchmarks/environments/gimp_env_all_fast"
+    ENV_DIR = "benchmarks/cua_world/environments/gimp_env_all_fast"
 else:
     if args.env_dir:
         ENV_DIR = args.env_dir
     else:   
-        ENV_DIR = "benchmarks/environments/gimp_env_all_fast"
+        ENV_DIR = "benchmarks/cua_world/environments/gimp_env_all_fast"
 
 if TEST_ONLY or TRAIN_ONLY:
     all_tasks_test = ['object_erase', 'threshold_binary', 'emboss_effect', 'rectangle_stroke', 'color_balance', 'rect_fill', 'scale_to_width', 'ripple', 'saturation_enhance', 'circle_fill', 'grayscale_mode', 'solid_noise', 'sharpen_filter', 'sharpen_unsharp', 'blend_mode', 'add_drop_shadow', 'invert_colors', 'print_resolution', 'scale_image', 'select_fill', 'flood_fill', 'ellipse_fill', 'vignette', 'duplicate_layer', 'border_add', 'dilate', 'auto_normalize', 'border_addition', 'threshold_bw', 'cartoon', 'saturation_boost', 'layer_opacity', 'auto_white_balance', 'edge_detect', 'color_enhance', 'render_grid', 'newsprint', 'increase_saturation', 'emboss', 'square_crop', 'add_border', 'vertical_mirror', 'paste_as_new_layer', 'tile_seamless', 'offset_image', 'offset_wrap', 'layer_offset', 'threshold_effect', 'plasma_render', 'fuzzy_select_fill']

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from benchmarks.registry import (
+from benchmarks.cua_world.registry import (
     get_tasks_for_environment,
     load_environment_task_splits,
     resolve_environment_dir,
@@ -22,8 +22,8 @@ class BenchmarkRegistryTests(unittest.TestCase):
     def test_loader_preserves_explicit_all_tasks_and_additional_splits(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            environments_root = root / "benchmarks" / "environments"
-            splits_root = root / "benchmarks" / "splits"
+            environments_root = root / "benchmarks" / "cua_world" / "environments"
+            splits_root = root / "benchmarks" / "cua_world" / "splits"
             env_dir = environments_root / "demo_env"
             for task_id in ("task_a", "task_b", "task_c"):
                 (env_dir / "tasks" / task_id).mkdir(parents=True)
@@ -31,7 +31,7 @@ class BenchmarkRegistryTests(unittest.TestCase):
             _write_json(
                 splits_root / "demo_split.json",
                 {
-                    "env_folder": "benchmarks/environments/demo_env",
+                    "env_folder": "benchmarks/cua_world/environments/demo_env",
                     "train_tasks": ["task_c"],
                     "test_tasks": ["task_b"],
                     "all_tasks": ["task_a", "task_b", "task_c"],
@@ -66,8 +66,8 @@ class BenchmarkRegistryTests(unittest.TestCase):
     def test_loader_discovers_missing_split_files_from_environment_dirs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            environments_root = root / "benchmarks" / "environments"
-            splits_root = root / "benchmarks" / "splits"
+            environments_root = root / "benchmarks" / "cua_world" / "environments"
+            splits_root = root / "benchmarks" / "cua_world" / "splits"
             env_dir = environments_root / "demo_env"
             for task_id in ("task_a", "task_b"):
                 (env_dir / "tasks" / task_id).mkdir(parents=True)
@@ -86,7 +86,7 @@ class BenchmarkRegistryTests(unittest.TestCase):
     def test_environment_resolution_helpers_accept_keys_and_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            environments_root = root / "benchmarks" / "environments"
+            environments_root = root / "benchmarks" / "cua_world" / "environments"
             env_dir = environments_root / "demo_env"
             env_dir.mkdir(parents=True)
 
@@ -98,8 +98,8 @@ class BenchmarkRegistryTests(unittest.TestCase):
     def test_get_tasks_for_environment_reads_verified_surface(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            environments_root = root / "benchmarks" / "environments"
-            splits_root = root / "benchmarks" / "splits"
+            environments_root = root / "benchmarks" / "cua_world" / "environments"
+            splits_root = root / "benchmarks" / "cua_world" / "splits"
             env_dir = environments_root / "demo_env"
             for task_id in ("task_a", "task_b"):
                 (env_dir / "tasks" / task_id).mkdir(parents=True)
@@ -107,7 +107,7 @@ class BenchmarkRegistryTests(unittest.TestCase):
             _write_json(
                 splits_root / "demo_split.json",
                 {
-                    "env_folder": "benchmarks/environments/demo_env",
+                    "env_folder": "benchmarks/cua_world/environments/demo_env",
                     "train_tasks": ["task_a", "task_b"],
                     "test_tasks": [],
                     "all_tasks": ["task_a", "task_b"],

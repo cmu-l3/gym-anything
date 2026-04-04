@@ -6,7 +6,7 @@
 from gym_anything import from_config
 
 env = from_config(
-    "benchmarks/environments/zotero_env",
+    "benchmarks/cua_world/environments/zotero_env",
     task_id="create_saved_search",
 )
 
@@ -39,7 +39,7 @@ if "ui_tree" in obs:
 ## Dense Reward Task
 
 ```python
-env = from_config("benchmarks/environments/<env_name>", task_id="<dense_task>")
+env = from_config("benchmarks/cua_world/environments/<env_name>", task_id="<dense_task>")
 obs = env.reset()
 
 obs, reward, done, info = env.step([
@@ -55,7 +55,7 @@ Dense reward only works when the task config actually provides `reward_type: "de
 
 ```bash
 python -m baselines.evaluation.run_single \
-  --env_dir benchmarks/environments/zotero_env \
+  --env_dir benchmarks/cua_world/environments/zotero_env \
   --task create_saved_search \
   --agent ClaudeAgent \
   --agent_args '{"model":"claude-opus-4","exp_name":"demo"}'
@@ -73,7 +73,7 @@ python -m baselines.evaluation.run_batch \
   --exp_name demo_batch
 ```
 
-`run_batch` accepts either an environment key like `zotero_env` or a filesystem path, and it reads split definitions from `benchmarks/splits/`.
+`run_batch` accepts either an environment key like `zotero_env` or a filesystem path, and it reads split definitions from `benchmarks/cua_world/splits/`.
 
 ## Remote Environment Example
 
@@ -82,7 +82,7 @@ from gym_anything import RemoteGymEnv
 
 env = RemoteGymEnv.from_config(
     remote_url="http://localhost:5000",
-    env_dir="benchmarks/environments/zotero_env",
+    env_dir="benchmarks/cua_world/environments/zotero_env",
     task_id="create_saved_search",
 )
 

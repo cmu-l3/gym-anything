@@ -7,13 +7,13 @@ This repository is intentionally split by responsibility.
 - `src/gym_anything/`
   The product library. New reusable runtime code belongs here.
 
-- `benchmarks/environments/`
+- `benchmarks/cua_world/environments/`
   Environment and task corpus. This is benchmark content, not library code.
 
-- `benchmarks/archive/`
+- `benchmarks/cua_world/historical/`
   Archived benchmark variants, superseded environments, and historical corpus material that should not stay in the canonical benchmark set.
 
-- `benchmarks/splits/`
+- `benchmarks/cua_world/splits/`
   Split JSON files.
 
 - `benchmarks/registry/`
@@ -51,7 +51,7 @@ This repository is intentionally split by responsibility.
 
 ## Benchmark Placement Rules
 
-Inside `benchmarks/environments/<env_name>/`:
+Inside `benchmarks/cua_world/environments/<env_name>/`:
 
 - keep runtime files at the env root, in `scripts/`, and under `tasks/`
 - keep large staged datasets in `data/` and app/plugin bundles in `addons/` when needed

@@ -8,7 +8,7 @@ This file tracks the work required to move Gym-Anything from a strong research c
 
 ## Principles
 
-- Preserve compatibility for existing environment and task directories under `benchmarks/environments/`.
+- Preserve compatibility for existing environment and task directories under `benchmarks/cua_world/environments/`.
 - Prefer additive API changes over breaking changes.
 - Do not document a feature as supported unless it is implemented, validated, and tested.
 - Keep `baselines/` usable as reference code, but prevent baseline-only behavior from leaking into the product runtime.
@@ -26,8 +26,8 @@ This file tracks the work required to move Gym-Anything from a strong research c
 - A compatibility test module exists for the first public API contract tranche.
 - Verification is now a first-class package surface under `gym_anything.verification`, with CLI entrypoints for `verify spec`, `verify corpus`, and `verify task`.
 - Unsupported verifier modes have been removed from the public verifier contract instead of being silently accepted.
-- Benchmark split definitions now live in `benchmarks/splits/*.json`, with a compatibility wrapper for older `benchmarks.registry.task_splits` imports.
-- The verifier-backed supported task surface is published in `benchmarks/splits/verified.json`.
+- Benchmark split definitions now live in `benchmarks/cua_world/splits/*.json`, with a compatibility wrapper for older `benchmarks.cua_world.registry.task_splits` imports.
+- The verifier-backed supported task surface is published in `benchmarks/cua_world/splits/verified.json`.
 - The baseline evaluation harnesses now use the JSON-backed split registry and configurable VLM settings.
 - Worker reset now defaults to `core` parity, with an explicit `baseline_setup` policy for baseline-oriented worker-side setup.
 - `BrowserRunner` is now reachable through runner selection.
@@ -47,9 +47,9 @@ This file tracks the work required to move Gym-Anything from a strong research c
 
 ### Newly Discovered Issues
 
-- As of March 8, 2026, `gym-anything verify corpus benchmarks/environments` reports `7,277` verified tasks and `385` failed tasks.
+- As of March 8, 2026, `gym-anything verify corpus benchmarks/cua_world/environments` reports `7,277` verified tasks and `385` failed tasks.
 - All currently reported corpus failures are `missing_hook_reference` issues caused by tasks that reference absent setup/export scripts.
-- The current hook-asset backlog is tracked in `benchmarks/splits/missing_hook_references.json` and `benchmarks/splits/missing_hook_task_dirs.txt`.
+- The current hook-asset backlog is tracked in `benchmarks/cua_world/splits/missing_hook_references.json` and `benchmarks/cua_world/splits/missing_hook_task_dirs.txt`.
 - Corpus verification still exposes undeclared verifier import dependencies in environments outside the currently failing hook-reference slice.
 
 ### Not Started

@@ -28,7 +28,7 @@ Current subcommands:
 
 ```bash
 PYTHONPATH=src python -m gym_anything.cli verify spec \
-  benchmarks/environments/zotero_env \
+  benchmarks/cua_world/environments/zotero_env \
   --task create_saved_search
 ```
 
@@ -44,7 +44,7 @@ Use `verify` as the canonical release-readiness surface.
 
 ```bash
 PYTHONPATH=src python -m gym_anything.cli validate \
-  benchmarks/environments/zotero_env \
+  benchmarks/cua_world/environments/zotero_env \
   --task create_saved_search
 ```
 
@@ -85,7 +85,7 @@ Examples:
 ```bash
 PYTHONPATH=src python -m gym_anything.cli doctor --runner docker
 PYTHONPATH=src python -m gym_anything.cli doctor --runner qemu
-PYTHONPATH=src python -m gym_anything.cli doctor --verification-root benchmarks/environments
+PYTHONPATH=src python -m gym_anything.cli doctor --verification-root benchmarks/cua_world/environments
 ```
 
 This command reports:
@@ -98,7 +98,7 @@ This command reports:
 
 ```bash
 PYTHONPATH=src python -m gym_anything.cli run \
-  benchmarks/environments/zotero_env \
+  benchmarks/cua_world/environments/zotero_env \
   --task create_saved_search \
   --steps 3
 ```
@@ -137,9 +137,9 @@ It is useful for experiments, but it is not a carefully isolated orchestration l
 
 The benchmark selection surface is data-driven:
 
-- split definitions come from `benchmarks/splits/*_split.json`
+- split definitions come from `benchmarks/cua_world/splits/*_split.json`
 - `--surface raw` uses the full declared split data
-- `--surface verified` filters those splits to the verifier-backed task set from `benchmarks/splits/verified.json`
+- `--surface verified` filters those splits to the verifier-backed task set from `benchmarks/cua_world/splits/verified.json`
 
 ## Remote Services
 

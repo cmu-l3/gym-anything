@@ -5,7 +5,7 @@
 Canonical task layout:
 
 ```text
-benchmarks/environments/<env_name>/tasks/<task_id>/
+benchmarks/cua_world/environments/<env_name>/tasks/<task_id>/
 ├── task.json
 ├── verifier.py
 ├── setup_task.sh        optional
@@ -82,7 +82,7 @@ In this checkout:
 
 - program verifiers dominate the corpus
 - `image_match` and `multi` are rare relative to `program`
-- the verifier-backed supported task surface is published in `benchmarks/splits/verified.json`
+- the verifier-backed supported task surface is published in `benchmarks/cua_world/splits/verified.json`
 
 ## Program Verifier Contract
 

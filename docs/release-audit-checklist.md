@@ -38,7 +38,7 @@ It is not a benchmark-quality, model-quality, or feature-adequacy checklist.
 
 - [ ] README, docs overview, and packaging metadata describe the same release surface.
 - [ ] The release explicitly states whether `src/gym_anything/`, `services/`, and `baselines/` are all in scope or whether some are reference-only.
-- [ ] The release explicitly states whether the supported benchmark surface is the raw corpus or the verifier-backed surface in `benchmarks/splits/verified.json`.
+- [ ] The release explicitly states whether the supported benchmark surface is the raw corpus or the verifier-backed surface in `benchmarks/cua_world/splits/verified.json`.
 - [ ] Supported runners are named consistently across README, docs, CLI docs, and compatibility docs.
 - [ ] Experimental or reference-only surfaces are labeled as such everywhere they are mentioned.
 - [ ] Version, release scope, and compatibility promises are written as current facts, not implied aspirations.
@@ -131,7 +131,7 @@ PYTHONPATH=src python -m gym_anything.cli doctor --json
 
 - [ ] README corpus counts match the current repo or are explicitly labeled as a dated snapshot.
 - [ ] Verification totals in docs match a fresh audit run or are explicitly labeled as a dated snapshot.
-- [ ] The verifier-backed supported surface in `benchmarks/splits/verified.json` exists and is described consistently.
+- [ ] The verifier-backed supported surface in `benchmarks/cua_world/splits/verified.json` exists and is described consistently.
 - [ ] Example environments and tasks used in docs load through `from_config`.
 - [ ] Declared verifier modes in docs, validators, and runtime are the same.
 - [ ] Known missing hook references, missing verifier dependencies, or similar corpus issues are either outside the release surface or explicitly documented.
@@ -142,13 +142,13 @@ Suggested evidence commands:
 ```bash
 python - <<'PY'
 from pathlib import Path
-root = Path("benchmarks/environments")
+root = Path("benchmarks/cua_world/environments")
 env_specs = sum(1 for _ in root.glob("*/env.json")) + sum(1 for _ in root.glob("*/env.yaml"))
 task_specs = sum(1 for _ in root.glob("*/tasks/*/task.json")) + sum(1 for _ in root.glob("*/tasks/*/task.yaml")) + sum(1 for _ in root.glob("*/tasks/*/task.yml"))
 print({"env_specs": env_specs, "task_specs": task_specs})
 PY
-PYTHONPATH=src python -m gym_anything.cli verify spec benchmarks/environments/zotero_env --task create_saved_search
-PYTHONPATH=src python -m gym_anything.cli verify corpus benchmarks/environments --json
+PYTHONPATH=src python -m gym_anything.cli verify spec benchmarks/cua_world/environments/zotero_env --task create_saved_search
+PYTHONPATH=src python -m gym_anything.cli verify corpus benchmarks/cua_world/environments --json
 python -m pytest tests/test_benchmark_registry.py tests/test_verification_status.py
 ```
 

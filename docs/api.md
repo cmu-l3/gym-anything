@@ -35,7 +35,7 @@ Example:
 
 ```python
 env = from_config(
-    "benchmarks/environments/zotero_env",
+    "benchmarks/cua_world/environments/zotero_env",
     task_id="create_saved_search",
 )
 ```
@@ -222,7 +222,7 @@ The current runtime behavior is:
 ```python
 remote = RemoteGymEnv.from_config(
     remote_url="http://worker-host:5000",
-    env_dir="benchmarks/environments/zotero_env",
+    env_dir="benchmarks/cua_world/environments/zotero_env",
     task_id="create_saved_search",
 )
 ```

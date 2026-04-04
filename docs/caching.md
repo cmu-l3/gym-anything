@@ -72,7 +72,7 @@ The current implementations sanitize task IDs when embedding them into checkpoin
 
 ```python
 env = from_config(
-    "benchmarks/environments/zotero_env",
+    "benchmarks/cua_world/environments/zotero_env",
     task_id="create_saved_search",
 )
 

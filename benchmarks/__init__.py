@@ -1,2 +1,1 @@
-"""Benchmark definitions and registries."""
-
+"""Benchmark suites bundled with Gym-Anything."""

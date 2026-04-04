@@ -6,7 +6,7 @@ That is narrower than the full set of keys you may see in benchmark JSON files.
 
 ## Important Distinction
 
-Many files in `benchmarks/environments/` contain extra metadata such as:
+Many files in `benchmarks/cua_world/environments/` contain extra metadata such as:
 
 - environment- or task-specific custom keys
 
@@ -340,8 +340,8 @@ Current merge behavior:
     {"type": "keyboard"}
   ],
   "mounts": [
-    {"source": "benchmarks/environments/my_env/scripts", "target": "/workspace/scripts", "mode": "ro"},
-    {"source": "benchmarks/environments/my_env/tasks", "target": "/workspace/tasks", "mode": "ro"}
+    {"source": "benchmarks/cua_world/environments/my_env/scripts", "target": "/workspace/scripts", "mode": "ro"},
+    {"source": "benchmarks/cua_world/environments/my_env/tasks", "target": "/workspace/tasks", "mode": "ro"}
   ],
   "hooks": {
     "pre_start": "/workspace/scripts/install.sh",

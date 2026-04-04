@@ -13,7 +13,7 @@ If you change runtime behavior:
 ## Where Changes Go
 
 - reusable runtime code -> `src/gym_anything/`
-- benchmark environments and tasks -> `benchmarks/environments/`
+- benchmark environments and tasks -> `benchmarks/cua_world/environments/`
 - reference agents and evaluation harnesses -> `baselines/`
 - remote services -> `services/`
 - offline utilities -> `tools/`
@@ -21,12 +21,12 @@ If you change runtime behavior:
 
 ## Adding A New Environment
 
-1. Create `benchmarks/environments/<env_name>/`.
+1. Create `benchmarks/cua_world/environments/<env_name>/`.
 2. Add `env.json`.
 3. Add shared scripts under `scripts/`.
 4. Add one or more tasks under `tasks/<task_id>/`.
 5. Add verifier logic for each task.
-6. Register split information in `benchmarks/splits/<env_name>_split.json`.
+6. Register split information in `benchmarks/cua_world/splits/<env_name>_split.json`.
 7. Document runner requirements and any known caveats.
 
 Use [Environment Authoring](environment-authoring.md) as the canonical guide.

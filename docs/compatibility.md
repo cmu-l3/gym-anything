@@ -24,7 +24,7 @@ from gym_anything import from_config, get_runner_compatibility
 
 print(get_runner_compatibility("docker").to_dict())
 
-env = from_config("benchmarks/environments/zotero_env", task_id="create_saved_search")
+env = from_config("benchmarks/cua_world/environments/zotero_env", task_id="create_saved_search")
 print(env.get_compatibility_profile())
 env.close()
 ```

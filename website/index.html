@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym-Anything: Turn Any Software into an Agent Environment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #fafafa;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f5f5;
+  --bg-elevated: #f0f0f2;
+  --border: #e2e2e8;
+  --text: #1a1a1e;
+  --text-muted: #5a5a63;
+  --text-dim: #8a8a96;
+  --accent: #0891b2;
+  --accent-dim: rgba(8, 145, 178, 0.08);
+  --purple: #7c3aed;
+  --green: #16a34a;
+  --amber: #d97706;
+  --red: #dc2626;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --chart-grid: rgba(0,0,0,0.06);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* Dark mode — uncomment to enable system-based switching:
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #050505;
+    --bg-card: #111113;
+    --bg-card-hover: #19191d;
+    --bg-elevated: #1c1c21;
+    --border: #2a2a30;
+    --text: #eeeef0;
+    --text-muted: #87878f;
+    --text-dim: #5a5a63;
+    --accent: #22d3ee;
+    --accent-dim: rgba(34, 211, 238, 0.12);
+    --purple: #a78bfa;
+    --green: #4ade80;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --chart-grid: rgba(255,255,255,0.04);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.3);
+  }
+}
+*/
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* ─── SECTION SPACING ─── */
+section { padding: 5rem 0; }
+section + section { border-top: 1px solid var(--border); }
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+.section-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  max-width: 680px;
+  line-height: 1.7;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HERO
+   ════════════════════════════════════════════════════════════════ */
+#hero {
+  padding: 6rem 0 3rem;
+  text-align: center;
+  position: relative;
+}
+
+#hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 800px; height: 600px;
+  background: radial-gradient(ellipse, rgba(8,145,178,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 4.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.hero-title .highlight {
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-tagline {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.hero-authors {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin-bottom: 2.5rem;
+}
+
+.hero-authors span { color: var(--text-muted); }
+
+.hero-blurb {
+  font-size: 1.15rem;
+  color: var(--text-muted);
+  max-width: 720px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.8;
+}
+
+.hero-blurb strong { color: var(--text); font-weight: 600; }
+
+.btn-row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.5rem;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.btn:hover { background: var(--bg-card-hover); border-color: var(--text-dim); text-decoration: none; }
+
+.btn-primary {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  background: #06b6d4;
+  border-color: #06b6d4;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CAROUSEL
+   ════════════════════════════════════════════════════════════════ */
+#carousel-section {
+  padding: 2rem 0 4rem;
+  overflow: hidden;
+  border-top: none;
+}
+
+.carousel-track {
+  display: flex;
+  gap: 1rem;
+  animation: scroll-left 60s linear infinite;
+  width: max-content;
+}
+
+.carousel-track.reverse {
+  animation: scroll-right 55s linear infinite;
+}
+
+.carousel-card {
+  flex-shrink: 0;
+  width: 280px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  transition: transform 0.3s, border-color 0.3s;
+}
+
+.carousel-card:hover {
+  transform: scale(1.03);
+  border-color: var(--accent);
+}
+
+.carousel-card img {
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+  display: block;
+}
+
+.carousel-card .label {
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes scroll-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.carousel-track:hover, .carousel-track.reverse:hover {
+  animation-play-state: paused;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   STATS BAR
+   ════════════════════════════════════════════════════════════════ */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  padding: 3rem 0;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.stat-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.stat-tooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  width: 280px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 10;
+  text-align: left;
+}
+
+.stat-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: var(--accent);
+}
+
+.stat-card:hover .stat-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+  pointer-events: auto;
+}
+
+.stat-tooltip p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.stat-tooltip strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.stat-number {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HOW IT WORKS
+   ════════════════════════════════════════════════════════════════ */
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+}
+
+.step-card {
+  padding: 1.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  position: relative;
+  box-shadow: var(--shadow-card);
+}
+
+.step-number {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-dim);
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  letter-spacing: 0.08em;
+}
+
+.step-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.65rem;
+}
+
+.step-card p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
+.pipeline-image {
+  margin-top: 3rem;
+  text-align: center;
+}
+
+.pipeline-image img {
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LIBRARY
+   ════════════════════════════════════════════════════════════════ */
+.library-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2.5rem;
+  align-items: start;
+}
+
+.code-example {
+  background: #1e1e2e;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #313244;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.75rem 1rem;
+  background: #181825;
+  border-bottom: 1px solid #313244;
+}
+
+.code-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.code-filename {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #a6adc8;
+  margin-left: 0.5rem;
+}
+
+.code-block {
+  padding: 1.25rem 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: #cdd6f4;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.code-block .kw { color: #cba6f7; }
+.code-block .fn { color: #89b4fa; }
+.code-block .st { color: #a6e3a1; }
+.code-block .cm { color: #6c7086; font-style: italic; }
+.code-block .num { color: #fab387; }
+
+.library-features {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.lib-feature {
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+}
+
+.lib-feature-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.lib-feature p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.lib-feature code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--accent-dim);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .library-grid { grid-template-columns: 1fr; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   REELS (Slot Machine)
+   ════════════════════════════════════════════════════════════════ */
+#reels-section { overflow: hidden; }
+
+.reels-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1.5fr;
+  gap: 1.25rem;
+  margin-top: 2.5rem;
+  min-height: 360px;
+}
+
+.reel-column {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.reel-header {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding: 0.85rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.reel-viewport {
+  height: 280px;
+  overflow: hidden;
+  position: relative;
+}
+
+.reel-viewport::before, .reel-viewport::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 60px;
+  z-index: 2;
+  pointer-events: none;
+}
+.reel-viewport::before {
+  top: 0;
+  background: linear-gradient(to bottom, var(--bg-card), transparent);
+}
+.reel-viewport::after {
+  bottom: 0;
+  background: linear-gradient(to top, var(--bg-card), transparent);
+}
+
+.reel-track {
+  display: flex;
+  flex-direction: column;
+  animation: reel-scroll 25s linear infinite;
+}
+
+.reel-column:nth-child(2) .reel-track { animation-duration: 30s; }
+.reel-column:nth-child(3) .reel-track { animation-duration: 22s; }
+
+@keyframes reel-scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.reel-item {
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.reel-highlight-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 0; right: 0;
+  height: 36px;
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  background: var(--accent-dim);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.reel-preview {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.reel-preview-header {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  padding: 0.85rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.reel-preview-content {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.reel-preview-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.reel-preview-sw {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.reel-preview-task {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  flex: 1;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LEADERBOARD
+   ════════════════════════════════════════════════════════════════ */
+.leaderboard-table {
+  width: 100%;
+  margin-top: 2rem;
+  border-collapse: collapse;
+}
+
+.leaderboard-table th {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.leaderboard-table td {
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.leaderboard-table tr:hover td {
+  background: var(--bg-card);
+}
+
+.leaderboard-table .rank {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-dim);
+  width: 3rem;
+}
+
+.leaderboard-table .model-name {
+  font-weight: 600;
+}
+
+.leaderboard-table .highlight-row td {
+  background: var(--accent-dim);
+}
+
+.leaderboard-table .score {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.leaderboard-table .pass-rate {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.leaderboard-note {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RESULTS
+   ════════════════════════════════════════════════════════════════ */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+}
+
+.result-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
+.result-card h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.result-card .result-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.chart-container {
+  position: relative;
+  height: 240px;
+}
+
+.chart-container canvas { width: 100% !important; }
+
+/* ════════════════════════════════════════════════════════════════
+   EXPLORE (Placeholder)
+   ════════════════════════════════════════════════════════════════ */
+.explore-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.explore-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.explore-card:hover { border-color: var(--accent); }
+
+.explore-card img {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+}
+
+.explore-card-info {
+  padding: 0.65rem 0.8rem;
+}
+
+.explore-card-info h4 {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.explore-card-info span {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CITATION
+   ════════════════════════════════════════════════════════════════ */
+.citation-block {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  position: relative;
+  margin-top: 2rem;
+}
+
+.citation-block pre {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+
+/* ════════════════════════════════════════════════════════════════
+   INTERACTIVE: Explore card task overlay
+   ════════════════════════════════════════════════════════════════ */
+.explore-card {
+  position: relative;
+  cursor: pointer;
+}
+.explore-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  transition: opacity 0.25s;
+  border-radius: 10px;
+}
+.explore-card:hover .explore-overlay {
+  opacity: 1;
+}
+.explore-overlay p {
+  font-size: 0.78rem;
+  color: #f0f0f2;
+  line-height: 1.6;
+  text-align: center;
+}
+.explore-overlay .overlay-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   INTERACTIVE: Leaderboard expandable rows
+   ════════════════════════════════════════════════════════════════ */
+.leaderboard-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.leaderboard-detail {
+  display: none;
+}
+.leaderboard-detail.open {
+  display: table-row;
+}
+.leaderboard-detail td {
+  padding: 0.75rem 1rem 1rem !important;
+  background: var(--accent-dim) !important;
+  border-bottom: 1px solid var(--border);
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.detail-item {
+  text-align: center;
+}
+.detail-item .detail-val {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.detail-item .detail-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   INTERACTIVE: Code copy button
+   ════════════════════════════════════════════════════════════════ */
+.code-header {
+  position: relative;
+}
+.code-copy-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #313244;
+  border: 1px solid #45475a;
+  color: #a6adc8;
+  padding: 0.25rem 0.6rem;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.code-copy-btn:hover {
+  color: #cdd6f4;
+  border-color: #89b4fa;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   INTERACTIVE: Step card ↔ pipeline connection
+   ════════════════════════════════════════════════════════════════ */
+.step-card {
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.step-card:hover, .step-card.active {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(8,145,178,0.12);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   FOOTER
+   ════════════════════════════════════════════════════════════════ */
+footer {
+  padding: 3rem 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .hero-title { font-size: 3rem; }
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .steps-grid { grid-template-columns: 1fr; }
+  .reels-container { grid-template-columns: 1fr 1fr; }
+  .results-grid { grid-template-columns: 1fr; }
+  .explore-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .hero-title { font-size: 2.2rem; }
+  .stats-bar { grid-template-columns: 1fr 1fr; }
+  .reels-container { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════
+     HERO
+     ════════════════════════════════════════════════════════════════ -->
+<section id="hero">
+  <div class="container">
+    <h1 class="hero-title">
+      <span class="highlight">Gym-Anything</span>
+    </h1>
+    <p class="hero-tagline">Turn Any Software into an Agent Environment</p>
+    <p class="hero-authors">
+      <span>Pranjal Aggarwal</span> · <span>Graham Neubig</span> · <span>Sean Welleck</span> · Carnegie Mellon University
+    </p>
+    <p class="hero-blurb">
+      Got a software? <strong>Gym-Anything</strong> automatically converts it into a
+      computer-use agent environment, setup with realistic data, tasks, and
+      verification. No manual setup. Just give it a name.
+    </p>
+    <div class="btn-row">
+      <a href="#" class="btn btn-primary">📄 Paper</a>
+      <a href="#" class="btn">💻 Code</a>
+      <a href="#library" class="btn">📦 Library</a>
+      <a href="#leaderboard" class="btn">🏆 Leaderboard</a>
+      <a href="#explore" class="btn">🔍 Explore CUA-World</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SOFTWARE CAROUSEL
+     ════════════════════════════════════════════════════════════════ -->
+<section id="carousel-section">
+  <!-- Row 1: left scroll -->
+  <div class="carousel-track" id="carousel-row1"></div>
+  <div style="height: 1rem;"></div>
+  <!-- Row 2: right scroll -->
+  <div class="carousel-track reverse" id="carousel-row2"></div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     STATS BAR
+     ════════════════════════════════════════════════════════════════ -->
+<section id="stats">
+  <div class="container">
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-tooltip">
+          <p><strong>200+ real-world applications</strong>, from GIMP and Blender to NinjaTrader and OpenEMR. Each is installed, configured, and populated with realistic data inside a sandboxed VM.</p>
+        </div>
+        <div class="stat-number">200+</div>
+        <div class="stat-label">Software Environments</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-tooltip">
+          <p><strong>~50 tasks per software</strong>, created through agentic seed generation and LLM amplification. Each task has a checklist-based verifier with privileged information for reliable evaluation.</p>
+        </div>
+        <div class="stat-number">10,000+</div>
+        <div class="stat-label">Tasks & Environments</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-tooltip">
+          <p>The <strong>Standard Occupational Classification (SOC)</strong> system defines 22 major occupation groups used by the U.S. Bureau of Labor Statistics. CUA-World covers all 22, from Healthcare to Construction to Arts.</p>
+        </div>
+        <div class="stat-number">22/22</div>
+        <div class="stat-label">SOC Occupation Groups</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-tooltip">
+          <p>Environments run on <strong>Linux</strong> (desktop apps), <strong>Windows</strong> (via QEMU), and <strong>Android</strong> (via emulators), all managed through the same unified API.</p>
+        </div>
+        <div class="stat-number">3</div>
+        <div class="stat-label">Operating Systems</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     HOW IT WORKS
+     ════════════════════════════════════════════════════════════════ -->
+<section id="how-it-works">
+  <div class="container">
+    <div class="section-label">The Pipeline</div>
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-subtitle">
+      Our key insight: setting up computer-use agent environments is itself a coding
+      and computer-use agent task. Gym-Anything automates the entire pipeline.
+    </p>
+    <div class="steps-grid">
+      <div class="step-card" data-step="1" onmouseenter="highlightStep(1)" onmouseleave="unhighlightStep(1)">
+        <div class="step-number">01 · SELECT</div>
+        <h3>GDP-Grounded Selection</h3>
+        <p>We identify which software matters most by decomposing U.S. GDP data
+           into per-software economic contributions, then select 200 high-impact
+           applications across all major occupation groups.</p>
+      </div>
+      <div class="step-card" data-step="2" onmouseenter="highlightStep(2)" onmouseleave="unhighlightStep(2)">
+        <div class="step-number">02 · CREATE</div>
+        <h3>Agent-Built Environments</h3>
+        <p>A coding agent automatically installs, configures, and populates each
+           software with real-world data. An independent audit agent verifies
+           correctness against quality checklists, iterating until the environment
+           is production-ready.</p>
+      </div>
+      <div class="step-card" data-step="3" onmouseenter="highlightStep(3)" onmouseleave="unhighlightStep(3)">
+        <div class="step-number">03 · SCALE</div>
+        <h3>Task Generation</h3>
+        <p>An agentic model creates 5 high-quality seed tasks per software by
+           actually running it. An LLM then amplifies these to 75 tasks each,
+           yielding 10K+ verified tasks with checklist-based evaluation.</p>
+      </div>
+    </div>
+    <div class="pipeline-image">
+      <img src="assets/figures/final_teaser_v3.svg" alt="Gym-Anything pipeline overview">
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     REELS
+     ════════════════════════════════════════════════════════════════ -->
+<section id="reels-section">
+  <div class="container">
+    <div class="section-label">Coverage</div>
+    <h2 class="section-title">Every Occupation. Every Domain.</h2>
+    <p class="section-subtitle">
+      CUA-World covers all 22 major occupation groups, spanning from healthcare
+      and education to engineering, finance, and creative arts.
+    </p>
+    <div class="reels-container">
+      <!-- Reel 1: Occupations -->
+      <div class="reel-column">
+        <div class="reel-header">Occupation</div>
+        <div class="reel-viewport">
+          <div class="reel-highlight-bar"></div>
+          <div class="reel-track" id="reel-occupations"></div>
+        </div>
+      </div>
+      <!-- Reel 2: Domains -->
+      <div class="reel-column">
+        <div class="reel-header">Domain</div>
+        <div class="reel-viewport">
+          <div class="reel-highlight-bar"></div>
+          <div class="reel-track" id="reel-domains"></div>
+        </div>
+      </div>
+      <!-- Reel 3: Software -->
+      <div class="reel-column">
+        <div class="reel-header">Software</div>
+        <div class="reel-viewport">
+          <div class="reel-highlight-bar"></div>
+          <div class="reel-track" id="reel-software"></div>
+        </div>
+      </div>
+      <!-- Preview pane -->
+      <div class="reel-preview">
+        <div class="reel-preview-header">Sample Task</div>
+        <div class="reel-preview-content">
+          <img class="reel-preview-img" id="preview-img" src="assets/trajectories/gimp.png" alt="Software preview">
+          <div class="reel-preview-sw" id="preview-sw">GIMP</div>
+          <div class="reel-preview-task" id="preview-task">Apply a Gaussian blur filter to the foreground layer, adjust the opacity to 70%, and export the composition as a high-quality PNG file.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     LEADERBOARD
+     ════════════════════════════════════════════════════════════════ -->
+<section id="leaderboard">
+  <div class="container">
+    <div class="section-label">Benchmark</div>
+    <h2 class="section-title">Leaderboard: CUA-World-Long</h2>
+    <p class="section-subtitle">
+      200 long-horizon tasks, one per software. Tasks often require 500+ steps.
+      The best configuration achieves only 14.0% pass rate.
+    </p>
+    <table class="leaderboard-table">
+      <thead>
+        <tr>
+          <th class="rank">#</th>
+          <th>Model</th>
+          <th>Method</th>
+          <th>Avg Score</th>
+          <th>Pass Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="highlight-row" onclick="toggleDetail(this)">
+          <td class="rank">1</td>
+          <td class="model-name">Gemini 3 Flash <span style="font-size:0.7rem;color:var(--text-dim)">▼</span></td>
+          <td>+ Test-Time Auditing</td>
+          <td class="score">39.9</td>
+          <td class="pass-rate">14.0%</td>
+        </tr>
+        <tr class="leaderboard-detail"><td colspan="5"><div class="detail-grid"><div class="detail-item"><div class="detail-val">Google</div><div class="detail-label">Provider</div></div><div class="detail-item"><div class="detail-val">TTA</div><div class="detail-label">Auditor reviews trajectory mid-run and provides corrective feedback</div></div><div class="detail-item"><div class="detail-val">2,000</div><div class="detail-label">Max Steps / Task</div></div></div></td></tr>
+        <tr onclick="toggleDetail(this)">
+          <td class="rank">2</td>
+          <td class="model-name">Gemini 3 Flash <span style="font-size:0.7rem;color:var(--text-dim)">▼</span></td>
+          <td>Direct (2000 steps)</td>
+          <td class="score">37.4</td>
+          <td class="pass-rate">11.5%</td>
+        </tr>
+        <tr class="leaderboard-detail"><td colspan="5"><div class="detail-grid"><div class="detail-item"><div class="detail-val">Google</div><div class="detail-label">Provider</div></div><div class="detail-item"><div class="detail-val">4× budget</div><div class="detail-label">Extended to 2,000 steps vs standard 500</div></div><div class="detail-item"><div class="detail-val">2,000</div><div class="detail-label">Max Steps / Task</div></div></div></td></tr>
+        <tr onclick="toggleDetail(this)">
+          <td class="rank">3</td>
+          <td class="model-name">Gemini 3 Flash <span style="font-size:0.7rem;color:var(--text-dim)">▼</span></td>
+          <td>Direct (500 steps)</td>
+          <td class="score">35.4</td>
+          <td class="pass-rate">7.5%</td>
+        </tr>
+        <tr class="leaderboard-detail"><td colspan="5"><div class="detail-grid"><div class="detail-item"><div class="detail-val">Google</div><div class="detail-label">Provider</div></div><div class="detail-item"><div class="detail-val">Standard</div><div class="detail-label">Baseline 500-step run</div></div><div class="detail-item"><div class="detail-val">500</div><div class="detail-label">Max Steps / Task</div></div></div></td></tr>
+        <tr onclick="toggleDetail(this)">
+          <td class="rank">4</td>
+          <td class="model-name">Sonnet 4.6 <span style="font-size:0.7rem;color:var(--text-dim)">▼</span></td>
+          <td>Direct (500 steps)</td>
+          <td class="score">20.5</td>
+          <td class="pass-rate">6.0%</td>
+        </tr>
+        <tr class="leaderboard-detail"><td colspan="5"><div class="detail-grid"><div class="detail-item"><div class="detail-val">Anthropic</div><div class="detail-label">Provider</div></div><div class="detail-item"><div class="detail-val">Computer Use</div><div class="detail-label">Native computer-use capability</div></div><div class="detail-item"><div class="detail-val">500</div><div class="detail-label">Max Steps / Task</div></div></div></td></tr>
+        <tr onclick="toggleDetail(this)">
+          <td class="rank">5</td>
+          <td class="model-name">Kimi-K 2.5 <span style="font-size:0.7rem;color:var(--text-dim)">▼</span></td>
+          <td>Direct (500 steps)</td>
+          <td class="score">33.9</td>
+          <td class="pass-rate">5.5%</td>
+        </tr>
+        <tr class="leaderboard-detail"><td colspan="5"><div class="detail-grid"><div class="detail-item"><div class="detail-val">Moonshot AI</div><div class="detail-label">Provider</div></div><div class="detail-item"><div class="detail-val">Computer Use</div><div class="detail-label">Native computer-use capability</div></div><div class="detail-item"><div class="detail-val">500</div><div class="detail-label">Max Steps / Task</div></div></div></td></tr>
+        <tr onclick="toggleDetail(this)">
+          <td class="rank">6</td>
+          <td class="model-name">GPT-5.4 <span style="font-size:0.7rem;color:var(--text-dim)">▼</span></td>
+          <td>Direct (500 steps)</td>
+          <td class="score">22.7</td>
+          <td class="pass-rate">3.0%</td>
+        </tr>
+        <tr class="leaderboard-detail"><td colspan="5"><div class="detail-grid"><div class="detail-item"><div class="detail-val">OpenAI</div><div class="detail-label">Provider</div></div><div class="detail-item"><div class="detail-val">Computer Use</div><div class="detail-label">Via Operator / CUA API</div></div><div class="detail-item"><div class="detail-val">500</div><div class="detail-label">Max Steps / Task</div></div></div></td></tr>
+      </tbody>
+    </table>
+    <p class="leaderboard-note">
+      Evaluation uses checklist-based VLM verification with privileged information.
+      Pass Rate = fraction of tasks fully completed. Max budget: 500 steps or $5.
+      <br>Submit your results: <a href="#">coming soon</a>
+    </p>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     RESULTS
+     ════════════════════════════════════════════════════════════════ -->
+<section id="results">
+  <div class="container">
+    <div class="section-label">Findings</div>
+    <h2 class="section-title">Key Results</h2>
+    <p class="section-subtitle">
+      Performance scales with both training data and test-time compute, while
+      generalization to unseen software remains a challenge.
+    </p>
+    <div class="results-grid">
+      <div class="result-card">
+        <h3>Training Data Scaling</h3>
+        <p class="result-desc">Avg. Score on CUA-World-Test improves log-linearly with more software and tasks.</p>
+        <div class="chart-container"><canvas id="chart-scaling"></canvas></div>
+      </div>
+      <div class="result-card">
+        <h3>Generalization</h3>
+        <p class="result-desc">Training on a subset of software recovers most gains on seen software, but barely helps on unseen software.</p>
+        <div class="chart-container"><canvas id="chart-generalization"></canvas></div>
+      </div>
+      <div class="result-card">
+        <h3>Test-Time Compute</h3>
+        <p class="result-desc">Pass rate on CUA-World-Long scales with step budget. Test-Time Auditing provides further gains.</p>
+        <div class="chart-container"><canvas id="chart-ttc"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     EXPLORE (Placeholder)
+     ════════════════════════════════════════════════════════════════ -->
+<section id="explore">
+  <div class="container">
+    <div class="section-label">Collection</div>
+    <h2 class="section-title">Explore CUA-World</h2>
+    <p class="section-subtitle">
+      Browse 200+ software environments, tasks, and agent trajectories.
+    </p>
+    <div class="explore-grid">
+      <div class="explore-card">
+        <img src="assets/trajectories/gimp.png" alt="GIMP">
+        <div class="explore-card-info"><h4>GIMP</h4><span>Image Editor · Linux</span></div>
+        <div class="explore-overlay"><p><span class="overlay-label">Sample Task</span>Apply a Gaussian blur to the foreground layer, adjust opacity to 70%, and export as a high-quality PNG.</p></div>
+      </div>
+      <div class="explore-card">
+        <img src="assets/trajectories/blender.png" alt="Blender">
+        <div class="explore-card-info"><h4>Blender 3D</h4><span>3D Modeling · Linux</span></div>
+        <div class="explore-overlay"><p><span class="overlay-label">Sample Task</span>Import the OBJ model, apply a metallic shader, set up three-point lighting, and render at 1920x1080.</p></div>
+      </div>
+      <div class="explore-card">
+        <img src="assets/trajectories/rstudio.png" alt="RStudio">
+        <div class="explore-card-info"><h4>RStudio</h4><span>Statistics · Linux</span></div>
+        <div class="explore-overlay"><p><span class="overlay-label">Sample Task</span>Load the CSV dataset, fit a linear regression model, generate diagnostic plots, and save the summary report.</p></div>
+      </div>
+      <div class="explore-card">
+        <img src="assets/trajectories/autopsy.png" alt="Autopsy">
+        <div class="explore-card-info"><h4>Autopsy</h4><span>Digital Forensics · Linux</span></div>
+        <div class="explore-overlay"><p><span class="overlay-label">Sample Task</span>Open the forensic disk image, search for deleted JPEG files, compute MD5 hashes, and generate a report.</p></div>
+      </div>
+      <div class="explore-card">
+        <img src="assets/trajectories/qgis.png" alt="QGIS">
+        <div class="explore-card-info"><h4>QGIS</h4><span>GIS / Mapping · Linux</span></div>
+        <div class="explore-overlay"><p><span class="overlay-label">Sample Task</span>Load the shapefile, reproject to EPSG:4326, apply graduated symbology by population density, and export as PDF.</p></div>
+      </div>
+      <div class="explore-card">
+        <img src="assets/trajectories/google_earth.png" alt="Google Earth">
+        <div class="explore-card-info"><h4>Google Earth</h4><span>Geospatial · Linux</span></div>
+        <div class="explore-overlay"><p><span class="overlay-label">Sample Task</span>Navigate to the given coordinates, measure distance between two landmarks, and save an annotated screenshot.</p></div>
+      </div>
+      <div class="explore-card">
+        <img src="assets/trajectories/dbeaver.png" alt="DBeaver">
+        <div class="explore-card-info"><h4>DBeaver</h4><span>Database Admin · Linux</span></div>
+        <div class="explore-overlay"><p><span class="overlay-label">Sample Task</span>Connect to the PostgreSQL database, write a JOIN query across orders and customers, and export results as CSV.</p></div>
+      </div>
+      <div class="explore-card">
+        <img src="assets/trajectories/eclipse.png" alt="Eclipse">
+        <div class="explore-card-info"><h4>Eclipse IDE</h4><span>Development · Linux</span></div>
+        <div class="explore-overlay"><p><span class="overlay-label">Sample Task</span>Create a new Maven project, add JUnit dependencies, write a test class, and run the suite to verify all pass.</p></div>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top: 2rem;">
+      <a href="#" class="btn">Browse All 200+ Environments →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     LIBRARY
+     ════════════════════════════════════════════════════════════════ -->
+<section id="library">
+  <div class="container">
+    <div class="section-label">Open Source</div>
+    <h2 class="section-title">The Gym-Anything Library</h2>
+    <p class="section-subtitle">
+      A Gym-like Python API to turn <em>any</em> software into a computer-use agent environment.
+      Define an env config, call <code>make()</code>, and start training.
+    </p>
+    <div class="library-grid">
+      <div class="code-example">
+        <div class="code-header">
+          <span class="code-dot" style="background:#ef4444"></span>
+          <span class="code-dot" style="background:#f59e0b"></span>
+          <span class="code-dot" style="background:#22c55e"></span>
+          <span class="code-filename">quickstart.py</span>
+          <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre class="code-block"><code><span class="kw">import</span> gym_anything
+
+<span class="cm"># One line: turn any software into an env</span>
+env = gym_anything.make(<span class="st">"blender.modeling@1.0"</span>)
+
+obs = env.reset()
+
+<span class="kw">for</span> step <span class="kw">in</span> <span class="fn">range</span>(<span class="num">500</span>):
+    screenshot = obs[<span class="st">"screen"</span>]
+    action = agent.act(screenshot)
+
+    obs, reward, done, info = env.step(action)
+    <span class="kw">if</span> done:
+        <span class="kw">break</span>
+
+score = env.verify()
+<span class="fn">print</span>(<span class="st">f"Task score: </span><span class="kw">{</span>score<span class="kw">}</span><span class="st">"</span>)
+
+env.close()</code></pre>
+      </div>
+      <div class="library-features">
+        <div class="lib-feature">
+          <div class="lib-feature-title">Any Software, One API</div>
+          <p>200+ software environments from GIMP to NinjaTrader, all through the same <code>make()</code> / <code>reset()</code> / <code>step()</code> interface.</p>
+        </div>
+        <div class="lib-feature">
+          <div class="lib-feature-title">Multi-Runtime</div>
+          <p>Runs on Docker, QEMU, Apptainer, or Apple Virtualization Framework. Auto-detects the best runtime for your hardware.</p>
+        </div>
+        <div class="lib-feature">
+          <div class="lib-feature-title">Built-in Verification</div>
+          <p>Checklist-based VLM verification with privileged information. Call <code>env.verify()</code> and get a score.</p>
+        </div>
+        <div class="lib-feature">
+          <div class="lib-feature-title">Recording & Replay</div>
+          <p>Full A/V recording, JSONL trajectory logs, and VM state checkpointing for fast resets (~3s vs 2-5min).</p>
+        </div>
+      </div>
+    </div>
+    <div style="text-align: center; margin-top: 2rem;">
+      <a href="#" class="btn btn-primary">💻 View on GitHub</a>
+      <a href="#" class="btn" style="margin-left: 0.5rem;">📖 Documentation</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     CITATION
+     ════════════════════════════════════════════════════════════════ -->
+<section id="citation">
+  <div class="container">
+    <div class="section-label">Citation</div>
+    <h2 class="section-title">BibTeX</h2>
+    <div class="citation-block">
+      <button class="copy-btn" onclick="copyBib()">Copy</button>
+      <pre id="bibtex">@article{aggarwal2025gymanything,
+  title   = {Gym-Anything: Turn Any Software into an Agent Environment},
+  author  = {Aggarwal, Pranjal and Neubig, Graham and Welleck, Sean},
+  year    = {2025},
+  journal = {arXiv preprint}
+}</pre>
+    </div>
+    <div class="btn-row" style="margin-top: 1.5rem;">
+      <a href="#" class="btn">📄 arXiv</a>
+      <a href="#" class="btn">💻 GitHub</a>
+      <a href="#" class="btn">📊 Dataset</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    Gym-Anything · Carnegie Mellon University · 2025
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SCRIPTS
+     ════════════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+// ── CAROUSEL DATA ──
+const softwareRow1 = [
+  { name: "KStars", img: "assets/screenshots/01_kstars.png" },
+  { name: "SNAP", img: "assets/screenshots/02_snap.png" },
+  { name: "InVesalius", img: "assets/screenshots/03_invesalius.png" },
+  { name: "PyMOL", img: "assets/screenshots/04_pymol.png" },
+  { name: "Blender", img: "assets/screenshots/05_blender.png" },
+  { name: "NinjaTrader", img: "assets/screenshots/06_ninjatrader.png" },
+];
+
+const softwareRow2 = [
+  { name: "Sweet Home 3D", img: "assets/screenshots/07_sweethome3d.png" },
+  { name: "Stellarium", img: "assets/screenshots/08_stellarium.png" },
+  { name: "Panoply", img: "assets/screenshots/09_panoply.png" },
+  { name: "CoppeliaSim", img: "assets/screenshots/10_coppeliasim.png" },
+  { name: "QGroundControl", img: "assets/screenshots/11_qgroundcontrol.png" },
+  { name: "Splunk", img: "assets/screenshots/12_splunk.png" },
+];
+
+function buildCarousel(containerId, items) {
+  const el = document.getElementById(containerId);
+  // Duplicate items 4x for seamless loop
+  const allItems = [...items, ...items, ...items, ...items];
+  el.innerHTML = allItems.map(s => `
+    <div class="carousel-card">
+      <img src="${s.img}" alt="${s.name}" loading="lazy">
+      <div class="label">${s.name}</div>
+    </div>
+  `).join('');
+}
+
+buildCarousel('carousel-row1', softwareRow1);
+buildCarousel('carousel-row2', softwareRow2);
+
+// ── LINKED REEL DATA ──
+const reelEntries = [
+  { occupation: "Management", domain: "Enterprise Analytics", software: "Splunk",
+    img: "assets/screenshots/12_splunk.png",
+    task: "Configure a dashboard to monitor server log anomalies, set up alert thresholds, and schedule an automated daily report." },
+  { occupation: "Business & Financial", domain: "Financial Trading", software: "NinjaTrader",
+    img: "assets/screenshots/06_ninjatrader.png",
+    task: "Backtest a moving-average crossover strategy on historical futures data, review the performance report, and save the results." },
+  { occupation: "Computer & Mathematical", domain: "Software Development", software: "Eclipse",
+    img: "assets/trajectories/eclipse.png",
+    task: "Create a new Maven project, add JUnit dependencies, write a test class, and run the test suite to verify all tests pass." },
+  { occupation: "Architecture & Engineering", domain: "3D Modeling & CAD", software: "Blender",
+    img: "assets/trajectories/blender.png",
+    task: "Import the OBJ model, apply a metallic shader, position a three-point lighting setup, and render to 1920x1080." },
+  { occupation: "Life, Physical & Social Science", domain: "Molecular Biology", software: "PyMOL",
+    img: "assets/screenshots/04_pymol.png",
+    task: "Load the PDB structure, highlight the active site residues, apply surface representation, and export a publication-quality figure." },
+  { occupation: "Community & Social Service", domain: "Math Education", software: "GeoGebra",
+    img: "assets/trajectories/geogebra.png",
+    task: "Construct a parabola with adjustable coefficients, add a tangent line tool, and export the interactive worksheet." },
+  { occupation: "Legal", domain: "Digital Forensics", software: "Autopsy",
+    img: "assets/trajectories/autopsy.png",
+    task: "Open the forensic disk image, search for deleted JPEG files, compute MD5 hashes for all recovered artifacts, and generate a report." },
+  { occupation: "Educational Instruction", domain: "Astronomy", software: "KStars",
+    img: "assets/screenshots/01_kstars.png",
+    task: "Set the observation date and location, locate Jupiter and its moons, and export an annotated star chart for the class." },
+  { occupation: "Arts, Design, Entertainment", domain: "Image Editing", software: "GIMP",
+    img: "assets/trajectories/gimp.png",
+    task: "Apply a Gaussian blur to the foreground layer, adjust opacity to 70%, and export as a high-quality PNG." },
+  { occupation: "Healthcare Practitioners", domain: "Medical Imaging", software: "InVesalius",
+    img: "assets/screenshots/03_invesalius.png",
+    task: "Import the DICOM series, reconstruct the 3D volume, segment the bone structures, and export the mesh as STL." },
+  { occupation: "Healthcare Support", domain: "Statistical Analysis", software: "RStudio",
+    img: "assets/trajectories/rstudio.png",
+    task: "Load the patient outcomes dataset, fit a logistic regression model, generate diagnostic plots, and save the report." },
+  { occupation: "Protective Service", domain: "Geospatial Intelligence", software: "Google Earth",
+    img: "assets/trajectories/google_earth.png",
+    task: "Navigate to the specified coordinates, measure the distance between two landmarks, and save an annotated screenshot." },
+  { occupation: "Building & Grounds", domain: "Interior Design", software: "Sweet Home 3D",
+    img: "assets/screenshots/07_sweethome3d.png",
+    task: "Draw the floor plan of a two-bedroom apartment, place furniture from the catalog, and render a 3D walkthrough." },
+  { occupation: "Sales", domain: "Database Administration", software: "DBeaver",
+    img: "assets/trajectories/dbeaver.png",
+    task: "Connect to the PostgreSQL database, write a JOIN query across orders and customers tables, and export results as CSV." },
+  { occupation: "Office & Administrative", domain: "Environmental Analysis", software: "OpenLCA",
+    img: "assets/trajectories/openlca.png",
+    task: "Import the Ecoinvent database, model the life-cycle of an office supply chain, and generate an environmental impact report." },
+  { occupation: "Farming, Fishing & Forestry", domain: "Geospatial / GIS", software: "QGIS",
+    img: "assets/trajectories/qgis.png",
+    task: "Load the shapefile, reproject to EPSG:4326, apply graduated symbology based on crop yield data, and export the map as PDF." },
+  { occupation: "Construction & Extraction", domain: "3D CAD", software: "FreeCAD",
+    img: "assets/trajectories/blenderbim.png",
+    task: "Design a structural beam assembly, apply dimensional constraints, run a stress analysis, and export the technical drawing." },
+  { occupation: "Installation & Maintenance", domain: "Robotics Simulation", software: "CoppeliaSim",
+    img: "assets/screenshots/10_coppeliasim.png",
+    task: "Load the robotic arm model, program a pick-and-place sequence, run the simulation, and verify the end-effector trajectory." },
+  { occupation: "Production", domain: "Music Production", software: "Ardour",
+    img: "assets/trajectories/ardour.png",
+    task: "Import the multi-track recording, apply EQ and compression to the vocal track, adjust levels, and export the final mix." },
+  { occupation: "Transportation & Material Moving", domain: "Drone Operations", software: "QGroundControl",
+    img: "assets/screenshots/11_qgroundcontrol.png",
+    task: "Plan a survey flight path over the designated area, set waypoints and altitude, and upload the mission to the flight controller." },
+];
+
+// ── REEL DATA ──
+const occupations = [
+  "Management", "Business & Financial", "Computer & Mathematical",
+  "Architecture & Engineering", "Life, Physical & Social Science",
+  "Community & Social Service", "Legal", "Educational Instruction",
+  "Arts, Design, Entertainment", "Healthcare Practitioners",
+  "Healthcare Support", "Protective Service", "Food Preparation & Serving",
+  "Building & Grounds", "Personal Care & Service", "Sales",
+  "Office & Administrative", "Farming, Fishing & Forestry",
+  "Construction & Extraction", "Installation & Maintenance",
+  "Production", "Transportation & Material Moving"
+];
+
+const domains = [
+  "Medical Imaging", "Astronomy", "Molecular Biology",
+  "3D Modeling & CAD", "Financial Trading", "Cybersecurity",
+  "Epidemiology", "Satellite Remote Sensing", "Drone Operations",
+  "Climate Science", "Digital Forensics", "Enterprise ERP",
+  "Customer Relationship Mgmt", "Database Administration",
+  "Statistical Analysis", "Geospatial / GIS", "Interior Design",
+  "Music Production", "Robotics Simulation", "Educational Platforms",
+  "Network Monitoring", "Project Management"
+];
+
+const softwareNames = [
+  "GIMP", "Blender", "KStars", "PyMOL", "Slicer 3D",
+  "OpenEMR", "DBeaver", "FreeMED", "Moodle", "QGIS",
+  "Eclipse", "RStudio", "Autopsy", "LibreOffice Calc",
+  "NinjaTrader", "Splunk", "CoppeliaSim", "Stellarium",
+  "OpenLCA", "ERPNext", "Odoo CRM", "Jenkins",
+  "JASP", "InVesalius", "QGroundControl", "GeoServer",
+  "Sweet Home 3D", "Ardour", "FreeCAD", "Wireshark",
+  "Drupal Commerce", "Matomo", "Rocket.Chat", "Zotero"
+];
+
+const previewData = reelEntries.map(e => ({ sw: e.software, img: e.img, task: e.task }));
+
+function buildReel(containerId, items) {
+  const el = document.getElementById(containerId);
+  const doubled = [...items, ...items];
+  el.innerHTML = doubled.map(item =>
+    `<div class="reel-item">${item}</div>`
+  ).join('');
+}
+
+buildReel('reel-occupations', occupations);
+buildReel('reel-domains', domains);
+buildReel('reel-software', softwareNames);
+
+// Rotate preview every 4s
+let previewIdx = 0;
+function rotatePreview() {
+  const p = previewData[previewIdx % previewData.length];
+  document.getElementById('preview-img').src = p.img;
+  document.getElementById('preview-sw').textContent = p.sw;
+  document.getElementById('preview-task').textContent = p.task;
+  previewIdx++;
+}
+setInterval(rotatePreview, 4000);
+
+// Pause all reels for 2s every 10s, and show the task for whatever software is centered
+function pauseReels() {
+  document.querySelectorAll('.reel-track').forEach(t => t.style.animationPlayState = 'paused');
+  const swTrack = document.getElementById('reel-software');
+  const vpCenter = swTrack.parentElement.clientHeight / 2;
+  const items = swTrack.querySelectorAll('.reel-item');
+  let closest = null, closestDist = Infinity;
+  items.forEach(item => {
+    const rect = item.getBoundingClientRect();
+    const vpRect = swTrack.parentElement.getBoundingClientRect();
+    const itemCenter = rect.top + rect.height / 2 - vpRect.top;
+    const dist = Math.abs(itemCenter - vpCenter);
+    if (dist < closestDist) { closestDist = dist; closest = item; }
+  });
+  if (closest) {
+    const swName = closest.textContent.trim();
+    const match = previewData.find(p => p.sw === swName || p.sw.startsWith(swName));
+    if (match) {
+      document.getElementById('preview-img').src = match.img;
+      document.getElementById('preview-sw').textContent = match.sw;
+      document.getElementById('preview-task').textContent = match.task;
+    }
+  }
+  setTimeout(() => {
+    document.querySelectorAll('.reel-track').forEach(t => t.style.animationPlayState = 'running');
+  }, 2000);
+}
+setInterval(pauseReels, 10000);
+// ── CHARTS (all data from paper) ──
+const chartTextColor = '#5a5a63';
+const chartGridColor = 'rgba(0,0,0,0.06)';
+const chartBorderColor = 'rgba(0,0,0,0.08)';
+Chart.defaults.color = chartTextColor;
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.borderColor = chartBorderColor;
+
+// 1) Scaling chart
+new Chart(document.getElementById('chart-scaling'), {
+  type: 'line',
+  data: {
+    labels: ['0%', '25%', '50%', '100%'],
+    datasets: [
+      {
+        label: '# Software',
+        data: [12.7, 16.3, 17.6, 22.5],
+        borderColor: '#2563EB',
+        backgroundColor: 'rgba(37,99,235,0.1)',
+        pointRadius: 5,
+        pointBackgroundColor: '#2563EB',
+        tension: 0.3,
+        borderWidth: 2.5,
+      },
+      {
+        label: '# Tasks',
+        data: [12.7, 14.6, 18.3, 22.5],
+        borderColor: '#DC2626',
+        backgroundColor: 'rgba(220,38,38,0.1)',
+        pointRadius: 5,
+        pointBackgroundColor: '#DC2626',
+        tension: 0.3,
+        borderWidth: 2.5,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', labels: { boxWidth: 12, padding: 15 } } },
+    scales: {
+      y: { min: 10, max: 25, title: { display: true, text: 'Avg Score' },
+           grid: { color: chartGridColor } },
+      x: { title: { display: true, text: 'Fraction of Training Data' },
+           grid: { display: false } }
+    }
+  }
+});
+
+// 2) Generalization chart (recovery of full-training performance)
+new Chart(document.getElementById('chart-generalization'), {
+  type: 'bar',
+  data: {
+    labels: ['Seen Software', 'Unseen Software'],
+    datasets: [
+      { label: 'Recovered', data: [76, 25], backgroundColor: '#2563EB', borderRadius: 4, barPercentage: 0.5 },
+      { label: 'Remaining Gap', data: [24, 75], backgroundColor: 'rgba(37,99,235,0.12)', borderRadius: 4, barPercentage: 0.5 }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 12, padding: 15 } },
+      tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw}%` } }
+    },
+    scales: {
+      y: { min: 0, max: 100, stacked: true,
+           title: { display: true, text: '% of Full-Training Performance' },
+           grid: { color: chartGridColor },
+           ticks: { callback: v => v + '%' } },
+      x: { stacked: true, grid: { display: false } }
+    }
+  }
+});
+
+// 3) TTC chart (log-scale x-axis)
+new Chart(document.getElementById('chart-ttc'), {
+  type: 'scatter',
+  data: {
+    datasets: [
+      {
+        label: 'Gemini 3 Flash',
+        data: [
+          { x: 49, y: 2.0 }, { x: 97, y: 2.5 }, { x: 186, y: 6.5 },
+          { x: 407, y: 7.5 }, { x: 1282, y: 11.5 }
+        ],
+        borderColor: '#2563EB',
+        backgroundColor: '#2563EB',
+        pointRadius: 5,
+        pointBackgroundColor: '#2563EB',
+        showLine: true,
+        tension: 0.3,
+        borderWidth: 2.5,
+      },
+      {
+        label: '+ TTA',
+        data: [{ x: 1385, y: 14.0 }],
+        borderColor: '#DC2626',
+        backgroundColor: '#DC2626',
+        pointRadius: 8,
+        pointStyle: 'star',
+        pointBackgroundColor: '#DC2626',
+        showLine: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', labels: { boxWidth: 12, padding: 15 } } },
+    scales: {
+      y: { min: 0, max: 18, title: { display: true, text: 'Pass Rate (%)' },
+           grid: { color: chartGridColor } },
+      x: { type: 'logarithmic', min: 30, max: 2000,
+           title: { display: true, text: 'Avg Steps per Task' },
+           grid: { color: chartGridColor },
+           ticks: { callback: v => v } }
+    }
+  }
+});
+
+
+// ── LEADERBOARD EXPAND ──
+function toggleDetail(row) {
+  const detail = row.nextElementSibling;
+  if (detail && detail.classList.contains('leaderboard-detail')) {
+    detail.classList.toggle('open');
+    const arrow = row.querySelector('.model-name span');
+    if (arrow) arrow.textContent = detail.classList.contains('open') ? '▲' : '▼';
+  }
+}
+
+// ── CODE COPY ──
+function copyCode(btn) {
+  const code = btn.closest('.code-example').querySelector('code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// ── STEP CARD HOVER ──
+function highlightStep(n) {
+  const card = document.querySelector(`.step-card[data-step="${n}"]`);
+  if (card) card.classList.add('active');
+}
+
+function unhighlightStep(n) {
+  const card = document.querySelector(`.step-card[data-step="${n}"]`);
+  if (card) card.classList.remove('active');
+}
+
+// ── COPY BIB ──
+function copyBib() {
+  const text = document.getElementById('bibtex').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+</script>
+
+</body>
+</html>

@@ -721,7 +721,7 @@ def main():
         print()
         print("You can now run experiments with:")
         print("  export GYM_ANYTHING_RUNNER=qemu")
-        print("  python -m baselines.evaluation.run_single --env_dir benchmarks/environments/gimp_env_all_fast --task ...")
+        print("  python -m baselines.evaluation.run_single --env_dir benchmarks/cua_world/environments/gimp_env_all_fast --task ...")
         print("=" * 60)
         
     finally:

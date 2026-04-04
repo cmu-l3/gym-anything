@@ -1,0 +1,29 @@
+{
+  "id": "northwind_inventory_dashboard@1",
+  "version": "1.0",
+  "env_id": "power_bi_desktop_env@0.1",
+  "description": "You are a purchasing manager at Northwind Traders. You need to identify which products need restocking and calculate the cost to replenish them.\n\nData Source: `C:\\Users\\Docker\\Desktop\\Northwind\\products.csv` (contains product ID, name, inventory levels, prices).\n\nYour task is to build a Power BI report `Inventory_Replenishment.pbix` saved on the Desktop that meets these requirements:\n\n1. **Data Model Logic**:\n   - Create a Calculated Column `Total_Available` = `UnitsInStock` + `UnitsOnOrder`.\n   - Create a Calculated Column `Target_Level` = `ReorderLevel` * 1.2 (120% of reorder threshold).\n   - Create a Calculated Column `Replenishment_Qty`. Logic: If `Total_Available` is less than `ReorderLevel`, then `Target_Level` - `Total_Available`. Otherwise, 0.\n   - Create a Measure `Restock_Cost` that calculates the total cost to buy the necessary stock. Use `SUMX` to multiply `Replenishment_Qty` by `UnitPrice` row-by-row and sum the result.\n\n2. **Visuals**:\n   - A **Card** visual showing the total `Restock_Cost`.\n   - A **Table** visual showing: `productName`, `Total_Available`, `ReorderLevel`, `Target_Level`, `Replenishment_Qty`, and `UnitPrice`.\n   - **Filter** the Table visual to show ONLY products where `Replenishment_Qty` is greater than 0.\n\n3. **Export**:\n   - Export the data from your filtered Table visual to a CSV file named `restock_list.csv` on the Desktop (`C:\\Users\\Docker\\Desktop\\restock_list.csv`).\n\n4. **Save**:\n   - Save the report as `Inventory_Replenishment.pbix` on the Desktop.\n\nLogin: user `Docker`, no password.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\northwind_inventory_dashboard\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\northwind_inventory_dashboard\\export_result.ps1"
+  },
+  "metadata": {
+    "data_url": "https://raw.githubusercontent.com/graphql-compose/graphql-compose-benchmarks/cua_world/environments/master/benchmarks/cua_world/environments/northwind/data/csv/products.csv",
+    "expected_pbix": "C:\\Users\\Docker\\Desktop\\Inventory_Replenishment.pbix",
+    "expected_csv": "C:\\Users\\Docker\\Desktop\\restock_list.csv",
+    "measures": ["Restock_Cost"],
+    "calculated_columns": ["Total_Available", "Target_Level", "Replenishment_Qty"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_inventory_dashboard"
+    }
+  }
+}

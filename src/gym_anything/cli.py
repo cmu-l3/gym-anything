@@ -26,7 +26,7 @@ from .verification.pipeline import verify_task_pipeline
 from .verification.reports import render_task_pipeline_result_text
 
 _ENV_SEARCH_PATHS = [
-    "benchmarks/environments",
+    "benchmarks/cua_world/environments",
 ]
 
 
@@ -249,7 +249,7 @@ def main(argv=None):
     p_verify_spec.set_defaults(func=cmd_verify_spec)
 
     p_verify_corpus = verify_sub.add_parser("corpus", help="Verify all environment and task specs under a root")
-    p_verify_corpus.add_argument("root", nargs="?", default="benchmarks/environments")
+    p_verify_corpus.add_argument("root", nargs="?", default="benchmarks/cua_world/environments")
     p_verify_corpus.add_argument("--max-failures", type=int)
     p_verify_corpus.add_argument("--write-status-manifest")
     p_verify_corpus.add_argument("--write-verified-split")

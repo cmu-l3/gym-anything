@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gym-Anything Trajectory Viewer</title>
+  <style>
+    :root {
+      --bg: #f4efe7;
+      --paper: rgba(255, 251, 245, 0.92);
+      --paper-strong: #fffaf1;
+      --ink: #1f2623;
+      --muted: #5d655f;
+      --line: rgba(48, 59, 53, 0.12);
+      --accent: #0f766e;
+      --accent-soft: rgba(15, 118, 110, 0.12);
+      --warm: #b45309;
+      --warm-soft: rgba(180, 83, 9, 0.12);
+      --good: #166534;
+      --bad: #b91c1c;
+      --shadow: 0 24px 80px rgba(31, 38, 35, 0.10);
+      --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+      --font-body: "Avenir Next", "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: var(--font-body);
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 30%),
+        radial-gradient(circle at top right, rgba(180, 83, 9, 0.10), transparent 28%),
+        linear-gradient(180deg, #f8f3ec 0%, var(--bg) 100%);
+    }
+
+    .shell {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .hero,
+    .stats,
+    .sidebar,
+    .detail {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero {
+      padding: 28px 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -60px;
+      top: -60px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(15, 118, 110, 0.14), transparent 70%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: var(--font-display);
+      font-size: 42px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      max-width: 60ch;
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .stats {
+      padding: 22px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      align-content: start;
+    }
+
+    .stat {
+      padding: 16px;
+      border-radius: 18px;
+      background: var(--paper-strong);
+      border: 1px solid var(--line);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      margin-top: 6px;
+      font-family: var(--font-display);
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .sidebar {
+      padding: 18px;
+      position: sticky;
+      top: 20px;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    .filters {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    input, select, button {
+      width: 100%;
+      font: inherit;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--ink);
+      padding: 12px 14px;
+    }
+
+    button {
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #115e59);
+      color: #fff;
+      border: none;
+      font-weight: 600;
+    }
+
+    .run-list {
+      display: grid;
+      gap: 10px;
+      max-height: calc(100vh - 360px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .run-card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.70);
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .run-card:hover,
+    .run-card.active {
+      transform: translateY(-1px);
+      border-color: rgba(15, 118, 110, 0.35);
+      box-shadow: 0 14px 30px rgba(15, 118, 110, 0.10);
+    }
+
+    .run-card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 8px;
+    }
+
+    .run-card-title {
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .run-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .badge.good {
+      background: rgba(22, 101, 52, 0.12);
+      color: var(--good);
+    }
+
+    .badge.bad {
+      background: rgba(185, 28, 28, 0.12);
+      color: var(--bad);
+    }
+
+    .badge.neutral {
+      background: rgba(15, 118, 110, 0.12);
+      color: var(--accent);
+    }
+
+    .detail {
+      padding: 22px;
+      min-height: 720px;
+    }
+
+    .detail-empty {
+      min-height: 560px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    .detail-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .detail-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .detail-header h2 {
+      margin: 0 0 8px;
+      font-family: var(--font-display);
+      font-size: 34px;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    .summary-card,
+    .panel {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--paper-strong);
+    }
+
+    .summary-value {
+      margin-top: 6px;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .artifact-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .artifact-links a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .artifact-links a:hover {
+      text-decoration: underline;
+    }
+
+    .observation {
+      overflow: hidden;
+    }
+
+    .observation img {
+      width: 100%;
+      display: block;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .steps {
+      display: grid;
+      gap: 12px;
+    }
+
+    .step-card {
+      display: grid;
+      grid-template-columns: 90px minmax(0, 1fr);
+      gap: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .step-index {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .step-body {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .step-section h3 {
+      margin: 0 0 6px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .step-section pre,
+    .json-block {
+      margin: 0;
+      padding: 12px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .tool-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tool-chip {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: var(--accent-soft);
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .empty-copy {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    @media (max-width: 1100px) {
+      .masthead,
+      .workspace,
+      .detail-header {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 34px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .step-card {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="masthead">
+      <div class="hero">
+        <div class="eyebrow">Gym-Anything Dashboard</div>
+        <h1>Trajectory Viewer</h1>
+        <p class="subtitle">
+          Inspect agent runs, screenshots, tool calls, and verifier outcomes from a single indexed runs root.
+          This dashboard is designed for offline run analysis rather than live environment control.
+        </p>
+        <div class="hero-meta">
+          <span class="pill">Runs root: <strong>{{ runs_root }}</strong></span>
+          <span class="pill">Indexed runs: <strong id="runCount">{{ run_count }}</strong></span>
+          {% if constraint %}
+          <span class="pill">Constraint: <strong>{{ constraint }}</strong></span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Experiments</div>
+          <div class="stat-value" id="experimentCount">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Models</div>
+          <div class="stat-value" id="modelCount">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Visible Runs</div>
+          <div class="stat-value" id="visibleRunCount">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Selected Run</div>
+          <div class="stat-value" id="selectedRunLabel">None</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <aside class="sidebar">
+        <div class="section-title">Filters</div>
+        <div class="filters">
+          <input id="searchInput" type="search" placeholder="Search experiments, models, tasks">
+          <select id="experimentFilter">
+            <option value="">All experiments</option>
+          </select>
+          <select id="modelFilter">
+            <option value="">All models</option>
+          </select>
+          <button id="clearFilters">Reset filters</button>
+        </div>
+        <div class="section-title">Runs</div>
+        <div class="run-list" id="runList"></div>
+      </aside>
+
+      <main class="detail">
+        <div class="detail-empty" id="detailEmpty">
+          <div>
+            <div class="section-title">Awaiting selection</div>
+            <p>Pick a run from the left to inspect screenshots, tool activity, and verifier output.</p>
+          </div>
+        </div>
+        <div class="detail-grid" id="detailView" hidden></div>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      allRuns: [],
+      filteredRuns: [],
+      selectedRunPath: null,
+    };
+
+    const elements = {
+      runCount: document.getElementById("runCount"),
+      experimentCount: document.getElementById("experimentCount"),
+      modelCount: document.getElementById("modelCount"),
+      visibleRunCount: document.getElementById("visibleRunCount"),
+      selectedRunLabel: document.getElementById("selectedRunLabel"),
+      searchInput: document.getElementById("searchInput"),
+      experimentFilter: document.getElementById("experimentFilter"),
+      modelFilter: document.getElementById("modelFilter"),
+      clearFilters: document.getElementById("clearFilters"),
+      runList: document.getElementById("runList"),
+      detailEmpty: document.getElementById("detailEmpty"),
+      detailView: document.getElementById("detailView"),
+    };
+
+    const statusBadge = (summary) => {
+      if (summary?.success === true) return '<span class="badge good">Passed</span>';
+      if (summary?.success === false) return '<span class="badge bad">Failed</span>';
+      return '<span class="badge neutral">Unknown</span>';
+    };
+
+    const escapeHtml = (value) =>
+      String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+
+    async function loadRuns() {
+      const response = await fetch("/api/runs");
+      const data = await response.json();
+      state.allRuns = data.runs || [];
+      elements.runCount.textContent = state.allRuns.length;
+      elements.experimentCount.textContent = new Set(state.allRuns.map((run) => run.experiment)).size;
+      elements.modelCount.textContent = new Set(state.allRuns.map((run) => run.model)).size;
+
+      const experiments = [...new Set(state.allRuns.map((run) => run.experiment))].sort();
+      for (const experiment of experiments) {
+        const option = document.createElement("option");
+        option.value = experiment;
+        option.textContent = experiment;
+        elements.experimentFilter.appendChild(option);
+      }
+
+      updateModelOptions();
+      applyFilters();
+    }
+
+    function updateModelOptions() {
+      const selectedExperiment = elements.experimentFilter.value;
+      const models = [...new Set(
+        state.allRuns
+          .filter((run) => !selectedExperiment || run.experiment === selectedExperiment)
+          .map((run) => run.model)
+      )].sort();
+
+      const currentModel = elements.modelFilter.value;
+      elements.modelFilter.innerHTML = '<option value="">All models</option>';
+      for (const model of models) {
+        const option = document.createElement("option");
+        option.value = model;
+        option.textContent = model;
+        elements.modelFilter.appendChild(option);
+      }
+      if (models.includes(currentModel)) {
+        elements.modelFilter.value = currentModel;
+      }
+    }
+
+    function applyFilters() {
+      const query = elements.searchInput.value.trim().toLowerCase();
+      const experiment = elements.experimentFilter.value;
+      const model = elements.modelFilter.value;
+
+      state.filteredRuns = state.allRuns.filter((run) => {
+        const haystack = [run.experiment, run.model, run.task, `run_${run.run_number}`]
+          .join(" ")
+          .toLowerCase();
+        const matchesQuery = !query || haystack.includes(query);
+        const matchesExperiment = !experiment || run.experiment === experiment;
+        const matchesModel = !model || run.model === model;
+        return matchesQuery && matchesExperiment && matchesModel;
+      });
+
+      elements.visibleRunCount.textContent = state.filteredRuns.length;
+      renderRunList();
+
+      if (state.selectedRunPath && !state.filteredRuns.some((run) => run.run_path === state.selectedRunPath)) {
+        state.selectedRunPath = null;
+        elements.selectedRunLabel.textContent = "None";
+        elements.detailView.hidden = true;
+        elements.detailEmpty.hidden = false;
+      } else if (!state.selectedRunPath && state.filteredRuns.length) {
+        selectRun(state.filteredRuns[0].run_path);
+      }
+    }
+
+    function renderRunList() {
+      elements.runList.innerHTML = "";
+      if (!state.filteredRuns.length) {
+        elements.runList.innerHTML = '<div class="run-card"><div class="empty-copy">No runs match the active filters.</div></div>';
+        return;
+      }
+
+      for (const run of state.filteredRuns) {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "run-card";
+        if (run.run_path === state.selectedRunPath) {
+          card.classList.add("active");
+        }
+        card.innerHTML = `
+          <div class="run-card-head">
+            <div class="run-card-title">${escapeHtml(run.task)}</div>
+            <span class="badge neutral">run_${run.run_number}</span>
+          </div>
+          <div class="run-card-meta">
+            <span>${escapeHtml(run.experiment)}</span>
+            <span>•</span>
+            <span>${escapeHtml(run.model)}</span>
+          </div>
+        `;
+        card.addEventListener("click", () => selectRun(run.run_path));
+        elements.runList.appendChild(card);
+      }
+    }
+
+    async function selectRun(runPath) {
+      state.selectedRunPath = runPath;
+      elements.selectedRunLabel.textContent = runPath.split("/").slice(-2).join("/");
+      renderRunList();
+
+      const response = await fetch(`/api/run?path=${encodeURIComponent(runPath)}`);
+      const data = await response.json();
+      if (!response.ok) {
+        elements.detailEmpty.hidden = false;
+        elements.detailView.hidden = true;
+        elements.detailEmpty.innerHTML = `<div><div class="section-title">Load failure</div><p>${escapeHtml(data.error || "Unknown error")}</p></div>`;
+        return;
+      }
+      renderDetail(data);
+    }
+
+    function renderToolList(items) {
+      if (!items?.length) return '<div class="empty-copy">None</div>';
+      return `<div class="tool-list">${items.map((item) => `<div class="tool-chip">${escapeHtml(item)}</div>`).join("")}</div>`;
+    }
+
+    function renderTextBlock(items) {
+      if (!items?.length) return '<div class="empty-copy">None</div>';
+      return `<pre>${escapeHtml(items.join("\n\n"))}</pre>`;
+    }
+
+    function renderDetail(data) {
+      const summary = data.summary || {};
+      const steps = data.steps || [];
+      const firstObservation = steps.find((step) => step.observation_path)?.observation_path;
+      const artifactLinks = [];
+      if (data.pdf_exists) {
+        artifactLinks.push(`<a href="/api/pdf?path=${encodeURIComponent(data.run_path)}" target="_blank" rel="noreferrer">Open PDF</a>`);
+      }
+      if (data.gif_exists) {
+        artifactLinks.push(`<a href="/api/gif?path=${encodeURIComponent(data.run_path)}" target="_blank" rel="noreferrer">Open GIF</a>`);
+      }
+
+      elements.detailEmpty.hidden = true;
+      elements.detailView.hidden = false;
+      elements.detailView.innerHTML = `
+        <section class="detail-header">
+          <div>
+            <div class="section-title">Run Overview</div>
+            <h2>${escapeHtml(data.task_description || data.run_path)}</h2>
+            <p class="muted">${escapeHtml(data.run_path)}</p>
+          </div>
+          <div>${statusBadge(summary)}</div>
+        </section>
+
+        <section class="summary-grid">
+          <div class="summary-card">
+            <div class="section-title">Score</div>
+            <div class="summary-value">${summary.score ?? "n/a"}</div>
+          </div>
+          <div class="summary-card">
+            <div class="section-title">Observed Steps</div>
+            <div class="summary-value">${summary.total_steps ?? steps.length}</div>
+          </div>
+          <div class="summary-card">
+            <div class="section-title">Reason</div>
+            <div class="summary-value" style="font-size: 18px;">${escapeHtml(summary.reason || "n/a")}</div>
+          </div>
+          <div class="summary-card">
+            <div class="section-title">Feedback</div>
+            <div class="summary-value" style="font-size: 18px;">${escapeHtml(summary.feedback || "n/a")}</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">Artifacts</div>
+          <div class="artifact-links">${artifactLinks.length ? artifactLinks.join("") : '<span class="empty-copy">No precomputed PDF or GIF for this run.</span>'}</div>
+        </section>
+
+        <section class="panel observation">
+          <div class="section-title">Observation Preview</div>
+          ${firstObservation
+            ? `<img src="/api/image?path=${encodeURIComponent(firstObservation)}" alt="First observation for selected run">`
+            : '<div class="empty-copy">This run has no observation images.</div>'}
+        </section>
+
+        <section class="panel">
+          <div class="section-title">Run Metadata</div>
+          <pre class="json-block">${escapeHtml(JSON.stringify(data.info || {}, null, 2))}</pre>
+        </section>
+
+        <section>
+          <div class="section-title">Trajectory Steps</div>
+          <div class="steps">
+            ${steps.length ? steps.map((step) => `
+              <article class="step-card">
+                <div class="step-index">Step ${step.step_num}</div>
+                <div class="step-body">
+                  ${step.observation_path ? `
+                    <div class="step-section">
+                      <h3>Observation</h3>
+                      <img src="/api/image?path=${encodeURIComponent(step.observation_path)}" alt="Observation ${step.step_num}">
+                    </div>
+                  ` : ""}
+                  <div class="step-section">
+                    <h3>Thinking</h3>
+                    ${renderTextBlock(step.thinking)}
+                  </div>
+                  <div class="step-section">
+                    <h3>Text Response</h3>
+                    ${renderTextBlock(step.text_response)}
+                  </div>
+                  <div class="step-section">
+                    <h3>Tool Calls</h3>
+                    ${renderToolList(step.tool_calls)}
+                  </div>
+                  <div class="step-section">
+                    <h3>Tool Outputs</h3>
+                    ${renderTextBlock(step.tool_outputs)}
+                  </div>
+                </div>
+              </article>
+            `).join("") : '<div class="panel"><div class="empty-copy">No parsed steps found for this run.</div></div>'}
+          </div>
+        </section>
+      `;
+    }
+
+    elements.searchInput.addEventListener("input", applyFilters);
+    elements.experimentFilter.addEventListener("change", () => {
+      updateModelOptions();
+      applyFilters();
+    });
+    elements.modelFilter.addEventListener("change", applyFilters);
+    elements.clearFilters.addEventListener("click", () => {
+      elements.searchInput.value = "";
+      elements.experimentFilter.value = "";
+      updateModelOptions();
+      elements.modelFilter.value = "";
+      applyFilters();
+    });
+
+    loadRuns().catch((error) => {
+      elements.detailEmpty.hidden = false;
+      elements.detailView.hidden = true;
+      elements.detailEmpty.innerHTML = `<div><div class="section-title">Startup failure</div><p>${escapeHtml(error.message || error)}</p></div>`;
+    });
+  </script>
+</body>
+</html>
