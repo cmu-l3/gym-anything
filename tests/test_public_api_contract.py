@@ -8,7 +8,11 @@ from pathlib import Path
 from gym_anything.env import GymAnythingEnv
 from gym_anything.remote.client import RemoteGymEnv
 from gym_anything.specs import TaskSpec
-from gym_anything import get_runner_compatibility, get_runner_compatibility_matrix
+from gym_anything import (
+    SessionInfo,
+    get_runner_compatibility,
+    get_runner_compatibility_matrix,
+)
 
 
 class TaskSpecCompatibilityTests(unittest.TestCase):
@@ -51,11 +55,21 @@ class PublicApiContractTests(unittest.TestCase):
     def test_env_exposes_public_capture_observation(self) -> None:
         self.assertTrue(callable(getattr(GymAnythingEnv, "capture_observation", None)))
 
+    def test_env_exposes_public_episode_dir_property(self) -> None:
+        self.assertIsInstance(getattr(GymAnythingEnv, "episode_dir", None), property)
+
+    def test_env_exposes_public_roots_properties(self) -> None:
+        self.assertIsInstance(getattr(GymAnythingEnv, "env_root", None), property)
+        self.assertIsInstance(getattr(GymAnythingEnv, "task_root", None), property)
+
     def test_env_exposes_public_episode_limit_override(self) -> None:
         self.assertTrue(callable(getattr(GymAnythingEnv, "set_episode_limits", None)))
 
     def test_env_exposes_public_compatibility_profile(self) -> None:
         self.assertTrue(callable(getattr(GymAnythingEnv, "get_compatibility_profile", None)))
+
+    def test_env_exposes_public_session_info(self) -> None:
+        self.assertTrue(callable(getattr(GymAnythingEnv, "get_session_info", None)))
 
     def test_env_exposes_public_post_reset_setup(self) -> None:
         self.assertTrue(callable(getattr(GymAnythingEnv, "apply_post_reset_setup", None)))
@@ -68,6 +82,12 @@ class PublicApiContractTests(unittest.TestCase):
     def test_remote_exposes_public_capture_observation(self) -> None:
         self.assertTrue(callable(getattr(RemoteGymEnv, "capture_observation", None)))
 
+    def test_remote_exposes_public_episode_dir_property(self) -> None:
+        self.assertIsInstance(getattr(RemoteGymEnv, "episode_dir", None), property)
+
+    def test_remote_exposes_public_session_info(self) -> None:
+        self.assertTrue(callable(getattr(RemoteGymEnv, "get_session_info", None)))
+
     def test_remote_from_config_exposes_worker_reset_policy_override(self) -> None:
         params = inspect.signature(RemoteGymEnv.from_config).parameters
         self.assertIn("worker_reset_policy", params)
@@ -75,6 +95,9 @@ class PublicApiContractTests(unittest.TestCase):
     def test_public_runner_compatibility_helpers_exist(self) -> None:
         self.assertTrue(callable(get_runner_compatibility))
         self.assertTrue(callable(get_runner_compatibility_matrix))
+
+    def test_session_info_dataclass_is_exported(self) -> None:
+        self.assertTrue(callable(SessionInfo))
 
 
 if __name__ == "__main__":

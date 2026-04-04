@@ -6,6 +6,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, List
 
+from .contracts import RunnerRuntimeInfo, SessionInfo
 from .specs import EnvSpec, TaskSpec
 from .compatibility import get_runner_compatibility, infer_runner_key_from_name
 from .runtime.post_reset import apply_post_reset_setup
@@ -43,6 +44,7 @@ class GymAnythingEnv:
         self._start_time: Optional[float] = None
         self._timeout_sec: Optional[int] = None
         self._max_steps: Optional[int] = None
+        self._session_info: Optional[SessionInfo] = None
         self._traj_log: Optional[JSONLWriter] = None
         self._finalized: bool = False
         self._env_root: Optional[Path] = None
@@ -223,6 +225,34 @@ class GymAnythingEnv:
         return (shutil.which("vfkit") is not None
                 and shutil.which("gvproxy") is not None)
 
+    def _platform_family(self) -> str:
+        getter = getattr(self._runner, "get_platform_family", None)
+        if callable(getter):
+            return getter()
+        os_type = getattr(self.env_spec, "os_type", None)
+        if os_type in {"linux", "windows", "android"}:
+            return os_type
+        if getattr(self._runner, "is_android", False):
+            return "android"
+        if getattr(self._runner, "is_windows", False):
+            return "windows"
+        return "linux"
+
+    def _runtime_info(self) -> RunnerRuntimeInfo:
+        getter = getattr(self._runner, "get_runtime_info", None)
+        if callable(getter):
+            return getter()
+        return RunnerRuntimeInfo(
+            platform_family=self._platform_family(),
+            container_name=getattr(self._runner, "container_name", None),
+            instance_name=getattr(self._runner, "instance_name", None),
+            vnc_port=getattr(self._runner, "vnc_port", None) or getattr(self._runner, "vnc_host_port", None),
+            vnc_password=getattr(self._runner, "vnc_password", None),
+            ssh_port=getattr(self._runner, "ssh_port", None),
+            ssh_user=getattr(self._runner, "_ssh_user", None),
+            ssh_password=getattr(self._runner, "_ssh_password", None),
+        )
+
     # Public API
     def reset(self, seed: Optional[int] = None, use_cache: bool = False,
               cache_level: str = "pre_start", use_savevm: bool = False) -> Dict[str, Any]:
@@ -277,6 +307,7 @@ class GymAnythingEnv:
         self._reward_fn = None
         self._recorder = None
         self._rec_handle = None
+        self._session_info = None
         self._ensure_episode_dir()
 
         if use_cache and not self._runner.supports_checkpoint_caching():
@@ -387,10 +418,10 @@ class GymAnythingEnv:
                     hook_cmd = self.env_spec.hooks['pre_start']
                     # Android uses sh instead of bash, and different paths
                     # Use longer timeout (180s) for Android hooks as game loading can take time
-                    if getattr(self.env_spec, "os_type", None) == "android" or getattr(self._runner, "is_android", False):
+                    if self._platform_family() == "android":
                         self._runner.exec(f"sh {hook_cmd}", timeout=180)
                     # Windows uses PowerShell
-                    elif getattr(self.env_spec, "os_type", None) == "windows" or getattr(self._runner, "is_windows", False):
+                    elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     else:
                         self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=1800)
@@ -428,10 +459,10 @@ class GymAnythingEnv:
                     hook_cmd = self.env_spec.hooks['post_start']
                     # Android uses sh instead of bash, and different paths
                     # Use longer timeout (180s) for Android hooks as game loading can take time
-                    if getattr(self.env_spec, "os_type", None) == "android" or getattr(self._runner, "is_android", False):
+                    if self._platform_family() == "android":
                         self._runner.exec(f"sh {hook_cmd}", timeout=180)
                     # Windows uses PowerShell
-                    elif getattr(self.env_spec, "os_type", None) == "windows" or getattr(self._runner, "is_windows", False):
+                    elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     else:
                         self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=1800)
@@ -458,7 +489,7 @@ class GymAnythingEnv:
             try:
                 hook_cmd = self.env_spec.hooks['reset']
                 # Windows uses PowerShell
-                if getattr(self.env_spec, "os_type", None) == "windows" or getattr(self._runner, "is_windows", False):
+                if self._platform_family() == "windows":
                     self._runner.exec(hook_cmd)
                 else:
                     self._runner.exec(f"bash -lc {hook_cmd}")
@@ -479,10 +510,10 @@ class GymAnythingEnv:
                     hook_cmd = self.task_spec.hooks.pre_task
                     # Android uses sh instead of bash, and different paths
                     # Use longer timeout (180s) for Android hooks as game loading can take time
-                    if getattr(self.env_spec, "os_type", None) == "android" or getattr(self._runner, "is_android", False):
+                    if self._platform_family() == "android":
                         self._runner.exec(hook_cmd, timeout=180)
                     # Windows uses PowerShell directly (hook_cmd already contains full PowerShell command)
-                    elif getattr(self.env_spec, "os_type", None) == "windows" or getattr(self._runner, "is_windows", False):
+                    elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd, use_pty=False)
                     else:
                         # Use configurable timeout for pre_task hook (default 600s, can be overridden in task.json)
@@ -539,23 +570,31 @@ class GymAnythingEnv:
 
         # Session info
         screen_spec = next((o for o in self.env_spec.observation if o.type == "rgb_screen"), None)
-        session = {
-            "container": getattr(self._runner, "container_name", None),
-            "instance": getattr(self._runner, "instance_name", None),
-            "image": self.env_spec.image,
-            "artifacts": str(self._episode_dir),
-            "vnc_port": getattr(self._runner, "vnc_host_port", None),
-            "vnc_url": f"vnc://localhost:{getattr(self._runner, 'vnc_host_port', '')}" if getattr(self._runner, 'vnc_host_port', None) else None,
-            "resolution": list(screen_spec.resolution) if screen_spec and screen_spec.resolution else None,
-            "fps": screen_spec.fps if screen_spec else None,
-            "net": self.env_spec.resources.net,
-            "systemd": bool(getattr(self.env_spec.security, 'use_systemd', False)),
-        }
+        runtime_info = self._runtime_info()
+        self._session_info = SessionInfo(
+            env_id=self.env_spec.id,
+            task_id=self.task_spec.id if self.task_spec else None,
+            runner_name=self.runner_name,
+            platform_family=runtime_info.platform_family,
+            artifacts_dir=str(self._episode_dir) if self._episode_dir else None,
+            resolution=screen_spec.resolution if screen_spec and screen_spec.resolution else None,
+            fps=screen_spec.fps if screen_spec else None,
+            network_enabled=self.env_spec.resources.net,
+            systemd_enabled=bool(getattr(self.env_spec.security, "use_systemd", False)),
+            container_name=runtime_info.container_name,
+            instance_name=runtime_info.instance_name,
+            vnc_port=runtime_info.vnc_port,
+            vnc_url=f"vnc://localhost:{runtime_info.vnc_port}" if runtime_info.vnc_port else None,
+            vnc_password=runtime_info.vnc_password,
+            ssh_port=runtime_info.ssh_port,
+            ssh_user=runtime_info.ssh_user,
+            ssh_password=runtime_info.ssh_password,
+        )
         if self._traj_log:
-            self._traj_log.write({"event": "session", **session})
+            self._traj_log.write({"event": "session", **self._session_info.to_dict()})
         # Print user-facing startup info
         try:
-            print("[gym-anything] Session:", session)
+            print("[gym-anything] Session:", self._session_info.to_dict())
         except Exception:
             pass
 
@@ -662,12 +701,35 @@ class GymAnythingEnv:
     def timeout_sec(self) -> Optional[int]:
         return self._timeout_sec
 
+    @property
+    def episode_dir(self) -> Optional[Path]:
+        return self._episode_dir
+
+    @property
+    def artifacts_dir(self) -> Optional[Path]:
+        return self._episode_dir
+
+    @property
+    def env_root(self) -> Optional[Path]:
+        return self._env_root
+
+    @property
+    def task_root(self) -> Optional[Path]:
+        return self._task_root
+
+    @property
+    def runner_name(self) -> str:
+        return type(self._runner).__name__
+
+    def get_session_info(self) -> Optional[SessionInfo]:
+        return self._session_info
+
     def get_compatibility_profile(self) -> Dict[str, Any]:
-        runner_key = infer_runner_key_from_name(type(self._runner).__name__)
+        runner_key = infer_runner_key_from_name(self.runner_name)
         if runner_key is None:
             return {
-                "runner": type(self._runner).__name__,
-                "display_name": type(self._runner).__name__,
+                "runner": self.runner_name,
+                "display_name": self.runner_name,
                 "live_recording": self._runner.supports_live_recording(),
                 "screenshot_video_assembly": bool(self.env_spec.recording.enable),
                 "checkpoint_caching": self._runner.supports_checkpoint_caching(),
@@ -706,6 +768,7 @@ class GymAnythingEnv:
         self._recorder = None
         self._rec_handle = None
         self._episode_dir = None
+        self._session_info = None
         if self._traj_log:
             self._traj_log.close()
             self._traj_log = None
@@ -763,9 +826,9 @@ class GymAnythingEnv:
             return
         try:
             hook_cmd = self.task_spec.hooks.post_task
-            if getattr(self.env_spec, "os_type", None) == "android" or getattr(self._runner, "is_android", False):
+            if self._platform_family() == "android":
                 self._runner.exec(hook_cmd)
-            elif getattr(self.env_spec, "os_type", None) == "windows" or getattr(self._runner, "is_windows", False):
+            elif self._platform_family() == "windows":
                 self._runner.exec(hook_cmd)
             else:
                 self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/task_post_task.log 2>&1")
@@ -978,9 +1041,7 @@ class GymAnythingEnv:
         if not username or not token:
             return
         # Skip for non-Linux guests (Windows/Android don't use Docker-in-Docker)
-        if getattr(self.env_spec, "os_type", None) in ("windows", "android"):
-            return
-        if getattr(self._runner, "is_windows", False) or getattr(self._runner, "is_android", False):
+        if self._platform_family() in ("windows", "android"):
             return
         try:
             self._runner.exec(

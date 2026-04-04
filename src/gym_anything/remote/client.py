@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
 
+from gym_anything.contracts import SessionInfo
 from gym_anything.specs import EnvSpec, TaskSpec
 from gym_anything.utils.yaml import load_structured_file
 
@@ -62,6 +63,7 @@ class RemoteGymEnv:
         self.env_id: Optional[str] = None
         self._episode_dir: Optional[Path] = None
         self._cache_dir: Optional[Path] = None
+        self._session_info: Optional[SessionInfo] = None
         self._closed = False
         self.worker_reset_policy = worker_reset_policy
         
@@ -177,7 +179,8 @@ class RemoteGymEnv:
         
         # Update episode dir
         self._update_episode_dir()
-        
+        self.get_session_info()
+
         return obs
     
     def step(self, actions: List[Dict[str, Any]], wait_between_actions: float = 0.2,
@@ -221,6 +224,8 @@ class RemoteGymEnv:
             pass  # Best effort cleanup
         finally:
             self._closed = True
+            self._episode_dir = None
+            self._session_info = None
     
     def capture_observation(self) -> Dict[str, Any]:
         """Capture current observation without stepping.
@@ -292,6 +297,51 @@ class RemoteGymEnv:
                 self._episode_dir = Path(remote_episode_dir)
         except Exception:
             pass  # Non-critical
+
+    @property
+    def episode_dir(self) -> Optional[Path]:
+        return self._episode_dir
+
+    @property
+    def artifacts_dir(self) -> Optional[Path]:
+        return self._episode_dir
+
+    @property
+    def runner_name(self) -> Optional[str]:
+        if self._session_info is None:
+            return None
+        return self._session_info.runner_name
+
+    @property
+    def max_steps(self) -> Optional[int]:
+        task_spec = self.task_spec
+        if task_spec is None:
+            return None
+        return getattr(getattr(task_spec, "init", None), "max_steps", None)
+
+    @property
+    def timeout_sec(self) -> Optional[int]:
+        task_spec = self.task_spec
+        if task_spec is None:
+            return None
+        return getattr(getattr(task_spec, "init", None), "timeout_sec", None)
+
+    def get_session_info(self) -> Optional[SessionInfo]:
+        """Fetch session metadata from the remote server when available."""
+        if not hasattr(self, "_session_info"):
+            self._session_info = None
+        try:
+            response = self._request("GET", f"/envs/{self.env_id}/session_info")
+            result = response.json()
+            payload = result.get("session")
+            if not payload:
+                return self._session_info
+            self._session_info = SessionInfo.from_dict(payload)
+            if self._session_info.artifacts_dir:
+                self._episode_dir = Path(self._session_info.artifacts_dir)
+        except Exception:
+            pass
+        return self._session_info
     
     # ========================================================================
     # State Management

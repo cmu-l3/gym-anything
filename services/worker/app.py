@@ -697,7 +697,7 @@ def reset_environment(env_id: str):
             except Exception:
                 pass
 
-        logger.info(f"[{env_id}] Episode dir: {env._episode_dir}")
+        logger.info(f"[{env_id}] Episode dir: {env.episode_dir}")
 
         # Phase 3: Apply optional worker-local reset policy
         policy_timings = apply_worker_reset_policy(
@@ -903,7 +903,7 @@ def get_episode_dir(env_id: str):
     """Get the episode directory path."""
     try:
         env = env_manager.get_environment(env_id)
-        episode_dir = str(env._episode_dir) if env._episode_dir else None
+        episode_dir = str(env.episode_dir) if env.episode_dir else None
 
         return jsonify({"episode_dir": episode_dir})
 
@@ -911,6 +911,22 @@ def get_episode_dir(env_id: str):
         return jsonify({"error": str(e)}), 404
     except Exception as e:
         logger.error(f"Error getting episode_dir for {env_id}: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/envs/<env_id>/session_info', methods=['GET'])
+@track_endpoint
+def get_session_info(env_id: str):
+    """Get stable session metadata for the active environment."""
+    try:
+        env = env_manager.get_environment(env_id)
+        session = env.get_session_info()
+        return jsonify({"session": session.to_dict() if session else None})
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logger.error(f"Error getting session_info for {env_id}: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 

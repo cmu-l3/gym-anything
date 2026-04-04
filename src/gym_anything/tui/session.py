@@ -29,7 +29,6 @@ class InteractiveSession:
 
     def __init__(self, env, *, auto_open_vnc: bool = False):
         self._env = env
-        self._runner = env._runner
         self._auto_open_vnc = auto_open_vnc
         self._start_time = time.time()
 
@@ -38,17 +37,16 @@ class InteractiveSession:
         from rich.console import Console
         from rich.panel import Panel
         from rich.live import Live
-        from rich.text import Text
 
         console = Console()
-        runner = self._runner
+        session_info = self._env.get_session_info()
 
-        vnc_port = getattr(runner, "vnc_port", None)
-        vnc_pw = getattr(runner, "vnc_password", "password")
-        ssh_port = getattr(runner, "ssh_port", None)
-        ssh_user = getattr(runner, "_ssh_user", "ga")
-        ssh_pw = getattr(runner, "_ssh_password", "password123")
-        artifacts = getattr(self._env, "_episode_dir", "")
+        vnc_port = session_info.vnc_port if session_info else None
+        vnc_pw = session_info.vnc_password if session_info and session_info.vnc_password else "password"
+        ssh_port = session_info.ssh_port if session_info else None
+        ssh_user = session_info.ssh_user if session_info and session_info.ssh_user else "ga"
+        ssh_pw = session_info.ssh_password if session_info and session_info.ssh_password else "password123"
+        artifacts = self._env.episode_dir or ""
 
         if self._auto_open_vnc and vnc_port:
             _open_vnc(vnc_port, vnc_pw)
@@ -74,7 +72,7 @@ class InteractiveSession:
             hints.append("Ctrl+C stop")
             lines.append(f"  [dim]{' | '.join(hints)}[/dim]")
 
-            env_name = getattr(self._env, "_env_root", "") or ""
+            env_name = self._env.env_root or ""
             if hasattr(env_name, "name"):
                 env_name = env_name.name
 

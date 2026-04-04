@@ -29,13 +29,13 @@ def verify_task_pipeline(
             cache_level=cache_level,
             use_savevm=use_savevm,
         )
-        episode_dir = str(env._episode_dir) if env._episode_dir else None
+        episode_dir = str(env.episode_dir) if env.episode_dir else None
 
         stage = "finalize"
         _, _, _, info = env.step([], mark_done=True)
         verifier = info.get("verifier")
-        if verifier is None and env._episode_dir:
-            summary_path = Path(env._episode_dir) / "summary.json"
+        if verifier is None and env.episode_dir:
+            summary_path = Path(env.episode_dir) / "summary.json"
             if summary_path.exists():
                 summary = json.loads(summary_path.read_text(encoding="utf-8"))
                 verifier = summary.get("verifier")

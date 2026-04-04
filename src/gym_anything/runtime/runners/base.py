@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 from typing import Any, Dict, Optional
 
+from ...contracts import PlatformFamily, RunnerRuntimeInfo
 from ...specs import EnvSpec
 
 
@@ -86,6 +87,38 @@ class BaseRunner(abc.ABC):
         if env:
             merged.update(env)
         return merged
+
+    def get_platform_family(self) -> PlatformFamily:
+        os_type = getattr(self.spec, "os_type", None)
+        if os_type in {"linux", "windows", "android"}:
+            return os_type
+        if getattr(self, "is_android", False):
+            return "android"
+        if getattr(self, "is_windows", False):
+            return "windows"
+        return "linux"
+
+    def get_runtime_info(self) -> RunnerRuntimeInfo:
+        vnc_port = (
+            getattr(self, "vnc_port", None)
+            or getattr(self, "vnc_host_port", None)
+            or getattr(self, "_vnc_port", None)
+        )
+        vnc_password = (
+            getattr(self, "vnc_password", None)
+            or getattr(self, "_vnc_password", None)
+            or getattr(getattr(self.spec, "vnc", None), "password", None)
+        )
+        return RunnerRuntimeInfo(
+            platform_family=self.get_platform_family(),
+            container_name=getattr(self, "container_name", None),
+            instance_name=getattr(self, "instance_name", None),
+            vnc_port=vnc_port,
+            vnc_password=vnc_password,
+            ssh_port=getattr(self, "ssh_port", None),
+            ssh_user=getattr(self, "_ssh_user", None),
+            ssh_password=getattr(self, "_ssh_password", None),
+        )
 
     # Optional utility for recorders to execute commands inside the runtime
     def exec(self, cmd: str, env: Optional[Dict[str, str]] = None, user: Optional[str] = None, use_pty: bool = True, timeout: int = 600) -> int:

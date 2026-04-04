@@ -82,8 +82,12 @@ class VerifierRunner:
             env_info["copy_to_env"] = runner.copy_to
             # Add exec_capture for direct command execution (used for secure DB queries)
             env_info["exec_capture"] = runner.exec_capture
-            # For backwards compatibility, also include container name if available
-            if hasattr(runner, 'container_name'):
+            runtime_info_getter = getattr(runner, "get_runtime_info", None)
+            if callable(runtime_info_getter):
+                runtime_info = runtime_info_getter()
+                if runtime_info.container_name:
+                    env_info["container"] = runtime_info.container_name
+            elif hasattr(runner, "container_name"):
                 env_info["container"] = runner.container_name
 
         # Provide VLM utilities so verifiers can do visual checks

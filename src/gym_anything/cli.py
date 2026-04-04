@@ -162,7 +162,7 @@ def cmd_run(args):
 
     # Non-interactive mode: run steps
     obs = env.reset(seed=args.seed)
-    print("Episode started. Artifacts will be saved under:", env._episode_dir)
+    print("Episode started. Artifacts will be saved under:", env.episode_dir)
     steps = args.steps or (env.task_spec.init.max_steps if env.task_spec else 10)
     for i in range(steps):
         if i == 9:
@@ -174,8 +174,9 @@ def cmd_run(args):
         time.sleep(0.2)
     if args.debug:
         breakpoint()
+    episode_dir = env.episode_dir
     env.close()
-    print("Episode finished. See:", env._episode_dir)
+    print("Episode finished. See:", episode_dir)
     return 0
 
 

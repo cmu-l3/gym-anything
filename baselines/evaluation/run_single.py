@@ -66,10 +66,10 @@ except Exception as e:
     exit(1)
 
 
-print("Episode started. Artifacts will be saved under:", env._episode_dir)
+print("Episode started. Artifacts will be saved under:", env.episode_dir)
 TASK_DESCRIPTION = env.task_spec.description if env.task_spec else None
 if not TASK_DESCRIPTION:
-    task_spec_path = (env._task_root / "task.json") if getattr(env, "_task_root", None) else None
+    task_spec_path = (env.task_root / "task.json") if env.task_root else None
     if task_spec_path is None:
         task_spec_path = os.path.join(args.env_dir, "tasks", args.task, "task.json")
     with open(task_spec_path, 'r', encoding='utf-8') as task_file:
@@ -78,7 +78,7 @@ if not TASK_DESCRIPTION:
 ################# Agent Setup #################
 agent = getattr(agents, args.agent)(agent_args=json.loads(args.agent_args), verbose=args.verbose, debug=args.debug)
 
-agent.init(task_description=TASK_DESCRIPTION, display_resolution=env.env_spec.observation[0].resolution, save_path = env._episode_dir)
+agent.init(task_description=TASK_DESCRIPTION, display_resolution=env.env_spec.observation[0].resolution, save_path=env.episode_dir)
 
 ################# Agent Loop #################
 action_outputs = []
@@ -135,7 +135,7 @@ for step_i in tqdm(range(max_steps * 3)):
 
 if args.debug_low or args.debug:
     breakpoint()
-EPISODE_DIR = env._episode_dir
+EPISODE_DIR = env.episode_dir
 print("Episode finished. See:", EPISODE_DIR, 'info:', info)
 if args.debug:
     breakpoint()

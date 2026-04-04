@@ -142,14 +142,29 @@ class RuntimeBehaviorTests(unittest.TestCase):
             env._verifier = _FakeVerifier()
 
             env.reset(seed=1)
-            first_episode_dir = env._episode_dir
+            first_episode_dir = env.episode_dir
             env.reset(seed=2)
-            second_episode_dir = env._episode_dir
+            second_episode_dir = env.episode_dir
             env.close()
 
             self.assertEqual(runner.start_calls, 2)
             self.assertEqual(runner.stop_calls, 2)
             self.assertNotEqual(first_episode_dir, second_episode_dir)
+
+    def test_public_session_info_is_populated_after_reset(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            env = GymAnythingEnv(_make_env_spec(tmp, runner="local"), None)
+
+            try:
+                env.reset(seed=1)
+                session = env.get_session_info()
+                self.assertIsNotNone(session)
+                self.assertEqual(session.runner_name, "LocalRunner")
+                self.assertEqual(session.platform_family, "linux")
+                self.assertEqual(session.resolution, (64, 64))
+                self.assertEqual(session.artifacts_dir, str(env.episode_dir))
+            finally:
+                env.close()
 
     def test_frame_video_assembly_uses_ffmpeg_when_available(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

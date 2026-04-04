@@ -313,7 +313,7 @@ class VerificationSystemTests(unittest.TestCase):
             self._create_minimal_env(root)
             env = from_config(root)
             try:
-                self.assertEqual(type(env._runner).__name__, "LocalRunner")
+                self.assertEqual(env.runner_name, "LocalRunner")
             finally:
                 env.close()
 
