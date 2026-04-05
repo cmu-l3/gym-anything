@@ -1,0 +1,153 @@
+---
+title: Tasks and Checks
+description: How a task is defined, how it starts, and how Gym Anything decides whether it passed.
+---
+
+# Tasks and Checks
+
+A task is one specific thing the agent is asked to do inside an environment.
+
+In Zotero, a task might ask the agent to create a saved search.
+
+In some other environment, a task might ask it to configure a setting, export a file, fill in a form, or fix something that is broken.
+
+So a task is not the whole environment. It is one job inside that environment.
+
+## What Makes A Task Different From A Prompt
+
+A task here is more than just an instruction string.
+
+It usually comes with:
+
+- a written goal
+- code that prepares the right starting state
+- code that exports the result at the end
+- code that checks whether the task was solved
+
+That is what makes the task reusable and testable.
+
+## One Real Task Folder
+
+Here is a real task folder from the Zotero benchmark:
+
+```text
+benchmarks/cua_world/environments/zotero_env/tasks/create_saved_search/
+  task.json
+  setup_task.sh
+  export_result.sh
+  verifier.py
+  README.md
+```
+
+The files mean:
+
+- `task.json`: the task description and settings
+- `setup_task.sh`: prepares the exact starting state
+- `export_result.sh`: saves task-specific results at the end
+- `verifier.py`: checks whether the task passed
+- `README.md`: optional human explanation
+
+## What `task.json` Usually Contains
+
+`task.json` is the main file to read first.
+
+In a typical task, it tells you:
+
+- the instruction shown to the agent
+- the timeout and step limit
+- which setup script runs before the task
+- which check runs at the end
+
+A simplified example looks like this:
+
+```json
+{
+  "description": "Create a saved search named 'Papers Since 2010'.",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_saved_search/setup_task.sh",
+    "post_task": "/workspace/tasks/create_saved_search/export_result.sh"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_saved_search"
+    }
+  }
+}
+```
+
+## What Happens When The Task Runs
+
+The normal flow is:
+
+1. the environment starts
+2. the task setup script runs
+3. the agent receives the task instruction
+4. the agent interacts with the software
+5. the run is finished with `mark_done=True`
+6. the task export and final check run
+
+If you are driving the environment directly from Python, the finish step usually looks like this:
+
+```python
+obs, reward, done, info = env.step([], mark_done=True)
+```
+
+That is the step that tells Gym Anything to end the task cleanly and run the final task logic.
+
+## What The Setup Script Is For
+
+The setup script makes the starting point specific to that task.
+
+For the Zotero `create_saved_search` task, the setup script:
+
+- resets the Zotero state
+- seeds the library with papers
+- restarts the Zotero window
+- leaves the app ready for the agent to begin
+
+Without that step, the task would not start from a known state.
+
+## What The Final Check Is For
+
+The final check decides whether the task succeeded.
+
+In this repository, most benchmark tasks use a Python check in `verifier.py`. That check can look at things like:
+
+- files created during the run
+- exported JSON or CSV output
+- application state
+- database contents
+- screenshots from the run
+
+For the Zotero saved-search task, the checker reads exported information about saved searches and verifies that the right search name and date filter were created.
+
+The framework also supports image-based checks and mixed checks, but most tasks in this repository use code in `verifier.py`.
+
+## If You Want To Understand A Task Quickly
+
+Read these files in order:
+
+1. `task.json`
+2. `setup_task.sh`
+3. `verifier.py`
+
+That gives you the shortest path to understanding:
+
+- what the agent is supposed to do
+- what the task changes before the agent starts
+- what the checker will accept as success
+
+## If You Want To Create A New Task
+
+The simplest workflow is:
+
+1. copy an existing task folder that is close to what you want
+2. change the instruction in `task.json`
+3. update the setup script so the starting state matches the new goal
+4. update the final check so it matches the new goal
+5. run the task once yourself and make sure the check behaves the way you expect

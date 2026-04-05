@@ -11,7 +11,7 @@ It has four distinct layers:
 - `agents/`: reference agents and evaluation harnesses
 
 Tutorial examples live under `examples/tutorials/`. Archived or superseded CUA-World benchmark variants live under `benchmarks/cua_world/historical/`.
-The project website source lives under `website/`, while technical docs live under `docs/`; the GitHub Pages workflow publishes `website/` at the site root and the MkDocs build under `/docs/`.
+The project website source lives under `website/`, while the active Mintlify docs project lives under `docs/`. The previous MkDocs docs and generated site are archived under `legacy/mkdocs/`.
 
 This distinction matters. The core runtime is the stable product surface. The benchmark corpus is large and heterogeneous. The agent harnesses are useful reference tooling, but they are not the primary product surface.
 
@@ -43,7 +43,7 @@ The corpus changes over time. Treat those numbers as a snapshot of the current r
 - The spec dataclasses are smaller than the benchmark JSON files. Extra keys in `env.json` and `task.json` are usually tolerated but ignored by the core loader unless code reads them separately.
 - `TaskSpec` now preserves common top-level task metadata such as `description`, `version`, `name`, and `tags`, but benchmark-specific extra keys are still passthrough metadata rather than first-class runtime behavior.
 - Supported verifier modes are currently `program`, `image_match`, and `multi`.
-- Runner differences such as recording, checkpointing, `use_savevm`, and `user_accounts` are part of the supported compatibility contract. See [docs/compatibility.md](docs/compatibility.md).
+- Runner differences such as recording, checkpointing, `use_savevm`, and `user_accounts` are part of the supported compatibility contract. See [docs/core/runners.mdx](docs/core/runners.mdx).
 - `python -m agents.evaluation.run_single` and `run_batch` are reference harnesses. They still include optional runner-specific setup behavior.
 - `pip install -e .` now installs the Python runtime dependencies for the shipped package surface. System dependencies such as Docker, Apptainer, QEMU, and host `ffmpeg` are still external prerequisites, but `gym-anything doctor` now checks them explicitly.
 - As of March 8, 2026, `gym-anything verify corpus benchmarks/cua_world/environments` reports `7,277` verified tasks and `385` failed tasks. The current failures are all missing hook asset references (`763` `missing_hook_reference` issues).
@@ -73,13 +73,15 @@ pip install -e ".[agents]"
 pip install -e ".[vlm]"
 ```
 
+If you use hosted model APIs or guest-side DockerHub pulls, copy `.env.example` to `.env` and fill in the keys you need.
+
 System dependencies depend on the runner you use:
 
 - Docker workflows need a working Docker daemon.
 - QEMU workflows need Apptainer and usually `/dev/kvm`.
 - Android AVD workflows need Apptainer plus emulator support.
 
-See [Getting Started](docs/getting-started.md) for a fuller setup checklist.
+See [Quickstart](docs/quickstart.mdx) for the new docs starting point.
 
 ### Load and Run a Task
 
@@ -117,16 +119,15 @@ python -m agents.evaluation.run_single \
 
 ## Where To Read Next
 
-- [docs/index.md](docs/index.md): documentation overview
-- [docs/getting-started.md](docs/getting-started.md): installation and first run
-- [docs/api.md](docs/api.md): public Python API
-- [docs/specs.md](docs/specs.md): runtime-recognized spec fields
-- [docs/compatibility.md](docs/compatibility.md): supported runner capability contract
-- [docs/runners.md](docs/runners.md): backend behavior and selection
-- [docs/tasks-verifiers.md](docs/tasks-verifiers.md): task layout and verifier contracts
-- [docs/environment-authoring.md](docs/environment-authoring.md): authoring environments and tasks
-- [docs/distributed-services.md](docs/distributed-services.md): remote execution stack
-- [docs/current-limitations.md](docs/current-limitations.md): known implementation gaps
+- [docs/introduction.mdx](docs/introduction.mdx): framework overview
+- [docs/quickstart.mdx](docs/quickstart.mdx): installation and first run
+- [docs/core/overview.mdx](docs/core/overview.mdx): core runtime surface
+- [docs/core/environments.mdx](docs/core/environments.mdx): environment contract
+- [docs/core/runners.mdx](docs/core/runners.mdx): runtime backends
+- [docs/core/remote.mdx](docs/core/remote.mdx): remote execution model
+- [docs/benchmarks/overview.mdx](docs/benchmarks/overview.mdx): benchmark layer
+- [docs/agents/overview.mdx](docs/agents/overview.mdx): reference agent layer
+- [legacy/mkdocs/README.md](legacy/mkdocs/README.md): archived MkDocs-era docs
 
 ## Repository Layout
 
@@ -144,8 +145,9 @@ python -m agents.evaluation.run_single \
 ├── agents/shared/             shared model/prompt utilities
 ├── src/gym_anything/dashboards/ packaged UI applications
 ├── src/gym_anything/remote/   remote client, master, worker, dashboard, monitoring
-├── docs/                      reference documentation
+├── docs/                      Mintlify docs project
+├── legacy/mkdocs/             archived MkDocs docs and generated site
 └── website/                   project website assets
 ```
 
-See [docs/repository-structure.md](docs/repository-structure.md) for placement rules.
+The new docs surface is being rebuilt from scratch in `docs/`.

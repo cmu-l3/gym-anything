@@ -1,0 +1,61 @@
+---
+title: First Run
+description: Run a real environment, task, and reference policy end to end.
+---
+
+# First Run
+
+The first successful run should prove three things:
+
+1. your machine can start an environment
+2. the environment can reset successfully
+3. the framework loop can take actions and finish cleanly
+
+## Try A Task Directly
+
+```python
+from gym_anything import from_config
+
+env = from_config(
+    "benchmarks/cua_world/environments/zotero_env",
+    task_id="create_saved_search",
+)
+
+obs = env.reset(seed=42)
+
+obs, reward, done, info = env.step([
+    {"mouse": {"left_click": [300, 200]}},
+])
+
+obs, reward, done, info = env.step([], mark_done=True)
+env.close()
+```
+
+## Try The CLI
+
+```bash
+gym-anything run zotero --task create_saved_search -i
+```
+
+For benchmark environment keys like `zotero`, the CLI resolves the environment for you.
+
+## Try An Example Agent
+
+```bash
+python -m agents.evaluation.run_single \
+  --env_dir benchmarks/cua_world/environments/zotero_env \
+  --task create_saved_search \
+  --agent ClaudeAgent \
+  --agent_args '{"model":"claude-opus-4","exp_name":"demo"}'
+```
+
+## What To Check
+
+After a run, check:
+
+- the environment reset completed cleanly
+- screenshots were captured into the episode directory
+- `summary.json` exists after the run finishes
+- the automatic checker output looks sane for the task you ran
+
+If setup fails before reset, go back to [Installation](/installation). If the loop behavior is confusing, read [Core Overview](/core/overview).
