@@ -20,11 +20,7 @@ gym-anything run zotero --task create_saved_search -i --open-vnc
 Pick an environment, pick a task, pick an agent:
 
 ```bash
-python -m agents.evaluation.run_single \
-  --env_dir benchmarks/cua_world/environments/zotero_env \
-  --task create_saved_search \
-  --agent ClaudeAgent \
-  --agent_args '{"model":"claude-opus-4","exp_name":"demo"}'
+gym-anything benchmark zotero --task create_saved_search --agent ClaudeAgent --model claude-opus-4
 ```
 
 This starts the Zotero environment, resets it, hands the task to the agent, lets the agent interact with the application through screenshots and mouse/keyboard actions, and runs the automatic checker when the agent finishes.
@@ -32,11 +28,7 @@ This starts the Zotero environment, resets it, hands the task to the agent, lets
 To run across many tasks at once:
 
 ```bash
-python -m agents.evaluation.run_batch \
-  --agent ClaudeAgent \
-  --model claude-opus-4 \
-  --split test \
-  --max_tasks 10
+gym-anything benchmark zotero --agent ClaudeAgent --model claude-opus-4 --split test
 ```
 
 ## Three Independent Components
