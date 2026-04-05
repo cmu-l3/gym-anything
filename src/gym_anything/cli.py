@@ -54,6 +54,42 @@ def _print_json(data) -> None:
     print(json.dumps(data, indent=2, sort_keys=True))
 
 
+def _show_rich_help() -> None:
+    """Display a rich help panel with grouped commands."""
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+
+    console = Console()
+
+    commands = Table(show_header=False, box=None, padding=(0, 2))
+    commands.add_column("Command", style="bold cyan")
+    commands.add_column("Description")
+
+    commands.add_row("run", "Run an environment (interactive or headless)")
+    commands.add_row("benchmark", "Run agent evaluation on benchmark tasks")
+    commands.add_row("list", "List available environments")
+    commands.add_row("agents", "List available agent implementations")
+    commands.add_row("")
+    commands.add_row("doctor", "Check system prerequisites")
+    commands.add_row("compatibility", "Show runner compatibility matrix")
+    commands.add_row("")
+    commands.add_row("verify spec", "Verify one environment and its task specs")
+    commands.add_row("verify corpus", "Verify all specs under a root")
+    commands.add_row("verify task", "Run a task through reset/finalize pipeline")
+    commands.add_row("validate", "Quick-check env/task spec validity")
+
+    panel = Panel(
+        commands,
+        title="[bold]gym-anything[/bold]",
+        subtitle="[dim]Use gym-anything <command> --help for details[/dim]",
+        border_style="blue",
+        padding=(1, 2),
+    )
+    console.print()
+    console.print(panel)
+
+
 def cmd_verify_spec(args):
     args.env_dir = _resolve_env_dir(args.env_dir)
     summary = verify_environment_dir(args.env_dir, task_id=args.task)
@@ -189,12 +225,64 @@ def cmd_compatibility(args):
         compatibilities = get_runner_compatibility_matrix()
     if args.json:
         _print_json([item.to_dict() for item in compatibilities])
-    else:
-        print(render_compatibility_text(compatibilities))
+        return 0
+
+    from rich.console import Console
+    from rich.table import Table
+
+    console = Console()
+
+    table = Table(title="Runner Compatibility Matrix", title_style="bold")
+    table.add_column("Runner", style="bold cyan")
+    table.add_column("Live Recording", justify="center")
+    table.add_column("Video Assembly", justify="center")
+    table.add_column("Caching", justify="center")
+    table.add_column("SaveVM", justify="center")
+    table.add_column("User Accounts", justify="center")
+
+    def _yn(val: bool) -> str:
+        return "[green]Yes[/green]" if val else "[red]No[/red]"
+
+    _ACCOUNT_STYLE = {
+        "provision_from_spec": "[green]provision_from_spec[/green]",
+        "preprovisioned_accounts": "[yellow]preprovisioned[/yellow]",
+        "metadata_only": "[dim]metadata_only[/dim]",
+        "unsupported": "[red]unsupported[/red]",
+    }
+
+    for c in compatibilities:
+        table.add_row(
+            f"{c.display_name}\n[dim]{c.runner}[/dim]",
+            _yn(c.live_recording),
+            _yn(c.screenshot_video_assembly),
+            _yn(c.checkpoint_caching),
+            _yn(c.savevm),
+            _ACCOUNT_STYLE.get(c.user_accounts_mode, c.user_accounts_mode),
+        )
+
+    console.print()
+    console.print(table)
+
+    # Print notes beneath the table
+    has_notes = any(c.notes for c in compatibilities)
+    if has_notes:
+        console.print()
+        for c in compatibilities:
+            if c.notes:
+                console.print(f"  [bold]{c.runner}[/bold]")
+                for note in c.notes:
+                    console.print(f"    [dim]-[/dim] {note}")
+
     return 0
 
 
 def cmd_list(args):
+    from rich.console import Console
+    from rich.table import Table
+
+    console = Console()
+    found_any = False
+
     for base in _ENV_SEARCH_PATHS:
         base_path = Path(base)
         if not base_path.is_dir():
@@ -205,19 +293,32 @@ def cmd_list(args):
         )
         if not envs:
             continue
+
+        found_any = True
+
+        table = Table(title=f"Environments  [dim]({base})[/dim]", title_style="bold")
+        table.add_column("Environment", style="bold cyan")
+        table.add_column("Tasks", justify="right")
+
         for env_name in envs:
             env_dir = base_path / env_name
             tasks = sorted(
                 t.name for t in (env_dir / "tasks").iterdir()
                 if t.is_dir()
             ) if (env_dir / "tasks").is_dir() else []
-            if args.verbose:
-                print(f"{env_name}  ({len(tasks)} tasks)")
-                for t in tasks:
-                    print(f"  - {t}")
+
+            if args.verbose and tasks:
+                task_list = "\n".join(f"[dim]-[/dim] {t}" for t in tasks)
+                table.add_row(env_name, f"{len(tasks)}\n{task_list}")
             else:
-                task_str = f"  ({len(tasks)} tasks)" if tasks else ""
-                print(f"{env_name}{task_str}")
+                table.add_row(env_name, str(len(tasks)))
+
+        console.print()
+        console.print(table)
+
+    if not found_any:
+        console.print("[yellow]No environments found.[/yellow]")
+
     return 0
 
 
@@ -320,6 +421,32 @@ def cmd_benchmark(args) -> int:
     if not args.task:
         return _run_benchmark_batch(args)
 
+    # Rich header for single-task benchmark run
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+
+    console = Console()
+
+    info = Table(show_header=False, box=None, padding=(0, 1))
+    info.add_column("Key", style="dim")
+    info.add_column("Value", style="bold")
+    info.add_row("Environment", Path(args.env_dir).name)
+    info.add_row("Task", args.task)
+    info.add_row("Agent", args.agent)
+    info.add_row("Model", args.model or "[dim]default[/dim]")
+    info.add_row("Max steps", str(args.steps))
+    info.add_row("Seed", str(args.seed))
+
+    console.print()
+    console.print(Panel(
+        info,
+        title="[bold]Benchmark Run[/bold]",
+        border_style="green",
+        padding=(1, 2),
+    ))
+    console.print()
+
     agent_args = _build_agent_args(args)
     ns = argparse.Namespace(
         env_dir=args.env_dir,
@@ -355,8 +482,20 @@ def cmd_agents(args) -> int:
         print("No agents found.")
         return 0
 
-    for name in names:
-        print(name)
+    from rich.console import Console
+    from rich.table import Table
+
+    console = Console()
+
+    table = Table(title="Available Agents", title_style="bold")
+    table.add_column("#", style="dim", justify="right")
+    table.add_column("Agent", style="bold cyan")
+
+    for i, name in enumerate(names, 1):
+        table.add_row(str(i), name)
+
+    console.print()
+    console.print(table)
     return 0
 
 
@@ -367,18 +506,104 @@ def cmd_doctor(args):
     )
     if args.json:
         _print_json(report.to_dict())
+        return 0 if report.ok else 1
+
+    import platform as _platform
+
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+
+    console = Console()
+
+    # Platform header
+    platform_info = (
+        f"[bold]Platform:[/bold] {sys.platform} ({_platform.machine()})  "
+        f"[bold]Python:[/bold] {_platform.python_version()}"
+    )
+    console.print()
+    console.print(Panel(platform_info, border_style="blue", padding=(0, 1)))
+
+    # Runner status from the doctor module's get_runner_status
+    from .doctor import get_runner_status
+
+    runner_status = get_runner_status()
+
+    status_table = Table(title="Runner Status", title_style="bold")
+    status_table.add_column("Runner", style="bold cyan")
+    status_table.add_column("Status", justify="center")
+    status_table.add_column("Details")
+
+    for runner_key, status in runner_status.items():
+        reason = status.get("reason")
+        if reason:
+            status_table.add_row(
+                runner_key,
+                "[dim]--[/dim]",
+                f"[dim]{reason}[/dim]",
+            )
+            continue
+
+        available = status["available"]
+        status_mark = "[green]READY[/green]" if available else "[red]MISSING DEPS[/red]"
+
+        dep_lines = []
+        for dep, info in status["deps"].items():
+            if info["installed"]:
+                dep_lines.append(f"[green]OK[/green] {dep}")
+            else:
+                dep_lines.append(f"[red]MISSING[/red] {dep}")
+                if info.get("install"):
+                    dep_lines.append(f"  [dim]{info['install']}[/dim]")
+
+        status_table.add_row(
+            runner_key,
+            status_mark,
+            "\n".join(dep_lines) if dep_lines else "[dim]no deps[/dim]",
+        )
+
+    console.print()
+    console.print(status_table)
+
+    # Check-level details
+    checks_table = Table(title="Diagnostic Checks", title_style="bold")
+    checks_table.add_column("Check", style="bold")
+    checks_table.add_column("Result", justify="center")
+    checks_table.add_column("Detail")
+
+    for check in report.checks:
+        if check.ok:
+            mark = "[green]PASS[/green]"
+        elif not check.required:
+            mark = "[yellow]WARN[/yellow]"
+        else:
+            mark = "[red]FAIL[/red]"
+        checks_table.add_row(check.name, mark, check.detail)
+
+    console.print()
+    console.print(checks_table)
+
+    # Overall verdict
+    console.print()
+    if report.ok:
+        console.print("[bold green]Overall: OK[/bold green]")
     else:
-        # Show the rich platform-aware output first
-        print(render_doctor_rich(report))
-        print()
-        # Then the per-check details
-        print(render_doctor_text(report))
+        console.print("[bold red]Overall: FAILED[/bold red]")
+
     return 0 if report.ok else 1
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="gym-anything")
-    sub = parser.add_subparsers(dest="cmd", required=True)
+    # Intercept bare invocation / --help to show rich help
+    if argv is None:
+        argv = sys.argv[1:]
+    if not argv or argv == ["--help"] or argv == ["-h"]:
+        _show_rich_help()
+        return 0
+
+    parser = argparse.ArgumentParser(prog="gym-anything", add_help=False)
+    parser.add_argument("-h", "--help", action="store_true", default=False)
+    sub = parser.add_subparsers(dest="cmd")
 
     p_verify = sub.add_parser("verify", help="Run verification checks")
     verify_sub = p_verify.add_subparsers(dest="verify_cmd", required=True)
@@ -464,6 +689,16 @@ def main(argv=None):
     p_doctor.set_defaults(func=cmd_doctor)
 
     args = parser.parse_args(argv)
+
+    # If top-level --help slipped through (e.g. "gym-anything -h")
+    if getattr(args, "help", False) and not args.cmd:
+        _show_rich_help()
+        return 0
+
+    if not args.cmd:
+        _show_rich_help()
+        return 0
+
     return args.func(args)
 
 
