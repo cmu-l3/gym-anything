@@ -472,42 +472,135 @@ def cmd_benchmark(args) -> int:
 
 _CACHE_ROOT = Path.home() / ".cache" / "gym-anything"
 
+# Base files/dirs inside qemu/ that are expensive to rebuild.
+# Anything else in qemu/ (and qemu/avf/) is treated as work.
+_QEMU_BASE_NAMES = {
+    "base_ubuntu_gnome_arm64.qcow2",
+    "base_ubuntu_gnome_arm64.raw",
+    "base_ubuntu_gnome.qcow2",
+    "ubuntu-cloud-arm64.img",
+    "ubuntu-cloud.img",
+}
+
 
 def _cache_size(path: Path) -> int:
-    """Return total size of a path in bytes."""
+    """Return actual disk usage of a path in bytes (handles sparse files)."""
     if not path.exists():
         return 0
-    if path.is_file():
-        return path.stat().st_size
+    try:
+        if path.is_file():
+            return path.stat().st_blocks * 512
+    except (OSError, AttributeError):
+        return 0
     total = 0
     for entry in path.rglob("*"):
-        if entry.is_file():
-            try:
-                total += entry.stat().st_size
-            except (OSError, FileNotFoundError):
-                pass
+        try:
+            if entry.is_file():
+                total += entry.stat().st_blocks * 512
+        except (OSError, FileNotFoundError, AttributeError):
+            pass
     return total
 
 
 def _format_size(num_bytes: int) -> str:
+    n = float(num_bytes)
     for unit in ("B", "KB", "MB", "GB", "TB"):
-        if num_bytes < 1024:
-            return f"{num_bytes:.1f} {unit}"
-        num_bytes /= 1024
-    return f"{num_bytes:.1f} PB"
+        if n < 1024:
+            return f"{n:.1f} {unit}"
+        n /= 1024
+    return f"{n:.1f} PB"
 
 
-def _cache_entries() -> list[tuple[str, Path, str]]:
-    """Return list of (name, path, description) cache entries."""
+def _collect_qemu_work_paths() -> list[Path]:
+    """Return paths inside qemu/ that are work (not base images)."""
+    qemu = _CACHE_ROOT / "qemu"
+    if not qemu.exists():
+        return []
+    paths = []
+    for entry in qemu.iterdir():
+        if entry.name in _QEMU_BASE_NAMES:
+            continue
+        if entry.name == "avf":
+            # Descend into avf/ to separate base from work
+            for sub in entry.iterdir():
+                if sub.name not in _QEMU_BASE_NAMES:
+                    paths.append(sub)
+            continue
+        if entry.name.endswith(".log"):
+            paths.append(entry)
+            continue
+        paths.append(entry)
+    return paths
+
+
+def _collect_qemu_base_paths() -> list[Path]:
+    """Return paths inside qemu/ that are base images."""
+    qemu = _CACHE_ROOT / "qemu"
+    if not qemu.exists():
+        return []
+    paths = []
+    for entry in qemu.rglob("*"):
+        if entry.name in _QEMU_BASE_NAMES and entry.is_file():
+            paths.append(entry)
+    return paths
+
+
+def _cache_components() -> list[dict]:
+    """Return list of cache components with category (work/base)."""
     return [
-        ("qemu", _CACHE_ROOT / "qemu", "QEMU base images, VM work directories, AVF runtime data"),
-        ("android-sdk", _CACHE_ROOT / "android-sdk", "Android SDK components (platform-tools, emulator, system-images)"),
-        ("apks", _CACHE_ROOT / "apks", "Downloaded Android APKs"),
-        ("avd", _CACHE_ROOT / "avd", "Android Virtual Device definitions"),
-        ("avd-checkpoints", _CACHE_ROOT / "avd-checkpoints", "AVD checkpoint snapshots"),
-        ("apptainer", _CACHE_ROOT / "apptainer", "Apptainer SIF images and overlays"),
-        ("containers", _CACHE_ROOT / "containers", "Container runtime cache"),
+        {
+            "name": "qemu-work",
+            "category": "work",
+            "paths": _collect_qemu_work_paths(),
+            "desc": "QEMU/AVF work directories and COW overlays (per-run state)",
+        },
+        {
+            "name": "avd-checkpoints",
+            "category": "work",
+            "paths": [_CACHE_ROOT / "avd-checkpoints"],
+            "desc": "AVD checkpoint snapshots",
+        },
+        {
+            "name": "containers",
+            "category": "work",
+            "paths": [_CACHE_ROOT / "containers"],
+            "desc": "Container runtime cache",
+        },
+        {
+            "name": "apptainer",
+            "category": "work",
+            "paths": [_CACHE_ROOT / "apptainer"],
+            "desc": "Apptainer SIF images and overlays",
+        },
+        {
+            "name": "qemu-base",
+            "category": "base",
+            "paths": _collect_qemu_base_paths(),
+            "desc": "QEMU/AVF base VM images (~5 min to rebuild)",
+        },
+        {
+            "name": "android-sdk",
+            "category": "base",
+            "paths": [_CACHE_ROOT / "android-sdk"],
+            "desc": "Android SDK (requires network to re-download)",
+        },
+        {
+            "name": "apks",
+            "category": "base",
+            "paths": [_CACHE_ROOT / "apks"],
+            "desc": "Downloaded Android APKs",
+        },
+        {
+            "name": "avd",
+            "category": "base",
+            "paths": [_CACHE_ROOT / "avd"],
+            "desc": "Android Virtual Device definitions",
+        },
     ]
+
+
+def _component_size(component: dict) -> int:
+    return sum(_cache_size(p) for p in component["paths"])
 
 
 def cmd_cache_list(args) -> int:
@@ -515,29 +608,36 @@ def cmd_cache_list(args) -> int:
     from rich.table import Table
 
     console = Console()
-    entries = _cache_entries()
 
     if not _CACHE_ROOT.exists():
         console.print(f"[dim]Cache directory does not exist: {_CACHE_ROOT}[/]")
         return 0
 
+    components = _cache_components()
+
     table = Table(title=f"Cache at {_CACHE_ROOT}")
     table.add_column("Component", style="cyan")
+    table.add_column("Category", style="bold")
     table.add_column("Size", justify="right", style="green")
-    table.add_column("Path", style="dim")
     table.add_column("Description", style="dim")
 
-    total = 0
-    for name, path, desc in entries:
-        size = _cache_size(path)
-        total += size
-        if size == 0 and not path.exists():
-            table.add_row(name, "[dim]--[/]", str(path), desc)
+    total_work = 0
+    total_base = 0
+    for comp in components:
+        size = _component_size(comp)
+        if comp["category"] == "work":
+            total_work += size
+            cat_style = "[yellow]work[/]"
         else:
-            table.add_row(name, _format_size(size), str(path), desc)
+            total_base += size
+            cat_style = "[blue]base[/]"
+        size_str = _format_size(size) if size > 0 else "[dim]--[/]"
+        table.add_row(comp["name"], cat_style, size_str, comp["desc"])
 
     console.print(table)
-    console.print(f"\n[bold]Total:[/] [green]{_format_size(total)}[/]")
+    console.print(f"\n[bold yellow]Work[/] (safe to purge, recreated per run):  [green]{_format_size(total_work)}[/]")
+    console.print(f"[bold blue]Base[/] (expensive to rebuild/re-download):    [green]{_format_size(total_base)}[/]")
+    console.print(f"[bold]Total:[/]                                        [green]{_format_size(total_work + total_base)}[/]")
     return 0
 
 
@@ -546,22 +646,39 @@ def cmd_cache_purge(args) -> int:
     from rich.console import Console
 
     console = Console()
-    entries = _cache_entries()
 
     if not _CACHE_ROOT.exists():
         console.print(f"[dim]Cache directory does not exist: {_CACHE_ROOT}[/]")
         return 0
 
-    # Determine which entries to purge
-    if args.component:
-        entries = [(n, p, d) for n, p, d in entries if n == args.component]
-        if not entries:
-            console.print(f"[red]Unknown cache component:[/] {args.component}")
-            console.print(f"Known components: {', '.join(n for n, _, _ in _cache_entries())}")
-            return 1
+    components = _cache_components()
 
-    # Calculate what will be removed
-    to_remove = [(name, path, _cache_size(path)) for name, path, _ in entries if path.exists()]
+    # Determine which components to purge
+    if args.component:
+        # Specific component or category
+        if args.component in ("work", "base"):
+            components = [c for c in components if c["category"] == args.component]
+        else:
+            components = [c for c in components if c["name"] == args.component]
+            if not components:
+                console.print(f"[red]Unknown cache component:[/] {args.component}")
+                names = [c["name"] for c in _cache_components()]
+                console.print(f"Known components: {', '.join(names)}")
+                console.print(f"Or categories: work, base")
+                return 1
+    elif args.all:
+        pass  # keep all components
+    else:
+        # Default: work only
+        components = [c for c in components if c["category"] == "work"]
+
+    # Flatten to (name, path, size) tuples
+    to_remove = []
+    for comp in components:
+        for path in comp["paths"]:
+            if path.exists():
+                to_remove.append((comp["name"], path, _cache_size(path)))
+
     if not to_remove:
         console.print("[dim]Nothing to purge.[/]")
         return 0
@@ -581,19 +698,21 @@ def cmd_cache_purge(args) -> int:
 
     # Delete
     freed = 0
+    failures = 0
     for name, path, size in to_remove:
         try:
             if path.is_file():
                 path.unlink()
             else:
                 shutil.rmtree(path)
-            console.print(f"[green]✓[/] removed [cyan]{name}[/]  ({_format_size(size)})")
+            console.print(f"[green]✓[/] removed {path.name}  ({_format_size(size)})")
             freed += size
         except OSError as exc:
-            console.print(f"[red]✗[/] failed to remove [cyan]{name}[/]: {exc}")
+            console.print(f"[red]✗[/] failed to remove {path}: {exc}")
+            failures += 1
 
     console.print(f"\n[bold green]Freed {_format_size(freed)}[/]")
-    return 0
+    return 1 if failures else 0
 
 
 def cmd_agents(args) -> int:
@@ -817,7 +936,10 @@ def main(argv=None):
 
     p_cache_purge = cache_sub.add_parser("purge", help="Delete cached files to free disk space")
     p_cache_purge.add_argument("component", nargs="?",
-                               help="Specific component to purge (e.g. qemu, android-sdk). Omit to purge all.")
+                               help="Component name (e.g. qemu-work) or category ('work', 'base'). "
+                                    "Default: purge work only.")
+    p_cache_purge.add_argument("--all", action="store_true",
+                               help="Purge everything including base images")
     p_cache_purge.add_argument("-y", "--yes", action="store_true",
                                help="Skip confirmation prompt")
     p_cache_purge.set_defaults(func=cmd_cache_purge)
