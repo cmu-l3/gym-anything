@@ -76,15 +76,18 @@ def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
         required = _IS_LINUX
         checks.append(_check_binary("apptainer", "apptainer", probe=["apptainer", "--version"], required=required))
     if target in {"all", "qemu"}:
-        checks.append(_check_binary("qemu_system", "qemu-system-x86_64", probe=["qemu-system-x86_64", "--version"]))
-        checks.append(_check_binary("qemu_img", "qemu-img", probe=["qemu-img", "--version"]))
+        # The `qemu` runner executes qemu-system-x86_64 and qemu-img inside the
+        # Apptainer container, so no host-level qemu binaries are required.
+        # adb is only consulted for Android envs and has a bundled fallback.
         checks.append(_check_binary("adb", "adb", probe=["adb", "version"], required=False))
     if target in {"all", "qemu_native"}:
         checks.append(_check_binary("qemu_system", "qemu-system-x86_64", probe=["qemu-system-x86_64", "--version"]))
         checks.append(_check_binary("qemu_img", "qemu-img", probe=["qemu-img", "--version"]))
     if target in {"all", "avd"}:
-        checks.append(_check_binary("adb", "adb", probe=["adb", "version"]))
-        checks.append(_check_binary("emulator", "emulator", probe=["emulator", "-version"]))
+        # The `avd` runner bundles its own adb/emulator under
+        # ~/.cache/gym-anything/android-sdk/, so host binaries are optional.
+        checks.append(_check_binary("adb", "adb", probe=["adb", "version"], required=False))
+        checks.append(_check_binary("emulator", "emulator", probe=["emulator", "-version"], required=False))
     if target in {"all", "avf"}:
         checks.append(_check_binary("vfkit", "vfkit", probe=["vfkit", "--version"]))
         checks.append(_check_binary("gvproxy", "gvproxy"))
@@ -96,6 +99,30 @@ def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
         checks.append(_check_binary("ffmpeg", "ffmpeg", probe=["ffmpeg", "-version"], required=False))
     if target == "local":
         checks.append(DoctorCheck(name="local_runner", ok=True, detail="LocalRunner has no external system prerequisites"))
+
+    # When no specific runner is requested, the user just wants to know "is
+    # this machine usable?" Individual binary checks become diagnostic (WARN)
+    # and the overall verdict is driven by a single runner_availability check:
+    # the host is OK as long as at least one runner is READY.
+    if target == "all":
+        checks = [
+            DoctorCheck(name=c.name, ok=c.ok, detail=c.detail, required=False)
+            for c in checks
+        ]
+        statuses = get_runner_status()
+        any_ready = any(s.get("available") for s in statuses.values())
+        detail = (
+            "at least one runner is READY"
+            if any_ready
+            else "no runner is READY — see Runner Status for missing deps"
+        )
+        checks.append(DoctorCheck(
+            name="runner_availability",
+            ok=any_ready,
+            detail=detail,
+            required=True,
+        ))
+
     return checks
 
 
@@ -213,13 +240,15 @@ _INSTALL_HINTS: Dict[str, Dict[str, str]] = {
     },
 }
 
-# Which binaries each runner needs
+# Which binaries each runner needs on the host.
+# Runners built on Apptainer (qemu, avd, apptainer) only need `apptainer` on
+# the host — qemu-system-*, qemu-img, adb, emulator etc. live inside the SIF.
 _RUNNER_DEPS: Dict[str, List[str]] = {
     "docker": ["docker"],
-    "qemu": ["apptainer", "qemu-system-x86_64", "qemu-img"],
+    "qemu": ["apptainer"],
     "qemu_native": ["qemu-img", "mkisofs"],  # qemu-system-* auto-detected
     "avf": ["vfkit", "gvproxy", "qemu-img", "mkisofs"],
-    "avd": ["apptainer", "adb"],
+    "avd": ["apptainer"],
     "avd_native": ["adb"],
     "apptainer": ["apptainer"],
     "local": [],
@@ -285,6 +314,33 @@ def get_runner_status() -> Dict[str, Dict]:
 
         results[runner_key] = {"available": all_ok, "deps": dep_status}
     return results
+
+
+def get_recommended_runner(runner_status: Optional[Dict[str, Dict]] = None) -> Optional[str]:
+    """Pick the recommended runner for this platform.
+
+    Always returns the top-preference runner for the platform, regardless of
+    whether its deps are installed — doctor offers to install it when missing.
+    This keeps the recommendation stable (e.g. macOS always gets `avf`) rather
+    than drifting to whichever runner happens to be ready first.
+    """
+    statuses = runner_status if runner_status is not None else get_runner_status()
+
+    if _IS_MACOS and _IS_ARM:
+        preferences = ["avf", "qemu_native", "docker"]
+    elif _IS_MACOS:
+        preferences = ["qemu_native", "docker"]
+    elif _IS_LINUX:
+        preferences = ["qemu", "docker"]
+    else:
+        preferences = ["docker"]
+
+    # Return the first preference that isn't blocked by platform.
+    for runner in preferences:
+        status = statuses.get(runner)
+        if status is not None and not status.get("reason"):
+            return runner
+    return None
 
 
 def render_doctor_rich(report: DoctorReport) -> str:
@@ -361,6 +417,8 @@ def render_doctor_rich(report: DoctorReport) -> str:
 __all__ = [
     "DoctorCheck",
     "DoctorReport",
+    "get_recommended_runner",
+    "get_runner_status",
     "render_doctor_text",
     "run_doctor",
     "scan_verifier_imports",

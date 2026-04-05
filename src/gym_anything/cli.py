@@ -837,7 +837,119 @@ def cmd_doctor(args):
     else:
         console.print("[bold red]Overall: FAILED[/bold red]")
 
+    # Offer interactive install for the recommended runner (or the one the
+    # user asked about with --runner).
+    _doctor_offer_install(
+        console,
+        runner_status,
+        explicit_runner=args.runner,
+        no_install=args.no_install,
+    )
+
     return 0 if report.ok else 1
+
+
+def _doctor_offer_install(
+    console,
+    runner_status,
+    *,
+    explicit_runner,
+    no_install: bool,
+) -> None:
+    """Recommend a runner and offer to install missing deps interactively."""
+    from .doctor import get_recommended_runner
+    from .installers import get_install_plan, run_install_plan
+
+    if explicit_runner is not None:
+        target = explicit_runner
+    else:
+        target = get_recommended_runner(runner_status)
+    if target is None:
+        return
+
+    status = runner_status.get(target, {})
+    reason = status.get("reason")
+    if reason:
+        console.print()
+        console.print(
+            f"[yellow]Runner {target} is not available on this platform:[/yellow] {reason}"
+        )
+        return
+    console.print()
+    label = "Runner" if explicit_runner else "Recommended runner"
+    if status.get("available"):
+        console.print(f"[bold green]{label} ({target}) is ready.[/bold green]")
+        return
+
+    plan = get_install_plan(target)
+    if plan is None:
+        console.print(
+            f"[yellow]{label}:[/yellow] {target}  "
+            f"[dim](no automated installer yet — see docs for manual setup)[/dim]"
+        )
+        return
+
+    console.print(f"[bold]{label}:[/bold] {plan.runner}")
+    console.print(f"  [dim]{plan.summary}[/dim]")
+    if plan.prereq_note:
+        console.print(f"  [dim]{plan.prereq_note}[/dim]")
+    console.print()
+    console.print("[bold]Install plan:[/bold]")
+
+    pending = 0
+    blocked = 0
+    for step in plan.steps:
+        if step.should_skip():
+            console.print(f"  [dim]skip[/dim]  {step.description}  [dim](already present)[/dim]")
+            continue
+        missing = step.missing_prereqs()
+        if missing:
+            console.print(
+                f"  [red]miss[/red]  {step.description}  "
+                f"[dim](needs {', '.join(missing)})[/dim]"
+            )
+            blocked += 1
+            continue
+        console.print(f"  [cyan]todo[/cyan]  {step.description}")
+        console.print(f"        [dim]$ {step.render()}[/dim]")
+        pending += 1
+
+    if pending == 0 and blocked == 0:
+        console.print()
+        console.print("[bold green]All dependencies already present.[/bold green]")
+        return
+    if pending == 0 and blocked > 0:
+        console.print()
+        console.print(
+            "[yellow]Install blocked: one or more steps are missing prerequisites.[/yellow]"
+        )
+        return
+
+    if no_install:
+        console.print()
+        console.print(
+            f"[dim]--no-install given; skipping. Run `gym-anything doctor` without it to install.[/dim]"
+        )
+        return
+
+    console.print()
+    try:
+        reply = input(f"Run the {pending} pending step(s)? [y/N] ").strip().lower()
+    except (KeyboardInterrupt, EOFError):
+        console.print()
+        console.print("[dim]Cancelled.[/dim]")
+        return
+    if reply not in {"y", "yes"}:
+        console.print("[dim]Skipped.[/dim]")
+        return
+
+    console.print()
+    ok = run_install_plan(plan)
+    console.print()
+    if ok:
+        console.print("[bold green]Install complete.[/bold green] Re-run `gym-anything doctor` to verify.")
+    else:
+        console.print("[bold red]Install failed.[/bold red] See output above, then re-run `gym-anything doctor`.")
 
 
 def main(argv=None):
@@ -949,6 +1061,7 @@ def main(argv=None):
     p_doctor.add_argument("--runner", choices=["docker", "qemu", "qemu_native", "avd", "avd_native", "avf", "apptainer", "local"])
     p_doctor.add_argument("--verification-root")
     p_doctor.add_argument("--json", action="store_true")
+    p_doctor.add_argument("--no-install", action="store_true", help="Skip the interactive install prompt")
     p_doctor.set_defaults(func=cmd_doctor)
 
     args = parser.parse_args(argv)
