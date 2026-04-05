@@ -7,40 +7,38 @@ description: How to run one agent on one task, or many tasks in a row.
 
 The evaluation programs are the part of `agents/` that actually runs agents against environments.
 
-There are two main entry points:
-
-- `agents.evaluation.run_single`
-- `agents.evaluation.run_batch`
-
-## `run_single`: One Agent, One Task
-
-Use `run_single` when you want to run one agent on one task.
-
-Example:
+The easiest way to run an evaluation is through the CLI:
 
 ```bash
-python -m agents.evaluation.run_single \
-  --env_dir benchmarks/cua_world/environments/zotero_env \
-  --task create_saved_search \
-  --agent ClaudeAgent \
-  --agent_args '{"model":"claude-opus-4","exp_name":"demo"}'
+gym-anything benchmark zotero --task create_saved_search --agent ClaudeAgent --model claude-opus-4
+```
+
+<Tip>
+Run `gym-anything agents` to see which agent names are available.
+</Tip>
+
+## One Agent, One Task
+
+Run a single agent on a single task:
+
+```bash
+gym-anything benchmark zotero --task create_saved_search --agent ClaudeAgent --model claude-opus-4
 ```
 
 The important arguments are:
 
-- `--env_dir`: path to the environment folder
+- `env_dir`: environment name (e.g. `zotero`) or full path
 - `--task`: task id inside that environment
-- `--agent`: agent class name from `agents.agents`
-- `--agent_args`: JSON string passed into the agent
+- `--agent`: agent class name (e.g. `ClaudeAgent`)
+- `--model`: model identifier (e.g. `claude-opus-4`)
 
 Common optional arguments are:
 
-- `--steps`: maximum number of agent steps
-- `--use_cache`
-- `--cache_level`
-- `--use_savevm`
-
-`--agent_args` is agent-specific. In our reference agents, it often includes keys such as `model` and `exp_name`.
+- `--steps`: maximum number of agent steps (default: 50)
+- `--seed`: reset seed (default: 42)
+- `--temperature`: sampling temperature
+- `--agent-arg KEY=VALUE`: extra agent arguments (repeatable)
+- `--use-cache`, `--cache-level`, `--use-savevm`
 
 ## What `run_single` Does
 
@@ -66,35 +64,31 @@ If you're trying to understand how the loop works, `agents/evaluation/run_single
   <img src="/images/evaluation-run-single-output.png" alt="run_single terminal output" />
 </Frame>
 
-## `run_batch`: One Agent, Many Tasks
+## One Agent, Many Tasks
 
-Use `run_batch` when you want to run one agent across a list of tasks.
-
-Example:
+Omit `--task` to run all tasks in a split:
 
 ```bash
-python -m agents.evaluation.run_batch \
-  --agent ClaudeAgent \
-  --model claude-opus-4 \
-  --env_dir zotero \
-  --split test \
-  --max_tasks 5
+gym-anything benchmark zotero --agent ClaudeAgent --model claude-opus-4 --split test
 ```
 
-`run_batch` builds a list of `(task, environment)` pairs and then launches `run_single` once for each one.
+To run across all environments:
 
-## What `run_batch` Selects
+```bash
+gym-anything benchmark all --agent ClaudeAgent --model claude-opus-4 --split test
+```
 
-The main arguments that decide what gets run are:
+The main arguments for batch mode are:
 
-- `--env_dir`: one environment key, one environment path, or `all`
-- `--split`: task list name such as `train`, `test`, or `all`
-- `--surface`: `raw` or `verified`
-- `--max_tasks`: limit how many tasks to run
-- `--repeat`: repeat the whole batch more than once
+- `--split`: task list name such as `train`, `test`, or `all` (default: `test`)
+- `--surface`: `raw` or `verified` (default: `raw`)
+
+<Note>
+Each task runs in its own process for fault isolation — if one task crashes, the rest continue.
+</Note>
 
 <Tip>
-If you're only trying to verify that an agent works at all, start with `run_single` before using `run_batch`.
+If you're only trying to verify that an agent works at all, start with a single task before running batch mode.
 </Tip>
 
 ## If You Want To Change The Loop
