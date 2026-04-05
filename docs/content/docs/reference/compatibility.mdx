@@ -1,0 +1,80 @@
+---
+title: Compatibility
+description: What each runner currently supports.
+---
+
+Different runners support different features.
+
+The table below reflects our current compatibility matrix.
+
+## Runner Matrix
+
+| Runner | Live recording | Screenshot video assembly | Checkpoint caching | `savevm` | `user_accounts` behavior |
+| --- | --- | --- | --- | --- | --- |
+| `docker` | Yes | Yes | Yes | No | `provision_from_spec` |
+| `qemu` | No | Yes | Yes | Yes | `preprovisioned_accounts` |
+| `qemu_native` | No | Yes | Yes | Yes | `preprovisioned_accounts` |
+| `avd` | No | Yes | Yes | No | `metadata_only` |
+| `avd_native` | No | Yes | Yes | No | `metadata_only` |
+| `apptainer` | No | Yes | No | No | `preprovisioned_accounts` |
+| `avf` | No | Yes | No | No | `preprovisioned_accounts` |
+| `local` | No | No | No | No | `unsupported` |
+
+## What The `user_accounts` Modes Mean
+
+- `provision_from_spec`: the runner creates and configures accounts from `EnvSpec.user_accounts`
+- `preprovisioned_accounts`: accounts are expected to already exist in the guest; the spec is treated mainly as credential metadata
+- `metadata_only`: the fields describe expected credentials or roles, but the runner doesn't provision guest accounts
+- `unsupported`: the runner doesn't support this feature
+
+## Notes By Runner
+
+### Docker
+
+<Callout type="info">
+Docker is the only runner with built-in live FFmpeg episode recording during reset.
+</Callout>
+
+- creates accounts from `EnvSpec.user_accounts`
+
+### QEMU and QEMU Native
+
+- support checkpoint caching and `savevm`
+- rely on prebuilt guest accounts rather than creating accounts from the spec
+
+### AVD and AVD Native
+
+- support checkpoint caching
+- treat account information as metadata rather than provisioning Android users
+
+### Apptainer Direct
+
+- no checkpoint caching
+- typically uses a prebuilt `ga` user in the standard direct-Apptainer setup
+
+### AVF
+
+- uses Apple Virtualization Framework
+- no checkpoint caching
+- requires macOS on Apple Silicon with the needed host tools installed
+
+### Local
+
+- synthetic smoke-test backend only
+- doesn't provide full screenshot or recording behavior
+
+## Two Useful Commands
+
+To inspect compatibility from the CLI:
+
+```bash
+gym-anything compatibility
+gym-anything compatibility --runner avf
+```
+
+To check whether a runner is actually available on the current machine:
+
+```bash
+gym-anything doctor
+gym-anything doctor --runner avf
+```

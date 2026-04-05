@@ -1,0 +1,156 @@
+---
+title: Benchmarks
+description: How the benchmark suite is organized, and what you actually edit when you use it.
+---
+
+Our benchmark suite ships with ready-made environments and tasks.
+
+You use it when:
+
+- you want to run something immediately
+- you want examples of how environments and tasks are written
+- you want to add your own task on top of an existing environment
+
+## The Main Idea
+
+In this repository, a benchmark is usually:
+
+- one **environment folder**
+- one or more **task folders** inside that environment
+
+The main benchmark suite lives in:
+
+```text
+benchmarks/cua_world/
+```
+
+Most of the time, the part you care about is:
+
+```text
+benchmarks/cua_world/environments/
+```
+
+{/* TODO: screenshot of `gym-anything list --verbose` showing available environments and tasks */}
+
+## One Real Example
+
+Here is one real benchmark environment:
+
+```text
+benchmarks/cua_world/environments/zotero_env/
+```
+
+Inside it, one real task is:
+
+```text
+benchmarks/cua_world/environments/zotero_env/tasks/create_saved_search/
+```
+
+So the relationship is:
+
+- `zotero_env` = the environment
+- `create_saved_search` = one task inside that environment
+
+That pattern repeats throughout our benchmark suite.
+
+## What Is In An Environment Folder
+
+An environment folder usually contains:
+
+- `env.json`
+- `tasks/`
+- support folders such as `scripts/`, `config/`, `data/`, `utils/`, or `assets/`
+
+The environment folder is the shared base for all tasks inside it.
+
+## What `env.json` Actually Does
+
+`env.json` is the environment configuration file.
+
+It doesn't just say how the app starts. It usually defines things like:
+
+- which base environment or image to use
+- what observations the agent receives
+- what actions the agent can send
+- resource settings such as CPU, memory, and networking
+- mounted folders such as `scripts/`, `tasks/`, `config/`, or `utils/`
+- hooks such as `pre_start` and `post_start`
+- user accounts
+- recording, VNC, ADB, or other connection settings
+- runner or OS-specific settings when needed
+
+For example, the Zotero environment config mounts its `scripts`, `tasks`, `config`, `utils`, and `assets` folders, and it uses `pre_start` and `post_start` hooks to install and set up Zotero before tasks begin.
+
+So if you want to understand how an environment is defined, `env.json` is the first file to read.
+
+## What The Task Folders Add
+
+The task folders under `tasks/` add the part that changes from one job to another.
+
+That usually includes:
+
+- the instruction for the agent
+- any task-specific setup
+- the final check for success
+
+So:
+
+- the environment folder defines the shared world
+- each task folder defines one job inside that world
+
+## The Three Common Things People Do Here
+
+### 1. Run an existing benchmark task
+
+You pick:
+
+- an environment folder
+- a task id inside that environment
+
+Example:
+
+```python
+from gym_anything import from_config
+
+env = from_config(
+    "benchmarks/cua_world/environments/zotero_env",
+    task_id="create_saved_search",
+)
+```
+
+Or from the CLI:
+
+```bash
+gym-anything run zotero --task create_saved_search -i
+```
+
+### 2. Read an existing benchmark to understand how it works
+
+The usual reading order is:
+
+1. `env.json`
+2. one task folder inside `tasks/`
+3. that task's `task.json`
+4. that task's checker
+
+That gives you the environment definition first, and then one concrete task built on top of it.
+
+### 3. Add a new task to an existing environment
+
+This usually means:
+
+1. pick an existing environment folder
+2. copy a nearby task folder inside `tasks/`
+3. change the task description, setup, and final check
+
+That's often much easier than creating a new environment from scratch.
+
+## What Split Files Are For
+
+You'll also see names such as `train`, `test`, `all`, and `verified`.
+
+These are named lists of tasks. They're mainly used when you want to run many tasks together.
+
+<Callout type="info">
+If you're only trying one task by hand, you don't need split files yet.
+</Callout>

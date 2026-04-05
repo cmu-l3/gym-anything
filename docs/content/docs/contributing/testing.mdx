@@ -1,0 +1,107 @@
+---
+title: Testing
+description: What tests exist today and which ones to run for different kinds of changes.
+---
+
+We have a mix of fast contract tests and heavier integration tests.
+
+A good workflow is:
+
+1. run the most relevant targeted tests while you're working
+2. run a broader set before you finish
+3. only run the heavier execution tests when the change actually affects that area
+
+## Fast Broad Check
+
+If you want one general pass over the Python test suite:
+
+```bash
+python -m pytest tests -q
+```
+
+## Tests By Area
+
+### Core runtime
+
+Use these when changing environment lifecycle, session info, action handling, or public API surface:
+
+```bash
+python -m pytest \
+  tests/test_public_api_contract.py \
+  tests/test_env_runtime_behaviors.py \
+  tests/test_cli_contract.py -q
+```
+
+### Benchmarks and verification
+
+Use these when changing benchmark loading, task validation, or verifier behavior:
+
+```bash
+python -m pytest \
+  tests/test_benchmark_registry.py \
+  tests/test_verification_system.py \
+  tests/test_verification_status.py -q
+```
+
+### Remote cluster
+
+Use these when changing the remote client, master, worker, or dashboard paths:
+
+```bash
+python -m pytest \
+  tests/test_remote_client.py \
+  tests/test_remote_module_layout.py \
+  tests/test_worker_reset_policy.py \
+  tests/test_remote_cluster_integration.py -q
+```
+
+### Agents
+
+Use these when changing the agent interface or the evaluation loop:
+
+```bash
+python -m pytest \
+  tests/test_agents_module_layout.py \
+  tests/test_agent_evaluation_contract.py -q
+```
+
+### Runners and execution support
+
+Use these when changing runner selection, compatibility reporting, or real execution behavior:
+
+```bash
+python -m pytest \
+  tests/test_compatibility.py \
+  tests/test_doctor.py \
+  tests/test_runner_execution_contracts.py -q
+```
+
+## Real Execution Tests
+
+<Callout type="warn">
+These tests are intentionally gated because they depend on host support. Only run them when you're working on actual runner behavior and the host supports the requested runner.
+</Callout>
+
+```bash
+GYM_ANYTHING_RUN_EXECUTION_TESTS=1 \
+GYM_ANYTHING_EXECUTION_RUNNERS=avf \
+python -m pytest tests/test_runner_execution_contracts.py -q
+```
+
+## Docs Checks
+
+For docs changes:
+
+```bash
+cd docs-v2
+npm run build
+```
+
+## A Practical Rule
+
+<Callout type="info">
+When you change code, try to answer two questions before you stop:
+
+1. Which existing test proves this still works?
+2. If there was no such test, did you add the smallest useful one?
+</Callout>

@@ -1,0 +1,97 @@
+---
+title: Evaluation
+description: How to run one agent on one task, or many tasks in a row.
+---
+
+The evaluation programs are the part of `agents/` that actually runs agents against environments.
+
+The easiest way to run an evaluation is through the CLI:
+
+```bash
+gym-anything benchmark zotero --task create_saved_search --agent ClaudeAgent --model claude-opus-4
+```
+
+<Callout type="info">
+Run `gym-anything agents` to see which agent names are available.
+</Callout>
+
+## One Agent, One Task
+
+Run a single agent on a single task:
+
+```bash
+gym-anything benchmark zotero --task create_saved_search --agent ClaudeAgent --model claude-opus-4
+```
+
+The important arguments are:
+
+- `env_dir`: environment name (e.g. `zotero`) or full path
+- `--task`: task id inside that environment
+- `--agent`: agent class name (e.g. `ClaudeAgent`)
+- `--model`: model identifier (e.g. `claude-opus-4`)
+
+Common optional arguments are:
+
+- `--steps`: maximum number of agent steps (default: 50)
+- `--seed`: reset seed (default: 42)
+- `--temperature`: sampling temperature
+- `--agent-arg KEY=VALUE`: extra agent arguments (repeatable)
+- `--use-cache`, `--cache-level`, `--use-savevm`
+
+## What `run_single` Does
+
+At a high level, `run_single` does this:
+
+1. load the environment and selected task
+2. reset the environment
+3. create the agent class you selected
+4. call `agent.init(...)`
+5. capture an observation
+6. repeat:
+   - call `agent.step(obs, action_outputs)`
+   - send the returned actions to the environment
+   - feed the action results back into the agent
+7. finish the task with `mark_done=True`
+8. close the environment
+9. call `agent.finish(...)`
+
+If you're trying to understand how the loop works, `agents/evaluation/run_single.py` is the file to read.
+
+{/* TODO: screenshot of run_single terminal output showing the agent stepping through a task */}
+
+## One Agent, Many Tasks
+
+Omit `--task` to run all tasks in a split:
+
+```bash
+gym-anything benchmark zotero --agent ClaudeAgent --model claude-opus-4 --split test
+```
+
+To run across all environments:
+
+```bash
+gym-anything benchmark all --agent ClaudeAgent --model claude-opus-4 --split test
+```
+
+The main arguments for batch mode are:
+
+- `--split`: task list name such as `train`, `test`, or `all` (default: `test`)
+- `--surface`: `raw` or `verified` (default: `raw`)
+
+<Callout type="info">
+Each task runs in its own process for fault isolation — if one task crashes, the rest continue.
+</Callout>
+
+<Callout type="info">
+If you're only trying to verify that an agent works at all, start with a single task before running batch mode.
+</Callout>
+
+## If You Want To Change The Loop
+
+Read the evaluation files in this order:
+
+1. `agents/evaluation/run_single.py`
+2. `agents/evaluation/run_batch.py`
+3. `agents/evaluation/setup.py`
+
+`run_single.py` is the main loop. `run_batch.py` is mostly task selection plus repeated calls into `run_single`.

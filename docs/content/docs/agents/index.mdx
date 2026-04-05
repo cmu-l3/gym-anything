@@ -1,0 +1,114 @@
+---
+title: Agents
+description: The reference agents and programs that run them against Gym Anything environments.
+---
+
+The `agents/` folder contains reference agents and the programs used to run them.
+
+<Callout type="info">
+You don't need this part of the repository to use Gym Anything itself.
+</Callout>
+
+You only need it if:
+
+- you want to run one of the reference agents
+- you want a starting point for your own agent
+- you want to evaluate an agent across benchmark tasks
+
+## The Two Main Parts
+
+Most of this section comes down to two folders:
+
+<Cards>
+  <Card icon={<Code />} title="Agents" href="/docs/agents#what-lives-in-agentsagents">
+    Agent classes that decide what actions to take
+  </Card>
+  <Card icon={<Terminal />} title="Evaluation" href="/docs/agents/evaluation">
+    Programs that run agents against environments
+  </Card>
+</Cards>
+
+## What Lives In `agents/agents/`
+
+`agents/agents/` contains the agent classes.
+
+An agent is the code that looks at the current observation and decides what actions to take next.
+
+We currently ship these agents:
+
+- `ClaudeAgent`
+- `Gemini3Agent`
+- `Qwen3VLAgent`
+- `KimiAzureAgent`
+
+These classes are exported through `agents.agents`, which is why the evaluation commands refer to names such as `--agent ClaudeAgent`.
+
+## What Lives In `agents/evaluation/`
+
+`agents/evaluation/` contains the programs that actually run an agent against environments and tasks.
+
+The two main ones are:
+
+- `run_single.py`: run one agent on one task
+- `run_batch.py`: run one agent across many tasks
+
+If you only want to try an agent once, start with `run_single.py`.
+
+## What An Agent Receives
+
+Our current agent interface is built around four methods:
+
+- `__init__`
+- `init(task_description, display_resolution, save_path)`
+- `step(obs, action_outputs)`
+- `finish(...)`
+
+The important one is `step(...)`.
+
+That method receives:
+
+- the latest observation from the environment
+- the outputs from the previous actions
+
+and it returns one or more action groups.
+
+Each action group contains:
+
+- `tool_id`
+- `actions`
+
+The `actions` list can contain normal environment actions such as mouse and keyboard input. It can also contain built-in control actions such as:
+
+- `{"action": "screenshot"}`
+- `{"action": "wait", "time": 1.5}`
+
+Those control actions are handled by the environment layer, not by the evaluation loop.
+
+## The Fastest Way To Try One
+
+```bash
+gym-anything benchmark zotero --task create_saved_search --agent ClaudeAgent --model claude-opus-4
+```
+
+That command loads the environment, resets it, creates the agent, lets it act until the run finishes, and writes run artifacts.
+
+<Callout type="info">
+Run `gym-anything agents` to see all available agent names.
+</Callout>
+
+## If You Want To Add Your Own Agent
+
+The simplest workflow is:
+
+1. copy a nearby file in `agents/agents/`
+2. implement the same basic methods
+3. export the new class from `agents/agents/__init__.py`
+4. run it with `gym-anything benchmark`
+
+If you're starting from scratch, read:
+
+1. `agents/agents/base.py`
+2. one concrete agent such as `agents/agents/claude.py`
+3. `agents/evaluation/run_single.py`
+
+That gives you the agent interface first, then one implementation, then the program that drives it.
