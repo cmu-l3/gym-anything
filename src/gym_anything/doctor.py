@@ -40,18 +40,25 @@ def _command_available(command: str) -> Optional[str]:
     return shutil.which(command)
 
 
-def _run_command(command: List[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(command, capture_output=True, text=True, timeout=10)
+def _run_command(command: List[str], *, timeout: int = 10) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(command, capture_output=True, text=True, timeout=timeout)
 
 
-def _check_binary(name: str, binary: str, *, probe: Optional[List[str]] = None, required: bool = True) -> DoctorCheck:
+def _check_binary(
+    name: str,
+    binary: str,
+    *,
+    probe: Optional[List[str]] = None,
+    required: bool = True,
+    probe_timeout: int = 10,
+) -> DoctorCheck:
     resolved = _command_available(binary)
     if not resolved:
         return DoctorCheck(name=name, ok=False, detail=f"{binary} not found on PATH", required=required)
     if probe is None:
         return DoctorCheck(name=name, ok=True, detail=f"{binary} -> {resolved}", required=required)
     try:
-        result = _run_command(probe)
+        result = _run_command(probe, timeout=probe_timeout)
     except Exception as exc:
         return DoctorCheck(name=name, ok=False, detail=f"{binary} probe failed: {exc}", required=required)
     if result.returncode == 0:
@@ -69,8 +76,10 @@ def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
     target = runner or "all"
     checks: List[DoctorCheck] = []
     if target in {"all", "docker"}:
-        checks.append(_check_binary("docker_cli", "docker", probe=["docker", "version", "--format", "{{.Client.Version}}"]))
-        checks.append(_check_binary("docker_daemon", "docker", probe=["docker", "info"]))
+        checks.append(_check_binary("docker_cli", "docker", probe=["docker", "--version"]))
+        checks.append(_check_binary(
+            "docker_daemon", "docker", probe=["docker", "info"], probe_timeout=3,
+        ))
     if target in {"all", "qemu", "avd", "apptainer"}:
         # Apptainer is Linux-only; don't fail on macOS
         required = _IS_LINUX
@@ -255,6 +264,22 @@ _RUNNER_DEPS: Dict[str, List[str]] = {
 }
 
 
+def _docker_daemon_alive() -> bool:
+    """Return True if docker CLI is on PATH and the daemon responds quickly."""
+    docker_bin = shutil.which("docker")
+    if docker_bin is None:
+        return False
+    try:
+        result = subprocess.run(
+            [docker_bin, "info", "--format", "{{.ServerVersion}}"],
+            capture_output=True,
+            timeout=2,
+        )
+    except Exception:
+        return False
+    return result.returncode == 0
+
+
 def get_runner_status() -> Dict[str, Dict]:
     """Get status of all runners with dependency info."""
     import os
@@ -276,6 +301,33 @@ def get_runner_status() -> Dict[str, Dict]:
         all_ok = True
         for dep in deps:
             found = shutil.which(dep)
+            if dep == "docker":
+                # Docker needs both the CLI and a running daemon.
+                daemon_up = _docker_daemon_alive() if found else False
+                if found and not daemon_up:
+                    # CLI is installed but daemon isn't responding: report it
+                    # as a separate "docker-daemon" missing dep so the hint is
+                    # actionable ("start the daemon" not "install docker").
+                    dep_status["docker-daemon"] = {
+                        "installed": False,
+                        "path": None,
+                        "desc": "Docker daemon not reachable",
+                        "install": (
+                            "open -a Docker" if _IS_MACOS else "sudo systemctl start docker"
+                        ),
+                    }
+                    all_ok = False
+                    continue
+                available = found is not None and daemon_up
+                dep_status[dep] = {
+                    "installed": available,
+                    "path": found,
+                    "desc": _INSTALL_HINTS.get(dep, {}).get("desc", ""),
+                    "install": _INSTALL_HINTS.get(dep, {}).get("macos" if _IS_MACOS else "linux", ""),
+                }
+                if not available:
+                    all_ok = False
+                continue
             dep_status[dep] = {
                 "installed": found is not None,
                 "path": found,

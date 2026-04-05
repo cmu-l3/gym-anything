@@ -893,6 +893,13 @@ def _doctor_offer_install(
     console.print(f"  [dim]{plan.summary}[/dim]")
     if plan.prereq_note:
         console.print(f"  [dim]{plan.prereq_note}[/dim]")
+
+    if plan.manual_only:
+        console.print()
+        for line in plan.manual_only.splitlines():
+            console.print(f"  {line}")
+        return
+
     console.print()
     console.print("[bold]Install plan:[/bold]")
 
