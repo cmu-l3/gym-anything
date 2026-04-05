@@ -73,6 +73,7 @@ def _show_rich_help() -> None:
     commands.add_row("")
     commands.add_row("doctor", "Check system prerequisites")
     commands.add_row("compatibility", "Show runner compatibility matrix")
+    commands.add_row("cache", "List or purge cached VM images and SDKs")
     commands.add_row("")
     commands.add_row("verify spec", "Verify one environment and its task specs")
     commands.add_row("verify corpus", "Verify all specs under a root")
@@ -469,6 +470,132 @@ def cmd_benchmark(args) -> int:
     return _run_single(ns)
 
 
+_CACHE_ROOT = Path.home() / ".cache" / "gym-anything"
+
+
+def _cache_size(path: Path) -> int:
+    """Return total size of a path in bytes."""
+    if not path.exists():
+        return 0
+    if path.is_file():
+        return path.stat().st_size
+    total = 0
+    for entry in path.rglob("*"):
+        if entry.is_file():
+            try:
+                total += entry.stat().st_size
+            except (OSError, FileNotFoundError):
+                pass
+    return total
+
+
+def _format_size(num_bytes: int) -> str:
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if num_bytes < 1024:
+            return f"{num_bytes:.1f} {unit}"
+        num_bytes /= 1024
+    return f"{num_bytes:.1f} PB"
+
+
+def _cache_entries() -> list[tuple[str, Path, str]]:
+    """Return list of (name, path, description) cache entries."""
+    return [
+        ("qemu", _CACHE_ROOT / "qemu", "QEMU base images, VM work directories, AVF runtime data"),
+        ("android-sdk", _CACHE_ROOT / "android-sdk", "Android SDK components (platform-tools, emulator, system-images)"),
+        ("apks", _CACHE_ROOT / "apks", "Downloaded Android APKs"),
+        ("avd", _CACHE_ROOT / "avd", "Android Virtual Device definitions"),
+        ("avd-checkpoints", _CACHE_ROOT / "avd-checkpoints", "AVD checkpoint snapshots"),
+        ("apptainer", _CACHE_ROOT / "apptainer", "Apptainer SIF images and overlays"),
+        ("containers", _CACHE_ROOT / "containers", "Container runtime cache"),
+    ]
+
+
+def cmd_cache_list(args) -> int:
+    from rich.console import Console
+    from rich.table import Table
+
+    console = Console()
+    entries = _cache_entries()
+
+    if not _CACHE_ROOT.exists():
+        console.print(f"[dim]Cache directory does not exist: {_CACHE_ROOT}[/]")
+        return 0
+
+    table = Table(title=f"Cache at {_CACHE_ROOT}")
+    table.add_column("Component", style="cyan")
+    table.add_column("Size", justify="right", style="green")
+    table.add_column("Path", style="dim")
+    table.add_column("Description", style="dim")
+
+    total = 0
+    for name, path, desc in entries:
+        size = _cache_size(path)
+        total += size
+        if size == 0 and not path.exists():
+            table.add_row(name, "[dim]--[/]", str(path), desc)
+        else:
+            table.add_row(name, _format_size(size), str(path), desc)
+
+    console.print(table)
+    console.print(f"\n[bold]Total:[/] [green]{_format_size(total)}[/]")
+    return 0
+
+
+def cmd_cache_purge(args) -> int:
+    import shutil
+    from rich.console import Console
+
+    console = Console()
+    entries = _cache_entries()
+
+    if not _CACHE_ROOT.exists():
+        console.print(f"[dim]Cache directory does not exist: {_CACHE_ROOT}[/]")
+        return 0
+
+    # Determine which entries to purge
+    if args.component:
+        entries = [(n, p, d) for n, p, d in entries if n == args.component]
+        if not entries:
+            console.print(f"[red]Unknown cache component:[/] {args.component}")
+            console.print(f"Known components: {', '.join(n for n, _, _ in _cache_entries())}")
+            return 1
+
+    # Calculate what will be removed
+    to_remove = [(name, path, _cache_size(path)) for name, path, _ in entries if path.exists()]
+    if not to_remove:
+        console.print("[dim]Nothing to purge.[/]")
+        return 0
+
+    total_size = sum(size for _, _, size in to_remove)
+
+    # Confirm unless --yes
+    if not args.yes:
+        console.print("The following will be deleted:")
+        for name, path, size in to_remove:
+            console.print(f"  [cyan]{name}[/]  [green]{_format_size(size)}[/]  [dim]{path}[/]")
+        console.print(f"\n[bold]Total to free:[/] [green]{_format_size(total_size)}[/]")
+        reply = input("Proceed? [y/N] ").strip().lower()
+        if reply not in ("y", "yes"):
+            console.print("[dim]Aborted.[/]")
+            return 0
+
+    # Delete
+    freed = 0
+    for name, path, size in to_remove:
+        try:
+            if path.is_file():
+                path.unlink()
+            else:
+                shutil.rmtree(path)
+            console.print(f"[green]✓[/] removed [cyan]{name}[/]  ({_format_size(size)})")
+            freed += size
+        except OSError as exc:
+            console.print(f"[red]✗[/] failed to remove [cyan]{name}[/]: {exc}")
+
+    console.print(f"\n[bold green]Freed {_format_size(freed)}[/]")
+    return 0
+
+
 def cmd_agents(args) -> int:
     try:
         import agents.agents as agent_module
@@ -681,6 +808,19 @@ def main(argv=None):
 
     p_agents = sub.add_parser("agents", help="List available agent implementations")
     p_agents.set_defaults(func=cmd_agents)
+
+    p_cache = sub.add_parser("cache", help="Manage the gym-anything cache directory")
+    cache_sub = p_cache.add_subparsers(dest="cache_cmd", required=True)
+
+    p_cache_list = cache_sub.add_parser("list", help="Show cache contents and sizes")
+    p_cache_list.set_defaults(func=cmd_cache_list)
+
+    p_cache_purge = cache_sub.add_parser("purge", help="Delete cached files to free disk space")
+    p_cache_purge.add_argument("component", nargs="?",
+                               help="Specific component to purge (e.g. qemu, android-sdk). Omit to purge all.")
+    p_cache_purge.add_argument("-y", "--yes", action="store_true",
+                               help="Skip confirmation prompt")
+    p_cache_purge.set_defaults(func=cmd_cache_purge)
 
     p_doctor = sub.add_parser("doctor", help="Check system prerequisites and optional verifier imports")
     p_doctor.add_argument("--runner", choices=["docker", "qemu", "qemu_native", "avd", "avd_native", "avf", "apptainer", "local"])
