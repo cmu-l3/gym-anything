@@ -1,7 +1,7 @@
-from agents.policies.base import BaseAgent
+from agents.agents.base import BaseAgent
 from agents.shared.llm_clients import call_gemini_with_retry, parse_qwen3vl_response
 from agents.shared.prompts import GEMINI_SYSTEM_PROMPT_SINGLE_STEP, TOOL_DEFINITIONS
-from agents.policies.claude import ClaudeAgent
+from agents.agents.claude import ClaudeAgent
 from PIL import Image
 import json
 import os

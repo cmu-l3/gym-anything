@@ -6,7 +6,7 @@ import logging
 import os
 from pathlib import Path
 
-import agents.policies as policies
+import agents.agents as agent_registry
 from gym_anything.api import from_config
 from tqdm import tqdm
 
@@ -104,7 +104,7 @@ def run_single(args: argparse.Namespace) -> int:
     logger.info("Episode started. Artifacts will be saved under: %s", env.episode_dir)
     task_description = _load_task_description(env, args.env_dir, args.task)
 
-    agent_cls = getattr(policies, args.agent)
+    agent_cls = getattr(agent_registry, args.agent)
     agent = agent_cls(agent_args=json.loads(args.agent_args), verbose=args.verbose, debug=args.debug)
     agent.init(
         task_description=task_description,

@@ -96,7 +96,7 @@ class AgentEvaluationContractTests(unittest.TestCase):
             )
 
             with mock.patch.object(run_single_module, "from_config", return_value=fake_env), \
-                 mock.patch.object(run_single_module.policies, "FakePolicy", _FakePolicy, create=True):
+                 mock.patch.object(run_single_module.agent_registry, "FakePolicy", _FakePolicy, create=True):
                 _FakePolicy.instances.clear()
                 result = run_single_module.run_single(args)
 

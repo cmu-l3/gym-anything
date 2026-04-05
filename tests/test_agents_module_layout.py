@@ -7,12 +7,12 @@ import unittest
 class AgentsModuleLayoutTests(unittest.TestCase):
     def test_new_agents_packages_import_cleanly(self) -> None:
         agents_pkg = importlib.import_module("agents")
-        policies_pkg = importlib.import_module("agents.policies")
+        agents_pkg_inner = importlib.import_module("agents.agents")
         shared_pkg = importlib.import_module("agents.shared")
         evaluation_pkg = importlib.import_module("agents.evaluation")
 
         self.assertIsNotNone(agents_pkg)
-        self.assertTrue(hasattr(policies_pkg, "ClaudeAgent"))
+        self.assertTrue(hasattr(agents_pkg_inner, "ClaudeAgent"))
         self.assertIsNotNone(shared_pkg)
         self.assertIsNotNone(evaluation_pkg)
 

@@ -140,7 +140,7 @@ python -m agents.evaluation.run_single \
 ├── benchmarks/cua_world/reports/        generated verification manifests
 ├── benchmarks/cua_world/historical/     archived benchmark variants
 ├── examples/tutorials/        lightweight tutorial environments
-├── agents/policies/           reference agent implementations
+├── agents/agents/             reference agent implementations
 ├── agents/evaluation/         single-run and batch harnesses
 ├── agents/shared/             shared model/prompt utilities
 ├── src/gym_anything/dashboards/ packaged UI applications

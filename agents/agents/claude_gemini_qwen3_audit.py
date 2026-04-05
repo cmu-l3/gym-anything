@@ -1,4 +1,4 @@
-from agents.policies.claude_gemini_qwen3 import GeminiQwen3Agent
+from agents.agents.claude_gemini_qwen3 import GeminiQwen3Agent
 from agents.shared.llm_clients import call_gemini_with_retry, parse_qwen3vl_response
 import json
 import os

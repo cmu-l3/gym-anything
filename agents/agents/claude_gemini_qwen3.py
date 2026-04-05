@@ -1,5 +1,5 @@
 from agents.shared.llm_clients import parse_qwen3vl_response, call_gemini_with_retry
-from agents.policies.qwen3vl import Qwen3VLAgent
+from agents.agents.qwen3vl import Qwen3VLAgent
 from PIL import Image
 import json
 import os

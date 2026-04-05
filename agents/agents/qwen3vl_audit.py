@@ -1,4 +1,4 @@
-from agents.policies.qwen3vl import Qwen3VLAgent
+from agents.agents.qwen3vl import Qwen3VLAgent
 from agents.shared.llm_clients import call_llm, parse_qwen3vl_response
 import json
 import os

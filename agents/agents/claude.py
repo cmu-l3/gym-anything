@@ -1,4 +1,4 @@
-from agents.policies.base import BaseAgent
+from agents.agents.base import BaseAgent
 from agents.shared.prompts import CLAUDE_SYSTEM_PROMPT, CLAUDE_SYSTEM_PROMPT_CAREFUL
 from agents.shared.llm_clients import call_claude, claude_parse_tool_result
 from agents.shared.message_cache import add_cache_blocks
