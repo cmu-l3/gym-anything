@@ -447,8 +447,6 @@ Do NOT use the terminate action until you have fully addressed the feedback.
         messages = self.build_messages(processed_image_b64)
         messages[0]['cache_control'] = {"type": "ephemeral"}
 
-        if self.debug and self.step_idx > 5:
-            breakpoint()
 
         # Save messages for debugging
         try:
@@ -472,8 +470,6 @@ Do NOT use the terminate action until you have fully addressed the feedback.
             self.top_k,
         )
 
-        if self.debug:
-            breakpoint()
 
         # Store response for history
         self.responses.append(response)
@@ -481,8 +477,6 @@ Do NOT use the terminate action until you have fully addressed the feedback.
         # Parse response
         parsed_response = parse_qwen3vl_response(response, scale_dims=True, scale_dims_ratio=(1920/1000, 1080/1000))
 
-        if self.debug:
-            breakpoint()
 
         self.all_model_responses.append(response)
         self.all_parsed_responses.append(parsed_response)

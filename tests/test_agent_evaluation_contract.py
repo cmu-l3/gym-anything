@@ -68,6 +68,10 @@ class _FakeEnv:
             }
         }
 
+    def set_episode_limits(self, *, max_steps=None, timeout_sec=None):
+        if max_steps is not None:
+            self.max_steps = max_steps
+
     def close(self):
         self.closed = True
 

@@ -42,7 +42,6 @@ def verify_adjust_volume(traj, env_info, task_info):
     temp_result = tempfile.NamedTemporaryFile(delete=False, suffix='.json')
 
     try:
-        breakpoint()
         try:
             copy_from_env("/tmp/vlc_volume_result.json", temp_result.name)
         except Exception as e:

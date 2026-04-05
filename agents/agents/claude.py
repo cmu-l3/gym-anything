@@ -61,8 +61,6 @@ class ClaudeAgent(BaseAgent):
             converted_action_outputs = self._convert_action_outputs(action_outputs)
             self.messages.append({"content": converted_action_outputs, "role": "user"})
         self.messages = add_cache_blocks(self.messages)
-        # if self.debug:
-        #     breakpoint()
         response = call_claude(self.messages, self.model, self.decoding_params.get('temperature', 1.0), self.decoding_params.get('top_p', 0.95), self.decoding_params.get('thinking_budget', 8192), self.system_prompt)
         response_content = response.content
         self.messages.append({'role': 'assistant', 'content': response_content})
@@ -109,8 +107,6 @@ class ClaudeAgent(BaseAgent):
                 except Exception as e:
                     self.done = True
                     print(f"Exception in claude parse tool result {e}")
-                    if self.debug:
-                        breakpoint()
                     return []
         return all_actions
     

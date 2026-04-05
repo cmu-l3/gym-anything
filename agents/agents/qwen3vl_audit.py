@@ -453,8 +453,6 @@ Do NOT use the terminate action until you have fully addressed the feedback.
         # Build messages (will include audit feedback if present)
         messages = self.build_messages(processed_image_b64)
 
-        if self.debug and self.step_idx > 5:
-            breakpoint()
 
         # Save messages with file paths instead of base64
         self.save_messages(messages)
@@ -469,8 +467,6 @@ Do NOT use the terminate action until you have fully addressed the feedback.
             self.top_k,
         )
 
-        if self.debug:
-            breakpoint()
 
         # Store response for history
         self.responses.append(response)
@@ -478,8 +474,6 @@ Do NOT use the terminate action until you have fully addressed the feedback.
         # Parse response (no coordinate scaling - Qwen3VL uses native coordinates)
         parsed_response = parse_qwen3vl_response(response)
 
-        if self.debug:
-            breakpoint()
 
         self.all_model_responses.append(response)
         self.all_parsed_responses.append(parsed_response)

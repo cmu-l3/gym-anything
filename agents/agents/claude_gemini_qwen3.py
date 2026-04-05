@@ -60,8 +60,6 @@ class GeminiQwen3Agent(Qwen3VLAgent):
 
         messages[0]['cache_control'] = {"type": "ephemeral"}
 
-        if self.debug and self.step_idx > 5:
-            breakpoint()
         # Save messages for debugging
         try:
             message_file_path = os.path.join(
@@ -84,8 +82,6 @@ class GeminiQwen3Agent(Qwen3VLAgent):
             # self.max_tokens
         )
         
-        if self.debug:
-            breakpoint()
         
         # Store response for history
         self.responses.append(response)
@@ -94,8 +90,6 @@ class GeminiQwen3Agent(Qwen3VLAgent):
         parsed_response = parse_qwen3vl_response(response, scale_dims = True, scale_dims_ratio = (self.display_resolution[0]/1000, self.display_resolution[1]/1000))
         
         # Store responses for later dumping
-        if self.debug:
-            breakpoint()
         self.all_model_responses.append(response)
         self.all_parsed_responses.append(parsed_response)
         

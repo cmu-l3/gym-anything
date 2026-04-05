@@ -83,8 +83,6 @@ class Gemini3Agent(ClaudeAgent):
 
         self.messages[-1]['cache_control'] = {"type": "ephemeral"}
 
-        if self.debug:
-            breakpoint()
         # Save messages for debugging
         # self.save_messages(self.messages)
         # Call LLM
@@ -99,8 +97,6 @@ class Gemini3Agent(ClaudeAgent):
             return_full_response=True
         )
         self.messages.append({'role': 'assistant', 'content': response})
-        if self.debug:
-            breakpoint()
         try:
             reasoning_content = response.choices[0].message.reasoning_content
         except Exception as e:
@@ -113,8 +109,6 @@ class Gemini3Agent(ClaudeAgent):
             response = response.choices[0].message.content
 
         
-        if self.debug:
-            breakpoint()
         
         # Store response for history
         
@@ -123,8 +117,6 @@ class Gemini3Agent(ClaudeAgent):
         parsed_response = parse_qwen3vl_response(response, scale_dims = True, scale_dims_ratio = (1920/1000, 1080/1000))
         
         # Store responses for later dumping
-        if self.debug:
-            breakpoint()
         # self.all_model_responses.append(response)
         # self.all_parsed_responses.append(parsed_response)
         

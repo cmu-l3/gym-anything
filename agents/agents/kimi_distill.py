@@ -90,8 +90,6 @@ class KimiDistillAgent(KimiAzureAgent):
         # Build messages
         messages = self.build_messages(processed_image_b64)
 
-        if self.debug and self.step_idx > 5:
-            breakpoint()
 
         # Save messages with file paths instead of base64
         self.save_messages(messages)
@@ -115,8 +113,6 @@ class KimiDistillAgent(KimiAzureAgent):
             self.max_tokens
         )
 
-        if self.debug:
-            breakpoint()
 
         # Store response for history
         self.responses.append(response)
@@ -125,8 +121,6 @@ class KimiDistillAgent(KimiAzureAgent):
         parsed_response = parse_qwen3vl_response(response, scale_dims=True, scale_dims_ratio=(1920, 1080))
 
         # Store responses for later dumping
-        if self.debug:
-            breakpoint()
         self.all_model_responses.append(response)
         self.all_parsed_responses.append(parsed_response)
 

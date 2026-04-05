@@ -43,7 +43,6 @@ def check_horizontal_mirror(traj, env_info, task_info):
         feedback = "Image mirrored horizontally" if passed else "Mirroring verification failed"
         return {"passed": passed, "score": 100 if passed else 0, "feedback": feedback}
     except Exception as e:
-        breakpoint()
         logging.exception("Mirror verification error")
         return {"passed": False, "score": 0, "feedback": f"Verifier error: {e}"}
     finally:

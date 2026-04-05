@@ -7,7 +7,6 @@ def add_cache_blocks(messages):
         if messages[-1]["content"][-1]["text"] != "":
             messages[-1]["content"][-1]["cache_control"] = {"type": "ephemeral"}
     except Exception as e:
-        # breakpoint()
         messages[-1]["content"][-1]["cache_control"] = {"type": "ephemeral"}
         print(f"Error adding cache block: {e}")
         pass
@@ -21,5 +20,4 @@ def add_cache_blocks(messages):
             if counts > 4:
                 del messages[i]["content"][-1]["cache_control"]
 
-    # breakpoint()
     return messages

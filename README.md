@@ -58,13 +58,13 @@ You can use Core alone with your own environments. You can plug any agent into t
 
 We welcome contributions — new tasks, new environments, bug fixes, and new agent implementations.
 
-The simplest way to contribute is to add a new task to an existing environment. Each task is self-contained in its own folder with a description, a setup script, and a verifier. See the [docs on tasks and checks](https://docs.gym-anything.com/benchmarks/tasks-verifiers) for how these are structured.
+The simplest way to contribute is to add a new task to an existing environment. Each task is self-contained in its own folder with a description, a setup script, and a verifier. See the [docs on tasks and checks](https://cmu-l3.github.io/gym-anything/docs/docs/benchmarks/tasks-verifiers/) for how these are structured.
 
-If you want to contribute a new environment or agent, start by reading the [contributing guide](https://docs.gym-anything.com/contributing/overview).
+If you want to contribute a new environment or agent, start by reading the [contributing guide](https://cmu-l3.github.io/gym-anything/docs/docs/contributing/).
 
 ## Where To Read Next
 
-- [Installation](https://docs.gym-anything.com/installation) — full setup guide with platform-specific instructions
-- [Core Overview](https://docs.gym-anything.com/core/overview) — how the environment API works
-- [Benchmarks](https://docs.gym-anything.com/benchmarks/overview) — how environments and tasks are organized
-- [Agents](https://docs.gym-anything.com/agents/overview) — reference agents and how to add your own
+- [Installation](https://cmu-l3.github.io/gym-anything/docs/docs/installation/) — full setup guide with platform-specific instructions
+- [Core Overview](https://cmu-l3.github.io/gym-anything/docs/docs/core/) — how the environment API works
+- [Benchmarks](https://cmu-l3.github.io/gym-anything/docs/docs/benchmarks/) — how environments and tasks are organized
+- [Agents](https://cmu-l3.github.io/gym-anything/docs/docs/agents/) — reference agents and how to add your own

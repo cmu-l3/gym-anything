@@ -127,13 +127,9 @@ def run_single(args: argparse.Namespace) -> int:
         for _step_i in tqdm(range(max_steps)):
             actions = agent.step(obs, action_outputs)
             action_outputs = []
-            if args.debug:
-                breakpoint()
 
             for action in actions:
                 actual_actions = action["actions"]
-                if args.debug:
-                    breakpoint()
                 obs, _reward, done, info = env.step(actual_actions)
                 action_result = info.get(
                     "action_result",
@@ -153,13 +149,9 @@ def run_single(args: argparse.Namespace) -> int:
                 obs, _reward, done, info = env.step([], mark_done=True)
                 break
 
-        if args.debug_low or args.debug:
-            breakpoint()
 
         episode_dir = env.episode_dir
         logger.info("Episode finished. See: %s info: %s", episode_dir, info)
-        if args.debug:
-            breakpoint()
     finally:
         env.close()
 
