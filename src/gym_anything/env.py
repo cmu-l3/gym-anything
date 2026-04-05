@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import time
 from dataclasses import asdict
@@ -22,6 +23,8 @@ from .utils.jsonl import JSONLWriter
 from .verification.runner import VerifierRunner
 import base64
 import uuid
+
+logger = logging.getLogger(__name__)
 
 
 class GymAnythingEnv:
@@ -77,13 +80,13 @@ class GymAnythingEnv:
         # --- AVF runner (Apple Virtualization Framework + Rosetta) ---
         if runner_override == "avf" or spec_runner == "avf":
             from .runtime.runners.avf import AVFRunner
-            print("[gym-anything] Using AVFRunner (Apple Virtualization Framework + Rosetta)")
+            logger.info("Using AVFRunner (Apple Virtualization Framework + Rosetta)")
             return AVFRunner(spec)
 
         # --- AVD runners ---
         if runner_override == "avd_native" or spec_runner == "avd_native":
             from .runtime.runners.avd_native import AVDNativeRunner
-            print("[gym-anything] Using AVDNativeRunner (no Apptainer)")
+            logger.info("Using AVDNativeRunner (no Apptainer)")
             return AVDNativeRunner(spec)
 
         if runner_override == "avd" or spec_runner == "avd":
@@ -91,13 +94,13 @@ class GymAnythingEnv:
 
         # --- Direct Apptainer runner (GPU-enabled, no QEMU) ---
         if runner_override == "apptainer" or spec_runner == "apptainer":
-            print("[gym-anything] Using ApptainerDirectRunner (GPU-enabled)")
+            logger.info("Using ApptainerDirectRunner (GPU-enabled)")
             from .runtime.runners.apptainer_direct import ApptainerDirectRunner
             return ApptainerDirectRunner(spec)
 
         # --- QEMU runners ---
         if runner_override == "qemu_native":
-            print("[gym-anything] Using QemuNativeRunner (GYM_ANYTHING_RUNNER=qemu_native)")
+            logger.info("Using QemuNativeRunner (GYM_ANYTHING_RUNNER=qemu_native)")
             return QemuNativeRunner(spec)
 
         if runner_override == "qemu" or spec_runner == "qemu":
@@ -105,13 +108,13 @@ class GymAnythingEnv:
 
         # --- Explicit simple runners ---
         if runner_override == "local" or spec_runner == "local":
-            print("[gym-anything] Using LocalRunner")
+            logger.info("Using LocalRunner")
             return LocalRunner(spec)
 
         if runner_override == "docker":
             pass  # Fall through to docker runner
         elif runner_override:
-            print(f"[gym-anything] Warning: Unknown runner '{runner_override}', using default")
+            logger.warning("Unknown runner '%s', using default", runner_override)
 
         # --- Auto-detect: pick the best available runner for this platform ---
         if not runner_override:
@@ -122,44 +125,44 @@ class GymAnythingEnv:
                 # Apple Silicon: prefer AVF (Rosetta) > QemuNative (aarch64+HVF) > Docker
                 if self._check_avf_available():
                     from .runtime.runners.avf import AVFRunner
-                    print("[gym-anything] Using AVFRunner (Apple Silicon, auto-detected)")
+                    logger.info("Using AVFRunner (Apple Silicon, auto-detected)")
                     return AVFRunner(spec)
                 if self._check_qemu_native_available():
-                    print("[gym-anything] Using QemuNativeRunner (Apple Silicon, auto-detected)")
+                    logger.info("Using QemuNativeRunner (Apple Silicon, auto-detected)")
                     return QemuNativeRunner(spec)
             elif _sys.platform == "darwin":
                 # Intel Mac: prefer QemuNative (x86+HVF) > Docker
                 if self._check_qemu_native_available():
-                    print("[gym-anything] Using QemuNativeRunner (Intel Mac, auto-detected)")
+                    logger.info("Using QemuNativeRunner (Intel Mac, auto-detected)")
                     return QemuNativeRunner(spec)
             else:
                 # Linux: prefer QemuApptainer > QemuNative > Docker
                 if self._check_apptainer_available():
-                    print("[gym-anything] Using QemuApptainerRunner (auto-detected)")
+                    logger.info("Using QemuApptainerRunner (auto-detected)")
                     return QemuApptainerRunner(spec)
                 if self._check_qemu_native_available():
-                    print("[gym-anything] Using QemuNativeRunner (auto-detected)")
+                    logger.info("Using QemuNativeRunner (auto-detected)")
                     return QemuNativeRunner(spec)
 
             # Fallback: Docker
             if self._check_docker_available() and (spec.image or spec.dockerfile):
-                print("[gym-anything] Using DockerRunner (fallback)")
+                logger.info("Using DockerRunner (fallback)")
                 return DockerRunner(spec)
 
-            print("[gym-anything] No suitable runtime found. Run: gym-anything doctor")
+            logger.warning("No suitable runtime found. Run: gym-anything doctor")
             return LocalRunner(spec)
 
     def _make_qemu_runner(self, spec: EnvSpec) -> BaseRunner:
         """Auto-select between QemuApptainerRunner and QemuNativeRunner."""
         import sys
         if sys.platform == "darwin":
-            print("[gym-anything] Using QemuNativeRunner (macOS detected)")
+            logger.info("Using QemuNativeRunner (macOS detected)")
             return QemuNativeRunner(spec)
         if self._check_apptainer_available():
-            print("[gym-anything] Using QemuApptainerRunner")
+            logger.info("Using QemuApptainerRunner")
             return QemuApptainerRunner(spec)
         if self._check_qemu_native_available():
-            print("[gym-anything] Apptainer not found, using QemuNativeRunner")
+            logger.info("Apptainer not found, using QemuNativeRunner")
             return QemuNativeRunner(spec)
         raise RuntimeError(
             "runner=qemu but neither Apptainer nor native QEMU found. "
@@ -171,14 +174,14 @@ class GymAnythingEnv:
         import sys
         if sys.platform == "darwin":
             from .runtime.runners.avd_native import AVDNativeRunner
-            print("[gym-anything] Using AVDNativeRunner (macOS detected)")
+            logger.info("Using AVDNativeRunner (macOS detected)")
             return AVDNativeRunner(spec)
         if self._check_apptainer_available():
-            print("[gym-anything] Using AVDApptainerRunner")
+            logger.info("Using AVDApptainerRunner")
             return AVDApptainerRunner(spec)
         # Fallback to native if Apptainer missing
         from .runtime.runners.avd_native import AVDNativeRunner
-        print("[gym-anything] Apptainer not found, using AVDNativeRunner")
+        logger.info("Apptainer not found, using AVDNativeRunner")
         return AVDNativeRunner(spec)
     
     def _check_docker_available(self) -> bool:
@@ -301,7 +304,6 @@ class GymAnythingEnv:
         if self._episode_dir is not None or self._traj_log is not None:
             self.close()
 
-        self.profiling_start_time = time.time()
         self._step_idx = 0
         self._finalized = False
         self._reward_fn = None
@@ -354,14 +356,26 @@ class GymAnythingEnv:
                         checkpoint_level = try_level  # actual loaded level, not requested
                         savevm_msg = " (with savevm)" if use_savevm else ""
                         if try_level != cache_level:
-                            print(f"[gym-anything] Loaded from checkpoint (level={try_level}, requested={cache_level}){savevm_msg} - running remaining hooks")
+                            logger.info(
+                                "Loaded from checkpoint (level=%s, requested=%s)%s - running remaining hooks",
+                                try_level,
+                                cache_level,
+                                savevm_msg,
+                            )
                         else:
-                            print(f"[gym-anything] Loaded from checkpoint (level={cache_level}){savevm_msg} - skipping setup up to this point")
+                            logger.info(
+                                "Loaded from checkpoint (level=%s)%s - skipping setup up to this point",
+                                cache_level,
+                                savevm_msg,
+                            )
                         break
                     else:
-                        print(f"[gym-anything] Failed to load checkpoint at level={try_level} - trying next level")
+                        logger.warning(
+                            "Failed to load checkpoint at level=%s - trying next level",
+                            try_level,
+                        )
             if not checkpoint_loaded:
-                print(f"[gym-anything] No checkpoint found at any level - full setup required")
+                logger.info("No checkpoint found at any level - full setup required")
 
         # If not loaded from checkpoint, do full setup
         if not checkpoint_loaded:
@@ -413,7 +427,7 @@ class GymAnythingEnv:
             if getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("pre_start"):
                 if self._reporter:
                     self._reporter.stage_start("pre_start_hook")
-                print("[gym-anything] Running pre_start hook...")
+                logger.info("Running pre_start hook")
                 try:
                     hook_cmd = self.env_spec.hooks['pre_start']
                     # Android uses sh instead of bash, and different paths
@@ -428,7 +442,7 @@ class GymAnythingEnv:
                     if self._reporter:
                         self._reporter.stage_done("pre_start_hook")
                 except Exception as e:
-                    print(f"[gym-anything] pre_start hook failed: {e}")
+                    logger.warning("pre_start hook failed: %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("pre_start_hook", str(e))
 
@@ -436,7 +450,7 @@ class GymAnythingEnv:
         # Also creates when we started from scratch with a higher cache_level target
         if use_cache and cache_level == "pre_start" and checkpoint_level != "pre_start":
             savevm_msg = " (with savevm)" if use_savevm else ""
-            print(f"[gym-anything] Creating checkpoint at level=pre_start{savevm_msg}...")
+            logger.info("Creating checkpoint at level=pre_start%s", savevm_msg)
             self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
             self._runner.create_checkpoint()
 
@@ -454,7 +468,7 @@ class GymAnythingEnv:
             if getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("post_start"):
                 if self._reporter:
                     self._reporter.stage_start("post_start_hook")
-                print("[gym-anything] Running post_start hook...")
+                logger.info("Running post_start hook")
                 try:
                     hook_cmd = self.env_spec.hooks['post_start']
                     # Android uses sh instead of bash, and different paths
@@ -469,7 +483,7 @@ class GymAnythingEnv:
                     if self._reporter:
                         self._reporter.stage_done("post_start_hook")
                 except Exception as e:
-                    print(f"[gym-anything] post_start hook failed: {e}")
+                    logger.warning("post_start hook failed: %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("post_start_hook", str(e))
 
@@ -477,7 +491,7 @@ class GymAnythingEnv:
         # Also creates when we loaded from a lower level (e.g., pre_start fallback)
         if use_cache and cache_level == "post_start" and checkpoint_level != "post_start":
             savevm_msg = " (with savevm)" if use_savevm else ""
-            print(f"[gym-anything] Creating checkpoint at level=post_start{savevm_msg}...")
+            logger.info("Creating checkpoint at level=post_start%s", savevm_msg)
             self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
             self._runner.create_checkpoint()
 
@@ -496,16 +510,13 @@ class GymAnythingEnv:
             except Exception:
                 pass
 
-        profiling_middle_time = time.time()
-        print(f'Profiling time for env setup: {profiling_middle_time - self.profiling_start_time}s')
-
         # === PRE_TASK HOOK ===
         # Skip if checkpoint_loaded and checkpoint was at post_task
         if loaded_level_num < level_order["post_task"]:
             if self.task_spec and self.task_spec.hooks and self.task_spec.hooks.pre_task:
                 if self._reporter:
                     self._reporter.stage_start("pre_task_hook")
-                print("[gym-anything] Running pre_task hook...")
+                logger.info("Running pre_task hook")
                 try:
                     hook_cmd = self.task_spec.hooks.pre_task
                     # Android uses sh instead of bash, and different paths
@@ -523,7 +534,7 @@ class GymAnythingEnv:
                     if self._reporter:
                         self._reporter.stage_done("pre_task_hook")
                 except Exception as e:
-                    print(f"[gym-anything] pre_task hook failed: {e}")
+                    logger.warning("pre_task hook failed: %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("pre_task_hook", str(e))
 
@@ -533,19 +544,16 @@ class GymAnythingEnv:
 
             # === INIT PYAUTOGUI ACTIONS (for Windows) ===
             if self.task_spec and self.task_spec.init.init_pyautogui:
-                print("[gym-anything] Running init_pyautogui actions...")
+                logger.info("Running init_pyautogui actions")
                 self._run_init_pyautogui(self.task_spec.init.init_pyautogui)
         # breakpoint()
         # Create checkpoint after pre_task/init if this is the target level
         # Also creates when we loaded from a lower level (e.g., post_start or pre_start fallback)
         if use_cache and cache_level == "post_task" and checkpoint_level != "post_task":
             savevm_msg = " (with savevm)" if use_savevm else ""
-            print(f"[gym-anything] Creating checkpoint at level=post_task{savevm_msg}...")
+            logger.info("Creating checkpoint at level=post_task%s", savevm_msg)
             self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
             self._runner.create_checkpoint()
-
-        profiling_hooks_time = time.time()
-        print(f'Profiling time for task specific hooks: {profiling_hooks_time - profiling_middle_time}s')
 
         # Start recording if enabled
         if self.env_spec.recording.enable and self._runner.supports_live_recording():
@@ -592,23 +600,30 @@ class GymAnythingEnv:
         )
         if self._traj_log:
             self._traj_log.write({"event": "session", **self._session_info.to_dict()})
-        # Print user-facing startup info
-        try:
-            print("[gym-anything] Session:", self._session_info.to_dict())
-        except Exception:
-            pass
+        logger.info("Session: %s", self._session_info.to_dict())
 
-        profiling_final_time = time.time()
-        print(f'Env setup took {profiling_final_time - self.profiling_start_time} seconds of which env setup took {profiling_middle_time - self.profiling_start_time} seconds and task specific hooks took {profiling_hooks_time - profiling_middle_time} seconds, and remaining time took {profiling_final_time - profiling_hooks_time} seconds')
         # First observation (capture initial screen/audio as frame_00000)
         return self._capture_observation()
 
     def step(self, actions: List[Dict[str, Any]], wait_between_actions: float = 0.2, mark_done: bool = False) -> Tuple[Dict[str, Any], float, bool, Dict[str, Any]]:
         # Multi-agent: accept mapping role->action, else annotate turn-based role
-        st_time = time.time()
         if isinstance(actions, dict):
             actions = [actions]
+        injected_actions = 0
+        control_result: Optional[Dict[str, Any]] = None
         for action_num, action in enumerate(actions):
+            control = self._parse_control_action(action)
+            if control is not None:
+                if control["kind"] == "wait":
+                    seconds = control["seconds"]
+                    time.sleep(seconds)
+                    control_result = {
+                        "action": "wait",
+                        "output": f"Waited for {seconds} seconds",
+                    }
+                elif control["kind"] == "screenshot":
+                    control_result = {"action": "screenshot"}
+                continue
             if self._roles and isinstance(action, dict) and any(r in action for r in self._roles):
                 for r in self._roles:
                     a = action.get(r)
@@ -616,6 +631,7 @@ class GymAnythingEnv:
                         a = dict(a)
                         a["_role"] = r
                         self._runner.inject_action(a)
+                        injected_actions += 1
             else:
                 if self._roles and self._turn_based:
                     current_role = self._roles[self._turn_idx % max(1, len(self._roles))]
@@ -623,14 +639,13 @@ class GymAnythingEnv:
                     action["_role"] = current_role
                     self._turn_idx += 1
                 self._runner.inject_action(action)
+                injected_actions += 1
             if wait_between_actions and action_num < len(actions) - 1:
                 time.sleep(wait_between_actions)
-        if actions:
+        if injected_actions:
             time.sleep(2)
-        inter_time = time.time() - st_time
-        print(f'Profiling time for injecting actions [{self._episode_dir}]: ', inter_time, len(actions))
         # For synchronous envs, wait for the step cycle
-        if self.env_spec.synchronous and self.env_spec.step_cycle_ms:
+        if injected_actions and self.env_spec.synchronous and self.env_spec.step_cycle_ms:
             time.sleep(self.env_spec.step_cycle_ms / 1000.0)
         obs: Dict[str, Any] = self._capture_observation()
 
@@ -642,12 +657,20 @@ class GymAnythingEnv:
                 "idx": self._step_idx,
                 "action": actions,
             })
-        log_time = time.time()
-        print('Profiling time for logging step: ', log_time - inter_time)
 
         reward = 0.0
         done = False
         info: Dict[str, Any] = {"step": self._step_idx}
+        if actions:
+            if control_result is not None and injected_actions == 0 and len(actions) == 1:
+                if control_result["action"] == "screenshot":
+                    control_result["output"] = obs.get("screen", {}).get("path")
+                info["action_result"] = control_result
+            else:
+                info["action_result"] = {
+                    "action": "other",
+                    "output": "Executed the action",
+                }
         # Dense reward shaping if configured
         if self._reward_fn is not None:
             try:
@@ -678,6 +701,23 @@ class GymAnythingEnv:
             reward = self._final_reward(summary, current_reward=reward)
         self._step_idx += 1
         return obs, reward, done, info
+
+    def _parse_control_action(self, action: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        if not isinstance(action, dict):
+            return None
+
+        kind = action.get("action") or action.get("type")
+        if kind == "screenshot":
+            return {"kind": "screenshot"}
+        if kind == "wait":
+            seconds = action.get("time")
+            if seconds is None:
+                seconds = action.get("seconds", 1.0)
+            try:
+                return {"kind": "wait", "seconds": float(seconds)}
+            except (TypeError, ValueError):
+                return {"kind": "wait", "seconds": 1.0}
+        return None
 
     def capture_observation(self) -> Dict[str, Any]:
         """Capture the current observation without advancing the episode."""
@@ -780,7 +820,7 @@ class GymAnythingEnv:
         ts = time.strftime("%Y%m%d_%H%M%S")
         # Since there could be a clash in episode directory_name, add a uuid to the end of the directory name
         uuid_string = str(uuid.uuid4())
-        print(f'Creating episode directory at {ts}')
+        logger.debug("Creating episode directory at %s", ts)
         d = base / f"episode_{ts}_{uuid_string}"
         d.mkdir(parents=True, exist_ok=True)
         self._episode_dir = d
@@ -1004,7 +1044,7 @@ class GymAnythingEnv:
         # Check if runner has PyAutoGUI client
         pyautogui_client = getattr(self._runner, '_pyautogui_client', None)
         if not pyautogui_client:
-            print("[gym-anything] Warning: No PyAutoGUI client available for init_pyautogui")
+            logger.warning("No PyAutoGUI client available for init_pyautogui")
             return
 
         for action in actions:
@@ -1025,9 +1065,9 @@ class GymAnythingEnv:
                     seconds = action.get("seconds", 1)
                     time.sleep(seconds)
                 else:
-                    print(f"[gym-anything] Unknown init_pyautogui action type: {action_type}")
+                    logger.warning("Unknown init_pyautogui action type: %s", action_type)
             except Exception as e:
-                print(f"[gym-anything] init_pyautogui action failed: {e}")
+                logger.warning("init_pyautogui action failed: %s", e)
 
     def _dockerhub_login_in_guest(self) -> None:
         """Authenticate with DockerHub inside the guest VM/container.
@@ -1055,7 +1095,7 @@ class GymAnythingEnv:
                 f'echo "{token}" | docker login -u "{username}" --password-stdin 2>/dev/null',
                 timeout=30,
             )
-            print("[gym-anything] DockerHub authentication successful in guest")
+            logger.debug("DockerHub authentication successful in guest")
         except Exception:
             # Docker not installed in guest, or login failed — continue silently
             pass

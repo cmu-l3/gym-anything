@@ -116,19 +116,19 @@ This is best treated as a smoke test, not as a serious agent evaluation tool.
 ### Single Task
 
 ```bash
-python -m baselines.evaluation.run_single --help
+python -m agents.evaluation.run_single --help
 ```
 
 This script is the main research harness for running one agent on one task.
 
 Important caveats:
 
-- it applies optional environment-specific setup behavior through `baselines.evaluation.setup`
+- it applies optional environment-specific setup behavior through `agents.evaluation.setup`
 
 ### Batch
 
 ```bash
-python -m baselines.evaluation.run_batch --help
+python -m agents.evaluation.run_batch --help
 ```
 
 This script shells out to `run_single` repeatedly.

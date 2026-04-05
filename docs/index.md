@@ -6,7 +6,7 @@ The repository combines:
 
 - a product library in `src/gym_anything/`
 - a large benchmark corpus in `benchmarks/cua_world/environments/`
-- reference agents and evaluation harnesses in `baselines/`
+- reference agents and evaluation harnesses in `agents/`
 - remote execution services in `services/`
 
 ## Read This First

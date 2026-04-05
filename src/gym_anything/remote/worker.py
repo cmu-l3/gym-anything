@@ -770,23 +770,18 @@ def reset_environment(env_id: str):
 def step_environment(env_id: str):
     """Execute a step in the environment."""
     try:
-        st_time = time.time()
         env = env_manager.get_environment(env_id)
         data = request.get_json() or {}
 
         actions = data.get("actions", [])
         wait_between_actions = data.get("wait_between_actions", 0.2)
         mark_done = data.get("mark_done", False)
-        inter_time = time.time() - st_time
-        print('Profiling time for initial step: ', inter_time)
 
         obs, reward, done, info = env.step(
             actions=actions,
             wait_between_actions=wait_between_actions,
             mark_done=mark_done
         )
-        step_time = time.time() - st_time
-        print('Profiling time for actual step: ', step_time)
 
         if metrics_collector:
             try:
@@ -797,9 +792,6 @@ def step_environment(env_id: str):
 
         serialized_obs = serialize_observation(obs)
         serialized_info = serialize_response(info)
-
-        full_time = time.time() - st_time
-        print('Profiling time for full step: ', full_time)
 
         return jsonify({
             "observation": serialized_obs,

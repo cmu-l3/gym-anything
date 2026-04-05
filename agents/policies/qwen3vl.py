@@ -1,14 +1,13 @@
-from baselines.agents.base import BaseAgent
-from baselines.common.llm_clients import call_claude_databricks, smart_resize, parse_qwen3vl_response
+from agents.policies.base import BaseAgent
+from agents.shared.llm_clients import call_llm, smart_resize, parse_qwen3vl_response
 from PIL import Image
 import json
 import os
+import copy
 from io import BytesIO
 import base64
 import numpy as np
 
-
-# python -m baselines.evaluation.run_single --env_dir benchmarks/cua_world/environments/gimp_env_all_fast --task saturation_increase --agent 'ClaudeDatabricksAgent' --agent_args "{\"model\":\"databricks/claude-4-5-sonnet\", \"exp_name\":\"claude-4-5-sonnet\", \"task_name\": \"saturation_increase\"}"
 
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -18,9 +17,9 @@ class CustomJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class ClaudeDatabricksAgent(BaseAgent):
+class Qwen3VLAgent(BaseAgent):
     """
-    Claude Databricks agent using Claude Databricks models via OpenAI-compatible API.
+    Qwen3VL agent using Qwen vision-language models via OpenAI-compatible API.
     Maintains a history-based prompting approach with image preprocessing.
     """
     
@@ -56,7 +55,10 @@ class ClaudeDatabricksAgent(BaseAgent):
         # Store all responses for final dump
         self.all_model_responses = []
         self.all_parsed_responses = []
-        
+
+        # Mapping from base64 to file path for efficient message saving
+        self.b64_to_path = {}
+
         self.debug = kwargs.get('debug', False)
         self.verbose = kwargs.get('verbose', False)
     
@@ -64,7 +66,7 @@ class ClaudeDatabricksAgent(BaseAgent):
         """Setup custom save folder for agent artifacts."""
         task_name = self.agent_args.get('task_name', 'task')
         self.save_folder_custom = f'all_runs/{self.exp_name}/{self.model}/{task_name}'
-        for run_number in range(0, 100):
+        for run_number in range(0, 1000):
             if os.path.exists(f'{self.save_folder_custom}/run_{run_number}'):
                 continue
             self.save_folder_custom = f'{self.save_folder_custom}/run_{run_number}'
@@ -78,9 +80,24 @@ class ClaudeDatabricksAgent(BaseAgent):
         )
 
     def save_messages(self, messages):
-        """Save the messages to a file."""
+        """Save the messages to a file with base64 replaced by file paths."""
+        messages_to_save = copy.deepcopy(messages)
+
+        # Replace base64 data with file paths
+        for msg in messages_to_save:
+            if msg.get('role') != 'user' or not isinstance(msg.get('content'), list):
+                continue
+            for content in msg['content']:
+                if content.get('type') != 'image_url':
+                    continue
+                url = content['image_url'].get('url', '')
+                if 'base64,' in url:
+                    b64 = url.split('base64,')[1]
+                    if b64 in self.b64_to_path:
+                        content['image_url']['url'] = self.b64_to_path[b64]
+
         with open(f'{self.save_folder_custom}/messages_step_{self.step_idx}.json', 'w') as f:
-            json.dump(messages, f, indent=2)
+            json.dump(messages_to_save, f, indent=2)
     
     def init(self, task_description, display_resolution, save_path):
         """Initialize agent with task description and environment details."""
@@ -88,17 +105,17 @@ class ClaudeDatabricksAgent(BaseAgent):
         self.display_resolution = display_resolution
         self.save_path = save_path
     
-    def process_image(self, image_path, resize_to = None):
+    def process_image(self, image_path):
         """
         Process an image for Qwen VL models with smart resize.
-        Returns base64 encoded processed image.
+        Returns tuple of (base64_string, processed_image_path).
         """
         image = Image.open(image_path)
         width, height = image.size
-        
+
         if self.verbose:
             print(f"Original screen resolution: {width}x{height}")
-        
+
         # Apply smart resize
         resized_height, resized_width = smart_resize(
             height=height,
@@ -108,18 +125,19 @@ class ClaudeDatabricksAgent(BaseAgent):
         )
         print('Resized image resolution: ', resized_width, resized_height)
         image = image.resize((resized_width, resized_height))
-        if resize_to is not None:
-            image = image.resize((resize_to[0], resize_to[1]))
-        
+
         if self.verbose:
             print(f"Processed image resolution: {resized_width}x{resized_height}")
-        
-        # Convert to base64
-        buffer = BytesIO()
-        image.save(buffer, format="PNG")
-        processed_bytes = buffer.getvalue()
-        
-        return base64.b64encode(processed_bytes).decode("utf-8")
+
+        # Save processed image to disk (replaces separate observation save)
+        processed_path = f'{self.save_folder_custom}/observation_{self.step_idx}.png'
+        image.save(processed_path, format="PNG")
+
+        # Convert to base64 by reading the saved file (ensures exact match)
+        with open(processed_path, 'rb') as f:
+            processed_bytes = f.read()
+
+        return base64.b64encode(processed_bytes).decode("utf-8"), processed_path
     
     def build_messages(self, current_screenshot_b64):
         """
@@ -145,7 +163,7 @@ class ClaudeDatabricksAgent(BaseAgent):
 
 Instruction: {self.task_description}
 
-Previous actions that you have taken (irrespective of whether they were successful or not):
+Previous actions:
 {previous_actions_str}"""
         
         messages = [
@@ -320,33 +338,27 @@ Rules:
         Returns:
             List of action groups to execute
         """
-        # Save current observation
-        self.save_observation(obs)
         self.step_idx += 1
-        
-        # Process image
-        processed_image_b64 = self.process_image(obs['screen']['path'], resize_to = (1280, 800))
+
+        # Process image and save to disk (also saves as observation)
+        processed_image_b64, processed_path = self.process_image(obs['screen']['path'])
         self.screenshots.append(processed_image_b64)
+
+        # Store mapping for efficient message saving
+        self.b64_to_path[processed_image_b64] = processed_path
         
         # Build messages
         messages = self.build_messages(processed_image_b64)
 
         if self.debug and self.step_idx > 5:
             breakpoint()
-        # Save messages for debugging
-        try:
-            message_file_path = os.path.join(
-                self.save_folder_custom, f"messages_step_{self.step_idx}.json"
-            )
-            with open(message_file_path, "w") as f:
-                json.dump(messages, f, indent=2)
-        except Exception as e:
-            if self.verbose:
-                print(f"Failed to save messages: {e}")
+
+        # Save messages with file paths instead of base64
         self.save_messages(messages)
+
         # Call LLM
         print(f"Calling LLM with temperature: {self.temperature}")
-        response = call_claude_databricks(
+        response = call_llm(
             messages, 
             self.model, 
             self.temperature, 
@@ -362,7 +374,7 @@ Rules:
         self.responses.append(response)
         
         # Parse response using existing parse_owl_response function
-        parsed_response = parse_qwen3vl_response(response, scale_dims = True, scale_dims_ratio = (self.display_resolution[0]/1280, self.display_resolution[1]/800))
+        parsed_response = parse_qwen3vl_response(response)
         
         # Store responses for later dumping
         if self.debug:

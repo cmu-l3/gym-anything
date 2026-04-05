@@ -14,7 +14,7 @@ If you change runtime behavior:
 
 - reusable runtime code -> `src/gym_anything/`
 - benchmark environments and tasks -> `benchmarks/cua_world/environments/`
-- reference agents and evaluation harnesses -> `baselines/`
+- reference agents and evaluation harnesses -> `agents/`
 - remote services -> `services/`
 - offline utilities -> `tools/`
 - experiments and one-offs -> `research/`

@@ -32,7 +32,7 @@ Choose the runner path you intend to use:
 Optional extras:
 
 - `pip install -e ".[services]"` for master/worker/dashboard services
-- `pip install -e ".[baselines]"` for reference agents and evaluation harnesses
+- `pip install -e ".[agents]"` for reference agents and evaluation harnesses
 - `pip install -e ".[vlm]"` for hosted VLM backends
 
 System dependencies such as Docker, Apptainer, QEMU, Android emulator support, and host `ffmpeg` are still external.
@@ -125,10 +125,10 @@ The `run` subcommand is not a full agent runner. It performs a simple episode lo
 
 ## Reference Evaluation Harness
 
-The research harnesses live in `baselines/evaluation/`:
+The research harnesses live in `agents/evaluation/`:
 
 ```bash
-python -m baselines.evaluation.run_single \
+python -m agents.evaluation.run_single \
   --env_dir benchmarks/cua_world/environments/zotero_env \
   --task create_saved_search \
   --agent ClaudeAgent \

@@ -1,6 +1,6 @@
-from baselines.agents.base import BaseAgent
-from baselines.common.llm_clients import call_llm, smart_resize, parse_qwen3vl_response
-from baselines.agents.kimi import KimiAzureAgent
+from agents.policies.base import BaseAgent
+from agents.shared.llm_clients import call_llm, smart_resize, parse_qwen3vl_response
+from agents.policies.kimi import KimiAzureAgent
 from PIL import Image
 import json
 import os

@@ -22,13 +22,13 @@ This repository is intentionally split by responsibility.
 - `examples/tutorials/`
   Lightweight tutorial or demo environments that are useful for onboarding, but are not part of the benchmark corpus.
 
-- `baselines/agents/`
+- `agents/policies/`
   Reference agents.
 
-- `baselines/common/`
+- `agents/shared/`
   Shared baseline utilities.
 
-- `baselines/evaluation/`
+- `agents/evaluation/`
   Research evaluation harnesses.
 
 - `services/`
@@ -81,7 +81,7 @@ Allowed env-level directories:
 When deciding where code belongs:
 
 - if it is reusable runtime logic, put it in `src/gym_anything/`
-- if it is a reference experiment, put it in `baselines/` or `research/`
+- if it is a reference experiment, put it in `agents/` or `research/`
 - if it is a deployable HTTP service, put it in `services/`
 - if it is offline maintenance or analysis, put it in `tools/`
 

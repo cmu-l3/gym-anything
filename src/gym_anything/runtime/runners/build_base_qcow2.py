@@ -215,7 +215,7 @@ def main():
     print(f"   scp {output_path} user@hpc:~/.cache/gym-anything/qemu/")
     print(f"\n2. Run your experiments with:")
     print(f"   export GYM_ANYTHING_RUNNER=qemu")
-    print(f"   python -m baselines.evaluation.run_single ...")
+    print(f"   python -m agents.evaluation.run_single ...")
 
 
 if __name__ == "__main__":

@@ -24,6 +24,17 @@ class BaseAgent:
         """
             obs: The observation from the environment.
             action_outputs: The action outputs from the previous step.
+
+            Expected return value:
+            - a list of action groups
+            - each action group is a dict with:
+              - `tool_id`: stable identifier for the policy turn
+              - `actions`: list of low-level env actions or control actions
+
+            Supported control actions are interpreted by the environment layer,
+            not the evaluation loop. Current built-ins:
+            - `{"action": "screenshot"}`
+            - `{"action": "wait", "time": 1.5}`
         """
         raise NotImplementedError
     

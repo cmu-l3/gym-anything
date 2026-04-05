@@ -11,7 +11,7 @@ executes applications directly inside Apptainer containers with:
 
 Usage:
     export GYM_ANYTHING_RUNNER=apptainer
-    python -m baselines.evaluation.run_single --env benchmarks/cua_world/environments/davinci_resolve_apptainer_env/env.json
+    python -m agents.evaluation.run_single --env benchmarks/cua_world/environments/davinci_resolve_apptainer_env/env.json
 """
 
 from __future__ import annotations

@@ -1,13 +1,10 @@
-from baselines.agents.kimi import KimiAzureAgent
-from baselines.common.llm_clients import call_kimi_azure, parse_qwen3vl_response
+from agents.policies.qwen3vl import Qwen3VLAgent
+from agents.shared.llm_clients import call_llm, parse_qwen3vl_response
 import json
 import os
 import copy
 import numpy as np
-from PIL import Image
-import io
-from io import BytesIO
-import base64
+
 
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -16,9 +13,9 @@ class CustomJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class KimiAzureAuditAgent(KimiAzureAgent):
+class Qwen3VLAuditAgent(Qwen3VLAgent):
     """
-    Kimi Azure agent with self-audit capability for increased test-time compute.
+    Qwen3VL agent with self-audit capability for increased test-time compute.
 
     When the agent attempts to terminate, an audit phase runs using the SAME model
     to verify task completion. If the audit determines the task is incomplete,
@@ -42,21 +39,7 @@ class KimiAzureAuditAgent(KimiAzureAgent):
         self.audit_responses = []
         self.in_audit_recovery = False
 
-        print(f"[KimiAzureAuditAgent] Initialized with audit_enabled={self.audit_enabled}, max_audits={self.max_audits}")
-
-    def compress_image(self, image_b64):
-        # First load the image from base64
-        image = Image.open(io.BytesIO(base64.b64decode(image_b64)))
-        # Then compress the image
-        # then resize image by 1.5x
-        image = image.resize((int(image.width * 1.5), int(image.height * 1.5)))
-        # Now while encoding use jpeg instead of png
-        buffer = BytesIO()
-        image.save(buffer, format='JPEG')
-        return 'data:image/jpeg;base64,' + base64.standard_b64encode(buffer.getvalue()).decode("utf-8")
-    
-    def compress_images(self, images_b64):
-        return [self.compress_image(image_b64) for image_b64 in images_b64]
+        print(f"[Qwen3VLAuditAgent] Initialized with audit_enabled={self.audit_enabled}, max_audits={self.max_audits}")
 
     def get_audit_system_prompt(self):
         """Returns the system prompt for the audit agent."""
@@ -86,8 +69,6 @@ class KimiAzureAuditAgent(KimiAzureAgent):
         if current_screenshot_b64 not in all_screenshots:
             all_screenshots.append(current_screenshot_b64)
 
-        all_screenshots = self.compress_images(all_screenshots)
-
         if len(all_screenshots) <= 6:
             # If 6 or fewer images, use all of them
             sampled_screenshots = all_screenshots
@@ -104,7 +85,7 @@ class KimiAzureAuditAgent(KimiAzureAgent):
         for img in sampled_screenshots:
             image_content.append({
                 "type": "image_url",
-                "image_url": {"url": img}
+                "image_url": {"url": f"data:image/png;base64,{img}"}
             })
 
         num_images = len(sampled_screenshots)
@@ -156,7 +137,7 @@ class KimiAzureAuditAgent(KimiAzureAgent):
             current_screenshot_b64: The current/final screenshot
 
         Returns:
-            Dict with keys: task_complete, solved, reasoning, feedback
+            Dict with keys: task_complete, confidence, reasoning, missing_steps, feedback
         """
         self.total_audits += 1
         print(f"[AUDIT] Running audit #{self.total_audits} (failed so far: {self.audit_count}, max failures: {self.max_audits})")
@@ -166,7 +147,6 @@ class KimiAzureAuditAgent(KimiAzureAgent):
 
         for attempt in range(max_interval_attempts):
             try:
-                print(f"[AUDIT] Building audit messages with image_interval={current_interval}")
                 messages = self.build_audit_messages(current_screenshot_b64, image_interval=current_interval)
 
                 # Save audit messages for debugging
@@ -174,14 +154,13 @@ class KimiAzureAuditAgent(KimiAzureAgent):
 
                 print(f"[AUDIT] Attempt {attempt + 1}: Using image_interval={current_interval}, ~{len(self.screenshots) // max(current_interval, 1) + 1} images")
 
-                # Call same model for audit via call_kimi_azure
-                response = call_kimi_azure(
+                # Call same model for audit via call_llm (Qwen3VL backend)
+                response = call_llm(
                     messages,
                     self.model,  # Same model as main agent
                     self.temperature,  # Same temperature as main agent
                     self.top_p,
                     self.top_k,
-                    max_attempts=1,
                 )
 
                 # Success - store and parse response
@@ -198,24 +177,24 @@ class KimiAzureAuditAgent(KimiAzureAgent):
                 print(f"[AUDIT] Attempt {attempt + 1} failed with interval={current_interval}: {e}")
 
                 # Check if it's a context/token limit error
-                # if any(keyword in error_str for keyword in ['token', 'context', 'limit', 'too long', 'exceeded', '400', '413']):
-                current_interval += 1
-                print(f"[AUDIT] Increasing image_interval to {current_interval} and retrying...")
-                continue
-                # else:
-                #     # Some other error - still try increasing interval
-                #     current_interval += 1
-                #     if attempt < max_interval_attempts - 1:
-                #         continue
-                #     else:
-                #         # Give up and return conservative result
-                #         print(f"[AUDIT] All attempts failed. Returning 'not complete' as fallback.")
-                #         return {
-                #             "task_complete": False,
-                #             "solved": "false",
-                #             "reasoning": f"Audit failed after {attempt + 1} attempts: {e}",
-                #             "feedback": f"Audit system encountered errors. Please verify task completion manually and try again."
-                #         }
+                if any(keyword in error_str for keyword in ['token', 'context', 'limit', 'too long', 'exceeded', '400', '413']):
+                    current_interval += 1
+                    print(f"[AUDIT] Increasing image_interval to {current_interval} and retrying...")
+                    continue
+                else:
+                    # Some other error - still try increasing interval
+                    current_interval += 1
+                    if attempt < max_interval_attempts - 1:
+                        continue
+                    else:
+                        # Give up and return conservative result
+                        print(f"[AUDIT] All attempts failed. Returning 'not complete' as fallback.")
+                        return {
+                            "task_complete": False,
+                            "solved": "false",
+                            "reasoning": f"Audit failed after {attempt + 1} attempts: {e}",
+                            "feedback": f"Audit system encountered errors. Please verify task completion manually and try again."
+                        }
 
         # Should not reach here, but just in case
         return {
@@ -345,8 +324,7 @@ class KimiAzureAuditAgent(KimiAzureAgent):
 
         previous_actions = []
         for i in range(history_start_idx):
-            if i < len(self.history):
-                previous_actions.append(f"Step {i+1}: {self.history[i]}")
+            previous_actions.append(f"Step {i+1}: {self.history[i]}")
         previous_actions_str = (
             "\n".join(previous_actions) if previous_actions else "None"
         )
@@ -483,7 +461,7 @@ Do NOT use the terminate action until you have fully addressed the feedback.
 
         # Call LLM
         print(f"Calling LLM with temperature: {self.temperature}")
-        response = call_kimi_azure(
+        response = call_llm(
             messages,
             self.model,
             self.temperature,
@@ -497,8 +475,8 @@ Do NOT use the terminate action until you have fully addressed the feedback.
         # Store response for history
         self.responses.append(response)
 
-        # Parse response (Kimi uses 1000x1000 relative coords scaled to 1920x1080)
-        parsed_response = parse_qwen3vl_response(response, scale_dims=True, scale_dims_ratio=(1920, 1080))
+        # Parse response (no coordinate scaling - Qwen3VL uses native coordinates)
+        parsed_response = parse_qwen3vl_response(response)
 
         if self.debug:
             breakpoint()
@@ -529,7 +507,7 @@ Do NOT use the terminate action until you have fully addressed the feedback.
                 print(f"[AUDIT] Audit disabled, terminating normally")
                 self.done = True
                 return [{
-                    'tool_id': f'kimi_audit_step_{self.step_idx}',
+                    'tool_id': f'qwen3vl_audit_step_{self.step_idx}',
                     'actions': actions,
                     'metadata': metadata
                 }]
@@ -546,7 +524,7 @@ Do NOT use the terminate action until you have fully addressed the feedback.
                 metadata['total_audits'] = self.total_audits
                 metadata['failed_audits'] = self.audit_count
                 return [{
-                    'tool_id': f'kimi_audit_step_{self.step_idx}',
+                    'tool_id': f'qwen3vl_audit_step_{self.step_idx}',
                     'actions': actions,
                     'metadata': metadata
                 }]
@@ -564,7 +542,7 @@ Do NOT use the terminate action until you have fully addressed the feedback.
                     metadata['total_audits'] = self.total_audits
                     metadata['failed_audits'] = self.audit_count
                     return [{
-                        'tool_id': f'kimi_audit_step_{self.step_idx}',
+                        'tool_id': f'qwen3vl_audit_step_{self.step_idx}',
                         'actions': actions,
                         'metadata': metadata
                     }]
@@ -575,7 +553,7 @@ Do NOT use the terminate action until you have fully addressed the feedback.
                 # Return wait action to continue (NOT terminate)
                 # The next step() call will have the feedback injected
                 return [{
-                    'tool_id': f'kimi_audit_step_{self.step_idx}_retry',
+                    'tool_id': f'qwen3vl_audit_step_{self.step_idx}_retry',
                     'actions': [{'action': 'wait', 'time': 1.0}],
                     'metadata': {
                         'thought': metadata.get('thought', ''),
@@ -595,13 +573,13 @@ Do NOT use the terminate action until you have fully addressed the feedback.
         # ═══════════════════════════════════════════════════════════════
         if metadata['wait_time'] is not None:
             return [{
-                'tool_id': f'kimi_audit_step_{self.step_idx}',
+                'tool_id': f'qwen3vl_audit_step_{self.step_idx}',
                 'actions': [{'action': 'wait', 'time': metadata['wait_time']}],
                 'metadata': metadata
             }]
 
         return [{
-            'tool_id': f'kimi_audit_step_{self.step_idx}',
+            'tool_id': f'qwen3vl_audit_step_{self.step_idx}',
             'actions': actions,
             'metadata': metadata
         }]

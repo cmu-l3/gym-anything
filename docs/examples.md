@@ -54,7 +54,7 @@ Dense reward only works when the task config actually provides `reward_type: "de
 ## Single Task Reference Agent Run
 
 ```bash
-python -m baselines.evaluation.run_single \
+python -m agents.evaluation.run_single \
   --env_dir benchmarks/cua_world/environments/zotero_env \
   --task create_saved_search \
   --agent ClaudeAgent \
@@ -64,7 +64,7 @@ python -m baselines.evaluation.run_single \
 ## Batch Reference Run
 
 ```bash
-python -m baselines.evaluation.run_batch \
+python -m agents.evaluation.run_batch \
   --env_dir zotero_env \
   --split test \
   --surface verified \

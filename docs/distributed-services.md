@@ -84,7 +84,7 @@ This keeps `RemoteGymEnv.reset()` aligned with local reset behavior by default.
 For baseline-harness workflows, the worker also supports an explicit
 `baseline_setup` policy that:
 
-1. runs `baselines.evaluation.setup.setup_env(env, steps=50)`
+1. runs `agents.evaluation.setup.setup_env(env, steps=50)`
 2. disables Ubuntu crash reporting services
 
 You can request that policy through `RemoteGymEnv(..., worker_reset_policy="baseline_setup")`

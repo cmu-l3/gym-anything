@@ -11,13 +11,13 @@ This file tracks the work required to move Gym-Anything from a strong research c
 - Preserve compatibility for existing environment and task directories under `benchmarks/cua_world/environments/`.
 - Prefer additive API changes over breaking changes.
 - Do not document a feature as supported unless it is implemented, validated, and tested.
-- Keep `baselines/` usable as reference code, but prevent baseline-only behavior from leaking into the product runtime.
+- Keep `agents/` usable as reference code, but prevent baseline-only behavior from leaking into the product runtime.
 
 ## Current Status
 
 ### Completed
 
-- Repository layout has been separated into `src/`, `benchmarks/`, `baselines/`, `services/`, `tools/`, and `docs/`.
+- Repository layout has been separated into `src/`, `benchmarks/`, `agents/`, `services/`, `tools/`, and `docs/`.
 - The docs now call out current implementation gaps explicitly instead of implying support.
 - Benchmark and tutorial content now live in separate top-level areas.
 - `TaskSpec` preserves common top-level task metadata and keeps additional unmodeled keys in `extras`.
@@ -36,7 +36,7 @@ This file tracks the work required to move Gym-Anything from a strong research c
 - `pyproject.toml` now declares the shipped runtime dependencies and packages the service and baseline modules that the repo documents.
 - A first-class compatibility contract now exists for runner capability differences, with CLI and Python API access.
 - `reward_type` now supports `partial`, `rubric`, and `continuous` final reward semantics.
-- post-reset setup logic now lives in the product runtime instead of only in `baselines`.
+- post-reset setup logic now lives in the product runtime instead of only in `agents`.
 - `security.secrets_ref` now resolves host-side secret bundles into runner execution environments.
 - `gym-anything doctor` now checks runner-specific system prerequisites and can scan verifier imports statically.
 
@@ -64,7 +64,7 @@ This file tracks the work required to move Gym-Anything from a strong research c
 Status: `partially_completed`
 
 - Add missing top-level task metadata to `TaskSpec` without breaking existing task loading.
-- Add public observation-capture APIs so baselines and services stop using private helpers.
+- Add public observation-capture APIs so agents and services stop using private helpers.
 - Align `RemoteGymEnv` method signatures with `GymAnythingEnv` where behavior is already supported.
 - Add compatibility tests for common `env.json` and `task.json` fields used in the corpus.
 
@@ -145,4 +145,4 @@ The first implementation tranche is intentionally compatibility-safe:
 
 - What is the exact supported surface for `v0.1`: just the runtime library, or runtime plus services?
 - Which runners are officially supported in `v0.1`?
-- Should benchmark-specific convenience behavior live in `baselines/` only, or do we want a first-class “reset policy” concept in the product?
+- Should benchmark-specific convenience behavior live in `agents/` only, or do we want a first-class “reset policy” concept in the product?

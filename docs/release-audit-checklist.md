@@ -37,7 +37,7 @@ It is not a benchmark-quality, model-quality, or feature-adequacy checklist.
 ## 1. Release Scope And Promise
 
 - [ ] README, docs overview, and packaging metadata describe the same release surface.
-- [ ] The release explicitly states whether `src/gym_anything/`, `services/`, and `baselines/` are all in scope or whether some are reference-only.
+- [ ] The release explicitly states whether `src/gym_anything/`, `services/`, and `agents/` are all in scope or whether some are reference-only.
 - [ ] The release explicitly states whether the supported benchmark surface is the raw corpus or the verifier-backed surface in `benchmarks/cua_world/splits/verified.json`.
 - [ ] Supported runners are named consistently across README, docs, CLI docs, and compatibility docs.
 - [ ] Experimental or reference-only surfaces are labeled as such everywhere they are mentioned.
@@ -50,7 +50,7 @@ It is not a benchmark-quality, model-quality, or feature-adequacy checklist.
 - [ ] Every environment id and task id used in examples exists in the repo.
 - [ ] Every file link and page link in docs resolves to an existing file.
 - [ ] The README and docs use the same canonical action format and observation vocabulary as the runtime.
-- [ ] The README and docs do not claim support for behavior that is only present in baselines or experimental code.
+- [ ] The README and docs do not claim support for behavior that is only present in agents or experimental code.
 - [ ] The same feature is not described differently across pages without an explicit caveat.
 - [ ] Snapshot claims such as task counts and verification totals are either current or explicitly dated.
 - [ ] The limitations page includes all known release-relevant caveats discovered during the audit.
@@ -66,7 +66,7 @@ rg -n "create_saved_search|verified.json|use_savevm|RemoteGymEnv" README.md docs
 ## 3. Packaging, Build, And Installability
 
 - [ ] `pip install -e .` succeeds in a clean virtual environment on the documented Python version.
-- [ ] Optional extras `.[services]`, `.[baselines]`, and `.[vlm]` install successfully or are explicitly documented as optional and environment-dependent.
+- [ ] Optional extras `.[services]`, `.[agents]`, and `.[vlm]` install successfully or are explicitly documented as optional and environment-dependent.
 - [ ] Building release artifacts succeeds with sdist and wheel output.
 - [ ] Console entry points declared in `pyproject.toml` import successfully and show help output.
 - [ ] Required package data is included in build artifacts, especially presets, runner definitions, and benchmark split files.
@@ -79,7 +79,7 @@ Suggested evidence commands:
 ```bash
 python -m pip install -e .
 python -m pip install -e ".[services]"
-python -m pip install -e ".[baselines]"
+python -m pip install -e ".[agents]"
 python -m pip install -e ".[vlm]"
 python -m build
 gym-anything --help
@@ -183,7 +183,7 @@ python -m pytest tests/test_remote_client.py tests/test_worker_reset_policy.py
 Suggested evidence commands:
 
 ```bash
-rg -n "AKIA|AIza|sk-|password123|example\\.com|secrets_ref" README.md docs src services baselines benchmarks pyproject.toml
+rg -n "AKIA|AIza|sk-|password123|example\\.com|secrets_ref" README.md docs src services agents benchmarks pyproject.toml
 ls -1 LICENSE* third_party
 ```
 

@@ -24,6 +24,7 @@ class _FakeRunner:
         self.start_calls = 0
         self.stop_calls = 0
         self.exec_commands = []
+        self.injected_actions = []
 
     def start(self, seed=None) -> None:
         self.start_calls += 1
@@ -38,6 +39,7 @@ class _FakeRunner:
         return None
 
     def inject_action(self, action) -> None:
+        self.injected_actions.append(action)
         return None
 
     def capture_observation(self):
@@ -111,6 +113,46 @@ def _make_env_spec(output_dir: str, *, runner: str | None = None, recording: boo
 
 
 class RuntimeBehaviorTests(unittest.TestCase):
+    def test_step_handles_wait_control_action_inside_env(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None)
+
+            try:
+                env.reset(seed=1)
+                with mock.patch("gym_anything.env.time.sleep") as sleep_mock:
+                    obs, reward, done, info = env.step([{"action": "wait", "time": 1.5}])
+
+                self.assertTrue(Path(obs["screen"]["path"]).exists())
+                self.assertEqual(reward, 0.0)
+                self.assertFalse(done)
+                self.assertEqual(info["action_result"]["action"], "wait")
+                self.assertEqual(info["action_result"]["output"], "Waited for 1.5 seconds")
+                self.assertEqual(runner.injected_actions, [])
+                sleep_mock.assert_called_once_with(1.5)
+            finally:
+                env.close()
+
+    def test_step_handles_screenshot_control_action_inside_env(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None)
+
+            try:
+                env.reset(seed=1)
+                obs, reward, done, info = env.step([{"action": "screenshot"}])
+
+                self.assertTrue(Path(obs["screen"]["path"]).exists())
+                self.assertEqual(reward, 0.0)
+                self.assertFalse(done)
+                self.assertEqual(info["action_result"]["action"], "screenshot")
+                self.assertEqual(info["action_result"]["output"], obs["screen"]["path"])
+                self.assertEqual(runner.injected_actions, [])
+            finally:
+                env.close()
+
     def test_close_runs_post_task_hook_for_unfinished_episode(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runner = _FakeRunner()

@@ -1,2 +1,0 @@
-"""Shared baseline utilities."""
-

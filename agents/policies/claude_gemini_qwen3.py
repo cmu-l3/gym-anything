@@ -1,15 +1,13 @@
-from baselines.agents.base import BaseAgent
-from baselines.common.llm_clients import smart_resize, parse_qwen3vl_response, call_gemini_with_retry
-from baselines.agents.claude_databricks import ClaudeDatabricksAgent
+from agents.shared.llm_clients import parse_qwen3vl_response, call_gemini_with_retry
+from agents.policies.qwen3vl import Qwen3VLAgent
 from PIL import Image
 import json
 import os
-from io import BytesIO
 import base64
 import numpy as np
 
 
-# python -m baselines.evaluation.run_single --env_dir benchmarks/cua_world/environments/gimp_env_all_fast --task saturation_increase --agent 'ClaudeDatabricksAgent' --agent_args "{\"model\":\"databricks/claude-4-5-sonnet\", \"exp_name\":\"claude-4-5-sonnet\", \"task_name\": \"saturation_increase\"}"
+# python -m agents.evaluation.run_single --env_dir benchmarks/cua_world/environments/gimp_env_all_fast --task saturation_increase --agent 'ClaudeDatabricksAgent' --agent_args "{\"model\":\"databricks/claude-4-5-sonnet\", \"exp_name\":\"claude-4-5-sonnet\", \"task_name\": \"saturation_increase\"}"
 
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -19,15 +17,24 @@ class CustomJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class GeminiQwen3Agent(ClaudeDatabricksAgent):
+class GeminiQwen3Agent(Qwen3VLAgent):
     """
-    Claude Databricks agent using Claude Databricks models via OpenAI-compatible API.
+    Gemini agent using the Qwen-style multimodal prompting loop.
     Maintains a history-based prompting approach with image preprocessing.
     """
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def process_image(self, image_path, resize_to=None):
+        image = Image.open(image_path)
+        if resize_to is not None:
+            image = image.resize((resize_to[0], resize_to[1]))
+        processed_path = f"{self.save_folder_custom}/observation_{self.step_idx}.png"
+        image.save(processed_path, format="PNG")
+        with open(processed_path, "rb") as handle:
+            processed_bytes = handle.read()
+        return base64.b64encode(processed_bytes).decode("utf-8")
 
     def step(self, obs, action_outputs):
         """

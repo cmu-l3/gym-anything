@@ -1,5 +1,5 @@
-from baselines.agents.base import BaseAgent
-from baselines.common.llm_clients import call_llm, smart_resize, parse_qwen3vl_memory_response
+from agents.policies.base import BaseAgent
+from agents.shared.llm_clients import call_llm, smart_resize, parse_qwen3vl_response
 from PIL import Image
 import json
 import os
@@ -13,33 +13,30 @@ class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.bool_):
             return bool(obj)
+        # Let the base class default method raise the TypeError for other unhandled types
         return json.JSONEncoder.default(self, obj)
 
 
-class Qwen3VLMemoryAgent(BaseAgent):
+class Qwen3VLFixedAgent(BaseAgent):
     """
-    Qwen3VL Memory agent using Qwen vision-language models via OpenAI-compatible API.
-    Maintains a history-based prompting approach with Memory and Progress tracking.
-
-    Response format includes:
-    - Memory: JSON facts to memorize (append-only across steps)
-    - Progress: JSON subtask decomposition (can be modified)
-    - Intention: Current subtask being worked on
-    - Action: Short description of UI action
-    - tool_call: The actual action to execute
+    Qwen3VL agent with prompt aligned to osworld implementation.
+    Uses relative coordinate scaling (1000x1000 grid) and osworld-matching action enum.
     """
 
     def __init__(self, *args, **kwargs):
         self.agent_args = kwargs.get('agent_args', {})
         self.model = self.agent_args.get('model', 'qwen3-vl')
+        # TODO: Fix this confusion
         self.decoding_params = self.agent_args.get('decoding_params', {})
+        # self.temperature = self.decoding_params.get('temperature', 1.0)
         print('Agent args are: ', self.agent_args, 'and temperature is: ', self.agent_args.get('temperature', 1.0))
         self.temperature = self.agent_args.get('temperature', 1.0)
 
         self.top_p = self.decoding_params.get('top_p', 0.95)
         self.top_k = self.decoding_params.get('top_k', 20)
         self.max_tokens = self.decoding_params.get('max_tokens', 1500)
-        self.history_n = self.agent_args.get('history_n', 1)
+        self.history_n = self.agent_args.get('history_n', 4)
+        self.history_n = 4
 
         # Setup custom save folder
         self.exp_name = self.agent_args.get('exp_name', 'exp')
@@ -62,12 +59,6 @@ class Qwen3VLMemoryAgent(BaseAgent):
 
         # Mapping from base64 to file path for efficient message saving
         self.b64_to_path = {}
-
-        # Memory agent specific state
-        self.accumulated_memory = {}  # Append-only memory across steps
-        self.current_progress = {}    # Can be modified/decomposed
-        self.memory_history = []      # Track memory at each step
-        self.progress_history = []    # Track progress at each step
 
         self.debug = kwargs.get('debug', False)
         self.verbose = kwargs.get('verbose', False)
@@ -149,39 +140,25 @@ class Qwen3VLMemoryAgent(BaseAgent):
 
         return base64.b64encode(processed_bytes).decode("utf-8"), processed_path
 
-    def get_memory_context(self):
-        """Get the current memory and progress context for the prompt."""
-        context_parts = []
-
-        if self.accumulated_memory:
-            context_parts.append(f"Previous Memory: {json.dumps(self.accumulated_memory)}")
-
-        if self.current_progress:
-            context_parts.append(f"Previous Progress: {json.dumps(self.current_progress)}")
-
-        return "\n".join(context_parts) if context_parts else ""
-
     def build_messages(self, current_screenshot_b64):
         """
-        Build the messages list for LLM call, including history and memory context.
+        Build the messages list for LLM call, including history if available.
         """
         # System prompt
         system_prompt = self.get_system_prompt()
 
-        # Instruction prompt with memory context
+        # Instruction prompt
         current_step = self.step_idx + 1
         history_start_idx = max(0, current_step - self.history_n)
 
         previous_actions = []
         for i in range(history_start_idx):
-            previous_actions.append(f"Step {i+1}: {self.history[i]}")
+            if i < len(self.history):
+                previous_actions.append(f"Step {i+1}: {self.history[i]}")
         previous_actions_str = (
             "\n".join(previous_actions) if previous_actions else "None"
         )
         print('Len of previous actions: ', len(previous_actions))
-
-        # Build instruction with memory context
-        memory_context = self.get_memory_context()
 
         instruction_prompt = f"""Please generate the next move according to the UI screenshot, instruction and previous actions.
 
@@ -189,10 +166,6 @@ Instruction: {self.task_description}
 
 Previous actions:
 {previous_actions_str}"""
-
-        # Add memory context if available
-        if memory_context:
-            instruction_prompt += f"\n\n{memory_context}"
 
         messages = [
             {
@@ -255,6 +228,7 @@ Previous actions:
                         "type": "image_url",
                         "image_url": {"url": curr_img_url},
                     },
+                    # {"type": "text", "text": instruction_prompt},
                 ],
             })
         else:
@@ -274,17 +248,16 @@ Previous actions:
         return messages
 
     def get_system_prompt(self):
-        """Get the system prompt for Qwen3VL with Memory/Progress/Intention format."""
-        width, height = self.display_resolution
-
+        """Get the system prompt for Qwen3VL (relative coordinate mode, osworld-aligned)."""
         tools_def = {
             "type": "function",
             "function": {
+                "name_for_human": "computer_use",
                 "name": "computer_use",
-                "description": f"""Use a mouse and keyboard to interact with a computer, and take screenshots.
+                "description": """Use a mouse and keyboard to interact with a computer, and take screenshots.
 * This is an interface to a desktop GUI. You do not have access to a terminal or applications menu. You must click on desktop icons to start applications.
 * Some applications may take time to start or process actions, so you may need to wait and take successive screenshots to see the results of your actions. E.g. if you click on Firefox and a window doesn't open, try wait and taking another screenshot.
-* The screen's resolution is {width}x{height}.
+* The screen's resolution is 1000x1000.
 * Whenever you intend to move the cursor to click on an element like an icon, you should consult a screenshot to determine the coordinates of the element before moving the cursor.
 * If you tried clicking on a program or link but it failed to load even after waiting, try adjusting your cursor position so that the tip of the cursor visually falls on the element that you want to click.
 * Make sure to click any buttons, links, icons, etc with the cursor tip in the center of the element. Don't click boxes on their edges unless asked.""",
@@ -295,23 +268,22 @@ Previous actions:
 * `key`: Performs key down presses on the arguments passed in order, then performs key releases in reverse order.
 * `type`: Type a string of text on the keyboard.
 * `mouse_move`: Move the cursor to a specified (x, y) pixel coordinate on the screen.
-* `click`: Click the left mouse button at a specified (x, y) pixel coordinate on the screen.
 * `left_click`: Click the left mouse button at a specified (x, y) pixel coordinate on the screen.
-* `drag`: Click and drag the cursor to a specified (x, y) pixel coordinate on the screen.
+* `left_click_drag`: Click and drag the cursor to a specified (x, y) pixel coordinate on the screen.
 * `right_click`: Click the right mouse button at a specified (x, y) pixel coordinate on the screen.
 * `middle_click`: Click the middle mouse button at a specified (x, y) pixel coordinate on the screen.
 * `double_click`: Double-click the left mouse button at a specified (x, y) pixel coordinate on the screen.
 * `scroll`: Performs a scroll of the mouse scroll wheel.
 * `wait`: Wait specified seconds for the change to happen.
 * `terminate`: Terminate the current task and report its completion status.""",
-                            "enum": ["key", "type", "mouse_move", "click", "left_click", "drag",
+                            "enum": ["key", "type", "mouse_move", "left_click", "left_click_drag",
                                      "right_click", "middle_click", "double_click", "scroll", "wait", "terminate"],
                             "type": "string"
                         },
                         "keys": {"description": "Required only by `action=key`.", "type": "array"},
                         "text": {"description": "Required only by `action=type`.", "type": "string"},
                         "coordinate": {"description": "The x,y coordinates for mouse actions.", "type": "array"},
-                        "coordinate2": {"description": "The x2,y2 coordinates for drag end position. Required only by `action=drag`.", "type": "array"},
+                        "coordinate2": {"description": "The x2,y2 coordinates for drag end position. Required only by `action=left_click_drag`.", "type": "array"},
                         "pixels": {"description": "The amount of scrolling.", "type": "number"},
                         "time": {"description": "The seconds to wait.", "type": "number"},
                         "status": {
@@ -343,43 +315,16 @@ For each function call, return a json object with function name and arguments wi
 # Response format
 
 Response format for every step:
-1) Memory: facts you would like to memorize for future actions in json format. Include the current step.
-2) Progress: Decompose the task into subtasks and what has been finished so far with json format. Include progress of the current step.
-3) Intention: clearly state which subtask you're working on at this step with the json key.
-4) Action: a short imperative describing what to do in the UI.
-5) A single <tool_call>...</tool_call> block containing only the JSON: {"name": <function-name>, "arguments": <args-json-object>}.
+1) Action: a short imperative describing what to do in the UI.
+2) A single <tool_call>...</tool_call> block containing only the JSON: {"name": <function-name>, "arguments": <args-json-object>}.
 
 Rules:
-- Output exactly in the order: Memory, Progress, Intention, Action, <tool_call>.
-- You MUST use json format for the Memory and Progress parts.
-- Example Task: "Search and compare the prices and locations of product 1 and product 2 on Amazon."
-- Example of Memory json format: {"Price of product 1": "10.00", "Location of product 1": "USA", "Price of product 2": "12.00"}.
-- Example of Progress json format: {"Go to Amazon.com": "finished", "Search for price of product 1": "finished", "Search for location of product 1": "finished", "Search for price of product 2": "finished", "Search for location of product 2": "not finished", "Compare product 1 and product 2": "not finished"}.
-- Example of Intention json key format: "Search for location of product 2".
-- You CAN NOT modify previous Memory. Only append new facts to it.
-- You CAN modify Progress from previous conversation to further decompose the task and guide your next action.
-- For example, if the previous assistant message specifies Progress: {"Go to Amazon.com": "finished", "Search for product 1": "finished", "Search for product 2": "not finished", "Compare product 1 and 2": "not finished"}, you should further decompose "Search for product 1" and "Search for product 2" into "Search for price of product 1" and "Search for location of product 1", and "Search for price of product 2" and "Search for location of product 2".
+- Output exactly in the order: Action, <tool_call>.
 - Be brief: one sentence for Action.
-- Do not output anything else outside those five parts.
+- Do not output anything else outside those parts.
 - If finishing, use action=terminate in the tool call."""
 
         return system_prompt
-
-    def update_memory_and_progress(self, parsed_response):
-        """Update accumulated memory and current progress from parsed response."""
-        # Update memory (append-only)
-        new_memory = parsed_response.get('memory', {})
-        if new_memory and isinstance(new_memory, dict):
-            self.accumulated_memory.update(new_memory)
-
-        # Update progress (can be modified)
-        new_progress = parsed_response.get('progress', {})
-        if new_progress and isinstance(new_progress, dict):
-            self.current_progress = new_progress
-
-        # Track history
-        self.memory_history.append(copy.deepcopy(self.accumulated_memory))
-        self.progress_history.append(copy.deepcopy(self.current_progress))
 
     def step(self, obs, action_outputs):
         """
@@ -418,6 +363,7 @@ Rules:
             self.temperature,
             self.top_p,
             self.top_k,
+            # self.max_tokens
         )
 
         if self.debug:
@@ -426,11 +372,8 @@ Rules:
         # Store response for history
         self.responses.append(response)
 
-        # Parse response using memory-aware parser
-        parsed_response = parse_qwen3vl_memory_response(response)
-
-        # Update memory and progress state
-        self.update_memory_and_progress(parsed_response)
+        # Parse response using existing parse_qwen3vl_response function
+        parsed_response = parse_qwen3vl_response(response)
 
         # Store responses for later dumping
         if self.debug:
@@ -447,9 +390,6 @@ Rules:
 
         if self.verbose:
             print(f"Step {self.step_idx + 1}:")
-            print(f"  Memory: {parsed_response.get('memory', {})}")
-            print(f"  Progress: {parsed_response.get('progress', {})}")
-            print(f"  Intention: {parsed_response.get('intention', '')}")
             print(f"  Thought: {metadata['thought']}")
             print(f"  Conclusion: {metadata['conclusion']}")
             print(f"  Action Type: {metadata['action_type']}")
@@ -459,22 +399,22 @@ Rules:
         if metadata['is_terminal']:
             self.done = True
             return [{
-                'tool_id': f'qwen3vl_memory_step_{self.step_idx}',
-                'actions': actions,
+                'tool_id': f'qwen3vl_step_{self.step_idx}',
+                'actions': actions,  # Empty list from parse_owl_response
                 'metadata': metadata
             }]
 
         # Check if wait action
         if metadata['wait_time'] is not None:
             return [{
-                'tool_id': f'qwen3vl_memory_step_{self.step_idx}',
+                'tool_id': f'qwen3vl_step_{self.step_idx}',
                 'actions': [{'action': 'wait', 'time': metadata['wait_time']}],
                 'metadata': metadata
             }]
 
         # Regular actions (mouse, keyboard, etc.)
         return [{
-            'tool_id': f'qwen3vl_memory_step_{self.step_idx}',
+            'tool_id': f'qwen3vl_step_{self.step_idx}',
             'actions': actions,
             'metadata': metadata
         }]
@@ -497,16 +437,12 @@ Rules:
             indent=4
         )
 
-        # Also save to custom folder with memory/progress history
+        # Also save to custom folder
         json.dump(
             {
                 'model_responses': self.all_model_responses,
                 'parsed_responses': self.all_parsed_responses,
-                'history': self.history,
-                'accumulated_memory': self.accumulated_memory,
-                'final_progress': self.current_progress,
-                'memory_history': self.memory_history,
-                'progress_history': self.progress_history
+                'history': self.history
             },
             open(f'{self.save_folder_custom}/responses.json', 'w'),
             indent=4

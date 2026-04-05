@@ -1,7 +1,7 @@
-from baselines.agents.base import BaseAgent
-from baselines.common.llm_clients import call_gemini_with_retry, smart_resize, parse_qwen3vl_response
-from baselines.common.prompts import GEMINI_SYSTEM_PROMPT_SINGLE_STEP, TOOL_DEFINITIONS
-from baselines.agents.claude import ClaudeAgent
+from agents.policies.base import BaseAgent
+from agents.shared.llm_clients import call_gemini_with_retry, parse_qwen3vl_response
+from agents.shared.prompts import GEMINI_SYSTEM_PROMPT_SINGLE_STEP, TOOL_DEFINITIONS
+from agents.policies.claude import ClaudeAgent
 from PIL import Image
 import json
 import os
@@ -10,7 +10,7 @@ import base64
 import numpy as np
 
 
-# python -m baselines.evaluation.run_single --env_dir benchmarks/cua_world/environments/gimp_env_all_fast --task saturation_increase --agent 'ClaudeDatabricksAgent' --agent_args "{\"model\":\"databricks/claude-4-5-sonnet\", \"exp_name\":\"claude-4-5-sonnet\", \"task_name\": \"saturation_increase\"}"
+# python -m agents.evaluation.run_single --env_dir benchmarks/cua_world/environments/gimp_env_all_fast --task saturation_increase --agent 'ClaudeDatabricksAgent' --agent_args "{\"model\":\"databricks/claude-4-5-sonnet\", \"exp_name\":\"claude-4-5-sonnet\", \"task_name\": \"saturation_increase\"}"
 
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):

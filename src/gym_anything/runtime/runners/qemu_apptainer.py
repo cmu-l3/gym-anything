@@ -11,7 +11,7 @@ Architecture:
 
 Usage:
     export GYM_ANYTHING_RUNNER=qemu
-    python -m baselines.evaluation.run_batch ...  # Same command as Docker!
+    python -m agents.evaluation.run_batch ...  # Same command as Docker!
 """
 
 from __future__ import annotations
