@@ -22,7 +22,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--env_dir", type=str, required=True)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--task", type=str, required=True)
-    parser.add_argument("--steps", type=int, default=50)
+    parser.add_argument("--steps", type=int, default=None)
     parser.add_argument("--agent", type=str, required=True)
     parser.add_argument(
         "--agent_args",
@@ -95,6 +95,10 @@ def run_single(args: argparse.Namespace) -> int:
             cache_level=args.cache_level,
             use_savevm=args.use_savevm,
         )
+        # Resolve max_steps: CLI arg wins, then task.json, then hard default.
+        # Also hard-code the timeout so only step-based stopping applies.
+        resolved_max_steps = args.steps or env.max_steps or 50
+        env.set_episode_limits(max_steps=resolved_max_steps, timeout_sec=86400)
         logger.info("Environment reset successfully")
     except Exception as exc:
         logger.error("Error setting up environment: %s", exc)
@@ -116,7 +120,7 @@ def run_single(args: argparse.Namespace) -> int:
     obs = env.capture_observation()
     done = False
     info = {}
-    max_steps = env.max_steps or args.steps
+    max_steps = env.max_steps
     episode_dir = env.episode_dir
 
     try:

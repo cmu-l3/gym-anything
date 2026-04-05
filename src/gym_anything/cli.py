@@ -383,10 +383,11 @@ def _run_benchmark_batch(args) -> int:
             sys.executable, "-m", "gym_anything.cli", "benchmark",
             env_dir, "--task", task_id,
             "--agent", args.agent,
-            "--steps", str(args.steps),
             "--seed", str(args.seed),
             "--cache-level", args.cache_level,
         ]
+        if args.steps is not None:
+            cmd.extend(["--steps", str(args.steps)])
         if args.model:
             cmd.extend(["--model", args.model])
         if getattr(args, "exp_name", None):
@@ -436,7 +437,7 @@ def cmd_benchmark(args) -> int:
     info.add_row("Task", args.task)
     info.add_row("Agent", args.agent)
     info.add_row("Model", args.model or "[dim]default[/dim]")
-    info.add_row("Max steps", str(args.steps))
+    info.add_row("Max steps", str(args.steps) if args.steps is not None else "[dim]from task.json[/dim]")
     info.add_row("Seed", str(args.seed))
 
     console.print()
@@ -911,7 +912,7 @@ def main(argv=None):
     p_bench.add_argument("--agent", required=True, help="Agent class name (e.g. ClaudeAgent)")
     p_bench.add_argument("--model", help="Model identifier (e.g. claude-opus-4)")
     p_bench.add_argument("--exp-name", help="Experiment name for output directory")
-    p_bench.add_argument("--steps", type=int, default=50, help="Max steps per task (default: 50)")
+    p_bench.add_argument("--steps", type=int, help="Max steps per task (overrides task.json; falls back to task.json, then 50)")
     p_bench.add_argument("--seed", type=int, default=42)
     p_bench.add_argument("--temperature", type=float, help="Sampling temperature")
     p_bench.add_argument("--split", default="test", help="Task split for batch mode (default: test)")
