@@ -34,7 +34,7 @@
 - **TLDR blurb:** 2-3 sentences. Something like:
   "Got a software? Gym-Anything automatically converts it into a computer-use
   agent environment — complete with realistic data, tasks, and verification.
-  No manual setup. Just a name."
+  No manual setup needed."
 - **Action buttons:** [Paper] [Code] [Leaderboard ↓] [Explore CUA-World ↓]
 
 ## Section 2: Software Carousel
