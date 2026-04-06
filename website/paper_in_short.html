@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym-Anything — Paper in Short</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #fafafa;
+  --bg-card: #ffffff;
+  --border: #e2e2e8;
+  --text: #1a1a1e;
+  --text-muted: #5a5a63;
+  --text-dim: #8a8a96;
+  --accent: #0891b2;
+  --accent-dim: rgba(8, 145, 178, 0.08);
+  --purple: #7c3aed;
+  --green: #16a34a;
+  --amber: #d97706;
+  --red: #dc2626;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --tooltip-bg: #1a1a1e;
+  --tooltip-text: #f0f0f2;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── LAYOUT ─── */
+.page {
+  max-width: min(900px, 90vw);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 6rem;
+}
+
+/* ─── HEADER ─── */
+.header {
+  text-align: center;
+  padding: 3rem 0 2rem;
+}
+
+.header h1 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.header .subtitle {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  margin-bottom: 0.75rem;
+}
+
+.header .back-link {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.reading-time {
+  display: inline-block;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  background: var(--accent-dim);
+  padding: 0.2rem 0.7rem;
+  border-radius: 100px;
+  margin-top: 0.5rem;
+}
+
+/* ─── FLOW GRAPH ─── */
+.flow-nav {
+  margin: 2rem 0 2.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.flow-nav-label {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+}
+
+.flow-nodes {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.flow-node {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.flow-node:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  text-decoration: none;
+}
+
+.flow-node.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  font-weight: 600;
+}
+
+.flow-arrow {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin: 0 0.2rem;
+  user-select: none;
+}
+
+/* ─── SECTIONS ─── */
+.section {
+  margin-bottom: 2rem;
+  padding-top: 0.5rem;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-title .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--accent);
+  color: white;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.section p {
+  font-size: 0.95rem;
+  margin-bottom: 0.6rem;
+  color: var(--text);
+}
+
+.section p strong { color: var(--text); }
+
+/* ─── TOOLTIPS ─── */
+.tip {
+  position: relative;
+  border-bottom: 1.5px dotted var(--accent);
+  color: var(--accent);
+  cursor: help;
+  font-weight: 500;
+}
+
+.tip .tip-content {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 340px;
+  padding: 0.85rem 1rem;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.55;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.tip .tip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--tooltip-bg);
+}
+
+.tip:hover .tip-content,
+.tip.tip-active .tip-content {
+  display: block;
+}
+
+.tip .tip-content strong {
+  color: #22d3ee;
+}
+
+.tip .tip-content .tip-img {
+  width: 100%;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ─── EXPANDABLE READ MORE ─── */
+details.read-more {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+details.read-more summary {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--accent);
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0;
+}
+
+details.read-more summary::-webkit-details-marker { display: none; }
+
+details.read-more summary::before {
+  content: '▸';
+  font-size: 0.75rem;
+  transition: transform 0.2s;
+}
+
+details.read-more[open] summary::before {
+  transform: rotate(90deg);
+}
+
+details.read-more .detail-body {
+  margin-top: 0.5rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+details.read-more .detail-body p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+details.read-more .detail-body p:last-child { margin-bottom: 0; }
+
+.detail-body code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: rgba(0,0,0,0.04);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.detail-body strong { color: var(--text); }
+
+.detail-body .inline-fig {
+  width: 100%;
+  border-radius: 8px;
+  margin: 0.75rem 0;
+  border: 1px solid var(--border);
+}
+
+/* ─── FIGURE CARDS ─── */
+details.fig-card {
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+details.fig-card summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--purple);
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  border-radius: 8px;
+  cursor: pointer;
+  list-style: none;
+  transition: all 0.2s;
+}
+
+details.fig-card summary::-webkit-details-marker { display: none; }
+
+details.fig-card summary:hover {
+  background: rgba(124, 58, 237, 0.12);
+  border-color: rgba(124, 58, 237, 0.3);
+}
+
+details.fig-card[open] summary {
+  border-radius: 8px 8px 0 0;
+  border-bottom-color: transparent;
+}
+
+details.fig-card .fig-body {
+  padding: 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+details.fig-card .fig-body img {
+  width: 100%;
+  border-radius: 6px;
+}
+
+details.fig-card .fig-body .fig-caption {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.4rem;
+  line-height: 1.5;
+}
+
+/* ─── RESULT CARDS ─── */
+.result-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+  box-shadow: var(--shadow-card);
+}
+
+.result-card .result-headline {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.92rem;
+  margin-bottom: 0.35rem;
+  color: var(--text);
+}
+
+.result-card p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.result-card p:last-child { margin-bottom: 0; }
+
+.stat {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* ─── SEPARATOR ─── */
+.sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+
+/* ─── COMPARISON TABLE ─── */
+.mini-table {
+  width: 100%;
+  font-size: 0.82rem;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+}
+.mini-table th, .mini-table td {
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.mini-table th {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.mini-table td { color: var(--text-muted); }
+.mini-table tr.ours td { color: var(--accent); font-weight: 500; }
+
+/* ─── FOOTER ─── */
+.footer {
+  text-align: center;
+  padding: 2rem 0;
+  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+}
+
+.footer a {
+  font-size: 0.85rem;
+  margin: 0 0.75rem;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 700px) {
+  .page { padding: 1rem 1rem 4rem; }
+  .header h1 { font-size: 1.5rem; }
+  .flow-nodes { gap: 0.25rem; }
+  .flow-arrow { display: none; }
+  .flow-node { margin-bottom: 0.35rem; font-size: 0.72rem; padding: 0.3rem 0.6rem; }
+  .tip .tip-content { width: 280px; left: 0; transform: none; }
+}
+
+@media (min-width: 1400px) {
+  .page { max-width: 960px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="back-link"><a href="index.html">&larr; Gym-Anything Project Page</a></div>
+    <h1>Gym-Anything: Paper in Short</h1>
+    <p class="subtitle">An interactive summary of the full paper</p>
+    <span class="reading-time">~3 min read &middot; expand sections for more</span>
+  </div>
+
+  <!-- FLOW NAVIGATION -->
+  <nav class="flow-nav">
+    <div class="flow-nav-label">Paper overview</div>
+    <div class="flow-nodes">
+      <a class="flow-node" href="#problem">The Problem</a>
+      <span class="flow-arrow">&rarr;</span>
+      <a class="flow-node" href="#library">Library</a>
+      <span class="flow-arrow">&rarr;</span>
+      <a class="flow-node" href="#creation-audit">Creation-Audit</a>
+      <span class="flow-arrow">&rarr;</span>
+      <a class="flow-node" href="#selection">GDP Selection</a>
+      <span class="flow-arrow">&rarr;</span>
+      <a class="flow-node" href="#tasks">Tasks</a>
+      <span class="flow-arrow">&rarr;</span>
+      <a class="flow-node" href="#verification">Verification</a>
+      <span class="flow-arrow">&rarr;</span>
+      <a class="flow-node" href="#benchmark">CUA-World</a>
+      <span class="flow-arrow">&rarr;</span>
+      <a class="flow-node" href="#results">Results</a>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- 1. THE PROBLEM -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="section" id="problem">
+    <h2 class="section-title"><span class="num">1</span> The Problem</h2>
+    <p>
+      Computer-use agents (CUAs) promise to automate digitally intensive occupations that collectively represent trillions of dollars in GDP. But current benchmarks test agents on short-horizon tasks (changing wallpapers, filling web forms) over a narrow set of consumer apps, revealing little about whether agents can handle real professional work. Existing interactive benchmarks cover at most 20 software applications and a handful of occupation groups.
+    </p>
+    <p>
+      The root cause: creating realistic environments requires installing software, configuring it with domain-appropriate data, designing tasks, and verifying everything works. This demands weeks of expert effort per application, naturally limiting benchmark scale. As a result, both <strong>evaluation is unfaithful</strong> (high scores say little about real-world capability) and <strong>training signal is limited</strong> (short tasks over few apps cannot produce the diverse trajectories needed for real work).
+    </p>
+    <details class="read-more">
+      <summary>Read more: why existing benchmarks fall short</summary>
+      <div class="detail-body">
+        <p>Real-world workflows are <em>long-horizon</em> and take place in <em>heterogeneous environments</em>, often requiring hundreds of steps across diverse software configured with domain-specific data. For instance, end-to-end analysis of a medical imaging dataset requires a radiology tool set up with annotated clinical CT scans, while reconciling financial records across an ERP system requires software populated with transaction histories and vendor accounts. No existing benchmark provides this kind of realistic, domain-grounded evaluation.</p>
+        <p>Existing benchmarks fall into two categories, each with fundamental limitations. <strong>Static datasets</strong> (Mind2Web, AITW, AndroidControl, OmniACT) collect thousands of episodes but evaluate via action-matching rather than execution, penalizing valid alternative strategies. An agent that accomplishes the same goal through a different but equally correct sequence of actions would be marked as wrong.</p>
+        <p><strong>Interactive benchmarks</strong> provide execution-based evaluation but cover narrow slices of the software landscape. Web benchmarks (MiniWob++, WebArena, VisualWebArena, WorkArena) are restricted to a few websites. Desktop benchmarks span at most a handful of applications with manually authored environments: OSWorld covers 9 software with 369 tasks, WindowsAgentArena covers 11 software with 154 tasks, and others like Spider2-V, AssistGUI, TheAgentCompany, and ScienceBoard are similarly limited. AndroidWorld covers 20 apps.</p>
+        <p>Critically, all interactive benchmarks rely on manual environment creation, which inherently limits their scale. None simultaneously provides training data, long-horizon tasks, or broad occupational coverage. This leads to two consequences. First, <strong>evaluation is unfaithful</strong>: high scores on these narrow benchmarks reveal little about whether an agent can handle real-world professional work. Second, <strong>training signal is limited</strong>: short-horizon tasks over a small number of applications cannot produce the diverse, long-horizon trajectories needed to train capable agents.</p>
+        <p>The root cause behind all of these limitations is that each software application requires installation, configuration with domain-appropriate data, task design, and verification. This process often demands weeks of expert effort per application, creating a fundamental bottleneck that manual approaches cannot overcome.</p>
+      </div>
+    </details>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- 2. LIBRARY -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="section" id="library">
+    <h2 class="section-title"><span class="num">2</span> The Gym-Anything Library</h2>
+    <p>
+      Our key idea is that <strong>creating computer-use environments is itself a coding and computer-use agent task</strong>. Setting up software requires writing installation and configuration scripts (a coding task). Verifying the running environment through
+      <span class="tip">screenshots<span class="tip-content"><strong>Visual grounding as verification.</strong> The creation agent uses visual grounding to check each screenshot against the expected application state, catching discrepancies that text-based logs miss (e.g., a login screen still visible, placeholder data in fields, or a crash dialog). This is the same observation modality that evaluation agents will later use, ensuring consistency between creation and evaluation.</span></span>
+      and checking the screen is a computer-use agent task.
+    </p>
+    <p>
+      Scaling this to hundreds of software applications requires handling substantial heterogeneity: different applications need different operating systems, databases, and network configurations. The Gym-Anything library addresses this by reducing every environment to a
+      <span class="tip">standardized specification<span class="tip-content"><strong>Three setup scripts + a config file.</strong> The scripts are staged: <em>install</em> (software + dependencies), <em>configure</em> (realistic data + settings), and <em>task setup</em> (starting state for a specific task). Multiple tasks share the same install/configure scripts, varying only the task setup. The config file specifies OS image, resource limits, and interfaces.</span></span>:
+      a small set of setup scripts and a configuration file. This enables an AI agent to create environments by writing only software-specific scripts, while the library handles container orchestration, display forwarding, and multi-OS support across Linux, Windows, and Android.
+    </p>
+    <details class="fig-card">
+      <summary>&#x1F4CA; View: Gym-Anything pipeline overview</summary>
+      <div class="fig-body">
+        <img src="assets/figures/final_teaser_v3.svg" alt="Gym-Anything pipeline overview">
+        <div class="fig-caption">The full pipeline: GDP-grounded software selection, creation-audit loop for environment construction, propose-and-amplify for task generation, and checklist-based VLM verification.</div>
+      </div>
+    </details>
+    <details class="read-more">
+      <summary>Read more: library architecture and parallelization</summary>
+      <div class="detail-body">
+        <p>Previous works (OSWorld, VisualWebArena) constructed environments manually by interacting with an actual operating system and then taking VM snapshots. These snapshots cannot be inspected, version-controlled, or partially reused across tasks. Modifying anything requires repeating the entire manual setup from scratch, limiting modularity, reproducibility, and scalability.</p>
+        <p>In the Gym-Anything library, each environment is defined by three sequential setup scripts and a declarative configuration file. The scripts progress from general to task-specific: <strong>install</strong> (software and dependencies), <strong>configure</strong> (realistic data and settings), and <strong>task setup</strong> (specific starting state for a given task). Multiple tasks for the same software share the same install and configure scripts, varying only the task setup. For example, creating a LibreOffice Calc environment requires only an install script (e.g., <code>apt-get install libreoffice</code>), a configure script that downloads a sample spreadsheet, and a config file specifying the OS image and resource limits. The library handles container orchestration, display forwarding, and checkpoint management automatically.</p>
+        <p>Users and AI agents interact with any environment through a standard gymnasium-style API that provides a unified observation space (screenshots) and action space (keyboard and mouse inputs). The library handles display forwarding and input translation across operating systems, abstracting away the differences between Linux, Windows, and Android. It also supports multiple compute backends, including Docker for standard deployments and Apptainer for rootless systems such as SLURM clusters.</p>
+        <p>The staged design enables caching at each stage boundary, so creating new tasks for an already-configured application only requires re-running the task-specific setup script. Combined with network-process-file isolation between containers, this enables massive parallelization: in our experiments we run <strong>400+ concurrent environments across 1,600 CPUs</strong>.</p>
+        <p>The specification is simple enough that an LLM agent can author environments autonomously, yet expressive enough to capture complex, production-grade software configured with realistic data, from desktop image editors to multi-container enterprise systems.</p>
+      </div>
+    </details>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- 3. CREATION-AUDIT LOOP -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="section" id="creation-audit">
+    <h2 class="section-title"><span class="num">3</span> Creation-Audit Loop</h2>
+    <p>
+      Without external verification, current agents (including frontier models) prompted to create environments frequently produce incorrect setups: using placeholder data instead of real datasets, leaving software at installation wizards, or claiming the environment is ready without ever launching it. The common thread is that <strong>the agent's claims about what it has done are not reliable, but the actual state of the environment is</strong>: a screenshot reveals whether the software is running or stuck on a crash screen, regardless of what the agent claims.
+    </p>
+    <p>
+      We exploit this through a
+      <span class="tip">creation-audit loop<span class="tip-content"><strong>Two agents, adversarial separation.</strong> A creation agent (Claude Opus 4.5/4.6 via Claude Code) writes setup scripts, downloads real-world data (public medical datasets, email corpora, financial schemas), launches the software, and produces evidence (screenshots, logs). An independent audit agent then inspects this evidence against quality checklists and reports issues. The loop runs for multiple iterations.</span></span>:
+      a creation agent builds the environment and produces evidence of correct setup, then an independent audit agent verifies this evidence against a quality checklist and reports issues for iterative correction. The creation agent also maintains a
+      <span class="tip">shared memory<span class="tip-content"><strong>A growing directory of reusable knowledge.</strong> Contains both software-specific notes (e.g., "LibreOffice needs headless mode disabled for GUI tasks") and general patterns (e.g., "always poll service readiness before launching multi-container web stacks"). Every L environments, a summarization agent condenses common patterns to keep memory manageable. This enables sublinear growth in creation time: later environments benefit from lessons learned on earlier ones.</span></span>
+      of common fixes and patterns, enabling sublinear growth in creation time as more environments are built.
+    </p>
+    <details class="read-more">
+      <summary>Read more: why separate agents, and cross-model auditing</summary>
+      <div class="detail-body">
+        <p>The creation agent is a coding agent equipped with bash, python, and computer-use tools, with complete access to the library and all previously created environments. Given a new software name, it first researches how the software should be configured, finds and downloads real-world data (e.g., public medical imaging datasets for radiology software, published email corpora for messaging clients), studies similar previously created environments, then implements setup scripts, launches the environment, takes screenshots, uses visual grounding to check the application reached the expected state, and iteratively debugs failures. Crucially, the agent must produce evidence: screenshots of the running software, execution logs, and other verifiable artifacts.</p>
+        <p>Separating the creation and audit roles offers three key benefits: (a) it removes self-confirmation bias, (b) the written audits ensure interpretability, letting humans independently verify quality, and (c) the adversarial framing catches cases where the creation agent made self-misleading claims. The audit agent acts as an adversary: it analyzes screenshots and logs, inspects actual config and script files, and if necessary actually runs the environment. It outputs a structured audit detailing what is correctly implemented and what the critical issues are.</p>
+        <p>We tested this empirically with a cross-model auditing experiment. Both self-audit and cross-model audits detect all critical issues, but <strong>cross-model audits identify on average 2.1 additional issues per environment</strong>. For example, on OpenELIS (a lab information system), the self-audit accepted patient data as realistic, while the cross-model audit inspected the seeding script and discovered the data was a hardcoded Python list, directly contradicting inline comments claiming real-world WHO/CDC sourcing. On Visallo (a link analysis platform), the cross-model audit caught a file path mismatch: a CSV file claimed to be "on the desktop" was actually placed in <code>/home/ga/Documents/</code>.</p>
+        <p>A recurring challenge is <strong>context fatigue</strong>. After processing hundreds of thousands of tokens, the creation agent often declares the task done prematurely because it loses track of remaining requirements. To address this, whenever the agent stops, we re-prompt it to reread the setup guidelines and checklists and complete any requirements it may have skipped. This simple nudge recovers many omissions that would otherwise go undetected.</p>
+        <p>The <strong>shared memory</strong> is effectively a directory of files that grows over time, initialized with the hand-written prompt. After each environment, the agent documents what worked and what failed, updating software-specific notes and general notes. For example, one agent discovered that a multi-service web platform needed readiness polling before the GUI could launch; this became the default pattern for all subsequent web stacks. Every L environments, a memory summarization agent reads through all memory files, identifies common patterns, and condenses them to keep the memory manageable.</p>
+      </div>
+    </details>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- 4. GDP SELECTION -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="section" id="selection">
+    <h2 class="section-title"><span class="num">4</span> GDP-Grounded Software Selection</h2>
+    <p>
+      Which software should we build environments for? We use a simple principle: <strong>prioritize software that drives more economic activity</strong>. Starting from U.S. occupational data (~900 occupations from
+      <span class="tip">O*NET + BLS<span class="tip-content"><strong>U.S. occupational databases.</strong> O*NET (Occupational Information Network) is a comprehensive U.S. Department of Labor database describing ~900 standardized occupations with detailed information on tasks, skills, work activities, and work context. BLS (Bureau of Labor Statistics) provides corresponding employment counts and average annual wages, which we use to estimate each occupation's GDP contribution.</span></span>),
+      we estimate GDP per occupation, discover software used by each occupation via an LLM with web-search access, attribute GDP to individual software, filter to
+      <span class="tip">sandboxable candidates<span class="tip-content"><strong>Four requirements: self-hostable, free/open-source, GUI-based, no specialized hardware.</strong> This filter eliminates ~80% of catalogued software. Non-sandboxable high-GDP software is systematically substituted: for example, Bloomberg Terminal ($79.5B attributed GDP) is replaced with the closest free financial analysis tool in the same category. Similarly, Salesforce and Epic EHR are replaced with open-source CRM and EHR alternatives.</span></span>,
+      and apply
+      <span class="tip">tiered selection<span class="tip-content"><strong>Five tiers with explicit budgets totaling ~500.</strong> (1) Highest-GDP overall: 100 slots, (2a) Strategic domains (Healthcare, Education, Protective Services, Transportation): 100 slots, (2b) STEM fields: 100 slots, (3) Round-robin ~5 per SOC group: 116 slots, (4) Niche occupation-specific: 44 slots, (5) Uncovered categories by GDP: 40 slots. Of ~500 selected, 200 are built based on compute budget.</span></span>
+      to yield <strong>200 software applications covering all 22 SOC major occupation groups</strong>.
+    </p>
+    <details class="read-more">
+      <summary>Read more: GDP attribution formula and top software</summary>
+      <div class="detail-body">
+        <p>The full pipeline proceeds in seven steps. First, we estimate GDP per occupation using employment count multiplied by mean wage, scaled to national GDP. Second, we discover software used per occupation using an LLM with web search, producing approximately 16,600 software entries across roughly 1,400 categories. Third, we clean the catalog by deduplicating categories and removing hallucinated entries via web-grounded verification. Fourth, we attribute GDP to individual software.</p>
+        <p>GDP is attributed to individual software via: <code>GDP_software = &Sigma; GDP_occ &times; p_computer &times; s_category &times; s_software</code>, where <code>p_computer</code> is the fraction of the occupation's work involving computers (from occupational surveys), <code>s_category</code> is the share attributed to a software category (e.g., "spreadsheets" for an accountant), and <code>s_software</code> is the individual software's share within its category.</p>
+        <p><strong>Top software by attributed GDP:</strong> Microsoft Excel ($1.81T, used by 582 occupations), Microsoft Word ($1.27T), Google Chrome ($1.05T), Microsoft Outlook ($0.94T), and Visual Studio Code ($50.4B). Since these are commercial and cannot be self-hosted, we substitute them with the closest free alternative from the same category.</p>
+        <p>The fifth step filters to sandboxable candidates: self-hostable, free, GUI-based, and requiring no specialized hardware. Of the approximately 16,600 catalogued software, only about 3,400 pass this filter. In the sixth step, high-GDP software that cannot be sandboxed (e.g., Bloomberg Terminal at $79.5B, Salesforce, Epic EHR) is substituted with the closest sandboxable alternative from the same category.</p>
+        <p>Finally, we apply <strong>tiered selection</strong> across five tiers to balance economic impact and diversity: (1) highest-GDP software overall (100 budget), (2a) strategic domains including Healthcare, Education, Protective Services, and Transportation (100 budget), (2b) STEM fields including Architecture/Engineering, Computer/Math, and Life/Physical/Social Science (100 budget), (3) round-robin across all 22 SOC groups for approximately 5 per group (116 budget), (4) niche occupation-specific software (44 budget), and (5) uncovered software categories ranked by GDP (40 budget). The output is approximately 500 selected software, of which 200 are built based on the available compute budget.</p>
+      </div>
+    </details>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- 5. TASK GENERATION -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="section" id="tasks">
+    <h2 class="section-title"><span class="num">5</span> Task Generation</h2>
+    <p>
+      An LLM can generate reasonable task descriptions, but without actually running the software, the generated environment configurations are often incorrect. To address this, we follow a
+      <span class="tip">propose-and-amplify<span class="tip-content"><strong>5 expensive seeds + 75 cheap amplifications per software.</strong> The proposer (Claude Opus via Claude Code) creates ~5 seeds by actually running the software, downloading real data, interacting through the GUI, and verifying results. The amplifier (Gemini 3 Pro) then generates ~75 more, receiving all previously generated tasks as context to enforce diversity. A VLM filter launches each generated task and checks whether the starting state matches the description, discarding failures. This yields 12,103 tasks total.</span></span>
+      strategy: an agentic model first proposes a small number of seed tasks per software by actually running it and verifying the results. A non-agentic LLM then amplifies these seeds into a larger set using the seed implementations as in-context examples, followed by automated VLM-based filtering. Tasks amplified from seeds achieve an <strong>88.9% setup success rate vs. 55.2% without seeds</strong>.
+    </p>
+    <details class="read-more">
+      <summary>Read more: task quality guidelines and what happens without seeds</summary>
+      <div class="detail-body">
+        <p>The proposer follows guidelines across three dimensions: <strong>realism</strong> (does the instruction reflect a genuine, real-world use case?), <strong>difficulty</strong> (does the task require a long-horizon, multi-step trajectory to solve?), and <strong>diversity</strong> (do the tasks cover varied functionalities of the software?). These guidelines ensure that generated tasks reflect the kind of work professionals actually do, rather than toy demonstrations of software features.</p>
+        <p>The agentic loop in the proposer is necessary because the model must actively run the software, search for and download or generate realistic data, interact via the GUI, and verify the resulting state. This expensive step occurs only once per software but is essential for producing high-quality seed tasks. The proposer generates approximately 5 seed tasks per software.</p>
+        <p>To enforce diversity during the amplification phase, tasks are generated sequentially: the model receives all previously generated instructions 1, ..., t as context when producing task t+1. Semantic similarity filtering then discards duplicates. The amplifier generates approximately 75 tasks per software using the seed implementations as in-context examples.</p>
+        <p>After generation, automated filtering launches each generated task, captures the starting state observation, and passes it alongside the instruction to a VLM. The VLM checks whether the starting state matches the expectation from the task description. Tasks that fail this check are discarded. After filtering, the pipeline yields <strong>12,103 tasks</strong> across all 200 software applications.</p>
+        <p>Qualitative analysis on three representative software (Firefox, AstroImageJ, and Moodle) reveals that <strong>without seeds, the model defaults to demonstrating software features</strong> rather than generating realistic professional workflows. In particular, it produces shorter-horizon tasks and writes less thorough setup scripts. The seed examples effectively anchor the LLM toward the right level of complexity and realism, which is why the seed-based approach achieves an 88.9% setup success rate compared to 55.2% without seeds.</p>
+      </div>
+    </details>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- 6. VERIFICATION -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="section" id="verification">
+    <h2 class="section-title"><span class="num">6</span> Verification</h2>
+    <p>
+      To evaluate long-horizon tasks, we use a
+      <span class="tip">checklist-based VLM verifier<span class="tip-content"><strong>Formal scoring: V(&tau;) = &Sigma; w_i &middot; VLM(&tau;, c_i, I).</strong> A separate coding agent generates a checklist C = {(c_i, w_i)} of subtasks with point values. For each item, the VLM receives the full trajectory &tau;, the subtask description c_i, and privileged information I, then judges whether that subtask was completed. This decomposition achieves <strong>93.3% task-level agreement</strong> and <strong>90.9% per-item agreement</strong> with human annotations.</span></span>
+      that breaks each task into weighted subtasks for partial credit. These checklists leverage
+      <span class="tip">privileged information<span class="tip-content"><strong>Automatically extracted ground truth: I = Extract(S, p).</strong> A separate coding agent parses the setup scripts S, retrieves or searches online for the relevant ground truth. For example, in a medical imaging task, the correct tumor location comes from the downloaded dataset metadata. In a clinical decision support task, expected drug interactions come from the loaded formulary. This fully automated extraction eliminates the need for manual annotation.</span></span>:
+      ground-truth data already embedded in the environment's setup scripts, allowing the verifier to check agent outputs against known answers without manual annotation.
+    </p>
+    <p>
+      A separate
+      <span class="tip">integrity checklist<span class="tip-content"><strong>Three conditions to prevent workflow shortcuts.</strong> (a) The intended software was actually used to complete the task, (b) the required application state was reached through the software's own GUI rather than by directly editing config or data files, and (c) the agent did not exploit environment artifacts to shortcut the work. Failing any condition zeroes the entire score.</span></span>
+      ensures agents did not bypass the intended workflow (e.g., editing config files directly instead of using the GUI, or fabricating outputs). Failing any integrity item zeroes the score regardless of task completion.
+    </p>
+    <details class="read-more">
+      <summary>Read more: verifier comparison and integrity check statistics</summary>
+      <div class="detail-body">
+        <p>The VLM verifier uses privileged information alongside the task instruction to generate a granular checklist C = {(c_i, w_i)}, where each c_i defines a specific subtask to verify and w_i is its point value. The verification score is computed as V(&tau;) = &Sigma; w_i &middot; VLM(&tau;, c_i, I), yielding a score from 0-100 rather than binary pass/fail. This enables partial credit for tasks where the agent completes some steps correctly but not others.</p>
+        <p>The privileged information I is extracted automatically by a separate coding agent that parses the setup scripts and retrieves or searches online for the relevant ground truth. For example, in a medical imaging task, the correct tumor location is known from the downloaded dataset. In a financial task, the expected account balances are determined by the initialization data. In a clinical decision support task, the expected drug interactions are known from the loaded formulary. This eliminates the need for manual annotation of ground-truth answers.</p>
+        <p>We compared three verifier designs on 60 randomly sampled Gemini-3-Flash trajectories:</p>
+        <table class="mini-table">
+          <tr><th>Verifier</th><th>Human Agreement</th></tr>
+          <tr class="ours"><td>Checklist + privileged info</td><td>93.3%</td></tr>
+          <tr><td>Direct VLM judgment</td><td>81.7%</td></tr>
+          <tr><td>Auto-generated programmatic</td><td>43.3%</td></tr>
+        </table>
+        <p>The programmatic approach performs poorly primarily because the model writes incorrect scripts that fail to parse the data formats present in the end state. Per-item checklist agreement with human annotations is 90.9%, confirming that the granular decomposition into subtasks is well-calibrated.</p>
+        <p>The <strong>integrity checklist</strong> evaluates three conditions: (a) the intended software was used, (b) the required state was reached through the software's own interface rather than by directly editing config or data files, and (c) the agent did not exploit environment artifacts. Failing any integrity item sets V(&tau;) = 0 regardless of how many task subtasks were completed.</p>
+        <p>Across approximately 3,000 Gemini-3-Flash trajectories, integrity checks flag only ~1.5% of high-scoring runs (score >75), producing 21 flags total, of which 15 are true positives. Two representative cases illustrate the subtlety of these violations. On Autopsy (digital forensics software), the agent followed the correct forensic workflow but fabricated hash values in its final report rather than copying the values actually visible in the application. On Epi Info (epidemiology software), the agent mistyped an input parameter, causing the tool to display an incorrect result, but then wrote the mathematically correct answer in its output, a value that was never shown by the tool.</p>
+      </div>
+    </details>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- 7. CUA-WORLD -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="section" id="benchmark">
+    <h2 class="section-title"><span class="num">7</span> CUA-World</h2>
+    <p>
+      The result is <strong>CUA-World</strong>: <span class="stat">12,103</span> tasks across <span class="stat">200</span> software applications spanning domains from medical science and astronomy to engineering and enterprise systems, each configured with realistic data, across three operating systems, with train and test splits. It is the first benchmark to simultaneously provide interactive environments at scale, support long-horizon evaluation, cover all 22 SOC occupation groups, offer automated environment creation, and include a training split.
+    </p>
+    <p>
+      We also construct <strong>CUA-World-Long</strong>: <span class="stat">200</span> particularly challenging tasks (one per software) designed through
+      <span class="tip">trajectory-guided analysis<span class="tip-content"><strong>Failure-driven task design.</strong> For each software, we generate trajectories from a strong agent on existing tasks, then analyze why certain tasks have lower pass rates and what the common failure modes are. For instance, on 3D Slicer (medical imaging), we discovered agents get stuck in a "scrolling loop", endlessly scrolling through image slices looking for the "perfect" anatomical level without ever committing to placing a measurement. The generated Long task specifically exploits this weakness.</span></span>
+      of agent failure modes. These tasks often require over 500 steps, far exceeding existing benchmarks. All 200 tasks are manually verified against 8 quality criteria.
+    </p>
+    <details class="fig-card">
+      <summary>&#x1F5BC; View: 200+ software environments</summary>
+      <div class="fig-body">
+        <img src="assets/figures/softwares_mosaic_v7b_final.png" alt="Software mosaic showing diverse environments">
+        <div class="fig-caption">Representative screenshots from 200+ software environments spanning astronomy (KStars), satellite remote sensing (SNAP), medical imaging (InVesalius), molecular biology (PyMOL), 3D modeling (Blender), financial trading (NinjaTrader), interior design (Sweet Home 3D), climate science (Panoply), robotics (CoppeliaSim), and more.</div>
+      </div>
+    </details>
+    <details class="fig-card">
+      <summary>&#x1F5BC; View: sample agent trajectories</summary>
+      <div class="fig-body">
+        <img src="assets/trajectories/gimp.png" alt="Agent trajectory on GIMP">
+        <div class="fig-caption">Agent trajectory on GIMP (image editor): the agent navigates menus, applies filters, and verifies results across multiple steps. See the <a href="index.html#explore">project page</a> for more trajectory examples across all 200 software applications.</div>
+      </div>
+    </details>
+    <details class="read-more">
+      <summary>Read more: benchmark comparison and contamination filtering</summary>
+      <div class="detail-body">
+        <p>How CUA-World compares to prior interactive benchmarks:</p>
+        <table class="mini-table">
+          <tr><th>Benchmark</th><th>#Software</th><th>#Tasks</th><th>Long-Horizon</th><th>SOC Groups</th><th>Train Split</th></tr>
+          <tr><td>OSWorld</td><td>9</td><td>369</td><td>&cross;</td><td>3/22</td><td>&cross;</td></tr>
+          <tr><td>WebArena</td><td>6</td><td>812</td><td>&cross;</td><td>5/22</td><td>&cross;</td></tr>
+          <tr><td>AndroidWorld</td><td>20</td><td>116</td><td>&cross;</td><td>2/22</td><td>&cross;</td></tr>
+          <tr><td>WindowsAgentArena</td><td>11</td><td>154</td><td>&cross;</td><td>3/22</td><td>&cross;</td></tr>
+          <tr class="ours"><td><strong>CUA-World</strong></td><td><strong>200+</strong></td><td><strong>10,000+</strong></td><td><strong>&check;</strong></td><td><strong>22/22</strong></td><td><strong>&check;</strong></td></tr>
+        </table>
+        <p><strong>Contamination filtering:</strong> To prevent data leakage between train and test splits, we treat tasks as nodes in a similarity graph, with LLM-graded similarity scores (on a 1-8 scale) as edges. Any pair scoring 4 or higher ("very similar") is flagged. We compute connected components and assign entire components to a single split, ensuring no contaminated pairs cross the boundary. Manual verification shows the pipeline is conservative: it flags several non-contaminated pairs but misses very few true contaminations.</p>
+        <p><strong>CUA-World-Long generation</strong> follows a trajectory-guided strategy. For each software, we generate k trajectories from a strong agent on existing tasks, then analyze those trajectories to identify failure patterns and generate harder tasks that specifically exploit discovered weaknesses. The agent receives 8 quality guidelines covering real-world relevance, objective evaluability, realistic data, and other criteria. All 200 Long tasks are manually verified against these quality criteria, and tasks that fail verification are iteratively refined through further agent interaction.</p>
+        <p>For example, on 3D Slicer (medical imaging software), analysis of 34 agent trajectories showed a 0% pass rate. The primary failure mode was a "scrolling loop" where the model gets stuck endlessly scrolling through image slices looking for the "perfect" anatomical level, never committing to placing measurements. The highest-scoring existing task (tumor_ventricle_proximity, scoring 31/100 points) succeeded only because data was pre-loaded with structures already visible, so the model immediately placed a measurement without extensive scrolling. The generated Long task specifically exploits this weakness.</p>
+        <p>These Long tasks often require more than 200 steps for human completion. Current models frequently fail even after 500 steps, and the overall mean across all Long trajectories is 425 steps, far exceeding the typical step counts in existing benchmarks.</p>
+      </div>
+    </details>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- 8. RESULTS -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="section" id="results">
+    <h2 class="section-title"><span class="num">8</span> Key Results</h2>
+
+    <!-- Result 1: Main performance + tables -->
+    <div class="result-card">
+      <div class="result-headline">Distillation yields a strong 2B model</div>
+      <p>Distilling Kimi-K 2.5 trajectories from CUA-World-Train into Qwen3-VL-2B boosts pass rate from <span class="stat">1.6% &rarr; 4.4%</span>, outperforming the base Qwen3-VL-4B (3.9%), a model 2&times; its size.</p>
+      <table class="mini-table">
+        <tr><th>Model</th><th>Avg. Score</th><th>Pass Rate</th></tr>
+        <tr><td>Gemini 3 Flash</td><td><strong>50.1</strong></td><td><strong>22.6%</strong></td></tr>
+        <tr><td>Kimi-K 2.5</td><td>37.1</td><td>12.8%</td></tr>
+        <tr><td>Qwen3-VL-4B</td><td>19.3</td><td>3.9%</td></tr>
+        <tr class="ours"><td>Ours (2B distilled)</td><td>22.5</td><td>4.4%</td></tr>
+      </table>
+    </div>
+
+    <!-- Result 2: CUA-World-Long -->
+    <div class="result-card">
+      <div class="result-headline">Frontier models struggle on CUA-World-Long</div>
+      <p>Even the strongest frontier model achieves only <span class="stat">7.5%</span> pass rate on the 200 long-horizon tasks. GPT-5.4 frequently gives up early or cites incapability.</p>
+      <table class="mini-table">
+        <tr><th>Model</th><th>Avg. Score</th><th>Pass Rate</th></tr>
+        <tr><td>Gemini 3 Flash</td><td><strong>36.2</strong></td><td><strong>7.5%</strong></td></tr>
+        <tr><td>Kimi-K 2.5</td><td>33.9</td><td>5.5%</td></tr>
+        <tr><td>Claude Sonnet 4.6</td><td>20.5</td><td>6.0%</td></tr>
+        <tr><td>GPT-5.4</td><td>22.7</td><td>3.0%</td></tr>
+      </table>
+    </div>
+
+    <!-- Result 3: Scaling -->
+    <div class="result-card">
+      <div class="result-headline">Performance scales log-linearly with data</div>
+      <p>Scaling training data along two axes (number of software: 50, 100, 200; fraction of tasks: 25%, 50%, 100%), both show consistent improvements following a roughly <span class="stat">~3.5 point increase per doubling</span> of data. This suggests further scaling the Gym-Anything pipeline could yield even stronger models. See the <a href="index.html#results">interactive charts on the project page</a>.</p>
+    </div>
+
+    <!-- Result 4: Generalization -->
+    <div class="result-card">
+      <div class="result-headline">Generalization to unseen software is limited</div>
+      <p>Models trained on 25-50% of the 200 software recover <span class="stat">65-87%</span> of full-training gains on software seen during training (IID), but only <span class="stat">22-27%</span> on unseen software (OOD). This means training on a specific software helps substantially, but training on other software also contributes. The gap underscores the need for scalable environment creation across diverse software.</p>
+    </div>
+
+    <!-- Result 5: TTA -->
+    <div class="result-card">
+      <div class="result-headline">Test-Time Auditing improves long-horizon performance</div>
+      <p>Pass rate on CUA-World-Long scales with step budget: 2.0% at 50 steps, 6.5% at ~200 steps, 11.5% at ~1,300 steps. Adding
+        <span class="tip">Test-Time Auditing<span class="tip-content"><strong>Mirrors the creation-audit loop at inference time.</strong> Whenever the agent signals task completion, an independent VLM reviews the full trajectory without seeing the agent's chain-of-thought. It provides structured feedback on what remains incomplete, and the agent resumes work. This catches premature stops, a common failure mode where agents declare "done" despite unfinished subtasks. Under this scheme, agents sometimes work continuously for over 12 hours on a single task.</span></span>
+        further improves pass rate to <span class="stat">14.0%</span> under the same 2,000-step cap by catching premature stops.
+      </p>
+    </div>
+
+    <!-- Result 6: Behavioral -->
+    <div class="result-card">
+      <div class="result-headline">Why agents fail: retry loops and missing verification</div>
+      <p>Analysis of ~3,000 trajectories reveals that failed trajectories spend <span class="stat">78%</span> of their steps in retry loops (vs. 39% for passed). Verification checks, where the agent re-inspects its work, are present in <span class="stat">91%</span> of passed trajectories but only 70% of failed ones. This provides empirical motivation for Test-Time Auditing.</p>
+    </div>
+
+    <details class="read-more">
+      <summary>Read more: ablations and behavioral analysis</summary>
+      <div class="detail-body">
+        <p><strong>Teacher selection paradox:</strong> Opus 4.6 is the strongest teacher model with a 53.5 average score, while Kimi-K 2.5 is one of the weakest at 39.8. Yet Kimi-K 2.5 produces the best student models: 25.3 vs. 19.3 (Opus) for Qwen3-VL-4B, and 15.8 vs. 9.8 (Sonnet) for Qwen2.5-3B. A possible explanation is that Kimi-K 2.5 is open-source and provides full reasoning chains in its trajectories, giving the student model richer learning signal despite the teacher's lower raw performance.</p>
+        <p><strong>Trajectory length curriculum:</strong> We compared training on 50-step vs. 200-step trajectories under the same $25/software budget. On average the results are similar (22.7 vs. 23.8), but the optimal length varies by software: 50-step trajectories perform better on GIMP and 3D Slicer, while 200-step trajectories are better on OpenEMR, which has longer-horizon tasks. Based on these findings, we adopt a two-stage curriculum: first train on 50-step trajectories, then continue on full 200-step trajectories.</p>
+        <p><strong>Visual complexity bottleneck:</strong> Large models (Gemini, Kimi) maintain consistent pass rates across visual complexity levels (25.3%, 20.9%, 21.6% for Gemini across low, medium, and high complexity). In contrast, small models show steep declines: Qwen3-VL-2B drops from 3.2% on low-complexity to 0.0% on high-complexity software. Distillation improves performance at all visual complexity levels but does not close the gap, suggesting that visual understanding remains a fundamental bottleneck for smaller architectures.</p>
+        <p><strong>Domain knowledge:</strong> All models decline in performance from general to specialized software. The decline is steeper for small models (roughly 3x: 6.4% to 2.2%) than for large models (roughly 1.3x: 25.6% to 19.9%). This indicates that domain-specific knowledge presents a greater challenge at smaller scales, where the model has less capacity to retain specialized information.</p>
+        <p><strong>Behavioral patterns:</strong> Automated analysis of approximately 3,000 trajectories reveals 15 canonical behavior patterns. The largest gap between passed and failed trajectories appears in <em>retry loops</em>: failed trajectories spend 78% of their steps retrying actions compared to only 39% for passed trajectories. <em>UI exploration</em> (navigating menus, searching for the right interface element) dominates for both outcomes at 67-76% of steps, indicating that most agent effort is spent locating the right interface elements rather than executing the core task. Notably, <em>verification checks</em> (where the agent pauses to confirm its progress) are present in 91% of passed trajectories but only 70% of failed ones.</p>
+        <p><strong>Step distribution and difficulty:</strong> Failed tasks spike sharply at the 500-step cap, indicating agents exhaust their budget without completing the task. Passed tasks, by contrast, spread across a wide range of step counts. The difficulty distribution shows a large spike in the 0-10 score bin: roughly a quarter of Gemini tasks and a third of Kimi tasks receive near-zero scores, suggesting a substantial fraction of tasks are currently beyond the reach of even frontier models.</p>
+        <p><strong>Test-Time Auditing (TTA) in detail:</strong> Pass rate on CUA-World-Long stays low at 50-100 steps (2.0% to 2.5%), then rises steeply: 6.5% at approximately 200 steps, 7.5% at approximately 400, and 11.5% at approximately 1,300 steps. This sharp jump suggests that most Long tasks require a minimum of 100 steps before any meaningful progress is possible. TTA adds further uplift to 14.0% under the same 2,000-step cap by catching premature stops, where the agent declares it is done but has not actually completed the task.</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <a href="index.html">Project Page</a>
+    <a href="#">Paper (PDF)</a>
+    <a href="#">Code</a>
+  </div>
+
+</div>
+
+<script>
+// ─── TOOLTIP TOUCH SUPPORT ───
+document.querySelectorAll('.tip').forEach(tip => {
+  tip.addEventListener('click', e => {
+    document.querySelectorAll('.tip.tip-active').forEach(t => {
+      if (t !== tip) t.classList.remove('tip-active');
+    });
+    tip.classList.toggle('tip-active');
+    e.stopPropagation();
+  });
+});
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.tip.tip-active').forEach(t => t.classList.remove('tip-active'));
+});
+
+// ─── FLOW NAV ACTIVE STATE ───
+const sections = document.querySelectorAll('.section[id]');
+const flowNodes = document.querySelectorAll('.flow-node');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      flowNodes.forEach(node => {
+        node.classList.toggle('active', node.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { rootMargin: '-20% 0px -60% 0px' });
+
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
