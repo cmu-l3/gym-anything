@@ -12,7 +12,7 @@ pip install -e .[all]
 gym-anything doctor
 
 # 3. Run an environment interactively
-gym-anything run zotero --task create_saved_search -i --open-vnc
+gym-anything run moodle --task enroll_student -i --open-vnc
 ```
 
 ## Run A Benchmark End To End
@@ -20,15 +20,15 @@ gym-anything run zotero --task create_saved_search -i --open-vnc
 Pick an environment, pick a task, pick an agent:
 
 ```bash
-gym-anything benchmark zotero --task create_saved_search --agent ClaudeAgent --model claude-opus-4
+gym-anything benchmark moodle --task enroll_student --agent ClaudeAgent --model claude-opus-4-6
 ```
 
-This starts the Zotero environment, resets it, hands the task to the agent, lets the agent interact with the application through screenshots and mouse/keyboard actions, and runs the automatic checker when the agent finishes.
+This starts the Moodle environment, resets it, hands the task to the agent, lets the agent interact with the application through screenshots and mouse/keyboard actions, and runs the automatic checker when the agent finishes.
 
 To run across many tasks at once:
 
 ```bash
-gym-anything benchmark zotero --agent ClaudeAgent --model claude-opus-4 --split test
+gym-anything benchmark moodle --agent ClaudeAgent --model claude-opus-4-6 --split test
 ```
 
 ## Three Independent Components

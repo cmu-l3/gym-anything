@@ -5,7 +5,7 @@ description: How a task is defined, how it starts, and how Gym Anything decides 
 
 A task is one specific thing the agent is asked to do inside an environment.
 
-In Zotero, a task might ask the agent to create a saved search.
+In Moodle, a task might ask the agent to enroll a student in a course.
 
 In some other environment, a task might ask it to configure a setting, export a file, fill in a form, or fix something that's broken.
 
@@ -26,10 +26,10 @@ It usually comes with:
 
 ## One Real Task Folder
 
-Here is a real task folder from the Zotero benchmark:
+Here is a real task folder from the Moodle benchmark:
 
 ```text
-benchmarks/cua_world/environments/zotero_env/tasks/create_saved_search/
+benchmarks/cua_world/environments/moodle_env/tasks/enroll_student/
   task.json
   setup_task.sh
   export_result.sh
@@ -60,19 +60,19 @@ A simplified example looks like this:
 
 ```json
 {
-  "description": "Create a saved search named 'Papers Since 2010'.",
+  "description": "Enroll the student 'Jane Doe' in the 'Intro to Biology' course.",
   "init": {
     "timeout_sec": 300,
     "max_steps": 40
   },
   "hooks": {
-    "pre_task": "/workspace/tasks/create_saved_search/setup_task.sh",
-    "post_task": "/workspace/tasks/create_saved_search/export_result.sh"
+    "pre_task": "/workspace/tasks/enroll_student/setup_task.sh",
+    "post_task": "/workspace/tasks/enroll_student/export_result.sh"
   },
   "success": {
     "mode": "program",
     "spec": {
-      "program": "verifier.py::verify_create_saved_search"
+      "program": "verifier.py::verify_enroll_student"
     }
   }
 }
@@ -101,11 +101,11 @@ That's the step that tells Gym Anything to end the task cleanly and run the fina
 
 The setup script makes the starting point specific to that task.
 
-For the Zotero `create_saved_search` task, the setup script:
+For the Moodle `enroll_student` task, the setup script:
 
-- resets the Zotero state
-- seeds the library with papers
-- restarts the Zotero window
+- resets the Moodle database state
+- creates the student and course records
+- restarts the Moodle service
 - leaves the app ready for the agent to begin
 
 Without that step, the task wouldn't start from a known state.
@@ -122,7 +122,7 @@ Most of our benchmark tasks use a Python check in `verifier.py`. That check can 
 - database contents
 - screenshots from the run
 
-For the Zotero saved-search task, the checker reads exported information about saved searches and verifies that the right search name and date filter were created.
+For the Moodle enroll-student task, the checker queries the Moodle database and verifies that the correct student was enrolled in the expected course.
 
 We also support image-based checks and mixed checks, but most tasks use code in `verifier.py`.
 
