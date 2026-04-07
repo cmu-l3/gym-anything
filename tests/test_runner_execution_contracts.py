@@ -127,6 +127,9 @@ def _unsupported_hints_for(runner_key: str, status: dict[str, object]) -> list[s
             if isinstance(info, dict) and not info.get("installed", False):
                 hints.add(str(dep).lower())
 
+    # Generic hints for runners whose binaries are simply missing
+    hints.add("not found")
+
     return sorted(hints)
 
 
