@@ -1,0 +1,41 @@
+{
+  "id": "microservice_mesh_connectivity_restoration@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "A botched Kubernetes namespace migration has broken the connectivity between 5 microservices in the 'ecommerce-platform' namespace. The services were previously operational but 5 separate failures were introduced during the migration. An architecture reference document at /home/ga/Desktop/service_architecture.md describes the intended service topology and expected connectivity. Your job as the SRE on-call is to restore full connectivity by diagnosing and fixing all 5 failures without being told which specific resources are broken. Login to Rancher at https://localhost (cluster: 'local') with credentials admin / Admin12345678!.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 120
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/microservice_mesh_connectivity_restoration/setup_task.sh",
+    "post_task": "/workspace/tasks/microservice_mesh_connectivity_restoration/export_result.sh"
+  },
+  "metadata": {
+    "target_namespace": "ecommerce-platform",
+    "architecture_doc": "/home/ga/Desktop/service_architecture.md",
+    "num_failures": 5,
+    "injected_failures": [
+      "api-gateway Service selector typo: 'app: api-gw' instead of 'app: api-gateway' (no endpoints)",
+      "product-service env var INVENTORY_HOST points to wrong namespace FQDN",
+      "NetworkPolicy 'restrict-cart-egress' blocks port 3000 egress from cart-service to payment-service",
+      "payment-service ConfigMap 'payment-config' has NOTIFICATION_HOST with wrong namespace",
+      "inventory-db Service port is 5433 instead of 5432"
+    ],
+    "verification_criteria": {
+      "C1": "api-gateway Service has >= 1 endpoint address",
+      "C2": "product-service deployment env INVENTORY_HOST contains 'ecommerce-platform' FQDN",
+      "C3": "NetworkPolicy allows port 3000 egress from cart-service (no blocking rule on 3000)",
+      "C4": "payment-config ConfigMap NOTIFICATION_HOST contains correct namespace 'ecommerce-platform'",
+      "C5": "inventory-db Service port is 5432"
+    },
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_microservice_mesh_connectivity_restoration"
+    }
+  }
+}

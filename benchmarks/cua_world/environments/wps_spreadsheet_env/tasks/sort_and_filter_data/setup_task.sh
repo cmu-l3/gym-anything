@@ -67,4 +67,8 @@ PYEOF
 
 chown ga:ga "$ORDERS_FILE" 2>/dev/null || true
 
+# Launch WPS Spreadsheet with the customer orders file
+source /workspace/scripts/launch_wps_for_task.sh
+launch_wps_with_file "$ORDERS_FILE"
+
 echo "=== Task setup complete ==="

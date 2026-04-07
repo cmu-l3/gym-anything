@@ -1,0 +1,35 @@
+{
+  "id": "optimize_network_signal_timing@1",
+  "version": "1.0",
+  "env_id": "sumo_env@0.1",
+  "description": "You are a traffic signal engineer at the Municipality of Bologna. The Pasubio corridor's traffic signals were recently reset to an equal-green-split configuration during a controller upgrade, causing widespread intersection delays. Your task is to restore efficient signal operation by redesigning timing plans based on actual traffic demand.\n\nUsing the Bologna Pasubio scenario at /home/ga/SUMO_Scenarios/bologna_pasubio/, run the baseline simulation with edge-level mean data collection (300-second aggregation intervals). Compute per-intersection average vehicle delay by comparing measured edge travel times against free-flow travel times (edge_length / speed_limit) on approach edges to each signalized intersection. Identify the three intersections with the highest average delay.\n\nFor these three intersections, analyze traffic demand on each approach from the route files and redesign signal timing with demand-proportional green phase durations. Maintain minimum 5-second green per phase and keep cycle lengths between 60 and 150 seconds. Leave all other intersections unchanged.\n\nCreate an optimized TLS file at /home/ga/SUMO_Scenarios/bologna_pasubio/pasubio_tls_optimized.add.xml and a simulation config at /home/ga/SUMO_Scenarios/bologna_pasubio/run_optimized.sumocfg referencing it. Run the optimized scenario with the same edge-data collection.\n\nProduce a comparison report at /home/ga/SUMO_Output/intersection_optimization_report.csv with columns: junction_id, baseline_delay_s, optimized_delay_s, improvement_pct. Each of the three targeted intersections must show at least 25% delay reduction.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/optimize_network_signal_timing/setup_task.sh",
+    "post_task": "/workspace/tasks/optimize_network_signal_timing/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Transportation Engineers (17-2051.01)",
+    "industry": "Architecture and Engineering",
+    "scenario": "bologna_pasubio",
+    "tls_ids": ["218", "219", "220", "230", "231", "232", "233", "282"],
+    "min_green_duration_s": 5,
+    "cycle_length_range_s": [60, 150],
+    "improvement_target_pct": 25,
+    "num_target_intersections": 3,
+    "optimized_tls_path": "/home/ga/SUMO_Scenarios/bologna_pasubio/pasubio_tls_optimized.add.xml",
+    "optimized_cfg_path": "/home/ga/SUMO_Scenarios/bologna_pasubio/run_optimized.sumocfg",
+    "report_path": "/home/ga/SUMO_Output/intersection_optimization_report.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_optimize_network_signal_timing"
+    }
+  }
+}

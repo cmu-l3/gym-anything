@@ -1,0 +1,53 @@
+{
+  "task_id": "multilang_documentary_mastering_pipeline@1",
+  "task_completion": [
+    {
+      "id": "sync_and_subtitle_analysis",
+      "description": "Agent analyzes source files to determine audio/video sync offsets and subtitle shifts.",
+      "points": 15,
+      "visual_evidence": "Screenshots showing the agent using media players (VLC, mpv), audio editors (Audacity), or terminal commands (ffprobe, ffmpeg silencedetect/blackdetect/volumedetect) on the source files to find the 5.0s video flash and the 8.5s/6.8s audio beeps."
+    },
+    {
+      "id": "master_mkv_generation",
+      "description": "Agent creates the documentary_master.mkv file with corrected sync offsets and all required streams.",
+      "points": 25,
+      "visual_evidence": "Terminal showing an ffmpeg command creating 'documentary_master.mkv' that maps the video, 3 audio tracks, and 2 subtitle tracks. Crucially, look for offset parameters applied to the inputs (e.g., '-itsoffset -3.5' or similar for English, '-itsoffset -1.8' for Spanish), and the file appearing in /home/ga/Videos/mastered/."
+    },
+    {
+      "id": "distribution_mp4_generation",
+      "description": "Agent creates the 720p distribution MP4s with hardburned subtitles and mixed audio.",
+      "points": 25,
+      "visual_evidence": "Terminal showing ffmpeg commands creating 'dist_english.mp4' and 'dist_spanish.mp4'. Look for video scaling filters (e.g., scale=1280:720), subtitle hardburning filters (e.g., subtitles=subs_en.srt), and audio mixing (e.g., amix), or the final files listed in the output directory."
+    },
+    {
+      "id": "audio_and_proof_sheet_generation",
+      "description": "Agent creates the audio-only M4A mix and the 3x2 QA proof sheet image.",
+      "points": 20,
+      "visual_evidence": "Terminal showing ffmpeg commands creating 'dist_audio.m4a' (audio mixing without video) and 'qa_proof_sheet.png' (using a tile filter like 'tile=3x2' and selecting frames at 15s intervals), or the files listed in the output directory."
+    },
+    {
+      "id": "mastering_report_creation",
+      "description": "Agent creates the mastering_report.json containing the calculated offsets and stream inventories.",
+      "points": 15,
+      "visual_evidence": "A text editor or terminal output (cat/echo) showing the creation of 'mastering_report.json' containing the correct calculated offsets (-3.5s for EN, -1.8s for ES, +2.5s for EN subs, +4.0s for ES subs) and the ffprobe-measured stream inventory."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_sync_discovery",
+      "description": "Agent actually inspects the media files to find the sync markers rather than magically knowing the offsets.",
+      "visual_evidence": "Look for ffprobe/ffmpeg analysis commands or GUI media player usage on the source files before the final encoding commands are executed. The agent should not instantly type the correct offsets (-3.5s, -1.8s) without prior investigation."
+    },
+    {
+      "id": "actual_media_encoding",
+      "description": "Agent actually encodes the media files using ffmpeg rather than creating empty dummy files.",
+      "visual_evidence": "Look for ffmpeg progress output (frame=..., fps=..., q=..., size=..., time=...) in the terminal, proving the files are actively being processed and encoded."
+    },
+    {
+      "id": "genuine_ffprobe_inventory",
+      "description": "Agent runs ffprobe on the generated master and distribution files to gather the stream inventory for the mastering report.",
+      "visual_evidence": "Look for terminal commands where the agent executes 'ffprobe' on documentary_master.mkv, dist_english.mp4, etc., to read their stream data before writing the mastering_report.json."
+    }
+  ],
+  "privileged_info_for_vlm": "Ground truth offsets: Video flash is at exactly 5.0s. English narration beep is at 8.5s (requires -3.5s offset to align). Spanish narration beep is at 6.8s (requires -1.8s offset to align). M&E beep is at 5.0s (pre-aligned, 0 offset). English subtitles require +2.5s shift. Spanish subtitles require +4.0s shift. Master MKV must have 1 video, 3 audio, and 2 subtitle streams. Distribution MP4s must be 1280x720 with 0 subtitle streams (hardburned) and 1 mixed audio stream. dist_audio.m4a must have 0 video streams and 1 audio stream. qa_proof_sheet.png must be a 3x2 grid of thumbnails."
+}

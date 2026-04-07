@@ -1,0 +1,57 @@
+{
+  "id": "security_event_taxonomy@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Establish a security event classification taxonomy in Splunk (http://localhost:8000, admin/SplunkAdmin1!) using eventtypes and tags. Create the 'ssh_brute_force' eventtype for 'index=security_logs' matching 'Failed password' with tags 'authentication' and 'attack'. Create the 'ssh_successful_login' eventtype for 'index=security_logs' matching 'Accepted password' or 'Accepted' with tags 'authentication' and 'privileged'. Create the 'system_error' eventtype for 'index=system_logs' matching 'error' with tags 'operations' and 'error'. Create a saved search named 'Tagged_Security_Summary' that queries 'tag=authentication' and summarizes the events by eventtype.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/security_event_taxonomy/setup_task.sh",
+    "post_task": "/workspace/tasks/security_event_taxonomy/export_result.sh"
+  },
+  "metadata": {
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!",
+    "eventtypes": [
+      {
+        "name": "ssh_brute_force",
+        "index": "security_logs",
+        "keyword": "fail",
+        "tags": [
+          "authentication",
+          "attack"
+        ]
+      },
+      {
+        "name": "ssh_successful_login",
+        "index": "security_logs",
+        "keyword": "accept",
+        "tags": [
+          "authentication",
+          "privileged"
+        ]
+      },
+      {
+        "name": "system_error",
+        "index": "system_logs",
+        "keyword": "error",
+        "tags": [
+          "operations",
+          "error"
+        ]
+      }
+    ],
+    "saved_search_name": "Tagged_Security_Summary",
+    "required_tag_in_search": "tag=authentication"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_security_event_taxonomy"
+    }
+  }
+}

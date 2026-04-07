@@ -1,0 +1,50 @@
+{
+  "id": "hl7_data_normalization@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a NextGen Connect channel named 'Data_Quality_Normalizer' to standardize inconsistent patient data. The channel must accept HL7 v2.x messages via a TCP Listener on port 6661 (MLLP) and write them to a File Writer at '/tmp/normalized_output/' with the filename 'normalized_${message.messageId}.hl7'. Use JavaScript transformers to normalize PID segment fields: Phone (PID-13) to '(XXX) XXX-XXXX' by stripping non-digits and removing leading '1's from 11-digit numbers (leaving the field unchanged if not 10 digits after cleanup); DOB (PID-7) to 'YYYYMMDD' from 'MM/DD/YYYY', 'YYYY-MM-DD', or 'YYYYMMDD' formats; and Gender (PID-8) by mapping 'Male'/'MALE'/'1' to 'M', 'Female'/'FEMALE'/'2' to 'F', and 'Other'/'3' to 'O' (defaulting to 'U'). The channel's functionality should be verified using the test messages located in '/tmp/test_hl7_messages/'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_data_normalization/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_data_normalization/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Data_Quality_Normalizer",
+    "input_dir": "/tmp/test_hl7_messages",
+    "output_dir": "/tmp/normalized_output",
+    "expected_files": 4,
+    "expectations": {
+      "hospital_a": {
+        "phone": "(555) 867-5309",
+        "dob": "19850315",
+        "gender": "M"
+      },
+      "hospital_b": {
+        "phone": "(555) 234-5678",
+        "dob": "19900322",
+        "gender": "F"
+      },
+      "hospital_c": {
+        "phone": "(555) 987-6543",
+        "dob": "19781105",
+        "gender": "M"
+      },
+      "hospital_d": {
+        "phone": "(555) 345-6789",
+        "dob": "20010704",
+        "gender": "M"
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_normalization"
+    }
+  }
+}

@@ -1,0 +1,115 @@
+{
+    "task_id": "perspective_painting_extraction@1",
+    "dataset": "Wikimedia Commons (Vermeer, Girl with a Pearl Earring)",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "Digital Archivists",
+            "verified_value": "Digital Archivists",
+            "source": "Task description states 'You are digitizing artwork for a museum's online archive'; this is standard digital archivist workflow for museum collections digitization",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Museum and Cultural Heritage",
+            "verified_value": "Museum and Cultural Heritage",
+            "source": "Task description references museum online archive; correcting photographed artworks is a core museum digitization workflow",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "painting_corrected.png",
+            "verified_value": "painting_corrected.png",
+            "source": "Task description: 'Export as painting_corrected.png to the Desktop'; export_result.sh checks for /home/ga/Desktop/painting_corrected.png; verified in live test that path is writable",
+            "status": "verified"
+        },
+        {
+            "key": "corrections[0]",
+            "metadata_value": "perspective_correction",
+            "verified_value": "perspective_correction",
+            "source": "Task step 1: 'Use GIMP's Perspective tool to correct the distortion'; setup_task.sh applies perspective transform with find_coeffs() mapping a rectangle to trapezoid with corners at (100,60), (820,12), (816,613), (80,558). Left side height=498px, right side height=601px — 103px difference. Verified visually in live test screenshots (06_gimp_strong_perspective.png)",
+            "status": "verified"
+        },
+        {
+            "key": "corrections[1]",
+            "metadata_value": "crop_to_content",
+            "verified_value": "crop_to_content",
+            "source": "Task step 2: 'Crop tightly to just the painting, removing all visible wall area'; gallery photo is 1300x950 with painting centered at offset (236,131); wall is warm beige RGB(210,190,150) surrounding the painting on all sides",
+            "status": "verified"
+        },
+        {
+            "key": "corrections[2]",
+            "metadata_value": "scale_to_width",
+            "verified_value": "scale_to_width",
+            "source": "Task step 3: 'Scale the result to exactly 1200 pixels wide (maintain aspect ratio)'; ground truth expected_output_width=1200, expected_output_height=900 (from 800:600 = 4:3 ratio); verified in /tmp/perspective_painting_gt.json from live test",
+            "status": "verified"
+        },
+        {
+            "key": "corrections[3]",
+            "metadata_value": "color_cast_correction",
+            "verified_value": "color_cast_correction",
+            "source": "Task step 4: 'Correct the warm color cast using Colors > Curves'; setup_task.sh applies R+15, G+5, B-20 color shift. Live test measured gallery_photo.jpg channel means: R=163.0, G=144.0, B=108.8 (channel std=22.45). Original painting channel std=6.74. Agent must reduce red, increase blue to neutralize",
+            "status": "verified"
+        },
+        {
+            "key": "source_image",
+            "metadata_value": null,
+            "verified_value": "Vermeer's 'Girl with a Pearl Earring' from Wikimedia Commons, full-resolution (5984x7389 Exif, 4095x4794 baseline), resized to 800x600 in setup",
+            "source": "Live test confirmed download: /tmp/source_painting_raw.jpg is 6,229,244 bytes, JPEG 4095x4794, with Exif metadata. Downloaded from https://upload.wikimedia.org/wikipedia/commons/d/d7/Meisje_met_de_parel.jpg. Evidence file 08_data_files_check.txt confirms",
+            "status": "verified"
+        },
+        {
+            "key": "gallery_photo_dimensions",
+            "metadata_value": null,
+            "verified_value": "1300x950 pixels, JPEG, RGB, 152,382 bytes",
+            "source": "Live test file check: 'gallery_photo.jpg: JPEG image data, 1300x950, components 3'. Evidence file 08_data_files_check.txt confirms exact size and format",
+            "status": "verified"
+        },
+        {
+            "key": "perspective_distortion_parameters",
+            "metadata_value": null,
+            "verified_value": "Trapezoid corners (absolute in 1300x950 image): TL=(336,191), TR=(1056,143), BR=(1052,744), BL=(316,689). Left side 498px tall, right side 601px tall. Photographed from the right — left side shorter by 103px",
+            "source": "Computed from setup_task.sh Python code: painting offset (236,131), dst_trap corners (100,60), (820,12), (816,613), (80,558) relative to framed painting. Independently verified by edge detection in live test (20_perspective_edges_detailed.txt)",
+            "status": "verified"
+        },
+        {
+            "key": "color_cast_parameters",
+            "metadata_value": null,
+            "verified_value": "Warm yellow-orange cast: R+15, G+5, B-20 applied globally. Gallery photo channel means: R=163.0, G=144.0, B=108.8 (std=22.45). To correct, agent should boost blue channel by ~20 and reduce red by ~15 in Curves",
+            "source": "Directly from setup_task.sh lines 165-168; confirmed in live test via Python image analysis (evidence 08_data_files_check.txt: 'Channels: R=162.9 G=144.0 B=108.6, Color cast std: 22.47')",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output_dimensions",
+            "metadata_value": null,
+            "verified_value": "1200x900 pixels (1200 wide, 4:3 aspect ratio from 800x600 painting)",
+            "source": "Task description: 'Scale the result to exactly 1200 pixels wide (maintain aspect ratio)'. Original painting is 800x600 = 4:3. 1200 * (600/800) = 900. Confirmed in /tmp/perspective_painting_gt.json: expected_output_width=1200, expected_output_height=900",
+            "status": "verified"
+        },
+        {
+            "key": "gimp_version_and_tools",
+            "metadata_value": null,
+            "verified_value": "GIMP 2.10.30 with Perspective Tool (Tools > Transform Tools > Perspective or Shift+P), Curves (Colors > Curves), Crop Tool, Scale Image (Image > Scale Image), Export As (File > Export As or Ctrl+Shift+E)",
+            "source": "Live test: 'GNU Image Manipulation Program version 2.10.30'; GIMP process running with gallery_photo.jpg loaded; all required tools confirmed available via Script-Fu and menu inspection. Evidence files 10_gimp_tools_check.txt and 13_visual_grounding_results.txt",
+            "status": "verified"
+        },
+        {
+            "key": "wall_color",
+            "metadata_value": null,
+            "verified_value": "Warm beige: base RGB(195,185,170) with ±5 noise, after color cast becomes approximately RGB(210,190,150). Gold frame color: RGB(175,150,75) outer, RGB(155,135,65) inner",
+            "source": "Directly from setup_task.sh: wall_color=(195,185,170), frame=(175,150,75), inner_frame=(155,135,65). Color cast adds R+15,G+5,B-20. Verified visually in live test screenshots showing warm beige wall and gold frame",
+            "status": "verified"
+        },
+        {
+            "key": "painting_ground_truth",
+            "metadata_value": null,
+            "verified_value": "Ground truth painting saved at /tmp/painting_ground_truth.png (800x600 PNG, 682,437 bytes). Original painting channel means: R=96.1, G=112.6, B=104.6 (std=6.74). After correction, output should approximate these neutral color values",
+            "source": "Live test confirmed file exists (08_data_files_check.txt: 'painting_ground_truth.png: PNG image data, 800 x 600'). Channel means computed independently from setup script Python code",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires extracting a painting from a gallery photograph (gallery_photo.jpg, 1300x950 JPEG on Desktop). The painting is Vermeer's 'Girl with a Pearl Earring' downloaded from Wikimedia Commons (resized to 800x600, 4:3 aspect ratio), surrounded by a 14px gold frame, and composited onto a warm beige wall (RGB ~210,190,150 after cast). The photograph has significant perspective distortion — the painting appears as a trapezoid with the left side 498px tall and right side 601px tall (103px difference), simulating a camera angle from the right. A warm yellow-orange color cast was applied: R+15, G+5, B-20, producing gallery photo channel means of R=163, G=144, B=109 (channel std=22.4, indicating strong imbalance). The agent must: (1) use GIMP's Perspective tool (Shift+P) to drag 4 corner handles to make the painting rectangular, (2) crop to remove the wall and frame, (3) scale to exactly 1200 pixels wide (expected output 1200x900), (4) correct the color cast using Colors > Curves by boosting blue ~20 and reducing red ~15 to achieve neutral balance (target channel std <7), and (5) export as painting_corrected.png to the Desktop. GIMP 2.10.30 is running with the image pre-loaded. The Perspective tool requires clicking and dragging handles — there is no numeric input field for perspective angles, making this intrinsically harder than rotation tasks. The painting trapezoid corners in the image are approximately at: TL=(336,191), TR=(1056,143), BR=(1052,744), BL=(316,689).",
+    "pi_confidence": "high"
+}

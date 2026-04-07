@@ -1,0 +1,53 @@
+{
+  "task_id": "vpd_tenant_isolation@1",
+  "task_completion": [
+    {
+      "id": "create_vpd_function",
+      "description": "Create the policy function for Row-Level Security",
+      "points": 20,
+      "visual_evidence": "A SQL client or terminal showing the successful compilation of a PL/SQL function (e.g., CREATE OR REPLACE FUNCTION) that determines access based on the logged-in user and the CLINIC_USER_MAP table."
+    },
+    {
+      "id": "apply_vpd_policy",
+      "description": "Apply the VPD policy to the PATIENT_ENCOUNTERS table",
+      "points": 20,
+      "visual_evidence": "A SQL client or terminal showing the execution of DBMS_RLS.ADD_POLICY targeting the SAAS_CORE.PATIENT_ENCOUNTERS table."
+    },
+    {
+      "id": "verify_north_user",
+      "description": "Verify that CLINIC_NORTH_APP sees only their assigned records",
+      "points": 20,
+      "visual_evidence": "A SQL query (e.g., SELECT COUNT(*)) executed while connected as CLINIC_NORTH_APP against SAAS_CORE.PATIENT_ENCOUNTERS, returning exactly 35 rows."
+    },
+    {
+      "id": "verify_south_user",
+      "description": "Verify that CLINIC_SOUTH_APP sees only their assigned records",
+      "points": 20,
+      "visual_evidence": "A SQL query (e.g., SELECT COUNT(*)) executed while connected as CLINIC_SOUTH_APP against SAAS_CORE.PATIENT_ENCOUNTERS, returning exactly 42 rows."
+    },
+    {
+      "id": "verify_admin_user",
+      "description": "Verify that SAAS_ADMIN retains access to all records",
+      "points": 20,
+      "visual_evidence": "A SQL query (e.g., SELECT COUNT(*)) executed while connected as SAAS_ADMIN against SAAS_CORE.PATIENT_ENCOUNTERS, returning exactly 100 rows."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_db_client",
+      "description": "The agent used a genuine database client or terminal to execute SQL commands",
+      "visual_evidence": "Screenshots show interaction with a real database interface (like SQL*Plus, SQL Developer, DBeaver, or a terminal running sqlplus) rather than just a text editor with typed out expected outputs."
+    },
+    {
+      "id": "authentic_user_sessions",
+      "description": "Verification queries were run under the correct user sessions",
+      "visual_evidence": "The screenshots should show explicit connection commands (e.g., 'CONNECT CLINIC_NORTH_APP') or UI indicators confirming which user is currently executing the verification query."
+    },
+    {
+      "id": "no_view_spoofing",
+      "description": "The agent did not cheat by creating views or dummy tables named PATIENT_ENCOUNTERS in the users' schemas",
+      "visual_evidence": "The queries during verification should explicitly target SAAS_CORE.PATIENT_ENCOUNTERS or rely on the VPD policy, without evidence of CREATE VIEW or CREATE TABLE commands being used to fake the row counts."
+    }
+  ],
+  "privileged_info_for_vlm": "The target table is SAAS_CORE.PATIENT_ENCOUNTERS. The mapping table is CLINIC_USER_MAP. Expected row counts when querying the table: CLINIC_NORTH_APP should see exactly 35 rows. CLINIC_SOUTH_APP should see exactly 42 rows. SAAS_ADMIN should see exactly 100 rows. The database connection is localhost:1521/XEPDB1."
+}

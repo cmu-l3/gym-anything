@@ -1,0 +1,35 @@
+{
+  "id": "liquid_handling_spill_prevention@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Laboratory Liquid Handling: Constrained Orientation Transport",
+  "description": "A laboratory automation engineer is programming a bio-robotics workcell to transport open vials of hazardous biological samples. The robot must traverse a U-shaped path over an obstacle while maintaining a perfectly level orientation to prevent spilling. Connect to the CoppeliaSim ZMQ Remote API, load a 6-DOF robot arm, and compute a multi-waypoint Cartesian path that visits four points relative to the robot base: Start (x=0.4, y=-0.2, z=0.2), Safe Height A (x=0.4, y=-0.2, z=0.5), Safe Height B (x=-0.4, y=0.3, z=0.5), and End (x=-0.4, y=0.3, z=0.2). Use an Inverse Kinematics solver to compute joint angles for this path such that the end-effector's orientation remains constantly level (tilt deviation stays at 0 degrees) and execute the trajectory. At each simulation step, record the telemetry and compute linear acceleration magnitude via finite differencing to ensure it stays below 1.5 m/s². Export the results under /home/ga/Documents/CoppeliaSim/exports/ as transport_telemetry.csv (columns: time_s, pos_x, pos_y, pos_z, roll_deg, pitch_deg, yaw_deg, tilt_error_deg, accel_magnitude_ms2) and spill_report.json (fields: total_steps_recorded, trajectory_completed, max_tilt_error_deg, max_accel_ms2, spill_prevented). Login: username=ga, password=password123.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/liquid_handling_spill_prevention/setup_task.sh",
+    "post_task": "/workspace/tasks/liquid_handling_spill_prevention/export_result.sh"
+  },
+  "metadata": {
+    "waypoints": [
+      [0.4, -0.2, 0.2],
+      [0.4, -0.2, 0.5],
+      [-0.4, 0.3, 0.5],
+      [-0.4, 0.3, 0.2]
+    ],
+    "max_tilt_deg": 2.0,
+    "max_accel_ms2": 1.5,
+    "output_csv": "/home/ga/Documents/CoppeliaSim/exports/transport_telemetry.csv",
+    "output_json": "/home/ga/Documents/CoppeliaSim/exports/spill_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_liquid_handling"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "id": "prp_bottleneck_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "hard",
+  "description": "A cognitive psychology class has collected dual-task Psychological Refractory Period (PRP) data in ~/pebl/data/prp_dual_task_data.csv. Perform a dual-task bottleneck analysis on this dataset, which includes participant_id, trial, soa_ms, t1_correct, t2_correct, rt1_ms, and rt2_ms. Exclude participant P99 for non-compliance (Task 1 accuracy ~50%) and filter the remaining data to include only trials where both tasks were correct. For each valid participant and for the group as a whole, calculate the mean RT1 and RT2 for each SOA. Additionally, determine the PRP effect magnitude for each participant, defined as the difference between Mean RT2 at 50ms SOA and Mean RT2 at 900ms SOA. Save the analysis to ~/pebl/analysis/prp_report.json. The output must contain a 'participants' list with individual 'id', 'soa_means' (keyed by string SOAs), and 'prp_effect_ms'; an 'excluded_participants' list with 'id' and 'reason'; and a 'group_soa_means' dictionary containing the grand averages.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/prp_bottleneck_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/prp_bottleneck_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "P99",
+    "contamination_type": "task_non_compliance",
+    "contamination_description": "t1_correct accuracy near 50%, flat RT2 curve across SOAs",
+    "soas": [
+      50,
+      150,
+      300,
+      500,
+      900
+    ],
+    "n_real_participants": 20,
+    "output_file": "/home/ga/pebl/analysis/prp_report.json",
+    "data_source": "Simulated OSF Pashler Replication (Ex-Gaussian RT distributions)"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_prp_bottleneck_analysis"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "id": "develop_detection_test_framework@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create a Python script at /home/ga/validate_detections.py to validate the Wazuh detection engine against three specific log entries. The script must process the following logs using the 'wazuh-logtest' utility (/var/ossec/bin/wazuh-logtest) inside the 'wazuh-wazuh.manager-1' Docker container: \"Dec 10 12:45:01 ubuntu-server sshd[12345]: Failed password for invalid user admin from 192.168.1.50 port 44832 ssh2\", \"Dec 10 12:48:05 ubuntu-server sshd[12389]: Accepted password for user ubuntu from 192.168.1.50 port 44836 ssh2\", and \"Dec 10 12:50:22 ubuntu-server sudo:   ubuntu : TTY=pts/0 ; PWD=/home/ubuntu ; USER=root ; COMMAND=/usr/bin/id\". The script should parse the output to extract the triggered Rule ID for each log, compare it to the expected standard Wazuh Rule ID, print a summary of the results, and exit with status code 0 if all tests pass or 1 if any fail.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/develop_detection_test_framework/setup_task.sh",
+    "post_task": "/workspace/tasks/develop_detection_test_framework/export_result.sh"
+  },
+  "metadata": {
+    "script_path": "/home/ga/validate_detections.py",
+    "container_name": "wazuh-wazuh.manager-1",
+    "logtest_path": "/var/ossec/bin/wazuh-logtest",
+    "expected_rules": {
+      "ssh_invalid": [
+        "5710",
+        "5716"
+      ],
+      "ssh_success": [
+        "5715"
+      ],
+      "sudo_success": [
+        "5402"
+      ]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_develop_detection_test_framework"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "cnp_multi_task_battery_report@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are a clinical neuropsychologist at a research hospital generating standardized cognitive battery reports for the Consortium for Neuropsychiatric Phenomics (CNP) study. Three raw data files are available in ~/pebl/data/cnp/: bart_data.csv (Balloon Analogue Risk Task), stopsignal_data.csv (Stop Signal Task), and scap_data.csv (Sternberg Capacity/SCAP Working Memory task). Each dataset covers the same 11 CNP participants, but WARNING: the SCAP file uses a different participant ID format (no hyphen: 'sub10159' instead of 'sub-10159'). Additionally, one participant in the BART and Stop Signal datasets has been flagged for data quality issues. Your tasks: (1) Harmonize participant IDs across all three datasets (normalize to 'sub-NNNNN' format with hyphen). (2) Identify and exclude the contaminated participant by detecting implausible data patterns: in the BART data, the contaminated participant shows zero pumps across all non-exploded trials (ADJMEANPUMPS = 0), suggesting a non-responsive participant; in the Stop Signal data, this same participant shows impossibly short stop-signal reaction times. Exclude this participant from BART and Stop Signal analyses only (their SCAP data may be used if valid). (3) For each valid participant, compute: BART adjusted mean pumps (ADJMEANPUMPS = mean pumps on non-exploded trials only), SSRT (use the horse-race integration method: mean go RT minus the nth go RT where n = total stop trials * p(respond|stop)), and SCAP working memory accuracy at the highest set size (set_size=7). (4) Compute within-sample z-scores for each domain across valid participants. (5) Classify each participant as 'impaired' (z < -1.5) or 'intact' in each cognitive domain. (6) Write a JSON report to ~/pebl/analysis/cnp_battery_report.json with keys: 'participants' (list of objects with: id, bart_adjmeanpumps or excluded, ssrt_ms or excluded, scap_ss7_accuracy, bart_z, ssrt_z, scap_z, domains_impaired), and 'group_statistics' (with per-domain mean, sd, n_valid).",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cnp_multi_task_battery_report/setup_task.sh",
+    "post_task": "/workspace/tasks/cnp_multi_task_battery_report/export_result.sh"
+  },
+  "metadata": {
+    "datasets": ["bart_data.csv", "stopsignal_data.csv", "scap_data.csv"],
+    "n_real_participants": 11,
+    "contaminated_participant": "sub-99999",
+    "contamination_details": "sub-99999 has ADJMEANPUMPS=0 in BART (all balloons exploded, zero pumps on non-exploded trials) and anomalous SSRT",
+    "scap_id_format_difference": "SCAP uses sub10159 (no hyphen) vs sub-10159 in BART/StopSignal",
+    "output_file": "/home/ga/pebl/analysis/cnp_battery_report.json",
+    "reference_bart_adjmeanpumps": "Lejuez et al. (2002). Evaluation of a behavioral measure of risk taking: the balloon analogue risk task (BART). JPSP, 82(1):75-84.",
+    "reference_ssrt": "Logan & Cowan (1984). On the ability to inhibit thought and action: a theory of an act of control. Psychol Rev, 91(3):295-327.",
+    "reference_scap": "Gold et al. (2010). Verbal and nonverbal working memory performance and its relationship to frontal and parietal cortices in schizophrenia. Neuropsychology, 24(1):30-38."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cnp_multi_task_battery_report"
+    }
+  }
+}

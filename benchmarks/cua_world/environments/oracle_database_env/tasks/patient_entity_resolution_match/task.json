@@ -1,0 +1,35 @@
+{
+  "id": "patient_entity_resolution_match@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A hospital network needs to reconcile patient records from a newly acquired clinic. Using the 'MASTER_PATIENT_INDEX' and 'CLINIC_INTAKE' tables in the HR schema, identify corresponding patients using probabilistic matching. Create a table named 'PATIENT_LINKAGE' with columns INTAKE_ID (NUMBER), MPI_ID (NUMBER), and MATCH_SCORE (NUMBER). Populate this table with matches where Date of Birth (DOB) and Gender match exactly, and the average Jaro-Winkler similarity of the First Name and Last Name is 90 or greater. Use the Oracle 'UTL_MATCH' package for similarity calculations. Export the contents of 'PATIENT_LINKAGE' to /home/ga/Desktop/linkage_report.csv, ordered by match score descending. Connection details: Host=localhost, Port=1521, Service=XEPDB1, User=hr, Password=hr123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/patient_entity_resolution_match/setup_task.sh",
+    "post_task": "/workspace/tasks/patient_entity_resolution_match/export_result.sh"
+  },
+  "metadata": {
+    "match_threshold": 90,
+    "required_table": "PATIENT_LINKAGE",
+    "required_columns": [
+      "INTAKE_ID",
+      "MPI_ID",
+      "MATCH_SCORE"
+    ],
+    "output_csv": "/home/ga/Desktop/linkage_report.csv",
+    "connection_user": "hr",
+    "connection_password": "hr123",
+    "connection_string": "localhost:1521/XEPDB1"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_patient_entity_resolution"
+    }
+  }
+}

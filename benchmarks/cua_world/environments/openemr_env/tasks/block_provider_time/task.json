@@ -1,0 +1,40 @@
+{
+  "id": "block_provider_time@1",
+  "version": "1.0",
+  "env_id": "openemr_env@0.1",
+  "description": "Block a time slot on the calendar for provider Administrator, Administrator. Date: 3 business days from today (skip weekends), Time: 2:00 PM - 3:30 PM (90 minutes), Title: 'Compliance Training'. This should not be a patient appointment. Login: admin/pass.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 240,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/block_provider_time/setup_task.sh",
+    "post_task": "/workspace/tasks/block_provider_time/export_result.sh"
+  },
+  "metadata": {
+    "provider_id": 1,
+    "provider_username": "admin",
+    "provider_name": "Administrator, Administrator",
+    "target_start_time": "14:00",
+    "target_end_time": "15:30",
+    "target_duration_minutes": 90,
+    "business_days_ahead": 3,
+    "expected_description_keywords": ["compliance", "training", "meeting", "block", "unavailable"],
+    "scoring_weights": {
+      "event_created": 25,
+      "correct_provider": 20,
+      "correct_date": 20,
+      "correct_time": 15,
+      "no_patient": 10,
+      "description_present": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_block_provider_time"
+    }
+  }
+}

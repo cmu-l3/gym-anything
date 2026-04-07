@@ -1,0 +1,51 @@
+{
+  "id": "salary_audit_triggers@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Implement a compliance audit system for the HR database using Oracle PL/SQL triggers. Create a sequence named AUDIT_SEQ (start 1, increment 1, nocache) and a table named SALARY_AUDIT_LOG with columns AUDIT_ID (PK), EMPLOYEE_ID, CHANGE_TYPE, OLD_VALUE, NEW_VALUE, CHANGE_DATE, and CHANGED_BY. Develop a row-level trigger TRG_SALARY_AUDIT on the EMPLOYEES table to log BEFORE UPDATE changes to SALARY, JOB_ID, or DEPARTMENT_ID using change types 'SALARY', 'JOB_CHANGE', and 'DEPT_TRANSFER'. Create a row-level trigger TRG_PREVENT_MANAGER_DELETE on EMPLOYEES to prevent deleting managers by raising application error -20001. Verify the implementation by updating employee 200's salary to 5500, employee 105's department to 90, and employee 206's job to 'FI_ACCOUNT', then attempting to delete employee 100. Export the final SALARY_AUDIT_LOG to /home/ga/Desktop/audit_log.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/salary_audit_triggers/setup_task.sh",
+    "post_task": "/workspace/tasks/salary_audit_triggers/export_result.sh"
+  },
+  "metadata": {
+    "connection_user": "hr",
+    "connection_password": "hr123",
+    "connection_string": "localhost:1521/XEPDB1",
+    "required_objects": [
+      {
+        "name": "AUDIT_SEQ",
+        "type": "SEQUENCE"
+      },
+      {
+        "name": "SALARY_AUDIT_LOG",
+        "type": "TABLE"
+      },
+      {
+        "name": "TRG_SALARY_AUDIT",
+        "type": "TRIGGER"
+      },
+      {
+        "name": "TRG_PREVENT_MANAGER_DELETE",
+        "type": "TRIGGER"
+      }
+    ],
+    "test_data": {
+      "emp_salary_update": 200,
+      "emp_dept_update": 105,
+      "emp_job_update": 206,
+      "emp_delete_fail": 100
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_salary_audit_triggers"
+    }
+  }
+}

@@ -470,11 +470,36 @@ chown -R ga:ga "$PROFILE_ROOT"
 # ============================================================
 # 8. Warm-up Firefox
 # ============================================================
-echo "Launching Firefox warm-up..."
+
+# Ensure OrangeHRM is actually responding before launching Firefox.
+# This prevents the race condition where Firefox opens before Docker
+# containers are ready, causing a file manager or blank page instead.
+echo "Verifying OrangeHRM is accessible before launching Firefox..."
+HTTP_READY=false
+for i in $(seq 1 60); do
+    code=$(curl -sk -o /dev/null -w "%{http_code}" "$ORANGEHRM_LOGIN_URL" 2>/dev/null || true)
+    if [ "$code" = "200" ]; then
+        HTTP_READY=true
+        echo "OrangeHRM login page verified accessible (HTTP $code) after ${i}s"
+        break
+    fi
+    sleep 2
+done
+if [ "$HTTP_READY" != "true" ]; then
+    echo "WARNING: OrangeHRM login page not accessible, launching Firefox anyway"
+fi
+
+echo "Launching Firefox..."
+# Kill any stale Firefox processes first
+pkill -f firefox 2>/dev/null || true
+sleep 2
+
+# Launch Firefox with full environment for GUI session
 su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus firefox '${ORANGEHRM_LOGIN_URL}' > /tmp/firefox_warmup.log 2>&1 &"
 
+# Wait for Firefox window with increased timeout (60s instead of 30s)
 FF_STARTED=false
-for i in $(seq 1 30); do
+for i in $(seq 1 60); do
     if DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla"; then
         FF_STARTED=true
         echo "Firefox window detected after ${i}s"
@@ -488,7 +513,24 @@ if [ "$FF_STARTED" = "true" ]; then
     DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
     echo "Firefox warm-up complete"
 else
-    echo "WARNING: Firefox warm-up did not detect window within 30s"
+    echo "WARNING: Firefox window not detected within 60s, retrying launch..."
+    # Retry: kill and relaunch
+    pkill -f firefox 2>/dev/null || true
+    sleep 3
+    su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus firefox '${ORANGEHRM_LOGIN_URL}' > /tmp/firefox_warmup2.log 2>&1 &"
+    for i in $(seq 1 30); do
+        if DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla"; then
+            FF_STARTED=true
+            echo "Firefox window detected on retry after ${i}s"
+            sleep 2
+            DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+            break
+        fi
+        sleep 1
+    done
+    if [ "$FF_STARTED" != "true" ]; then
+        echo "ERROR: Firefox failed to start after retry"
+    fi
 fi
 
 echo ""

@@ -1,0 +1,53 @@
+{
+  "task_id": "soft_delete_architecture@1",
+  "task_completion": [
+    {
+      "id": "table_renamed_and_columns_added",
+      "description": "Verify the legacy table was renamed to INSURANCE_POLICIES_BASE and the required audit columns were added.",
+      "points": 20,
+      "visual_evidence": "SQL client showing the table structure or execution of ALTER TABLE commands renaming the table to 'INSURANCE_POLICIES_BASE' and adding 'IS_ACTIVE', 'DELETED_AT', and 'DELETED_BY' columns."
+    },
+    {
+      "id": "view_created",
+      "description": "Verify the creation of the INSURANCE_POLICIES view that filters for active records.",
+      "points": 20,
+      "visual_evidence": "SQL client showing the execution of a CREATE VIEW command for 'INSURANCE_POLICIES' or the view definition in an object browser, specifically including a WHERE clause like 'IS_ACTIVE = ''Y'''."
+    },
+    {
+      "id": "trigger_created",
+      "description": "Verify the INSTEAD OF DELETE trigger was created on the view to handle soft deletions.",
+      "points": 30,
+      "visual_evidence": "SQL client showing the execution of a CREATE TRIGGER command with 'INSTEAD OF DELETE ON INSURANCE_POLICIES' that contains an UPDATE statement setting IS_ACTIVE to 'N', DELETED_AT to SYSDATE, and DELETED_BY to the current user."
+    },
+    {
+      "id": "test_deletion_executed",
+      "description": "Verify the agent executed a DELETE statement for Policy ID 1005 through the view.",
+      "points": 15,
+      "visual_evidence": "SQL client showing the execution of a command like 'DELETE FROM INSURANCE_POLICIES WHERE POLICY_ID = 1005' and a corresponding success message (e.g., '1 row deleted')."
+    },
+    {
+      "id": "soft_delete_verified",
+      "description": "Verify the base table reflects the soft delete for Policy ID 1005.",
+      "points": 15,
+      "visual_evidence": "SQL query results from 'INSURANCE_POLICIES_BASE' showing the row for Policy ID 1005 has IS_ACTIVE = 'N', and non-null values for DELETED_AT and DELETED_BY."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_database_interaction",
+      "description": "Ensure the agent interacted with a real database client and connected to the specified database.",
+      "visual_evidence": "Screenshots show a recognizable database client interface (e.g., SQL*Plus, SQL Developer, DBeaver, or terminal sqlplus) with connection details matching localhost:1521/XEPDB1 and user 'hr'."
+    },
+    {
+      "id": "actual_execution_results",
+      "description": "Ensure the SQL commands were actually executed and not just drafted in an editor.",
+      "visual_evidence": "Presence of execution logs, success messages (e.g., 'Trigger created', 'View created'), or query result grids in the database client."
+    },
+    {
+      "id": "no_manual_update_shortcut",
+      "description": "Ensure the agent tested the trigger using a DELETE command on the view, rather than manually updating the base table to fake the test.",
+      "visual_evidence": "The test execution must show a 'DELETE FROM INSURANCE_POLICIES' command being run, not an 'UPDATE INSURANCE_POLICIES_BASE' command."
+    }
+  ],
+  "privileged_info_for_vlm": "The base table must be renamed to 'INSURANCE_POLICIES_BASE'. The replacement view must be named 'INSURANCE_POLICIES'. The base table must contain the audit columns 'IS_ACTIVE', 'DELETED_AT', and 'DELETED_BY'. The agent must test the implementation by deleting policy ID 1005 ('Dr. Arlene Stanton') through the view."
+}

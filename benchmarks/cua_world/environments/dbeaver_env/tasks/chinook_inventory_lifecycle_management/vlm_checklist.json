@@ -1,0 +1,53 @@
+{
+  "task_id": "chinook_inventory_lifecycle_management@1",
+  "task_completion": [
+    {
+      "id": "schema_modified",
+      "description": "Verify that the 'IsArchived' column was added to the 'tracks' table.",
+      "points": 20,
+      "visual_evidence": "Look for an executed SQL query like 'ALTER TABLE tracks ADD COLUMN IsArchived INTEGER DEFAULT 0;' or a database schema viewer showing the new 'IsArchived' column with type INTEGER in the 'tracks' table."
+    },
+    {
+      "id": "records_updated",
+      "description": "Verify that the 'IsArchived' column was updated to 1 for tracks not sold in 2013.",
+      "points": 25,
+      "visual_evidence": "Look for an executed SQL UPDATE statement that sets 'IsArchived = 1' with a WHERE clause filtering out tracks sold in 2013 (e.g., using a subquery on invoice_items and invoices where InvoiceDate LIKE '2013-%'). The execution result should ideally show 3061 rows updated."
+    },
+    {
+      "id": "summary_query_executed",
+      "description": "Verify that a query was executed to generate the summary report with the required columns and sorting.",
+      "points": 25,
+      "visual_evidence": "Look for a SELECT query joining genres and tracks, calculating TotalTracks, ArchivedCount (sum of IsArchived), ActiveCount, and ArchivalRate, grouped by GenreName, and sorted by ArchivalRate DESC."
+    },
+    {
+      "id": "csv_exported",
+      "description": "Verify that the summary report was saved to the correct path.",
+      "points": 15,
+      "visual_evidence": "Look for a file manager, terminal command (like sqlite3 .output or cp), or a GUI export dialog confirming the file is saved exactly at '/home/ga/Documents/exports/archival_summary.csv'."
+    },
+    {
+      "id": "csv_content_correct",
+      "description": "Verify the contents of the exported CSV file.",
+      "points": 15,
+      "visual_evidence": "Look for the CSV file opened in an editor, spreadsheet, or terminal (e.g., via 'cat' or 'head'). It must contain the headers: GenreName, TotalTracks, ArchivedCount, ActiveCount, ArchivalRate, and the data rows must be sorted with the highest ArchivalRate at the top."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_database_interaction",
+      "description": "Verify the agent interacted with the actual SQLite database to perform the schema changes and updates.",
+      "visual_evidence": "Look for the use of a database client (like DBeaver, DB Browser for SQLite) or the sqlite3 CLI tool interacting with '/home/ga/Documents/databases/chinook.db', rather than just writing a Python script that never executes or faking the output."
+    },
+    {
+      "id": "query_based_computation",
+      "description": "Verify that the summary statistics were computed by the database engine.",
+      "visual_evidence": "Look for SQL aggregation functions (COUNT, SUM) being used to calculate the metrics, rather than the agent manually typing out the final numbers or hardcoding the CSV content."
+    },
+    {
+      "id": "genuine_export",
+      "description": "Verify the CSV was generated from the query results.",
+      "visual_evidence": "Look for a database tool's export feature, a script writing the query results to a file, or CLI output redirection, ensuring the agent didn't just manually create a text file and paste guessed values."
+    }
+  ],
+  "privileged_info_for_vlm": "The database is located at /home/ga/Documents/databases/chinook.db. The 'tracks' table has 3,503 total rows. Exactly 442 tracks were sold in 2013, meaning 3,061 tracks should be marked as archived (IsArchived = 1). There are 25 total genres, so the final summary CSV should contain exactly 25 data rows. The output CSV must be saved to /home/ga/Documents/exports/archival_summary.csv and include columns: GenreName, TotalTracks, ArchivedCount, ActiveCount, ArchivalRate, sorted by ArchivalRate descending."
+}

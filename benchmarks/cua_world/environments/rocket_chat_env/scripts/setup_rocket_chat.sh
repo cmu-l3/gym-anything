@@ -229,13 +229,6 @@ echo "Using compose command: $DC"
 # Ensure deterministic startup state
 $DC down --remove-orphans --volumes >/tmp/rocket_chat_compose_down.log 2>&1 || true
 
-echo "Pulling Rocket.Chat stack images..."
-$DC pull >/tmp/rocket_chat_compose_pull.log 2>&1 || {
-  echo "ERROR: docker compose pull failed"
-  tail -n 200 /tmp/rocket_chat_compose_pull.log || true
-  exit 1
-}
-
 echo "Starting MongoDB and NATS..."
 $DC up -d mongodb nats
 
@@ -298,6 +291,36 @@ else
 fi
 
 setup_firefox_profile
+
+# Launch Firefox with Rocket.Chat login page
+echo "Re-verifying Rocket.Chat is responsive before launching Firefox..."
+for i in $(seq 1 60); do
+    code=$(curl -s -o /dev/null -w "%{http_code}" "${ROCKETCHAT_BASE_URL}/api/info" 2>/dev/null || echo "000")
+    if [ "$code" = "200" ] || [ "$code" = "401" ] || [ "$code" = "403" ]; then
+        echo "Rocket.Chat web service ready"
+        break
+    fi
+    sleep 2
+done
+
+echo "Launching Firefox with Rocket.Chat login page..."
+su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus firefox '${ROCKETCHAT_BASE_URL}' > /tmp/firefox_rocketchat.log 2>&1 &"
+
+# Wait for Firefox window
+FF_STARTED=false
+for i in $(seq 1 30); do
+    if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla\|rocket"; then
+        FF_STARTED=true
+        echo "Firefox window detected after ${i}s"
+        break
+    fi
+    sleep 1
+done
+
+if [ "$FF_STARTED" = "true" ]; then
+    sleep 1
+    DISPLAY=:1 wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+fi
 
 echo "=== Rocket.Chat setup complete ==="
 echo "Rocket.Chat URL: ${ROCKETCHAT_BASE_URL}"

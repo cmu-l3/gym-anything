@@ -1,0 +1,31 @@
+{
+  "id": "analyze_er_triage_compliance@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Calculate Emergency Department wait times and flag SLA breaches in /home/ga/Documents/ed_encounters_august.xlsx. In the 'Encounters' sheet, calculate 'Wait_Minutes' (Arrival_Time to Provider_Seen_Time in minutes, integer), 'LOS_Hours' (Arrival_Time to Discharge_Time in hours, 1 decimal), and 'SLA_Status' (flag 'Breach' vs 'Compliant' where the target wait time is <=60 mins for High Acuity ESI 1, 2, 3, and <=120 mins for Low Acuity ESI 4, 5). Create a new sheet named 'Acuity Summary' containing a summary table by ESI_Level (1-5) with columns for Total_Patients, Avg_Wait_Mins, Breach_Count, and Compliance_Rate (calculated as (Total - Breach)/Total, formatted as a percentage).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/analyze_er_triage_compliance/setup_task.sh",
+    "post_task": "/workspace/tasks/analyze_er_triage_compliance/export_result.sh"
+  },
+  "metadata": {
+    "data_source": "Realistic synthetic ED encounter dataset mirroring MIMIC-IV-ED distribution",
+    "expected_sheets": [
+      "Encounters",
+      "Acuity Summary"
+    ],
+    "sla_threshold_high_acuity_mins": 60,
+    "sla_threshold_low_acuity_mins": 120
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_er_triage"
+    }
+  }
+}

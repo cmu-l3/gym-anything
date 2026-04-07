@@ -1,11 +1,11 @@
 #!/bin/bash
 echo "=== Setting up apply_data_validation task ==="
 
-PROJECT_FILE="/home/ga/Documents/project_tracker.xlsx"
+TRACKER_FILE="/home/ga/Documents/project_tracker.xlsx"
 
-rm -f "$PROJECT_FILE" 2>/dev/null || true
+rm -f "$TRACKER_FILE" 2>/dev/null || true
 
-# Create project tracker from real data (derived from Kaggle Superstore Sales dataset - major orders)
+# Create project tracker spreadsheet from real data (derived from Kaggle Superstore Sales dataset)
 python3 << 'PYEOF'
 import csv
 import openpyxl
@@ -32,12 +32,13 @@ for r in rows:
         r['Project Name'],
         r['Start Date'],
         r['End Date'],
-        int(float(r['Budget'])),
+        float(r['Budget']),
         r['Status'],
         r['Priority'],
         r['Assigned To']
     ])
 
+# Format header row
 header_font = Font(bold=True)
 header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
 
@@ -46,16 +47,18 @@ for cell in ws[1]:
     cell.fill = header_fill
     cell.alignment = Alignment(horizontal='center')
 
+# Format currency column (Budget = col 4)
 for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=4, max_col=4):
     for cell in row:
-        cell.number_format = '$#,##0'
+        cell.number_format = '$#,##0.00'
 
-ws.column_dimensions['A'].width = 32
-ws.column_dimensions['B'].width = 12
-ws.column_dimensions['C'].width = 12
-ws.column_dimensions['D'].width = 12
+# Auto-adjust column widths
+ws.column_dimensions['A'].width = 36
+ws.column_dimensions['B'].width = 14
+ws.column_dimensions['C'].width = 14
+ws.column_dimensions['D'].width = 14
 ws.column_dimensions['E'].width = 14
-ws.column_dimensions['F'].width = 12
+ws.column_dimensions['F'].width = 10
 ws.column_dimensions['G'].width = 14
 
 wb.save('/home/ga/Documents/project_tracker.xlsx')
@@ -63,6 +66,10 @@ print(f"Created project tracker file with {len(rows)} projects from real Superst
 
 PYEOF
 
-chown ga:ga "$PROJECT_FILE" 2>/dev/null || true
+chown ga:ga "$TRACKER_FILE" 2>/dev/null || true
+
+# Launch WPS Spreadsheet with the project tracker file
+source /workspace/scripts/launch_wps_for_task.sh
+launch_wps_with_file "$TRACKER_FILE"
 
 echo "=== Task setup complete ==="

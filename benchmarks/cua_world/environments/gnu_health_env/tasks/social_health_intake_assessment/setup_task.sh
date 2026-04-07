@@ -2,6 +2,7 @@
 echo "=== Setting up social_health_intake_assessment task ==="
 
 source /workspace/scripts/task_utils.sh
+wait_for_postgres
 
 # --- 1. Find Matt Zenon Betz ---
 MATT_PATIENT_ID=$(gnuhealth_db_query "

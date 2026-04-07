@@ -1,0 +1,65 @@
+{
+  "task_id": "relocate_bus_stop_farside@1",
+  "task_completion": [
+    {
+      "id": "baseline_output_generated",
+      "description": "Verify the baseline simulation was run and the output file was generated.",
+      "points": 10,
+      "visual_evidence": "Terminal commands showing the execution of the SUMO simulation for the baseline and the creation/existence of '/home/ga/SUMO_Output/baseline_tripinfos.xml'."
+    },
+    {
+      "id": "bus_stop_xml_modified",
+      "description": "Verify the agent attempted to modify the bus stop XML file with the new parameters.",
+      "points": 15,
+      "visual_evidence": "Terminal showing a text editor (like nano/vim) or a script modifying 'pasubio_bus_stops.add.xml' to change the edge and set 'startPos=\"5\"' and 'endPos=\"25\"'."
+    },
+    {
+      "id": "modified_output_generated",
+      "description": "Verify the modified simulation was run and the output file was generated.",
+      "points": 10,
+      "visual_evidence": "Terminal commands showing the execution of the SUMO simulation for the modified scenario and the creation/existence of '/home/ga/SUMO_Output/modified_tripinfos.xml'."
+    },
+    {
+      "id": "report_created",
+      "description": "Verify the summary report file was created at the specified path.",
+      "points": 10,
+      "visual_evidence": "Terminal showing the creation or content of '/home/ga/SUMO_Output/bus_stop_relocation_report.txt' (e.g., via 'cat', 'echo', or a script)."
+    },
+    {
+      "id": "report_original_edge_correct",
+      "description": "Verify the report correctly identifies the original edge of the first bus stop.",
+      "points": 15,
+      "visual_evidence": "The summary report contains the exact line 'original_edge: 2[1][1][1]b'."
+    },
+    {
+      "id": "report_baseline_duration_correct",
+      "description": "Verify the report contains the correct baseline average duration for buses.",
+      "points": 15,
+      "visual_evidence": "The summary report contains 'baseline_avg_duration:' followed by a value of approximately '568.54' (allow minor rounding differences like 568.5)."
+    },
+    {
+      "id": "report_new_edge_and_modified_duration",
+      "description": "Verify the report contains a valid new downstream edge and the modified average duration.",
+      "points": 25,
+      "visual_evidence": "The summary report contains 'new_edge: <edge_id>' (where edge_id is a valid downstream edge) and 'modified_avg_duration: <value>'. Note: Because the original edge is strictly the final edge for all routes, no valid downstream edge exists, so the agent should fail this step if it correctly identifies the impossibility, or fail by hallucinating an invalid edge."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "sumo_execution_visible",
+      "description": "Ensure the agent actually executed the SUMO simulation rather than fabricating the output files.",
+      "visual_evidence": "Terminal history showing 'sumo' or 'sumo-gui' commands being run with the appropriate configuration files."
+    },
+    {
+      "id": "calculation_script_used",
+      "description": "Ensure the agent calculated the average trip duration programmatically rather than hallucinating the math.",
+      "visual_evidence": "Presence of a Python script, shell pipeline (e.g., using grep/awk), or similar programmatic method used to parse the XML files and compute the average duration for bus trips."
+    },
+    {
+      "id": "genuine_file_inspection",
+      "description": "Ensure the agent inspected the route and bus stop files to determine the edges.",
+      "visual_evidence": "Commands like 'cat', 'grep', 'less', or a script reading 'pasubio_bus_stops.add.xml' and 'pasubio_busses.rou.xml' to find the bus stop and route information."
+    }
+  ],
+  "privileged_info_for_vlm": "The scenario used is the real-world Bologna Pasubio dataset. The first bus stop defined in pasubio_bus_stops.add.xml is 'busStop#1' located on the edge '2[1][1][1]b'. Analysis of the bus routes in pasubio_busses.rou.xml reveals that '2[1][1][1]b' is strictly the final edge for all routes that traverse it. Consequently, there is no immediately following downstream edge on its route. The task instruction to relocate to the 'new downstream edge' is logically impossible. The verifier should fail the agent on the new edge relocation step as the set of valid next edges is empty. The baseline average trip duration for buses is approximately 568.54 seconds."
+}

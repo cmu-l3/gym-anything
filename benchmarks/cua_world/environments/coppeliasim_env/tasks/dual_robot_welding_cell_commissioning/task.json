@@ -1,0 +1,39 @@
+{
+  "id": "dual_robot_welding_cell_commissioning@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Dual-Robot Spot-Welding Cell Commissioning",
+  "description": "A robotics integration engineer must commission a dual-UR5 spot-welding cell in CoppeliaSim. Two UR5 robots (model: '/opt/CoppeliaSim/models/robots/non-mobile/UR5.ttm') face each other across a shared workpiece \u2014 a 0.6\u00d70.3\u00d70.02 m steel plate centered at (0.4, 0, 0.15). Robot A is based at (0, \u22120.5, 0) and services 6 weld points on the near half (Y<0) of the plate. Robot B is based at (0, +0.5, 0) and services 6 weld points on the far half (Y>0). Weld points form two 3\u00d72 grids at X positions 0.2, 0.4, 0.6 m, Y offsets \u00b10.04 and \u00b10.10 m from the centerline, and Z = 0.16 m, with a 1-second dwell at each point. Using CoppeliaSim's scripting API, build the complete cell (both robots, plate, and 12 dummy markers at the weld points), then commission it in two operating modes. Sequential mode: Robot A completes all 6 welds first, then Robot B completes its 6. Record per-timestep end-effector positions and total cycle time. Coordinated mode: Both robots weld simultaneously. Implement a distance-based interlock \u2014 whenever the inter-robot end-effector clearance drops below 0.15 m, the trailing robot pauses until clearance recovers. Record per-timestep data including mutual clearance. Before running either mode, verify all 12 weld points are reachable by their assigned robot (positional error < 5 mm). Export weld_audit.csv (columns: robot_id, point_id, target_x, target_y, target_z, achieved_x, achieved_y, achieved_z, error_mm, reachable), sequential_cycle.csv (columns: timestep, sim_time_s, active_robot, robot_a_ee_x, robot_a_ee_y, robot_a_ee_z, robot_b_ee_x, robot_b_ee_y, robot_b_ee_z), coordinated_cycle.csv (same columns plus ee_clearance_m, interlock_active), and commissioning_report.json (fields: sequential_cycle_time_s, coordinated_cycle_time_s, speedup_pct, min_clearance_sequential_m, min_clearance_coordinated_m, interlock_activations, safety_violations, total_weld_points, all_reachable) to /home/ga/Documents/CoppeliaSim/exports/. Login: username=ga, password=password123.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dual_robot_welding_cell_commissioning/setup_task.sh",
+    "post_task": "/workspace/tasks/dual_robot_welding_cell_commissioning/export_result.sh"
+  },
+  "metadata": {
+    "robot_a_base": [0, -0.5, 0],
+    "robot_b_base": [0, 0.5, 0],
+    "plate_center": [0.4, 0, 0.15],
+    "plate_size": [0.6, 0.3, 0.02],
+    "weld_x_positions": [0.2, 0.4, 0.6],
+    "weld_y_offsets": [0.04, 0.10],
+    "weld_z": 0.16,
+    "dwell_time_s": 1.0,
+    "min_clearance_m": 0.15,
+    "max_position_error_mm": 5.0,
+    "expected_weld_audit": "/home/ga/Documents/CoppeliaSim/exports/weld_audit.csv",
+    "expected_sequential_csv": "/home/ga/Documents/CoppeliaSim/exports/sequential_cycle.csv",
+    "expected_coordinated_csv": "/home/ga/Documents/CoppeliaSim/exports/coordinated_cycle.csv",
+    "expected_report_json": "/home/ga/Documents/CoppeliaSim/exports/commissioning_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dual_robot_welding_cell_commissioning"
+    }
+  }
+}

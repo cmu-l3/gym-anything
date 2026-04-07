@@ -1,0 +1,33 @@
+{
+  "id": "docker_secrets_migration@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "Audit the AcmeCorp Store application at ~/projects/acme-store/ to migrate all hardcoded secrets to Docker Compose file-based secrets. Update the service configurations (Flask API, PostgreSQL, Redis, and Nginx) and application code to retrieve credentials from /run/secrets/ rather than docker-compose.yml or the API Dockerfile. Verify the stack is operational with the API accessible at localhost:8080 and save a compliance report to ~/projects/acme-store/compliance_report.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_secrets_migration/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_secrets_migration/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/acme-store",
+    "report_path": "/home/ga/Desktop/secrets_audit_report.txt",
+    "api_endpoint": "http://localhost:8080/api/products",
+    "required_secrets": [
+      "postgres_password",
+      "redis_password",
+      "flask_secret",
+      "stripe_key"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secrets_migration"
+    }
+  }
+}

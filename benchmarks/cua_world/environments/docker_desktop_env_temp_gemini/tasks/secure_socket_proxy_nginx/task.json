@@ -1,0 +1,31 @@
+{
+  "id": "secure_socket_proxy_nginx@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "Re-architect the 'monitor-stack' Docker Compose project to remove the direct Docker socket mount from the 'monitor' service. Implement a 'proxy' service using nginx:alpine that mounts /var/run/docker.sock, exposes it on port 2375, and restricts traffic to GET requests only. Update the 'monitor' service to connect to the proxy via TCP using DOCKER_HOST=tcp://proxy:2375 and ensure the stack is running.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/secure_socket_proxy_nginx/setup_task.sh",
+    "post_task": "/workspace/tasks/secure_socket_proxy_nginx/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/Documents/docker-projects/monitor-stack",
+    "expected_services": [
+      "monitor",
+      "proxy"
+    ],
+    "forbidden_mount": "/var/run/docker.sock",
+    "proxy_port": 2375
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secure_socket_proxy_nginx"
+    }
+  }
+}

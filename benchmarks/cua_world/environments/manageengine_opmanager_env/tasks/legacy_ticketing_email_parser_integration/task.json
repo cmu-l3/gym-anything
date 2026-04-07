@@ -1,0 +1,27 @@
+{
+  "id": "legacy_ticketing_email_parser_integration@1",
+  "version": "1.0",
+  "env_id": "manageengine_opmanager_env@0.1",
+  "description": "Configure an Email Notification Profile in OpManager to integrate with a legacy ITSM system. Create an Email Notification Profile named 'ITSM-Email-Connector' that triggers on 'Critical' severity alarms for 'All Devices'. Set the recipient (To) address to 'parser@itsm.internal'.\n\nThe legacy parser requires EXACT formatting. The Email Subject must be exactly:\n[NOC-ALERT] $severity on $displayName\n\nThe Email Message Body must contain exactly these 5 lines (using OpManager's dynamic variables):\nRequest-Type: Incident\nHost: $displayName\nIP-Address: $deviceIp\nEvent-Detail: $alarmMessage\nTime-Logged: $strModTime\n\nNavigate to Settings > Notifications > Notification Profiles to create this. Application: http://localhost:8060 (credentials: admin / Admin@123). A copy of this specification is also available on the desktop.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/legacy_ticketing_email_parser_integration/setup_task.sh",
+    "post_task": "/workspace/tasks/legacy_ticketing_email_parser_integration/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/ticketing_parser_result.json",
+    "expected_profile_name": "ITSM-Email-Connector",
+    "expected_recipient": "parser@itsm.internal"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_legacy_ticketing_email_parser_integration"
+    }
+  }
+}

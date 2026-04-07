@@ -1,0 +1,38 @@
+{
+  "id": "platform_capacity_governance_implementation@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "A fintech SaaS platform's Kubernetes cluster is experiencing cascading resource exhaustion incidents due to missing capacity governance controls. The 'payments-prod' namespace hosts 4 critical payment processing workloads but has no ResourceQuota, no LimitRanges, unbounded HorizontalPodAutoscalers, and missing PodDisruptionBudgets. A governance specification document at /home/ga/Desktop/capacity_governance_spec.md defines the required controls. Your job as the Platform Engineer is to implement all capacity governance controls exactly as specified, without being told which specific kubectl commands to run. Login to Rancher at https://localhost (cluster: 'local') with credentials admin / Admin12345678!.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 120
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/platform_capacity_governance_implementation/setup_task.sh",
+    "post_task": "/workspace/tasks/platform_capacity_governance_implementation/export_result.sh"
+  },
+  "metadata": {
+    "target_namespace": "payments-prod",
+    "governance_spec": "/home/ga/Desktop/capacity_governance_spec.md",
+    "required_controls": [
+      "ResourceQuota: cpu=8, memory=16Gi, pods=20, services=10",
+      "LimitRange: container default CPU limit=500m, default memory limit=512Mi",
+      "HPA for transaction-processor: min=2, max=10, CPU target=70%",
+      "PodDisruptionBudget for payment-gateway: minAvailable=1"
+    ],
+    "verification_criteria": {
+      "C1": "ResourceQuota 'payments-quota' exists with hard.cpu=8, hard.memory=16Gi, hard.pods=20",
+      "C2": "LimitRange 'payments-limits' exists with default CPU limit=500m, default memory limit=512Mi",
+      "C3": "HPA 'transaction-processor-hpa' targets transaction-processor with minReplicas=2, maxReplicas=10, CPU=70%",
+      "C4": "PodDisruptionBudget 'payment-gateway-pdb' exists for payment-gateway with minAvailable=1"
+    },
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_platform_capacity_governance_implementation"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "task_id": "docker_socket_proxy@1",
+  "task_completion": [
+    {
+      "id": "proxy_service_added",
+      "description": "Verify the proxy service is added to docker-compose.yml using the correct Nginx image.",
+      "points": 15,
+      "visual_evidence": "Screenshot of docker-compose.yml showing a new 'proxy' service block using the image 'nginx:1.24-alpine'."
+    },
+    {
+      "id": "socket_mount_removed",
+      "description": "Verify the raw Docker socket mount is removed from the dashboard service.",
+      "points": 15,
+      "visual_evidence": "Screenshot of docker-compose.yml showing the 'dashboard' service volumes section. It must NOT contain '- /var/run/docker.sock:/var/run/docker.sock' or similar direct socket mounts."
+    },
+    {
+      "id": "dashboard_reconfigured",
+      "description": "Verify the dashboard service is configured to connect to the Docker API via the new proxy.",
+      "points": 15,
+      "visual_evidence": "Screenshot of docker-compose.yml showing the 'dashboard' service environment variables including 'DOCKER_HOST=tcp://proxy:2375' (or equivalent configuration pointing to the proxy)."
+    },
+    {
+      "id": "nginx_configured",
+      "description": "Verify the Nginx configuration restricts access to only the allowed Docker API endpoints.",
+      "points": 35,
+      "visual_evidence": "Screenshot of the Nginx configuration file (e.g., nginx.conf) showing location blocks that explicitly allow GET requests to '^/containers/json$' and '^/containers/[^/]+/stats$', while denying or returning an error for all other paths and HTTP methods."
+    },
+    {
+      "id": "stack_running_functional",
+      "description": "Verify the updated docker-compose stack is running and functional.",
+      "points": 20,
+      "visual_evidence": "Screenshot of terminal showing 'docker compose ps' or 'docker ps' with both the dashboard and proxy containers running, OR curl command outputs showing 200 OK for allowed endpoints and 401/403/405 for blocked endpoints."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_file_modification",
+      "description": "Verify the agent actually modified the files in the correct project directory.",
+      "visual_evidence": "Look for terminal commands or text editor windows (nano, vim, etc.) modifying files specifically in /home/ga/projects/monitor-stack."
+    },
+    {
+      "id": "stack_restarted",
+      "description": "Verify the agent restarted the Docker stack to apply the changes.",
+      "visual_evidence": "Look for terminal commands like 'docker-compose up -d', 'docker compose restart', or 'docker-compose down && docker-compose up'."
+    },
+    {
+      "id": "real_proxy_configured",
+      "description": "Verify the proxy service actually mounts the real Docker socket rather than mocking responses.",
+      "visual_evidence": "Look at the proxy service definition in docker-compose.yml to ensure it mounts '/var/run/docker.sock' as a volume to proxy the actual Docker daemon."
+    }
+  ],
+  "privileged_info_for_vlm": "Project directory is /home/ga/projects/monitor-stack. Required services in docker-compose are 'dashboard' and 'proxy'. The proxy must run on port 2375. Allowed endpoints are GET /containers/json and GET /containers/{id}/stats. Blocked endpoints include POST /containers/create, GET /secrets, and /images/json. Pass threshold is 70."
+}

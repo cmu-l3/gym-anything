@@ -1,0 +1,36 @@
+{
+  "id": "multi_database_health_census@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Perform a data census of the MedinTux installation (local MySQL server, user: root, no password) for the DrTuxTest, MedicaTuxTest, CIM10Test, and CCAMTest databases. Save a structured, sectioned report to /home/ga/Documents/medintux_data_census.txt containing the following information:\n- Table counts for each of the four databases\n- Row counts for every table in each database\n- Schema (column names and types) of the 'fchpat' table in DrTuxTest\n- Total number of unique patients in DrTuxTest\n- The five largest tables by row count across the entire system\n- Total counts of CIM-10 diagnostic codes and CCAM procedure codes",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multi_database_health_census/setup_task.sh",
+    "post_task": "/workspace/tasks/multi_database_health_census/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/Documents/medintux_data_census.txt",
+    "required_dbs": [
+      "DrTuxTest",
+      "MedicaTuxTest",
+      "CIM10Test",
+      "CCAMTest"
+    ],
+    "key_tables": [
+      "fchpat",
+      "IndexNomPrenom"
+    ],
+    "min_report_lines": 20
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multi_database_health_census"
+    }
+  }
+}

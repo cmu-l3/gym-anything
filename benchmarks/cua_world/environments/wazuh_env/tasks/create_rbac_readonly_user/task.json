@@ -1,0 +1,29 @@
+{
+  "id": "create_rbac_readonly_user@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Provision a new read-only SOC analyst account using the Wazuh REST API at https://localhost:55000 (Admin: wazuh-wui, Password: MyS3cr37P450r.*-). Create a security policy named 'readonly_agents' that allows 'agent:read' and 'group:read' actions on 'agent:id:*' and 'group:id:*' resources. Create a security role named 'soc_analyst_readonly' linked to this policy. Create a user named 'analyst_jsmith' (Password: S0cAn4lyst!2024) and assign the 'soc_analyst_readonly' role to them. Verify the configuration by authenticating as the new user and saving the resulting JSON authentication response to /home/ga/rbac_verification.json.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_rbac_readonly_user/setup_task.sh",
+    "post_task": "/workspace/tasks/create_rbac_readonly_user/export_result.sh"
+  },
+  "metadata": {
+    "api_url": "https://localhost:55000",
+    "target_user": "analyst_jsmith",
+    "target_role": "soc_analyst_readonly",
+    "target_policy": "readonly_agents",
+    "verification_file": "/home/ga/rbac_verification.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_rbac_readonly_user"
+    }
+  }
+}

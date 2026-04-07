@@ -1,0 +1,30 @@
+{
+  "id": "warrant_constrained_logical_triage@1",
+  "version": "1.0",
+  "env_id": "autopsy_env@0.1",
+  "description": "You are a digital forensic examiner working on a 'taint team'. A search warrant explicitly restricts you to analyzing ONLY allocated (active) files from the seized device; analyzing unallocated space or deleted files will taint the investigation and violate the warrant. Your mission:\n\n1. Use Sleuth Kit tools (e.g., `tsk_recover -a`) in the terminal to extract ONLY the allocated files from the disk image `/home/ga/evidence/ntfs_undel.dd` into a new directory at `/home/ga/evidence/constrained_export/`.\n2. Launch Autopsy and create a new forensic case named `Constrained_Warrant_2024` (case number `INV-WAR-008`) in the default `/home/ga/Cases/` directory.\n3. Add the `/home/ga/evidence/constrained_export/` directory as a 'Logical Files' data source. (Do NOT ingest the raw .dd file, as this would ingest unallocated data and violate the warrant).\n4. Enable only the 'File Type Identification' and 'Hash Lookup' (MD5) ingest modules, then complete the ingest process.\n5. Generate an HTML Report using Autopsy's reporting module (Tools -> Generate Report -> HTML Report) and save it to the default case reports directory.\n6. Write a compliance summary to `/home/ga/Reports/warrant_summary.txt` with exactly these lines:\n   SOURCE_IMAGE: ntfs_undel.dd\n   EXTRACTION_METHOD: <tool used>\n   LOGICAL_FILES_COUNT: <N>\n   WARRANT_COMPLIANCE: VERIFIED",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/warrant_constrained_logical_triage/setup_task.sh",
+    "post_task": "/workspace/tasks/warrant_constrained_logical_triage/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Constrained_Warrant_2024",
+    "case_number": "INV-WAR-008",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "export_dir": "/home/ga/evidence/constrained_export",
+    "summary_file": "/home/ga/Reports/warrant_summary.txt",
+    "result_file": "/tmp/warrant_constrained_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_warrant_constrained_logical_triage"
+    }
+  }
+}

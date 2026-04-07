@@ -1,0 +1,33 @@
+{
+  "id": "empirical_limit_calibration_routine@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a flight engineer in the Launch and Early Orbit Phase (LEOP). Perform an empirical limit calibration for the INST satellite's TEMP3 sensor in OpenC3 COSMOS. Collect at least 15 observations of the 'INST HEALTH_STATUS TEMP3' telemetry item to determine baseline_min and baseline_max. Calculate the operational span (baseline_max - baseline_min; use 5.0 if 0.0) and set new limits: YELLOW_LOW = baseline_min - (span * 0.2), YELLOW_HIGH = baseline_max + (span * 0.2), RED_LOW = baseline_min - (span * 0.4), and RED_HIGH = baseline_max + (span * 0.4). Apply these limits to the 'INST HEALTH_STATUS TEMP3' item and save a JSON report to /home/ga/Desktop/limit_calibration_report.json containing the target ('INST'), item ('TEMP3'), sample_count, raw_samples, baseline_min, baseline_max, and the new_limits (red_low, yellow_low, yellow_high, red_high). OpenC3 password: Cosmos2024!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/empirical_limit_calibration_routine/setup_task.sh",
+    "pre_task_timeout": 180,
+    "post_task": "/workspace/tasks/empirical_limit_calibration_routine/export_result.sh"
+  },
+  "metadata": {
+    "target": "INST",
+    "item": "TEMP3",
+    "output_file": "/home/ga/Desktop/limit_calibration_report.json",
+    "result_file": "/tmp/limit_calibration_result.json",
+    "ground_truth_file": "/var/lib/app/ground_truth_temp3.csv",
+    "margin_yellow": 0.2,
+    "margin_red": 0.4,
+    "fallback_span": 5.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_limit_calibration"
+    }
+  }
+}

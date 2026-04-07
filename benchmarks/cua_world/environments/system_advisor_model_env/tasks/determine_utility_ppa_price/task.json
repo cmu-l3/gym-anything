@@ -1,0 +1,36 @@
+{
+  "id": "determine_utility_ppa_price@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "Using PySAM (Python scripting), model a 50 MW DC utility-scale single-axis tracking photovoltaic plant and determine the Year 1 PPA electricity price (in ¢/kWh) that achieves a leveraged after-tax IRR of 11%, using the Single Owner financial model.\n\nSystem Design Parameters:\n- DC Capacity: 50,000 kW\n- DC:AC Ratio: 1.2\n- Array Type: Single-axis tracking (value 2 in PVWatts)\n- Tilt: 0 degrees\n- Azimuth: 180 degrees\n- System Losses: 14.08%\n- Module Type: Standard (value 0)\n- Annual Degradation: 0.5%/year\n- Weather Data: Use any available TMY weather file from SAM's bundled solar_resource directory (path in /home/ga/.SAM/solar_resource_dir.txt). Prefer a US Southwest location.\n\nSingle Owner Financial Parameters:\n- Analysis Period: 25 years\n- Federal Tax Rate: 21%\n- State Tax Rate: 7%\n- Federal Investment Tax Credit (ITC): 30%\n- Depreciation: 5-year MACRS\n- Inflation Rate: 2.5%\n- Real Discount Rate: 6.4%\n- Total Installed Cost: $1,100/kW DC ($55,000,000 total)\n- Annual Fixed O&M Cost: $16/kW-yr\n- Debt Fraction: 54%\n- Debt Interest Rate: 5.5% (annual)\n- Debt Term: 18 years\n- PPA Escalation Rate: 1.0%/year\n- PPA Solution Mode: Solve for PPA price to achieve target IRR\n- Target IRR (leveraged, after-tax): 11%\n\nRun the performance and financial models together, then save the results as a JSON file to `/home/ga/Documents/SAM_Projects/utility_pv_ppa_results.json`. The JSON must contain these exact keys:\n- `weather_file_used` (string)\n- `system_capacity_kw` (number)\n- `annual_energy_year1_kwh` (number)\n- `capacity_factor_percent` (number)\n- `ppa_price_year1_cents_per_kwh` (number)\n- `leveraged_after_tax_irr_percent` (number)\n- `npv_dollars` (number)\n- `lcoe_nominal_cents_per_kwh` (number)\n- `total_installed_cost_dollars` (number)",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/determine_utility_ppa_price/setup_task.sh",
+    "post_task": "/workspace/tasks/determine_utility_ppa_price/export_result.sh"
+  },
+  "metadata": {
+    "expected_filename": "utility_pv_ppa_results.json",
+    "expected_capacity_kw": 50000,
+    "expected_installed_cost": 55000000,
+    "annual_energy_min_kwh": 85000000,
+    "annual_energy_max_kwh": 130000000,
+    "capacity_factor_min": 19.0,
+    "capacity_factor_max": 30.0,
+    "ppa_price_min": 2.0,
+    "ppa_price_max": 9.0,
+    "irr_target": 11.0,
+    "irr_tolerance": 1.0,
+    "npv_tolerance": 2000000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_determine_utility_ppa_price"
+    }
+  }
+}

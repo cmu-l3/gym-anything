@@ -1,0 +1,30 @@
+{
+  "id": "thermal_rate_of_change_profiling@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are monitoring the INST satellite during a thermal transition phase. Using OpenC3 COSMOS (password: Cosmos2024!), sample the INST HEALTH_STATUS TEMP1 telemetry 20 times at approximately 1.0-second intervals to compute real-time derivatives and extract extrema values. Calculate the precise time elapsed (dt) between samples using timestamps, the rate of change (dT_dt), and the maximum heating and cooling rates. Export the results to /home/ga/Desktop/thermal_roc_report.json. The JSON must contain the fields: 'target' ('INST'), 'item' ('TEMP1'), 'sample_count' (20), 'max_heating_rate', 'max_cooling_rate', and a 'samples' array of 20 objects. Each sample object must include 'sequence' (1-20), 'timestamp' (ISO 8601), 'temp', 'dt' (0.0 for the first sample), and 'dT_dt' (0.0 for the first sample).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 90,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/thermal_rate_of_change_profiling/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/thermal_rate_of_change_profiling/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/thermal_roc_profiling_result.json",
+    "output_file": "/home/ga/Desktop/thermal_roc_report.json",
+    "target": "INST",
+    "item": "TEMP1",
+    "required_samples": 20
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_thermal_rate_of_change_profiling"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "task_id": "docker_secrets_migration@1",
+  "task_completion": [
+    {
+      "id": "secrets_removed_dockerfile",
+      "description": "Hardcoded FLASK_SECRET is removed from the API Dockerfile.",
+      "points": 15,
+      "visual_evidence": "Look for the contents of `api/Dockerfile` in a text editor, `cat`, or `git diff` output. Verify that the line `ENV FLASK_SECRET=my_flask_secret_key_2024` (or similar hardcoded secret) has been removed."
+    },
+    {
+      "id": "secrets_removed_compose",
+      "description": "Hardcoded passwords and keys are removed from docker-compose.yml.",
+      "points": 15,
+      "visual_evidence": "Look for `docker-compose.yml` in an editor or terminal output. Verify that `POSTGRES_PASSWORD`, `REDIS_URL`, and `STRIPE_API_KEY` no longer contain the hardcoded values ('SuperSecret123!', 'RedisPass456', 'sk_live_a1b2c3d4e5f6g7h8i9j0')."
+    },
+    {
+      "id": "secrets_defined_compose",
+      "description": "Docker Compose file is updated to define and use file-based secrets.",
+      "points": 20,
+      "visual_evidence": "Look for a `secrets:` block at the bottom of `docker-compose.yml` defining the secrets (e.g., pointing to local files), and `secrets:` lists under the individual services (db, cache, api) to mount them to `/run/secrets/`."
+    },
+    {
+      "id": "app_reads_secrets",
+      "description": "Application code and configurations are updated to read from /run/secrets/.",
+      "points": 20,
+      "visual_evidence": "Look for edits in `app.py` (or similar application files) showing Python code reading secrets from files in `/run/secrets/` (e.g., `open('/run/secrets/flask_secret').read()`). Also look for environment variables like `POSTGRES_PASSWORD_FILE` in `docker-compose.yml`."
+    },
+    {
+      "id": "stack_operational",
+      "description": "The Docker stack is running successfully with the new secrets configuration.",
+      "points": 20,
+      "visual_evidence": "Look for terminal output of `docker ps` or `docker compose ps` showing the four services (db, cache, api, web) in an 'Up' or running state without crash loops."
+    },
+    {
+      "id": "api_and_report",
+      "description": "The API is accessible and the compliance report is saved.",
+      "points": 10,
+      "visual_evidence": "Look for a successful response from `curl http://localhost:8080/api/products` (or via a browser). Also look for the existence and content of the compliance report file at `~/projects/acme-store/compliance_report.txt` (or `/home/ga/Desktop/secrets_audit_report.txt`)."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_docker_usage",
+      "description": "Verify the agent actually executed Docker commands to test the stack.",
+      "visual_evidence": "Look for genuine terminal execution of commands like `docker compose up -d`, `docker compose down`, or `docker ps`, rather than just echoing text."
+    },
+    {
+      "id": "genuine_file_edits",
+      "description": "Verify the agent genuinely edited the configuration and code files.",
+      "visual_evidence": "Look for the use of real text editors (nano, vim, VS Code) or standard shell commands (sed, echo) to modify `docker-compose.yml`, `Dockerfile`, and `app.py`."
+    },
+    {
+      "id": "authentic_api_test",
+      "description": "Verify the API was actually tested against the running container.",
+      "visual_evidence": "Look for a real `curl` command or browser request to `localhost:8080` that returns actual JSON data from the API, not a mocked response."
+    }
+  ],
+  "privileged_info_for_vlm": "The AcmeCorp Store application is located at /home/ga/projects/acme-store. The four hardcoded secrets that must be migrated to Docker secrets are: (1) postgres_password ('SuperSecret123!'), (2) redis_password ('RedisPass456'), (3) flask_secret ('my_flask_secret_key_2024'), and (4) stripe_key ('sk_live_a1b2c3d4e5f6g7h8i9j0'). The Docker stack consists of four services: db (postgres:14), cache (redis:7-alpine), api (Flask Python 3.11), and web (nginx:1.24-alpine). The API endpoint to verify functionality is http://localhost:8080/api/products. The compliance report should be located at ~/projects/acme-store/compliance_report.txt (or /home/ga/Desktop/secrets_audit_report.txt depending on the environment setup)."
+}

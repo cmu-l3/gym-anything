@@ -1,0 +1,38 @@
+{
+  "id": "process_bounced_emails@1",
+  "version": "1.0",
+  "env_id": "thunderbird_env@0.1",
+  "description": "Identify the bounce notification emails (Non-Delivery Reports) in the Inbox and extract the failed recipient email addresses. Save the extracted addresses to ~/Desktop/bounced_contacts.txt with one address per line. Move the source bounce notification emails from the Inbox into a new folder named 'Bounces' under Local Folders.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/process_bounced_emails/setup_task.sh",
+    "post_task": "/workspace/tasks/process_bounced_emails/export_result.sh"
+  },
+  "metadata": {
+    "expected_text_file": "/home/ga/Desktop/bounced_contacts.txt",
+    "expected_bounces_folder": "Bounces",
+    "expected_addresses": [
+      "j.doe@expired-domain.com",
+      "former_employee@corp.example.com",
+      "sales-info@invalid-domain.net",
+      "admin@old-startup.io"
+    ],
+    "ndr_subject_patterns": [
+      "Undelivered Mail Returned to Sender",
+      "Delivery Status Notification \\(Failure\\)",
+      "Delivery failure",
+      "Returned mail: see transcript for details"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bounced_emails"
+    }
+  }
+}

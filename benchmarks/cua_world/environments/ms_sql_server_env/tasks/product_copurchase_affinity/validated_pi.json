@@ -1,0 +1,80 @@
+{
+    "task_id": "product_copurchase_affinity@1",
+    "dataset": "AdventureWorks2022",
+    "case_id": "Sales data period 2011-05-31 to 2014-06-30",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/Documents/exports/top_product_bundles.csv",
+            "verified_value": "/home/ga/Documents/exports/top_product_bundles.csv",
+            "source": "Task description line 5 and export_result.sh line 101",
+            "status": "verified"
+        },
+        {
+            "key": "min_rows_populated",
+            "metadata_value": 50,
+            "verified_value": 50,
+            "source": "verifier.py line 91 checks 'if row_count >= 50'",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": ["ProductA_ID", "ProductA_Name", "ProductB_ID", "ProductB_Name", "CoOccurrenceCount", "Support", "Confidence_AtoB", "Lift"],
+            "verified_value": ["ProductA_ID", "ProductA_Name", "ProductB_ID", "ProductB_Name", "CoOccurrenceCount", "ProductA_OrderCount", "ProductB_OrderCount", "TotalOrders", "Support", "Confidence_AtoB", "Lift", "AnalysisDate"],
+            "source": "Task description explicitly states: 'Columns must include: ProductA_ID, ProductA_Name, ProductB_ID, ProductB_Name, CoOccurrenceCount, ProductA_OrderCount, ProductB_OrderCount, TotalOrders, Support (decimal), Confidence_AtoB (decimal), Lift (decimal), and AnalysisDate'",
+            "status": "contradicted"
+        },
+        {
+            "key": "sql_hint_formula",
+            "metadata_value": "P(A) = Count(A)/Total, P(AB) = Count(AB)/Total, Lift = P(AB)/(P(A)*P(B))",
+            "verified_value": "P(A) = Count(A)/Total (correct), P(AB) = Count(AB)/Total (correct), Lift = P(AB)/(P(A)*P(B)) (correct)",
+            "source": "Verified against market basket analysis literature and authoritative sources. Support = P(AB) = Count(AB)/Total. Confidence(A→B) = Count(AB)/Count(A). Lift = P(AB)/(P(A)*P(B)) where P(A)=Count(A)/Total and P(B)=Count(B)/Total",
+            "status": "verified"
+        },
+        {
+            "key": "database_source",
+            "metadata_value": null,
+            "verified_value": "AdventureWorks2022 sample database from Microsoft",
+            "source": "setup_mssql.sh line 15 downloads from https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak",
+            "status": "verified"
+        },
+        {
+            "key": "analysis_date_range",
+            "metadata_value": null,
+            "verified_value": "2011-05-31 to 2014-06-30",
+            "source": "Task description step 3: 'Execute the procedure for the period '2011-05-31' to '2014-06-30'.'",
+            "status": "verified"
+        },
+        {
+            "key": "minimum_cooccurrence_count",
+            "metadata_value": null,
+            "verified_value": 3,
+            "source": "Task description step 2: 'insert only pairs with CoOccurrenceCount >= 3 into the results table'",
+            "status": "verified"
+        },
+        {
+            "key": "export_row_count",
+            "metadata_value": null,
+            "verified_value": 15,
+            "source": "Task description step 5: 'Export the top 15 rows from this view to /home/ga/Documents/exports/top_product_bundles.csv'",
+            "status": "verified"
+        },
+        {
+            "key": "view_filter_condition",
+            "metadata_value": null,
+            "verified_value": "Lift > 1.0",
+            "source": "Task description step 4: 'Create a view 'dbo.vw_TopProductBundles' that selects all columns from ProductAffinityResults where Lift > 1.0'",
+            "status": "verified"
+        },
+        {
+            "key": "pair_deduplication_constraint",
+            "metadata_value": null,
+            "verified_value": "ProductA_ID < ProductB_ID",
+            "source": "Task description step 2: 'find pairs of products from Sales.SalesOrderDetail (using ProductA_ID < ProductB_ID to avoid duplicates)'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses AdventureWorks2022, a real Microsoft sample database with synthetic but realistic business data. Analysis covers sales transactions from 2011-05-31 to 2014-06-30. The market basket analysis must identify product pairs with minimum 3 co-occurrences, populate a result table with at least 50 pairs, and export the top 15 highest-lift product combinations. Correct formulas are: Support=Count(A,B)/Total; Confidence=Count(A,B)/Count(A); Lift=P(A,B)/(P(A)*P(B)). Critical discrepancy: Task requires 12 columns (including ProductA_OrderCount, ProductB_OrderCount, TotalOrders, AnalysisDate) but metadata claims only 8 columns, omitting 4 required fields.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,29 @@
+{
+  "id": "fleeting_contact_aos_automation@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are automating a satellite contact for a tumbling spacecraft. The INST target will experience a brief 15-second 'Acquisition of Signal' (AOS) window at an unpredictable time. Write a Python script that signals readiness by creating an empty file at /tmp/ready_for_pass.txt, then monitors the 'INST_INT' interface for a 'CONNECTED' state using the OpenC3 COSMOS API (password: Cosmos2024!). Once connected, immediately send the command 'INST COLLECT with TYPE NORMAL' and verify it was accepted via the 'INST HEALTH_STATUS CMD_ACPT_CNT' telemetry point. Save a JSON report to /home/ga/Desktop/pass_capture.json including the AOS and command timestamps (UNIX format), confirmation of the signals/commands, and the final telemetry count. Do not manually connect the interface; the simulation will trigger the 15-second window 5-15 seconds after your ready signal.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fleeting_contact_aos_automation/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/fleeting_contact_aos_automation/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/task_result.json",
+    "output_file": "/home/ga/Desktop/pass_capture.json",
+    "target": "INST",
+    "interface": "INST_INT"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fleeting_contact_aos"
+    }
+  }
+}

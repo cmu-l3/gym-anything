@@ -1,0 +1,71 @@
+{
+  "task_id": "corporate_usb_exfiltration_analysis@1",
+  "task_completion": [
+    {
+      "id": "case_created",
+      "description": "Create an Autopsy case named 'IP_Theft_2024' with case number 'INV-IPT-0892'.",
+      "points": 5,
+      "visual_evidence": "Autopsy window showing the case name 'IP_Theft_2024' and case number 'INV-IPT-0892' in the title bar, case properties, or new case wizard."
+    },
+    {
+      "id": "hash_set_imported",
+      "description": "Import corporate_hashes.txt as a hash set named 'Corporate_IP' via Tools > Options > Hash Sets.",
+      "points": 15,
+      "visual_evidence": "Autopsy Hash Sets configuration dialog (Tools > Options) showing a hash set entry named 'Corporate_IP', or the agent navigating through the hash set import workflow and selecting the corporate_hashes.txt file."
+    },
+    {
+      "id": "both_data_sources_added",
+      "description": "Add both corporate_repo.dd and suspect_usb.dd as separate data sources in the same case.",
+      "points": 10,
+      "visual_evidence": "The 'Data Sources' node in the Autopsy left tree panel showing both 'corporate_repo.dd' and 'suspect_usb.dd' listed as separate data sources."
+    },
+    {
+      "id": "ingest_with_hash_lookup",
+      "description": "Run ingest with Hash Lookup (using Corporate_IP hash set) and File Type Identification modules enabled.",
+      "points": 10,
+      "visual_evidence": "Ingest module configuration dialog showing 'Hash Lookup' checkbox selected (with Corporate_IP hash set configured) and 'File Type Identification' selected, or the ingest progress bar running with these modules active."
+    },
+    {
+      "id": "hashset_hits_identified",
+      "description": "Navigate to and review Hashset Hits results to identify exfiltrated files on the USB that match corporate hashes.",
+      "points": 15,
+      "visual_evidence": "Autopsy tree view expanded to show 'Hashset Hits' > 'Corporate_IP' with matching files listed in the results table, or the agent clicking on individual hash set hit entries to view file details."
+    },
+    {
+      "id": "deleted_files_found",
+      "description": "Locate deleted files on the USB drive using Autopsy's Deleted Files view or SleuthKit tools.",
+      "points": 10,
+      "visual_evidence": "Autopsy showing the 'Deleted Files' view with entries from suspect_usb.dd, or terminal showing fls output with deleted file markers (*) from the USB image."
+    },
+    {
+      "id": "ads_detected",
+      "description": "Detect NTFS Alternate Data Streams on the USB drive.",
+      "points": 10,
+      "visual_evidence": "Autopsy file tree or results showing ADS entries (files with ':' in their name like 'circuit_design_v3.txt:transfer_log'), or terminal showing fls/icat output revealing ADS content."
+    },
+    {
+      "id": "report_written",
+      "description": "Write the structured exfiltration report to /home/ga/Reports/exfiltration_report.txt with all five required sections.",
+      "points": 25,
+      "visual_evidence": "Terminal or text editor showing the contents of '/home/ga/Reports/exfiltration_report.txt' with visible section headers (## EXFILTRATED_FILES, ## MODIFIED_COPIES, ## DELETED_USB_FILES, ## CONCEALED_DATA, ## INVESTIGATION_SUMMARY) and pipe-delimited data rows."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "autopsy_gui_used",
+      "description": "The agent must use the Autopsy GUI for case creation, hash set import, and results navigation.",
+      "visual_evidence": "Screenshots should show the agent interacting with the Autopsy graphical interface (creating the case, importing hash sets via Tools > Options, adding data sources, navigating the tree view), not solely relying on command-line tools."
+    },
+    {
+      "id": "no_gt_file_access",
+      "description": "The agent must not access the ground truth file.",
+      "visual_evidence": "No terminal or editor should show the agent opening, reading, or extracting data from '/tmp/exfiltration_gt.json'."
+    },
+    {
+      "id": "genuine_analysis",
+      "description": "The report data should reflect actual findings from the disk images, not fabricated values.",
+      "visual_evidence": "MD5 hashes and file names in the final report should match values visible in Autopsy's interface or terminal tool output during the session. The agent should be seen reading metadata from the application before writing the report."
+    }
+  ],
+  "privileged_info_for_vlm": "The corporate_repo.dd contains 30 files across 5 departments (Engineering, Finance, Legal, Research, Executive). The suspect_usb.dd contains 8 files that are exact copies of corporate files (same MD5), 3 files that share names with corporate files but have appended content (different MD5, larger size), 5 deleted files (vendor_payments_q3.csv, experiment_log_042.txt, personal_notes.txt, job_applications.txt, usb_transfer_log.txt), and 3 NTFS Alternate Data Streams (circuit_design_v3.txt:transfer_log, board_strategy_2025.txt:notes, compound_analysis.csv:source_path). The most-targeted department is Executive (3 exfiltrated files). The risk classification should be HIGH or CRITICAL. The corporate_hashes.txt file at /home/ga/evidence/corporate_hashes.txt contains MD5 hashes of all 30 corporate files and should be imported as a hash set named 'Corporate_IP'. The ground truth is stored at /tmp/exfiltration_gt.json (agent should NOT access this)."
+}

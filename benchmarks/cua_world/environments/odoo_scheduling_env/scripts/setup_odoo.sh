@@ -54,6 +54,42 @@ docker compose run --rm --no-deps odoo odoo \
     --stop-after-init \
     2>&1 | tail -20
 
+# Verify database was created
+sleep 3
+DB_EXISTS=$(docker exec odoo-db psql -U odoo -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$ODOO_DB'" 2>/dev/null | tr -d '[:space:]')
+
+if [ "$DB_EXISTS" != "1" ]; then
+    echo "WARNING: Database '$ODOO_DB' not found after init. Retrying..."
+    docker compose run --rm --no-deps odoo odoo \
+        -d "$ODOO_DB" \
+        -i calendar,contacts \
+        --db_host=db \
+        --db_user=odoo \
+        --db_password=odoo \
+        --stop-after-init \
+        2>&1 | tail -30
+    sleep 3
+fi
+
+# Verify base module is installed
+BASE_INSTALLED=$(docker exec odoo-db psql -U odoo -d "$ODOO_DB" -tAc \
+    "SELECT COUNT(*) FROM ir_module_module WHERE name='base' AND state='installed'" 2>/dev/null | tr -d '[:space:]' || echo "0")
+echo "Base module installed: ${BASE_INSTALLED:-0}"
+
+if [ "${BASE_INSTALLED:-0}" -lt "1" ]; then
+    echo "ERROR: Base module not installed. Retrying from scratch..."
+    docker exec odoo-db psql -U odoo -d postgres -c "DROP DATABASE IF EXISTS $ODOO_DB" 2>/dev/null || true
+    sleep 2
+    docker compose run --rm --no-deps odoo odoo \
+        -d "$ODOO_DB" \
+        -i calendar,contacts \
+        --db_host=db \
+        --db_user=odoo \
+        --db_password=odoo \
+        --stop-after-init \
+        2>&1 | tail -30
+fi
+
 echo "Database initialization complete"
 
 # -------------------------------------------------------
@@ -129,7 +165,15 @@ EOF
 chown -R ga:ga /home/ga/.mozilla
 
 # -------------------------------------------------------
-# Step 6: Final status
+# Step 6: Flush data to disk
+# -------------------------------------------------------
+echo "Flushing data to disk..."
+docker exec odoo-db psql -U odoo -d postgres -c "CHECKPOINT" 2>/dev/null || true
+sync
+echo "Disk sync complete."
+
+# -------------------------------------------------------
+# Step 7: Final status
 # NOTE: Firefox is NOT launched here. Snap Firefox survives
 # VM snapshot/restore poorly: the process crashes on restore
 # and leaves a stale snap lock, causing the "Close Firefox"

@@ -1,0 +1,94 @@
+{
+    "task_id": "docker_image_reconstruction@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "services",
+            "metadata_value": "[\"api\", \"cron\", \"gateway\"]",
+            "verified_value": "[\"api\", \"cron\", \"gateway\"]",
+            "source": "setup_task.sh: Three service directories created (api, cron, gateway) and three separate Dockerfiles built",
+            "status": "verified"
+        },
+        {
+            "key": "expected_images",
+            "metadata_value": "[\"acme-api:reconstructed\", \"acme-cron:reconstructed\", \"acme-gateway:reconstructed\"]",
+            "verified_value": "[\"acme-api:reconstructed\", \"acme-cron:reconstructed\", \"acme-gateway:reconstructed\"]",
+            "source": "export_result.sh lines 28, 40, 52: Image names checked via docker images command",
+            "status": "verified"
+        },
+        {
+            "key": "api.User",
+            "metadata_value": "appuser",
+            "verified_value": "appuser",
+            "source": "setup_task.sh line 68: 'RUN useradd -m appuser' and line 69: 'USER appuser'",
+            "status": "verified"
+        },
+        {
+            "key": "api.WorkingDir",
+            "metadata_value": "/opt/api",
+            "verified_value": "/opt/api",
+            "source": "setup_task.sh line 63: 'WORKDIR /opt/api' in API Dockerfile",
+            "status": "verified"
+        },
+        {
+            "key": "api.ExposedPorts",
+            "metadata_value": "{\"5000/tcp\": {}}",
+            "verified_value": "{\"5000/tcp\": {}}",
+            "source": "setup_task.sh line 71: 'EXPOSE 5000' in API Dockerfile",
+            "status": "verified"
+        },
+        {
+            "key": "api.HasHealthcheck",
+            "metadata_value": true,
+            "verified_value": true,
+            "source": "setup_task.sh line 70: 'HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost:5000/health || exit 1'",
+            "status": "verified"
+        },
+        {
+            "key": "cron.Env",
+            "metadata_value": "[\"SCHEDULE_INTERVAL=300\", \"LOG_LEVEL=INFO\"]",
+            "verified_value": "[\"SCHEDULE_INTERVAL=300\", \"LOG_LEVEL=INFO\"]",
+            "source": "setup_task.sh lines 108-109: 'ENV SCHEDULE_INTERVAL=300' and 'ENV LOG_LEVEL=INFO' in CRON Dockerfile",
+            "status": "verified"
+        },
+        {
+            "key": "cron.WorkingDir",
+            "metadata_value": "/opt/cron",
+            "verified_value": "/opt/cron",
+            "source": "setup_task.sh line 104: 'WORKDIR /opt/cron' in CRON Dockerfile",
+            "status": "verified"
+        },
+        {
+            "key": "cron.Entrypoint",
+            "metadata_value": "[\"python\"]",
+            "verified_value": "[\"python\"]",
+            "source": "setup_task.sh line 111: 'ENTRYPOINT [\"python\"]' in CRON Dockerfile",
+            "status": "verified"
+        },
+        {
+            "key": "cron.Cmd",
+            "metadata_value": "[\"scheduler.py\"]",
+            "verified_value": "[\"scheduler.py\"]",
+            "source": "setup_task.sh line 112: 'CMD [\"scheduler.py\"]' in CRON Dockerfile",
+            "status": "verified"
+        },
+        {
+            "key": "gateway.ExposedPorts",
+            "metadata_value": "{\"80/tcp\": {}}",
+            "verified_value": "{\"80/tcp\": {}}",
+            "source": "setup_task.sh line 144: 'EXPOSE 80' in GATEWAY Dockerfile",
+            "status": "verified"
+        },
+        {
+            "key": "notes_file",
+            "metadata_value": "/home/ga/Desktop/reconstruction_notes.txt",
+            "verified_value": "/home/ga/Desktop/reconstruction_notes.txt",
+            "source": "setup_task.sh line 173-174: Desktop directory created and chowned; export_result.sh line 22 checks for file at this path",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Task is to reverse-engineer three production Docker images (acme-api, acme-cron, acme-gateway) by using docker history and inspect. All metadata claims are verified: API service runs as non-root user 'appuser' with working directory /opt/api, exposes port 5000/tcp, and includes a healthcheck probe. Cron service has working directory /opt/cron, environment variables SCHEDULE_INTERVAL=300 and LOG_LEVEL=INFO, and entrypoint/cmd structure of ['python'] + ['scheduler.py']. Gateway service exposes port 80/tcp and runs nginx. All Docker images are synthetically generated from Dockerfiles created by setup_task.sh, then the Dockerfiles are deleted to simulate lost source. Task requires reconstructing these Dockerfiles and rebuilding as ':reconstructed' images.",
+    "pi_confidence": "high"
+}

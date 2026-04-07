@@ -1,0 +1,45 @@
+{
+    "task_id": "load_balancer_fairness_analysis@1",
+    "dataset": "Numenta Anomaly Benchmark (NAB)",
+    "case_id": "realAWSCloudwatch",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_dashboard_name",
+            "metadata_value": "Load Balancer Fairness",
+            "verified_value": "Load Balancer Fairness",
+            "source": "verifier.py DASHBOARD_NAME and export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "expected_graph_titles",
+            "metadata_value": "[\"Network Traffic Share\", \"Disk Write Share\", \"CPU Imbalance Magnitude\"]",
+            "verified_value": "[\"Network Traffic Share\", \"Disk Write Share\", \"CPU Imbalance Magnitude\"]",
+            "source": "verifier.py GRAPH_NETWORK, GRAPH_DISK, and GRAPH_CPU constants",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Site Reliability Engineer",
+            "verified_value": "Site Reliability Engineer",
+            "source": "task.json description and roleplay context",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Cloud Infrastructure",
+            "verified_value": "Cloud Infrastructure",
+            "source": "task.json description and roleplay context",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/load_balancer_fairness_analysis_result.json",
+            "verified_value": "/tmp/load_balancer_fairness_analysis_result.json",
+            "source": "verifier.py RESULT_PATH",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses real AWS CloudWatch time-series data from the Numenta Anomaly Benchmark (NAB) dataset to populate Graphite metrics. I verified the expected dashboard name, required graph titles, and expected result file path explicitly match the verifier logic. I discovered a significant defect in the environment: while the task explicitly instructs the agent to analyze network traffic share between 'ec2_instance_1' and 'ec2_instance_2', the setup scripts ('install_graphite.sh' and 'feed_real_data.py') entirely omit downloading and mapping the second network data file ('ec2_network_in_257a54.csv' from NAB). As a result, the metric 'servers.ec2_instance_2.network.bytes_in' is permanently missing from Graphite, making the visual comparison of the second instance's network traffic impossible. However, the verifier only checks the string representation of the target queries, so an agent will still pass if it inputs the correct wildcard query despite the missing data.",
+    "pi_confidence": "high"
+}

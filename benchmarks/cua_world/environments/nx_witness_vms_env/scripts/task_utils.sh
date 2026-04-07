@@ -6,6 +6,26 @@ NX_ADMIN_PASS="Admin1234!"
 NX_TOKEN_FILE="/home/ga/nx_token.txt"
 
 # ============================================================
+# Server Readiness
+# ============================================================
+
+wait_for_nx_server() {
+    local timeout=120
+    local elapsed=0
+    echo "Waiting for Nx Witness server to start..."
+    while [ $elapsed -lt $timeout ]; do
+        if curl -sk "${NX_BASE}/rest/v1/system/info" --max-time 5 | grep -q '"version"'; then
+            echo "Nx Witness server is up after ${elapsed}s"
+            return 0
+        fi
+        sleep 3
+        elapsed=$((elapsed + 3))
+    done
+    echo "ERROR: Nx Witness server did not start within ${timeout}s"
+    return 1
+}
+
+# ============================================================
 # Authentication / Token Management
 # ============================================================
 
@@ -272,16 +292,27 @@ take_screenshot() {
 # ============================================================
 
 dismiss_ssl_warning() {
-    # Click "Advanced..." button then "Accept the Risk and Continue"
+    # The NX Witness self-signed cert has SAN=<server-uuid>, not localhost,
+    # so Firefox always shows the SSL warning. We dismiss it reliably using
+    # keyboard navigation: click page body for focus, then Shift+Tab focuses
+    # the "Accept the Risk and Continue" button (last tabbable element), Enter clicks it.
     sleep 2
-    DISPLAY=:1 xdotool key Tab Tab Tab Tab Return 2>/dev/null || true
-    sleep 1
-    # Try clicking Advanced button (typically center-ish of page)
-    DISPLAY=:1 xdotool mousemove 640 400 click 1 2>/dev/null || true
-    sleep 1
-    # Click "Accept the Risk and Continue"
-    DISPLAY=:1 xdotool mousemove 640 450 click 1 2>/dev/null || true
-    sleep 2
+    # Click page body to ensure focus is on page content (not address bar)
+    DISPLAY=:1 xdotool mousemove 960 400 click 1 2>/dev/null || true
+    sleep 0.5
+    # Shift+Tab focuses "Accept the Risk and Continue" (last focusable element)
+    DISPLAY=:1 xdotool key shift+Tab 2>/dev/null || true
+    sleep 0.3
+    DISPLAY=:1 xdotool key Return 2>/dev/null || true
+    sleep 5
+    # If it didn't work (Advanced section wasn't expanded), try expanding first
+    # then repeating
+    DISPLAY=:1 xdotool mousemove 960 400 click 1 2>/dev/null || true
+    sleep 0.3
+    DISPLAY=:1 xdotool key shift+Tab 2>/dev/null || true
+    sleep 0.3
+    DISPLAY=:1 xdotool key Return 2>/dev/null || true
+    sleep 3
 }
 
 # ============================================================

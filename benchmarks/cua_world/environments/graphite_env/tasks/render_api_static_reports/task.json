@@ -1,0 +1,29 @@
+{
+  "id": "render_api_static_reports@1",
+  "version": "1.0",
+  "env_id": "graphite_env@0.1",
+  "description": "You are a Platform Engineer automating a weekly infrastructure health report. Create an executable shell script at /home/ga/reports/generate_reports.sh that uses the Graphite Render API (http://localhost/render) to download three specific PNG graphs to the /home/ga/reports/ directory.\n\nGraph 1: Fleet CPU Overview\n- Save to: /home/ga/reports/fleet_cpu_overview.png\n- Targets: alias(servers.ec2_instance_1.cpu.utilization,'EC2 Instance 1'), alias(servers.ec2_instance_2.cpu.utilization,'EC2 Instance 2'), alias(servers.ec2_instance_3.cpu.cloudwatch_utilization,'EC2 Instance 3')\n- Time range: from=-7d\n- Display: title=Fleet CPU Overview, width=800, height=400, format=png\n\nGraph 2: Disk Write Rate\n- Save to: /home/ga/reports/disk_write_rate.png\n- Targets: derivative(servers.ec2_instance_1.disk.write_bytes), derivative(servers.ec2_instance_2.disk.write_bytes)\n- Time range: from=-3d\n- Display: title=Disk Write Rate (bytes/sec), width=800, height=400, format=png\n\nGraph 3: Temperature Analysis\n- Save to: /home/ga/reports/temperature_analysis.png\n- Targets: alias(servers.datacenter.machine_temperature,'Raw Temperature'), alias(movingAverage(servers.datacenter.machine_temperature,10),'Smoothed (MA-10)')\n- Time range: from=-7d\n- Display: title=Machine Temperature Analysis, width=800, height=400, format=png",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/render_api_static_reports/setup_task.sh",
+    "post_task": "/workspace/tasks/render_api_static_reports/export_result.sh"
+  },
+  "metadata": {
+    "reports_dir": "/home/ga/reports",
+    "script_path": "/home/ga/reports/generate_reports.sh",
+    "expected_width": 800,
+    "expected_height": 400,
+    "min_file_size_kb": 2
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_render_api_static_reports"
+    }
+  }
+}

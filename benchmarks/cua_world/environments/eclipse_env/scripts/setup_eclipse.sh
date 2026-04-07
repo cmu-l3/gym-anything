@@ -90,6 +90,68 @@ Categories=Development;IDE;
 DESKTOPEOF
 chmod +x /home/ga/Desktop/Eclipse.desktop
 chown ga:ga /home/ga/Desktop/Eclipse.desktop
+# Mark desktop file as trusted (GNOME requirement)
+su - ga -c "dbus-launch gio set /home/ga/Desktop/Eclipse.desktop metadata::trusted true" 2>/dev/null || true
+
+# Suppress Firefox first-run dialogs and Privacy Notice page
+# Firefox may be launched by Eclipse or by the desktop environment
+echo "Configuring Firefox to suppress first-run pages..."
+FIREFOX_PROFILE_DIR="/home/ga/.mozilla/firefox"
+mkdir -p "$FIREFOX_PROFILE_DIR"
+
+# Create profiles.ini with a default profile
+cat > "$FIREFOX_PROFILE_DIR/profiles.ini" << 'PROFILESEOF'
+[General]
+StartWithLastProfile=1
+
+[Profile0]
+Name=default-release
+IsRelative=1
+Path=default-release
+Default=1
+PROFILESEOF
+
+# Create the default profile directory
+mkdir -p "$FIREFOX_PROFILE_DIR/default-release"
+
+# Create user.js with prefs to suppress all first-run behavior
+cat > "$FIREFOX_PROFILE_DIR/default-release/user.js" << 'USERJS'
+// Suppress first-run pages and privacy notice
+user_pref("datareporting.policy.dataSubmissionEnabled", false);
+user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.startup.homepage_override.mstone", "ignore");
+user_pref("startup.homepage_welcome_url", "");
+user_pref("startup.homepage_welcome_url.additional", "");
+user_pref("startup.homepage_override_url", "");
+user_pref("browser.aboutwelcome.enabled", false);
+user_pref("trailhead.firstrun.didSeeAboutWelcome", true);
+user_pref("browser.rights.3.shown", true);
+user_pref("browser.startup.firstrunSkipsHomepage", true);
+user_pref("datareporting.policy.dataSubmissionPolicyAcceptedVersion", 2);
+user_pref("toolkit.telemetry.enabled", false);
+user_pref("browser.newtabpage.activity-stream.showSponsored", false);
+user_pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
+USERJS
+
+chown -R ga:ga "$FIREFOX_PROFILE_DIR"
+
+# Also set system-wide Firefox autoconfig to suppress first-run for all profiles
+FIREFOX_DIR=$(find /usr/lib /usr/lib64 /snap -maxdepth 3 -name "firefox" -type d 2>/dev/null | head -1)
+if [ -n "$FIREFOX_DIR" ] && [ -d "$FIREFOX_DIR" ]; then
+    mkdir -p "$FIREFOX_DIR/defaults/pref"
+    cat > "$FIREFOX_DIR/defaults/pref/autoconfig.js" << 'AUTOCONFIGJS'
+pref("general.config.filename", "mozilla.cfg");
+pref("general.config.obscure_value", 0);
+AUTOCONFIGJS
+    cat > "$FIREFOX_DIR/mozilla.cfg" << 'MOZILLACFG'
+// Skip first-run
+defaultPref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+defaultPref("toolkit.telemetry.reportingpolicy.firstRun", false);
+defaultPref("browser.aboutwelcome.enabled", false);
+MOZILLACFG
+fi
 
 # Launch Eclipse (use nohup + disown to ensure it survives shell exit)
 echo "Launching Eclipse IDE..."
@@ -129,6 +191,17 @@ if [ "$ECLIPSE_STARTED" = true ]; then
     # Close welcome tab if present (Ctrl+W)
     sleep 2
     DISPLAY=:1 xdotool key ctrl+w 2>/dev/null || true
+
+    # Kill any Firefox that may have launched (first-run page)
+    pkill -f firefox 2>/dev/null || true
+    sleep 1
+
+    # Re-focus Eclipse window after killing Firefox
+    WID=$(DISPLAY=:1 wmctrl -l | grep -i "eclipse\|java\|workspace" | head -1 | awk '{print $1}')
+    if [ -n "$WID" ]; then
+        DISPLAY=:1 wmctrl -ia "$WID" 2>/dev/null || true
+        DISPLAY=:1 wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+    fi
 else
     echo "WARNING: Eclipse window not detected within 120 seconds"
     echo "Check /tmp/eclipse_startup.log for details"

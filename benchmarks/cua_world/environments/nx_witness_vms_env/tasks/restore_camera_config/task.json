@@ -1,0 +1,35 @@
+{
+  "id": "restore_camera_config@1",
+  "version": "1.0",
+  "env_id": "nx_witness_vms_env@0.1",
+  "description": "A recent unauthorized access incident has corrupted the camera configurations in the Nx Witness VMS. Restore the system to its correct state using the trusted backup file at /home/ga/Documents/camera_backup.json. Update each camera's settings (Name, Logical ID, and Recording Schedule including FPS and Stream Quality) via the Nx Witness REST API (https://localhost:7001, credentials: admin / Admin1234!) to match the backup data indexed by physicalId. Create a summary log of the restoration at /home/ga/Documents/restore_log.txt.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/restore_camera_config/setup_task.sh",
+    "post_task": "/workspace/tasks/restore_camera_config/export_result.sh"
+  },
+  "metadata": {
+    "backup_file_path": "/home/ga/Documents/camera_backup.json",
+    "log_file_path": "/home/ga/Documents/restore_log.txt",
+    "api_base": "https://localhost:7001",
+    "scoring": {
+      "name_match_points": 10,
+      "logical_id_match_points": 7,
+      "recording_enabled_points": 7,
+      "fps_match_points": 5,
+      "log_file_points": 8,
+      "change_detected_points": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_restore_camera_config"
+    }
+  }
+}

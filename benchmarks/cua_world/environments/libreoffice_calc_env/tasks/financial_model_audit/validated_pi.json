@@ -1,0 +1,240 @@
+{
+    "task_id": "financial_model_audit@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "input_file",
+            "metadata_value": "/home/ga/Documents/financial_model.xlsx",
+            "verified_value": "/home/ga/Documents/financial_model.xlsx",
+            "source": "Verified against setup_task.sh line 400: wb.save('/home/ga/Documents/financial_model.xlsx'). Confirmed file exists in live environment with correct ownership (ga:ga).",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "/home/ga/Documents/corrected_financial_model.xlsx",
+            "verified_value": "/home/ga/Documents/corrected_financial_model.xlsx",
+            "source": "Verified against export_result.sh line 28 and task description. Agent must Save As to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "output_file_ods",
+            "metadata_value": "/home/ga/Documents/corrected_financial_model.ods",
+            "verified_value": "/home/ga/Documents/corrected_financial_model.ods",
+            "source": "Verified against export_result.sh line 30 as ODS fallback path.",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/financial_model_audit_result.json",
+            "verified_value": "/tmp/financial_model_audit_result.json",
+            "source": "Verified against export_result.sh line 58: json.dump writes to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 55,
+            "verified_value": 55,
+            "source": "Verified against verifier.py: passed = score >= metadata.get('pass_threshold', 55). Scoring: file exists (10) + IS NI correct (20) + BS balances (15) + CF ending matches BS (15) + debt negative (10) + audit sheet exists (20) + NI impact (10) = 100 total.",
+            "status": "verified"
+        }
+    ],
+    "ground_truth": {
+        "errors": [
+            {
+                "number": 1,
+                "sheet": "Income Statement",
+                "cell": "C12",
+                "label": "Total COGS",
+                "wrong_formula": "=SUM(C9:C11)+C19",
+                "correct_formula": "=SUM(C9:C11)",
+                "wrong_value": 84000,
+                "correct_value": 75500,
+                "description": "COGS double-counts Marketing expense (C19=8500) from the Operating Expenses section. Q3 formula =SUM(B9:B11) is correct and does not include Marketing.",
+                "visibility": "silent",
+                "cascade": "Changes Gross Profit, Operating Income, IBT, Net Income, BS Retained Earnings, CF Net Income"
+            },
+            {
+                "number": 2,
+                "sheet": "Income Statement",
+                "cell": "C15",
+                "label": "Gross Margin %",
+                "wrong_formula": "=C14/C7",
+                "correct_formula": "=C14/C6",
+                "wrong_value": "#DIV/0!",
+                "correct_value": "52.8%",
+                "description": "Gross Margin % references empty row C7 (blank separator between Revenue and COGS sections) instead of Total Revenue in C6. Q3 formula =B14/B6 correctly references B6.",
+                "visibility": "visible"
+            },
+            {
+                "number": 3,
+                "sheet": "Income Statement",
+                "cell": "C24",
+                "label": "Total Operating Expenses",
+                "wrong_formula": "=SUM(C18:C21)",
+                "correct_formula": "=SUM(C18:C23)",
+                "wrong_value": 46200,
+                "correct_value": 52350,
+                "description": "OpEx SUM range ends at C21 (Utilities), missing Insurance (C22=2400) and Depreciation (C23=3750). Q3 formula =SUM(B18:B23) correctly includes all 6 expense categories.",
+                "visibility": "silent",
+                "cascade": "Changes Operating Income, IBT, Net Income"
+            },
+            {
+                "number": 4,
+                "sheet": "Income Statement",
+                "cell": "C29",
+                "label": "Income Tax (25%)",
+                "wrong_formula": "8750 (hard-coded value)",
+                "correct_formula": "=C28*0.25",
+                "wrong_value": 8750,
+                "correct_value": 7625,
+                "description": "Tax is a hard-coded number instead of a formula referencing Income Before Tax. Q3 cell B29 correctly uses =B28*0.25. After fixing all other IS errors, correct IBT is 30500 and correct tax is 7625.",
+                "visibility": "silent"
+            },
+            {
+                "number": 5,
+                "sheet": "Income Statement",
+                "cell": "C32",
+                "label": "QoQ Revenue Growth",
+                "wrong_formula": "=C6-B6",
+                "correct_formula": "=(C6-B6)/B6",
+                "wrong_value": "18000 (displayed as 1800000.0% due to percentage format)",
+                "correct_value": "12.7% (0.1268)",
+                "description": "Growth formula uses subtraction instead of division. Shows dollar change (18000) formatted as percentage (1800000.0%) instead of actual growth rate (12.7%).",
+                "visibility": "semi-visible"
+            },
+            {
+                "number": 6,
+                "sheet": "Balance Sheet",
+                "cell": "C20",
+                "label": "Current Period Net Income",
+                "wrong_formula": "='Income Statement'!C26",
+                "correct_formula": "='Income Statement'!C30",
+                "wrong_value": "References Operating Income (row 26) instead of Net Income (row 30)",
+                "correct_value": 22875,
+                "description": "Cross-sheet reference points to Operating Income (IS row 26) instead of Net Income (IS row 30). Q3 formula ='Income Statement'!B30 correctly references Net Income. This causes BS to show MISMATCH.",
+                "visibility": "silent but causes visible MISMATCH on BS Balance Check"
+            },
+            {
+                "number": 7,
+                "sheet": "Cash Flow Statement",
+                "cell": "B16",
+                "label": "Debt Repayment",
+                "wrong_formula": "5000 (positive value)",
+                "correct_formula": "-5000 (negative value)",
+                "wrong_value": 5000,
+                "correct_value": -5000,
+                "description": "Debt Repayment should be negative (cash outflow) but is entered as positive. Short-term debt decreased from 20000 to 15000 per BS, confirming 5000 repayment. Sign should be negative per cash flow convention.",
+                "visibility": "silent"
+            },
+            {
+                "number": 8,
+                "sheet": "Cash Flow Statement",
+                "cell": "B23",
+                "label": "Ending Cash",
+                "wrong_formula": "92500 (hard-coded value)",
+                "correct_formula": "=B22+B20",
+                "wrong_value": 92500,
+                "correct_value": 92725,
+                "description": "Ending Cash is hard-coded as 92500 instead of =B22+B20 (Beginning Cash + Net Cash Change). Does not match BS Cash of 92725. After all fixes: 85000 + 7725 = 92725.",
+                "visibility": "silent but discoverable by cross-checking with BS Cash"
+            }
+        ],
+        "correct_q4_values": {
+            "is_total_revenue": 160000,
+            "is_cogs": 75500,
+            "is_gross_profit": 84500,
+            "is_gross_margin_pct": 0.528125,
+            "is_opex": 52350,
+            "is_operating_income": 32150,
+            "is_interest": 1650,
+            "is_ibt": 30500,
+            "is_tax": 7625,
+            "is_net_income": 22875,
+            "is_qoq_growth": 0.12676056338028169,
+            "bs_total_assets": 205725,
+            "bs_total_liabilities": 78500,
+            "bs_total_equity": 127225,
+            "bs_balance_check": "OK",
+            "cf_operating": 23625,
+            "cf_investing": 0,
+            "cf_financing": -15900,
+            "cf_net_cash_change": 7725,
+            "cf_ending_cash": 92725
+        },
+        "wrong_q4_values": {
+            "is_cogs": 84000,
+            "is_gross_profit": 76000,
+            "is_gross_margin": "#DIV/0!",
+            "is_opex": 46200,
+            "is_operating_income": 29800,
+            "is_ibt": 28150,
+            "is_tax": 8750,
+            "is_net_income": 19400,
+            "is_qoq_growth_display": "1800000.0%",
+            "bs_balance_check": "MISMATCH",
+            "cf_operating": 20150,
+            "cf_financing": -5900,
+            "cf_net_cash_change": 14250,
+            "cf_ending_cash": 92500
+        },
+        "dollar_impact_on_net_income": 3475,
+        "accounting_identities": {
+            "is_identity": "Revenue (160000) - COGS (75500) - OpEx (52350) - Interest (1650) - Tax (7625) = Net Income (22875)",
+            "bs_identity": "Total Assets (205725) = Total Liabilities (78500) + Total Equity (127225)",
+            "cf_identity": "Operating (23625) + Investing (0) + Financing (-15900) = Net Cash Change (7725); Beginning (85000) + 7725 = Ending (92725)",
+            "ni_tie": "IS Net Income (22875) = CF Net Income (22875) = BS Current Period NI (22875)"
+        },
+        "spreadsheet_layout": {
+            "income_statement": {
+                "row_4": "Product Sales",
+                "row_5": "Service Revenue",
+                "row_6": "Total Revenue (formula)",
+                "row_7": "BLANK (empty separator)",
+                "row_8": "COST OF GOODS SOLD (section header)",
+                "row_9": "Materials",
+                "row_10": "Direct Labor",
+                "row_11": "Shipping",
+                "row_12": "Total COGS (formula - ERROR #1 in Q4)",
+                "row_14": "Gross Profit (formula)",
+                "row_15": "Gross Margin % (formula - ERROR #2 in Q4)",
+                "row_17": "OPERATING EXPENSES (section header)",
+                "row_18": "Rent",
+                "row_19": "Marketing",
+                "row_20": "Salaries",
+                "row_21": "Utilities",
+                "row_22": "Insurance",
+                "row_23": "Depreciation",
+                "row_24": "Total Operating Expenses (formula - ERROR #3 in Q4)",
+                "row_26": "Operating Income (formula)",
+                "row_27": "Interest Expense",
+                "row_28": "Income Before Tax (formula)",
+                "row_29": "Income Tax 25% (ERROR #4 in Q4 - hard-coded)",
+                "row_30": "Net Income (formula)",
+                "row_32": "QoQ Revenue Growth (ERROR #5 in Q4)"
+            },
+            "balance_sheet": {
+                "row_4": "Cash (92725)",
+                "row_9": "Total Assets (formula = 205725)",
+                "row_15": "Total Liabilities (formula = 78500)",
+                "row_20": "Current Period Net Income (formula - ERROR #6 in Q4)",
+                "row_22": "Total Equity (formula)",
+                "row_24": "Total Liabilities + Equity (formula)",
+                "row_26": "Balance Check (IF formula - shows MISMATCH in Q4)"
+            },
+            "cash_flow": {
+                "row_4": "Net Income (cross-sheet ref to IS C30 - correct)",
+                "row_9": "Operating Cash Flow (formula)",
+                "row_13": "Investing Cash Flow (formula)",
+                "row_16": "Debt Repayment (ERROR #7 - wrong sign)",
+                "row_18": "Financing Cash Flow (formula)",
+                "row_20": "Net Cash Change (formula)",
+                "row_22": "Beginning Cash (85000)",
+                "row_23": "Ending Cash (ERROR #8 - hard-coded 92500)"
+            }
+        }
+    },
+    "privileged_info_summary": "The financial model spreadsheet has 3 sheets (Income Statement, Balance Sheet, Cash Flow Statement) for Q4 2024 with 8 deliberate formula errors. The Q3 column on the IS and BS is entirely correct and can be used as a reference for formula patterns. CORRECT Q4 values after fixing all errors: Total Revenue=160,000; COGS=75,500; Gross Profit=84,500; Gross Margin=52.8%; Total OpEx=52,350; Operating Income=32,150; IBT=30,500; Tax(25%)=7,625; Net Income=22,875. BS: Total Assets=205,725; Total Liabilities=78,500; Total Equity=127,225; Balance Check=OK. CF: Operating CF=23,625; Financing CF=-15,900; Net Cash Change=7,725; Ending Cash=92,725. The 8 errors are: (1) IS C12 Total COGS formula =SUM(C9:C11)+C19 adds Marketing 8500 from OpEx — fix by removing +C19, correct COGS=75,500; (2) IS C15 Gross Margin =C14/C7 references blank row 7 causing #DIV/0! — fix to =C14/C6; (3) IS C24 Total OpEx =SUM(C18:C21) misses Insurance and Depreciation — fix to =SUM(C18:C23), correct OpEx=52,350; (4) IS C29 Tax is hard-coded 8750 — fix to =C28*0.25, correct tax=7,625; (5) IS C32 QoQ Growth =C6-B6 uses subtraction instead of division — fix to =(C6-B6)/B6 for 12.7%; (6) BS C20 Net Income ref ='Income Statement'!C26 points to Operating Income not Net Income — fix to ='Income Statement'!C30; (7) CF B16 Debt Repayment is positive 5000 — fix to -5000; (8) CF B23 Ending Cash is hard-coded 92500 — fix to =B22+B20 for 92,725. The total dollar impact on Net Income is $3,475 (NI was understated from 22,875 to 19,400). The BS shows MISMATCH as a visible clue. The IS shows #DIV/0! in Gross Margin as another visible clue. The agent must create an Audit_Findings sheet documenting all errors and save as corrected_financial_model.xlsx.",
+    "pi_confidence": "high"
+}

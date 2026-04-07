@@ -1,0 +1,61 @@
+{
+    "task_id": "audit_waveform_continuity_gaps@1",
+    "dataset": "GEOFON FDSN miniSEED waveforms",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/gap_report.csv",
+            "verified_value": "/home/ga/gap_report.csv",
+            "source": "task description, export_result.sh, and verifier.py explicit checks",
+            "status": "verified"
+        },
+        {
+            "key": "time_tolerance_sec",
+            "metadata_value": 3.0,
+            "verified_value": 3.0,
+            "source": "verifier.py uses this value as `time_tol` for matching timestamp gaps",
+            "status": "verified"
+        },
+        {
+            "key": "duration_tolerance_sec",
+            "metadata_value": 1.5,
+            "verified_value": 1.5,
+            "source": "verifier.py uses this value as `dur_tol` for matching gap duration",
+            "status": "verified"
+        },
+        {
+            "key": "gaps",
+            "metadata_value": [
+                {
+                    "network": "GE",
+                    "station": "TOLI",
+                    "channel": "BHZ",
+                    "start_time": "2024-01-01T07:10:30",
+                    "duration": 10.0
+                },
+                {
+                    "network": "GE",
+                    "station": "GSI",
+                    "channel": "BHZ",
+                    "start_time": "2024-01-01T07:12:00",
+                    "duration": 45.0
+                }
+            ],
+            "verified_value": [
+                {
+                    "network": "GE",
+                    "station": "GSI",
+                    "channel": "BHZ",
+                    "start_time": "2024-01-01T07:12:04.571860",
+                    "duration": 20.6
+                }
+            ],
+            "source": "Code execution using obspy and reverse engineering seiscomp scart logic. GE.TOLI does not exist in the downloaded workspace dataset. The scart gap injection on GE.GSI filters whole 512-byte MSEED Steim2 records based on exact start/end time overlap rather than cropping the payload, producing a gap of ~20.6 seconds starting at 07:12:04.57 instead of a 45s gap starting exactly at 07:12:00.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task operates on real GEOFON miniSEED waveforms, but the anomalies are synthetically injected using the `scart` tool. The expected output report path is `/home/ga/gap_report.csv`. The claimed gaps in the metadata and verifier logic are significantly flawed. The GE.TOLI station data is completely absent from the environment, so its gap does not exist. The gap injected into the GE.GSI station does not start at 07:12:00 and last 45 seconds as claimed; instead, because `scart` filters whole MSEED Steim2 records without cropping their payload, the actual injected gap starts at 2024-01-01T07:12:04.571860 and lasts approximately 20.6 seconds. Consequently, a correct agent report identifying the true gap will fail the verifier.",
+    "pi_confidence": "high"
+}

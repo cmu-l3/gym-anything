@@ -1,0 +1,52 @@
+{
+    "task_id": "docker_disk_triage@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "protected_containers",
+            "metadata_value": "[\"acme-prod-web\", \"acme-prod-api\", \"acme-prod-db\", \"acme-debug-snapshot\"]",
+            "verified_value": "[\"acme-prod-web\", \"acme-prod-api\", \"acme-prod-db\", \"acme-debug-snapshot\"]",
+            "source": "setup_task.sh lines 33-56: All four containers are explicitly created with docker run commands. acme-prod-web uses nginx:1.24-alpine, acme-prod-api uses python:3.11-slim, acme-prod-db uses postgres:14 with volume acme-pgdata, acme-debug-snapshot uses alpine:3.18 with label preserve=true",
+            "status": "verified"
+        },
+        {
+            "key": "protected_volumes",
+            "metadata_value": "[\"acme-pgdata\"]",
+            "verified_value": "[\"acme-pgdata\"]",
+            "source": "setup_task.sh line 32: Volume created with 'docker volume create acme-pgdata' and mounted to acme-prod-db container at /var/lib/postgresql/data",
+            "status": "verified"
+        },
+        {
+            "key": "trash_containers_prefix",
+            "metadata_value": "[\"acme-failed-build\", \"acme-old-migration\", \"acme-test-runner-old\"]",
+            "verified_value": "[\"acme-failed-build\", \"acme-old-migration\", \"acme-test-runner-old\"]",
+            "source": "setup_task.sh lines 60-65: acme-failed-build containers created in loop (lines 60-62) producing acme-failed-build-1 through acme-failed-build-4. acme-old-migration created on line 64 with postgres:14. acme-test-runner-old created on line 65 with node:20-slim. All containers exit immediately making them stopped containers.",
+            "status": "verified"
+        },
+        {
+            "key": "trash_volumes",
+            "metadata_value": "[\"acme-redis-data\", \"acme-old-uploads\", \"acme-test-fixtures\", \"acme-build-cache-vol\"]",
+            "verified_value": "[\"acme-redis-data\", \"acme-old-uploads\", \"acme-test-fixtures\", \"acme-build-cache-vol\"]",
+            "source": "setup_task.sh lines 76-79: All four volumes are created with create_orphan_vol function using 'docker volume create'. Each is populated with dummy data but remains orphaned (not attached to any running container) after initial creation.",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Desktop/disk_cleanup_report.txt",
+            "verified_value": "/home/ga/Desktop/disk_cleanup_report.txt",
+            "source": "setup_task.sh lines 100-102: Directory /home/ga/Desktop is created with 'mkdir -p /home/ga/Desktop' and ownership set to user ga. export_result.sh line 43 checks for existence and modification of this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "script_path",
+            "metadata_value": "/home/ga/projects/maintenance/auto_cleanup.sh",
+            "verified_value": "/home/ga/projects/maintenance/auto_cleanup.sh",
+            "source": "setup_task.sh lines 100-102: Directory /home/ga/projects/maintenance is created with 'mkdir -p /home/ga/projects/maintenance' and ownership set to user ga. export_result.sh lines 55-65 checks for existence and executability of this exact path.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task creates a controlled Docker environment with 4 protected containers (acme-prod-web running nginx:1.24-alpine, acme-prod-api running python:3.11-slim, acme-prod-db running postgres:14, and acme-debug-snapshot running alpine:3.18 with preserve=true label), 1 protected volume (acme-pgdata for production database), 6 trash containers across 3 prefix patterns (4x acme-failed-build, 1x acme-old-migration, 1x acme-test-runner-old), and 4 orphaned volumes (acme-redis-data, acme-old-uploads, acme-test-fixtures, acme-build-cache-vol). The task requires creating a cleanup report at /home/ga/Desktop/disk_cleanup_report.txt and an automation script at /home/ga/projects/maintenance/auto_cleanup.sh.",
+    "pi_confidence": "high"
+}

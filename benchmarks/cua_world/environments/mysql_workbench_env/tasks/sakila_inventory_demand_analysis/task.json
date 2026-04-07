@@ -1,0 +1,29 @@
+{
+  "id": "sakila_inventory_demand_analysis@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "The Sakila DVD rental chain needs to optimize shelf space based on actual inventory usage. Calculate the 'Inventory Utilization Rate' for all films during July 2005 using the local MySQL server (user: ga, password: password123). Create a view named v_july_2005_utilization in the sakila database that includes inventory_count (total physical copies), total_rented_hours (sum of rental durations in hours for rentals starting in July 2005), theoretical_capacity_hours (inventory_count * 31 days * 24 hours), and utilization_pct ((total_rented_hours / theoretical_capacity_hours) * 100, rounded to 2 decimal places). When processing the data, exclude invalid records where the return_date is before the rental_date, and assume a duration of 24 hours for open rentals where the return_date is NULL. Export the top 30 films with the highest utilization percentage to /home/ga/Documents/exports/high_utilization_films.csv.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_inventory_demand_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_inventory_demand_analysis/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "expected_view": "v_july_2005_utilization",
+    "expected_output_file": "/home/ga/Documents/exports/high_utilization_films.csv",
+    "analysis_month": "2005-07",
+    "top_n": 30
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_inventory_demand_analysis"
+    }
+  }
+}

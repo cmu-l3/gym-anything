@@ -1,0 +1,45 @@
+{
+    "task_id": "configure_high_capacity_monitoring@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "config_url",
+            "metadata_value": "http://localhost:8080/config.js",
+            "verified_value": "http://localhost:8080/config.js",
+            "source": "Verified in export_result.sh line 15 (curl command) and setup_jitsi.sh line 84 confirming web service runs on localhost:8080. This is the standard URL for accessing the Jitsi Meet config.js file served by the web container.",
+            "status": "verified"
+        },
+        {
+            "key": "config_path",
+            "metadata_value": "/home/ga/.jitsi-meet-cfg/web/config.js",
+            "verified_value": "/home/ga/.jitsi-meet-cfg/web/config.js",
+            "source": "Verified in setup_jitsi.sh line 36 which creates /home/ga/.jitsi-meet-cfg/{web,transcripts,...}, setup_task.sh line 24 which references this path, and export_result.sh line 18 which confirms this is the physical config file location.",
+            "status": "verified"
+        },
+        {
+            "key": "requirements.channelLastN",
+            "metadata_value": -1,
+            "verified_value": -1,
+            "source": "Verified from official Jitsi Meet documentation (https://jitsi.github.io/handbook/docs/dev-guide/dev-guide-configuration/) which states: 'Default value for the channel last N attribute. -1 for unlimited.' Setting channelLastN to -1 for unlimited streams is a valid and documented configuration for video wall/high-capacity monitoring scenarios.",
+            "status": "verified"
+        },
+        {
+            "key": "requirements.enableLayerSuspension",
+            "metadata_value": false,
+            "verified_value": null,
+            "source": "CONTRADICTED: This parameter was removed from Jitsi Meet in June 2020 via PR #7144 (https://github.com/jitsi/jitsi-meet/pull/7144/files). The parameter became obsolete as a result of changes in lib-jitsi-meet. The docker-jitsi-meet version used (stable-9753, released September 2025) is well after this removal date, so enableLayerSuspension will not be present in the generated config.js file.",
+            "status": "contradicted"
+        },
+        {
+            "key": "requirements.disableAudioLevels",
+            "metadata_value": true,
+            "verified_value": true,
+            "source": "Verified from multiple sources: (1) Official Jitsi Meet documentation confirms disableAudioLevels is a valid boolean configuration parameter that 'Disable measuring of audio levels.' with default false. (2) Community forum discussions confirm setting disableAudioLevels: true is a recommended performance optimization to reduce CPU usage from audio level visualization, particularly useful for high-capacity and resource-constrained scenarios. This is appropriate for a video-priority monitoring setup.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task configures Jitsi Meet for high-capacity monitoring by setting three configuration parameters. The config is served from http://localhost:8080/config.js and stored at /home/ga/.jitsi-meet-cfg/web/config.js. Two of the three required settings are valid: channelLastN: -1 enables unlimited simultaneous video streams (appropriate for a video wall scenario), and disableAudioLevels: true reduces CPU usage by disabling audio level visualization (standard performance optimization). However, enableLayerSuspension: false is not achievable in this environment—this configuration parameter was removed from Jitsi Meet in June 2020 and does not exist in the stable-9753 version (September 2025) used by this environment. The parameter is now obsolete and the functionality it controlled is handled automatically at a lower level by lib-jitsi-meet.",
+    "pi_confidence": "high"
+}

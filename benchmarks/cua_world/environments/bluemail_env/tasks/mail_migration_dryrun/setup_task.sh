@@ -3,6 +3,9 @@ echo "=== Setting up mail_migration_dryrun task ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 # Directory paths
 MAILDIR="/home/ga/Maildir"
 ASSETS_HAM="/workspace/assets/emails/ham"
@@ -71,8 +74,8 @@ echo "${IDX}" > /tmp/initial_inbox_count
 echo "${J_IDX}" > /tmp/initial_junk_count
 date +%s > /tmp/task_start_time
 
-# Force Dovecot index update
-doveadm index -u ga INBOX 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # 4. Start Application
 if ! is_bluemail_running; then

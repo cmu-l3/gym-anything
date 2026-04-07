@@ -1,0 +1,35 @@
+{
+  "id": "secure_user_profile_config@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Secure the 'HR' user account by implementing a strict security profile and a custom password complexity policy. Create a password verification function named 'STRICT_PASS_VERIFY' in the SYSTEM schema that enforces a minimum length of 8 characters, at least one numeric character, and ensures the password does not contain the username. Create a profile named 'SECURE_DEV_PROFILE' with SESSIONS_PER_USER set to 2, IDLE_TIME to 15 minutes, FAILED_LOGIN_ATTEMPTS to 3, PASSWORD_LOCK_TIME to 1 day, PASSWORD_LIFE_TIME to 90 days, and PASSWORD_VERIFY_FUNCTION set to STRICT_PASS_VERIFY. Assign this profile to the 'HR' user. Demonstrate the policy by changing the 'HR' user's password to 'Oracle_2026' and generating failed login attempts until the account is locked. Use the credentials SYSTEM/OraclePassword123 for administrative actions.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/secure_user_profile_config/setup_task.sh",
+    "post_task": "/workspace/tasks/secure_user_profile_config/export_result.sh"
+  },
+  "metadata": {
+    "profile_name": "SECURE_DEV_PROFILE",
+    "function_name": "STRICT_PASS_VERIFY",
+    "target_user": "HR",
+    "expected_status": "LOCKED",
+    "limits": {
+      "SESSIONS_PER_USER": "2",
+      "IDLE_TIME": "15",
+      "FAILED_LOGIN_ATTEMPTS": "3",
+      "PASSWORD_LOCK_TIME": "1",
+      "PASSWORD_LIFE_TIME": "90"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secure_profile"
+    }
+  }
+}

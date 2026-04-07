@@ -74,7 +74,7 @@ claude_thunderbird/
 import gym_anything as ga
 
 # Load the Thunderbird environment
-env = ga.from_config("benchmarks/cua_world/environments/claude_thunderbird")
+env = ga.from_config("examples/claude_thunderbird")
 
 # Reset the environment
 obs = env.reset(seed=42)

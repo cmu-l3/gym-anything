@@ -1,0 +1,45 @@
+{
+  "id": "external_stakeholder_dashboard@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a Mission Data Engineer responsible for creating a read-only, static web report of live satellite telemetry for external stakeholders using OpenC3 COSMOS. Verify spacecraft responsiveness by sending an INST COLLECT command (TYPE NORMAL) and generate an HTML dashboard at /home/ga/Desktop/stakeholder_dashboard.html. The report must include a table displaying the current numeric values and limit states (e.g., NOMINAL, YELLOW, RED) for the following items from the INST HEALTH_STATUS packet: TEMP1, TEMP2, TEMP3, TEMP4, COLLECTS, and CMD_ACPT_CNT. To ensure the data is fresh, the CMD_ACPT_CNT in the final report must be greater than the initial baseline count recorded at the start of the task. OpenC3 password: Cosmos2024!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/external_stakeholder_dashboard/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/external_stakeholder_dashboard/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/dashboard_result.json",
+    "output_file": "/home/ga/Desktop/stakeholder_dashboard.html",
+    "target": "INST",
+    "required_params": [
+      "TEMP1",
+      "TEMP2",
+      "TEMP3",
+      "TEMP4",
+      "COLLECTS",
+      "CMD_ACPT_CNT"
+    ],
+    "limit_keywords": [
+      "NOMINAL",
+      "GREEN",
+      "OK",
+      "YELLOW",
+      "RED",
+      "HIGH",
+      "LOW"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_external_dashboard"
+    }
+  }
+}

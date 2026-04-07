@@ -1,0 +1,101 @@
+{
+    "task_id": "northwind_db_diff@1",
+    "dataset": "Northwind",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "prod_db_path",
+            "metadata_value": "/home/ga/Documents/databases/northwind_prod.db",
+            "verified_value": "/home/ga/Documents/databases/northwind_prod.db",
+            "source": "setup_task.sh line 34 confirms this exact path is used",
+            "status": "verified"
+        },
+        {
+            "key": "staging_db_path",
+            "metadata_value": "/home/ga/Documents/databases/northwind_staging.db",
+            "verified_value": "/home/ga/Documents/databases/northwind_staging.db",
+            "source": "setup_task.sh line 38 confirms this exact path is used",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/Documents/exports/db_diff_report.csv",
+            "verified_value": "/home/ga/Documents/exports/db_diff_report.csv",
+            "source": "export_result.sh line 9 and task description confirm this path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_sql_path",
+            "metadata_value": "/home/ga/Documents/scripts/sync_prod_to_staging.sql",
+            "verified_value": "/home/ga/Documents/scripts/sync_prod_to_staging.sql",
+            "source": "export_result.sh line 10 and task description confirm this path",
+            "status": "verified"
+        },
+        {
+            "key": "diff_counts.Product",
+            "metadata_value": 8,
+            "verified_value": null,
+            "source": "Critical issue: actual Northwind table is 'Products' (plural), not 'Product'. Setup script attempts to INSERT/UPDATE on non-existent table 'Product', which will fail. Cannot verify count for non-existent table name.",
+            "status": "contradicted"
+        },
+        {
+            "key": "diff_counts.Customer",
+            "metadata_value": 2,
+            "verified_value": null,
+            "source": "Critical issue: actual Northwind table is 'Customers' (plural), not 'Customer'. Setup script attempts to DELETE from non-existent table 'Customer', which will fail.",
+            "status": "contradicted"
+        },
+        {
+            "key": "diff_counts.Category",
+            "metadata_value": 1,
+            "verified_value": null,
+            "source": "Critical issue: actual Northwind table is 'Categories' (plural), not 'Category'. Setup script attempts to INSERT into non-existent table 'Category', which will fail.",
+            "status": "contradicted"
+        },
+        {
+            "key": "diff_counts.OrderDetail",
+            "metadata_value": 4,
+            "verified_value": null,
+            "source": "Critical issue: actual Northwind table is 'Order Details' (with space), not 'OrderDetail'. Setup script attempts to UPDATE non-existent table 'OrderDetail', which will fail.",
+            "status": "contradicted"
+        },
+        {
+            "key": "data_source_url",
+            "metadata_value": "https://raw.githubusercontent.com/jpwhite3/northwind-SQLite3/main/Northwind_large.sql",
+            "verified_value": "File does not exist at this URL (HTTP 404)",
+            "source": "Verified by curl -I to GitHub URL: returns HTTP 404. The actual Northwind SQL schema file is at src/create.sql, not at the root as Northwind_large.sql",
+            "status": "contradicted"
+        },
+        {
+            "key": "dataset_source",
+            "metadata_value": "northwind-SQLite3 GitHub repository",
+            "verified_value": "jpwhite3/northwind-SQLite3 is a legitimate public repository (587 stars, MIT license) containing a SQLite3 version of Microsoft's Northwind sample database",
+            "source": "GitHub repository verification: https://github.com/jpwhite3/northwind-SQLite3",
+            "status": "verified"
+        },
+        {
+            "key": "actual_table_names_in_northwind",
+            "metadata_value": "Product, Customer, Category, OrderDetail",
+            "verified_value": "Products, Customers, Categories, Order Details",
+            "source": "Verified from src/create.sql schema. All CREATE TABLE statements show plural forms: [Products], [Customers], [Categories], [Order Details]",
+            "status": "contradicted"
+        },
+        {
+            "key": "actual_product_column_names",
+            "metadata_value": "Id, ProductName, SupplierId, CategoryId, UnitPrice, Discontinued",
+            "verified_value": "ProductID, ProductName, SupplierID, CategoryID, QuantityPerUnit, UnitPrice, UnitsInStock, UnitsOnOrder, ReorderLevel, Discontinued",
+            "source": "Verified from src/create.sql Products table schema",
+            "status": "contradicted"
+        },
+        {
+            "key": "setup_script_will_execute",
+            "metadata_value": "Assumed to work correctly",
+            "verified_value": "Setup script will fail with SQL errors due to non-existent table and column names",
+            "source": "setup_task.sh lines 42-68 attempt to INSERT/UPDATE/DELETE using table names and column names that don't exist in the Northwind schema",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The Northwind database source is legitimate and real (not synthetic) - it's the classic Microsoft Northwind sample database converted to SQLite3, available at https://github.com/jpwhite3/northwind-SQLite3. However, critical metadata errors exist: (1) The setup script tries to download from a non-existent URL (Northwind_large.sql returns HTTP 404; the actual file is src/create.sql), (2) The metadata claims table names are 'Product', 'Customer', 'Category', 'OrderDetail' but the actual Northwind schema uses 'Products', 'Customers', 'Categories', 'Order Details', (3) The setup script uses incorrect column names (e.g., 'Id' instead of 'ProductID', 'SupplierId' instead of 'SupplierID') that don't exist in the actual Northwind schema. The setup script will fail to execute due to these fundamental schema mismatches.",
+    "pi_confidence": "high"
+}

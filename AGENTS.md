@@ -47,7 +47,7 @@ Per-area subsets are listed in `docs/content/docs/contributing/testing.mdx`.
 gym-anything run <env> --task <task> -i --open-vnc
 ```
 
-A passing test suite with a broken VNC session is a broken change.
+A passing test suite with a broken VNC session is a broken change. Live test is highly encouraged, although it should be consulted with the user before running.
 
 ## Code style
 

@@ -1,0 +1,52 @@
+{
+    "task_id": "extract_bolivia_raster@1",
+    "dataset": "Natural Earth GIS Data",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "input_raster",
+            "metadata_value": "/home/ga/gvsig_data/raster/NE1_HR_LC_SR_W_DR.tif",
+            "verified_value": null,
+            "source": "Code execution of setup_task.sh shows it attempts to download from a broken URL (https://naturalearth.s3.amazonaws.com/110m_physical/NE1_HR_LC_SR_W_DR.zip) that returns a 404 HTTP error, causing the setup to crash. Thus, the file is missing from the environment.",
+            "status": "contradicted"
+        },
+        {
+            "key": "input_vector",
+            "metadata_value": "/home/ga/gvsig_data/countries/ne_110m_admin_0_countries.shp",
+            "verified_value": "/home/ga/gvsig_data/countries/ne_110m_admin_0_countries.shp",
+            "source": "Inspected install_gvsig.sh which correctly downloads and extracts the real public Natural Earth vector dataset to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/gvsig_data/exports/bolivia_relief.tif",
+            "verified_value": "/home/ga/gvsig_data/exports/bolivia_relief.tif",
+            "source": "Explicitly verified in export_result.sh as OUTPUT_PATH.",
+            "status": "verified"
+        },
+        {
+            "key": "min_dimension",
+            "metadata_value": 200,
+            "verified_value": 200,
+            "source": "Manual execution of a geospatial crop (using rasterio/geopandas) of the real Natural Earth 10m raster to the Bolivia shapefile results in an image measuring 727x788, verifying 200 as a correct lower bound.",
+            "status": "verified"
+        },
+        {
+            "key": "max_dimension",
+            "metadata_value": 1000,
+            "verified_value": 1000,
+            "source": "Manual execution of a geospatial crop of the Natural Earth 10m raster to the Bolivia shapefile results in an image measuring 727x788, verifying 1000 as a correct upper bound.",
+            "status": "verified"
+        },
+        {
+            "key": "min_std_dev",
+            "metadata_value": 500,
+            "verified_value": 500,
+            "source": "The clipped image has a true standard deviation of ~98 (on a 0-255 scale). Ubuntu's default ImageMagick Q16 scales this up to ~25000, confirming that 500 serves as a valid lower bound constraint to ensure the raster contains data.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task relies on real public domain Natural Earth GIS data. I discovered a critical defect: the setup_task.sh script attempts to download the 10m high-resolution input raster from a broken AWS S3 URL (https://naturalearth.s3.amazonaws.com/110m_physical/NE1_HR_LC_SR_W_DR.zip) that returns an HTTP 404 error, causing the setup to crash and the raster to be entirely missing from the environment. However, if the correct raster is manually provided and clipped to the verified Bolivia shapefile, the resulting image measures exactly 727x788 pixels with a standard deviation of ~98 (which maps to ~25000 in ImageMagick's Q16 16-bit scale). This confirms that the expected evaluation constraints (dimensions between 200 and 1000, and a minimum standard deviation) accurately represent the genuine topological bounds of the country.",
+    "pi_confidence": "high"
+}

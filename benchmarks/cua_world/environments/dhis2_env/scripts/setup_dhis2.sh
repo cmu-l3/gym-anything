@@ -132,7 +132,7 @@ echo "Containers starting..."
 docker-compose ps
 
 # Step 4: Wait for DHIS2 to be fully ready
-wait_for_dhis2 420
+wait_for_dhis2 900
 
 # Show container status
 echo ""
@@ -217,6 +217,8 @@ Categories=Office;Medical;
 DESKTOPEOF
 chown ga:ga /home/ga/Desktop/DHIS2.desktop
 chmod +x /home/ga/Desktop/DHIS2.desktop
+# Mark desktop file as trusted to prevent GNOME "Untrusted Desktop File" dialog
+su - ga -c "dbus-launch gio set /home/ga/Desktop/DHIS2.desktop metadata::trusted true" 2>/dev/null || true
 
 # Create utility script for database queries
 cat > /usr/local/bin/dhis2-db-query << 'DBQUERYEOF'

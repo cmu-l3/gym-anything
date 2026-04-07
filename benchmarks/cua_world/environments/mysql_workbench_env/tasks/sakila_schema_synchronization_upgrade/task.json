@@ -1,0 +1,48 @@
+{
+  "id": "sakila_schema_synchronization_upgrade@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "You are a Database Administrator preparing for a production deployment. Synchronize the production database (`sakila`) with the development database (`sakila_next`) schema changes, which include adding a 'loyalty_tier' to customers, 'streaming_url' to films, a new index on payments, and a new audit log table. The migration must use `ALTER TABLE` statements to preserve the existing 40,000+ records in the production database; do not drop tables with data. Save the migration script to /home/ga/Documents/exports/migration_v2.sql and apply the changes to the `sakila` database. Connection credentials: user 'ga', password 'password123'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_schema_synchronization_upgrade/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_schema_synchronization_upgrade/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "reference_database": "sakila_next",
+    "expected_columns": [
+      {
+        "table": "customer",
+        "column": "loyalty_tier"
+      },
+      {
+        "table": "film",
+        "column": "streaming_url"
+      }
+    ],
+    "expected_tables": [
+      "rental_audit_log"
+    ],
+    "expected_indexes": [
+      {
+        "table": "payment",
+        "index": "idx_payment_date_amount"
+      }
+    ],
+    "expected_script_path": "/home/ga/Documents/exports/migration_v2.sql",
+    "min_customer_count": 599,
+    "min_film_count": 1000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_schema_synchronization_upgrade"
+    }
+  }
+}

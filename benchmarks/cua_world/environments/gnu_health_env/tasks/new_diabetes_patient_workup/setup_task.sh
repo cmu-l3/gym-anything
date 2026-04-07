@@ -2,6 +2,7 @@
 echo "=== Setting up new_diabetes_patient_workup task ==="
 
 source /workspace/scripts/task_utils.sh
+wait_for_postgres
 
 # --- 1. Verify Bonifacio Caput exists ---
 BONIFACIO_PATIENT_ID=$(gnuhealth_db_query "

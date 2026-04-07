@@ -1,0 +1,29 @@
+{
+  "id": "northbound_snmp_trap_forwarding@1",
+  "version": "1.0",
+  "env_id": "manageengine_opmanager_env@0.1",
+  "description": "The global 24x7 NOC uses IBM Netcool as their overarching incident management platform. To prevent alert storms, they only want to receive SNMP traps for Critical alarms originating from core routing infrastructure. In ManageEngine OpManager (http://localhost:8060, admin/Admin@123), create a device group named 'Core-Routers'. Then, create a 'Send Trap' notification profile named 'Netcool-Trap-Forwarder' that sends SNMP v2c traps to destination IP '10.99.99.50' with community string 'noc-trap-2024'. Set the criteria to trigger only on 'Critical' severity alarms, and associate the profile with the 'Core-Routers' group you created.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/northbound_snmp_trap_forwarding/setup_task.sh",
+    "post_task": "/workspace/tasks/northbound_snmp_trap_forwarding/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/trap_forwarding_result.json",
+    "expected_group": "Core-Routers",
+    "expected_profile": "Netcool-Trap-Forwarder",
+    "expected_ip": "10.99.99.50",
+    "expected_community": "noc-trap-2024"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_northbound_snmp_trap_forwarding"
+    }
+  }
+}

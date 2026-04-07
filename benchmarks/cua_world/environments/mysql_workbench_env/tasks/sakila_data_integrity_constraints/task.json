@@ -1,0 +1,36 @@
+{
+  "id": "sakila_data_integrity_constraints@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "A recent audit of the Sakila database revealed data corruption and missing business rules. Fix the data and enforce integrity constraints by updating films with invalid rental_duration (<= 0) to 3 and payments with invalid amounts (< 0) to 0.00. Add a CHECK constraint named chk_rental_duration to the film table ensuring rental_duration is between 1 and 14, and a CHECK constraint named chk_payment_amount to the payment table ensuring amount is greater than or equal to 0. Enhance the schema by adding an ENUM column price_category ('Budget', 'Standard', 'Premium') to the film table, populated based on rental_rate ('Budget' for < 1.50, 'Standard' for 1.50 <= rate < 3.50, and 'Premium' for >= 3.50). Create a stored function fn_customer_lifetime_value(p_customer_id INT) that returns the total sum of payments (DECIMAL(10,2)) for a customer, returning 0.00 if no payments exist. Export a list of all films including film_id, title, rental_rate, rental_duration, and price_category to /home/ga/Documents/exports/data_integrity_report.csv. Database Login: host=localhost, user=ga, password=password123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_data_integrity_constraints/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_data_integrity_constraints/export_result.sh"
+  },
+  "metadata": {
+    "expected_film_count": 1000,
+    "output_path": "/home/ga/Documents/exports/data_integrity_report.csv",
+    "constraints": [
+      "chk_rental_duration",
+      "chk_payment_amount"
+    ],
+    "columns": [
+      "price_category"
+    ],
+    "functions": [
+      "fn_customer_lifetime_value"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_data_integrity"
+    }
+  }
+}

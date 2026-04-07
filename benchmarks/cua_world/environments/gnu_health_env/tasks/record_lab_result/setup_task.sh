@@ -3,6 +3,7 @@ echo "=== Setting up record_lab_result task ==="
 
 # Source shared utilities
 source /workspace/scripts/task_utils.sh
+wait_for_postgres
 
 # 1. Record initial lab request count
 INITIAL_COUNT=$(get_lab_request_count)

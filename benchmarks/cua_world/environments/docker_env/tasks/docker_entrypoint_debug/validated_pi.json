@@ -1,0 +1,38 @@
+{
+    "task_id": "docker_entrypoint_debug@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/acme-services",
+            "verified_value": "/home/ga/projects/acme-services",
+            "source": "setup_task.sh line 28: BASE_DIR=\"/home/ga/projects/acme-services\"; export_result.sh uses this directory; verifier.py checks for report at /home/ga/Desktop",
+            "status": "verified"
+        },
+        {
+            "key": "services",
+            "metadata_value": "[\"acme-cache-warmer\", \"acme-event-processor\", \"acme-report-generator\", \"acme-static-server\"]",
+            "verified_value": "[\"acme-cache-warmer\", \"acme-event-processor\", \"acme-report-generator\", \"acme-static-server\"]",
+            "source": "setup_task.sh creates 4 services with these exact names: lines 34-60 (cache-warmer), 75-110 (event-processor), 115-165 (report-generator), 170-201 (static-server); docker build commands on lines 209-212 use these tags; export_result.sh checks these names on lines 78-81",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Desktop/debugging_report.txt",
+            "verified_value": "/home/ga/Desktop/debugging_report.txt",
+            "source": "export_result.sh line 94: REPORT_PATH=\"/home/ga/Desktop/debugging_report.txt\"; setup_task.sh line 230 creates /home/ga/Desktop directory; verifier.py checks this path via copy_from_env mechanism",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "verifier.py line 128: pass_threshold = task_info.get('metadata', {}).get('pass_threshold', 60) with default of 60; scoring breakdown shows maximum 100 points (15+15+20+20+10+15+5), so threshold of 60 represents 60% pass rate",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The docker_entrypoint_debug@1 task uses synthetic data created by setup_task.sh, which intentionally provisions 4 Docker microservices at /home/ga/projects/acme-services with specific entrypoint bugs: (1) acme-cache-warmer uses Bash syntax ([[ ]] and array syntax) in an Alpine container that only has /bin/sh, (2) acme-event-processor has CRLF line endings in its entrypoint script, (3) acme-report-generator uses 'set -e' with a failing grep command that causes immediate exit, and (4) acme-static-server sources a config file from an incorrect path (/etc/nginx/conf.d/env.conf) when the file is actually at /etc/nginx/env.conf. Task success is verified via verifier.py which checks container running status, health checks (log inspection and HTTP endpoints), image rebuild timestamps, and the presence of a debugging report at /home/ga/Desktop/debugging_report.txt. Pass threshold is 60/100 points (60%).",
+    "pi_confidence": "high"
+}

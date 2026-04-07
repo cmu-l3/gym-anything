@@ -26,16 +26,7 @@ sleep 1
 
 # 5. Launch app to ensure it's ready
 echo "Launching Cancer iChart..."
-monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 5
-
-# 6. Ensure we are on the main screen (if app restores state, try to reset)
-# Note: The app usually resets on force-stop, but we ensure it's in foreground
-CURRENT=$(dumpsys window | grep mCurrentFocus)
-if echo "$CURRENT" | grep -q "Launcher"; then
-    echo "App not in foreground, relaunching..."
-    monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1 2>/dev/null
-    sleep 5
-fi
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
 
 echo "=== Setup Complete ==="

@@ -1,0 +1,196 @@
+{
+    "task_id": "competition_altitude_precision_redesign@1",
+    "dataset": "OpenRocket official example files",
+    "case_id": "dual_parachute_deployment.ork",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "source_ork",
+            "metadata_value": "dual_parachute_deployment.ork",
+            "verified_value": "dual_parachute_deployment.ork",
+            "source": "Confirmed via XML parsing: <name>Dual parachute deployment</name>, designer='Joe Pfeiffer (an adaptation of Hichory Dichory Mach)'. Joe Pfeiffer is a confirmed maintainer of the OpenRocket project (github.com/openrocket/openrocket). File is an official OpenRocket example distributed with the software (270,244 bytes, MD5: 60cfe80bfcb80ea638b4309d81aad970).",
+            "status": "verified"
+        },
+        {
+            "key": "start_ork_vm_path",
+            "metadata_value": "/home/ga/Documents/rockets/competition_rocket.ork",
+            "verified_value": "/home/ga/Documents/rockets/competition_rocket.ork",
+            "source": "Live-tested: file exists at this path after setup_task.sh runs (3,399 bytes, MD5: 43ec396fab02ac7e8616c65f397cab36). Confirmed via SSH during live environment testing.",
+            "status": "verified"
+        },
+        {
+            "key": "target_ork_vm_path",
+            "metadata_value": "/home/ga/Documents/rockets/competition_final.ork",
+            "verified_value": "/home/ga/Documents/rockets/competition_final.ork",
+            "source": "Live-tested: setup_task.sh deletes this file before task starts. Confirmed absent via 'ls' output. The agent must create this via File > Save As in OpenRocket.",
+            "status": "verified"
+        },
+        {
+            "key": "csv_vm_path",
+            "metadata_value": "/home/ga/Documents/exports/flight_data.csv",
+            "verified_value": "/home/ga/Documents/exports/flight_data.csv",
+            "source": "Live-tested: setup_task.sh deletes this file. Directory /home/ga/Documents/exports/ exists with ga:ga ownership, 755 permissions. Agent must export via Flight Simulations > Plot/Export > Export Data.",
+            "status": "verified"
+        },
+        {
+            "key": "report_vm_path",
+            "metadata_value": "/home/ga/Documents/exports/design_report.txt",
+            "verified_value": "/home/ga/Documents/exports/design_report.txt",
+            "source": "Live-tested: setup_task.sh deletes this file. Agent creates this via terminal (gnome-terminal or xterm confirmed available). File write permissions confirmed with test write.",
+            "status": "verified"
+        },
+        {
+            "key": "target_apogee_min_m",
+            "metadata_value": 400.0,
+            "verified_value": null,
+            "source": "Cannot run OpenRocket simulation to verify achievability. However, reference data from the ORIGINAL file (with 1.36 kg mass override): AeroTech G64W (29mm) gave 226.2m apogee, AeroTech H242T (38mm) gave 697.2m apogee. The 400-500m target falls between these two motors, so it SHOULD be achievable with a mid-range motor or by adding ballast with an H-class motor. The mass override has been removed in setup, which will change the baseline mass and thus all altitude values. Exact achievability depends on the computed mass without override. Needs calibration via actual simulation run.",
+            "status": "unverified"
+        },
+        {
+            "key": "target_apogee_max_m",
+            "metadata_value": 500.0,
+            "verified_value": null,
+            "source": "Same analysis as target_apogee_min_m. The 100m window (400-500m) is wide enough that at least one motor+ballast combination should exist. The original H242T (231.7 N·s total impulse, confirmed via thrustcurve.org) gave 697m with 1.36kg; with higher unoverridden mass or ballast, altitude drops proportionally.",
+            "status": "unverified"
+        },
+        {
+            "key": "max_acceleration_ms2",
+            "metadata_value": 100.0,
+            "verified_value": 100.0,
+            "source": "Cross-referenced with original simulation data: AeroTech G64W gave 61.8 m/s² acceleration (below 100 limit), AeroTech H242T gave 144.1 m/s² (above 100 limit). This creates genuine motor selection tension — not all motors satisfy both altitude AND acceleration constraints. AeroTech H242T has max thrust 276.6N (thrustcurve.org); on a ~1.4kg rocket: 276.6/1.4 - 9.8 ≈ 187.7 m/s² peak (matches the simulated 144 with drag). The 100 m/s² limit is realistic (common for fragile payload competitions) and creates selection pressure toward lower-thrust, longer-burn motors.",
+            "status": "verified"
+        },
+        {
+            "key": "max_ground_hit_velocity_ms",
+            "metadata_value": 6.0,
+            "verified_value": 6.0,
+            "source": "The original rocket with proper parachutes (main: 1066.8mm, drogue: 304.8mm) achieved ground hit velocities of 4.6-5.0 m/s across all 6 motor configurations. The setup shrinks main to 150mm and drogue to 50mm, making recovery dangerous (>15 m/s estimated). Agent must resize parachutes to >=400mm main and >=150mm drogue to achieve <=6 m/s. This is physically achievable — the original design proves it.",
+            "status": "verified"
+        },
+        {
+            "key": "min_stability_cal",
+            "metadata_value": 1.5,
+            "verified_value": 1.5,
+            "source": "The original rocket comment says 'it is overstable' with 76.2mm fins. Setup shrinks fins to 15mm, making it unstable (<1.0 cal). The verifier requires fins >=50mm height. Restoring fins to >=50mm should achieve >=1.5 calibers based on the original design being described as overstable with 76.2mm fins. 1.5 calibers is the standard NAR/TRA minimum stability requirement.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 65,
+            "verified_value": 65,
+            "source": "Confirmed in verifier.py line 382: 'pass_threshold = metadata.get(\"pass_threshold\", 65)' and line 383: 'passed = score >= pass_threshold'. With 100 total points across 11 checks, 65 requires substantial progress but allows partial failure on altitude precision or acceleration.",
+            "status": "verified"
+        }
+    ],
+    "ground_truth_rocket_state": {
+        "description": "Starting state of competition_rocket.ork after setup_task.sh modifications",
+        "rocket_name": "Dual parachute deployment",
+        "designer": "Joe Pfeiffer (an adaptation of Hichory Dichory Mach)",
+        "nose_cone": {
+            "shape": "ogive",
+            "length_mm": 283.2,
+            "aft_radius_mm": 28.3,
+            "material": "Fiberglass"
+        },
+        "body_tubes": [
+            {"name": "Body tube", "radius_mm": 25.0, "length_mm": 406.4, "material": "Fiberglass"},
+            {"name": "Body tube (switch band)", "radius_mm": 28.3, "length_mm": 25.4, "material": "Cardboard"},
+            {"name": "Body tube (drogue bay)", "radius_mm": 28.3, "length_mm": 304.8, "material": "Fiberglass"},
+            {"name": "Body tube (motor section)", "radius_mm": 28.3, "length_mm": 457.2, "material": "Fiberglass"}
+        ],
+        "fins": {
+            "type": "trapezoidfinset",
+            "count": 3,
+            "height_mm": 15.0,
+            "root_chord_mm": 152.4,
+            "tip_chord_mm": 88.9,
+            "material": "Fiberglass",
+            "note": "DEFICIENT: shrunk from original 76.2mm to 15.0mm by setup script"
+        },
+        "parachutes": {
+            "main": {
+                "name": "Elliptical 12-Gore 42\" Parachute",
+                "diameter_mm": 150.0,
+                "deploy_event": "altitude",
+                "deploy_altitude_m": 152.4,
+                "note": "DEFICIENT: shrunk from original 1066.8mm to 150.0mm by setup script"
+            },
+            "drogue": {
+                "name": "Apex 12\" Drouge Parachute",
+                "diameter_mm": 50.0,
+                "deploy_event": "apogee",
+                "deploy_altitude_m": 200.0,
+                "note": "DEFICIENT: shrunk from original 304.8mm to 50.0mm by setup script. Note typo 'Drouge' is original."
+            }
+        },
+        "motor_mount": {
+            "type": "inner_tube",
+            "outer_diameter_mm": 40.64,
+            "inner_diameter_mm": 38.61,
+            "length_mm": 406.4,
+            "motors_installed": 0,
+            "accepts_motor_diameters": ["29mm", "38mm"],
+            "note": "All motors cleared by setup script. Mount accepts 38mm motors by default."
+        },
+        "motor_configurations": {
+            "count": 6,
+            "note": "6 config IDs exist but ALL have no motor assigned (motors were removed)"
+        },
+        "simulations": {
+            "count": 0,
+            "note": "All simulations removed by setup script"
+        },
+        "mass_override": {
+            "status": "REMOVED by setup script",
+            "original_value_kg": 1.3607771088,
+            "note": "Setup script removes the sustainer stage mass override so that component mass changes (ballast, fin resize, parachute resize) affect simulation results"
+        }
+    },
+    "original_rocket_performance": {
+        "description": "Simulation results from the UNMODIFIED dual_parachute_deployment.ork (with 1.36kg mass override, original fins 76.2mm, original parachutes 1066.8mm/304.8mm)",
+        "simulations": [
+            {"motor": "AeroTech H669N (38mm)", "altitude_m": 592.7, "max_velocity_ms": 135.4, "max_accel_ms2": 721.9, "ground_hit_velocity_ms": 4.635},
+            {"motor": "AeroTech H242T (38mm)", "altitude_m": 697.2, "max_velocity_ms": 140.9, "max_accel_ms2": 144.1, "ground_hit_velocity_ms": 4.77},
+            {"motor": "AeroTech J570W (38mm)", "altitude_m": 2223.8, "max_velocity_ms": 388.6, "max_accel_ms2": 504.6, "ground_hit_velocity_ms": 5.006},
+            {"motor": "AeroTech H999N (38mm)", "altitude_m": 897.5, "max_velocity_ms": 190.8, "max_accel_ms2": 1003.5, "ground_hit_velocity_ms": 4.608},
+            {"motor": "AeroTech I1299N (38mm)", "altitude_m": 1158.7, "max_velocity_ms": 242.7, "max_accel_ms2": 867.2, "ground_hit_velocity_ms": 4.73},
+            {"motor": "AeroTech G64W (29mm)", "altitude_m": 226.2, "max_velocity_ms": 58.4, "max_accel_ms2": 61.8, "ground_hit_velocity_ms": 4.619}
+        ],
+        "note": "These values are with mass override of 1.36kg. Without the override (as in the task), the computed mass will differ and all altitude/velocity/acceleration values will change."
+    },
+    "verified_motor_data": {
+        "AeroTech_H242T": {
+            "diameter_mm": 38,
+            "length_mm": 152,
+            "total_impulse_Ns": 231.7,
+            "average_thrust_N": 242.0,
+            "max_thrust_N": 276.6,
+            "burn_time_s": 1.1,
+            "propellant": "Blue Thunder",
+            "source": "https://www.thrustcurve.org/motors/AeroTech/H242T/"
+        }
+    },
+    "environment_verification": {
+        "openrocket_version": "24.12",
+        "java_version": "OpenJDK 17.0.18",
+        "jar_path": "/opt/openrocket/OpenRocket.jar",
+        "jar_size_bytes": 83149098,
+        "gui_tools": ["scrot", "xdotool", "wmctrl"],
+        "terminals": ["gnome-terminal 3.44.0", "xterm", "bash"],
+        "network": "available (ping 8.8.8.8 OK)",
+        "file_write_rockets_dir": "PASS",
+        "file_write_exports_dir": "PASS",
+        "export_result_sh": "produces valid JSON with all required keys",
+        "window_title": "Dual parachute deployment (competition_rocket.ork)"
+    },
+    "data_quirks": [
+        "The drogue parachute name has a typo: 'Drouge' instead of 'Drogue'. The verifier handles both spellings.",
+        "The motor mount inner tube has 6 motor configuration IDs but all are empty (motors removed). OpenRocket still shows the configuration tabs. The agent may need to select a config before adding a motor.",
+        "The main parachute deploy event is 'altitude' at 152.4m (500ft), which is standard for dual-deploy main chutes. The drogue deploys at apogee. This is correct dual-deploy behavior.",
+        "The sustainer stage's mass override (1.3607771088 kg) is REMOVED by the setup script. Without it, OpenRocket computes mass from individual components. The actual computed mass will differ from 1.36 kg, affecting all simulation outputs.",
+        "The motor mount accepts both 29mm and 38mm motors (38.61mm inner diameter). OpenRocket's motor selection dialog will show motors of both diameters.",
+        "The altitude target (400-500m) was chosen to fall between the G64W result (226m) and H242T result (697m) from the original file. The exact achievability depends on the mass without override and needs calibration via actual simulation."
+    ],
+    "privileged_info_summary": "The starting rocket is a modified 'Dual parachute deployment' design by Joe Pfeiffer, an official OpenRocket example. The setup script creates four deliberate deficiencies: fins shrunk to 15mm height (original: 76.2mm, causing instability), main parachute shrunk to 150mm diameter (original: 1066.8mm, causing unsafe descent >15 m/s), drogue shrunk to 50mm (original: 304.8mm), and all motors removed from the 38mm-diameter motor mount. All simulations are cleared. The sustainer stage mass override (1.36 kg) is removed so ballast tuning works. The motor mount accepts both 29mm and 38mm motors. From the original file's simulations: AeroTech G64W (29mm) achieved 226m altitude with 61.8 m/s² acceleration, while AeroTech H242T (38mm) achieved 697m with 144.1 m/s² acceleration. The task requires hitting 400-500m altitude, ≤100 m/s² acceleration, ≤6 m/s ground hit velocity, and ≥1.5 caliber stability simultaneously. The agent must enlarge fins to ≥50mm for stability, enlarge main parachute to ≥400mm and drogue to ≥150mm for safe recovery, select a motor from the database, and iteratively tune (likely via ballast mass) to converge on the altitude window. The drogue parachute has a typo in its name ('Drouge'). The main parachute deploys at 152.4m altitude; the drogue deploys at apogee. Output files must be saved to /home/ga/Documents/rockets/competition_final.ork, /home/ga/Documents/exports/flight_data.csv, and /home/ga/Documents/exports/design_report.txt.",
+    "pi_confidence": "high"
+}

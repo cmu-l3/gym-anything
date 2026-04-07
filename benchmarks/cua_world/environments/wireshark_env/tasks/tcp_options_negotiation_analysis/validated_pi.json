@@ -1,0 +1,38 @@
+{
+    "task_id": "tcp_options_negotiation_analysis@1",
+    "dataset": "Wireshark SampleCaptures",
+    "case_id": "200722_tcp_anon.pcapng",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "pcap_file",
+            "metadata_value": "/home/ga/Documents/captures/200722_tcp_anon.pcapng",
+            "verified_value": "/home/ga/Documents/captures/200722_tcp_anon.pcapng",
+            "source": "Confirmed via install_wireshark.sh which downloads the file and setup_task.sh which expects it at this path.",
+            "status": "verified"
+        },
+        {
+            "key": "csv_output_path",
+            "metadata_value": "/home/ga/Documents/tcp_options_report.csv",
+            "verified_value": "/home/ga/Documents/tcp_options_report.csv",
+            "source": "Confirmed via export_result.sh and task.json prompt.",
+            "status": "verified"
+        },
+        {
+            "key": "summary_output_path",
+            "metadata_value": "/home/ga/Documents/tcp_options_summary.txt",
+            "verified_value": "/home/ga/Documents/tcp_options_summary.txt",
+            "source": "Confirmed via export_result.sh and task.json prompt.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_dir",
+            "metadata_value": "/var/lib/wireshark_ground_truth",
+            "verified_value": "/var/lib/wireshark_ground_truth",
+            "source": "Confirmed via setup_task.sh which writes to this directory and verifier.py which reads from it.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The target capture file `200722_tcp_anon.pcapng` is a real-world sample downloaded from Wireshark's SampleCaptures wiki, not synthetic data. Processing it directly with `tshark` confirms exactly 2 matching initial SYN packets (frame 1 and frame 9). Both packets specify a distinct Maximum Segment Size (MSS) of 1460, a distinct Window Scale shift value of 8, and both have the SACK Permitted option present but neither has the TCP Timestamps option. Thus, SACK Permitted is 100% and Timestamps Present is 0%. The most common MSS is 1460, and the most common destination port is 2000. Additionally, there is a logic bug in the verifier.py's spot check: the `setup_task.sh` script extracts the SACK Permitted option as raw hex (`0402`), but the verifier incorrectly expects it to equal `'1'` in order to evaluate the ground truth as `'yes'`. Consequently, if an agent correctly records `'yes'` for SACK permitted in their CSV, they will falsely fail the CSV data spot check (Criteria 3), though they must still report `100%` in the summary to pass Criteria 5.",
+    "pi_confidence": "high"
+}

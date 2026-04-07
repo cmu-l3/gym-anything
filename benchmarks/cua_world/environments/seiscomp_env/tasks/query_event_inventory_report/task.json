@@ -1,0 +1,61 @@
+{
+  "id": "query_event_inventory_report@1",
+  "version": "1.0",
+  "env_id": "seiscomp_env@0.1",
+  "description": "The SeisComP database contains the 2024 Noto Peninsula earthquake and station inventory for the GE network (GEOFON). Extract the earthquake's origin time, latitude, longitude, depth (km), magnitude, magnitude type, and agency. Additionally, retrieve coordinates for GE network stations TOLI, GSI, KWP, SANI, and BKB to calculate the great-circle epicentral distance in kilometers from each station to the epicenter. Save the report to /home/ga/noto_earthquake_report.txt using the following format:\n\n=== EARTHQUAKE PARAMETERS ===\nOriginTime: <value>\nLatitude: <value>\nLongitude: <value>\nDepth_km: <value>\nMagnitude: <value>\nMagnitudeType: <value>\nAgency: <value>\n\n=== STATION DISTANCES ===\nNetwork Station Latitude Longitude Distance_km\nGE <STA> <LAT> <LON> <DIST>\n...\n\nThe file must contain exactly these two section headers and all distances must be in kilometers.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/query_event_inventory_report/setup_task.sh",
+    "post_task": "/workspace/tasks/query_event_inventory_report/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/noto_earthquake_report.txt",
+    "earthquake": {
+      "latitude": 37.23,
+      "longitude": 136.76,
+      "depth_km": 10.0,
+      "magnitude": 7.5,
+      "magnitude_type": "mww",
+      "agency": "USGS"
+    },
+    "stations": {
+      "TOLI": {
+        "lat": 1.12,
+        "lon": 120.79
+      },
+      "GSI": {
+        "lat": 1.3,
+        "lon": 97.58
+      },
+      "KWP": {
+        "lat": -8.86,
+        "lon": 121.78
+      },
+      "SANI": {
+        "lat": 2.05,
+        "lon": 125.99
+      },
+      "BKB": {
+        "lat": -1.64,
+        "lon": 116.01
+      }
+    },
+    "tolerances": {
+      "coord_deg": 0.2,
+      "depth_km": 5.0,
+      "mag": 0.2,
+      "distance_km": 50.0
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_query_event_inventory_report"
+    }
+  }
+}

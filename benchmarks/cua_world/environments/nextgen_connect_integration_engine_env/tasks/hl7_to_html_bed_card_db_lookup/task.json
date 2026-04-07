@@ -1,0 +1,31 @@
+{
+  "id": "hl7_to_html_bed_card_db_lookup@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a NextGen Connect channel named 'Bed_Card_Generator' that generates printable HTML 'Bed Cards' for patients. The channel must listen for HL7 ADT messages (v2.x, MLLP) on TCP port 6661. For each message, perform a database lookup in the 'doctors' table (columns: doctor_id, full_name) within the PostgreSQL database (Connection: jdbc:postgresql://nextgen-postgres:5432/mirthdb; Credentials: postgres/postgres) using the ID from PV1-7.1. Generate a valid HTML file containing the Patient Name, MRN, DOB, and the Attending Doctor's Full Name; if the lookup fails, default the doctor name to 'On Call'. Save the output to '/home/ga/bed_cards/' using the naming convention '[LastName]_[MRN].html'. A sample message is available at /home/ga/sample_adt.hl7.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_to_html_bed_card_db_lookup/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_to_html_bed_card_db_lookup/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Bed_Card_Generator",
+    "port": "6661",
+    "output_dir": "/home/ga/bed_cards",
+    "test_doctor_id": "DOC202",
+    "test_doctor_name": "Dr. Lisa Cuddy",
+    "test_patient_last": "TESTPATIENT",
+    "test_mrn": "MRN99999"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_to_html_bed_card_db_lookup"
+    }
+  }
+}

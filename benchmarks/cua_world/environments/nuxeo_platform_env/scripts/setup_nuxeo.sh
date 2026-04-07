@@ -121,7 +121,7 @@ DATA_DIR="/home/ga/nuxeo/data"
 mkdir -p "$DATA_DIR"
 
 # Copy corporate document PDFs from workspace data mount
-# Mounted from benchmarks/cua_world/environments/nuxeo_platform_env/data/
+# Mounted from examples/nuxeo_platform_env/data/
 if [ -f "/workspace/data/annual_report_2023.pdf" ]; then
     cp /workspace/data/annual_report_2023.pdf "$DATA_DIR/Annual_Report_2023.pdf"
     echo "  Copied real annual_report_2023.pdf ($(du -sh "$DATA_DIR/Annual_Report_2023.pdf" | cut -f1))"

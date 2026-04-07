@@ -50,7 +50,7 @@ mkdir -p /opt/ManageEngine
 # =====================================================
 # Write the background install script
 # =====================================================
-cat > /tmp/ela_install_bg.sh << 'BGEOF'
+cat > /opt/setup/ela_install_bg.sh << 'BGEOF'
 #!/bin/bash
 # Background installation script for ManageEngine EventLog Analyzer
 # Runs detached from the pre_start hook to avoid timeout
@@ -277,13 +277,13 @@ echo "OK" > "$MARKER"
 log "Marker written: $MARKER"
 BGEOF
 
-chmod +x /tmp/ela_install_bg.sh
+chmod +x /opt/setup/ela_install_bg.sh
 
 # =====================================================
 # Start installation in background and return immediately
 # =====================================================
 echo "Starting ManageEngine EventLog Analyzer installation in background..."
-nohup bash /tmp/ela_install_bg.sh > /tmp/ela_install_nohup.log 2>&1 &
+nohup bash /opt/setup/ela_install_bg.sh > /tmp/ela_install_nohup.log 2>&1 &
 BG_PID=$!
 echo "Background install PID: $BG_PID"
 echo "Progress log: /tmp/ela_install.log"

@@ -2,6 +2,36 @@
 # Shared utilities for Moodle task setup and export scripts
 
 # =============================================================================
+# Auto-check: wait for Moodle web service on source
+# This ensures web service is ready after cache restore
+# =============================================================================
+echo "Checking Moodle web service readiness..."
+_moodle_ready=false
+for _moodle_check_i in $(seq 1 60); do
+    _moodle_code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost/" 2>/dev/null || echo "000")
+    if [ "$_moodle_code" = "200" ] || [ "$_moodle_code" = "302" ] || [ "$_moodle_code" = "303" ]; then
+        echo "Moodle web service is ready"
+        _moodle_ready=true
+        break
+    fi
+    # At 30s mark, try restarting Docker containers and Apache
+    if [ "$_moodle_check_i" -eq 15 ]; then
+        echo "Moodle not responding after 30s, restarting Docker containers and Apache..."
+        docker compose -f /home/ga/moodle/docker-compose.yml restart 2>/dev/null \
+            || docker-compose -f /home/ga/moodle/docker-compose.yml restart 2>/dev/null || true
+        systemctl restart apache2 2>/dev/null || true
+    fi
+    sleep 2
+done
+if [ "$_moodle_ready" != "true" ]; then
+    echo "WARNING: Moodle not ready after 120s, forcing restart..."
+    docker compose -f /home/ga/moodle/docker-compose.yml restart 2>/dev/null \
+        || docker-compose -f /home/ga/moodle/docker-compose.yml restart 2>/dev/null || true
+    systemctl restart apache2 2>/dev/null || true
+    sleep 10
+fi
+
+# =============================================================================
 # Database Utilities
 # =============================================================================
 
@@ -109,6 +139,73 @@ get_assignment_by_name() {
 get_category_by_name() {
     local name="$1"
     moodle_query "SELECT id, name, idnumber FROM mdl_course_categories WHERE LOWER(TRIM(name))=LOWER(TRIM('$name')) LIMIT 1"
+}
+
+# =============================================================================
+# Web Service Wait
+# =============================================================================
+
+# Wait for Moodle web service to be ready
+wait_for_moodle() {
+    local timeout=${1:-120}
+    local elapsed=0
+    local restarted=false
+    echo "Waiting for Moodle web service..."
+    while [ $elapsed -lt $timeout ]; do
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost/" 2>/dev/null || echo "000")
+        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "303" ]; then
+            echo "Moodle is ready (HTTP $HTTP_CODE) after ${elapsed}s"
+            return 0
+        fi
+        # At halfway point, try restarting services
+        if [ "$restarted" = "false" ] && [ $elapsed -ge 30 ]; then
+            echo "Moodle not responding after ${elapsed}s, restarting services..."
+            docker compose -f /home/ga/moodle/docker-compose.yml restart 2>/dev/null \
+                || docker-compose -f /home/ga/moodle/docker-compose.yml restart 2>/dev/null || true
+            systemctl restart apache2 2>/dev/null || true
+            restarted=true
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+    echo "WARNING: Moodle not ready after ${timeout}s"
+    return 1
+}
+
+# Launch Firefox with web service wait
+restart_firefox() {
+    local url="${1:-http://localhost/}"
+
+    # Wait for Moodle web service before launching Firefox
+    wait_for_moodle 120 || echo "WARNING: Moodle may not be ready"
+
+    # Kill any stale Firefox
+    pkill -9 -f firefox 2>/dev/null || true
+    sleep 3
+
+    su - ga -c "DISPLAY=:1 firefox '$url' > /tmp/firefox_moodle.log 2>&1 &"
+
+    # Wait for Firefox window
+    local ff_started=false
+    for i in {1..30}; do
+        if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla\|moodle"; then
+            ff_started=true
+            echo "Firefox window detected after ${i}s"
+            break
+        fi
+        sleep 1
+    done
+
+    if [ "$ff_started" = true ]; then
+        sleep 2
+        # Maximize Firefox window
+        local wid
+        wid=$(DISPLAY=:1 wmctrl -l | grep -i "firefox\|mozilla" | head -1 | awk '{print $1}')
+        if [ -n "$wid" ]; then
+            DISPLAY=:1 wmctrl -ia "$wid" 2>/dev/null || true
+            DISPLAY=:1 wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+        fi
+    fi
 }
 
 # =============================================================================
@@ -232,6 +329,8 @@ export -f is_user_enrolled
 export -f get_enrollment_count
 export -f get_assignment_by_name
 export -f get_category_by_name
+export -f wait_for_moodle
+export -f restart_firefox
 export -f wait_for_window
 export -f wait_for_file
 export -f focus_window

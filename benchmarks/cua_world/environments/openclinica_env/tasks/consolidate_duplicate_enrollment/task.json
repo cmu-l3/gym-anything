@@ -1,0 +1,29 @@
+{
+  "id": "consolidate_duplicate_enrollment@1",
+  "version": "1.0",
+  "env_id": "openclinica_env@0.1",
+  "description": "During routine data reconciliation between the clinical site's Electronic Medical Record (EMR) and the EDC, the Clinical Data Manager spotted a duplicate enrollment in the Phase II Diabetes Trial (DM-TRIAL-2024). A busy coordinator enrolled the same patient twice: first as DM-204 (correct demographics, but incomplete setup) and later as DM-205 (typo in birth year, but with a scheduled visit). Consolidate these records in OpenClinica (login: root / Admin123!) by removing the duplicate record DM-205 from the study and updating the correct record DM-204. For DM-204, set the 'Secondary ID' to MRN-88492 and schedule the 'Baseline Assessment' study event for 2024-05-15.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/consolidate_duplicate_enrollment/setup_task.sh",
+    "post_task": "/workspace/tasks/consolidate_duplicate_enrollment/export_result.sh"
+  },
+  "metadata": {
+    "target_subject_to_remove": "DM-205",
+    "target_subject_to_keep": "DM-204",
+    "target_secondary_id": "MRN-88492",
+    "target_event": "Baseline Assessment",
+    "target_event_date": "2024-05-15"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_consolidate_duplicate_enrollment"
+    }
+  }
+}

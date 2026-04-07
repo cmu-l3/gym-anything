@@ -1,0 +1,129 @@
+{
+    "task_id": "ellipse_fill@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "id",
+            "metadata_value": "ellipse_fill@1",
+            "verified_value": "ellipse_fill@1",
+            "source": "task.json field; format is consistent with naming conventions",
+            "status": "verified"
+        },
+        {
+            "key": "env_id",
+            "metadata_value": "example.gimp_env@0.1",
+            "verified_value": "example.gimp_env@0.1",
+            "source": "Cross-referenced with env.json id field which confirms exact match",
+            "status": "verified"
+        },
+        {
+            "key": "timeout_sec",
+            "metadata_value": 90,
+            "verified_value": null,
+            "source": "Cannot verify without executing task; 90s is reasonable for image editing",
+            "status": "unverified"
+        },
+        {
+            "key": "max_steps",
+            "metadata_value": 10,
+            "verified_value": null,
+            "source": "Cannot verify without executing task; design decision",
+            "status": "unverified"
+        },
+        {
+            "key": "image_dimensions",
+            "metadata_value": "600x400 pixels",
+            "verified_value": "600x400 pixels",
+            "source": "Code analysis of setup_ellipse_task.sh line 13: 'convert -size 600x400 xc:white...'",
+            "status": "verified"
+        },
+        {
+            "key": "image_data_source",
+            "metadata_value": "Synthetic/generated",
+            "verified_value": "Synthetic - ImageMagick-generated blank canvas with gray border",
+            "source": "setup_ellipse_task.sh creates image programmatically; fallback downloads Unsplash photo",
+            "status": "verified"
+        },
+        {
+            "key": "red_color_primary_range",
+            "metadata_value": "RGB(200+, 0-50, 0-50)",
+            "verified_value": "R>=200, G<=50, B<=50",
+            "source": "verifier.py lines 33-36; primary red detection mask",
+            "status": "verified"
+        },
+        {
+            "key": "red_percentage_bounds",
+            "metadata_value": "5-40% of image area",
+            "verified_value": "5-40% (12000-96000 pixels for 600x400)",
+            "source": "verifier.py line 289: 'red_amount_good = 5 <= color_analysis['red_percentage'] <= 40'",
+            "status": "verified"
+        },
+        {
+            "key": "center_positioning_bounds",
+            "metadata_value": "Middle 60% of image (x: 0.2-0.8, y: 0.2-0.8)",
+            "verified_value": "x: 120-480 pixels, y: 80-320 pixels for 600x400 image",
+            "source": "verifier.py lines 197-202: center_bounds boundaries",
+            "status": "verified"
+        },
+        {
+            "key": "aspect_ratio_circularity_threshold",
+            "metadata_value": ">=0.7 indicates reasonably circular shape",
+            "verified_value": "aspect_ratio >= 0.7",
+            "source": "verifier.py line 129: 'is_circular': aspect_ratio >= 0.7",
+            "status": "verified"
+        },
+        {
+            "key": "minimum_filled_area_pixels",
+            "metadata_value": ">=800 pixels (from README line 106)",
+            "verified_value": "Verifier only rejects if <100 pixels (line 93)",
+            "source": "README claims 800 pixels requirement but verifier.py only checks 100 pixels",
+            "status": "contradicted"
+        },
+        {
+            "key": "pass_threshold_percentage",
+            "metadata_value": "75% (README line 116)",
+            "verified_value": "Score >= 75 = 3 out of 4 criteria met",
+            "source": "verifier.py line 310-311: 'score = int((criteria_met / total_criteria) * 100); passed = score >= 75'",
+            "status": "verified"
+        },
+        {
+            "key": "verification_criteria_count",
+            "metadata_value": "4 criteria total (from code)",
+            "verified_value": "4 criteria: (1) red amount, (2) circular shape, (3) center position, (4) image modified",
+            "source": "verifier.py lines 285-311: 'total_criteria = 4'",
+            "status": "verified"
+        },
+        {
+            "key": "export_filename",
+            "metadata_value": "red_circle (with PNG/JPG extension)",
+            "verified_value": "Multiple variations checked: red_circle.png, red_circle.jpg, circle.png, ellipse.png",
+            "source": "export_ellipse.sh and verifier.py lines 233-240",
+            "status": "verified"
+        },
+        {
+            "key": "GIMP_version_assumption",
+            "metadata_value": "GIMP 2.10 (inferred from config path)",
+            "verified_value": "Setup assumes GIMP 2.10 based on config directory structure",
+            "source": "setup_gimp.sh lines 14-18: '.config/GIMP/2.10'",
+            "status": "verified"
+        },
+        {
+            "key": "screen_resolution",
+            "metadata_value": "1920x1080",
+            "verified_value": "1920x1080",
+            "source": "env.json line 7: 'resolution': [1920, 1080]",
+            "status": "verified"
+        },
+        {
+            "key": "observation_fps",
+            "metadata_value": "10 FPS",
+            "verified_value": "10",
+            "source": "env.json line 7: 'fps': 10",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The ellipse_fill@1 task uses synthetic data: a 600x400 pixel image generated by ImageMagick with a gray border on white background. The task requires creating a red-filled circular selection in the center area of the image. Verified constraints include: red color detection using RGB(>=200, <=50, <=50), red coverage between 5-40% of image area (12000-96000 pixels), circular shape with aspect ratio >=0.7, center positioning in the middle 60% of the image (x:120-480, y:80-320 for 600x400), and pass threshold at 75% (3/4 criteria). The environment is GIMP 2.10 running on Ubuntu with 1920x1080 screen at 10 FPS observation rate. CRITICAL FINDING: README claims minimum filled area of 800 pixels, but verifier code only enforces minimum of 100 pixels—a significant discrepancy suggesting the README overstates the size requirement.",
+    "pi_confidence": "high"
+}

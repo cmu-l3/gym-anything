@@ -1,0 +1,30 @@
+{
+  "id": "autonomous_transaction_logging@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A payment processing system has a critical bug: when a transaction fails and rolls back, the security audit logs recording the attempt are also lost. Implement persistent logging using Autonomous Transactions (PRAGMA AUTONOMOUS_TRANSACTION) so that log entries are saved independently of the main transaction. Using the legacy code in /home/ga/Desktop/legacy_payment_code.sql, create a logging procedure and update the PROCESS_TRANSFER procedure to ensure audit logs persist even during rollbacks. Demonstrate the fix by attempting a $5000 transfer from User 1001 ($1000 balance) to User 1002 and export the resulting SYSTEM_LOGS to /home/ga/Desktop/audit_evidence.txt.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/autonomous_transaction_logging/setup_task.sh",
+    "post_task": "/workspace/tasks/autonomous_transaction_logging/export_result.sh"
+  },
+  "metadata": {
+    "sender_id": 1001,
+    "receiver_id": 1002,
+    "initial_sender_balance": 1000,
+    "transfer_amount": 5000,
+    "expected_log_message": "Insufficient funds",
+    "evidence_file": "/home/ga/Desktop/audit_evidence.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_autonomous_logging"
+    }
+  }
+}

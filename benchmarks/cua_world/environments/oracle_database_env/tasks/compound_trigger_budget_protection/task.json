@@ -1,0 +1,30 @@
+{
+  "id": "compound_trigger_budget_protection@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "The HR department needs a strict database-level control to prevent salary overruns. Create a table named DEPT_SPENDING_CAPS with columns DEPARTMENT_ID (NUMBER, PK) and CAP_AMOUNT (NUMBER). Populate this table for all existing departments, calculating the cap as 120% of the current total salary (rounded to the nearest integer) or 10,000 for departments with no employees. Implement a trigger named TRG_ENFORCE_SPENDING_CAP on the EMPLOYEES table that fires on INSERT or UPDATE of SALARY or DEPARTMENT_ID. This trigger must block any transaction that causes a department's total salary to exceed its CAP_AMOUNT by raising application error ORA-20001 with the message 'Budget Exceeded'. The implementation must successfully handle the 'Mutating Table' constraint (ORA-04091).\n\nConnection: Host=localhost, Port=1521, Service=XEPDB1, User=hr, Password=hr123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 75,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compound_trigger_budget_protection/setup_task.sh",
+    "post_task": "/workspace/tasks/compound_trigger_budget_protection/export_result.sh"
+  },
+  "metadata": {
+    "budget_table": "DEPT_SPENDING_CAPS",
+    "trigger_name": "TRG_ENFORCE_SPENDING_CAP",
+    "error_code": 20001,
+    "error_msg_fragment": "Budget",
+    "buffer_percent": 20,
+    "default_cap": 10000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compound_trigger_budget_protection"
+    }
+  }
+}

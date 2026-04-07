@@ -1,0 +1,28 @@
+{
+  "id": "wcst_perseveration_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "hard",
+  "description": "A clinical neuropsychologist has administered computerized Wisconsin Card Sorting Test (WCST) sessions to 12 patients. One session (sub-99999) was contaminated with random button presses by a research assistant. The raw trial-by-trial data is exported at ~/pebl/data/wcst_data.csv.\n\nYour task is to score all WCST sessions using the simplified Heaton (1993) method, exclude the contaminated session, and produce a JSON report at ~/pebl/analysis/wcst_report.json.\n\nDATA FORMAT:\nColumns: participant_id, trial, stimulus_color, stimulus_shape, stimulus_number, response_pile, current_rule, correct.\nNote: The 4 key cards are fixed: Pile 1 (1 red triangle), Pile 2 (2 green stars), Pile 3 (3 yellow crosses), Pile 4 (4 blue circles).\n\nSCORING RULES:\n1. Correct response: Stimulus value on the current_rule dimension matches the chosen pile's value on that dimension.\n2. Category completed: 10 consecutive correct responses. The rule then advances.\n3. Perseverative response: AFTER the FIRST category is completed, a response where the stimulus matches the chosen pile on the IMMEDIATELY PRECEDING rule dimension. Before 1st category is completed, NO responses are perseverative.\n4. Perseverative error (PE): A perseverative response that is incorrect under the current rule.\n5. Non-perseverative error (NPE): An incorrect response that is NOT perseverative.\n6. Total errors (TE): PE + NPE.\n7. Trials to first category: Trial number when the 1st category is completed (128 if none).\n8. Conceptual level responses (CLR%): Percentage of total trials that occur within unbroken runs of >= 3 consecutive correct responses.\n9. Failure to maintain set (FMS): Number of errors made after 5 or more consecutive correct responses but before reaching 10.\n\nOUTPUT FORMAT:\nWrite valid JSON to ~/pebl/analysis/wcst_report.json containing a 'participants' list (with metrics like 'categories_completed', 'perseverative_errors', 'non_perseverative_errors', 'total_errors', 'trials_to_first_category', 'conceptual_level_pct', 'failure_to_maintain_set', OR 'excluded': true and a 'reason') and a 'group_means' object calculating the mean of categories_completed, perseverative_errors, total_errors, and conceptual_level_pct across valid participants.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/wcst_perseveration_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/wcst_perseveration_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "sub-99999",
+    "output_file": "/home/ga/pebl/analysis/wcst_report.json",
+    "data_file": "/home/ga/pebl/data/wcst_data.csv",
+    "reference": "Heaton et al. (1993) Simplified Scoring"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_wcst_perseveration_analysis"
+    }
+  }
+}

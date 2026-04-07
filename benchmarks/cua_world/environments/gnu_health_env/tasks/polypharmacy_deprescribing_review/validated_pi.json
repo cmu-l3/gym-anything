@@ -1,0 +1,94 @@
+{
+    "task_id": "polypharmacy_deprescribing_review@1",
+    "dataset": "gnuhealth-50-demo",
+    "case_id": "patient_id=12",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_patient_firstname",
+            "metadata_value": "Roberto",
+            "verified_value": "Roberto",
+            "source": "SQL dump of gnuhealth-50-demo database (party_party table id 35)",
+            "status": "verified"
+        },
+        {
+            "key": "target_patient_lastname",
+            "metadata_value": "Carlos",
+            "verified_value": "Carlos",
+            "source": "SQL dump of gnuhealth-50-demo database (party_party table id 35)",
+            "status": "verified"
+        },
+        {
+            "key": "fall_icd10_prefix",
+            "metadata_value": [
+                "W",
+                "S"
+            ],
+            "verified_value": [
+                "W",
+                "S"
+            ],
+            "source": "export_result.sh explicitly checks for new gnuhealth_patient_disease records where gpath.code LIKE \"W%\" OR gpath.code LIKE \"S%\"",
+            "status": "verified"
+        },
+        {
+            "key": "adverse_drug",
+            "metadata_value": "Enalapril",
+            "verified_value": "Enalapril",
+            "source": "setup_task.sh injects an Enalapril allergy as a distractor for a different patient, and export_result.sh explicitly checks for \"%enalapril%\" (among other ACE inhibitors) in the new allergy record",
+            "status": "verified"
+        },
+        {
+            "key": "alternative_drugs",
+            "metadata_value": [
+                "Losartan",
+                "Amlodipine",
+                "Hydrochlorothiazide"
+            ],
+            "verified_value": [
+                "Losartan",
+                "Amlodipine",
+                "Hydrochlorothiazide"
+            ],
+            "source": "export_result.sh explicitly accepts \"losartan\", \"amlodip\", and \"hydrochlorothiazid\" (along with other ARBs, CCBs, and thiazides) as valid safer antihypertensive prescriptions",
+            "status": "verified"
+        },
+        {
+            "key": "min_lab_orders",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "verifier.py logic explicitly awards full points only if new_lab_count >= 2",
+            "status": "verified"
+        },
+        {
+            "key": "followup_min_days",
+            "metadata_value": 7,
+            "verified_value": 7,
+            "source": "export_result.sh enforces a minimum appointment date of TASK_START_DATE + 6 days (buffer to cover exactly 7 days)",
+            "status": "verified"
+        },
+        {
+            "key": "followup_max_days",
+            "metadata_value": 21,
+            "verified_value": 21,
+            "source": "export_result.sh enforces a maximum appointment date of TASK_START_DATE + 22 days (buffer to safely cover 21 days)",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Geriatric Clinical Pharmacist",
+            "verified_value": "Geriatric Clinical Pharmacist",
+            "source": "task.json description states \"As the clinical pharmacist\" handling a \"68-year-old\" patient",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Hospital Pharmacy",
+            "verified_value": "Hospital Pharmacy",
+            "source": "task.json description context (patient \"admitted after a fall\")",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on the synthetic GNU Health demo database. The target patient is Roberto Carlos (gnuhealth_patient id 12). The evaluation scripts explicitly require the agent to: 1) document a new diagnosis code starting with \"W\" or \"S\" for the fall injury, 2) record an allergy to an ACE inhibitor (Enalapril is explicitly matched in the verifier and used as a distractor for a different patient in the setup script), 3) prescribe a safe antihypertensive alternative (explicitly matching Losartan, Amlodipine, Hydrochlorothiazide, among others) while NOT re-prescribing an ACE inhibitor, 4) order at least 2 new laboratory tests, and 5) schedule a follow-up appointment between 7 and 21 days from the task start date.",
+    "pi_confidence": "high"
+}

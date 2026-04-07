@@ -182,10 +182,10 @@ tasks/
 ### 🚀 **Running Individual Tasks**
 ```bash
 # Run specific task
-python -m gym_anything.cli run benchmarks/cua_world/environments/gimp_env3 --task <task_name>
+python -m gym_anything.cli run examples/gimp_env3 --task <task_name>
 
 # Validate task configuration
-python -m gym_anything.cli validate benchmarks/cua_world/environments/gimp_env3 --task <task_name>
+python -m gym_anything.cli validate examples/gimp_env3 --task <task_name>
 
 # Available tasks: brightness_reduction, horizontal_mirror, green_background, 
 #                 undo_config, text_overlay, crop_resize, color_replacement
@@ -253,20 +253,20 @@ python -m gym_anything.cli validate benchmarks/cua_world/environments/gimp_env3 
 
 ```bash
 # 1. Validate all tasks
-python -m gym_anything.cli validate benchmarks/cua_world/environments/gimp_env3
+python -m gym_anything.cli validate examples/gimp_env3
 
 # 2. Run beginner sequence
-python -m gym_anything.cli run benchmarks/cua_world/environments/gimp_env3 --task horizontal_mirror
-python -m gym_anything.cli run benchmarks/cua_world/environments/gimp_env3 --task undo_config  
-python -m gym_anything.cli run benchmarks/cua_world/environments/gimp_env3 --task crop_resize
+python -m gym_anything.cli run examples/gimp_env3 --task horizontal_mirror
+python -m gym_anything.cli run examples/gimp_env3 --task undo_config  
+python -m gym_anything.cli run examples/gimp_env3 --task crop_resize
 
 # 3. Progress to intermediate
-python -m gym_anything.cli run benchmarks/cua_world/environments/gimp_env3 --task brightness_reduction
-python -m gym_anything.cli run benchmarks/cua_world/environments/gimp_env3 --task color_replacement
-python -m gym_anything.cli run benchmarks/cua_world/environments/gimp_env3 --task text_overlay
+python -m gym_anything.cli run examples/gimp_env3 --task brightness_reduction
+python -m gym_anything.cli run examples/gimp_env3 --task color_replacement
+python -m gym_anything.cli run examples/gimp_env3 --task text_overlay
 
 # 4. Master advanced techniques
-python -m gym_anything.cli run benchmarks/cua_world/environments/gimp_env3 --task green_background
+python -m gym_anything.cli run examples/gimp_env3 --task green_background
 ```
 
 This comprehensive GIMP training suite provides everything needed for world-class multimodal agent development in digital image editing! 🚀

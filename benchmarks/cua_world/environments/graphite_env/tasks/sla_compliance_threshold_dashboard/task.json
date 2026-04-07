@@ -1,0 +1,35 @@
+{
+  "id": "sla_compliance_threshold_dashboard@1",
+  "version": "1.0",
+  "env_id": "graphite_env@0.1",
+  "description": "You are a Reliability Engineer preparing a monthly SLA compliance dashboard for executive review. Your contracts specify that EC2 fleet peak CPU must stay below 80%, and the RDS database CPU must stay below 90%.\n\nCreate a Graphite dashboard named exactly 'SLA Compliance Report' containing exactly three graphs:\n\n1. Graph titled exactly 'Fleet CPU vs SLA Target' \n   - Add the peak fleet CPU using: maxSeries(servers.ec2_instance_*.cpu.*)\n   - Add an SLA ceiling line using: threshold(80,\"SLA Limit 80%\")\n\n2. Graph titled exactly 'SLA Breach Windows' \n   - Use the removeBelowValue() function to isolate only the periods where fleet CPU breached the 80% SLA limit. You will need to nest functions. Target: removeBelowValue(maxSeries(servers.ec2_instance_*.cpu.*), 80)\n\n3. Graph titled exactly 'Database CPU vs SLA Target' \n   - Add the database CPU metric: servers.rds_database.cpu.utilization\n   - Add the database SLA ceiling line using: threshold(90,\"DB SLA Limit 90%\")\n\nSave the dashboard when complete. The dashboard name and graph titles must match exactly.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sla_compliance_threshold_dashboard/setup_task.sh",
+    "post_task": "/workspace/tasks/sla_compliance_threshold_dashboard/export_result.sh"
+  },
+  "metadata": {
+    "expected_dashboard_name": "SLA Compliance Report",
+    "expected_graph_titles": [
+      "Fleet CPU vs SLA Target",
+      "SLA Breach Windows",
+      "Database CPU vs SLA Target"
+    ],
+    "threshold_ec2": 80,
+    "threshold_rds": 90,
+    "occupation": "Reliability Engineer",
+    "industry": "E-commerce",
+    "result_file": "/tmp/sla_compliance_threshold_dashboard_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sla_compliance_threshold_dashboard"
+    }
+  }
+}

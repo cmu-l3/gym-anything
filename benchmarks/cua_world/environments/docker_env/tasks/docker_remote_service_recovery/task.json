@@ -1,0 +1,30 @@
+{
+  "id": "docker_remote_service_recovery@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are the On-Call SRE. The staging environment is reporting downtime because a web proxy service on the remote host 'staging-node' has crashed. You do NOT have SSH access to the node, but the Docker API is exposed on port 2375. Connect to the remote host using a docker context named 'staging' (tcp://staging-node:2375). Diagnose the 'web-proxy' container failure and replace it with a functional 'web-proxy' container using the 'nginx:alpine' image and port mapping 8080:80, ensuring the missing environment variable is corrected. Login credentials: user 'ga', password 'password123'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_remote_service_recovery/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_remote_service_recovery/export_result.sh"
+  },
+  "metadata": {
+    "remote_host": "staging-node",
+    "remote_port": 2375,
+    "container_name": "web-proxy",
+    "image": "nginx:alpine",
+    "required_env_var": "UPSTREAM_TARGET",
+    "required_port_publish": "8080"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_remote_recovery"
+    }
+  }
+}

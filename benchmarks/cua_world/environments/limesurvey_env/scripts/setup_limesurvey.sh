@@ -213,19 +213,9 @@ PROFILES
 
 chown -R ga:ga /home/ga/.mozilla
 
-# Launch Firefox with LimeSurvey admin page
-echo "Launching Firefox with LimeSurvey..."
-su - ga -c "DISPLAY=:1 firefox -profile /home/ga/.mozilla/firefox/default.profile 'http://localhost/index.php/admin' &"
-
-# Wait for Firefox to open
-sleep 5
-for i in {1..20}; do
-    if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -i -E "(firefox|limesurvey|mozilla)" > /dev/null; then
-        echo "Firefox window detected after ${i}s"
-        break
-    fi
-    sleep 1
-done
+# NOTE: Firefox is NOT launched here. It will be launched by each task's
+# setup_task.sh via restart_firefox() from task_utils.sh. This avoids
+# "Firefox is already running" lock file conflicts between setup and task hooks.
 
 echo ""
 echo "=== LimeSurvey Setup Complete ==="

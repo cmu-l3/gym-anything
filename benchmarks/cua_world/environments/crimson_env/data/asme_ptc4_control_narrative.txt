@@ -1,0 +1,80 @@
+====================================================================
+ASME PTC 4 / ISA-77.44.01
+Three-Element Boiler Drum Level Control — Design Narrative
+Unit 1, 150 MW Coal-Fired Boiler
+====================================================================
+
+1. DESIGN PARAMETERS
+--------------------------------------------------------------------
+  Normal Operating Drum Pressure:  900 psig
+  Design Drum Pressure:            2000 psig
+  MCR Steam Flow:                  480 klb/hr
+  MCR Feedwater Flow:              400 klb/hr
+  Drum Level Setpoint:             50.0 %
+
+2. PRESSURE COMPENSATION  (ISA-77.44.01 Section 5.3)
+--------------------------------------------------------------------
+  All orifice-plate and Annubar flow measurements must be pressure-
+  compensated for drum pressure variations using the square-root
+  relationship:
+
+    Compensated_Flow = Raw_Flow * sqrt( Actual_Pressure / 900 )
+
+  where 900 psig is the normal operating drum pressure.
+
+  Apply this formula to create two compensated flow tags:
+    FT_100_COMP = FT_100 * sqrt( PT_100 / 900 )
+    FT_101_COMP = FT_101 * sqrt( PT_100 / 900 )
+
+  The mass balance between feedwater and steam is:
+    MASS_BAL = FT_100_COMP - FT_101_COMP
+
+3. THREE-ELEMENT CONTROL ALGORITHM
+--------------------------------------------------------------------
+  Element 1:  Drum Level     (LT_100)      — primary feedback
+  Element 2:  Steam Flow     (FT_101_COMP) — feedforward disturbance
+  Element 3:  Feedwater Flow (FT_100_COMP) — cascade feedback
+
+  Control Output Calculation:
+    Level_Error = LT_100 - 50.0
+    CV_100 = ( Level_Error * 2.5 ) + ( MASS_BAL * 0.8 )
+    if CV_100 > 100.0 then CV_100 = 100.0
+    if CV_100 < 0.0   then CV_100 = 0.0
+
+  Tuning Constants:
+    Proportional Gain (Kp):    2.5
+    Feedforward Gain  (Kff):   0.8
+
+  Implementation:
+    Create a User Program named "DrumLevelControl"
+    Assign to Background Task 1
+    Tick rate: 100 ms
+
+4. ALARM LIMITS  (per NFPA 85 / ISA-77.44.01)
+--------------------------------------------------------------------
+  Tag       LL      L       H       HH
+  ------    -----   -----   -----   -----
+  LT_100    25 %    35 %    65 %    75 %
+  FT_100    —       —       400     —
+  FT_101    —       —       480     —
+  PT_100    —       —       1800    1900
+
+5. DATA LOGGING  (NERC CIP / FERC Order 693)
+--------------------------------------------------------------------
+  Log Name:       DrumLevelLog
+  Tags to Log:    LT_100, FT_100_COMP, FT_101_COMP, CV_100
+  Log Interval:   1 second
+  Retention:      90 days minimum
+
+6. OPERATOR DISPLAY REQUIREMENTS
+--------------------------------------------------------------------
+  Page 1 Title:   Boiler Drum
+
+  Required Display Elements:
+    - Numeric indicators for LT_100, FT_100, FT_101, PT_100
+    - Bar graph showing CV_100 (0 - 100 % scale)
+    - Trend viewer showing MASS_BAL history
+
+====================================================================
+END OF DOCUMENT
+====================================================================

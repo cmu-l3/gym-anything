@@ -1,0 +1,35 @@
+{
+  "id": "uspto_patent_citation_network@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an IP Strategy Analyst at a major technology firm. The USPTO_ANALYST schema in Oracle (connected as uspto_analyst/Uspto2024 to XEPDB1) contains patent and citation data for Artificial Intelligence patents (CPC Class G06N) granted between 2010 and 2023.\n\nYou must perform complex network analysis and statistical aggregation to understand the competitive landscape. All work must be performed using the SQL Developer GUI.\n\nYour tasks:\n\n1. TRACE FORWARD CITATIONS: Create a view called FORWARD_CITATION_TREE_VW that traces all 'forward citations' (patents that cite a specific patent) starting from a foundational Google neural network patent (patent_id = 8615473). Trace up to 4 levels deep using Oracle's CONNECT BY or a recursive WITH clause. Output columns: root_patent_id, citing_patent_id, citation_depth, citation_path (e.g., '8615473 -> 9000001 -> 9500001').\n\n2. DETECT SELF-CITATION INFLATION: Create a view called SELF_CITATION_METRICS_VW to find assignees artificially inflating their citation counts. A 'self-citation' occurs when a citing patent and the cited patent share at least one assignee organization. Limit the output to organizations with at least 50 total patents. Output columns: organization, total_patents, total_outbound_citations, self_citations, self_citation_pct (as a percentage 0-100).\n\n3. CALCULATE TECHNOLOGY CYCLE TIME: Create a view called TECH_CYCLE_TIME_VW that calculates the median age of cited patents for each CPC subclass (cpc_subclass_id). Cycle time = (grant_year of citing_patent - grant_year of cited_patent). You MUST use the PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ...) analytic function to calculate exact medians. Output columns: cpc_subclass_id, subclass_title, citation_count, median_cycle_time_years.\n\n4. IDENTIFY INFLUENTIAL PATENTS: Create a materialized view called TOP_INFLUENTIAL_PATENTS_MV containing patents cited by at least 100 *different* assignee organizations. Output columns: patent_id, title, grant_year, total_inbound_citations, unique_citing_assignees.\n\n5. EXPORT RESULTS: Export the data from SELF_CITATION_METRICS_VW (ordered by self_citation_pct DESC) to a CSV file at /home/ga/Documents/exports/self_citation_anomalies.csv.\n\nConnection details: Host=localhost, Port=1521, Service=XEPDB1, User=uspto_analyst, Password=Uspto2024",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/uspto_patent_citation_network/setup_task.sh",
+    "post_task": "/workspace/tasks/uspto_patent_citation_network/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/exports/self_citation_anomalies.csv",
+    "occupation": "Economists / Operations Research Analysts",
+    "industry": "Professional, Scientific, and Technical Services",
+    "gdp_contribution": "$315B",
+    "oracle_features": [
+      "Recursive CTEs / CONNECT BY",
+      "PERCENTILE_CONT",
+      "Materialized Views",
+      "Multi-level Joins"
+    ],
+    "target_patent_id": 8615473
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_uspto_patent_citation_network"
+    }
+  }
+}

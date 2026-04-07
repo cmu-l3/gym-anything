@@ -1,0 +1,37 @@
+{
+  "id": "configure_global_scripts@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Configure NextGen Connect's server-level global scripts via the REST API (PUT https://localhost:8443/api/server/globalScripts) to implement a system-wide message audit trail. Use Basic Auth (admin/admin) and the header X-Requested-With: OpenAPI. The Deploy script must initialize 'systemStartTime' and 'auditMessageCount' (set to 0) in the globalMap and log 'AUDIT_DEPLOY: Global audit trail initialized'. The Undeploy script must log 'AUDIT_UNDEPLOY: Global audit trail finalized'. The Preprocessor script must add an 'auditReceivedTimestamp' (ISO string) and a random UUID 'auditTraceId' to the channelMap, log 'AUDIT_PREPROCESSOR: Processing new message', and return the message. The Postprocessor script must increment the 'auditMessageCount' in the globalMap and log 'AUDIT_POSTPROCESSOR: Message processed. Count: ' followed by the incremented value.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_global_scripts/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_global_scripts/export_result.sh"
+  },
+  "metadata": {
+    "api_url": "https://localhost:8443/api/server/globalScripts",
+    "required_keys": [
+      "systemStartTime",
+      "auditMessageCount",
+      "auditReceivedTimestamp",
+      "auditTraceId"
+    ],
+    "required_logs": [
+      "AUDIT_DEPLOY",
+      "AUDIT_UNDEPLOY",
+      "AUDIT_PREPROCESSOR",
+      "AUDIT_POSTPROCESSOR"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_global_scripts"
+    }
+  }
+}

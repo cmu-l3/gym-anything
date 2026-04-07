@@ -106,7 +106,6 @@ sudo docker rm $ORACLE_CONTAINER 2>/dev/null || true
 echo "Starting Oracle Database XE container..."
 sudo docker run -d \
     --name $ORACLE_CONTAINER \
-    --restart unless-stopped \
     -p ${ORACLE_PORT}:1521 \
     -p ${EM_PORT}:5500 \
     -e ORACLE_PASSWORD=${ORACLE_PWD} \
@@ -380,6 +379,8 @@ Categories=Development;Database;
 DESKTOPEOF
     chown ga:ga /home/ga/Desktop/SQLDeveloper.desktop
     chmod +x /home/ga/Desktop/SQLDeveloper.desktop
+    # Mark desktop file as trusted (GNOME requirement)
+    su - ga -c "dbus-launch gio set /home/ga/Desktop/SQLDeveloper.desktop metadata::trusted true" 2>/dev/null || true
 fi
 
 # DBeaver shortcut (alternative)
@@ -396,6 +397,8 @@ Categories=Development;Database;
 DESKTOPEOF
 chown ga:ga /home/ga/Desktop/DBeaver.desktop
 chmod +x /home/ga/Desktop/DBeaver.desktop
+# Mark desktop file as trusted (GNOME requirement)
+su - ga -c "dbus-launch gio set /home/ga/Desktop/DBeaver.desktop metadata::trusted true" 2>/dev/null || true
 
 # Oracle EM Express shortcut
 cat > /home/ga/Desktop/OracleEM.desktop << 'DESKTOPEOF'
@@ -411,6 +414,8 @@ Categories=Development;Database;
 DESKTOPEOF
 chown ga:ga /home/ga/Desktop/OracleEM.desktop
 chmod +x /home/ga/Desktop/OracleEM.desktop
+# Mark desktop file as trusted (GNOME requirement)
+su - ga -c "dbus-launch gio set /home/ga/Desktop/OracleEM.desktop metadata::trusted true" 2>/dev/null || true
 
 # Create utility script for Oracle queries
 cat > /usr/local/bin/oracle-query << 'DBQUERYEOF'

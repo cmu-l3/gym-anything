@@ -1,0 +1,80 @@
+{
+    "task_id": "insider_threat_investigation_and_response@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "primary_account",
+            "metadata_value": "svc_dataops",
+            "verified_value": "svc_dataops",
+            "source": "setup_task.sh line 105: logger injects 35 failures with 'user=svc_dataops'. Line 111: injects successful login 'Accepted password for svc_dataops'. Confirmed by grep: all Phase 1+2 events use this exact username.",
+            "status": "verified"
+        },
+        {
+            "key": "secondary_account",
+            "metadata_value": "svc_reporting",
+            "verified_value": "svc_reporting",
+            "source": "setup_task.sh line 118: logger injects 18 failures with 'user=svc_reporting'. Line 124: injects successful login 'Accepted password for svc_reporting'. Confirmed by grep: all Phase 3+4 events use this exact username.",
+            "status": "verified"
+        },
+        {
+            "key": "attacker_ip",
+            "metadata_value": "10.55.3.88",
+            "verified_value": "10.55.3.88",
+            "source": "setup_task.sh: all attack events (lines 105, 111, 118, 124) use 'rhost=10.55.3.88' or 'from 10.55.3.88'. Verified as valid RFC 1918 private IP (10.0.0.0/8) via Python ipaddress module. No other attacker IP is used. export_result.sh line 50 greps for this exact IP.",
+            "status": "verified"
+        },
+        {
+            "key": "primary_failed_count",
+            "metadata_value": 35,
+            "verified_value": 35,
+            "source": "setup_task.sh line 104: 'for i in $(seq 1 35)' — each iteration calls logger once with 'user=svc_dataops'. Exactly 35 authentication failure events are injected for the primary account.",
+            "status": "verified"
+        },
+        {
+            "key": "secondary_failed_count",
+            "metadata_value": 18,
+            "verified_value": 18,
+            "source": "setup_task.sh line 117: 'for i in $(seq 1 18)' — each iteration calls logger once with 'user=svc_reporting'. Exactly 18 authentication failure events are injected for the secondary account.",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Desktop/insider_threat_report.txt",
+            "verified_value": "/home/ga/Desktop/insider_threat_report.txt",
+            "source": "export_result.sh line 35: REPORT_FILE='/home/ga/Desktop/insider_threat_report.txt'. Task description says '~/Desktop/insider_threat_report.txt' which resolves to the same path since user is 'ga' (env.json user_accounts). setup_task.sh line 54 deletes stale copy before task start.",
+            "status": "verified"
+        },
+        {
+            "key": "evidence_path",
+            "metadata_value": "/home/ga/Desktop/insider_threat_evidence.pdf",
+            "verified_value": "/home/ga/Desktop/insider_threat_evidence.pdf",
+            "source": "export_result.sh line 68: EVIDENCE_FILE='/home/ga/Desktop/insider_threat_evidence.pdf'. Task description says '~/Desktop/insider_threat_evidence.pdf'. setup_task.sh line 55 deletes stale copy before task start.",
+            "status": "verified"
+        },
+        {
+            "key": "incident_title",
+            "metadata_value": "Insider Threat - Service Account Compromise",
+            "verified_value": "Insider Threat - Service Account Compromise",
+            "source": "Task description explicitly states: 'titled \"Insider Threat - Service Account Compromise\"'. export_result.sh line 148 searches for 'insider' or 'service account' or 'compromise' in incident titles (case-insensitive). The exact title matches all three keywords.",
+            "status": "verified"
+        },
+        {
+            "key": "alert_name",
+            "metadata_value": "Service Account Brute Force Detection",
+            "verified_value": "Service Account Brute Force Detection",
+            "source": "Task description explicitly states: 'named \"Service Account Brute Force Detection\"'. export_result.sh line 108 searches for '%brute%' or '%service account%' or '%svc_%' in alert name columns. The exact name matches both 'brute' and 'service account' patterns.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "verifier.py line 31: PASS_THRESHOLD = 60. Line 194: 'passed = score >= PASS_THRESHOLD'. Maximum score is 100 (verified by summing all primary-path score additions). Partial credit alternatives exist for evidence_pdf (5 instead of 15) and report_created (2 instead of 5).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The insider threat attack originates from IP 10.55.3.88. The primary target is service account 'svc_dataops' which received exactly 35 failed authentication attempts (pam_unix sshd auth failures) followed by 1 successful login ('Accepted password for svc_dataops from 10.55.3.88 port 42222 ssh2') and a session open event. The attacker then performed lateral movement to a second service account 'svc_reporting', with exactly 18 failed authentication attempts followed by 1 successful login from the same IP (port 42333). After breaching svc_dataops, the attacker escalated privileges using sudo: first 'sudo svc_dataops : USER=root ; COMMAND=/bin/bash' and then 'sudo svc_dataops : USER=root ; COMMAND=/usr/bin/psql -h localhost -d production_db -c SELECT * FROM customer_pii', indicating access to sensitive PII data. Background noise includes 3 normal publickey logins (ga, admin, webadmin from 192.168.1.1 and 10.0.0.1) and 1 normal sudo from ga. Total injected events: 63 syslog messages. The agent must discover 10.55.3.88 as the attacker IP and svc_reporting as the second compromised account (these are NOT given in the task description — only svc_dataops is mentioned). The incident must be titled 'Insider Threat - Service Account Compromise' with Critical priority. The alert must be named 'Service Account Brute Force Detection' triggering on 3+ failed auths in 10 minutes. The incident report at ~/Desktop/insider_threat_report.txt must contain: 10.55.3.88, svc_dataops, svc_reporting, privilege escalation evidence (sudo/root keywords), and remediation recommendations. The evidence PDF must be exported to ~/Desktop/insider_threat_evidence.pdf (valid PDF, >500 bytes).",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,42 @@
+{
+  "id": "digital_twin_calibration@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Digital Twin Calibration: Full Kinematic & Dynamic Robot Characterization",
+  "description": "Perform a comprehensive kinematic and dynamic characterization of a UR5 robot arm to build a calibrated digital twin dataset, using the CoppeliaSim ZMQ Remote API (port 23000).\n\nThe scene `movementViaRemoteApi.ttt` is pre-loaded. You must load a UR5 from the model browser (`/opt/CoppeliaSim/models/robots/non-mobile/UR5.ttm`), attach a gripper or dummy end-effector to its flange, and then carry out the following characterization protocol.\n\nKinematic Survey:\nDrive the UR5 through 50 distinct joint configurations that systematically span its reachable workspace (vary each of the 6 joints across its range). At each configuration record all 6 joint angles (radians) and the TCP world-frame position (metres). Additionally, for 5 selected configurations, return to each 3 extra times to measure positioning repeatability. Total: 65 data rows.\n\nDynamic Identification:\nFor each of the 6 joints independently, execute a sinusoidal excitation trajectory in stepping mode (approximately 0.2 Hz, roughly half of the joint's range, for 10 simulated seconds) while holding the other joints fixed at their home positions. At each simulation step, record the joint angle and the joint torque via `sim.getJointForce()`. After collecting the raw data, compute angular velocity and acceleration via numerical finite differences. Then, for each joint, estimate the effective rotational inertia (I), viscous friction coefficient (B), and static torque offset (C) using least-squares regression on the model: torque = I * acceleration + B * velocity + C.\n\nCross-Validation:\nExecute a novel 5-second composite trajectory where all 6 joints move simultaneously in sinusoidal patterns at different frequencies. Record the measured joint torques. Using the parameters identified above, predict each joint's torque from the measured positions. Compute per-joint RMS prediction error and R-squared.\n\nExport the following files to `/home/ga/Documents/CoppeliaSim/exports/`:\n\n1. `kinematic_survey.csv` - 65 rows with columns: config_id, j1_rad, j2_rad, j3_rad, j4_rad, j5_rad, j6_rad, tcp_x, tcp_y, tcp_z, is_repeatability\n\n2. `dynamic_excitation.csv` - at least 600 rows with columns: joint_id, time_s, position_rad, velocity_rad_s, acceleration_rad_s2, torque_Nm\n\n3. `identified_parameters.json` - a JSON object with a `joints` array containing 6 entries, each with fields: joint_id, inertia_kg_m2, viscous_friction, static_offset, r_squared\n\n4. `validation_results.csv` - at least 100 rows with columns: time_s, j1_pred_Nm, j1_meas_Nm, j2_pred_Nm, j2_meas_Nm, j3_pred_Nm, j3_meas_Nm, j4_pred_Nm, j4_meas_Nm, j5_pred_Nm, j5_meas_Nm, j6_pred_Nm, j6_meas_Nm\n\n5. `characterization_report.json` - a JSON summary with sections: `kinematic` (total_configurations, repeatability_configs, mean_repeatability_mm), `dynamic` (excitation_frequency_hz, excitation_duration_s, per_joint_r_squared as a list of 6 values), `validation` (duration_s, per_joint_rms_Nm as a list of 6 values, per_joint_r_squared as a list of 6 values)\n\nLogin: username=ga, password=password123.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 2700,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/digital_twin_calibration/setup_task.sh",
+    "post_task": "/workspace/tasks/digital_twin_calibration/export_result.sh"
+  },
+  "metadata": {
+    "robot_model": "/opt/CoppeliaSim/models/robots/non-mobile/UR5.ttm",
+    "scene_file": "messaging/movementViaRemoteApi.ttt",
+    "num_joints": 6,
+    "kinematic_configs": 50,
+    "repeatability_configs": 5,
+    "repeatability_repeats": 3,
+    "total_kinematic_rows": 65,
+    "excitation_frequency_hz": 0.2,
+    "excitation_duration_s": 10.0,
+    "validation_duration_s": 5.0,
+    "min_dynamic_rows": 600,
+    "min_validation_rows": 100,
+    "output_kinematic_csv": "/home/ga/Documents/CoppeliaSim/exports/kinematic_survey.csv",
+    "output_dynamic_csv": "/home/ga/Documents/CoppeliaSim/exports/dynamic_excitation.csv",
+    "output_params_json": "/home/ga/Documents/CoppeliaSim/exports/identified_parameters.json",
+    "output_validation_csv": "/home/ga/Documents/CoppeliaSim/exports/validation_results.csv",
+    "output_report_json": "/home/ga/Documents/CoppeliaSim/exports/characterization_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_digital_twin_calibration"
+    }
+  }
+}

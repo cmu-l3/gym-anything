@@ -73,6 +73,6 @@ The export script checks these name variants for tolerance:
 
 Run verifier pipeline tests:
 ```bash
-python3 benchmarks/cua_world/environments/thunderbird_env/tasks/financial_audit_prep/verifier.py
+python3 examples/thunderbird_env/tasks/financial_audit_prep/verifier.py
 ```
 Expected: 4/4 tests passed

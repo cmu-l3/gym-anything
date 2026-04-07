@@ -1,0 +1,53 @@
+{
+  "task_id": "aircraft_cascading_delay_analysis@1",
+  "task_completion": [
+    {
+      "id": "create_itinerary_view",
+      "description": "Create the AIRCRAFT_ITINERARY_VW view using window functions.",
+      "points": 15,
+      "visual_evidence": "SQL client or script showing 'CREATE VIEW AIRCRAFT_ITINERARY_VW' with window functions (like LAG) calculating PREV_ARR_DELAY and ACTUAL_TURNAROUND_MINS."
+    },
+    {
+      "id": "create_amplifiers_view",
+      "description": "Create the DELAY_AMPLIFIERS_VW view with specific delay conditions.",
+      "points": 15,
+      "visual_evidence": "SQL client or script showing 'CREATE VIEW DELAY_AMPLIFIERS_VW' querying the itinerary view with conditions PREV_ARR_DELAY <= 15 and DEP_DELAY > 15, and calculating INJECTED_DELAY_MINS."
+    },
+    {
+      "id": "create_stats_view",
+      "description": "Create the AIRPORT_PERFORMANCE_STATS_VW view aggregating by origin.",
+      "points": 20,
+      "visual_evidence": "SQL client or script showing 'CREATE VIEW AIRPORT_PERFORMANCE_STATS_VW' grouping by ORIGIN, calculating totals/averages, and filtering with a HAVING clause for > 10 events."
+    },
+    {
+      "id": "create_snowball_view",
+      "description": "Create the SNOWBALL_DELAYS_VW view using the MATCH_RECOGNIZE clause.",
+      "points": 30,
+      "visual_evidence": "SQL client or script showing 'CREATE VIEW SNOWBALL_DELAYS_VW' utilizing the 'MATCH_RECOGNIZE' clause to find 3+ consecutive flights with strictly increasing dep_delay and a final delay > 90."
+    },
+    {
+      "id": "export_stats_csv",
+      "description": "Export the airport performance stats to the specified CSV file.",
+      "points": 20,
+      "visual_evidence": "Terminal, SQL client (e.g., using SPOOL), or script showing the export of AIRPORT_PERFORMANCE_STATS_VW ordered by TOTAL_INJECTED_MINS DESC to '/home/ga/Documents/exports/airport_delay_scorecard.csv', or a file manager/terminal showing the file was created."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_db_interaction",
+      "description": "The agent interacted with the Oracle database using a genuine client or script.",
+      "visual_evidence": "Screenshots show SQL commands being executed in a database client (like SQL*Plus, SQLcl, DBeaver) or via a Python/Bash script, not just typed into a text editor without execution."
+    },
+    {
+      "id": "successful_execution",
+      "description": "The SQL commands for view creation were successfully executed without lingering errors.",
+      "visual_evidence": "The SQL client displays success messages like 'View created.' for the views, and does not show unresolved 'ORA-' syntax or execution errors."
+    },
+    {
+      "id": "no_hardcoded_csv",
+      "description": "The CSV export was generated from the database, not manually typed.",
+      "visual_evidence": "The agent uses a query export tool, SPOOL command, or script to generate the CSV. The agent does not manually open a text editor and type the expected CSV contents (e.g., 'ORD, 13, ...')."
+    }
+  ],
+  "privileged_info_for_vlm": "The database data results in exactly 13 delay amplifier events, all originating at 'ORD'. Therefore, AIRPORT_PERFORMANCE_STATS_VW and the exported CSV should contain exactly 1 row for 'ORD' (since it exceeds the >10 threshold). SNOWBALL_DELAYS_VW should also contain exactly 1 row (for aircraft N999)."
+}

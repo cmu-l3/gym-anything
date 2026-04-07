@@ -1,0 +1,33 @@
+{
+  "id": "sakila_storage_intelligence_dashboard@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "A Cloud Database Architect needs to optimize storage costs and performance for the Sakila database by building a storage analytics dashboard to identify table bloat and index usage. Connect to the local MySQL server (user: ga, password: password123) and create a view named `sakila.v_storage_metrics` querying `information_schema.TABLES` for the `sakila` schema. This view must include `table_name`, `total_size_mb` (calculated as (data_length + index_length) / 1024 / 1024, rounded to 2 decimals), `index_pct` (calculated as (index_length / (data_length + index_length)) * 100, rounded to 1 decimal), and `fragmentation_pct` (calculated as (data_free / data_length) * 100, rounded to 1 decimal, handling division by zero). Additionally, create a view named `sakila.v_maintenance_required` that selects from `v_storage_metrics` where `fragmentation_pct` is greater than 15% or `index_pct` is greater than 50%, ordered by `total_size_mb` descending. Export the results of `v_maintenance_required` to /home/ga/Documents/exports/maintenance_report.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_storage_intelligence_dashboard/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_storage_intelligence_dashboard/export_result.sh"
+  },
+  "metadata": {
+    "expected_views": [
+      "v_storage_metrics",
+      "v_maintenance_required"
+    ],
+    "expected_output_file": "/home/ga/Documents/exports/maintenance_report.csv",
+    "fragmented_tables": [
+      "rental",
+      "payment"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_storage_intelligence_dashboard"
+    }
+  }
+}

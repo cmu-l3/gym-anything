@@ -1,0 +1,38 @@
+{
+  "id": "create_cdb_threat_intel@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure Wazuh with a new CDB list and a corresponding detection rule, ensuring the manager is restarted to apply changes. Create the list 'threat-intel-blocklist' at etc/lists/threat-intel-blocklist with the following entries:\n45.33.32.156:network_scanner\n185.220.101.34:tor_exit_node\n91.189.114.8:brute_force_attacker\n104.248.36.228:malware_distributor\n45.148.10.78:botnet_c2\n185.56.80.65:apt_infrastructure\n23.129.64.130:tor_exit_node\n171.25.193.20:tor_exit_node\n\nImplement a custom detection rule (ID 100100) with level 12 in the syslog group. The rule should perform an 'address_match' lookup on the 'srcip' field against the 'etc/lists/threat-intel-blocklist' list. Ensure the rule description includes 'threat intelligence' and the group includes 'threat_intelligence'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_cdb_threat_intel/setup_task.sh",
+    "post_task": "/workspace/tasks/create_cdb_threat_intel/export_result.sh"
+  },
+  "metadata": {
+    "list_name": "threat-intel-blocklist",
+    "rule_id": 100100,
+    "expected_ips": {
+      "45.33.32.156": "network_scanner",
+      "185.220.101.34": "tor_exit_node",
+      "91.189.114.8": "brute_force_attacker",
+      "104.248.36.228": "malware_distributor",
+      "45.148.10.78": "botnet_c2",
+      "185.56.80.65": "apt_infrastructure",
+      "23.129.64.130": "tor_exit_node",
+      "171.25.193.20": "tor_exit_node"
+    },
+    "required_rule_text": "threat intelligence",
+    "required_group": "threat_intelligence"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_cdb_threat_intel"
+    }
+  }
+}

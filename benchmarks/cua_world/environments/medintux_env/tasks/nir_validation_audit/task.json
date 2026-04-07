@@ -1,0 +1,35 @@
+{
+  "id": "nir_validation_audit@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Perform a data quality audit on the MedinTux patient database (MySQL, user: root, no password, database: DrTuxTest). Validate the Social Security Numbers (NIR) in the 'FchPat_NumSS' column of the 'fchpat' table against official French validation rules (15 digits, specific structure, and Modulo 97 control key). \n\nGenerate a report at /home/ga/nir_audit_report.txt categorizing every patient as VALID (correct format and key), INVALID_FORMAT (wrong length, non-numeric, or invalid codes), INVALID_KEY (correct format but wrong key), or MISSING (empty or NULL). \n\nThe report must follow this exact format, with detailed findings sorted alphabetically by Last Name:\n\nNIR VALIDATION AUDIT REPORT\nTotal patients audited: <number>\n\nSUMMARY\nVALID: <count>\nINVALID_FORMAT: <count>\nINVALID_KEY: <count>\nMISSING: <count>\n\nDETAILED FINDINGS\n<CATEGORY> | <LastName> <FirstName> | NIR: <value>\n...",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nir_validation_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/nir_validation_audit/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/nir_audit_report.txt",
+    "test_patients": {
+      "AUBERT": "VALID",
+      "BEAUMONT": "VALID",
+      "CHEVALIER": "VALID",
+      "DUFOUR": "INVALID_FORMAT",
+      "FABRE": "INVALID_FORMAT",
+      "GARNIER": "INVALID_KEY",
+      "HUBERT": "INVALID_KEY",
+      "JOUBERT": "MISSING"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nir_audit"
+    }
+  }
+}

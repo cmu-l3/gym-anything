@@ -1,0 +1,80 @@
+{
+    "task_id": "docker_caps_hardening@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/net-monitor",
+            "verified_value": "/home/ga/projects/net-monitor",
+            "source": "setup_task.sh line 26: mkdir -p \"$PROJECT_DIR\" where PROJECT_DIR=\"/home/ga/projects/net-monitor\"",
+            "status": "verified"
+        },
+        {
+            "key": "service_name",
+            "metadata_value": "net-monitor",
+            "verified_value": "net-monitor",
+            "source": "setup_task.sh: container_name: net-monitor in docker-compose.yml, and docker rm -f net-monitor command",
+            "status": "verified"
+        },
+        {
+            "key": "expected_user",
+            "metadata_value": "monitor",
+            "verified_value": "monitor",
+            "source": "setup_task.sh line 80: RUN useradd -m -u 1000 monitor",
+            "status": "verified"
+        },
+        {
+            "key": "expected_uid",
+            "metadata_value": "1000",
+            "verified_value": "1000",
+            "source": "setup_task.sh line 80: RUN useradd -m -u 1000 monitor",
+            "status": "verified"
+        },
+        {
+            "key": "required_caps[0]",
+            "metadata_value": "NET_BIND_SERVICE",
+            "verified_value": "NET_BIND_SERVICE",
+            "source": "Official Linux man page (man7.org/linux/man-pages/man7/capabilities.7.html): CAP_NET_BIND_SERVICE allows binding a socket to Internet domain privileged ports (port numbers less than 1024). Flask app binds to port 80 (setup_task.sh line 60: app.run(host='0.0.0.0', port=80)).",
+            "status": "verified"
+        },
+        {
+            "key": "required_caps[1]",
+            "metadata_value": "NET_RAW",
+            "verified_value": "NET_RAW",
+            "source": "Official Linux man page (man7.org/linux/man-pages/man7/capabilities.7.html): CAP_NET_RAW permits use of RAW and PACKET sockets. Flask app executes ping command via subprocess (setup_task.sh lines 45-46: result = subprocess.run(['ping', '-c', '1', '-W', '1', target], ...) which requires NET_RAW capability to send ICMP packets.",
+            "status": "verified"
+        },
+        {
+            "key": "health_endpoint",
+            "metadata_value": "http://localhost:80",
+            "verified_value": "http://localhost:80",
+            "source": "setup_task.sh lines 36-38: @app.route('/') returns 200 status; Flask app.run(host='0.0.0.0', port=80) binds to port 80",
+            "status": "verified"
+        },
+        {
+            "key": "ping_endpoint",
+            "metadata_value": "http://localhost:80/ping?target=127.0.0.1",
+            "verified_value": "http://localhost:80/ping?target=127.0.0.1",
+            "source": "setup_task.sh lines 40-56: @app.route('/ping') endpoint defined with target = request.args.get('target', '127.0.0.1') - defaults to 127.0.0.1 if target parameter not provided",
+            "status": "verified"
+        },
+        {
+            "key": "admin_user",
+            "metadata_value": "ga",
+            "verified_value": "ga",
+            "source": "setup_task.sh lines throughout (e.g., line 98: chown -R ga:ga, line 104: su - ga -c, line 116: su - ga -c), and task.json login instruction. User 'ga' executes all Docker commands.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 70,
+            "verified_value": 70,
+            "source": "verifier.py line 110: passed = score >= task_info['metadata'].get('pass_threshold', 70). Scoring rubric: container running (10) + non-root (30) + drop ALL caps (20) + NET_BIND_SERVICE (15) + NET_RAW (15) + web endpoint (5) + ping endpoint (5) = 100 total, threshold 70",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The docker_caps_hardening task involves hardening a Flask-based network monitoring service (net-monitor) by applying Linux Capability-based least privilege principles. The service must run as non-root user 'monitor' (UID 1000) with CAP_NET_BIND_SERVICE (for binding to port 80) and CAP_NET_RAW (for ICMP ping functionality) - these are the exact minimal capabilities required per official Linux documentation. The synthetic Flask application exposes a health endpoint on http://localhost:80 and a ping endpoint at http://localhost:80/ping?target=127.0.0.1. The pass threshold is 70 out of 100 points with mandatory non-root execution requirement.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,59 @@
+{
+  "task_id": "hft_performance_tuning@1",
+  "task_completion": [
+    {
+      "id": "identify_target_deployment",
+      "description": "Locate and open the 'trading-app' Deployment in the 'hft-system' namespace for editing.",
+      "points": 10,
+      "visual_evidence": "Screenshot showing the Rancher UI or kubectl terminal accessing the 'trading-app' deployment within the 'hft-system' namespace."
+    },
+    {
+      "id": "create_shm_volume",
+      "description": "Add a 512Mi RAM-backed emptyDir volume named 'shm-volume'.",
+      "points": 15,
+      "visual_evidence": "YAML configuration or Rancher UI showing a volume named 'shm-volume' of type emptyDir, with 'medium: Memory' and 'sizeLimit: 512Mi'."
+    },
+    {
+      "id": "mount_shm_volume",
+      "description": "Mount the 'shm-volume' at '/dev/shm' for both the 'pricing-engine' and 'algo-trader' containers.",
+      "points": 20,
+      "visual_evidence": "YAML or Rancher UI showing volumeMounts referencing 'shm-volume' with mountPath '/dev/shm' under both the 'pricing-engine' and 'algo-trader' container definitions."
+    },
+    {
+      "id": "add_ipc_lock_capability",
+      "description": "Enable memory pinning for the 'pricing-engine' container by adding the 'IPC_LOCK' capability.",
+      "points": 15,
+      "visual_evidence": "YAML or Rancher UI showing 'IPC_LOCK' added to the securityContext capabilities (add) specifically for the 'pricing-engine' container."
+    },
+    {
+      "id": "inject_pricing_engine_env",
+      "description": "Use the Downward API to inject the 'APP_CPU_LIMIT' environment variable into the 'pricing-engine' container.",
+      "points": 20,
+      "visual_evidence": "YAML or Rancher UI showing an environment variable named 'APP_CPU_LIMIT' in the 'pricing-engine' container, using valueFrom -> resourceFieldRef -> resource: limits.cpu."
+    },
+    {
+      "id": "inject_algo_trader_env",
+      "description": "Use the Downward API to inject 'HOST_NODE_NAME' and 'LOCAL_POD_IP' environment variables into the 'algo-trader' container.",
+      "points": 20,
+      "visual_evidence": "YAML or Rancher UI showing environment variables 'HOST_NODE_NAME' (valueFrom -> fieldRef -> fieldPath: spec.nodeName) and 'LOCAL_POD_IP' (valueFrom -> fieldRef -> fieldPath: status.podIP) in the 'algo-trader' container."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_tool_interaction",
+      "description": "The agent used the actual Rancher GUI or kubectl terminal to perform the task.",
+      "visual_evidence": "Screenshots show interaction with the Rancher web interface (https://localhost) or a terminal executing kubectl commands, rather than just typing YAML into a disconnected text editor."
+    },
+    {
+      "id": "correct_resource_modification",
+      "description": "The agent modified the live 'trading-app' deployment rather than a dummy file.",
+      "visual_evidence": "The Rancher UI breadcrumbs, page title, or kubectl edit headers clearly indicate that the live 'trading-app' deployment in the 'hft-system' namespace is the target of the modifications."
+    },
+    {
+      "id": "changes_applied_successfully",
+      "description": "The agent saved or applied the configuration changes to the cluster.",
+      "visual_evidence": "A 'Saved' or 'Active' status in the Rancher UI after editing, or a 'deployment.apps/trading-app edited' (or similar success message) in the terminal after applying the YAML."
+    }
+  ],
+  "privileged_info_for_vlm": "Target Namespace: hft-system. Target Deployment: trading-app. The agent must configure a 512Mi Memory-backed emptyDir volume ('shm-volume') mounted at '/dev/shm' in both 'pricing-engine' and 'algo-trader' containers. 'pricing-engine' needs the 'IPC_LOCK' capability and 'APP_CPU_LIMIT' env var (from limits.cpu). 'algo-trader' needs 'HOST_NODE_NAME' (from spec.nodeName) and 'LOCAL_POD_IP' (from status.podIP) env vars. The agent may use either the Rancher GUI or the local kubectl terminal."
+}

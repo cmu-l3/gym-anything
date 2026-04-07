@@ -1,0 +1,36 @@
+{
+  "id": "configure_trusted_hosts@1",
+  "version": "1.0",
+  "env_id": "matomo_env@0.1",
+  "description": "The marketing team is receiving an 'Untrusted Host' security warning when accessing the Matomo dashboard via the internal domain `http://analytics.internal.corp`. Resolve this by whitelisting `analytics.internal.corp` in the `trusted_hosts` allowlist within the Matomo configuration file at `/var/www/html/config/config.ini.php`. Ensure that existing trusted hosts, such as `localhost` and `127.0.0.1`, remain in the configuration. You have `sudo` privileges.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_trusted_hosts/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_trusted_hosts/export_result.sh"
+  },
+  "metadata": {
+    "config_path": "/var/www/html/config/config.ini.php",
+    "expected_host": "analytics.internal.corp",
+    "required_hosts": [
+      "localhost",
+      "127.0.0.1"
+    ],
+    "scoring_weights": {
+      "file_integrity": 20,
+      "new_host_added": 40,
+      "localhost_preserved": 20,
+      "ip_preserved": 20
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_trusted_hosts"
+    }
+  }
+}

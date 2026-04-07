@@ -1,0 +1,66 @@
+{
+    "task_id": "fix_build_errors@1",
+    "dataset": "BrokenApp (based on Google Android Sunflower sample)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/AndroidStudioProjects/BrokenApp",
+            "verified_value": "/home/ga/AndroidStudioProjects/BrokenApp",
+            "source": "Verified in setup_task.sh line 14 and export_result.sh line 7. Confirmed as standard Android user project path.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_fixes",
+            "metadata_value": "4",
+            "verified_value": "4",
+            "source": "Code analysis of all source files in data source directory. Confirmed all 4 intentional errors: (1) Missing Bundle import in MainActivity.kt line 11, (2) Type mismatch in Plant.kt line 10 (String) vs line 25 (Int comparison), (3) Unmatched braces in PlantRepository.kt (16 opening, 15 closing), (4) Missing retrofit2 dependency in build.gradle.kts",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "/workspace/data/BrokenApp",
+            "verified_value": "/workspace/data/BrokenApp (container path) / examples/android_studio_env/data/BrokenApp (host path)",
+            "source": "Directory verified to exist at host path. Path is correct for container runtime context as specified in setup_task.sh line 15 (DATA_SOURCE=/workspace/data/BrokenApp). Verified all expected files present: MainActivity.kt, Plant.kt, PlantRepository.kt, build.gradle.kts",
+            "status": "verified"
+        },
+        {
+            "key": "data_origin",
+            "metadata_value": null,
+            "verified_value": "Based on Google Android Samples Sunflower project (com.google.samples.apps.sunflower) with intentional errors injected",
+            "source": "Package name com.google.samples.apps.sunflower matches Google's official Sunflower sample from https://github.com/android/sunflower. Verified growZoneNumber is Int in real project but String in BrokenApp data, confirming intentional type error.",
+            "status": "verified"
+        },
+        {
+            "key": "error_1_bundle_import",
+            "metadata_value": null,
+            "verified_value": "Missing import android.os.Bundle in MainActivity.kt. Bundle is used in onCreate() parameter at line 11 but not imported.",
+            "source": "MainActivity.kt file analysis: imports at lines 1-5 do not include Bundle. Line 11 uses 'Bundle?' in function signature.",
+            "status": "verified"
+        },
+        {
+            "key": "error_2_type_mismatch",
+            "metadata_value": null,
+            "verified_value": "Plant.kt growZoneNumber type mismatch: declared as String (line 10) but used as Int comparison (line 25: isInGrowZone(zone: Int) compares growZoneNumber == zone)",
+            "source": "Plant.kt line 10 declares 'val growZoneNumber: String', line 24-25 shows comparison with Int parameter. Real Google Sunflower project has growZoneNumber as Int, confirming this is an intentional error.",
+            "status": "verified"
+        },
+        {
+            "key": "error_3_syntax_unclosed_brace",
+            "metadata_value": null,
+            "verified_value": "PlantRepository.kt has unclosed brace in addPlant function. Function opens at line 43 with '{' but never closes before removePlant function starts at line 51. Brace count: 16 opening, 15 closing.",
+            "source": "PlantRepository.kt structure analysis: addPlant function (lines 43-46) has nested if statement that closes but function itself missing closing brace. Brace counting confirms imbalance (difference of 1).",
+            "status": "verified"
+        },
+        {
+            "key": "error_4_missing_retrofit",
+            "metadata_value": null,
+            "verified_value": "build.gradle.kts missing retrofit2 dependencies. PlantRepository.kt imports retrofit2 (lines 3-4) and uses Retrofit.Builder (lines 12-15) but build.gradle.kts has no retrofit2 implementation() declarations.",
+            "source": "build.gradle.kts dependencies block (lines 44-57) contains no retrofit2 or converter-gson declarations. Expected: implementation(\"com.squareup.retrofit2:retrofit:...\") and implementation(\"com.squareup.retrofit2:converter-gson:...\")",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The BrokenApp project contains exactly 4 intentional compilation errors: (1) MainActivity.kt is missing the Bundle import required for the onCreate() parameter, (2) Plant.kt declares growZoneNumber as String but uses it in Int comparisons, creating a type mismatch, (3) PlantRepository.kt has an unclosed brace in the addPlant function (16 opening vs 15 closing braces), and (4) build.gradle.kts is missing the retrofit2 and converter-gson dependencies that are imported and used in PlantRepository.kt. The project is based on Google's official Android Sunflower sample but has been intentionally corrupted with these errors for the task.",
+    "pi_confidence": "high"
+}

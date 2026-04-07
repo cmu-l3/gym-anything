@@ -1,0 +1,107 @@
+{
+    "task_id": "record_occupational_rads@1",
+    "dataset": "gnuhealth-50-demo.sql",
+    "case_id": "Bonifacio Caput",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_patient_firstname",
+            "metadata_value": "Bonifacio",
+            "verified_value": "Bonifacio",
+            "source": "setup_task.sh query extracting target patient ID by matching '%Bonifacio%' against party_party.name",
+            "status": "verified"
+        },
+        {
+            "key": "target_patient_lastname",
+            "metadata_value": "Caput",
+            "verified_value": "Caput",
+            "source": "setup_task.sh query extracting target patient ID by matching '%Caput%' against party_party.lastname",
+            "status": "verified"
+        },
+        {
+            "key": "icd10_prefix",
+            "metadata_value": "J68",
+            "verified_value": "J68",
+            "source": "export_result.sh and verifier.py logic explicitly checking for pathology code starting with 'J68'",
+            "status": "verified"
+        },
+        {
+            "key": "bronchodilators",
+            "metadata_value": [
+                "Salbutamol",
+                "Albuterol",
+                "Ipratropium",
+                "Terbutaline",
+                "Formoterol",
+                "Salmeterol"
+            ],
+            "verified_value": [
+                "salbutamol",
+                "albuterol",
+                "ipratropium",
+                "terbutaline",
+                "formoterol",
+                "salmeterol"
+            ],
+            "source": "export_result.sh SQL query for broncho_check validating against LOWER(pt.name) LIKE '%...%'",
+            "status": "verified"
+        },
+        {
+            "key": "corticosteroids",
+            "metadata_value": [
+                "Prednisone",
+                "Prednisolone",
+                "Methylprednisolone",
+                "Dexamethasone",
+                "Budesonide",
+                "Fluticasone"
+            ],
+            "verified_value": [
+                "predniso",
+                "methylpredni",
+                "dexamethason",
+                "budesonid",
+                "fluticason"
+            ],
+            "source": "export_result.sh SQL query for steroid_check validating against LOWER(pt.name) LIKE '%...%' which covers all these specific medications",
+            "status": "verified"
+        },
+        {
+            "key": "min_lab_orders",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "verifier.py checks if lab_count >= 2 for the 20 pts laboratory orders criterion",
+            "status": "verified"
+        },
+        {
+            "key": "followup_min_days",
+            "metadata_value": 7,
+            "verified_value": 7,
+            "source": "verifier.py strictly enforces 7 <= days_diff <= 14 for the follow-up appointment criterion",
+            "status": "verified"
+        },
+        {
+            "key": "followup_max_days",
+            "metadata_value": 14,
+            "verified_value": 14,
+            "source": "verifier.py strictly enforces 7 <= days_diff <= 14 for the follow-up appointment criterion",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Occupational Health Physician",
+            "verified_value": null,
+            "source": "Checking the gnuhealth-50-demo.sql.gz database dump reveals the target patient's occupation field in party_party is NULL (\\N). 'Occupational Health Physician' describes the agent's role in the prompt, while the prompt claims the patient is a 'maintenance technician'. Both strings are completely absent from the database.",
+            "status": "contradicted"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Industrial Medicine / Manufacturing",
+            "verified_value": null,
+            "source": "The gnuhealth-50-demo.sql.gz dump lacks an 'industry' column in gnuhealth_occupation or party_party. The patient has no occupation assigned, and this industry string is completely fabricated and absent from the entire database dump.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically generated demo data (gnuhealth-50-demo.sql) and expects the target patient to be Bonifacio Caput. The verifier logic enforces an ICD-10 prefix of 'J68', the prescription of bronchodilators (e.g., salbutamol, ipratropium) and corticosteroids (e.g., prednisone, dexamethasone), a minimum of 2 lab test orders, and a follow-up appointment scheduled between 7 to 14 days in the future. The metadata claims for 'occupation' (Occupational Health Physician) and 'industry' are contradicted; the patient's occupation in the database is NULL, and there is no 'industry' column in the occupation tables.",
+    "pi_confidence": "high"
+}

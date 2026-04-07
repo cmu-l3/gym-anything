@@ -65,35 +65,14 @@ foreach ($ngen in $ngenPaths) {
 # ── 4. Warm-up launch (triggers first-run dialogs, then kill) ──────────────
 Write-Host "[4/5] Performing warm-up launch to clear first-run dialogs..."
 
-# Use C:\Temp for batch files (accessible from both Session 0 and Session 1)
-$tempDir = "C:\Temp"
-New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction SilentlyContinue | Out-Null
-
-# Use hidden PowerShell via schtasks (no visible CMD window)
-$ps1File = "$tempDir\launch_mes_warmup.ps1"
-Set-Content -Path $ps1File -Value "Start-Process -FilePath `"$mesExe`""
-
-$taskName = "MESWarmup"
-$trCmd = "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File `"$ps1File`""
-$createOut = schtasks /Create /SC ONCE /IT /TR "$trCmd" /TN $taskName /SD 01/01/2099 /ST 00:00 /RL HIGHEST /F 2>&1
-Write-Host "Warmup schtasks /Create: $createOut"
-$runOut = schtasks /Run /TN $taskName 2>&1
-Write-Host "Warmup schtasks /Run: $runOut"
-Start-Sleep -Seconds 20
-
-# Kill Multiecuscan after warm-up
-$warmProc = Get-Process | Where-Object { $_.ProcessName -match "Multiecuscan" }
-if ($warmProc) {
-    Write-Host "Warm-up process detected (PID: $($warmProc.Id -join ', ')), killing..."
-    $warmProc | Stop-Process -Force -ErrorAction SilentlyContinue
+$launched = Launch-MultiecuscanInteractive -MesExe $mesExe -WaitSeconds 25
+if ($launched) {
+    Write-Host "Warm-up process running, killing..."
+    Stop-Multiecuscan
 } else {
     Write-Host "WARNING: Warm-up launch may not have started Multiecuscan"
 }
 Start-Sleep -Seconds 3
-
-# Clean up
-schtasks /Delete /TN $taskName /F 2>&1 | Out-Null
-Remove-Item $ps1File -Force -ErrorAction SilentlyContinue
 
 Write-Host "Warm-up launch completed"
 

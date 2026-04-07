@@ -1,0 +1,32 @@
+{
+  "id": "configure_domain_admin_alert@1",
+  "version": "1.0",
+  "env_id": "manageengine_adaudit_plus_env@0.1",
+  "description": "Log in to the ManageEngine ADAudit Plus web console (http://localhost:8081) using Username: 'admin' and Password: 'Admin@2024'. Configure a security alert profile named 'Critical - Domain Admin Addition' with the description 'Alert on privilege escalation to Domain Admins', severity 'Critical', and category 'Group Management'. The alert must trigger on the 'Member Added to Group' event (or equivalent) with the message 'SECURITY ALERT: User added to Domain Admins group.' Apply a filter so the alert triggers specifically when the 'Group Name' equals 'Domain Admins'. Configure email notifications for this alert to be sent to 'soc@bank-corp.com' with the subject 'CRITICAL: Domain Admin Group Change'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_domain_admin_alert\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_domain_admin_alert\\export_result.ps1",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "expected_profile_name": "Critical - Domain Admin Addition",
+    "expected_category": "Group Management",
+    "expected_filter_column": "Group Name",
+    "expected_filter_value": "Domain Admins",
+    "expected_email": "soc@bank-corp.com",
+    "expected_severity": "Critical",
+    "db_query_command": "SELECT * FROM AlertProfiles WHERE PROFILE_NAME = 'Critical - Domain Admin Addition'"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_domain_admin_alert"
+    }
+  }
+}

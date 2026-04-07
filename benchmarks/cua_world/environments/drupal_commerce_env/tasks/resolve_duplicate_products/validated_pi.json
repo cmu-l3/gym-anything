@@ -1,0 +1,45 @@
+{
+    "task_id": "resolve_duplicate_products@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "duplicate_skus",
+            "metadata_value": "[\"IMPORT-SONY-WH1000XM5\", \"IMPORT-APPLE-MBP16\", \"IMPORT-LOGI-MXM3S\", \"IMPORT-DELL-XPS15\"]",
+            "verified_value": "[\"IMPORT-SONY-WH1000XM5\", \"IMPORT-LOGI-MXM3S\"] (only 2 of 4 can be created)",
+            "source": "Code analysis: seed_products.php creates only SONY-WH1000XM5 and LOGI-MXM3S. Products APPLE-MBP16 and DELL-XPS15 do not exist in seed (seed has APPLE-MBA-M2-13 and DELL-U2723QE instead). setup_task.sh silently skips non-existent products when creating duplicates.",
+            "status": "contradicted"
+        },
+        {
+            "key": "target_product_sku",
+            "metadata_value": "BOSE-QCU",
+            "verified_value": "BOSE-QCUE",
+            "source": "seed_products.php line 48 creates: ['sku' => 'BOSE-QCUE']. This is the actual SKU in the database. Metadata claims BOSE-QCU (missing trailing E), which is searched for in setup_task.sh line 31 and export_result.sh line 19, but won't match the actual database record.",
+            "status": "contradicted"
+        },
+        {
+            "key": "target_corrupt_price",
+            "metadata_value": "329.00",
+            "verified_value": "329.00",
+            "source": "setup_task.sh line 35: $variation->setPrice(new \\Drupal\\commerce_price\\Price('329.00', 'USD')). The setup script corrupts the Bose price to exactly this value.",
+            "status": "verified"
+        },
+        {
+            "key": "target_correct_price",
+            "metadata_value": "429.00",
+            "verified_value": null,
+            "source": "seed_products.php line 48 sets initial Bose price to $299.00. The metadata claims the 'correct' price is $429.00, which is neither the original price ($299.00) nor a documented restoration value. This appears to be an arbitrary target price.",
+            "status": "unverified"
+        },
+        {
+            "key": "expected_final_count",
+            "metadata_value": "10",
+            "verified_value": "12",
+            "source": "seed_products.php creates exactly 12 products (lines 44-57). Only 2 of 4 claimed duplicate SKUs have source products, so only 2 duplicates can be created. Final: 12 + 2 duplicates - 2 deleted = 12 products remaining. Expected count of 10 is impossible with the actual seed data.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task setup has critical inconsistencies. The seed script creates 12 initial products, but only 2 of the 4 claimed duplicate source products exist (APPLE-MBP16 and DELL-XPS15 are missing; the seed has different SKUs). The Bose product SKU is BOSE-QCUE in the actual database but metadata claims BOSE-QCU, causing a mismatch. Only 2 of 4 duplicates can be created. The expected final count of 10 is incorrect; it should be 12. The target correct price of $429.00 is unverified and differs from the original seed price of $299.00.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "scan_ean_inventory_audit@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "Use bcWebCam to scan the EAN-13 barcode presented on the camera feed/screen. Extract the 13-digit EAN number and query the SQLite database at C:\\workspace\\data\\inventory.db to find the matching product. Create a text file at C:\\workspace\\audit_report.txt containing the product details in this exact format:\n\nEAN: [Scanned EAN]\nName: [product_name]\nBrand: [brand]\n\nFinally, execute an UPDATE statement on the inventory.db database to set stock_verified = 1 for this specific EAN to mark it as audited.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\scan_ean_inventory_audit\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\scan_ean_inventory_audit\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_report_path": "C:\\workspace\\audit_report.txt",
+    "database_path": "C:\\workspace\\data\\inventory.db",
+    "data_source": "OpenFoodFacts Real Product Data"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_scan_ean_inventory_audit"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+    "task_id": "deploy_coastal_flood_sensors@1",
+    "dataset": "world_survey.gpkg",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "project_file",
+            "metadata_value": "world_survey.gpkg",
+            "verified_value": "world_survey.gpkg",
+            "source": "Task setup script copies /sdcard/QFieldData/world_survey.gpkg which contains the dataset.",
+            "status": "verified"
+        },
+        {
+            "key": "target_jakarta",
+            "metadata_value": {
+                "name": "Jakarta",
+                "offset_lat": 0.1,
+                "offset_lon": 0.0,
+                "sensor_name": "Sensor_JKT_North"
+            },
+            "verified_value": {
+                "name": "Jakarta",
+                "offset_lat": 0.1,
+                "offset_lon": 0.0,
+                "sensor_name": "Sensor_JKT_North"
+            },
+            "source": "verifier.py explicitly checks for Sensor_JKT_North with d_lat > 0, precision 0.05 <= d_lat <= 0.15 (offset 0.1) and abs(d_lon) < 0.05 (offset 0.0).",
+            "status": "verified"
+        },
+        {
+            "key": "target_manila",
+            "metadata_value": {
+                "name": "Manila",
+                "offset_lat": 0.0,
+                "offset_lon": -0.1,
+                "sensor_name": "Sensor_MNL_West"
+            },
+            "verified_value": {
+                "name": "Manila",
+                "offset_lat": 0.0,
+                "offset_lon": -0.1,
+                "sensor_name": "Sensor_MNL_West"
+            },
+            "source": "verifier.py explicitly checks for Sensor_MNL_West with d_lon < 0, precision -0.15 <= d_lon <= -0.05 (offset -0.1) and abs(d_lat) < 0.05 (offset 0.0). However, Manila does not exist in the world_capitals dataset.",
+            "status": "verified"
+        },
+        {
+            "key": "tolerance_degrees",
+            "metadata_value": 0.05,
+            "verified_value": 0.05,
+            "source": "verifier.py checks d_lat and d_lon with a +/- 0.05 bounds around the target offsets (e.g., 0.05 <= d_lat <= 0.15 for a 0.1 offset).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The dataset is not synthetic; it is compiled from real Natural Earth capital coordinates and actual iNaturalist observations. The task and verifier expect a new sensor for Jakarta at lat+0.1, lon+0.0 ('Sensor_JKT_North') and for Manila at lat+0.0, lon-0.1 ('Sensor_MNL_West'), with a tolerance of 0.05 degrees. However, there is a fatal bug in the task: 'Manila' is entirely missing from the world_capitals dataset. Because the verifier queries Manila's ground truth coordinates from the dataset to calculate the offset, it will perpetually fail and return a score of 0.",
+    "pi_confidence": "high"
+}

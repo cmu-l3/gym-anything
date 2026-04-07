@@ -1,0 +1,53 @@
+{
+  "task_id": "generate_propagate_ssl@1",
+  "task_completion": [
+    {
+      "id": "generate_certificate_correct_subject",
+      "description": "Generate a self-signed certificate with the correct subject details and validity.",
+      "points": 30,
+      "visual_evidence": "Look for a terminal command (like 'openssl req -x509 ...') that includes the arguments '-days 365' and a '-subj' string containing '/C=US/ST=California/L=San Francisco/O=Acme Corp/OU=IT Dept/CN=acmecorp.test', or an interactive prompt where these exact values are entered."
+    },
+    {
+      "id": "save_certificate_to_path",
+      "description": "Save the generated certificate to the correct path.",
+      "points": 10,
+      "visual_evidence": "Look for the output path in the openssl command (e.g., '-out /home/acmecorp/ssl.cert' and '-keyout /home/acmecorp/ssl.cert' or similar) or a subsequent 'mv' or 'cp' command placing the certificate at '/home/acmecorp/ssl.cert'."
+    },
+    {
+      "id": "configure_webmin_ssl",
+      "description": "Configure Webmin to use the new certificate.",
+      "points": 20,
+      "visual_evidence": "Look for a terminal text editor (nano/vim) or command modifying Webmin's configuration (typically '/etc/webmin/miniserv.conf') to point 'keyfile' and/or 'certfile' to '/home/acmecorp/ssl.cert'."
+    },
+    {
+      "id": "configure_postfix_ssl",
+      "description": "Configure Postfix to use the new certificate.",
+      "points": 20,
+      "visual_evidence": "Look for a terminal text editor or 'postconf' command modifying Postfix's configuration (typically '/etc/postfix/main.cf') to set 'smtpd_tls_cert_file' (and key file) to '/home/acmecorp/ssl.cert'."
+    },
+    {
+      "id": "configure_dovecot_ssl",
+      "description": "Configure Dovecot to use the new certificate.",
+      "points": 20,
+      "visual_evidence": "Look for a terminal text editor modifying Dovecot's configuration (typically '/etc/dovecot/conf.d/10-ssl.conf') to set 'ssl_cert = </home/acmecorp/ssl.cert' (and ssl_key)."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_certificate_generation",
+      "description": "Verify the certificate was generated using a legitimate tool.",
+      "visual_evidence": "Check that the certificate was generated using a legitimate command like 'openssl' and not just by creating a fake file using 'echo' or a text editor."
+    },
+    {
+      "id": "actual_service_configuration",
+      "description": "Verify the agent modified the actual system configuration files.",
+      "visual_evidence": "Check that the agent modified the actual system configuration files in '/etc/' (or used official CLI tools) rather than writing the configuration lines into a dummy file or notes document."
+    },
+    {
+      "id": "no_command_mocking",
+      "description": "Ensure the agent did not mock verification commands.",
+      "visual_evidence": "Ensure the agent did not use 'alias' or create fake scripts to mock the output of verification commands to falsely show success."
+    }
+  ],
+  "privileged_info_for_vlm": "The self-signed SSL certificate must be generated for the domain 'acmecorp.test' with the following subject details: Country (C)=US, State (ST)=California, City/Locality (L)=San Francisco, Organization (O)=Acme Corp, Organizational Unit (OU)=IT Dept, Common Name (CN)=acmecorp.test, and Validity=365 days. The certificate must be saved to '/home/acmecorp/ssl.cert'. Webmin, Postfix, and Dovecot must be configured to use this specific certificate file."
+}

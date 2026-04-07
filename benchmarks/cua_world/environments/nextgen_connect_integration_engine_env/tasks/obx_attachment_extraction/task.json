@@ -1,0 +1,30 @@
+{
+  "id": "obx_attachment_extraction@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a NextGen Connect channel named 'Lab_Report_Extractor' that extracts embedded PDF reports from HL7 ORU messages. The channel must listen on TCP port 6661 for HL7 v2.x messages using MLLP framing, extract Base64-encoded PDF data from the OBX-5.5 field, and decode it into binary PDF bytes. Save the decoded files to /home/ga/lab_reports/ using the naming convention '[Patient MRN]_report.pdf', where the MRN is retrieved from PID-3.1. A sample HL7 message is provided at /home/ga/test_data/test_oru_message.hl7. The system can be configured via the REST API (https://localhost:8443/api, admin/admin) or monitored through the web dashboard at https://localhost:8443.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/obx_attachment_extraction/setup_task.sh",
+    "post_task": "/workspace/tasks/obx_attachment_extraction/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Lab_Report_Extractor",
+    "port": 6661,
+    "output_dir": "/home/ga/lab_reports",
+    "expected_mrn": "PAT78432",
+    "test_message_path": "/home/ga/test_data/test_oru_message.hl7",
+    "pdf_magic_bytes": "%PDF"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_obx_extraction"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+    "task_id": "analyze_expert_info@1",
+    "dataset": "Wireshark Sample Captures",
+    "case_id": "200722_tcp_anon.pcapng",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "pcap_file",
+            "metadata_value": "200722_tcp_anon.pcapng",
+            "verified_value": "200722_tcp_anon.pcapng",
+            "source": "task.json, setup_task.sh",
+            "status": "verified"
+        },
+        {
+            "key": "report_file",
+            "metadata_value": "expert_info_report.txt",
+            "verified_value": "expert_info_report.txt",
+            "source": "task.json, export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_dir",
+            "metadata_value": "/var/lib/wireshark_ground_truth",
+            "verified_value": "/var/lib/wireshark_ground_truth",
+            "source": "task.json, setup_task.sh",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on 200722_tcp_anon.pcapng, a real packet capture that has been anonymized via TraceWrangler and downloaded directly from the Wireshark Wiki. A manual audit of the PCAP via tshark -V confirms there are exactly 8 expert info anomalies present. All 8 anomalies fall under the Chat severity level. The true counts are: Errors (0), Warnings (0), Notes (0), and Chats (8). The 8 messages consist of 3 unique types: Connection finish (FIN) (4 occurrences), Connection establish request (SYN): server port 2000 (2 occurrences), and Connection establish acknowledge (SYN+ACK): server port 2000 (2 occurrences). However, there is a bug in the tasks setup_task.sh ground truth generation: the script parses tshark -T fields -e _ws.expert.severity expecting string severities (e.g., Chat), but tshark outputs integer codes (e.g., 2097152 for Chat). This causes the grep -ci ^chat checks to fail, resulting in the ground truth JSON erroneously recording 0 for all severity counts. Consequently, if the agent accurately reports the 8 Chat anomalies, it will be unfairly penalized by the verifier logic, scoring 0/10 for the Chat section, although it will still easily pass the task by scoring the remaining 90/100 points.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,9 @@
+void *log_createA() { return 0; }
+void *log_createW() { return 0; }
+int log_close() { return 0; }
+int log_isOpen() { return 0; }
+int log_logBinary() { return 0; }
+int log_logTextA() { return 0; }
+int log_logTextW() { return 0; }
+int log_setLevel() { return 0; }
+int log_setMaximumSize() { return 0; }

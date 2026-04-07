@@ -25,8 +25,12 @@ sleep 2
 # 4. Record start time for anti-gaming
 date +%s > /sdcard/task_start_time.txt
 
-# 5. Record initial state proof
+# 5. Launch the app using robust helper
+echo "Launching Cancer iChart..."
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
+
+# 6. Record initial state proof
 screencap -p /sdcard/initial_state.png
 
 echo "=== Task Setup Complete ==="
-echo "State: App closed, Home screen visible."

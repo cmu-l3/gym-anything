@@ -1,0 +1,27 @@
+{
+  "id": "model_bess_degradation_and_warranty@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "medium",
+  "description": "An Energy Storage Systems Engineer at a utility is evaluating a 10 MW / 40 MWh Lithium-ion NMC battery project. The manufacturer's warranty guarantees the battery will maintain at least 80% of its original capacity for 10 years, provided it cycles no more than once per day. Model this system over a 20-year analysis period using a Standalone Battery (Single Owner) financial model with both Calendar Life and Cycle Life degradation models enabled. Configure a manual dispatch schedule where the battery charges from the grid at maximum capacity from 00:00 to 04:00 and discharges at maximum capacity from 16:00 to 20:00 daily, resting during all other hours. \n\nExtract the annual State of Health (maximum capacity percentage) at the end of each year and identify the first year (1-20) where the State of Health drops below 80.0% (set to null if it never drops below 80%). Save the results to /home/ga/Documents/SAM_Projects/battery_degradation_report.json using the following structure:\n\n{\n  \"project_name\": \"10MW_Daily_Cycle_Degradation\",\n  \"analysis_period_years\": 20,\n  \"chemistry\": \"Lithium-ion NMC\",\n  \"yearly_state_of_health_pct\": [20 float values],\n  \"year_crossing_80_pct\": integer or null\n}",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/model_bess_degradation_and_warranty/setup_task.sh",
+    "post_task": "/workspace/tasks/model_bess_degradation_and_warranty/export_result.sh"
+  },
+  "metadata": {
+    "expected_filename": "battery_degradation_report.json",
+    "expected_years": 20,
+    "threshold_pct": 80.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_model_bess_degradation_and_warranty"
+    }
+  }
+}

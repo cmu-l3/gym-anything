@@ -1,0 +1,54 @@
+{
+    "task_id": "robotics_pid_debug@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_name",
+            "metadata_value": "ArmController",
+            "verified_value": "ArmController",
+            "source": "Found in setup_task.ps1 where it creates the ArmController.csproj file.",
+            "status": "verified"
+        },
+        {
+            "key": "project_path",
+            "metadata_value": "C:\\Users\\Docker\\source\\repos\\ArmController",
+            "verified_value": "C:\\Users\\Docker\\source\\repos\\ArmController",
+            "source": "Found in setup_task.ps1 defining the ProjectDir variable.",
+            "status": "verified"
+        },
+        {
+            "key": "target_files",
+            "metadata_value": [
+                "PidController.cs",
+                "JointLimiter.cs",
+                "VelocityScaler.cs"
+            ],
+            "verified_value": [
+                "PidController.cs",
+                "JointLimiter.cs",
+                "VelocityScaler.cs"
+            ],
+            "source": "Found in setup_task.ps1 where it creates these specific files with injected bugs.",
+            "status": "verified"
+        },
+        {
+            "key": "bugs",
+            "metadata_value": [
+                "PID derivative term uses (error - previousError) instead of (previousError - error), causing positive feedback",
+                "JointLimiter clamps with inverted condition: returns value only when OUTSIDE limits instead of inside",
+                "VelocityScaler multiplies by 1000 (rad/s to mrad/s) when it should divide (mrad/s to rad/s)"
+            ],
+            "verified_value": [
+                "PID derivative term uses (_previousError - error) instead of (error - _previousError), causing positive feedback",
+                "JointLimiter clamps with inverted condition: returns value only when OUTSIDE limits instead of inside",
+                "VelocityScaler multiplies by 1000 (rad/s to mrad/s) when it should divide (mrad/s to rad/s)"
+            ],
+            "source": "Analyzed the source code injected in setup_task.ps1 and verifier.py. The claim for the PID bug is backwards: the buggy code explicitly uses (_previousError - error) and the correct form is (error - _previousError). The other two bug descriptions are accurate reflections of the injected code.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically generated code for a robotics ArmController. The three target files containing bugs are PidController.cs, JointLimiter.cs, and VelocityScaler.cs. The claim that the PID derivative term uses (error - previousError) instead of (previousError - error) is contradicted by the source code: the code actually uses (_previousError - error) incorrectly, and the correct standard discrete PID derivative is (error - _previousError). The JointLimiter accurately describes returning the raw value only when outside limits due to an inverted clamping condition. The VelocityScaler incorrectly multiplies by 1000 instead of dividing to convert mrad/s to rad/s.",
+    "pi_confidence": "high"
+}

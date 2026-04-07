@@ -1,0 +1,29 @@
+{
+  "id": "workforce_staging_pipeline@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Logistics Analyst at a multinational distribution company. You need to prepare a quarterly workforce planning extract for a new planning tool. The tool requires a flat, denormalized file with specific computed fields.\n\nYour tasks:\n\n1. CREATE STAGING TABLE: Create a table named WORKFORCE_STAGING in the HR schema with the following columns:\n   - employee_id NUMBER (primary key)\n   - full_name VARCHAR2(100) -- first_name and last_name separated by a space\n   - email VARCHAR2(50)\n   - job_title VARCHAR2(50)\n   - department_name VARCHAR2(50)\n   - city VARCHAR2(50)\n   - country_name VARCHAR2(60)\n   - region_name VARCHAR2(30)\n   - hire_date DATE\n   - tenure_years NUMBER(5,1) -- years since hire_date (use MONTHS_BETWEEN(SYSDATE, hire_date) / 12)\n   - salary NUMBER(10,2)\n   - salary_quartile NUMBER(1) -- 1 through 4, computed using NTILE(4) OVER (ORDER BY salary)\n   - commission_pct NUMBER(3,2)\n   - manager_name VARCHAR2(100) -- manager's full_name via self-join (NULL for top-level)\n   - previous_jobs_count NUMBER -- count of records in JOB_HISTORY for this employee (use a scalar subquery)\n\n2. POPULATE DATA: Use a single INSERT...SELECT statement to populate WORKFORCE_STAGING. You must join EMPLOYEES, DEPARTMENTS, JOBS, LOCATIONS, COUNTRIES, REGIONS, and EMPLOYEES (for manager name). Use LEFT OUTER JOINs where necessary to ensure ALL 107 employees are included (some have no department or manager).\n\n3. CREATE INDEX: Create a composite index named IDX_WS_DEPT_QUARTILE on WORKFORCE_STAGING(department_name, salary_quartile) to optimize downstream analytical queries.\n\n4. CREATE SUMMARY VIEW: Create a view named WORKFORCE_SUMMARY_VW that aggregates data by department_name, providing:\n   - department_name\n   - employee_count (COUNT)\n   - avg_salary (AVG)\n   - avg_tenure_years (AVG)\n   - min_salary (MIN)\n   - max_salary (MAX)\n   - total_previous_jobs (SUM of previous_jobs_count)\n\n5. EXPORT RESULTS: Export the WORKFORCE_STAGING table data to a CSV file located at /home/ga/Documents/exports/workforce_staging.csv. Ensure the CSV contains a header row.\n\nConnection details: The 'HR Database' connection is pre-configured in SQL Developer (Host=localhost, Port=1521, Service=XEPDB1, User=hr, Password=hr123).\n\nAll work must be performed through the Oracle SQL Developer GUI.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/workforce_staging_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/workforce_staging_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "expected_rows": 107,
+    "expected_csv_path": "/home/ga/Documents/exports/workforce_staging.csv",
+    "oracle_features": ["LEFT OUTER JOIN", "NTILE Window Function", "MONTHS_BETWEEN", "Scalar Subquery", "CREATE INDEX", "CREATE VIEW"],
+    "expected_quartile_min": 1,
+    "expected_quartile_max": 4
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_workforce_staging_pipeline"
+    }
+  }
+}

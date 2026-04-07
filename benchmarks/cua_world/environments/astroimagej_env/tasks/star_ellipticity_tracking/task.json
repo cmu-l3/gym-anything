@@ -1,0 +1,35 @@
+{
+  "id": "star_ellipticity_tracking@1",
+  "version": "1.0",
+  "env_id": "astroimagej_env@0.1",
+  "name": "Assess Telescope Tracking Quality via Star Ellipticity",
+  "description": "Evaluate telescope tracking quality by measuring the ellipticity of stars in the VLT image at ~/AstroImages/tracking_assessment/m12_Vcomb.fits using AstroImageJ. Identify five bright, isolated stars outside the cluster core and record their X/Y positions, major/minor axis FWHM, ellipticity (calculated as 1 - FWHM_minor / FWHM_major), and position angle (PA). Calculate the average ellipticity and classify the tracking quality as GOOD (average < 0.15), FAIR (0.15 to 0.30), or POOR (>= 0.30). Save a report to ~/AstroImages/measurements/tracking_quality_report.txt with the header '# Tracking Quality Assessment - M12 VLT Vcomb', a table of star measurements (Star_ID, X_pixel, Y_pixel, FWHM_major, FWHM_minor, Ellipticity, PA_degrees), and a summary section containing Average_Ellipticity, Average_PA, and Tracking_Quality.",
+  "difficulty": "medium",
+  "tags": [
+    "astronomy",
+    "image-morphology",
+    "real-data",
+    "vlt"
+  ],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/star_ellipticity_tracking/setup_task.sh",
+    "post_task": "/workspace/tasks/star_ellipticity_tracking/export_result.sh"
+  },
+  "metadata": {
+    "target_image": "/home/ga/AstroImages/tracking_assessment/m12_Vcomb.fits",
+    "output_report": "/home/ga/AstroImages/measurements/tracking_quality_report.txt",
+    "minimum_stars": 5,
+    "ellipticity_tolerance": 0.08
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_star_ellipticity"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "build_court_docket_system@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Build a voice-controlled court docket management module for a court clerk who uses Talon Voice. The pre-seeded file C:\\Users\\Docker\\Desktop\\TalonTasks\\court_docket.csv contains 80 active court cases with columns: case_number, case_type, defendant, plaintiff, attorney, judge, next_hearing (ISO datetime like 2025-04-07 09:00), courtroom, status, priority.\n\nCreate the directory %APPDATA%\\Talon\\user\\docket_manager\\ containing three files:\n\ndocket_manager.py: A Talon Python module that on load reads the CSV and populates a dynamic user.docket_cases list (keys: case numbers with hyphens removed, values: actual case numbers). Implement four actions:\n- user.docket_lookup(case_number: str) — show full case details via app.notify()\n- user.docket_by_judge(judge_last_name: str) — filter cases by judge last name, group by courtroom, sort each group by hearing time, and write a formatted docket sheet to C:\\Users\\Docker\\Documents\\docket_<judge>_<YYYYMMDD>.txt with a header line, per-courtroom sections, and a total case count at the end\n- user.docket_continue(case_number: str, new_date: str) — update that case's next_hearing to new_date, set its status to Continued, re-sort the entire CSV by next_hearing date, overwrite the CSV file, and refresh the dynamic list\n- user.docket_summary() — show a notification with the count of cases per case_type\n\ncase_types.talon-list: A Talon list named user.case_types mapping 8 spoken forms to their CSV codes: felony to FL, misdemeanor to MS, civil to CV, family to FM, traffic to TR, juvenile to JV, probation violation to PV, restraining order to RO.\n\ndocket.talon: Voice commands mapping: pull case <user.docket_cases> to docket_lookup, docket for judge <user.text> to docket_by_judge, continue case <user.docket_cases> to <user.text> to docket_continue, and docket summary to docket_summary.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\build_court_docket_system\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\build_court_docket_system\\export_result.ps1"
+  },
+  "metadata": {
+    "target_dir": "C:\\Users\\Docker\\AppData\\Roaming\\Talon\\user\\docket_manager",
+    "csv_path": "C:\\Users\\Docker\\Desktop\\TalonTasks\\court_docket.csv",
+    "output_dir": "C:\\Users\\Docker\\Documents",
+    "test_judge": "Smith",
+    "test_case_number": "2024-CF-001234",
+    "smith_case_count": 16,
+    "total_cases": 80,
+    "case_type_codes": ["FL", "MS", "CV", "FM", "TR", "JV", "PV", "RO"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_build_court_docket_system"
+    }
+  }
+}

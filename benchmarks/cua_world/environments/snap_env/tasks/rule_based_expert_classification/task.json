@@ -1,0 +1,28 @@
+{
+  "id": "rule_based_expert_classification@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "In ESA SNAP Desktop, create a deterministic rule-based land cover classification from the multi-spectral image `~/snap_data/landsat_multispectral.tif`. Generate a `Land_Cover` band using the following classification logic: Class 1 (Water) where NDWI > 0.1; Class 2 (DenseVeg) where NDVI > 0.5 and not Water; Class 3 (SparseVeg) where NDVI is between 0.2 and 0.5 and not Water; and Class 4 (Barren) for all other pixels. Calculate NDWI as `(band_4 - band_2) / (band_4 + band_2)` and NDVI as `(band_2 - band_3) / (band_2 + band_3)`. Set the `Land_Cover` band description to exactly `1=Water, 2=DenseVeg, 3=SparseVeg, 4=Barren`. Save the product in BEAM-DIMAP format to `~/snap_exports/expert_classification.dim` and export it as a GeoTIFF to `~/snap_exports/expert_classification.tif`.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rule_based_expert_classification/setup_task.sh",
+    "post_task": "/workspace/tasks/rule_based_expert_classification/export_result.sh"
+  },
+  "metadata": {
+    "data_file": "/home/ga/snap_data/landsat_multispectral.tif",
+    "expected_dim_path": "/home/ga/snap_exports/expert_classification.dim",
+    "expected_tif_path": "/home/ga/snap_exports/expert_classification.tif",
+    "legend_string": "1=Water, 2=DenseVeg, 3=SparseVeg, 4=Barren"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rule_based_classification"
+    }
+  }
+}

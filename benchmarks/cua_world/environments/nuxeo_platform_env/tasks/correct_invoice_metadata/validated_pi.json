@@ -1,0 +1,115 @@
+{
+    "task_id": "correct_invoice_metadata@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "ground_truth_path",
+            "metadata_value": "/var/lib/nuxeo/invoice_ground_truth.json",
+            "verified_value": "/var/lib/nuxeo/invoice_ground_truth.json",
+            "source": "setup_task.sh line 24-25: mkdir -p /var/lib/nuxeo followed by cat > /var/lib/nuxeo/invoice_ground_truth.json. Confirmed in export_result.sh line 11 which reads from the same path. Docker-compose.yml line 40 mounts this as nuxeo_data volume.",
+            "status": "verified"
+        },
+        {
+            "key": "nuxeo_version",
+            "metadata_value": null,
+            "verified_value": "10.10",
+            "source": "docker-compose.yml line 22: image: nuxeo:10.10. Verified with Docker Hub that nuxeo:10.10 is an official release available at https://hub.docker.com/_/nuxeo",
+            "status": "verified"
+        },
+        {
+            "key": "database_type",
+            "metadata_value": null,
+            "verified_value": "PostgreSQL 11",
+            "source": "docker-compose.yml line 6 (postgres:11 image) and line 27 (NUXEO_DB_TYPE=postgresql). Verified that postgres:11 is an official release on https://hub.docker.com/_/postgres",
+            "status": "verified"
+        },
+        {
+            "key": "nuxeo_port",
+            "metadata_value": null,
+            "verified_value": "8080",
+            "source": "docker-compose.yml line 25: ports mapping 8080:8080. Confirmed in task_utils.sh line 6 (NUXEO_URL='http://localhost:8080/nuxeo')",
+            "status": "verified"
+        },
+        {
+            "key": "admin_credentials",
+            "metadata_value": null,
+            "verified_value": "Administrator / Administrator",
+            "source": "task_utils.sh lines 7-8: NUXEO_ADMIN='Administrator', NUXEO_PASS='Administrator'. Consistent across setup_task.sh and export_result.sh nuxeo_api calls.",
+            "status": "verified"
+        },
+        {
+            "key": "webui_package",
+            "metadata_value": null,
+            "verified_value": "nuxeo-web-ui",
+            "source": "docker-compose.yml line 35: NUXEO_PACKAGES: nuxeo-web-ui",
+            "status": "verified"
+        },
+        {
+            "key": "invoice_data_generation_method",
+            "metadata_value": null,
+            "verified_value": "Synthetic: randomly generated with ImageMagick",
+            "source": "setup_task.sh lines 10-16: Invoice number randomly generated with RANDOM (1000-9999), vendor randomly selected from list (Acme Corp, Globex Inc, Soylent Corp, Umbrella Corp, Cyberdyne Systems), amount randomly generated with shuf. Lines 42-54: Invoice image created with ImageMagick convert command.",
+            "status": "verified"
+        },
+        {
+            "key": "document_name",
+            "metadata_value": null,
+            "verified_value": "Scanned-Invoice",
+            "source": "setup_task.sh line 87: 'name': 'Scanned-Invoice'. Confirmed in setup_task.sh line 59 and line 122 which navigate to this document.",
+            "status": "verified"
+        },
+        {
+            "key": "workspace_name",
+            "metadata_value": null,
+            "verified_value": "Projects",
+            "source": "setup_task.sh lines 59, 102, 122: Document path includes '/workspaces/Projects/'. Consistent with environment setup in setup_nuxeo.sh line 151 which creates the Projects workspace.",
+            "status": "verified"
+        },
+        {
+            "key": "document_path",
+            "metadata_value": null,
+            "verified_value": "/default-domain/workspaces/Projects/Scanned-Invoice",
+            "source": "setup_task.sh line 59 and 102: nuxeo_api calls use this path. Line 122 navigates to this document path in the UI.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_json_structure",
+            "metadata_value": null,
+            "verified_value": "{ invoice_number, vendor, amount, task_start_time }",
+            "source": "setup_task.sh lines 25-31: Ground truth JSON includes invoice_number, vendor, amount, and task_start_time (Unix timestamp).",
+            "status": "verified"
+        },
+        {
+            "key": "document_metadata_fields",
+            "metadata_value": null,
+            "verified_value": "dc:title, dc:source, dc:description",
+            "source": "setup_task.sh lines 89-91: Initial placeholder metadata. Lines 51-53 of verifier.py confirm these are the fields checked.",
+            "status": "verified"
+        },
+        {
+            "key": "vendor_options",
+            "metadata_value": null,
+            "verified_value": "[\"Acme Corp\", \"Globex Inc\", \"Soylent Corp\", \"Umbrella Corp\", \"Cyberdyne Systems\"]",
+            "source": "setup_task.sh lines 12-13: VENDORS array containing these 5 vendor names",
+            "status": "verified"
+        },
+        {
+            "key": "invoice_number_format",
+            "metadata_value": null,
+            "verified_value": "INV-XXXX (where XXXX is 1000-9999)",
+            "source": "setup_task.sh line 10: INVOICE_NUM='INV-$((1000 + RANDOM % 9000))'",
+            "status": "verified"
+        },
+        {
+            "key": "task_has_explicit_metadata_field",
+            "metadata_value": null,
+            "verified_value": true,
+            "source": "task.json lines 16-18 contain 'metadata' field with ground_truth_path claim",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task 'correct_invoice_metadata@1' operates within Nuxeo Platform 10.10 (official release from Docker Hub) with PostgreSQL 11 database backend, running on port 8080 with default Administrator credentials. The task generates synthetic invoice data through random number generation and ImageMagick image creation: invoice numbers (INV-1000 to INV-9999), vendors (from a fixed list of 5 fictional companies), and random dollar amounts. Ground truth data is stored at /var/lib/nuxeo/invoice_ground_truth.json containing invoice_number, vendor, amount, and task_start_time. The agent must extract information from a generated invoice image and update the 'Scanned-Invoice' document in the Projects workspace, setting dc:title to invoice number, dc:source to vendor, and dc:description to the amount.",
+    "pi_confidence": "high"
+}

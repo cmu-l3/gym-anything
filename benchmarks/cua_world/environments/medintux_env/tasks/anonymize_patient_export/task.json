@@ -1,0 +1,27 @@
+{
+  "id": "anonymize_patient_export@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "A university epidemiologist has requested anonymized patient data from your general practice for a study on age-related disease prevalence. Extract patient records from the MedinTux DrTuxTest MySQL database (accessible as root with no password: `mysql -u root DrTuxTest`) and apply RGPD-compliant anonymization to produce a research-ready CSV file and an audit report.\n\nPatient data is stored in the `IndexNomPrenom` and `fchpat` tables, which are linked by their respective GUID fields (`FchGnrl_IDDos` and `FchPat_GUID_Doss`). Process only records where `FchGnrl_Type` is 'Dossier'.\n\nAnonymization Requirements:\n- Suppress all names, addresses, city names, phone numbers, social security numbers, and original GUIDs.\n- Pseudonymize GUIDs into a sequential ID format: `PATIENT_001`, `PATIENT_002`, etc.\n- Generalize birth dates into 5-year age bands based on the current year (format 'XX-YY', where XX = floor(age/5)*5 and YY = XX+4). Use 'UNKNOWN' for NULL or invalid dates.\n- Generalize postal codes to the department level (first 2 digits followed by '000'). Use '00000' for NULL or short codes.\n- Preserve sex (`FchPat_Sexe`) and title (`FchPat_Titre`) fields unchanged.\n\nRequired Outputs:\n1. Export the anonymized data to `~/research_export/anonymized_patients.csv` with the header row: `pseudo_id,sex,age_band,department_code,title`.\n2. Generate an audit report at `~/research_export/anonymization_audit.txt` documenting the total records processed, the specific fields suppressed, the fields generalized (with method descriptions), the fields preserved, a confirmation that no PII remains, and the timestamp of the export.\n\nCRITICAL: Neither output file may contain any original patient names, addresses, phone numbers, social security numbers, or database GUIDs. Any PII breach will result in failure.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/anonymize_patient_export/setup_task.sh",
+    "post_task": "/workspace/tasks/anonymize_patient_export/export_result.sh"
+  },
+  "metadata": {
+    "verification_pii_dir": "/tmp/task_verification",
+    "output_csv_path": "/home/ga/research_export/anonymized_patients.csv",
+    "output_audit_path": "/home/ga/research_export/anonymization_audit.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_anonymize_patient_export"
+    }
+  }
+}

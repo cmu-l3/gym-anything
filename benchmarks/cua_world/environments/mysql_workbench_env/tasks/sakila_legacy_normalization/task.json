@@ -1,0 +1,37 @@
+{
+  "id": "sakila_legacy_normalization@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "A legacy reporting system has dumped all rental transaction data into a single flat table named 'rental_flat' in the 'legacy_data' database. Normalize this data into a new database named 'rental_norm' to eliminate redundancy. Create four normalized tables: 'norm_customers' (customer_id PK, first_name, last_name, email, address, city, country), 'norm_films' (film_id PK, title, release_year, rental_rate, length_minutes, category), 'norm_stores' (store_id PK, address, city), and 'norm_rentals' (rental_id PK, rental_date, return_date, customer_id FK, film_id FK, store_id FK, payment_amount, payment_date). Migrate and deduplicate the data from 'rental_flat' into these tables, deduplicating customers by email and films by title and year. Create a view named 'rental_norm.v_rental_denormalized' that joins the four tables to reconstruct the original flat structure. Export the 'norm_customers' table to '/home/ga/Documents/exports/normalized_customers.csv'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_legacy_normalization/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_legacy_normalization/export_result.sh"
+  },
+  "metadata": {
+    "source_db": "legacy_data",
+    "target_db": "rental_norm",
+    "target_tables": [
+      "norm_customers",
+      "norm_films",
+      "norm_stores",
+      "norm_rentals"
+    ],
+    "expected_customer_count": 599,
+    "expected_film_count": 958,
+    "expected_store_count": 2,
+    "expected_rental_count": 16044,
+    "expected_output_file": "/home/ga/Documents/exports/normalized_customers.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_legacy_normalization"
+    }
+  }
+}

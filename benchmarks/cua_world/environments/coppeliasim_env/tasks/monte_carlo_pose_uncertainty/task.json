@@ -1,0 +1,30 @@
+{
+  "id": "monte_carlo_pose_uncertainty@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Monte Carlo Pose Uncertainty Analysis",
+  "description": "An automation integration firm is evaluating a 6-DOF robot arm for a high-precision gluing task where joint encoders have an uncertainty of ±0.005 radians. Conduct a Monte Carlo simulation in CoppeliaSim (ZMQ Remote API, port 23000) to map how Gaussian joint noise (μ=0, σ=0.005 radians) affects Tool Center Point (TCP) Euclidean deviations (in mm) across 5 distinct nominal joint configurations spanning different reach distances. Perform 100 samples per configuration by applying noise to the 6 revolute joints and measuring the resulting Cartesian position of the end-effector tip relative to the nominal position. The simulation should set joint angles directly without running dynamic physics.\n\nExport the raw simulation data to /home/ga/Documents/CoppeliaSim/exports/mc_samples.csv including columns: config_id, sample_id, nom_j1 through nom_j6, noisy_j1 through noisy_j6, ee_x, ee_y, ee_z (in meters), and deviation_mm.\n\nExport an aggregate report to /home/ga/Documents/CoppeliaSim/exports/uncertainty_report.json using the following structure:\n{\n  \"end_effector_name\": \"/UR5/connection\",\n  \"joint_names\": [\"/UR5/joint1\", \"/UR5/joint2\", \"/UR5/joint3\", \"/UR5/joint4\", \"/UR5/joint5\", \"/UR5/joint6\"],\n  \"total_configurations\": 5,\n  \"samples_per_config\": 100,\n  \"noise_sigma_rad\": 0.005,\n  \"results\": [\n    {\n      \"config_id\": 0,\n      \"nominal_reach_m\": 0.0,\n      \"max_deviation_mm\": 0.0,\n      \"mean_deviation_mm\": 0.0\n    }\n  ]\n}",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/monte_carlo_pose_uncertainty/setup_task.sh",
+    "post_task": "/workspace/tasks/monte_carlo_pose_uncertainty/export_result.sh"
+  },
+  "metadata": {
+    "min_configs": 5,
+    "min_samples_per_config": 100,
+    "expected_sigma": 0.005,
+    "output_csv": "/home/ga/Documents/CoppeliaSim/exports/mc_samples.csv",
+    "output_json": "/home/ga/Documents/CoppeliaSim/exports/uncertainty_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_monte_carlo_pose_uncertainty"
+    }
+  }
+}

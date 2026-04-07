@@ -1,0 +1,30 @@
+{
+  "id": "outbound_nack_handling@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a NextGen Connect channel named 'Lab_Order_Sender' that sends HL7 ORM messages from a TCP Listener source on port 6661 to a TCP Sender destination at localhost:6699. Configure the channel to handle negative acknowledgments (NACKs) such that if the returned ACK code (MSA-1) is 'AE' or 'AR', the message status is set to ERROR and the error text from MSA-3 is appended to /home/ga/lab_rejections.log. A sample message is available at /home/ga/sample_orm.hl7. The web dashboard is accessible at https://localhost:8443 (admin/admin).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/outbound_nack_handling/setup_task.sh",
+    "post_task": "/workspace/tasks/outbound_nack_handling/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Lab_Order_Sender",
+    "source_port": 6661,
+    "dest_port": 6699,
+    "log_file": "/home/ga/lab_rejections.log",
+    "expected_error_text": "Simulated Patient ID Error",
+    "sample_file": "/home/ga/sample_orm.hl7"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_outbound_nack_handling"
+    }
+  }
+}

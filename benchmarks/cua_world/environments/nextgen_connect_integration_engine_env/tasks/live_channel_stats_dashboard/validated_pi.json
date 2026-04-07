@@ -1,0 +1,38 @@
+{
+    "task_id": "live_channel_stats_dashboard@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "api_url",
+            "metadata_value": "https://localhost:8443/api/channels/statistics",
+            "verified_value": "https://localhost:8443/api/channels/statistics",
+            "source": "Confirmed in task.json description, setup_task.sh line 131, and export_result.sh line 28. This is the actual NextGen Connect 4.5 REST API endpoint for channel statistics.",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "/var/www/html/dashboard.html",
+            "verified_value": "/var/www/html/dashboard.html",
+            "source": "Confirmed in task.json description, setup_task.sh line 12 (directory creation), and export_result.sh line 11. The directory is created with 777 permissions to ensure write access.",
+            "status": "verified"
+        },
+        {
+            "key": "sim_channels",
+            "metadata_value": "[\"Sim_ADT_Inbound\", \"Sim_Lab_Results\"]",
+            "verified_value": "[\"Sim_ADT_Inbound\", \"Sim_Lab_Results\"]",
+            "source": "Confirmed in setup_task.sh lines 107-108 where create_sim_channel function is called with these exact names. Both channels are created as TCP listeners on ports 9001 and 9002 respectively with HL7 MLLP encoding.",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": "[\"Name\", \"Received\", \"Queued\", \"Error\"]",
+            "verified_value": "[\"Name\", \"Received\", \"Error\"] (with discrepancy: \"Queued\" is not validated)",
+            "source": "Task.json description claims all 4 columns. NextGen Connect API documentation confirms the statistics endpoint returns 'received', 'queued', 'error', and 'sent' fields. However, verifier.py line 65 only checks for presence of 'name', 'received', and 'error' in the HTML headers—it does NOT verify the 'queued' column exists.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task implements a dashboard that polls the NextGen Connect 4.5 REST API (https://localhost:8443/api/channels/statistics) every 30 seconds to monitor two simulated healthcare channels (Sim_ADT_Inbound and Sim_Lab_Results). The HTML dashboard is written to /var/www/html/dashboard.html and must contain statistics including received message counts. The API provides access to real NextGen Connect instances running on port 8443 with authentication via admin credentials. The data is not synthetic—it comes from actual running NextGen Connect containers and the test channels are created and deployed during task setup using the real API.",
+    "pi_confidence": "high"
+}

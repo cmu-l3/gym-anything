@@ -1,0 +1,27 @@
+{
+  "id": "http_rest_enrichment_pipeline@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Build a data enrichment pipeline consisting of two channels. The 'Region_Mock_Service' channel (HTTP Listener on port 6666) must accept a 'zip' query parameter and return JSON '{\"region\": \"EAST\"}' if the zip starts with 0-4, or '{\"region\": \"WEST\"}' if it starts with 5-9. The 'ADT_Region_Enricher' channel (TCP Listener on port 6661, MLLP, HL7v2) receives ADT messages, extracts the Zip Code (PID.11.5), queries the Mock Service, parses the JSON response, and inserts the region into PID.11.9 (County/Parish Code). Write the modified HL7 messages to /tmp/enriched_output/.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/http_rest_enrichment_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/http_rest_enrichment_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "mock_port": "6666",
+    "enricher_port": "6661",
+    "output_dir": "/tmp/enriched_output"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_http_rest_enrichment_pipeline"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+    "task_id": "configure_builtin_node@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_executors",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Task description: 'Set the Number of executors to 1'. Verified against Jenkins API documentation - numExecutors is a numeric field representing the number of concurrent build executors on a node.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_mode",
+            "metadata_value": "EXCLUSIVE",
+            "verified_value": "EXCLUSIVE",
+            "source": "Jenkins API documentation (javadoc.jenkins.io/hudson/model/Node.Mode.html) confirms two valid Node.Mode enum values: NORMAL and EXCLUSIVE. Task description step 4: 'Change the Usage to Only build jobs with label expressions matching this node' maps to EXCLUSIVE mode. Verified through verifier.py line 88 which checks: if mode == 'EXCLUSIVE'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_labels",
+            "metadata_value": ["controller", "lightweight"],
+            "verified_value": ["controller", "lightweight"],
+            "source": "Task description step 3 explicitly states: 'Set the Labels field to: controller lightweight'. Verified against Jenkins API documentation showing assignedLabels as array of objects with 'name' property. Verifier.py lines 72-76 confirm both labels must be present (case-insensitive).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_job_name",
+            "metadata_value": "controller-health-check",
+            "verified_value": "controller-health-check",
+            "source": "Task description step 6 explicitly states: 'Create a new Freestyle project named controller-health-check'. Verified in verifier.py line 29 and export_result.sh line 29.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_job_label",
+            "metadata_value": "controller",
+            "verified_value": "controller",
+            "source": "Task description step 7 explicitly states: 'set the Label Expression to: controller'. Verified in verifier.py line 129 which checks: if 'controller' in label_expr.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_shell_content",
+            "metadata_value": ["health check", "hostname"],
+            "verified_value": ["health check", "hostname"],
+            "source": "Task description step 8 specifies shell command: 'echo \"Health check running on controller node\" && hostname && date && uptime'. This contains both required substrings. Verified in verifier.py lines 148-149 which checks for 'health check' or 'health_check' (case-insensitive) in the command. 'hostname' is explicit in the task description command.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Jenkins built-in node (controller) must be configured with exactly 1 executor to handle only label-restricted jobs. The node should be labeled with both 'controller' and 'lightweight' to prevent heavy builds from running on the controller itself. A test job named 'controller-health-check' should be created as a Freestyle project restricted to the 'controller' label with a shell script containing a health check command and hostname information. The node mode must be set to 'EXCLUSIVE' to enforce the label restriction policy.",
+    "pi_confidence": "high"
+}

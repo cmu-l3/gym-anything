@@ -1,0 +1,32 @@
+{
+  "id": "create_ediscovery_voice_triage@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Create a Talon voice module for e-discovery email triage.\n\nWorkspace:\n- Talon User Directory: C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\ediscovery\\\n- Data Directory: C:\\workspace\\enron_data\\\n\nImplement a Python backend (ediscovery.py) and a Talon command file (ediscovery.talon) to parse, log, and organize raw .eml files.\n\nThe ediscovery.py file must define a Talon Module 'user.ediscovery' and a list 'user.ediscovery_category' containing \"privileged\", \"responsive\", \"irrelevant\", and \"needs review\". It must implement the following actions:\n- user.ediscovery_tag(email_id: str, category: str): Extracts headers (Message-ID, Date, From, To, Subject) from the .eml file in the data directory, appends the metadata and category to C:\\workspace\\enron_data\\triage_log.csv (including headers if the file is new), and moves the source file to C:\\workspace\\enron_data\\categorized\\{category}\\{email_id}.eml.\n- user.ediscovery_extract(email_id: str): Parses the .eml file and saves all decoded attachments to C:\\workspace\\enron_data\\attachments\\ using the naming convention {email_id}_{filename}.\n\nThe ediscovery.talon file must map the voice command \"triage tag {user.ediscovery_category} <user.text>\" to the tagging action and \"triage extract <user.text>\" to the extraction action.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_ediscovery_voice_triage\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_ediscovery_voice_triage\\export_result.ps1"
+  },
+  "metadata": {
+    "module_dir": "C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\ediscovery",
+    "data_dir": "C:\\workspace\\enron_data",
+    "categories": [
+      "privileged",
+      "responsive",
+      "irrelevant",
+      "needs review"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ediscovery_module"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "blockchain_audit_log@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Implement a secure, immutable audit trail for salary changes using Oracle 21c Blockchain Tables in the HR database (localhost:1521/XEPDB1, user: hr, pass: hr123). The audit trail must be stored in a blockchain table named 'SALARY_CHANGE_LEDGER' with columns LOG_ID (Number, PK), EMP_ID (Number), OLD_SALARY (Number), NEW_SALARY (Number), CHANGE_DATE (Date), and CHANGED_BY (Varchar2). The table must be configured with NO DROP UNTIL 16 DAYS IDLE, NO DELETE UNTIL 16 DAYS AFTER INSERT, HASHING USING SHA2_512, and VERSION v1. The ledger must include three records: ID 1 (Emp 100, Old 24000, New 25000, 2024-01-15, 'HR_MGR'), ID 2 (Emp 101, Old 17000, New 17500, 2024-02-01, 'HR_DIR'), and ID 3 (Emp 102, Old 17000, New 18000, 2024-02-20, 'HR_MGR'). Document the table's immutability by capturing the ORA- error message from a failed deletion attempt of LOG_ID 1 to /home/ga/Desktop/tamper_evidence.txt. Record the cryptographic signature hex string for LOG_ID 3 (from the internal 'ORABCT_CHAIN_SIGNATURE' column) to /home/ga/Desktop/latest_signature.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/blockchain_audit_log/setup_task.sh",
+    "post_task": "/workspace/tasks/blockchain_audit_log/export_result.sh"
+  },
+  "metadata": {
+    "table_name": "SALARY_CHANGE_LEDGER",
+    "required_retention_days": 16,
+    "required_hashing": "SHA2_512",
+    "evidence_file": "/home/ga/Desktop/tamper_evidence.txt",
+    "signature_file": "/home/ga/Desktop/latest_signature.txt",
+    "expected_error_code": "ORA-05709"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_blockchain_audit_log"
+    }
+  }
+}

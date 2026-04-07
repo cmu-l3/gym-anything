@@ -1,0 +1,45 @@
+{
+    "task_id": "detect_ephemeral_account@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_rule_id",
+            "metadata_value": "100050",
+            "verified_value": "100050",
+            "source": "Verified through task.json requirements and verifier.py static analysis explicit checks.",
+            "status": "verified"
+        },
+        {
+            "key": "trigger_sid",
+            "metadata_value": "5904",
+            "verified_value": "5903",
+            "source": "Wazuh rules logic and export_result.sh analysis. The task instructs using SID 5904 for 'User Deletion', but Wazuh maps 5904 to 'changed user' (Modification). The correct SID for 'delete user' is 5903. The export_result.sh dynamically tests the rule using the log 'delete user \\'ephemeral_test\\'', which explicitly matches SID 5903. Using 5904 causes the rule to fail dynamic verification.",
+            "status": "contradicted"
+        },
+        {
+            "key": "context_sid",
+            "metadata_value": "5902",
+            "verified_value": "5902",
+            "source": "Verified via Wazuh base rules (0020-syslog_rules.xml) which assign SID 5902 to the log pattern '^new user|^new account added'.",
+            "status": "verified"
+        },
+        {
+            "key": "timeframe",
+            "metadata_value": "300",
+            "verified_value": "300",
+            "source": "Verified through task.json instructions and verifier.py regex check for 300.",
+            "status": "verified"
+        },
+        {
+            "key": "severity",
+            "metadata_value": "12",
+            "verified_value": "12",
+            "source": "Verified through task.json instructions and verifier.py dynamic check for severity level 12.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task instructs the agent to create a rule using SID 5904 as the trigger for 'User Deletion'. However, a PI audit of Wazuh's ruleset reveals that SID 5904 actually corresponds to User Modification ('changed user'), while SID 5903 handles User Deletion ('delete user'). Furthermore, the export_result.sh script performs dynamic verification using a synthetic log string: \"Mar 10 10:00:10 ubuntu userdel[12345]: delete user 'ephemeral_test'\". This test string matches SID 5903, meaning that if an agent faithfully follows the task's instruction to use SID 5904, the rule will fail the dynamic verification check (worth 40 points) and cause the agent to fail the task overall.",
+    "pi_confidence": "high"
+}

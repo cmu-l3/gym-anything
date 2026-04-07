@@ -1,0 +1,35 @@
+{
+  "id": "world_schema_evolution_computed@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "Evolve the World database schema to support economic analysis using MySQL Workbench (localhost, user: ga, password: password123). Modify the country table to include STORED generated columns gdp_per_capita (DECIMAL 12,2) calculated as GNP * 1000000 / NULLIF(Population, 0) and population_density (DECIMAL 10,2) calculated as Population / NULLIF(SurfaceArea, 0). Create and populate a continent_stats table (PK: continent) with aggregated metrics for country_count, total_population, avg_life_expectancy, total_gnp, and avg_gdp_per_capita. Implement a stored function fn_classify_development that categorizes GDP per capita into 'Unknown' (<=0 or NULL), 'Low' (<=1000), 'Lower-Middle' (<=5000), 'Upper-Middle' (<=15000), or 'High' (>15000). Define a view v_country_development_profile that combines country details with the development classification, ordered by GDP per capita descending, and export the view data to /home/ga/Documents/exports/country_development_profile.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/world_schema_evolution_computed/setup_task.sh",
+    "post_task": "/workspace/tasks/world_schema_evolution_computed/export_result.sh"
+  },
+  "metadata": {
+    "database": "world",
+    "expected_gen_cols": [
+      "gdp_per_capita",
+      "population_density"
+    ],
+    "expected_table": "continent_stats",
+    "expected_rows_stats": 7,
+    "expected_function": "fn_classify_development",
+    "expected_view": "v_country_development_profile",
+    "expected_output_file": "/home/ga/Documents/exports/country_development_profile.csv",
+    "min_csv_rows": 230
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_world_schema_evolution"
+    }
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "task_id": "rotate_90cw@1",
+  "dataset": "Unsplash",
+  "case_id": "photo-1490750967868-88aa4486c946",
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "primary_image_url_status",
+      "metadata_value": "https://images.unsplash.com/photo-1518709268805-4e9042af2176 with parameters w=687&h=1031",
+      "verified_value": "404 Not Found - URL is dead/invalid",
+      "source": "Direct HTTP request testing via urllib",
+      "status": "contradicted"
+    },
+    {
+      "key": "fallback_image_url_status",
+      "metadata_value": "https://images.unsplash.com/photo-1490750967868-88aa4486c946 with parameters w=600&h=800",
+      "verified_value": "Valid - returns JPEG image 600x800 portrait orientation",
+      "source": "Direct HTTP download and PIL image analysis",
+      "status": "verified"
+    },
+    {
+      "key": "image_orientation",
+      "metadata_value": "Portrait-oriented flower image",
+      "verified_value": "Confirmed portrait orientation (600x800), cannot verify 'flower' content from pixel analysis",
+      "source": "PIL Image analysis of downloaded Unsplash image",
+      "status": "partially_verified"
+    },
+    {
+      "key": "pil_rotation_formula",
+      "metadata_value": "PIL.Image.rotate(-90, expand=True) produces 90-degree clockwise rotation",
+      "verified_value": "Correct - tested with corner-marked test image. rotate(-90) rotates 90\u00b0 clockwise with expand=True for correct sizing",
+      "source": "Implemented test script with PIL, verified corner positions",
+      "status": "verified"
+    },
+    {
+      "key": "dimension_swap_logic",
+      "metadata_value": "Original width becomes result height, original height becomes result width",
+      "verified_value": "Correct mathematical logic. Example: 600x800 \u2192 800x600",
+      "source": "Mathematical verification and PIL testing",
+      "status": "verified"
+    },
+    {
+      "key": "ssim_threshold",
+      "metadata_value": "SSIM >= 0.95 for 'rotation_correct'",
+      "verified_value": "Threshold is valid but extremely tight. Realistic GIMP JPEG export achieves SSIM 0.9598 (safety margin: +0.0098)",
+      "source": "Downloaded actual image, simulated GIMP export with quality=80, calculated SSIM",
+      "status": "verified"
+    },
+    {
+      "key": "pass_threshold",
+      "metadata_value": "Pass threshold: 75% score (3 out of 4 criteria met)",
+      "verified_value": "Correct - verifier requires at least 3/4 criteria: dimensions_swapped, rotation_correct, images_different, similarity_score>0.85",
+      "source": "Code analysis of verifier.py lines 194-209",
+      "status": "verified"
+    },
+    {
+      "key": "gimp_menu_path",
+      "metadata_value": "Image \u2192 Transform \u2192 Rotate 90\u00b0 clockwise",
+      "verified_value": "Standard GIMP feature. This menu option exists and applies 90-degree clockwise rotation without dialogs",
+      "source": "GIMP documentation knowledge and equivalence to PIL rotate(-90)",
+      "status": "verified"
+    },
+    {
+      "key": "export_filename",
+      "metadata_value": "flower_rotated_90cw.jpg",
+      "verified_value": "Expected output filename specified in setup_rotate_task.sh and verifier.py. First in list of possible result locations",
+      "source": "Code analysis of setup_rotate_task.sh and verifier.py",
+      "status": "verified"
+    },
+    {
+      "key": "actual_image_dimensions",
+      "metadata_value": "URL parameters claim 600x800 for fallback URL",
+      "verified_value": "Verified - downloaded image is exactly 600x800 JPEG",
+      "source": "PIL Image.open() on downloaded Unsplash image",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "Task 'rotate_90cw@1' uses a real Unsplash image (photo-1490750967868-88aa4486c946) cropped to 600x800 portrait orientation as the test data. The primary Unsplash URL (687x1031) is no longer available (404 error). The rotation verification correctly implements PIL's rotate(-90, expand=True) which produces proper 90-degree clockwise rotation with dimension swap (600x800\u2192800x600). The SSIM threshold of \u22650.95 is mathematically sound but operationally very tight, with realistic GIMP JPEG export achieving only 0.9598 (0.0098 above threshold). The verifier requires 3 out of 4 criteria for 75% pass: dimension swap, rotation accuracy (SSIM\u22650.95), image modification, and quality (SSIM>0.85). Data is real (from Unsplash), not synthetic.",
+  "pi_confidence": "high"
+}

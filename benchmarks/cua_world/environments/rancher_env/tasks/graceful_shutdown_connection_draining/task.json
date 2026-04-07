@@ -1,0 +1,31 @@
+{
+  "id": "graceful_shutdown_connection_draining@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "The e-commerce platform is experiencing 502 Bad Gateway errors during deployments because pods terminate instantly, before the load balancer can deregister them. Configure the 'payment-processor', 'cart-service', and 'order-worker' deployments in the 'ecommerce' namespace with the preStop lifecycle hooks and terminationGracePeriodSeconds specified in /home/ga/Desktop/drain_spec.md. Login to Rancher at https://localhost with credentials admin / Admin12345678!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/graceful_shutdown_connection_draining/setup_task.sh",
+    "post_task": "/workspace/tasks/graceful_shutdown_connection_draining/export_result.sh"
+  },
+  "metadata": {
+    "target_namespace": "ecommerce",
+    "deployments": [
+      "payment-processor",
+      "cart-service",
+      "order-worker"
+    ],
+    "spec_file": "/home/ga/Desktop/drain_spec.md"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_graceful_shutdown"
+    }
+  }
+}

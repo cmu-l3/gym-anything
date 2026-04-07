@@ -1,0 +1,178 @@
+{
+    "task_id": "fix_jpa_entity_mappings@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/IdeaProjects/inventory-orm",
+            "verified_value": "/home/ga/IdeaProjects/inventory-orm",
+            "source": "setup_task.sh line 7: PROJECT_DIR variable and mkdir -p at line 8 creates this exact directory",
+            "status": "verified"
+        },
+        {
+            "key": "schema_file",
+            "metadata_value": "src/main/resources/schema.sql",
+            "verified_value": "src/main/resources/schema.sql",
+            "source": "setup_task.sh lines 65-81 creates this relative path within project_dir",
+            "status": "verified"
+        },
+        {
+            "key": "product_entity",
+            "metadata_value": "src/main/java/com/example/inventory/model/Product.java",
+            "verified_value": "src/main/java/com/example/inventory/model/Product.java",
+            "source": "setup_task.sh lines 137-171 creates this relative path within project_dir",
+            "status": "verified"
+        },
+        {
+            "key": "category_entity",
+            "metadata_value": "src/main/java/com/example/inventory/model/Category.java",
+            "verified_value": "src/main/java/com/example/inventory/model/Category.java",
+            "source": "setup_task.sh lines 111-134 creates this relative path within project_dir",
+            "status": "verified"
+        },
+        {
+            "key": "database_type",
+            "metadata_value": null,
+            "verified_value": "H2 (in-memory)",
+            "source": "setup_task.sh pom.xml dependency h2database:h2, and application.properties with jdbc:h2:mem:testdb",
+            "status": "verified"
+        },
+        {
+            "key": "spring_boot_version",
+            "metadata_value": null,
+            "verified_value": "3.1.5",
+            "source": "setup_task.sh pom.xml dependencies all specify org.springframework.boot version 3.1.5",
+            "status": "verified"
+        },
+        {
+            "key": "java_version",
+            "metadata_value": null,
+            "verified_value": "17",
+            "source": "setup_task.sh pom.xml properties: java.version 17, maven.compiler.source 17, maven.compiler.target 17",
+            "status": "verified"
+        },
+        {
+            "key": "jpa_framework",
+            "metadata_value": null,
+            "verified_value": "Jakarta Persistence (jakarta.persistence.*)",
+            "source": "setup_task.sh Category.java and Product.java import jakarta.persistence annotations",
+            "status": "verified"
+        },
+        {
+            "key": "category_table_columns",
+            "metadata_value": "id, name",
+            "verified_value": "id (BIGINT AUTO_INCREMENT PRIMARY KEY), name (VARCHAR(255) NOT NULL)",
+            "source": "setup_task.sh schema.sql lines 69-72: CREATE TABLE category definition",
+            "status": "verified"
+        },
+        {
+            "key": "product_table_columns",
+            "metadata_value": "product_id, sku_code, unit_price, category_id (FK)",
+            "verified_value": "product_id (BIGINT AUTO_INCREMENT PRIMARY KEY), sku_code (VARCHAR(50) UNIQUE NOT NULL), unit_price (DECIMAL(10,2)), category_id (BIGINT, FOREIGN KEY to category.id)",
+            "source": "setup_task.sh schema.sql lines 74-80: CREATE TABLE product definition",
+            "status": "verified"
+        },
+        {
+            "key": "category_missing_annotation",
+            "metadata_value": "Category.java missing @Entity",
+            "verified_value": true,
+            "source": "setup_task.sh lines 111-134 show Category.java with comment '// MISSING @Entity annotation' and no @Entity present",
+            "status": "verified"
+        },
+        {
+            "key": "product_id_field_mapping_issue",
+            "metadata_value": "Product.id field should map to product_id column",
+            "verified_value": true,
+            "source": "setup_task.sh lines 145-147: Product.java has 'private Long id;' but schema expects 'product_id' column; comment says '// DB expects product_id'",
+            "status": "verified"
+        },
+        {
+            "key": "product_sku_field_mapping_issue",
+            "metadata_value": "Product.sku field should map to sku_code column",
+            "verified_value": true,
+            "source": "setup_task.sh lines 149: Product.java has 'private String sku;' but schema expects 'sku_code' column; comment says '// DB expects sku_code'",
+            "status": "verified"
+        },
+        {
+            "key": "product_price_field_mapping_issue",
+            "metadata_value": "Product.price field should map to unit_price column",
+            "verified_value": true,
+            "source": "setup_task.sh lines 151: Product.java has 'private BigDecimal price;' but schema expects 'unit_price' column; comment says '// DB expects unit_price'",
+            "status": "verified"
+        },
+        {
+            "key": "product_relationship_issue",
+            "metadata_value": "Product.categoryId should be refactored to Category relationship with @ManyToOne",
+            "verified_value": true,
+            "source": "setup_task.sh lines 153-155: Product.java has 'private Long categoryId;' but should be 'private Category category;' with @ManyToOne; comment says 'Task: Refactor to private Category category; with @ManyToOne'",
+            "status": "verified"
+        },
+        {
+            "key": "test_verifies_category_entity_annotation",
+            "metadata_value": "MappingIntegrationTest verifies Category has @Entity",
+            "verified_value": true,
+            "source": "setup_task.sh lines 217-220: Test saves Category to categoryRepository, which requires @Entity annotation to work",
+            "status": "verified"
+        },
+        {
+            "key": "test_verifies_product_column_mappings",
+            "metadata_value": "MappingIntegrationTest verifies Product column mappings via database query",
+            "verified_value": true,
+            "source": "setup_task.sh lines 248-257: Test uses jdbcTemplate.queryForMap to query database and verify SKU_CODE, UNIT_PRICE, and CATEGORY_ID columns match the saved values",
+            "status": "verified"
+        },
+        {
+            "key": "test_verifies_setcategory_method",
+            "metadata_value": "MappingIntegrationTest checks for setCategory(Category) method using reflection",
+            "verified_value": true,
+            "source": "setup_task.sh lines 234-239: Test uses reflection to call Product.getMethod('setCategory', Category.class), fails if method doesn't exist",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_checks_entity_annotation",
+            "metadata_value": "verifier.py checks for @Entity in category_content",
+            "verified_value": true,
+            "source": "verifier.py lines 62-68: Looks for '@Entity' string in Category.java content",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_checks_column_mappings",
+            "metadata_value": "verifier.py checks for @Column annotations with name=\"product_id\", name=\"sku_code\", name=\"unit_price\"",
+            "verified_value": true,
+            "source": "verifier.py lines 70-93: Uses regex to search for name=\"product_id\", name=\"sku_code\", name=\"unit_price\"",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_checks_relationship",
+            "metadata_value": "verifier.py checks for @ManyToOne, Category type field, and category_id mapping",
+            "verified_value": true,
+            "source": "verifier.py lines 95-113: Checks for '@ManyToOne', 'private Category' field, and name=\"category_id\"",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_anti_gaming_check",
+            "metadata_value": "verifier.py fails if schema.sql was modified",
+            "verified_value": true,
+            "source": "verifier.py lines 47-53: Checks if schema_modified flag is true and returns failed if modified; setup_task.sh lines 266-267 hash the initial schema",
+            "status": "verified"
+        },
+        {
+            "key": "build_tool",
+            "metadata_value": null,
+            "verified_value": "Maven 3",
+            "source": "setup_task.sh has pom.xml and export_result.sh uses 'mvn clean test'",
+            "status": "verified"
+        },
+        {
+            "key": "orm_persistence_api",
+            "metadata_value": null,
+            "verified_value": "Jakarta Persistence API",
+            "source": "setup_task.sh Category.java and Product.java import jakarta.persistence annotations (not javax.persistence)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic Java/Spring Boot application task using Jakarta Persistence JPA. The project is Spring Boot 3.1.5 targeting Java 17 with H2 in-memory database. The schema defines two tables: 'category' (id, name) and 'product' (product_id, sku_code, unit_price, category_id FK). The Category entity is missing @Entity annotation. The Product entity has incorrect field-to-column mappings: 'id' should map to 'product_id', 'sku' should map to 'sku_code', 'price' should map to 'unit_price', and 'categoryId' (Long) should be refactored to a 'Category category' field with @ManyToOne relationship and @JoinColumn(name='category_id'). The MappingIntegrationTest verifies fixes by saving entities and querying the database to confirm column names and foreign key relationships. The verifier checks: (1) @Entity annotation on Category, (2) correct @Column name mappings on Product, (3) @ManyToOne relationship with Category type field, and (4) that schema.sql was not modified.",
+    "pi_confidence": "high"
+}

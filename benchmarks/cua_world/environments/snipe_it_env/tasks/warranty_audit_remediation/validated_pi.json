@@ -1,0 +1,64 @@
+{
+    "task_id": "warranty_audit_remediation@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "IT Compliance Officer",
+            "verified_value": "IT Compliance Officer",
+            "source": "Task description strictly uses this persona.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Financial Services",
+            "verified_value": "Financial Services",
+            "source": "Task description specifically mentions a financial services firm.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_note_substring",
+            "metadata_value": "WARRANTY EXPIRED",
+            "verified_value": "WARRANTY EXPIRED",
+            "source": "verifier.py checks if 'WARRANTY EXPIRED' is present in asset.get('notes', '').upper() for C2 points.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_status_name",
+            "metadata_value": "Pending",
+            "verified_value": "Pending",
+            "source": "verifier.py strictly evaluates if the expired assets have their status updated to 'Pending'.",
+            "status": "verified"
+        },
+        {
+            "key": "audit_date",
+            "metadata_value": "2025-03-06",
+            "verified_value": "2025-03-06",
+            "source": "setup_task.sh and export_result.sh both use the explicit date '2025-03-06' in the SQL queries computing warranty_expiry.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights",
+            "metadata_value": {
+                "c1_correct_assets_flagged": 30,
+                "c2_status_changed_to_pending": 20,
+                "c3_note_added": 20,
+                "c4_no_false_positives": 15,
+                "c5_retired_not_modified": 15
+            },
+            "verified_value": {
+                "C1_status_to_pending": 30,
+                "C2_notes_contain_expired": 20,
+                "C3_W004_not_modified": 20,
+                "C4_no_false_positives": 15,
+                "C5_retired_not_modified": 15
+            },
+            "source": "verifier.py assigns 30 points to setting status to Pending (C1), 20 points to the notes check (C2), and introduces a 20 point check (C3) specifically ensuring W004 is left unmodified. The metadata incorrectly labels the keys and point allocations.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically injected Snipe-IT hardware assets (e.g., ASSET-W001 through W005). The required audit date (2025-03-06), expected note text ('WARRANTY EXPIRED'), and target status ('Pending') are explicitly enforced by the SQL queries in export_result.sh and the verifier scripts. The claimed scoring weights in the metadata contradict the verifier logic: the metadata omits a dedicated check for the unmodified active-warranty asset W004, whereas the verifier explicitly allocates 20 points for it (C3), redistributing the points originally assigned to 'flagged' and 'status_changed' keys.",
+    "pi_confidence": "high"
+}

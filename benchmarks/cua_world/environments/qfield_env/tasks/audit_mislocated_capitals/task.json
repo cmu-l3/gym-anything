@@ -1,0 +1,37 @@
+{
+  "id": "audit_mislocated_capitals@1",
+  "version": "1.0",
+  "env_id": "example.qfield_env@0.1",
+  "description": "Perform a data quality audit on the world_survey.gpkg project in QField. Six capital cities (Tokyo, Ottawa, Cairo, Canberra, Buenos Aires, and London) have been flagged for review due to a potential data corruption issue where their coordinate attributes (latitude/longitude text fields) may have been overwritten with incorrect values. Inspect the 'latitude' and 'longitude' attributes for these cities and compare them against their real-world locations. If the coordinates are grossly incorrect (placing the city on a different continent), edit the feature and set the 'notes' field to exactly 'MISLOCATED'. If the coordinates are approximately correct, leave the 'notes' field unchanged. Note: The map markers (geometry) may still be in the correct locations; rely on the 'latitude' and 'longitude' text attributes for your audit.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "sh /sdcard/tasks/audit_mislocated_capitals/setup_task.sh",
+    "post_task": "sh /sdcard/tasks/audit_mislocated_capitals/export_result.sh"
+  },
+  "metadata": {
+    "target_file": "world_survey.gpkg",
+    "layer": "world_capitals",
+    "expected_mislocated": [
+      "Tokyo",
+      "Ottawa",
+      "Cairo"
+    ],
+    "expected_correct": [
+      "Canberra",
+      "Buenos Aires",
+      "London"
+    ],
+    "flag_text": "MISLOCATED"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_capitals"
+    }
+  }
+}

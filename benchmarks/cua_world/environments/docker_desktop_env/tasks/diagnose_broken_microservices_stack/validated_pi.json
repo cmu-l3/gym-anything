@@ -1,0 +1,45 @@
+{
+    "task_id": "diagnose_broken_microservices_stack@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/microservices-debug",
+            "verified_value": "/home/ga/microservices-debug",
+            "source": "Live testing: ls -laR /home/ga/microservices-debug/ confirmed directory exists with subdirectories app/, nginx/, db/ and docker-compose.yml, all owned by ga:ga with 644 permissions.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_services",
+            "metadata_value": ["nginx", "flask-app", "db", "redis"],
+            "verified_value": ["nginx", "flask-app", "db", "redis"],
+            "source": "Live testing: 'docker compose ps' output showed all 4 services: microservices-debug-nginx-1 (nginx:alpine), microservices-debug-flask-app-1 (microservices-debug-flask-app), microservices-debug-db-1 (postgres:15-alpine), microservices-debug-redis-1 (redis:7-alpine). All showed STATUS=Up.",
+            "status": "verified"
+        },
+        {
+            "key": "health_endpoint",
+            "metadata_value": "http://localhost:80/api/health",
+            "verified_value": "http://localhost:80/api/health",
+            "source": "Live testing: curl http://localhost:80/api/health returned 502 initially (Bug 1). After all fixes, returned HTTP 200 with JSON {\"status\":\"healthy\",\"database\":\"connected\",\"cache\":\"connected\"}.",
+            "status": "verified"
+        },
+        {
+            "key": "items_endpoint",
+            "metadata_value": "http://localhost:80/api/items",
+            "verified_value": "http://localhost:80/api/items",
+            "source": "Live testing: curl http://localhost:80/api/items returned 502 initially (Bug 1). After all fixes, returned HTTP 200 with JSON array of 8 items: [{\"id\":1,\"name\":\"Wireless Keyboard\",\"price\":49.99},{\"id\":2,\"name\":\"USB-C Hub\",\"price\":29.99},{\"id\":3,\"name\":\"Monitor Stand\",\"price\":79.99},{\"id\":4,\"name\":\"Mechanical Keyboard\",\"price\":129.99},{\"id\":5,\"name\":\"Webcam HD\",\"price\":59.99},{\"id\":6,\"name\":\"Laptop Cooling Pad\",\"price\":34.99},{\"id\":7,\"name\":\"Ergonomic Mouse\",\"price\":44.99},{\"id\":8,\"name\":\"USB Microphone\",\"price\":69.99}].",
+            "status": "verified"
+        },
+        {
+            "key": "bugs_planted",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "Live testing confirmed all 4 bugs via cascading diagnosis: (1) nginx.conf upstream port 8000 instead of 5000 — nginx logs showed 'connect() failed (111: Connection refused) upstream: http://172.18.0.2:8000'. (2) flask-app only on 'frontend' network while db/redis on 'backend' — after fixing port, health returned 'could not translate host name db to address: Name or service not known'. (3) DATABASE_URL uses 'production_db' but POSTGRES_DB=myapp — after fixing network, health returned 'database production_db does not exist'. (4) REDIS_URL=redis://redis:6379/0 missing password but redis has --requirepass secretredis123 — health returned 'Authentication required'.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task deploys a 4-service Docker Compose stack at /home/ga/microservices-debug/ with 4 configuration bugs that must all be fixed. Bug 1: In nginx/nginx.conf, the upstream block has 'server flask-app:8000' but Flask listens on port 5000; the correct line is 'server flask-app:5000'. This causes HTTP 502 Bad Gateway on any request to localhost:80. Bug 2: In docker-compose.yml, the flask-app service is only on the 'frontend' network, but the db and redis services are on the 'backend' network. Flask cannot resolve the hostnames 'db' or 'redis'. The fix is to add '- backend' to the flask-app service's networks list. Bug 3: In docker-compose.yml, the flask-app environment variable DATABASE_URL references database 'production_db' (DATABASE_URL=postgresql://appuser:apppass@db:5432/production_db) but POSTGRES_DB is set to 'myapp'. The correct DATABASE_URL should use 'myapp' instead of 'production_db'. Bug 4: In docker-compose.yml, Redis is started with '--requirepass secretredis123' but the flask-app REDIS_URL is 'redis://redis:6379/0' with no password. The correct REDIS_URL is 'redis://:secretredis123@redis:6379/0'. When all 4 bugs are fixed, the health endpoint returns {\"status\":\"healthy\",\"database\":\"connected\",\"cache\":\"connected\"} and the items endpoint returns 8 inventory items (Wireless Keyboard $49.99, USB-C Hub $29.99, Monitor Stand $79.99, Mechanical Keyboard $129.99, Webcam HD $59.99, Laptop Cooling Pad $34.99, Ergonomic Mouse $44.99, USB Microphone $69.99). The Flask app source code (app/app.py) and database init script (db/init.sql) are correct and should not be modified. The Postgres database credentials are appuser/apppass with database name myapp. The Docker networks are named 'frontend' and 'backend'. All 4 services run and show UP status even in the broken state — the bugs only affect inter-service communication, not container startup.",
+    "pi_confidence": "high"
+}

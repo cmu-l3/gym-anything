@@ -1,0 +1,38 @@
+{
+  "id": "production_incident_response@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "The ecommerce platform is experiencing a critical production outage. Four microservices in the 'ecommerce' namespace are failing, causing complete service unavailability. Diagnose and restore all services in the 'ecommerce' namespace to a healthy running state. Login to Rancher at https://localhost (cluster: 'local') with credentials admin / Admin12345678!.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/production_incident_response/setup_task.sh",
+    "post_task": "/workspace/tasks/production_incident_response/export_result.sh"
+  },
+  "metadata": {
+    "target_namespace": "ecommerce",
+    "num_failures": 4,
+    "failure_services": [
+      "api-gateway",
+      "web-frontend",
+      "cache-layer",
+      "batch-processor"
+    ],
+    "injected_failures": [
+      "api-gateway uses a non-existent Docker image tag causing ImagePullBackOff",
+      "web-frontend Service selector does not match pod labels causing zero endpoints",
+      "cache-layer ConfigMap has wrong Redis port (6380 instead of 6379)",
+      "batch-processor has excessive memory request (32Gi) causing Pending state"
+    ],
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_production_incident_response"
+    }
+  }
+}

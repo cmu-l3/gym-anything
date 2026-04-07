@@ -1,0 +1,32 @@
+{
+  "id": "corporate_usb_exfiltration_analysis@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "You are a forensic examiner investigating suspected intellectual property theft. Employee Jordan Hayes is accused of exfiltrating proprietary documents to a personal USB drive before departing the company. You have:\n\n1. /home/ga/evidence/corporate_repo.dd — NTFS snapshot of the corporate shared file repository\n2. /home/ga/evidence/suspect_usb.dd — NTFS image of the suspect's seized USB drive\n3. /home/ga/evidence/corporate_hashes.txt — MD5 hash inventory of all corporate files (one 'md5  filename' per line)\n\nCreate an Autopsy case named 'IP_Theft_2024' with case number 'INV-IPT-0892'. Import corporate_hashes.txt as a Notable hash set named 'Corporate_IP' in Autopsy. Add both disk images as separate data sources and run ingest with Hash Lookup (using the Corporate_IP set) and File Type Identification modules.\n\nProduce /home/ga/Reports/exfiltration_report.txt with these pipe-delimited sections:\n\n## EXFILTRATED_FILES — USB files matching corporate hashes. Columns: USB_FILENAME|USB_PATH|MD5|FILE_SIZE\n\n## MODIFIED_COPIES — USB files with same name as a corporate file but different MD5. Columns: FILENAME|USB_MD5|CORPORATE_MD5|USB_SIZE\n\n## DELETED_USB_FILES — All deleted files recovered from the USB. Columns: FILENAME|SIZE|MD5\n\n## CONCEALED_DATA — NTFS Alternate Data Streams on the USB. Columns: HOST_FILE|STREAM_NAME|STREAM_SIZE\n\n## INVESTIGATION_SUMMARY — Total counts per category, most-targeted department, and risk classification (LOW/MEDIUM/HIGH/CRITICAL).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/corporate_usb_exfiltration_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/corporate_usb_exfiltration_analysis/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "IP_Theft_2024",
+    "case_number": "INV-IPT-0892",
+    "corporate_image": "/home/ga/evidence/corporate_repo.dd",
+    "usb_image": "/home/ga/evidence/suspect_usb.dd",
+    "hash_file": "/home/ga/evidence/corporate_hashes.txt",
+    "report_file": "/home/ga/Reports/exfiltration_report.txt",
+    "result_file": "/tmp/exfiltration_result.json",
+    "gt_file": "/tmp/exfiltration_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_corporate_usb_exfiltration"
+    }
+  }
+}

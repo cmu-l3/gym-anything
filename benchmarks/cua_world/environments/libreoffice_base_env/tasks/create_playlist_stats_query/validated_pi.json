@@ -1,0 +1,80 @@
+{
+    "task_id": "create_playlist_stats_query@1",
+    "dataset": "Chinook",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_query_name",
+            "metadata_value": "PlaylistStats",
+            "verified_value": "PlaylistStats",
+            "source": "Task description requirement - verified by reading task.json",
+            "status": "verified"
+        },
+        {
+            "key": "required_tables",
+            "metadata_value": "[\"Playlist\", \"PlaylistTrack\", \"Track\"]",
+            "verified_value": "[\"Playlist\", \"PlaylistTrack\", \"Track\"]",
+            "source": "Direct query of Chinook SQLite database at github.com/lerocha/chinook-database confirms all three tables exist",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": "[\"PlaylistName\", \"TrackCount\", \"DurationMinutes\"]",
+            "verified_value": "[\"PlaylistName\", \"TrackCount\", \"DurationMinutes\"]",
+            "source": "Task description specifies these three output columns. Verified by executing ground truth SQL query from verifier.py against downloaded Chinook database.",
+            "status": "verified"
+        },
+        {
+            "key": "sqlite_path",
+            "metadata_value": "/opt/libreoffice_base_samples/Chinook_Sqlite.sqlite",
+            "verified_value": "/opt/libreoffice_base_samples/Chinook_Sqlite.sqlite",
+            "source": "Environment installation script (install_libreoffice_base.sh line 41) downloads Chinook SQLite to exactly this path from github.com/lerocha/chinook-database",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_query_structure",
+            "metadata_value": "JOIN Playlist, PlaylistTrack, Track; GROUP BY playlist name; ORDER BY DurationMinutes DESC; COUNT tracks; SUM milliseconds / 60000.0",
+            "verified_value": "SELECT p.Name as PlaylistName, COUNT(pt.TrackId) as TrackCount, CAST(SUM(t.Milliseconds) AS FLOAT) / 60000.0 as DurationMinutes FROM Playlist p JOIN PlaylistTrack pt ON p.PlaylistId = pt.PlaylistId JOIN Track t ON pt.TrackId = t.TrackId GROUP BY p.Name ORDER BY DurationMinutes DESC",
+            "source": "Ground truth SQL from verifier.py (lines 114-124) executed successfully. Returns 12 rows of valid data.",
+            "status": "verified"
+        },
+        {
+            "key": "duration_calculation_type",
+            "metadata_value": "Decimal/Float (not integer)",
+            "verified_value": "REAL type (floating-point), e.g., 29256.1027666667, 16703.1652333333",
+            "source": "Executed ground truth query shows DurationMinutes values are floating-point numbers. SQLite typeof() confirms 'real' type. Task description explicitly requires 'decimal value, not an integer'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_result_count",
+            "metadata_value": "12 rows (playlists with tracks)",
+            "verified_value": "12",
+            "source": "Executed ground truth SQL: 12 unique playlist names have at least one track. Total playlists in DB: 18; playlists without tracks: 4; playlists with tracks (by name): 12",
+            "status": "verified"
+        },
+        {
+            "key": "top_result_first_column",
+            "metadata_value": "Music playlist",
+            "verified_value": "Music",
+            "source": "Ground truth query execution returns first row: (Music, 6580, 29256.1027666667). This is the longest playlist by total duration.",
+            "status": "verified"
+        },
+        {
+            "key": "top_result_track_count",
+            "metadata_value": "Music playlist has most tracks",
+            "verified_value": "6580 tracks",
+            "source": "Direct query of Chinook database shows Music playlist (aggregated from IDs 1 and 8 by name) has 6580 total tracks across duplicate entries",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "Public Chinook music database",
+            "verified_value": "Real, public dataset from https://github.com/lerocha/chinook-database - not synthetic",
+            "source": "Database downloaded from public GitHub repository and verified to contain real music industry data structure",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the real Chinook music database (from https://github.com/lerocha/chinook-database), located at /opt/libreoffice_base_samples/Chinook_Sqlite.sqlite. The database contains 18 playlists, of which 14 have tracks, resulting in 12 unique playlist names with data. The required query must join Playlist, PlaylistTrack, and Track tables, grouping by playlist name and calculating TrackCount (INTEGER) and DurationMinutes (DECIMAL: milliseconds / 60000.0). Results must be ordered by DurationMinutes descending. The top result is 'Music' with 6580 tracks and 29256.1027666667 minutes total duration. All metadata claims in task.json are accurate.",
+    "pi_confidence": "high"
+}

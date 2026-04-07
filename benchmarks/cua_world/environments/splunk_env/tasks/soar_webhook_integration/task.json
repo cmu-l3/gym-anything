@@ -1,0 +1,29 @@
+{
+  "id": "soar_webhook_integration@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Your organization is deploying a new SOAR platform and needs to integrate Splunk alerts using the Splunk web interface (http://localhost:8000, admin/SplunkAdmin1!). Create a throttled webhook alert named 'Brute_Force_Webhook_Alert' that searches the 'security_logs' index for failed logins grouped by source IP with a count greater than 10. Configure the alert to run on a cron schedule of */5 * * * *, trigger a webhook to http://10.0.0.50:8080/soar_webhook, and throttle for 1 hour grouping by the attacker's IP field. Additionally, create a dashboard named 'SOAR_Integration_Health' containing a visualization panel that monitors the execution of this alert using a search with 'index=_internal', 'sourcetype=scheduler', and 'savedsearch_name=\"Brute_Force_Webhook_Alert\"'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/soar_webhook_integration/setup_task.sh",
+    "post_task": "/workspace/tasks/soar_webhook_integration/export_result.sh"
+  },
+  "metadata": {
+    "alert_name": "Brute_Force_Webhook_Alert",
+    "webhook_url": "http://10.0.0.50:8080/soar_webhook",
+    "dashboard_name": "SOAR_Integration_Health",
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_soar_webhook_integration"
+    }
+  }
+}

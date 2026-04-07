@@ -1,0 +1,37 @@
+{
+  "id": "zero_downtime_rollout_remediation@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "Modify the 'payment-processor' and 'order-routing' deployments in the 'transaction-system' namespace to comply with the organization's Zero-Downtime Policy located at /home/ga/Desktop/zero_downtime_policy.md. Update the rollout strategy, termination grace period, and preStop hooks for both deployments, and create PodDisruptionBudgets named 'payment-processor-pdb' and 'order-routing-pdb' according to the policy specifications. Ensure all pods remain in a healthy Running state. Login to Rancher at https://localhost with credentials admin / Admin12345678!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/zero_downtime_rollout_remediation/setup_task.sh",
+    "post_task": "/workspace/tasks/zero_downtime_rollout_remediation/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Site Reliability Engineer",
+    "target_namespace": "transaction-system",
+    "deployments": [
+      "payment-processor",
+      "order-routing"
+    ],
+    "expected_grace_period": 60,
+    "expected_hook_cmd": [
+      "/bin/sh",
+      "-c",
+      "sleep 15"
+    ],
+    "pass_threshold": 75
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_zero_downtime_rollout_remediation"
+    }
+  }
+}

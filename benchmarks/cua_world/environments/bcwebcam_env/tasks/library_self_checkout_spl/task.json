@@ -1,0 +1,31 @@
+{
+  "id": "library_self_checkout_spl@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "You are assisting a patron at a library self-checkout kiosk. A physical book is currently under the scanner (visible in the bcWebCam camera feed). First, ensure bcWebCam is running and scan the barcode. Then, search for this exact barcode in the local offline inventory database located at 'C:\\workspace\\data\\spl_inventory.csv' (which contains authentic Seattle Public Library records). Finally, generate a receipt file at 'C:\\workspace\\tasks\\checkout_receipt.txt' with the exact format:\n\nRECEIPT\nBarcode: [Scanned Barcode]\nTitle: [Exact Title from CSV]\nAuthor: [Exact Author from CSV]",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\library_self_checkout_spl\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\library_self_checkout_spl\\export_result.ps1"
+  },
+  "metadata": {
+    "data_source": "Seattle Public Library Open Data (City of Seattle)",
+    "expected_receipt_path": "C:\\workspace\\tasks\\checkout_receipt.txt",
+    "score_file_created": 10,
+    "score_barcode": 30,
+    "score_title": 25,
+    "score_author": 15,
+    "score_vlm": 20
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_library_checkout"
+    }
+  }
+}

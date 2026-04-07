@@ -1,0 +1,32 @@
+{
+  "id": "sso_ltan_maintenance_campaign@1",
+  "version": "1.0",
+  "env_id": "gmat_env@0.1",
+  "description": "You are a flight dynamics engineer at a commercial Earth observation company managing the 'AgriSat-1' satellite in a 600 km Sun-Synchronous Orbit (SSO).\n\nDue to launch injection errors, AgriSat-1 currently has a Local Time of Ascending Node (LTAN) of 11:00 AM, but its optical payload requires exactly 10:30 AM (10.5 hours) for consistent shadowing. You must design a maneuver to slightly change the inclination, wait 30 days for the relative RAAN to drift to the 10:30 AM sun-geometry, and compute the required Delta-V.\n\nYour task:\n1. Read the initial orbital state from ~/Desktop/agrisat_initial_state.txt.\n2. Create a GMAT script that uses a DifferentialCorrector to target a final LTAN of 10.5.\n3. Configure an Earth-only force model with ONLY J2 (Degree=2, Order=0) and NO drag or SRP. This ensures the LTAN drift is purely analytical.\n4. Set up the targeting sequence:\n   - Vary the Normal (or out-of-plane) component of an ImpulsiveBurn (in VNB frame).\n   - Apply the burn at the initial epoch.\n   - Propagate for exactly 30 days.\n   - Achieve a final Mean Local Time of Ascending Node (e.g., Spacecraft.Earth.MLTAN) equal to 10.5 (Tolerance 0.001).\n5. Write a report to ~/GMAT_output/ltan_drift_report.txt with EXACTLY these lines:\n   DeltaV_Normal_kms: <value>\n   Drift_Inclination_deg: <spacecraft inclination immediately after burn or at end of propagation>\n   Final_LTAN: <value>\n6. Save the GMAT script to ~/GMAT_output/ltan_campaign.script and run it to produce the outputs.\n\nLogin: username=ga, password=password123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sso_ltan_maintenance_campaign/setup_task.sh",
+    "post_task": "/workspace/tasks/sso_ltan_maintenance_campaign/export_result.sh"
+  },
+  "metadata": {
+    "script_path": "/home/ga/GMAT_output/ltan_campaign.script",
+    "report_path": "/home/ga/GMAT_output/ltan_drift_report.txt",
+    "target_ltan": 10.5,
+    "target_ltan_tolerance": 0.05,
+    "expected_inclination_min": 97.2,
+    "expected_inclination_max": 97.75,
+    "expected_deltav_min_kms": 0.010,
+    "expected_deltav_max_kms": 0.080
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sso_ltan_maintenance_campaign"
+    }
+  }
+}

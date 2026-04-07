@@ -1,0 +1,38 @@
+{
+    "task_id": "saas_mrr_cohort_analytics@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_abusers",
+            "metadata_value": "["9991", "9992"]",
+            "verified_value": "["9991", "9992"]",
+            "source": "Calculated from setup_task.sh PL/SQL generator: customer 9991 cycles 3 times (<= 14 days each), customer 9992 cycles 4 times, perfectly matching the MATCH_RECOGNIZE requirement of >= 3 cycles within 14 days.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_waterfall_rows",
+            "metadata_value": "12",
+            "verified_value": "12",
+            "source": "Task instructions require MRR_WATERFALL_2023 to aggregate revenue movements for each month in 2023. Since 2023 has 12 months, the expected number of rows is 12.",
+            "status": "verified"
+        },
+        {
+            "key": "june_2023_churn_mrr",
+            "metadata_value": "250",
+            "verified_value": "250",
+            "source": "Analyzed setup_task.sh data: Customers 5001 and 5002 have explicit mid-year churns in June summing to 250 MRR (50 + 200). Abuser 9992 reactivates and churns in the same month (June), which nets out to 0 under End-Of-Month MRR state snapshotting.",
+            "status": "verified"
+        },
+        {
+            "key": "oracle_features",
+            "metadata_value": "["MATCH_RECOGNIZE", "PIVOT", "Window Functions"]",
+            "verified_value": "["MATCH_RECOGNIZE", "PIVOT", "Window Functions"]",
+            "source": "Task description explicitly requires PROMO_ABUSERS_VW to use MATCH_RECOGNIZE and COHORT_RETENTION_VW to use PIVOT. Building a standard MRR Waterfall implicitly requires Window Functions (like LAG) to compare current and previous month ending MRR.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task relies on synthetically generated SaaS subscription event data injected directly into Oracle via setup scripts. It has been verified that customers 9991 and 9992 are the exact expected promo abusers, having respectively completed 3 and 4 short-lived (<14 day) upgrade-downgrade cycles. Standard month-end MRR snapshotting dictates that the 2023 MRR waterfall table should contain exactly 12 rows (one for each month) and correctly exclude intra-month oscillation from net churn totals, verifying the June 2023 churn MRR as exactly 250 (from customers 5001 and 5002) because abuser 9992's June churn is cancelled by a corresponding June reactivation. Additionally, the task natively evaluates the use of specific Oracle analytical features like MATCH_RECOGNIZE, PIVOT, and Window Functions.",
+    "pi_confidence": "high"
+}

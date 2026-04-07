@@ -1,0 +1,31 @@
+{
+  "id": "index_health_maintenance@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are a Database Administrator for AdventureWorks implementing an index maintenance strategy for the AdventureWorks2022 database. Create a schema named 'DBAMaintenance' and two tables: 'IndexHealthReport' (columns: ReportID (PK), SchemaName, TableName, IndexName, IndexType, PageCount, FragmentationPct, SizeKB, RecommendedAction, and AnalyzedAt) and 'OverlappingIndexes' (columns: OverlapID (PK), SchemaName, TableName, Index1Name, Index1Columns, Index2Name, Index2Columns, OverlapType, and DetectedAt). Develop and execute a stored procedure 'usp_AnalyzeIndexHealth' to populate the report table using 'sys.dm_db_index_physical_stats' for indexes with >= 8 pages, setting 'RecommendedAction' to 'REBUILD' (>30% fragmentation), 'REORGANIZE' (10-30% fragmentation), or 'NONE'. Also, develop and execute 'usp_DetectOverlappingIndexes' to identify 'EXACT_DUPLICATE' or 'LEFT_PREFIX' overlaps between nonclustered indexes on the same table. Based on the analysis, generate a SQL script at '/home/ga/Documents/exports/index_maintenance.sql' containing the necessary 'ALTER INDEX' statements for the identified maintenance needs, or a comment if no maintenance is required.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/index_health_maintenance/setup_task.sh",
+    "post_task": "/workspace/tasks/index_health_maintenance/export_result.sh"
+  },
+  "metadata": {
+    "expected_schema": "DBAMaintenance",
+    "report_table": "IndexHealthReport",
+    "overlap_table": "OverlappingIndexes",
+    "proc_analyze": "usp_AnalyzeIndexHealth",
+    "proc_overlap": "usp_DetectOverlappingIndexes",
+    "output_file": "/home/ga/Documents/exports/index_maintenance.sql",
+    "min_report_rows": 50
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_index_health_maintenance"
+    }
+  }
+}

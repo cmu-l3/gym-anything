@@ -1,0 +1,30 @@
+{
+  "id": "leave_balance_system@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Extend the Oracle HR schema with a complete leave management system. You must:\n\n1. Create three tables:\n   - LEAVE_POLICIES (POLICY_ID, JOB_ID [FK, Unique], ANNUAL_VACATION_DAYS, ANNUAL_SICK_DAYS, SENIORITY_BONUS_DAYS_PER_YEAR [Default 1], MAX_SENIORITY_BONUS [Default 10])\n   - LEAVE_BALANCES (EMPLOYEE_ID [FK], LEAVE_TYPE [Check 'VACATION'/'SICK'], BALANCE_DAYS, LAST_ACCRUAL_DATE)\n   - LEAVE_REQUESTS (REQUEST_ID, EMPLOYEE_ID [FK], LEAVE_TYPE, START_DATE, END_DATE, DAYS_REQUESTED, STATUS [Check 'PENDING'/'APPROVED'/'REJECTED'/'CANCELLED', Default 'PENDING'], REQUEST_DATE)\n\n2. Populate LEAVE_POLICIES for all 19 jobs. Rules:\n   - Executive (AD%): 25 vacation, 10 sick\n   - Manager (%MGR, %MAN): 20 vacation, 10 sick\n   - Others: 15 vacation, 8 sick\n\n3. Create a PL/SQL procedure CALCULATE_LEAVE_ACCRUALS that populates LEAVE_BALANCES for all employees. Logic: Vacation = Base + LEAST(ServiceYears * BonusPerYear, MaxBonus).\n\n4. Execute the procedure to populate balances.\n\n5. Create a trigger TRG_LEAVE_BALANCE_CHECK on LEAVE_REQUESTS. If STATUS is 'APPROVED', check if balance >= days_requested. If yes, deduct balance; if no, raise application error.\n\n6. Export a summary report to /home/ga/Desktop/leave_balance_report.txt using the query provided in the instructions.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/leave_balance_system/setup_task.sh",
+    "post_task": "/workspace/tasks/leave_balance_system/export_result.sh"
+  },
+  "metadata": {
+    "tables": ["LEAVE_POLICIES", "LEAVE_BALANCES", "LEAVE_REQUESTS"],
+    "procedures": ["CALCULATE_LEAVE_ACCRUALS"],
+    "triggers": ["TRG_LEAVE_BALANCE_CHECK"],
+    "expected_policy_count": 19,
+    "expected_balance_rows_min": 210,
+    "report_path": "/home/ga/Desktop/leave_balance_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_leave_balance_system"
+    }
+  }
+}

@@ -1,6 +1,19 @@
 #!/bin/bash
 # Shared utilities for NextGen Connect tasks
 
+# ===== Auto-check: wait for NextGen Connect web service on source =====
+# This ensures Docker containers are ready after cache restore
+echo "Checking NextGen Connect web service readiness..."
+for _nc_check_i in $(seq 1 60); do
+    _nc_code=$(curl -sk -o /dev/null -w "%{http_code}" -H "X-Requested-With: OpenAPI" -H "Accept: text/plain" https://localhost:8443/api/server/version 2>/dev/null || echo "000")
+    _nc_code2=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 2>/dev/null || echo "000")
+    if [ "$_nc_code" = "200" ] || [ "$_nc_code" = "401" ] || [ "$_nc_code2" = "200" ]; then
+        echo "NextGen Connect web service is ready"
+        break
+    fi
+    sleep 2
+done
+
 # Screenshot function - use import, NOT scrot (scrot returns cached images)
 take_screenshot() {
     local path="${1:-/tmp/screenshot.png}"
@@ -79,6 +92,35 @@ wait_for_api() {
         elapsed=$((elapsed + 2))
     done
     return 1
+}
+
+# Launch Firefox with web service wait
+restart_firefox() {
+    local url="${1:-http://localhost:8080}"
+
+    # Wait for NextGen Connect API to be ready before launching Firefox
+    wait_for_api 120 || echo "WARNING: NextGen Connect may not be ready"
+
+    # Kill any stale Firefox
+    pkill -9 -f firefox 2>/dev/null || true
+    sleep 3
+
+    su - ga -c "DISPLAY=:1 firefox '$url' > /tmp/firefox.log 2>&1 &"
+
+    # Wait for Firefox window
+    local elapsed=0
+    while [ $elapsed -lt 30 ]; do
+        if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla\|mirth\|nextgen"; then
+            echo "Firefox window detected"
+            break
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+
+    # Maximize Firefox
+    DISPLAY=:1 wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+    sleep 2
 }
 
 # Call NextGen Connect REST API (JSON)

@@ -1,0 +1,52 @@
+{
+  "id": "create_correlated_attack_rules@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create three correlated custom rules in Wazuh's `local_rules.xml` to detect a multi-stage SSH brute force attack. Rule 100300 (Level 10) must trigger on 8 occurrences of rule 5710 from the same source IP within 120 seconds and map to MITRE T1110.001. Rule 100301 (Level 13) must be a child of rule 5715 and fire only if rule 100300 matched from the same source IP within 600 seconds, mapped to MITRE T1078.001. Rule 100302 (Level 15) must be a child of rule 5902 and fire only if rule 100301 matched within 900 seconds, mapped to MITRE T1136.001. Verify the rules are active via the Wazuh API and save the JSON response for these rule IDs to /home/ga/correlated_rules_verification.json.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_correlated_attack_rules/setup_task.sh",
+    "post_task": "/workspace/tasks/create_correlated_attack_rules/export_result.sh"
+  },
+  "metadata": {
+    "rules_file_path": "/var/ossec/etc/rules/local_rules.xml",
+    "verification_file": "/home/ga/correlated_rules_verification.json",
+    "required_rules": [
+      {
+        "id": 100300,
+        "level": 10,
+        "frequency": 8,
+        "timeframe": 120,
+        "if_matched_sid": 5710,
+        "mitre": "T1110.001"
+      },
+      {
+        "id": 100301,
+        "level": 13,
+        "if_sid": 5715,
+        "if_matched_sid": 100300,
+        "timeframe": 600,
+        "mitre": "T1078.001"
+      },
+      {
+        "id": 100302,
+        "level": 15,
+        "if_sid": 5902,
+        "if_matched_sid": 100301,
+        "timeframe": 900,
+        "mitre": "T1136.001"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_correlated_rules"
+    }
+  }
+}

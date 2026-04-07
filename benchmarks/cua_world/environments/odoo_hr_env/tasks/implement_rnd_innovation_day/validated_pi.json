@@ -1,0 +1,136 @@
+{
+    "task_id": "implement_rnd_innovation_day@1",
+    "dataset": "Odoo 17 Community Edition official HR demo data",
+    "case_id": "implement_rnd_innovation_day",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/task_result.json",
+            "verified_value": "/tmp/task_result.json",
+            "source": "export_result.sh line 194 writes to this path. Live test confirmed: file was created with valid JSON (evidence: hard_tasks_evidence_logs/odoo_hr_env/implement_rnd_innovation_day/06_task_result.json)",
+            "status": "verified"
+        },
+        {
+            "key": "target_leave_type_name",
+            "metadata_value": "R&D Innovation Day",
+            "verified_value": null,
+            "source": "Synthetic name created for this task. Not an existing Odoo leave type. Live test confirmed name is accepted by Odoo: created leave type with this name, ID=10 in test DB (evidence: 05_operations_test_SUCCESS.json). Setup script deletes any pre-existing type with this name before each run.",
+            "status": "unverified"
+        },
+        {
+            "key": "target_validation_type",
+            "metadata_value": "both",
+            "verified_value": "both",
+            "source": "Odoo 17 hr.leave.type model field 'leave_validation_type' accepts values: 'no_validation', 'manager', 'hr', 'both' (confirmed in configure_dual_leave_approval/setup_task.sh line 44 comment listing all valid values). The value 'both' means 'By Employee's Approver and Time Off Officer' (confirmed in configure_dual_leave_approval/validated_pi.json citing hr_holidays/models/hr_leave_type.py). Live test confirmed: created leave type with leave_validation_type='both' successfully (evidence: 04_prerequisites_verification.json shows existing 'Paid Time Off' type already uses 'both'; 05_operations_test_SUCCESS.json shows our new type with leave_validation_type='both').",
+            "status": "verified"
+        },
+        {
+            "key": "target_responsible_name",
+            "metadata_value": "Mitchell Admin",
+            "verified_value": "Mitchell Admin",
+            "source": "Live database query confirmed: res.users id=2 has name='Mitchell Admin', login='admin'. hr.employee id=1 has name='Mitchell Admin' with user_id=[2, 'Mitchell Admin'] (evidence: 04_prerequisites_verification.json). Also confirmed in configure_dual_leave_approval/export_result.sh line 36 and configure_dual_leave_approval/task.json metadata.",
+            "status": "verified"
+        },
+        {
+            "key": "target_responsible_uid",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "Live database query: exe('res.users', 'search_read', [[['id', '=', 2]]], {'fields': ['name', 'login']}) returned [{'id': 2, 'name': 'Mitchell Admin', 'login': 'admin'}] (evidence: 04_prerequisites_verification.json). Cross-referenced with configure_dual_leave_approval/export_result.sh line 36 ('mitchell_admin_id': 2), configure_dual_leave_approval/verifier.py line 49, and configure_dual_leave_approval/task.json line 20 ('target_responsible_id': 2). The responsible_ids field on hr.leave.type is a Many2many to res.users, and uid=2 is correct.",
+            "status": "verified"
+        },
+        {
+            "key": "target_accrual_plan_name",
+            "metadata_value": "R&D Innovation Accrual",
+            "verified_value": null,
+            "source": "Synthetic name created for this task. Not a pre-existing plan. Live test confirmed Odoo accepts this name on hr.leave.accrual.plan model, created as id=5 (evidence: 05_operations_test_SUCCESS.json). Setup script cleans up any pre-existing plan with this name.",
+            "status": "unverified"
+        },
+        {
+            "key": "target_level1_rate",
+            "metadata_value": 0.5,
+            "verified_value": 0.5,
+            "source": "Task description specifies 0.5 days/month for new employees (Level 1). Live test confirmed Odoo hr.leave.accrual.level model accepts added_value=0.5 with frequency='monthly'. Database query returned: {'added_value': 0.5, 'frequency': 'monthly', 'start_count': 0, 'start_type': 'day'} (evidence: 06_task_result.json level 0, 05_operations_test_SUCCESS.json accrual_levels[0]). Verifier checks abs(rate - 0.5) < 0.15.",
+            "status": "verified"
+        },
+        {
+            "key": "target_level2_rate",
+            "metadata_value": 1.0,
+            "verified_value": 1.0,
+            "source": "Task description specifies 1.0 day/month for tenured employees (Level 2). Live test confirmed Odoo accepts added_value=1.0 with frequency='monthly'. Database query returned: {'added_value': 1.0, 'frequency': 'monthly', 'start_count': 12, 'start_type': 'month'} (evidence: 06_task_result.json level 1, 05_operations_test_SUCCESS.json accrual_levels[1]). Verifier checks abs(rate - 1.0) < 0.15.",
+            "status": "verified"
+        },
+        {
+            "key": "target_level2_start_months",
+            "metadata_value": 12,
+            "verified_value": 12,
+            "source": "Task description says 'after 12 months of employment'. Odoo field mapping: start_count=12, start_type='month' on hr.leave.accrual.level. Live test confirmed: level 2 created with start_count=12, start_type='month', sequence=360 (evidence: 06_task_result.json, 05_operations_test_SUCCESS.json). Verifier also accepts equivalent representations: start_count=1/start_type='year' or start_count=365/start_type='day'.",
+            "status": "verified"
+        },
+        {
+            "key": "target_level2_cap",
+            "metadata_value": 10.0,
+            "verified_value": 10.0,
+            "source": "Task description says 'capped at 10 days maximum'. Odoo fields: cap_accrued_time=True, maximum_leave=10.0 on hr.leave.accrual.level. Live test confirmed: level 2 has cap_accrued_time=true, maximum_leave=10.0 (evidence: 06_task_result.json level 1, 05_operations_test_SUCCESS.json). Data quirk: Level 1 defaults to cap_accrued_time=true with maximum_leave=100.0 in Odoo UI even when no explicit cap is set; verifier only checks Level 2 cap.",
+            "status": "verified"
+        },
+        {
+            "key": "target_employee",
+            "metadata_value": "Eli Lambert",
+            "verified_value": "Eli Lambert",
+            "source": "Eli Lambert is one of Odoo 17's official 20 demo employees (confirmed in scripts/setup_data.py lines 5-10 listing all demo employees). Live database query: hr.employee id=8, name='Eli Lambert', department='Management / Sales', job='Marketing and Community Manager' (evidence: 04_prerequisites_verification.json). Referenced by 7+ other tasks: configure_leave_accrual_plan, add_employee_skills_resume, upload_employee_documents, create_onboarding_plan, approve_expense_report, etc.",
+            "status": "verified"
+        },
+        {
+            "key": "target_leave_request_date",
+            "metadata_value": "2026-07-15",
+            "verified_value": "2026-07-15",
+            "source": "Synthetic future date chosen for the task. Live test confirmed Odoo accepts this date. Database stores it as request_date_from='2026-07-15' (user-facing Date field) and date_from='2026-07-15 06:00:00' (computed Datetime field with timezone offset). The export_result.sh reads request_date_from as primary, falls back to date_from[:10]. 2026-07-15 is a Wednesday, which is a valid work day under Standard 40 hours/week schedule. (evidence: 05_operations_test_SUCCESS.json, 06_task_result.json)",
+            "status": "verified"
+        },
+        {
+            "key": "target_leave_request_final_state",
+            "metadata_value": "validate",
+            "verified_value": "validate",
+            "source": "In Odoo 17, for leave types with leave_validation_type='both', the hr.leave state progression is: draft → confirm (submitted) → validate1 (first approval by manager) → validate (second approval by Time Off Officer, fully approved). Live test confirmed the full dual-approval chain: created request (state=draft), confirmed (state=confirm), first approval (state=validate1), second approval (state=validate). Evidence: 05_operations_test_SUCCESS.json shows dual_approval_chain_verified=true, leave_request.state='validate'. Also confirmed in implement_rnd_innovation_day/verifier.py lines 212-225 scoring: validate=14pts (full), validate1=5pts (partial), confirm=2pts. Cross-referenced with configure_dual_leave_approval/validated_pi.json and adjust_approve_allocation/verifier.py.",
+            "status": "verified"
+        },
+        {
+            "key": "odoo_server_url",
+            "metadata_value": "http://localhost:8069",
+            "verified_value": "http://localhost:8069",
+            "source": "docker-compose.yml port mapping 8069:8069. Live test confirmed: curl http://localhost:8069/web/health returned HTTP 200 (evidence: 09_odoo_health.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "admin_credentials",
+            "metadata_value": "admin/admin",
+            "verified_value": "admin/admin",
+            "source": "env.json user_accounts env_vars: ODOO_USER=admin, ODOO_PASS=admin. setup_odoo.sh uses admin/admin for authentication. Live test: XML-RPC authenticate(db, 'admin', 'admin', {}) returned uid=2 (evidence: setup_task.sh log in 03_setup_task_log.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "odoo_database",
+            "metadata_value": "odoo_hr",
+            "verified_value": "odoo_hr",
+            "source": "setup_odoo.sh line 10 creates database 'odoo_hr'. All XML-RPC calls in setup_task.sh and export_result.sh use db='odoo_hr'. Live test confirmed connection succeeded.",
+            "status": "verified"
+        },
+        {
+            "key": "installed_modules",
+            "metadata_value": "hr, hr_holidays, hr_expense, hr_recruitment",
+            "verified_value": "hr, hr_holidays, hr_expense, hr_recruitment",
+            "source": "setup_odoo.sh installs these modules via '-i hr,hr_holidays,hr_expense,hr_recruitment'. Live test confirmed all 4 modules in 'installed' state (evidence: 04_prerequisites_verification.json).",
+            "status": "verified"
+        },
+        {
+            "key": "dual_approval_state_machine",
+            "metadata_value": "draft → confirm → validate1 → validate",
+            "verified_value": "draft → confirm → validate1 → validate",
+            "source": "Independently verified via live testing on a running Odoo 17 instance. Created leave type with leave_validation_type='both', created allocation, submitted leave request (confirm), approved as manager (validate1), approved as officer (validate). Key insight: 'validate1' means only first approval done; 'validate' means both done. The agent MUST click Approve twice. Evidence: 05_operations_test_SUCCESS.json showing full chain.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires implementing a complete leave benefit in Odoo 17 (http://localhost:8069, admin/admin, database 'odoo_hr'). The agent must create a leave type named 'R&D Innovation Day' with leave_validation_type='both' (dual approval requiring both manager and Time Off Officer), requires_allocation='yes', and Mitchell Admin (res.users id=2) set as the responsible Time Off Officer via the responsible_ids field. An accrual plan named 'R&D Innovation Accrual' must be created with exactly 2 levels on the hr.leave.accrual.level model: Level 1 with added_value=0.5, frequency='monthly', starting immediately (start_count=0); Level 2 with added_value=1.0, frequency='monthly', start_count=12, start_type='month', cap_accrued_time=True, maximum_leave=10.0. An accrual allocation must be created for Eli Lambert (employee id=8, department Management/Sales) linked to the plan and leave type, with state='validate' (approved). A leave request for 2026-07-15 (a Wednesday, valid work day) must be created and processed through the complete dual-approval chain: the request starts in 'draft', is submitted to 'confirm', first approval moves it to 'validate1' (manager approval only), and the critical second approval moves it to 'validate' (fully approved by both manager and Time Off Officer). The agent must understand that 'validate1' is NOT the final state — it must click Approve a second time to reach 'validate'. The Odoo UI stores the date as request_date_from='2026-07-15' and date_from='2026-07-15 06:00:00'. Accrual plan configuration uses nested inline forms in the UI. The Time Off configuration menus are found at Time Off → Configuration → Leave Types and Time Off → Configuration → Accrual Plans.",
+    "pi_confidence": "high"
+}

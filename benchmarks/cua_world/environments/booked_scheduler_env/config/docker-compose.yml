@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: booked-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: bookedscheduler
+      MYSQL_USER: booked_user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - booked_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  booked:
+    image: mkdryden/docker-booked:latest
+    container_name: booked-app
+    restart: unless-stopped
+    environment:
+      BOOKED_APP_TITLE: "Booked Scheduler"
+      BOOKED_DEFAULT_TIMEZONE: "America/New_York"
+      BOOKED_ALLOW_SELF_REGISTRATION: "true"
+      BOOKED_ADMIN_EMAIL: "admin@example.com"
+      BOOKED_ADMIN_EMAIL_NAME: "Booked Admin"
+      BOOKED_WEB_URL: "http://localhost/Web"
+      BOOKED_INSTALL_PASSWORD: "install123"
+      BOOKED_DATABASE_TYPE: "mysql"
+      BOOKED_DATABASE_USER: "booked_user"
+      BOOKED_DATABASE_PASSWORD: "password"
+      BOOKED_DATABASE_HOSTSPEC: "mysql"
+      BOOKED_DATABASE_NAME: "bookedscheduler"
+    volumes:
+      - booked_app_data:/var/www
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  web:
+    image: nginx:latest
+    container_name: booked-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - booked_app_data:/var/www
+      - /home/ga/booked/site.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - booked
+
+volumes:
+  booked_db_data:
+  booked_app_data:

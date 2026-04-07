@@ -1,0 +1,33 @@
+{
+  "id": "investigate_apt_and_build_detection@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "The Wazuh indexer contains security alerts spanning March 10-15 in indices matching wazuh-alerts-4.x-2025.03.*. A multi-stage intrusion occurred during this period, hidden among routine operational alerts from two monitored hosts.\n\nCredentials: Dashboard - admin / SecretPassword (https://localhost). Manager API - wazuh-wui / MyS3cr37P450r.*- (https://localhost:55000). Indexer - admin / SecretPassword (https://localhost:9200).\n\nUsing the Wazuh dashboard or API, investigate the alerts to reconstruct the complete attack chain. Save your findings to ~/apt_report.json with these keys:\n\n- attacker_ip (string): the external attacker IP address\n- compromised_account (string): the first user account compromised\n- compromised_host (string): the first host breached\n- lateral_movement_target (string): the internal host the attacker pivoted to\n- privilege_escalation_method (string): how root access was obtained\n- persistence_mechanism (string): how the attacker maintained long-term access\n- attack_timeline (array): chronological objects with timestamp, host, and event string fields for each attack stage\n\nThen, in the wazuh-wazuh.manager-1 container, create correlated detection rules in /var/ossec/etc/rules/local_rules.xml using if_matched_sid to chain at least two attack stages. Restart the Wazuh manager and confirm your rules load successfully by querying the manager API.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/investigate_apt_and_build_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/investigate_apt_and_build_detection/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/apt_report.json",
+    "ground_truth": {
+      "attacker_ip": "185.220.101.33",
+      "compromised_account": "deploy",
+      "compromised_host": "web-prod-01",
+      "lateral_movement_target": "db-prod-01",
+      "privilege_escalation_method": "sudo su to root, created backdoor user sysadm1n with UID 0",
+      "persistence_mechanism": "crontab entry executing /tmp/.cache/sshd"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_apt_investigation"
+    }
+  }
+}

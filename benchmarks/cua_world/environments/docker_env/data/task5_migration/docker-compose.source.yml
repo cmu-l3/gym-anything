@@ -1,0 +1,26 @@
+# Source database: PostgreSQL 13 with Chinook music store data
+# This is the LEGACY database that needs to be migrated to PostgreSQL 15
+
+version: "3.9"
+
+services:
+  pg13-source:
+    image: postgres:13
+    container_name: chinook-pg13
+    environment:
+      POSTGRES_USER: chinook
+      POSTGRES_PASSWORD: chinook_secret_2019
+      POSTGRES_DB: chinook
+    volumes:
+      - chinook-pg13-data:/var/lib/postgresql/data
+      - ./setup_pg13.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chinook -d chinook"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  chinook-pg13-data:

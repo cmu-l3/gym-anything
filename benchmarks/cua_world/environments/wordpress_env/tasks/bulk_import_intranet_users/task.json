@@ -1,0 +1,52 @@
+{
+  "id": "bulk_import_intranet_users@1",
+  "version": "1.0",
+  "env_id": "wordpress_env@0.1",
+  "description": "You need to configure WordPress for a corporate intranet using the employee directory located at '~/staff_directory.csv'. Create a new user role named 'Employee' (slug: 'employee') with only the 'read', 'read_private_posts', and 'read_private_pages' capabilities, and remove the default 'Subscriber' role. Bulk import the users from the CSV file, assigning them the 'employee' role and mapping their email, first name, and last name to standard profile fields. Additionally, store each user's department in custom user meta using the key 'department'. Ensure all users from the file are accurately processed without using synthetic data.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/bulk_import_intranet_users/setup_task.sh",
+    "post_task": "/workspace/tasks/bulk_import_intranet_users/export_result.sh"
+  },
+  "metadata": {
+    "expected_role_slug": "employee",
+    "expected_role_caps": [
+      "read",
+      "read_private_posts",
+      "read_private_pages"
+    ],
+    "deleted_role_slug": "subscriber",
+    "expected_user_count": 25,
+    "spot_check_users": {
+      "asmith": {
+        "email": "asmith@corpnet.local",
+        "first_name": "Alice",
+        "last_name": "Smith",
+        "department": "Engineering"
+      },
+      "ewilliams": {
+        "email": "ewilliams@corpnet.local",
+        "first_name": "Elena",
+        "last_name": "Williams",
+        "department": "Human Resources"
+      },
+      "yrodriguez": {
+        "email": "yrodriguez@corpnet.local",
+        "first_name": "Yara",
+        "last_name": "Rodriguez",
+        "department": "Sales"
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bulk_import"
+    }
+  }
+}

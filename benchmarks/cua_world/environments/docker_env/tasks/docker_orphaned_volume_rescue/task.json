@@ -1,0 +1,27 @@
+{
+  "id": "docker_orphaned_volume_rescue@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "A critical application container was accidentally deleted, leaving behind its data in an anonymous Docker volume. Locate the orphaned volume containing the file 'uploads/critical_manifest.json' among the dangling volumes. Start a new container named 'recovery-service' using the nginx:alpine image that mounts this specific volume to '/app/data' so that the file is accessible at '/app/data/uploads/critical_manifest.json'. Do not modify the file content.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_orphaned_volume_rescue/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_orphaned_volume_rescue/export_result.sh"
+  },
+  "metadata": {
+    "target_file_path": "/app/data/uploads/critical_manifest.json",
+    "container_name": "recovery-service",
+    "pass_threshold": 100
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_volume_rescue"
+    }
+  }
+}

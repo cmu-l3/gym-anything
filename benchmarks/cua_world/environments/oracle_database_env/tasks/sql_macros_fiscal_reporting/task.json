@@ -1,0 +1,36 @@
+{
+  "id": "sql_macros_fiscal_reporting@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Modularize fiscal reporting logic using Oracle 21c SQL Macros in the HR schema (Connection: localhost:1521/XEPDB1, User: hr, Password: hr123). Create a Scalar SQL Macro named GET_FISCAL_YEAR(p_date DATE) that returns the Federal Fiscal Year (Oct 1 - Sep 30) and a Table SQL Macro named GET_HIGH_IMPACT_SALES(p_region VARCHAR2, p_min_amount NUMBER) that returns all columns from the SALES_LEDGER table where the region matches, the amount is >= p_min_amount, and the transaction occurred on a weekend (Saturday or Sunday). Use these macros to generate a report for the 'EAST' region with amounts >= 500. Export the report as a CSV file to /home/ga/Desktop/fiscal_impact_report.csv with headers FISCAL_YEAR,TOTAL_AMOUNT,TXN_COUNT, sorted by Fiscal Year.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sql_macros_fiscal_reporting/setup_task.sh",
+    "post_task": "/workspace/tasks/sql_macros_fiscal_reporting/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Desktop/fiscal_impact_report.csv",
+    "required_scalar_macro": "GET_FISCAL_YEAR",
+    "required_table_macro": "GET_HIGH_IMPACT_SALES",
+    "target_region": "EAST",
+    "target_amount": 500
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sql_macros"
+    }
+  },
+  "tags": [
+    "oracle",
+    "sql",
+    "sql_macros",
+    "reporting",
+    "plsql"
+  ]
+}

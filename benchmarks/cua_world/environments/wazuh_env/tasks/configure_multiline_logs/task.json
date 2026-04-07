@@ -1,0 +1,28 @@
+{
+  "id": "configure_multiline_logs@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure the Wazuh Manager in the 'wazuh.manager' container to correctly ingest multi-line Java stack traces from '/var/log/billing_app.log'. Enable global log archiving (logall) in 'ossec.conf' and configure a 'localfile' block for the log file using 'syslog' format. The configuration must include a 'multiline_regex' to merge lines belonging to the same event, identifying timestamps formatted as '2023-11-15 08:30:00'. The log file is already present.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_multiline_logs/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_multiline_logs/export_result.sh"
+  },
+  "metadata": {
+    "target_file": "/var/log/billing_app.log",
+    "timestamp_format": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}",
+    "test_log_header_pattern": "->/var/log/billing_app.log",
+    "container_name": "wazuh-wazuh.manager-1"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_multiline_logs"
+    }
+  }
+}

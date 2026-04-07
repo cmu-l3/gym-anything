@@ -1,0 +1,80 @@
+{
+    "task_id": "saas_billing_reconciliation@1",
+    "dataset": "Synthetic SaaS billing data (30 customers, 6 plans, 6 months Oct 2024-Mar 2025)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/billing_reconciliation_result.json",
+            "verified_value": "/tmp/billing_reconciliation_result.json",
+            "source": "Verified in export_result.sh line which writes to this path. Confirmed via live test: file was created with valid JSON at this path after running export_result.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Financial and Investment Analysts",
+            "verified_value": "Financial and Investment Analysts",
+            "source": "BLS SOC 13-2051 covers financial analysts. Billing reconciliation is a core function in SaaS finance/ops teams. The task description says 'Billing Operations Analyst' which maps to this SOC category.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Information / Software as a Service",
+            "verified_value": "Information / Software as a Service",
+            "source": "Task description explicitly mentions 'CloudScale Inc., a multi-tenant SaaS company'. NAICS sector 511 (Software Publishers) falls under Information. SaaS billing reconciliation is specific to the SaaS industry.",
+            "status": "verified"
+        },
+        {
+            "key": "oracle_features[0]",
+            "metadata_value": "PL/SQL Functions",
+            "verified_value": "PL/SQL Functions",
+            "source": "Task requires creating CALC_EXPECTED_BILLING(p_customer_id NUMBER, p_billing_month DATE) RETURN NUMBER. Verified billing_ops user has CREATE PROCEDURE grant (live test evidence: 12_billing_ops_grants.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "oracle_features[1]",
+            "metadata_value": "Complex Views",
+            "verified_value": "Complex Views",
+            "source": "Task requires creating VW_BILLING_DISCREPANCIES comparing expected vs actual billing across 6 discrepancy types. This requires multiple subqueries or UNION ALL clauses with cross-table joins. Verified billing_ops user has CREATE VIEW grant.",
+            "status": "verified"
+        },
+        {
+            "key": "oracle_features[2]",
+            "metadata_value": "Materialized Views",
+            "verified_value": "Materialized Views",
+            "source": "Task requires creating MV_REVENUE_IMPACT materialized view. Verified billing_ops user has CREATE MATERIALIZED VIEW grant (live test evidence: 12_billing_ops_grants.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "oracle_features[3]",
+            "metadata_value": "Graduated Tier Pricing",
+            "verified_value": "Graduated Tier Pricing",
+            "source": "Verified via live test: PRICING_TIERS table has 15 rows with graduated brackets (evidence: 06_pricing_tiers.txt). API_CALLS: 0-10000@$0.001, 10001-100000@$0.0008, 100001+@$0.0005. STORAGE_GB: 0-100@$0.10, 101-1000@$0.07, 1001+@$0.04. COMPUTE_HOURS: 0-100@$2.50, 101-500@$2.00, 501+@$1.50. Task description explicitly states 'graduated volume brackets -- each tier rate applies only to usage within that band'.",
+            "status": "verified"
+        },
+        {
+            "key": "oracle_features[4]",
+            "metadata_value": "Date Arithmetic",
+            "verified_value": "Date Arithmetic",
+            "source": "Task requires mid-cycle plan-change proration by calendar days. Verified: customer 7 upgraded Jan 15 (14 old days + 17 new days in 31-day Jan), customer 20 upgraded Feb 10 (9 old days + 19 new days in 28-day Feb). Proration requires EXTRACT, last day calculation, and date subtraction.",
+            "status": "verified"
+        },
+        {
+            "key": "oracle_features[5]",
+            "metadata_value": "UNION ALL",
+            "verified_value": "UNION ALL",
+            "source": "VW_BILLING_DISCREPANCIES must detect 6 discrepancy types (MISSED_INVOICE, DUPLICATE_INVOICE, WRONG_TIER, PRORATION_ERROR, EXPIRED_PROMO, POST_CANCEL_BILLING). Each type requires different detection logic, naturally leading to a UNION ALL pattern.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/Documents/exports/billing_reconciliation.csv",
+            "verified_value": "/home/ga/Documents/exports/billing_reconciliation.csv",
+            "source": "Matches task description ('Export MV_REVENUE_IMPACT to /home/ga/Documents/exports/billing_reconciliation.csv'). Verified export directory exists with correct permissions in live test. export_result.sh checks this exact path.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The BILLING_OPS schema (billing_ops/Billing2024 on localhost:1521/XEPDB1) contains 8 tables: CUSTOMERS(30 rows, segments STARTUP/SMB/ENTERPRISE), SUBSCRIPTION_PLANS(6 plans: Starter FLAT $49, Team PER_SEAT $15/seat, Business HYBRID $29+$12/seat+usage, Professional USAGE_BASED, Enterprise HYBRID $499+usage, Enterprise Plus HYBRID $999+usage), SUBSCRIPTIONS(32 rows including 2 mid-month upgrades), USAGE_METERS(116 rows, 6 months Oct 2024-Mar 2025), INVOICES(177 rows), INVOICE_LINE_ITEMS(353 rows), PRICING_TIERS(15 graduated tiers), PROMOTIONAL_CREDITS(8 credits). Graduated pricing for API_CALLS: first 10000@$0.001, next 90000@$0.0008, rest@$0.0005; STORAGE_GB: first 100@$0.10, next 900@$0.07, rest@$0.04; COMPUTE_HOURS: first 100@$2.50, next 400@$2.00, rest@$1.50. There are exactly 13 injected billing discrepancies across 6 types: MISSED_INVOICE(3): customer 5/Feb-2025, customer 12/Jan-2025, customer 22/Dec-2024 (no invoice exists for these active subscriptions); DUPLICATE_INVOICE(2): customer 8/Nov-2024 and customer 15/Jan-2025 (two invoices for same month); WRONG_TIER(3): customer 3/Dec-2024 billed $80 instead of correct $79 (15K API calls at flat $0.001=$15 vs graduated $14), customer 18/Feb-2025 billed $96 instead of $92 (120K API calls at flat $0.0008=$96 vs graduated $92), customer 25/Jan-2025 billed $549 instead of $537 (500GB at flat $0.10=$50 vs graduated $38); PRORATION_ERROR(2): customer 7/Jan-2025 billed $49 (full old Starter rate) instead of prorated ~$104.39 (14/31*$49+17/31*$150 after upgrade to Team 10 seats on Jan 15), customer 20/Feb-2025 billed $75 (full old Team rate) instead of prorated ~$96.10 (9/28*$75+19/28*$89+usage after upgrade to Business on Feb 10); EXPIRED_PROMO(2): customer 10/Jan-2025 billed $40 with expired $50 signup bonus (expired Dec 31, correct=$90), customer 27/Dec-2024 billed $556 with expired $25 referral (expired Nov 30, correct=$581); POST_CANCEL_BILLING(1): customer 14/Jan-2025 has $120 invoice despite cancellation effective Dec 31, 2024. The agent must create: CALC_EXPECTED_BILLING function handling 4 plan types with graduated tier lookups and proration, VW_BILLING_DISCREPANCIES view detecting all 13 discrepancies, BILLING_ADJUSTMENTS table with correction entries, MV_REVENUE_IMPACT materialized view aggregating by segment/plan/month, and export CSV to /home/ga/Documents/exports/billing_reconciliation.csv.",
+    "pi_confidence": "high"
+}

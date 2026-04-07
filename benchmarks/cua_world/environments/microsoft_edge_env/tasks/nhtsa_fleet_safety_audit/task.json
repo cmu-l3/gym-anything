@@ -1,0 +1,45 @@
+{
+  "id": "nhtsa_fleet_safety_audit@1",
+  "version": "1.0",
+  "env_id": "microsoft_edge_env@0.1",
+  "description": "You are a Fleet Manager updating safety records. Audit the safety ratings and recall counts for three 2023 vehicle models on nhtsa.gov: the 2023 Toyota Camry (4-Door Sedan), 2023 Ford F-150 (Super Crew), and 2023 Jeep Wrangler (4-Door Unlimited). Create a report at /home/ga/Desktop/fleet_safety_report.txt listing the Vehicle Name, Overall 5-Star Safety Rating, and total Recall Count for each. Additionally, download the 'Electronic Stability Control' technical report for the 2023 Toyota Camry to the Downloads folder.",
+  "difficulty": "medium",
+  "tags": [
+    "edge",
+    "research",
+    "government",
+    "data-entry",
+    "download",
+    "nhtsa"
+  ],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nhtsa_fleet_safety_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/nhtsa_fleet_safety_audit/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/Desktop/fleet_safety_report.txt",
+    "target_vehicles": [
+      "Camry",
+      "F-150",
+      "Wrangler"
+    ],
+    "required_domains": [
+      "nhtsa.gov"
+    ],
+    "expected_content_patterns": {
+      "rating": "(?i)(rating|stars?)\\s*[:|-]?\\s*(\\d|Not Rated)",
+      "recalls": "(?i)recalls?\\s*[:|-]?\\s*\\d+"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nhtsa_audit"
+    }
+  }
+}

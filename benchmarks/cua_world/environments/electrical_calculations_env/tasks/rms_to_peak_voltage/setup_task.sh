@@ -25,20 +25,8 @@ sleep 2
 
 # Launch the app
 echo "Launching Electrical Calculations..."
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 5
-
-# Ensure we are at the main menu (press back if an ad or dialog appeared)
-# Pressing back once is usually safe to dismiss "Rate Us" or ads on startup
-input keyevent KEYCODE_BACK
-sleep 1
-
-# If we exited the app (because we were already at root), relaunch
-CURRENT_FOCUS=$(dumpsys window | grep mCurrentFocus)
-if echo "$CURRENT_FOCUS" | grep -q "Launcher"; then
-    monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-    sleep 3
-fi
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
 
 # Take initial screenshot for debug
 screencap -p /sdcard/tasks/rms_to_peak_voltage/initial_state.png

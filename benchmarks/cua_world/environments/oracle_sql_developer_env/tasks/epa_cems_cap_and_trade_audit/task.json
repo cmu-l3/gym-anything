@@ -1,0 +1,32 @@
+{
+  "id": "epa_cems_cap_and_trade_audit@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Environmental Compliance Officer auditing industrial facilities under the EPA Cap-and-Trade program using the EPA_AUDIT schema (epa_audit/Audit2024, Host=localhost, Port=1521, Service=XEPDB1). Your goal is to identify non-compliant facilities and calculate penalties based on 2023 telemetry and trading data. Process the HOURLY_CEMS data into a view named CEMS_IMPUTED_VW, substituting NULL co2_mass_tons values with the most recent prior non-null reading for that facility (ordered chronologically by op_date and op_hour). This view should contain facility_id, op_date, op_hour, original_co2, and imputed_co2. Use this to create a view ANNUAL_EMISSIONS_VW showing total_emissions_tons per facility_id for the year. Calculate final_allowances for each account in ALLOWANCE_ACCOUNTS in a view named NET_ALLOWANCES_VW using the formula: initial_allocation + (Total Purchased) - (Total Sold), treating missing purchase or sale sums as 0. Generate a table named COMPLIANCE_PENALTIES for facilities where total_emissions_tons is greater than final_allowances. Include facility_id, facility_name, total_emissions_tons, final_allowances, shortfall_tons, and a penalty_amount calculated at the $214.00 statutory rate per shortfall ton. Export the resulting table to /home/ga/Documents/exports/epa_penalties.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/epa_cems_cap_and_trade_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/epa_cems_cap_and_trade_audit/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Compliance Officers",
+    "industry": "Government",
+    "expected_rows": 3,
+    "penalties": {
+      "102": 107000,
+      "103": 214000,
+      "104": 107000
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_epa_cems_cap_and_trade_audit"
+    }
+  }
+}

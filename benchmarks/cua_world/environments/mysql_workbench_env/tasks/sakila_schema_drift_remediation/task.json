@@ -1,0 +1,34 @@
+{
+  "id": "sakila_schema_drift_remediation@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "A compliance audit has flagged the production database 'sakila_prod' as having unauthorized schema changes compared to the approved reference 'sakila_gold'. Your goal is to identify these changes and revert 'sakila_prod' to match 'sakila_gold' exactly, without losing any live transaction data. Connect to the local MySQL server (user: ga, password: password123). Generate a synchronization SQL script to revert the schema drifts in 'sakila_prod' and save it to '/home/ga/Documents/sql_scripts/revert_drift.sql'. Execute the script to apply the fixes. Do NOT drop and recreate the 'sakila_prod' database, as it contains live rental transactions that must be preserved.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_schema_drift_remediation/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_schema_drift_remediation/export_result.sh"
+  },
+  "metadata": {
+    "reference_db": "sakila_gold",
+    "target_db": "sakila_prod",
+    "drifts": [
+      "customer.last_name varchar length mismatch",
+      "address.idx_fk_city_id missing",
+      "store.internal_notes extra column",
+      "customer_list view definition mismatch"
+    ],
+    "tracer_data_table": "rental",
+    "expected_script_path": "/home/ga/Documents/sql_scripts/revert_drift.sql"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_schema_drift_remediation"
+    }
+  }
+}

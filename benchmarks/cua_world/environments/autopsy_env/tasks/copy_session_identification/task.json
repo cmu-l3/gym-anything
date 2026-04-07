@@ -1,0 +1,31 @@
+{
+  "id": "copy_session_identification@1",
+  "version": "1.0",
+  "env_id": "autopsy_env@0.1",
+  "description": "A corporate security team seized a USB drive from an employee suspected of exfiltrating proprietary data. You must determine how many distinct times the suspect copied files to this drive. Your mission: (1) Create a forensic case named 'Copy_Session_Analysis_2024' with case number 'INV-CSA-007' in Autopsy. (2) Add /home/ga/evidence/ntfs_undel.dd as a Disk Image data source. For ingest modules, enable 'File Type Identification' and 'Recent Activity'; disable all others. Run ingest to completion. (3) Examine the file system tree to inspect file creation timestamps for all regular files. (4) Identify copy sessions: group files whose creation timestamps fall within a 120-second window of each other. A file belongs to a session if its creation time is within 120 seconds of the previous file in that chronological sequence. Isolated files are single-file sessions. (5) Write a session report to /home/ga/Reports/copy_sessions.txt with exactly these header lines: 'TOTAL_FILES_ANALYZED: <N>', 'TOTAL_SESSIONS: <N>', 'LARGEST_SESSION_FILE_COUNT: <N>'. Then, for each session (numbered from 1), include a block: 'SESSION <N>: <start> to <end> | FILES: <count>', followed by 'FILE: <filename> | PATH: <full_path> | CREATED: <timestamp> | SIZE: <bytes> | STATUS: <ALLOCATED|DELETED>' for each file in it. (6) Write an investigative summary to /home/ga/Reports/session_summary.txt containing these exact labels on separate lines: 'INVESTIGATION_SUBJECT:', 'TOTAL_COPY_SESSIONS:', 'SINGLE_FILE_SESSIONS:', 'MULTI_FILE_SESSIONS:', 'LARGEST_SESSION:', and 'CONCLUSION:'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/copy_session_identification/setup_task.sh",
+    "post_task": "/workspace/tasks/copy_session_identification/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Copy_Session_Analysis_2024",
+    "case_number": "INV-CSA-007",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "report_file": "/home/ga/Reports/copy_sessions.txt",
+    "summary_file": "/home/ga/Reports/session_summary.txt",
+    "result_file": "/tmp/copy_session_result.json",
+    "gt_file": "/tmp/copy_session_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_copy_session_identification"
+    }
+  }
+}

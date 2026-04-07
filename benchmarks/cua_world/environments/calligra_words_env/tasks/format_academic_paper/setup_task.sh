@@ -1,89 +1,111 @@
 #!/bin/bash
-set -e
-
-echo "=== Setting up format_academic_paper ==="
+set -euo pipefail
 
 source /workspace/scripts/task_utils.sh
 
-sudo -u ga mkdir -p /home/ga/Documents
+echo "=== Setting up Format Academic Paper Task ==="
 
-python3 <<'PY'
+install -d -o ga -g ga /home/ga/Documents
+kill_calligra_processes
+rm -f /home/ga/Documents/origin_of_species.odt
+
+python3 << 'PYEOF'
 from odf.opendocument import OpenDocumentText
 from odf.text import P
 
 doc = OpenDocumentText()
 
-paragraphs = [
-    "On the Origin of Species",
-    "Charles Darwin",
-    "",
-    "Variation Under Domestication",
-    (
-        "Domesticated animals and cultivated plants display extraordinary variation. "
-        "Breeders repeatedly observe that inherited differences accumulate when they "
-        "select for useful traits over many generations."
-    ),
-    "Causes of Variability",
-    (
-        "The conditions of life appear to act in two ways: directly on the whole "
-        "organization and indirectly through the reproductive system, producing "
-        "heritable differences of form and habit."
-    ),
-    "Effects of Habit and Use",
-    (
-        "Use strengthens organs while disuse weakens them. Under domestication these "
-        "effects can become fixed, especially when selection preserves the resulting forms."
-    ),
-    "Variation Under Nature",
-    (
-        "Natural populations vary from place to place, and these differences matter "
-        "because they determine which individuals are better suited to local conditions."
-    ),
-    "Geometrical Ratio of Increase",
-    (
-        "Every species tends to increase at a geometrical ratio, yet resources remain "
-        "limited. The inevitable consequence is a recurrent struggle for existence."
-    ),
-    "Struggle for Existence",
-    (
-        "Because more individuals are born than can survive, organisms compete with one "
-        "another and with their environment for food, shelter, and opportunity."
-    ),
-    "Complex Relations of All Animals",
-    (
-        "No organism stands alone. Predators, competitors, parasites, and climate each "
-        "shape which varieties persist and which are gradually lost."
-    ),
-    "Natural Selection",
-    (
-        "If profitable variations occur, however slight, individuals possessing them "
-        "will have the best chance of surviving and of leaving offspring."
-    ),
-]
 
-for text in paragraphs:
+def add_paragraph(text=""):
     doc.text.addElement(P(text=text))
 
-doc.save("/home/ga/Documents/origin_of_species.odt")
-PY
+
+add_paragraph("On the Origin of Species")
+add_paragraph("Charles Darwin")
+add_paragraph("")
+add_paragraph("Variation Under Domestication")
+add_paragraph("Causes of Variability")
+add_paragraph(
+    "When we compare the individuals of the same variety or sub-variety of our older "
+    "cultivated plants and animals, one of the first points which strikes us is, that "
+    "they generally differ much more from each other than do the individuals of any one "
+    "species or variety in a state of nature. We are driven to conclude that this great "
+    "variability is due to our domestic productions having been raised under conditions "
+    "of life not so uniform as those to which the parent species had been exposed."
+)
+add_paragraph("Effects of Habit and Use")
+add_paragraph(
+    "Changed habits produce an inherited effect, as in the period of the flowering of "
+    "plants when transported from one climate to another. With animals the increased use "
+    "or disuse of parts has had a marked influence; thus the domestic duck flies less and "
+    "walks more than its wild parent, and the bones of the wing weigh less while those of "
+    "the leg weigh more in proportion to the whole skeleton."
+)
+add_paragraph("")
+add_paragraph("Variation Under Nature")
+add_paragraph(
+    "No one supposes that all the individuals of the same species are cast in the same "
+    "actual mould. These individual differences are of the highest importance for us, for "
+    "they are often inherited, and they thus afford materials for natural selection to "
+    "act on and accumulate."
+)
+add_paragraph("")
+add_paragraph("Struggle for Existence")
+add_paragraph("Geometrical Ratio of Increase")
+add_paragraph(
+    "A struggle for existence inevitably follows from the high rate at which all organic "
+    "beings tend to increase. Every being which during its natural lifetime produces "
+    "several eggs or seeds must suffer destruction during some period of its life, and "
+    "during some season or occasional year, otherwise, on the principle of geometrical "
+    "increase, its numbers would quickly become so inordinately great that no country "
+    "could support the product."
+)
+add_paragraph("Complex Relations of All Animals")
+add_paragraph(
+    "The relations of all animals and plants throughout nature are the fullest sense "
+    "complex. A plant on the edge of a desert is said to struggle for life against the "
+    "drought, though more properly it should be said to be dependent on moisture; and a "
+    "plant in the midst of its range has to contend with many rivals, enemies, and hidden "
+    "checks before it can increase in numbers."
+)
+add_paragraph("")
+add_paragraph("Natural Selection")
+add_paragraph(
+    "Natural selection acts only by taking advantage of slight successive variations; "
+    "she can never take a leap, but must advance by the shortest and slowest steps. If "
+    "variations useful to any organic being do occur, assuredly individuals thus "
+    "characterised will have the best chance of being preserved in the struggle for life, "
+    "and from the strong principle of inheritance they will tend to produce offspring "
+    "similarly characterised."
+)
+
+doc.save("/home/ga/Documents/origin_of_species.odt", False)
+print("Created origin_of_species.odt")
+PYEOF
 
 chown ga:ga /home/ga/Documents/origin_of_species.odt
-date +%s > /tmp/format_academic_paper_start_ts
+chmod 0664 /home/ga/Documents/origin_of_species.odt
 
-pkill -f calligrawords 2>/dev/null || true
-sleep 1
+echo "Launching Calligra Words..."
+launch_calligra_document "/home/ga/Documents/origin_of_species.odt" "/tmp/calligra_words_task.log"
 
-su - ga -c "DISPLAY=:1 calligrawords /home/ga/Documents/origin_of_species.odt > /tmp/calligra_words.log 2>&1 &"
+if ! wait_for_process "/usr/bin/calligrawords" 20; then
+    wait_for_process "calligrawords" 15 || true
+fi
 
-wait_for_window "Calligra Words" 60 || wait_for_window "origin_of_species" 30
+if ! wait_for_window "Calligra Words\\|origin_of_species" 60; then
+    echo "ERROR: Calligra Words window did not appear"
+    cat /tmp/calligra_words_task.log || true
+fi
 
 wid=$(get_calligra_window_id)
 if [ -n "$wid" ]; then
-    DISPLAY=:1 wmctrl -i -r "$wid" -b add,maximized_vert,maximized_horz 2>/dev/null || true
     focus_window "$wid" || true
+    safe_xdotool ga :1 key Escape || true
+    sleep 0.5
+    safe_xdotool ga :1 key ctrl+Home || true
 fi
 
-sleep 2
-take_screenshot /tmp/format_academic_paper_start.png
+take_screenshot /tmp/calligra_format_academic_paper_setup.png
 
-echo "=== Setup complete ==="
+echo "=== Format Academic Paper Task Setup Complete ==="

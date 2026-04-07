@@ -1,0 +1,62 @@
+{
+    "task_id": "fix_trading_indicators@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/PycharmProjects/trading_indicators",
+            "verified_value": "/home/ga/PycharmProjects/trading_indicators",
+            "source": "Found in setup_task.sh which creates the project directory.",
+            "status": "verified"
+        },
+        {
+            "key": "num_bugs",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "Found 4 distinct bugs seeded in setup_task.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "bug_locations",
+            "metadata_value": [
+                "indicators/ema.py:exponential_moving_average (wrong smoothing factor)",
+                "indicators/rsi.py:relative_strength_index (wrong RS formula \u2014 uses subtraction not division)",
+                "indicators/stats.py:sharpe_ratio (divides by variance instead of std dev)",
+                "indicators/stats.py:max_drawdown (computes wrong running max \u2014 uses cummax not rolling peak from start)"
+            ],
+            "verified_value": [
+                "indicators/ema.py:exponential_moving_average (wrong smoothing factor)",
+                "indicators/rsi.py:relative_strength_index (wrong RS formula \u2014 uses subtraction not division)",
+                "indicators/stats.py:sharpe_ratio (divides by variance instead of std dev)",
+                "indicators/stats.py:max_drawdown (computes wrong running max \u2014 uses adjacent pair max not global running peak)"
+            ],
+            "source": "Code analysis of setup_task.sh. The buggy max_drawdown uses max(prices[i - 1], prices[i]) which is an adjacent pair max, not cummax. Cummax is actually the correct behavior (global running peak), so the metadata's description of the bug is contradicted.",
+            "status": "contradicted"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 65,
+            "verified_value": 65,
+            "source": "Found in verifier.py where passed = score >= 65.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Financial Quantitative Analysts",
+            "verified_value": "Financial Quantitative Analysts",
+            "source": "Verified as standard O*NET occupation title (13-2099.01).",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Securities, Commodity Contracts, and Other Financial Investments",
+            "verified_value": "Securities, Commodity Contracts, and Other Financial Investments",
+            "source": "Verified as standard NAICS industry title (523).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task contains 4 specific math bugs in trading indicators. EMA smoothing factor uses k = 1 / period instead of k = 2 / (period + 1). RSI uses rs = ag - al instead of rs = ag / al. Sharpe ratio divides by variance instead of standard deviation. Max drawdown computes the running max using an adjacent pair max (max(prices[i - 1], prices[i])) instead of the global running peak (which is equivalent to cummax). The metadata description for the max drawdown bug incorrectly claims it uses cummax. The test data for indicators are hardcoded synthetic arrays. The passing threshold is 65 points.",
+    "pi_confidence": "high"
+}

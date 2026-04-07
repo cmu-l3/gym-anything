@@ -1,0 +1,42 @@
+{
+  "id": "model_multi_subarray_commercial_pv@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "A Solar Energy Installation Manager has completed a site survey of a commercial warehouse in Phoenix, AZ. The flat-pitched roof has two viable mounting areas: a larger south-facing section and a smaller west-facing section.\n\nUsing PySAM's detailed PV model (`Pvsamv1`), model a ~100 kW-DC commercial rooftop PV system split across these two subarrays:\n- **Subarray 1 (South)**: ~60 kW DC capacity, 180° azimuth, 15° tilt, fixed roof mount, 0.4 ground coverage ratio.\n- **Subarray 2 (West)**: ~40 kW DC capacity, 270° azimuth, 10° tilt, fixed roof mount, 0.4 ground coverage ratio.\n\nAdditional Requirements:\n- **Location**: Phoenix, AZ (find and use a bundled Phoenix TMY weather file from SAM's solar_resource directory).\n- **Equipment**: Use default CEC modules and inverters from a commercial PV default configuration (e.g., 'FlatPlatePVCommercial').\n- **Inverter Sizing**: Size the system with a DC-to-AC ratio of approximately 1.2 (~83 kW AC).\n- **Financial**: Run the Single Owner financial model (`PySAM.Singleowner`) chained to your PV model to calculate the real LCOE.\n\nSave the complete simulation results as a JSON file exactly at:\n`/home/ga/Documents/SAM_Projects/multi_subarray_results.json`\n\nThe JSON must have this exact structure:\n{\n  \"location\": \"Phoenix, AZ\",\n  \"weather_file\": \"<filename>\",\n  \"system\": { \"total_dc_capacity_kw\": 100.0, \"total_ac_capacity_kw\": 83.3, \"dc_ac_ratio\": 1.2 },\n  \"subarray1\": { \"dc_capacity_kw\": 60.0, \"azimuth_deg\": 180, \"tilt_deg\": 15, \"tracking\": \"fixed\", \"annual_energy_kwh\": <value> },\n  \"subarray2\": { \"dc_capacity_kw\": 40.0, \"azimuth_deg\": 270, \"tilt_deg\": 10, \"tracking\": \"fixed\", \"annual_energy_kwh\": <value> },\n  \"annual_energy_kwh\": <total_kwh>,\n  \"capacity_factor_pct\": <value>,\n  \"lcoe_real_cents_per_kwh\": <value>\n}",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/model_multi_subarray_commercial_pv/setup_task.sh",
+    "post_task": "/workspace/tasks/model_multi_subarray_commercial_pv/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/SAM_Projects/multi_subarray_results.json",
+    "expected_location": "phoenix",
+    "system_dc_min": 95.0,
+    "system_dc_max": 105.0,
+    "sa1_dc_min": 55.0,
+    "sa1_dc_max": 65.0,
+    "sa1_azimuth": 180,
+    "sa1_tilt": 15,
+    "sa2_dc_min": 35.0,
+    "sa2_dc_max": 45.0,
+    "sa2_azimuth": 270,
+    "sa2_tilt": 10,
+    "annual_energy_min": 120000,
+    "annual_energy_max": 220000,
+    "cf_min": 14.0,
+    "cf_max": 28.0,
+    "lcoe_min": 3.0,
+    "lcoe_max": 30.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multi_subarray_pv"
+    }
+  }
+}

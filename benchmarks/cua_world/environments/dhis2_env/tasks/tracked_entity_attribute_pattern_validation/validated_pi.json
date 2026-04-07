@@ -1,0 +1,80 @@
+{
+    "task_id": "tracked_entity_attribute_pattern_validation@1",
+    "dataset": "DHIS2 Tracker",
+    "case_id": "National PUI attribute for Person entity type",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_name",
+            "metadata_value": "National PUI",
+            "verified_value": "National PUI",
+            "source": "Task specification in task.json. Name is synthetic/task-specific but follows DHIS2 naming conventions for tracked entity attributes.",
+            "status": "verified"
+        },
+        {
+            "key": "target_entity",
+            "metadata_value": "Person",
+            "verified_value": "Person is a standard Tracked Entity Type in DHIS2",
+            "source": "DHIS2 documentation confirms Person is the most common tracked entity instance type (https://docs.dhis2.org/en/implement/database-design/tracker-system-design/defining-the-tracked-entity.html). Person is used in DHIS2 Tracker for tracking individuals enrolled in health programs.",
+            "status": "verified"
+        },
+        {
+            "key": "test_cases_valid[0]",
+            "metadata_value": "BO/123456",
+            "verified_value": "Matches pattern [A-Z]{2}/[0-9]{6}",
+            "source": "Regex analysis: BO (2 uppercase) + / (slash) + 123456 (6 digits) conforms to requirement 'Two Uppercase Letters, a forward slash, and Six Digits'",
+            "status": "verified"
+        },
+        {
+            "key": "test_cases_valid[1]",
+            "metadata_value": "WA/999999",
+            "verified_value": "Matches pattern [A-Z]{2}/[0-9]{6}",
+            "source": "Regex analysis: WA (2 uppercase) + / (slash) + 999999 (6 digits) conforms to requirement 'Two Uppercase Letters, a forward slash, and Six Digits'",
+            "status": "verified"
+        },
+        {
+            "key": "test_cases_valid[2]",
+            "metadata_value": "AB/000000",
+            "verified_value": "Matches pattern [A-Z]{2}/[0-9]{6}",
+            "source": "Regex analysis: AB (2 uppercase) + / (slash) + 000000 (6 digits) conforms to requirement 'Two Uppercase Letters, a forward slash, and Six Digits'",
+            "status": "verified"
+        },
+        {
+            "key": "test_cases_invalid[0]",
+            "metadata_value": "bo/123456",
+            "verified_value": "Does not match pattern [A-Z]{2}/[0-9]{6}",
+            "source": "Regex analysis: 'bo' contains lowercase letters, not uppercase. Correctly identified as invalid for pattern enforcing 'Two Uppercase Letters'",
+            "status": "verified"
+        },
+        {
+            "key": "test_cases_invalid[1]",
+            "metadata_value": "BO-123456",
+            "verified_value": "Does not match pattern [A-Z]{2}/[0-9]{6}",
+            "source": "Regex analysis: Uses hyphen (-) instead of forward slash (/). Correctly identified as invalid for pattern requiring forward slash",
+            "status": "verified"
+        },
+        {
+            "key": "test_cases_invalid[2]",
+            "metadata_value": "BO/12345",
+            "verified_value": "Does not match pattern [A-Z]{2}/[0-9]{6}",
+            "source": "Regex analysis: Contains only 5 digits instead of required 6. Correctly identified as invalid for pattern requiring 'Six Digits'",
+            "status": "verified"
+        },
+        {
+            "key": "test_cases_invalid[3]",
+            "metadata_value": "123456",
+            "verified_value": "Does not match pattern [A-Z]{2}/[0-9]{6}",
+            "source": "Regex analysis: No uppercase letters or forward slash. Correctly identified as invalid for pattern requiring 'Two Uppercase Letters, a forward slash, and Six Digits'",
+            "status": "verified"
+        },
+        {
+            "key": "test_cases_invalid[4]",
+            "metadata_value": "BO/1234567",
+            "verified_value": "Does not match pattern [A-Z]{2}/[0-9]{6} (7 digits instead of 6)",
+            "source": "Regex analysis with anchors: Pattern [A-Z]{2}/[0-9]{6}$ rejects BO/1234567 because it has 7 digits. However, without anchors, Python regex.match() matches only the first 6 digits. Verifier code uses regex.match() which creates ambiguity. This test case is ONLY correct if the pattern includes anchors (^[A-Z]{2}/[0-9]{6}$) or DHIS2 uses full-string matching semantics.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "Task requires configuring a Tracked Entity Attribute named 'National PUI' with a regex pattern 'Two Uppercase Letters, a forward slash, and Six Digits' (e.g., BO/123456) for the Person entity type in DHIS2. Person is a real, standard Tracked Entity Type in DHIS2 used for individual tracking. Test cases are logically correct but contain a critical issue: the test case 'BO/1234567' (7 digits) is marked as invalid, but verifier code uses regex.match() which accepts partial matches. This case would only properly fail if the pattern is configured with anchors (^[A-Z]{2}/[0-9]{6}$) or if DHIS2 uses full-string matching. The pattern requirement strongly suggests full matching should be enforced ('enforce the format'), making anchors necessary. All data is synthetic (task-specific configuration, not real system data).",
+    "pi_confidence": "high"
+}

@@ -3,11 +3,18 @@
 
 echo "=== Installing Apache OpenOffice and related packages ==="
 
-# Update package manager
-apt-get update
+# Skip if already installed
+if [ -x "/opt/openoffice4/program/soffice" ]; then
+    echo "Apache OpenOffice already installed, skipping installation."
+    /opt/openoffice4/program/soffice --version 2>/dev/null || true
+    exit 0
+fi
 
 # Non-interactive apt
 export DEBIAN_FRONTEND=noninteractive
+
+# Update package manager
+apt-get update
 
 # Install Java (required for OpenOffice)
 echo "Installing Java runtime..."
@@ -72,31 +79,42 @@ pip3 install --no-cache-dir \
 echo "Downloading Apache OpenOffice 4.1.16..."
 OPENOFFICE_VERSION="4.1.16"
 OPENOFFICE_FILE="Apache_OpenOffice_${OPENOFFICE_VERSION}_Linux_x86-64_install-deb_en-US.tar.gz"
-DOWNLOAD_URL="https://sourceforge.net/projects/openofficeorg.mirror/files/${OPENOFFICE_VERSION}/binaries/en-US/${OPENOFFICE_FILE}/download"
+
+# Use Apache archive as primary (fast, reliable) and SourceForge as fallback
+URLS=(
+    "https://archive.apache.org/dist/openoffice/${OPENOFFICE_VERSION}/binaries/en-US/${OPENOFFICE_FILE}"
+    "https://downloads.apache.org/openoffice/${OPENOFFICE_VERSION}/binaries/en-US/${OPENOFFICE_FILE}"
+    "https://sourceforge.net/projects/openofficeorg.mirror/files/${OPENOFFICE_VERSION}/binaries/en-US/${OPENOFFICE_FILE}/download"
+)
 
 cd /tmp
-# Try to download with retry logic
-for attempt in 1 2 3; do
-    echo "Download attempt $attempt..."
-    if wget -q --show-progress -O "${OPENOFFICE_FILE}" "${DOWNLOAD_URL}"; then
-        echo "Download successful"
-        break
-    else
-        echo "Download attempt $attempt failed"
-        if [ $attempt -eq 3 ]; then
-            # Try alternate mirror
-            echo "Trying alternate URL..."
-            wget -q --show-progress -O "${OPENOFFICE_FILE}" \
-                "https://downloads.apache.org/openoffice/${OPENOFFICE_VERSION}/binaries/en-US/${OPENOFFICE_FILE}" || \
-            wget -q --show-progress -O "${OPENOFFICE_FILE}" \
-                "https://archive.apache.org/dist/openoffice/${OPENOFFICE_VERSION}/binaries/en-US/${OPENOFFICE_FILE}"
+
+DOWNLOADED=false
+for url in "${URLS[@]}"; do
+    echo "Trying: $url"
+    for attempt in 1 2 3; do
+        echo "  Attempt $attempt..."
+        if wget --timeout=120 --tries=1 -c -q --show-progress -O "${OPENOFFICE_FILE}" "$url"; then
+            # Verify file is non-empty and reasonably sized (>100MB)
+            FILE_SIZE=$(stat -c%s "${OPENOFFICE_FILE}" 2>/dev/null || echo 0)
+            if [ "$FILE_SIZE" -gt 100000000 ]; then
+                echo "  Download successful (${FILE_SIZE} bytes)"
+                DOWNLOADED=true
+                break 2
+            else
+                echo "  File too small (${FILE_SIZE} bytes), retrying..."
+                rm -f "${OPENOFFICE_FILE}"
+            fi
+        else
+            echo "  Download attempt $attempt failed"
+            rm -f "${OPENOFFICE_FILE}"
         fi
-        sleep 5
-    fi
+        sleep 2
+    done
 done
 
 # Verify download
-if [ ! -f "${OPENOFFICE_FILE}" ] || [ ! -s "${OPENOFFICE_FILE}" ]; then
+if [ "$DOWNLOADED" != "true" ] || [ ! -f "${OPENOFFICE_FILE}" ] || [ ! -s "${OPENOFFICE_FILE}" ]; then
     echo "ERROR: Failed to download Apache OpenOffice"
     exit 1
 fi
@@ -149,10 +167,11 @@ rm -rf /var/lib/apt/lists/*
 
 echo "=== Apache OpenOffice installation completed ==="
 
-# Verify installation
+# Verify installation (just check binary exists, don't run --version as it
+# triggers the first-run wizard before user profile is configured)
 if [ -x "/opt/openoffice4/program/soffice" ]; then
     echo "Apache OpenOffice installed successfully at /opt/openoffice4"
-    /opt/openoffice4/program/soffice --version 2>/dev/null || true
+    ls -la /opt/openoffice4/program/soffice
 else
     echo "WARNING: Apache OpenOffice binary not found at expected location"
     ls -la /opt/ 2>/dev/null || true

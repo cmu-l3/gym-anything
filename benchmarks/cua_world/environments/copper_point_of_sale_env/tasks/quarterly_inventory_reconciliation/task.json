@@ -1,0 +1,49 @@
+{
+  "id": "quarterly_inventory_reconciliation@1",
+  "version": "1.0",
+  "env_id": "copper_point_of_sale_env@0.1",
+  "description": "As the closing manager, import the store inventory from C:\\Users\\Docker\\Desktop\\store_inventory.csv into Copper Point of Sale (30 items across five categories) and perform the quarterly financial close.\n\nReconcile the system inventory against the quarterly physical count at C:\\Users\\Docker\\Desktop\\physical_count.csv (15 items audited) — where system quantities differ from physical counts, adjust master stock levels to match.\n\nAdd customer Sheryl Baxter (sheryl.baxter@email.com, (310) 555-0147, Los Angeles CA 90210), sell her 1x Apple AirPods Pro (2nd Gen) for $249.99 cash, and process a return of those AirPods with a 15% restocking fee.\n\nProcess a clearance sale of 1x Zipped Jacket and 1x Black Leather Bag each at 30% off their listed prices, cash payment.\n\nExport the updated inventory to C:\\Users\\Docker\\Desktop\\final_inventory.csv. Create C:\\Users\\Docker\\Desktop\\quarterly_close.txt containing: a shrinkage table (Item Name | System Qty | Physical Qty | Variance) for each adjusted item; total items adjusted; total units of shrinkage (sum of negative variances as a positive number); refund amount issued; and clearance sale pre-tax total.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 350,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\quarterly_inventory_reconciliation\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\quarterly_inventory_reconciliation\\export_result.ps1"
+  },
+  "metadata": {
+    "discrepancies": [
+      {"sku": "CLO-0004", "name": "Floral White Top", "system_qty": 39, "physical_qty": 35, "variance": -4},
+      {"sku": "CLO-0011", "name": "Zipped Jacket", "system_qty": 42, "physical_qty": 38, "variance": -4},
+      {"sku": "ELE-0090", "name": "Logitech MX Master 3S", "system_qty": 22, "physical_qty": 19, "variance": -3},
+      {"sku": "ELE-0092", "name": "SanDisk Ultra 128GB USB", "system_qty": 18, "physical_qty": 14, "variance": -4},
+      {"sku": "ELE-0094", "name": "Amazon Echo Dot (5th Gen)", "system_qty": 13, "physical_qty": 15, "variance": 2},
+      {"sku": "JEW-0043", "name": "Bangle Bracelet", "system_qty": 15, "physical_qty": 12, "variance": -3},
+      {"sku": "HOM-0028", "name": "Brown Throw Pillows", "system_qty": 29, "physical_qty": 33, "variance": 4},
+      {"sku": "GRO-0063", "name": "Pure Coconut Water With Orange", "system_qty": 58, "physical_qty": 51, "variance": -7}
+    ],
+    "matching_items": ["CLO-0002", "CLO-0008", "CLO-0010", "CLO-0017", "ELE-0088", "ELE-0097", "JEW-0053"],
+    "expected_items_adjusted": 8,
+    "expected_shrinkage_units": 25,
+    "restocking_fee_percent": 15,
+    "airpods_price": 249.99,
+    "expected_refund_amount": 212.49,
+    "clearance_discount_percent": 30,
+    "zipped_jacket_price": 65.00,
+    "zipped_jacket_clearance": 45.50,
+    "black_leather_bag_price": 30.00,
+    "black_leather_bag_clearance": 21.00,
+    "expected_clearance_total": 66.50,
+    "export_path": "C:\\Users\\Docker\\Desktop\\final_inventory.csv",
+    "report_path": "C:\\Users\\Docker\\Desktop\\quarterly_close.txt",
+    "result_json_path": "C:\\Users\\Docker\\quarterly_reconciliation_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_quarterly_inventory_reconciliation"
+    }
+  }
+}

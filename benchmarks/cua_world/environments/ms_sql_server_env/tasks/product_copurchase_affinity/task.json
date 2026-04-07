@@ -1,0 +1,37 @@
+{
+  "id": "product_copurchase_affinity@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are a marketing analyst at Adventure Works Cycles planning a product bundling campaign. Implement a reusable affinity analysis system in the AdventureWorks2022 database using Azure Data Studio. Create a table named 'dbo.ProductAffinityResults' with columns for ProductA_ID, ProductA_Name, ProductB_ID, ProductB_Name, CoOccurrenceCount, ProductA_OrderCount, ProductB_OrderCount, TotalOrders, Support (decimal), Confidence_AtoB (decimal), Lift (decimal), and AnalysisDate. Develop a stored procedure 'dbo.usp_MarketBasketAnalysis' that accepts @StartDate and @EndDate to calculate these metrics from Sales.SalesOrderDetail, ensuring it clears previous results, avoids duplicate pairs (ProductA_ID < ProductB_ID), and only inserts pairs with CoOccurrenceCount >= 3. Execute the procedure for the period '2011-05-31' to '2014-06-30'. Create a view 'dbo.vw_TopProductBundles' containing all columns from the results where Lift > 1.0, ordered by Lift descending. Export the top 15 rows from this view with headers to /home/ga/Documents/exports/top_product_bundles.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/product_copurchase_affinity/setup_task.sh",
+    "post_task": "/workspace/tasks/product_copurchase_affinity/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/exports/top_product_bundles.csv",
+    "min_rows_populated": 50,
+    "required_columns": [
+      "ProductA_ID",
+      "ProductA_Name",
+      "ProductB_ID",
+      "ProductB_Name",
+      "CoOccurrenceCount",
+      "Support",
+      "Confidence_AtoB",
+      "Lift"
+    ],
+    "sql_hint": "Use Self-Join on SalesOrderDetail.SalesOrderID. P(A) = Count(A)/Total, P(AB) = Count(AB)/Total, Lift = P(AB)/(P(A)*P(B))"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_product_copurchase_affinity"
+    }
+  }
+}

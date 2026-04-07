@@ -1,0 +1,83 @@
+{
+    "task_id": "stale_pipeline_and_ticket_cleanup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "injected_stale_deals",
+            "metadata_value": [
+                {
+                    "deal": "Nexus SCADA Security Assessment",
+                    "error": "closingdate injected to past date, active stage"
+                },
+                {
+                    "deal": "Atlas Supply Chain Analytics",
+                    "error": "closingdate injected to past date, active stage"
+                }
+            ],
+            "verified_value": [
+                {
+                    "deal": "Nexus SCADA Security Assessment",
+                    "error": "Not injected (remains Closed Won)"
+                },
+                {
+                    "deal": "Atlas Supply Chain Analytics",
+                    "error": "closingdate injected to past date, active stage"
+                }
+            ],
+            "source": "utils/seed_data.php and tasks/stale_pipeline_and_ticket_cleanup/setup_task.sh",
+            "status": "contradicted"
+        },
+        {
+            "key": "injected_ticket_issue",
+            "metadata_value": {
+                "ticket": "Data breach incident response",
+                "error": "status=Closed but severity=Critical/priority=Urgent \u2014 must be reclassified to Resolved"
+            },
+            "verified_value": {
+                "ticket": "No matching ticket exists",
+                "error": "An arbitrary ticket is selected and corrupted instead"
+            },
+            "source": "utils/seed_data.php and tasks/stale_pipeline_and_ticket_cleanup/setup_task.sh",
+            "status": "contradicted"
+        },
+        {
+            "key": "target_account",
+            "metadata_value": "Blackstone Industrial",
+            "verified_value": "Account does not exist in seed data",
+            "source": "utils/seed_data.php",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_industry",
+            "metadata_value": "Industrial Machinery & Equipment",
+            "verified_value": "Industrial Machinery & Equipment",
+            "source": "tasks/stale_pipeline_and_ticket_cleanup/verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "expected_account_description",
+            "metadata_value": "Enterprise client specializing in industrial automation and factory systems integration.",
+            "verified_value": "Enterprise client specializing in industrial automation and factory systems integration.",
+            "source": "tasks/stale_pipeline_and_ticket_cleanup/verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "expected_ticket_sla_marker",
+            "metadata_value": "[SLA-AUDIT]",
+            "verified_value": "[SLA-AUDIT]",
+            "source": "tasks/stale_pipeline_and_ticket_cleanup/verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 65,
+            "verified_value": 65,
+            "source": "tasks/stale_pipeline_and_ticket_cleanup/verifier.py",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Confirmed that the CRM data is synthetically seeded via a PHP script (seed_data.php). I discovered that the task is critically defective on multiple fronts. First, the 'Nexus SCADA Security Assessment' deal is seeded with a 'Closed Won' stage. The setup_task.sh script's SQL injection explicitly excludes 'Closed Won' deals, meaning the injection fails and the deal is never rendered stale. Second, no ticket named 'Data breach incident response' exists; the script arbitrarily corrupts another ticket instead. Finally, the target account 'Blackstone Industrial' does not exist anywhere in the seed data, so the setup script prints a warning and fails to clear its fields, rendering the account update subtask impossible unless the agent creates the account from scratch. I did verify that the expected industry, description, SLA marker, and pass threshold exactly match the explicit verifier.py logic.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,39 @@
+{
+  "id": "flag_high_risk_security_facilities@1",
+  "version": "1.0",
+  "env_id": "cameo_data_manager_env@0.1",
+  "description": "Perform a security audit on the facility database to identify all facilities storing 'Ammonium Nitrate' (CAS: 6484-52-2) with a Maximum Daily Amount greater than 1,500 pounds. For each qualifying facility, update the record by adding '[DHS-AUDIT-REQUIRED]' to the Notes field. Save a list of the identified high-risk facility names, one per line, to C:\\Users\\Docker\\Desktop\\audit_list.txt.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\flag_high_risk_security_facilities\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\flag_high_risk_security_facilities\\export_result.ps1"
+  },
+  "metadata": {
+    "target_chemical_cas": "6484-52-2",
+    "target_chemical_name": "Ammonium Nitrate",
+    "threshold_lbs": 1500,
+    "output_file_path": "C:\\Users\\Docker\\Desktop\\audit_list.txt",
+    "ground_truth": {
+      "high_risk_facilities": [
+        "Agri-Grow Services",
+        "Industrial Blasting Co"
+      ],
+      "low_risk_facilities": [
+        "Westside Garden Center",
+        "City Parks Dept",
+        "Midwest Logistics"
+      ]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_security_audit"
+    }
+  }
+}

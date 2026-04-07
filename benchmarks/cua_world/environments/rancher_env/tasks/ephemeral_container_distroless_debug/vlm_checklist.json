@@ -1,0 +1,53 @@
+{
+  "task_id": "ephemeral_container_distroless_debug@1",
+  "task_completion": [
+    {
+      "id": "access_cluster_and_namespace",
+      "description": "Access the cluster and locate the sales-prod namespace.",
+      "points": 10,
+      "visual_evidence": "Rancher UI showing the 'sales-prod' namespace or terminal showing a kubectl command targeting '-n sales-prod'."
+    },
+    {
+      "id": "deploy_ephemeral_container",
+      "description": "Deploy an ephemeral container to the order-processor pod.",
+      "points": 30,
+      "visual_evidence": "Terminal showing a command like 'kubectl debug -it order-processor' or Rancher UI showing an ephemeral container being added to the pod."
+    },
+    {
+      "id": "read_trace_json",
+      "description": "Read the trace.json file from the main-app container.",
+      "points": 20,
+      "visual_evidence": "Terminal output showing the contents of '/app/diagnostics/trace.json' (often accessed via /proc/<pid>/root/app/... from the debug container) and revealing the 'fault_signature' value."
+    },
+    {
+      "id": "create_target_secret",
+      "description": "Create a Kubernetes Secret named fault-signature-hotfix.",
+      "points": 20,
+      "visual_evidence": "Rancher UI Secret creation page or terminal showing 'kubectl create secret' with the name 'fault-signature-hotfix' in the 'sales-prod' namespace."
+    },
+    {
+      "id": "set_secret_signature_key",
+      "description": "Add the 'signature' key with the extracted fault signature to the Secret.",
+      "points": 20,
+      "visual_evidence": "Rancher UI showing the Secret data with key 'signature' and the corresponding extracted string value, or terminal showing the exact key-value pair being applied to the secret."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "no_pod_recreation",
+      "description": "The agent must not delete, recreate, or copy the order-processor pod.",
+      "visual_evidence": "No terminal commands showing 'kubectl delete pod order-processor' or 'kubectl replace'. The pod UID and age should remain consistent if visible."
+    },
+    {
+      "id": "used_ephemeral_container",
+      "description": "The agent must extract the data using an ephemeral container, not by guessing or using standard exec/cp.",
+      "visual_evidence": "Evidence of 'kubectl debug' or ephemeral container usage. Standard 'kubectl exec' or 'kubectl cp' commands should either not be present or show as failed."
+    },
+    {
+      "id": "genuine_secret_creation",
+      "description": "The secret must be created in the actual Kubernetes environment.",
+      "visual_evidence": "The secret creation must happen via Rancher UI or a valid kubectl command in the terminal, not just written in a local text file."
+    }
+  ],
+  "privileged_info_for_vlm": "Target namespace: 'sales-prod'. Target pod: 'order-processor'. Target secret name: 'fault-signature-hotfix'. The agent must extract the 'fault_signature' from '/app/diagnostics/trace.json' using an ephemeral container (e.g., kubectl debug) without recreating the pod, and store it in the secret under the key 'signature'."
+}

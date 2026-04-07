@@ -1,0 +1,35 @@
+{
+  "id": "tor_network_leak_audit@1",
+  "version": "1.0",
+  "env_id": "tor_browser_env@0.1",
+  "description": "Perform a runtime network leak and telemetry audit of Tor Browser by inspecting internal diagnostic pages. Generate active Tor network traffic by navigating to the DuckDuckGo onion site (http://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/). Audit the in-memory DNS cache (about:networking#dns) for external clearnet leaks and identify the active SOCKS proxy IP and port from the socket information (about:networking#sockets). Save the HTML source of the sockets page to /home/ga/Documents/sockets_source.html. Determine the browser telemetry data collection status from about:telemetry and save a screenshot of the dashboard to /home/ga/Documents/telemetry_status.png. Compile a final summary report at /home/ga/Documents/tor_leak_audit.txt using the following format:\n\n=== Tor Browser Runtime Audit ===\nTarget Onion: duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion\nTelemetry Status: [Enabled or Disabled]\nDNS Leaks Detected: [Yes or No]\nActive SOCKS Proxy: [IP]:[Port]",
+  "difficulty": "hard",
+  "tags": [
+    "tor",
+    "networking",
+    "opsec",
+    "diagnostics",
+    "audit"
+  ],
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tor_network_leak_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/tor_network_leak_audit/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/Documents/tor_leak_audit.txt",
+    "html_path": "/home/ga/Documents/sockets_source.html",
+    "image_path": "/home/ga/Documents/telemetry_status.png",
+    "expected_onion": "duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tor_network_leak_audit"
+    }
+  }
+}

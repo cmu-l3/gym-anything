@@ -1,0 +1,220 @@
+{
+    "task_id": "compliance_audit_remediation@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "IT Security & Compliance Manager",
+            "verified_value": "IT Security & Compliance Manager",
+            "source": "Task description assigns role 'IT Security & Compliance Manager'. Maps to O*NET SOC 11-3021.01 (Computer and Information Systems Managers) with specialization in compliance remediation. Realistic role for enterprise Rocket.Chat workspace administration.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Enterprise IT / Compliance",
+            "verified_value": "Enterprise IT / Compliance",
+            "source": "Task involves compliance audit remediation (access control, retention policies, Omnichannel setup) -- standard enterprise IT governance activities. All referenced frameworks (SEC-AC, SEC-DR, SEC-FU, SEC-IR policy IDs) follow realistic corporate policy naming conventions.",
+            "status": "verified"
+        },
+        {
+            "key": "source_channels",
+            "metadata_value": ["compliance-audit-findings", "it-security-policy", "hr-operations"],
+            "verified_value": ["compliance-audit-findings", "it-security-policy", "hr-operations"],
+            "source": "Live testing confirmed all 3 channels created by setup_task.sh. API dump shows: compliance-audit-findings (ID 69bb40b4, 6 messages, 4 members), it-security-policy (ID 69bb40ba, 6 messages, 5 members), hr-operations (ID 69bb40c1, 2 messages, 5 members). All visible in sidebar and accessible. Screenshots 09_compliance_findings_channel.png and 10_it_security_policy_channel.png confirm messages are readable in Firefox UI.",
+            "status": "verified"
+        },
+        {
+            "key": "target_channels",
+            "metadata_value": ["finance-confidential", "hr-confidential"],
+            "verified_value": ["finance-confidential", "hr-confidential"],
+            "source": "Live testing confirmed both channels created. finance-confidential (ID 69bb40c3, PUBLIC, 5 members including the 2 unauthorized). hr-confidential (ID 69bb40c6, PUBLIC -- this is the violation). Both confirmed in baseline.json and screenshot 11_finance_confidential_channel.png.",
+            "status": "verified"
+        },
+        {
+            "key": "audit_trail_channel",
+            "metadata_value": "compliance-remediation-log-q1-2026",
+            "verified_value": "compliance-remediation-log-q1-2026",
+            "source": "Task description instructs agent to create this channel. setup_task.sh deletes any pre-existing channel with this name (clean slate). export_result.sh checks for it via groups.info then channels.info. Live testing export confirmed audit_trail.exists=false before agent acts (correct pre-condition).",
+            "status": "verified"
+        },
+        {
+            "key": "audit_trail_members",
+            "metadata_value": ["ciso", "compliance.officer", "legal.counsel"],
+            "verified_value": ["ciso", "compliance.officer", "legal.counsel"],
+            "source": "Task description: 'Create a private channel compliance-remediation-log-q1-2026 with members ciso, compliance.officer, and legal.counsel.' All 3 users confirmed created during live testing (users exist in RC instance). export_result.sh collects group members for verification.",
+            "status": "verified"
+        },
+        {
+            "key": "summary_channel",
+            "metadata_value": "executive-updates",
+            "verified_value": "executive-updates",
+            "source": "Live testing confirmed channel exists (ID 69bb40c9, 5 members). Has 1 seeded message from [ciso]. export_result.sh collects admin messages from this channel. Task description: 'post a brief compliance status update in #executive-updates'.",
+            "status": "verified"
+        },
+        {
+            "key": "violations.CA-001.channel",
+            "metadata_value": "finance-confidential",
+            "verified_value": "finance-confidential",
+            "source": "setup_task.sh creates finance-confidential with members [finance.director, contractor.davis, intern.patel, compliance.officer]. Live dump confirms members: [admin, compliance.officer, contractor.davis, finance.director, intern.patel]. Finding CA-001 in seeded messages references '#finance-confidential' explicitly.",
+            "status": "verified"
+        },
+        {
+            "key": "violations.CA-001.users_to_remove",
+            "metadata_value": ["contractor.davis", "intern.patel"],
+            "verified_value": ["contractor.davis", "intern.patel"],
+            "source": "Verified via 3 independent sources: (1) setup_task.sh channels.create includes both as members. (2) Live API dump shows both in finance-confidential members list. (3) Seeded finding CA-001 message says 'Users contractor.davis and intern.patel are current members...Required action: Remove both users immediately.' (4) hr-operations roster confirms contractor.davis is 'External Contractor, Engineering' and intern.patel is 'Summer Intern, Marketing' -- neither is Finance department. (5) Feasibility test confirmed channels.kick endpoint works for user removal.",
+            "status": "verified"
+        },
+        {
+            "key": "violations.CA-002.channel",
+            "metadata_value": "hr-confidential",
+            "verified_value": "hr-confidential",
+            "source": "setup_task.sh creates hr-confidential via channels.create (PUBLIC). Live testing confirmed: export_result.json shows hr_confidential.type='public'. Finding CA-002 says '#hr-confidential is configured as a public channel'.",
+            "status": "verified"
+        },
+        {
+            "key": "violations.CA-002.required_type",
+            "metadata_value": "private",
+            "verified_value": "private",
+            "source": "Seeded finding CA-002 says 'Per Policy SEC-AC-001, all HR data channels must be private groups.' Policy SEC-AC-001 in it-security-policy channel confirms: 'All channels containing sensitive data (HR, Finance, Legal, Executive) must be configured as private groups.' Feasibility test confirmed channels.setType endpoint is available for type conversion.",
+            "status": "verified"
+        },
+        {
+            "key": "violations.DR-001.channel",
+            "metadata_value": "finance-confidential",
+            "verified_value": "finance-confidential",
+            "source": "Finding DR-001 says 'Channel #finance-confidential has no retention policy configured.' Live testing confirmed: admin settings show retention.retentionEnabled=null, retentionMaxAge=null for this channel. Global RetentionPolicy_Enabled=true (per-room overrides possible).",
+            "status": "verified"
+        },
+        {
+            "key": "violations.DR-001.retention_max_age_days",
+            "metadata_value": 365,
+            "verified_value": 365,
+            "source": "Policy SEC-DR-002 in it-security-policy channel states: 'Financial data channels: 365-day message retention'. This is the authoritative value the agent must discover by reading the policy channel. Cross-referenced with finding DR-001 which references SEC-DR-002.",
+            "status": "verified"
+        },
+        {
+            "key": "violations.DR-001.exclude_pinned",
+            "metadata_value": true,
+            "verified_value": true,
+            "source": "Policy SEC-DR-002 states: 'exclude pinned messages from automatic pruning' and 'Pinned messages containing standing policies or procedures are excluded from automatic pruning in all cases.' The finance-confidential channel has a pinned standing policy message (verified in live dump: pinned=true on the 4-eye principle message).",
+            "status": "verified"
+        },
+        {
+            "key": "violations.FU-001.max_upload_size_bytes",
+            "metadata_value": 10485760,
+            "verified_value": 10485760,
+            "source": "Policy SEC-FU-001 states: 'Maximum upload size: 10MB workspace-wide.' 10MB = 10 * 1024 * 1024 = 10485760 bytes. Live testing confirmed current (violated) setting is 104857600 (100MB). The agent must change this to 10485760 via Admin > Settings > File Upload > Maximum File Upload Size (in bytes).",
+            "status": "verified"
+        },
+        {
+            "key": "violations.FU-001.allowed_mime_types",
+            "metadata_value": "image/jpeg,image/png,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "verified_value": "image/jpeg,image/png,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "source": "Policy SEC-FU-001 in it-security-policy channel lists exact MIME types. These are standard IANA MIME types: JPEG/PNG/GIF images, PDF documents, and Microsoft Office Open XML formats (docx/xlsx/pptx). Live testing confirmed current whitelist is empty string (allow all). The agent must enter this exact comma-separated list in Admin > Settings > File Upload > Accepted Media Types.",
+            "status": "verified"
+        },
+        {
+            "key": "violations.IR-001.department_name",
+            "metadata_value": "Compliance Reports",
+            "verified_value": "Compliance Reports",
+            "source": "Policy SEC-IR-001 in it-security-policy channel states: 'Department name: \"Compliance Reports\"'. Live testing confirmed no departments exist initially (count: 0). Feasibility test confirmed department creation works via API. The agent creates this via Admin > Omnichannel > Departments > New.",
+            "status": "verified"
+        },
+        {
+            "key": "violations.IR-001.department_email",
+            "metadata_value": "compliance.reports@company.internal",
+            "verified_value": "compliance.reports@company.internal",
+            "source": "Policy SEC-IR-001 states: 'Department email: \"compliance.reports@company.internal\"'. This is the email address the agent must enter in the department creation form. It's a fictional internal domain consistent with the scenario.",
+            "status": "verified"
+        },
+        {
+            "key": "violations.IR-001.agent_username",
+            "metadata_value": "compliance.officer",
+            "verified_value": "compliance.officer",
+            "source": "Policy SEC-IR-001 states: 'The compliance.officer user must be assigned as a LiveChat agent in this department.' setup_task.sh creates this user ('Elena Vasquez - Compliance Officer'). Live testing confirmed user exists. setup_task.sh also removes compliance.officer from livechat agents in clean-slate step.",
+            "status": "verified"
+        },
+        {
+            "key": "initial_violated_state_file_upload",
+            "metadata_value": null,
+            "verified_value": {"FileUpload_MaxFileSize": 104857600, "FileUpload_MediaTypeWhiteList": "", "FileUpload_MediaTypeBlackList": ""},
+            "source": "Live testing evidence (03_admin_settings_violated_state.txt): MaxFileSize=104857600 (100MB), whitelist=empty, blacklist=empty. This is the state the agent sees at task start. setup_task.sh explicitly sets these values.",
+            "status": "verified"
+        },
+        {
+            "key": "initial_violated_state_omnichannel",
+            "metadata_value": null,
+            "verified_value": {"Livechat_enabled": false, "departments_count": 0, "canned_responses_count": 0},
+            "source": "Live testing evidence: Livechat_enabled=false, department count=0, no canned responses. setup_task.sh disables Omnichannel and clears departments via MongoDB direct deletion (RC 8.1 Community API limitation discovered during testing).",
+            "status": "verified"
+        },
+        {
+            "key": "initial_finance_confidential_members",
+            "metadata_value": null,
+            "verified_value": ["admin", "compliance.officer", "contractor.davis", "finance.director", "intern.patel"],
+            "source": "Live API dump (02_seeded_data_full_dump.json) and baseline.json both confirm these 5 members. contractor.davis and intern.patel are the unauthorized members that must be removed. admin and compliance.officer and finance.director should remain.",
+            "status": "verified"
+        },
+        {
+            "key": "hr_confidential_initial_type",
+            "metadata_value": null,
+            "verified_value": "public",
+            "source": "export_result.json from live testing: hr_confidential.type='public'. setup_task.sh creates it via channels.create (public by default). The agent must convert this to private using the channel admin panel or kebab menu > Edit > change type.",
+            "status": "verified"
+        },
+        {
+            "key": "finance_confidential_pinned_message",
+            "metadata_value": null,
+            "verified_value": "Standing policy: All financial documents must follow the 4-eye principle. No single approval for transactions over $5,000. This message is pinned for reference.",
+            "source": "Live API dump shows this message with pinned=true in finance-confidential. This pinned message is relevant because the retention policy must exclude pinned messages. setup_task.sh posts and pins this message via chat.pinMessage API.",
+            "status": "verified"
+        },
+        {
+            "key": "sec_ir_001_department_description",
+            "metadata_value": null,
+            "verified_value": "Internal compliance issue reporting and tracking",
+            "source": "Policy SEC-IR-001 in it-security-policy channel states: 'Department description: \"Internal compliance issue reporting and tracking\"'. The agent must enter this exact text in the department creation form.",
+            "status": "verified"
+        },
+        {
+            "key": "retention_global_state",
+            "metadata_value": null,
+            "verified_value": {"RetentionPolicy_Enabled": true, "AppliesToChannels": true, "GlobalMaxAge": "~100 years (36500 days)", "ExcludePinned": false},
+            "source": "Live testing (03_admin_settings_violated_state.txt): RetentionPolicy_Enabled=true, AppliesToChannels=true. Global max age set to 36500 days so nothing gets auto-pruned globally. Per-channel override on finance-confidential is null/disabled. The agent needs to enable per-room retention override and set 365-day max age with exclude-pinned on this specific channel.",
+            "status": "verified"
+        },
+        {
+            "key": "seeded_message_format",
+            "metadata_value": null,
+            "verified_value": "All seeded messages use format '[username]: message text' and are posted by the admin account. The agent sees these as admin-authored messages with username attribution in brackets.",
+            "source": "Live API dump confirms all messages have user='admin' with text starting with '[username]: '. setup_task.sh post_as() function formats as '[${username}]: ${text}' and sends via admin auth token.",
+            "status": "verified"
+        },
+        {
+            "key": "users_created",
+            "metadata_value": null,
+            "verified_value": ["ciso", "compliance.officer", "legal.counsel", "contractor.davis", "intern.patel", "finance.director"],
+            "source": "setup_task.sh creates 6 users plus admin (pre-existing). All confirmed present during live testing. Users: ciso (Raj Venkataraman), compliance.officer (Elena Vasquez), legal.counsel (Adrienne Moreau), contractor.davis (Mike Davis), intern.patel (Anika Patel), finance.director (James Chen). All have password UserPass123!.",
+            "status": "verified"
+        },
+        {
+            "key": "channels_in_sidebar_at_task_start",
+            "metadata_value": null,
+            "verified_value": ["compliance-audit-findings", "executive-updates", "finance-confidential", "general", "hr-confidential", "hr-operations", "it-security-policy", "release-updates"],
+            "source": "baseline.json baseline_channels field lists all 8 public channels visible at task start. The agent is admin and member of all created channels. release-updates and general are pre-existing from the base environment seed.",
+            "status": "verified"
+        },
+        {
+            "key": "export_result_correctness",
+            "metadata_value": null,
+            "verified_value": "export_result.sh produces valid JSON with all expected fields",
+            "source": "Live testing ran export_result.sh successfully. Output JSON (06_export_result.json) contains all sections: finance_confidential.members, finance_confidential.retention, hr_confidential.exists/type, file_upload.max_file_size/media_type_whitelist, omnichannel.livechat_enabled/department/department_agents, audit_trail.exists/type/members/messages/pinned_messages, executive_updates.admin_messages. All values match expected pre-remediation state.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a fully synthetic Rocket.Chat compliance remediation task. The environment has Rocket.Chat 8.1.0 running with 6 created users (ciso, compliance.officer, legal.counsel, contractor.davis, intern.patel, finance.director) and 6 seeded channels plus 2 pre-existing ones (general, release-updates). The agent is logged in as admin (Admin1234!).\n\nFour audit findings require remediation:\n\nCA-001 (Channel Access): #finance-confidential currently has 5 members: admin, compliance.officer, contractor.davis, finance.director, intern.patel. The agent must REMOVE contractor.davis and intern.patel (unauthorized -- contractor is Engineering, intern is Marketing, per the department roster in #hr-operations). The correct remaining members are admin, compliance.officer, and finance.director.\n\nCA-002 (Channel Privacy): #hr-confidential is currently a PUBLIC channel. The agent must convert it to a PRIVATE group. This is done via the channel's kebab menu or admin panel, changing the channel type.\n\nDR-001 (Retention & File Upload): #finance-confidential has NO per-channel retention policy configured (retentionEnabled=null). The agent must enable per-room retention override with Maximum Message Age = 365 days and Exclude Pinned Messages = enabled (there is a pinned standing policy message about the 4-eye principle). Additionally, global file upload settings must be changed: Maximum File Upload Size from 104857600 (100MB) to 10485760 (10MB), and Accepted Media Types must be set to 'image/jpeg,image/png,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation' (currently empty/allow-all). These values are in Policy SEC-FU-001 in the #it-security-policy channel.\n\nIR-001 (Omnichannel): Omnichannel/LiveChat is currently DISABLED with zero departments and zero canned responses. The agent must: (1) Enable Omnichannel via Admin settings, (2) Create a department named 'Compliance Reports' with description 'Internal compliance issue reporting and tracking' and email 'compliance.reports@company.internal', (3) Assign compliance.officer as a LiveChat agent in this department. Note: canned response creation was removed from task scope because Rocket.Chat 8.1.0 Community Edition restricts this to Enterprise-only functionality.\n\nDocumentation: The agent must create a PRIVATE channel named 'compliance-remediation-log-q1-2026' with members ciso, compliance.officer, and legal.counsel. A structured remediation report must be posted AND PINNED in this channel covering all 4 findings (CA-001, CA-002, DR-001, IR-001). Finally, a compliance status update must be posted in #executive-updates.\n\nAll seeded messages use '[username]: text' format and are posted by the admin account. The policies containing exact configuration values are in #it-security-policy (the agent must read this channel to discover the specific retention days, MIME types, department name, etc.). The findings in #compliance-audit-findings reference these policies but do not contain the exact values.",
+    "pi_confidence": "high"
+}

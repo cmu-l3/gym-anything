@@ -1,0 +1,87 @@
+{
+    "task_id": "debug_fix_clinical_pipeline@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_name",
+            "metadata_value": "clinical-trial-analytics",
+            "verified_value": "clinical-trial-analytics",
+            "source": "Verified from parent pom.xml artifactId and the data directory name examples/eclipse_env/data/clinical-trial-analytics/",
+            "status": "verified"
+        },
+        {
+            "key": "project_path",
+            "metadata_value": "/home/ga/clinical-trial-analytics",
+            "verified_value": "/home/ga/clinical-trial-analytics",
+            "source": "Verified from setup_task.sh line 'cp -r /workspace/data/clinical-trial-analytics /home/ga/clinical-trial-analytics' and export_result.sh PROJECT_DIR variable. Confirmed in live VM testing: project copied and present at this path.",
+            "status": "verified"
+        },
+        {
+            "key": "total_tests",
+            "metadata_value": 15,
+            "verified_value": 15,
+            "source": "Independently counted @Test annotations across all 8 test files: TrialSummaryTest(3) + PatientFilterTest(3) + DoseResponseCurveTest(2) + StatisticalAnalyzerTest(2) + PipelineIntegrationTest(1) + ReportBuilderTest(2) + SummaryFormatterTest(1) + CsvExporterTest(1) = 15. Confirmed by live Maven output in VM showing 'Tests run: 11' for trial-model+trial-engine (3+8) before trial-report compilation failure.",
+            "status": "verified"
+        },
+        {
+            "key": "modules",
+            "metadata_value": ["trial-model", "trial-engine", "trial-report"],
+            "verified_value": ["trial-model", "trial-engine", "trial-report"],
+            "source": "Verified from parent pom.xml <modules> section listing exactly these three in this order. All three directories exist with their own pom.xml files.",
+            "status": "verified"
+        },
+        {
+            "key": "build_issue",
+            "metadata_value": "trial-report/pom.xml has maven.compiler.source/target set to 11 instead of 17",
+            "verified_value": "trial-report/pom.xml has maven.compiler.source/target set to 11 instead of 17",
+            "source": "Verified from trial-report/pom.xml lines 18-19: '<maven.compiler.source>11</maven.compiler.source>' and '<maven.compiler.target>11</maven.compiler.target>'. Parent POM sets Java 17 but trial-report overrides to 11. SummaryFormatter.java uses text blocks (triple-quote strings at lines 15 and 30) which require Java 13+. Live Maven build confirmed compilation error: 'text blocks are not supported in -source 11'.",
+            "status": "verified"
+        },
+        {
+            "key": "bug_1_file",
+            "metadata_value": "trial-engine/src/main/java/com/clinicaltrial/engine/PatientFilter.java",
+            "verified_value": "trial-engine/src/main/java/com/clinicaltrial/engine/PatientFilter.java",
+            "source": "File exists at this path. Confirmed the bug is at line 24: '.filter(p -> p.getWeeksEnrolled() >= config.getMinWeeks())'.",
+            "status": "verified"
+        },
+        {
+            "key": "bug_1_description",
+            "metadata_value": "Off-by-one: >= should be > for getWeeksEnrolled comparison with minWeeks",
+            "verified_value": "Off-by-one: >= should be > for getWeeksEnrolled comparison with minWeeks",
+            "source": "Verified at PatientFilter.java line 24. The >= operator includes patients at exactly minWeeks (12) who have null outcomes (assessment not yet complete). PatientFilterTest.testExcludesIncompletePatients creates patients at week 12 with null outcomes and asserts only 1 patient remains (assertEquals(1, eligible.size())). StatisticalAnalyzerTest.testEdgeCasePatients creates the same scenario and verifies no NPE. Live Maven output confirmed 2 test failures from this bug: testExcludesIncompletePatients (assertion, expected 1 got 3) and testEdgeCasePatients (NPE in computeEfficacy when null-outcome patients slip through filter).",
+            "status": "verified"
+        },
+        {
+            "key": "bug_2_file",
+            "metadata_value": "trial-engine/src/main/java/com/clinicaltrial/engine/StatisticalAnalyzer.java",
+            "verified_value": "trial-engine/src/main/java/com/clinicaltrial/engine/StatisticalAnalyzer.java",
+            "source": "File exists. Bug present at line 30 (computeNormalizedResponses) and line 49 (fitDoseResponseCurve).",
+            "status": "verified"
+        },
+        {
+            "key": "bug_2_description",
+            "metadata_value": "Wrong method: computeGroupBaseline(groups.get(0)) should be computePopulationBaseline(groups)",
+            "verified_value": "Wrong method: computeGroupBaseline(groups.get(0)) should be computePopulationBaseline(groups)",
+            "source": "Verified at StatisticalAnalyzer.java line 30: 'baselineCalc.computeGroupBaseline(groups.get(0))'. The control group (groups.get(0)) has near-zero response scores (~0.002-0.005). Using this as baseline divisor produces enormous normalized values (e.g., ((74.2 - 0.003) / 0.003) * 100 = ~2,473,233%). BaselineCalculator.java has computePopulationBaseline(List<DoseGroup>) at line 31 which returns the population median (~33-42), producing reasonable normalized values. DoseResponseCurveTest.testCurveFitAccuracy asserts normalized values are in range [-200, 500], which fails with group baseline. Live Maven output confirmed this test failure: 'Normalized response 505566.67 is out of reasonable range'.",
+            "status": "verified"
+        },
+        {
+            "key": "bug_3_file",
+            "metadata_value": "trial-model/src/main/java/com/clinicaltrial/model/TrialSummary.java",
+            "verified_value": "trial-model/src/main/java/com/clinicaltrial/model/TrialSummary.java",
+            "source": "File exists. Bug is in the Builder.build() method at lines 49-57.",
+            "status": "verified"
+        },
+        {
+            "key": "bug_3_description",
+            "metadata_value": "Missing field copy in Builder.build(): s.sampleSize = this.sampleSize is absent",
+            "verified_value": "Missing field copy in Builder.build(): s.sampleSize = this.sampleSize is absent",
+            "source": "Verified by reading TrialSummary.java lines 49-57. The build() method copies 5 fields (trialId, meanEfficacy, ciLower, ciUpper, primaryEndpoint) but omits sampleSize. The Builder has 6 setter methods (including sampleSize at line 43) and 6 private fields (including sampleSize at line 36). The build() method has only 5 copy statements. getSampleSize() returns default int value 0. ReportBuilderTest.testSummaryReportValues builds with .sampleSize(40000) and asserts extractSampleSize == 40000, which fails (returns 0). PipelineIntegrationTest.testEndToEndPipeline checks summary.getSampleSize() > 0, which also fails.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic multi-module Maven project (clinical-trial-analytics) with 3 modules (trial-model, trial-engine, trial-report) and exactly 15 JUnit 5 tests. There are 4 issues to fix: (1) Build issue: trial-report/pom.xml lines 18-19 set maven.compiler.source/target to 11, must be changed to 17 because SummaryFormatter.java uses Java text blocks. (2) Bug 1: PatientFilter.java line 24 uses >= for getWeeksEnrolled() comparison with getMinWeeks(); must be changed to > because patients at exactly minWeeks (12) have null outcomes causing NPE in StatisticalAnalyzer.computeEfficacy() at line 79. This bug causes testExcludesIncompletePatients and testEdgeCasePatients to fail. (3) Bug 2: StatisticalAnalyzer.java line 30 calls baselineCalc.computeGroupBaseline(groups.get(0)) which returns ~0.003 (control group mean); must be changed to baselineCalc.computePopulationBaseline(groups) which returns ~33-42 (population median). The near-zero baseline causes normalized values to explode to hundreds of thousands percent. This bug causes testCurveFitAccuracy to fail. (4) Bug 3: TrialSummary.java Builder.build() method (lines 49-57) copies 5 of 6 fields but omits s.sampleSize = this.sampleSize, causing getSampleSize() to always return 0. This causes testSummaryReportValues and the integration test to fail. The fix order is constrained by Maven fail-fast: trial-model tests all pass, trial-engine must pass before trial-report is built. The natural fix progression is Bug1 -> Bug2 -> Bug3 -> Build config. After all fixes, mvn clean test returns BUILD SUCCESS with 15/15 tests passing.",
+    "pi_confidence": "high"
+}

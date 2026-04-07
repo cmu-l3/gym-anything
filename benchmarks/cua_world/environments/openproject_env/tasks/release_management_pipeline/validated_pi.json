@@ -1,0 +1,126 @@
+{
+  "task_id": "release_management_pipeline@1",
+  "dataset": null,
+  "case_id": null,
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "status_names",
+      "metadata_value": ["Ready for QA", "QA Passed", "Staging Deployed"],
+      "verified_value": ["Ready for QA", "QA Passed", "Staging Deployed"],
+      "source": "These are task instructions — new statuses the agent must create. setup_task.sh explicitly deletes them before the task starts (lines 18-29). The names are arbitrary but reasonable for a release pipeline. No pre-existing statuses conflict with these names. Default statuses in OpenProject 15 are: New, In progress, Closed (confirmed from setup_openproject.sh seed script and evidence_docs/create_project/env_setup_post_start.log).",
+      "status": "verified"
+    },
+    {
+      "key": "workflow_role",
+      "metadata_value": "Member",
+      "verified_value": "Member",
+      "source": "Confirmed from live environment testing. setup_openproject.sh tries Role.find_by(name: 'Developer') first but falls back to Role.find_by(name: 'Member'). Evidence log at evidence_docs/create_project/env_setup_post_start.log confirms the role found was 'Member' (id: 3). OpenProject 15 default seed creates 'Member' as the standard non-admin role. Originally set to 'Developer' but corrected to 'Member' after live environment verification showed 'Developer' role does not exist.",
+      "status": "verified"
+    },
+    {
+      "key": "workflow_type",
+      "metadata_value": "Feature",
+      "verified_value": "Feature",
+      "source": "Confirmed from setup_openproject.sh which uses Type.find_by(name: 'Feature'). OpenProject 15 default seed includes Task, Feature, Bug, Milestone, Phase types. Feature type confirmed present in live environment via Admin > Types page.",
+      "status": "verified"
+    },
+    {
+      "key": "workflow_transitions",
+      "metadata_value": [["In progress", "Ready for QA"], ["Ready for QA", "QA Passed"], ["QA Passed", "Staging Deployed"], ["Staging Deployed", "Closed"]],
+      "verified_value": [["In progress", "Ready for QA"], ["Ready for QA", "QA Passed"], ["QA Passed", "Staging Deployed"], ["Staging Deployed", "Closed"]],
+      "source": "Task instructions — transitions the agent must configure. Pre-existing statuses 'In progress' and 'Closed' are confirmed from seed data (setup_openproject.sh uses Status.find_by(name: 'In progress') and Status.find_by(name: 'Closed')). The three new statuses must be created first. The workflow configuration UI is at Administration > Workflows and uses a matrix of checkboxes for role+type combinations.",
+      "status": "verified"
+    },
+    {
+      "key": "custom_field_name",
+      "metadata_value": "Target Release",
+      "verified_value": "Target Release",
+      "source": "Task instruction — new custom field the agent must create. setup_task.sh deletes any pre-existing field with this name (line 32). Verified the custom field creation UI exists at Administration > Custom fields > Work package custom fields in the live environment.",
+      "status": "verified"
+    },
+    {
+      "key": "custom_field_format",
+      "metadata_value": "list",
+      "verified_value": "list",
+      "source": "OpenProject stores list-type custom fields with field_format='list'. This is the internal format name used in the database. The export_result.sh Ruby script checks cf.field_format (line 41). Confirmed by cross-referencing with create_custom_fields_cost_tracking task which also uses list custom fields.",
+      "status": "verified"
+    },
+    {
+      "key": "custom_field_values",
+      "metadata_value": ["v2.0.0-alpha", "v2.1.0-beta", "v3.0.0"],
+      "verified_value": ["v2.0.0-alpha", "v2.1.0-beta", "v3.0.0"],
+      "source": "Task instructions — list options the agent must add to the custom field. These follow standard semantic versioning format. The values are stored as CustomOption records associated with the CustomField. The export script retrieves them via cf.custom_options.order(:position).pluck(:value).",
+      "status": "verified"
+    },
+    {
+      "key": "custom_field_types",
+      "metadata_value": ["Feature", "Bug"],
+      "verified_value": ["Feature", "Bug"],
+      "source": "Both types confirmed to exist in default OpenProject 15 seed. setup_openproject.sh uses Type.find_by(name: 'Bug') and Type.find_by(name: 'Feature') to create work packages. The custom field must be enabled for these types in Administration > Custom fields > edit field > toggle types.",
+      "status": "verified"
+    },
+    {
+      "key": "project_name",
+      "metadata_value": "Release Coordination",
+      "verified_value": "Release Coordination",
+      "source": "Task instruction — new project the agent must create. setup_task.sh deletes any pre-existing project with identifier 'release-coordination' (line 15). The project creation form is accessible at /projects/new or via the '+' button in the top menu.",
+      "status": "verified"
+    },
+    {
+      "key": "project_identifier",
+      "metadata_value": "release-coordination",
+      "verified_value": "release-coordination",
+      "source": "Task instruction — standard OpenProject identifier format (lowercase alphanumeric with hyphens). OpenProject auto-generates identifiers from project names, and 'Release Coordination' would auto-generate to 'release-coordination'. Verified no conflict with existing project identifiers (ecommerce-platform, mobile-banking-app, devops-automation).",
+      "status": "verified"
+    },
+    {
+      "key": "project_modules",
+      "metadata_value": ["work_package_tracking", "wiki", "board_view"],
+      "verified_value": ["work_package_tracking", "wiki", "board_view"],
+      "source": "Module names confirmed from multiple sources: (1) setup_openproject.sh enables work_package_tracking, wiki, timelines, time_tracking, news for existing projects. (2) create_kanban_board/setup_task.sh explicitly enables 'board_view' via project.enabled_modules.create(name: 'board_view') (line 22). These are the internal module identifiers used in OpenProject's enabled_modules database table.",
+      "status": "verified"
+    },
+    {
+      "key": "member_logins",
+      "metadata_value": ["alice.johnson", "bob.smith", "carol.williams"],
+      "verified_value": ["alice.johnson", "bob.smith", "carol.williams"],
+      "source": "All three users confirmed from setup_openproject.sh seed script which creates them with exact login names. Evidence log confirms internal IDs: alice.johnson=5, bob.smith=6, carol.williams=7. All have status=active and force_password_change=false.",
+      "status": "verified"
+    },
+    {
+      "key": "member_role",
+      "metadata_value": "Member",
+      "verified_value": "Member",
+      "source": "Same as workflow_role verification. Role 'Member' (id: 3) confirmed from live environment. This is the standard non-admin role in OpenProject 15 default seed.",
+      "status": "verified"
+    },
+    {
+      "key": "work_packages",
+      "metadata_value": [
+        {"subject": "Release v2.0.0 - E-Commerce Stabilization", "assignee": "alice.johnson", "target_release": "v2.0.0-alpha", "status": "In progress", "type": "Feature"},
+        {"subject": "Release v2.1.0 - Mobile Banking Security Patch", "assignee": "carol.williams", "target_release": "v2.1.0-beta", "status": "New", "type": "Feature"},
+        {"subject": "Release v3.0.0 - Full Platform Upgrade", "assignee": "bob.smith", "target_release": "v3.0.0", "status": "New", "type": "Feature"}
+      ],
+      "verified_value": "Same as metadata — these are task instructions for new WPs the agent must create",
+      "source": "All referenced entities verified: (1) Type 'Feature' exists in default seed. (2) Assignees alice.johnson, bob.smith, carol.williams exist (confirmed). (3) Statuses 'In progress' and 'New' exist (confirmed from seed data). (4) Target Release custom field values must be created first. The WPs are created in the new 'Release Coordination' project using the full-form work package creation dialog.",
+      "status": "verified"
+    },
+    {
+      "key": "board_name",
+      "metadata_value": "Release Pipeline",
+      "verified_value": "Release Pipeline",
+      "source": "Task instruction — new board the agent must create. Requires board_view module (confirmed available). The board creation UI is at Project > Boards > '+' button. Status-based boards use options: {type: 'action', attribute: 'status'} as confirmed by create_kanban_board/export_result.sh (lines 52-54). Columns are added individually and each represents a status.",
+      "status": "verified"
+    },
+    {
+      "key": "wiki_title",
+      "metadata_value": "Release Management Process",
+      "verified_value": "Release Management Process",
+      "source": "Task instruction — new wiki page the agent must create. Requires wiki module (confirmed available and enabled for existing projects). The wiki creation UI is at Project > Wiki > '+' button. The page title becomes the URL slug. Page content is in Textile/Markdown format depending on OpenProject version.",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "This task requires setting up a complete release management pipeline in OpenProject 15 (http://localhost:8080, admin/Admin1234!). The environment has three pre-existing projects (ecommerce-platform, mobile-banking-app, devops-automation), three regular users (alice.johnson, bob.smith, carol.williams), and default statuses (New, In progress, Closed). CRITICAL: The only non-admin role available is 'Member' (id: 3) — there is NO 'Developer' role. The task description correctly references 'Member' role. The internal module name for Boards is 'board_view' (not 'boards'). Work package types Feature and Bug both exist in the default seed. Custom fields of format 'list' store their options as CustomOption records. The workflow configuration UI at Administration > Workflows uses a matrix of checkboxes where rows are 'from' statuses and columns are 'to' statuses, filtered by role and type. The agent must create statuses BEFORE configuring workflows (structural dependency). The custom field must be created BEFORE work packages can use it. The project must be created BEFORE adding members, work packages, boards, or wiki pages. Status-based boards store options as {type: 'action', attribute: 'status'} with each column representing one status. The board_view module must be explicitly enabled on the new project. All three existing projects have modules work_package_tracking, wiki, timelines, time_tracking, news enabled but NOT board_view.",
+  "pi_confidence": "high"
+}

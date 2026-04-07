@@ -1,0 +1,59 @@
+{
+  "id": "analyze_solar_resource_site@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "medium",
+  "description": "A Solar Sales Representative needs to prepare a Solar Resource Assessment Report for a potential commercial client near Phoenix, Arizona. Using the Phoenix, AZ TMY weather data file bundled with SAM (directory path available in `/home/ga/.SAM/solar_resource_dir.txt`), compute key solar resource statistics and output a structured JSON report. \n\nThe report must include annual GHI, DNI, and DHI (in kWh/m²/year), Peak Sun Hours (PSH) per day, annual average ambient temperature (°C), and annual average wind speed (m/s). Additionally, calculate the total GHI (kWh/m²/month) for each of the 12 months and a recommended tilt in degrees using the formula `latitude * 0.76 + 3.1`. \n\nSave the results to `/home/ga/Documents/SAM_Projects/phoenix_site_assessment.json` using this exact structure:\n{\n    \"location\": \"Phoenix, AZ\",\n    \"latitude\": <float>,\n    \"longitude\": <float>,\n    \"annual_ghi_kwh_per_m2\": <float>,\n    \"annual_dni_kwh_per_m2\": <float>,\n    \"annual_dhi_kwh_per_m2\": <float>,\n    \"peak_sun_hours_per_day\": <float>,\n    \"avg_temperature_c\": <float>,\n    \"avg_wind_speed_ms\": <float>,\n    \"recommended_tilt_deg\": <float>,\n    \"monthly_ghi_kwh_per_m2\": [<jan>, <feb>, ..., <dec>],\n    \"weather_file_used\": \"<filename>\"\n}",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/analyze_solar_resource_site/setup_task.sh",
+    "post_task": "/workspace/tasks/analyze_solar_resource_site/export_result.sh"
+  },
+  "metadata": {
+    "expected_filename": "phoenix_site_assessment.json",
+    "ranges": {
+      "latitude": [
+        33.0,
+        34.0
+      ],
+      "annual_ghi": [
+        1800,
+        2300
+      ],
+      "annual_dni": [
+        2300,
+        2900
+      ],
+      "annual_dhi": [
+        500,
+        900
+      ],
+      "psh": [
+        4.9,
+        6.3
+      ],
+      "temp": [
+        20.0,
+        28.0
+      ],
+      "wind": [
+        1.0,
+        6.0
+      ],
+      "tilt": [
+        25.0,
+        35.0
+      ]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_solar_resource_assessment"
+    }
+  }
+}

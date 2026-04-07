@@ -1,0 +1,34 @@
+{
+  "id": "init_sidecar_pattern_debug@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "A data processing application has been deployed to the `data-pipeline` namespace using init-container and sidecar patterns, but the pods are failing to start. The `data-processor` Deployment should have:\n\n- An **init container** (`init-config`) that writes application configuration to `/data/config/app.conf` before the main app starts\n- A **main container** (`app`) that reads configuration from the config volume and writes logs to `/var/log/app/`\n- A **sidecar container** (`log-collector`) that tails logs from `/var/log/app/app.log`\n- Two shared emptyDir volumes: `shared-config` (for config) and `shared-logs` (for logs)\n\nDiagnose why the pods aren't starting and fix all issues. You must fix the existing `data-processor` deployment in the `data-pipeline` namespace. Use the Rancher UI at https://localhost (admin / Admin12345678!) or kubectl via terminal.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/init_sidecar_pattern_debug/setup_task.sh",
+    "post_task": "/workspace/tasks/init_sidecar_pattern_debug/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Computer Systems Engineer",
+    "target_namespace": "data-pipeline",
+    "target_deployment": "data-processor",
+    "pass_threshold": 70,
+    "injected_failures": [
+      "init container image is busybox:99.99 (does not exist)",
+      "init container volumeMount is /wrong/path/ (should be /data/config/)",
+      "sidecar container missing volumeMount for shared-logs",
+      "main container CONFIG_PATH env var is /etc/config (should be /data/config)"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_init_sidecar_pattern_debug"
+    }
+  }
+}

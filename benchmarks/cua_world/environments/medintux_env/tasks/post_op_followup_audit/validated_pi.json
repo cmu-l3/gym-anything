@@ -1,0 +1,73 @@
+{
+    "task_id": "post_op_followup_audit@1",
+    "dataset": "Post-Op Cataract Surgery Follow-up Audit",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/Documents/audit_cataracte_2024.csv",
+            "verified_value": "/home/ga/Documents/audit_cataracte_2024.csv",
+            "source": "Verified against export_result.sh line 10 (OUTPUT_PATH variable)",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_path",
+            "metadata_value": "/var/lib/medintux/ground_truth_audit.json",
+            "verified_value": "/var/lib/medintux/ground_truth_audit.json",
+            "source": "Verified against setup_task.sh line 112 (cat > /var/lib/medintux/ground_truth_audit.json) and export_result.sh line 11",
+            "status": "verified"
+        },
+        {
+            "key": "non_compliant_patient_count",
+            "metadata_value": "3",
+            "verified_value": "3",
+            "source": "Code analysis of setup_task.sh: GUID_2 (no follow-up), GUID_3 (Day 31 follow-up, outside 1-7 day window), GUID_6 (Day 8 follow-up, outside 1-7 day window)",
+            "status": "verified"
+        },
+        {
+            "key": "compliant_patient_count",
+            "metadata_value": "3",
+            "verified_value": "3",
+            "source": "Code analysis of setup_task.sh: GUID_1 (Day 2), GUID_4 (Day 7), GUID_5 (Day 1) all within mandatory 1-7 day post-operative window",
+            "status": "verified"
+        },
+        {
+            "key": "followup_window_days",
+            "metadata_value": "1-7 inclusive",
+            "verified_value": "1-7 inclusive",
+            "source": "Task description and verifier.py scoring logic confirm 1-7 day inclusive window",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "Synthetic test data",
+            "verified_value": "Synthetic test data injected via setup_task.sh (6 test scenarios with controlled outcomes)",
+            "source": "setup_task.sh lines 19-125: Hardcoded patient data injection with gen_guid() for UUIDs and specific dates for testing boundary conditions",
+            "status": "verified"
+        },
+        {
+            "key": "boundary_case_day_7",
+            "metadata_value": "BERNARD (GUID_4) - Compliant",
+            "verified_value": "BERNARD (GUID_4) on 2024-04-27 (7 days after 2024-04-20 surgery) - Compliant",
+            "source": "setup_task.sh lines 89-92 and verifier.py lines 110-114 confirm Day 7 boundary is compliant",
+            "status": "verified"
+        },
+        {
+            "key": "boundary_case_day_8",
+            "metadata_value": "LEROY (GUID_6) - Non-Compliant",
+            "verified_value": "LEROY (GUID_6) on 2024-06-09 (8 days after 2024-06-01 surgery) - Non-Compliant",
+            "source": "setup_task.sh lines 105-108 and verifier.py lines 104-108 confirm Day 8 boundary is non-compliant",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_scoring_logic",
+            "metadata_value": "20 pts base + 30 pts correct identifications + 30 pts exclusions + 20 pts boundary cases = max 100 pts",
+            "verified_value": "Base: 20 pts, Correct identifications: 10 pts per patient (max 30), Exclusions: 30 pts (deduct 10 per false positive), Boundary cases: 10 pts each (max 20)",
+            "source": "verifier.py lines 70-114: Explicit scoring breakdown with pass threshold >= 70 pts",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The post_op_followup_audit task uses synthetic test data with 6 controlled scenarios to audit cataract surgery follow-up compliance. The task verifies that agents correctly identify 3 non-compliant patients (GUID_2: no follow-up, GUID_3: Day 31 follow-up outside 1-7 day mandatory window, GUID_6: Day 8 follow-up outside window) and exclude 3 compliant patients (GUID_1: Day 2, GUID_4: Day 7 boundary, GUID_5: Day 1). Expected output is written to /home/ga/Documents/audit_cataracte_2024.csv with headers GUID, Nom, Prenom, Date_Chirurgie, Statut. Ground truth stored at /var/lib/medintux/ground_truth_audit.json contains the dynamically-generated GUIDs and expected compliance status for all 6 patients.",
+    "pi_confidence": "high"
+}

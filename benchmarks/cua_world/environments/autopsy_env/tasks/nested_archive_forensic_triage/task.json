@@ -1,0 +1,27 @@
+{
+  "id": "nested_archive_forensic_triage@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "A disguised container file is located at /home/ga/evidence/server_backup.dat. This file is a GZIP compressed tarball containing a ZIP archive (payloads.zip), which contains two raw disk images (vm_disk_01.dd and usb_clone.dd). Conduct a forensic triage by creating a case named 'Archive_Triage_2024' (case number 'INV-ARC-002') in /home/ga/Cases/. Process the server_backup.dat file as a Logical File data source using the 'File Type Identification', 'Embedded File Extractor', 'Extension Mismatch Detector', and 'Hash Lookup' modules. Export the nested vm_disk_01.dd and usb_clone.dd files to /home/ga/Cases/Archive_Triage_2024/Export/ and add the exported vm_disk_01.dd as a Disk Image data source to the case. Document the MD5 hashes of all four files (server_backup.dat, payloads.zip, vm_disk_01.dd, and usb_clone.dd) in a pipe-delimited report at /home/ga/Reports/archive_provenance.txt using the header 'FILE|MD5'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nested_archive_forensic_triage/setup_task.sh",
+    "post_task": "/workspace/tasks/nested_archive_forensic_triage/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Archive_Triage_2024",
+    "result_file": "/tmp/nested_archive_result.json",
+    "gt_file": "/tmp/nested_archive_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nested_archive_triage"
+    }
+  }
+}

@@ -1,0 +1,136 @@
+{
+    "task_id": "pipeline_corridor_inspection_deployment@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "plan_path",
+            "metadata_value": "/home/ga/Documents/QGC/pipeline_inspection.plan",
+            "verified_value": "/home/ga/Documents/QGC/pipeline_inspection.plan",
+            "source": "Consistent across task.json, setup_task.sh (rm -f on line 125), export_result.sh (PLAN_FILE on line 9), and ops doc Section 6. Live test confirmed directory /home/ga/Documents/QGC/ exists with ga:ga ownership and 755 permissions.",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/task_result.json",
+            "verified_value": "/tmp/task_result.json",
+            "source": "export_result.sh writes to /tmp/task_result.json (line 82). Live test: ran export_result.sh, confirmed valid JSON written to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "ops_doc",
+            "metadata_value": "/home/ga/Documents/QGC/pipeline_ops_package.txt",
+            "verified_value": "/home/ga/Documents/QGC/pipeline_ops_package.txt",
+            "source": "setup_task.sh creates this file (line 12). Live test: confirmed file exists (2977 bytes), content matches all specifications with 6 sections (Pipeline Route, Camera, Parameters, Geofence, Rally Points, Mission Structure).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_altitude_m",
+            "metadata_value": 46,
+            "verified_value": 45.88,
+            "source": "Independently computed from GSD formula: Altitude = (GSD_m × Focal_mm × ImageWidth_px) / SensorWidth_mm = (0.06 × 13.0 × 640) / 10.88 = 499.2 / 10.88 = 45.882 m. Rounds to 46m. FLIR Vue Pro R 640 specs verified from FLIR official documentation (flir.custhelp.com/app/answers/detail/a_id/3395): 17μm pixel pitch × 640px = 10.88mm sensor width; 13mm is the standard lens option. The metadata value of 46 is correct (rounded from 45.88).",
+            "status": "verified"
+        },
+        {
+            "key": "altitude_tolerance",
+            "metadata_value": [40, 55],
+            "verified_value": [40, 55],
+            "source": "Tolerance range [40, 55] encompasses the exact calculated altitude of 45.88m with ±6m margin. This accounts for: (a) rounding in GSD formula, (b) QGC altitude entry granularity, (c) agents may compute slightly different values. Consistent with existing task corridor_canal_inspection which uses [45, 75] for a 61.2m target.",
+            "status": "verified"
+        },
+        {
+            "key": "corridor_width_m",
+            "metadata_value": 30,
+            "verified_value": 30,
+            "source": "Ops doc Section 1 states 'Corridor survey width: 30 meters (15 m each side of centerline)'. This is the value the agent must enter in QGC Corridor Scan width field.",
+            "status": "verified"
+        },
+        {
+            "key": "corridor_width_tolerance",
+            "metadata_value": [25, 35],
+            "verified_value": [25, 35],
+            "source": "±5m tolerance around 30m target. Consistent with existing corridor_canal_inspection which uses [60, 100] for an 80m target (±20m, proportionally wider).",
+            "status": "verified"
+        },
+        {
+            "key": "frontal_overlap_pct",
+            "metadata_value": 75,
+            "verified_value": 75,
+            "source": "Ops doc Section 2 states 'Frontal overlap: 75%'. Standard value for thermal pipeline inspection (hover-and-capture mode requires higher overlap for thermal frame clarity).",
+            "status": "verified"
+        },
+        {
+            "key": "frontal_overlap_tolerance",
+            "metadata_value": [70, 80],
+            "verified_value": [70, 80],
+            "source": "±5% tolerance around 75%. Consistent with existing corridor_canal_inspection which uses [60, 85] for 70% target.",
+            "status": "verified"
+        },
+        {
+            "key": "side_overlap_pct",
+            "metadata_value": 65,
+            "verified_value": 65,
+            "source": "Ops doc Section 2 states 'Side overlap: 65%'.",
+            "status": "verified"
+        },
+        {
+            "key": "side_overlap_tolerance",
+            "metadata_value": [60, 70],
+            "verified_value": [60, 70],
+            "source": "±5% tolerance around 65%. Consistent with existing corridor_canal_inspection which uses [50, 75] for 60% target.",
+            "status": "verified"
+        },
+        {
+            "key": "min_inclusion_vertices",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "Ops doc Section 4 lists exactly 4 vertices for the inclusion boundary: SW (47.3910,8.5370), SE (47.3910,8.5510), NE (47.4020,8.5510), NW (47.4020,8.5370). Forms a rectangle encompassing the pipeline corridor. All 5 route waypoints independently verified to fall within this rectangle.",
+            "status": "verified"
+        },
+        {
+            "key": "min_rally_points",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "Ops doc Section 5 specifies exactly 2 rally points: RP1 at (47.3930,8.5395) near VS-12, RP2 at (47.3995,8.5485) near VS-13. Both independently verified to be inside the inclusion fence and outside the exclusion zone (383m and 608m from exclusion center respectively, both > 80m radius).",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.WP_SPD",
+            "metadata_value": 4.0,
+            "verified_value": 4.0,
+            "source": "Ops doc Section 3: 'WP_SPD: 4 (4 m/s)'. Live SITL firmware probe confirmed parameter exists with default 10.0 m/s. Successfully set to 4.0 and read back 4.0 during live testing. Cross-referenced with sar_thermal_survey_preparation/validated_pi.json which confirms 'WP_SPD is waypoint horizontal speed in m/s (default 10 m/s)' and 'this is NOT the legacy WPNAV_SPEED parameter (which was in cm/s and does not exist in this firmware build)'.",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.WP_ACC",
+            "metadata_value": 1.5,
+            "verified_value": 1.5,
+            "source": "Ops doc Section 3: 'WP_ACC: 1.5 (gentle acceleration for stable imaging)'. Live SITL firmware probe confirmed parameter exists with default 2.5. Successfully reset to 2.5 and verified readable. ArduCopter WP_ACC controls waypoint acceleration in m/s^2.",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.RTL_ALT_M",
+            "metadata_value": 60.0,
+            "verified_value": 60.0,
+            "source": "Ops doc Section 3: 'RTL_ALT_M: 60 (60 m return altitude)'. Live SITL firmware probe confirmed parameter exists with default 15.0 m. Cross-referenced with sar_thermal_survey_preparation/validated_pi.json which confirms 'RTL_ALT_M is the return-to-launch altitude in meters (default 15m)' and 'this is NOT the legacy RTL_ALT parameter (which was in centimeters and does not exist in this firmware build)'.",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.FENCE_ENABLE",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Ops doc Section 3: 'FENCE_ENABLE: 1 (required for BVLOS — activates geofence)'. Live SITL probe confirmed parameter exists, currently set to 0.0 (correctly reset to wrong default). ArduCopter docs: FENCE_ENABLE=1 enables geofence checking. Cross-referenced with geofence_safety_setup task which also requires FENCE_ENABLE=1 (set to 0 as wrong default).",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.FENCE_ACTION",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Ops doc Section 3: 'FENCE_ACTION: 1 (RTL on geofence breach)'. Live SITL probe confirmed parameter exists, currently set to 0.0. ArduCopter docs: FENCE_ACTION=0 is report-only, FENCE_ACTION=1 is RTL. Cross-referenced with geofence_safety_setup task verifier which checks FENCE_ACTION==1.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The agent must complete a pipeline corridor inspection deployment in QGroundControl. Five ArduCopter parameters must be set: WP_SPD=4.0 (m/s), WP_ACC=1.5 (m/s^2), RTL_ALT_M=60.0 (meters), FENCE_ENABLE=1, FENCE_ACTION=1. These are the correct SITL parameter names (NOT legacy WPNAV_SPEED/RTL_ALT). Parameters are reset to wrong defaults (10.0, 2.5, 15.0, 0, 0) before the task. A Corridor Scan mission must be created along a pipeline route from (47.3920,8.5380) to (47.4010,8.5500) with 3 intermediate waypoints, total route ~1.35km. The FLIR Vue Pro R 640 thermal camera has sensor 10.88x8.70mm (640x512px, 17μm pitch), focal length 13mm. At target GSD of 6.0 cm/pixel, the correct flight altitude is 45.88m (rounds to 46m), calculated as (0.06 × 13.0 × 640) / 10.88. Corridor width: 30m. Frontal overlap: 75%. Side overlap: 65%. An inclusion geofence polygon must have vertices at (47.3910,8.5370), (47.3910,8.5510), (47.4020,8.5510), (47.4020,8.5370). A circular exclusion zone must be at center (47.3955,8.5430) with radius 80m. Two rally points at (47.3930,8.5395) and (47.3995,8.5485), both at 40m altitude. Everything saved to /home/ga/Documents/QGC/pipeline_inspection.plan. The Plan view has Mission/Fence/Rally tabs on the right sidebar. Corridor Scan is found under Pattern in the left panel. Vehicle parameters are in Q menu > Vehicle Configuration > Parameters, organized by groups (FENCE group exists). QGC version shows as v3.8 (4.11) in the menu. The QGC save path defaults to /home/ga/Documents/QGroundControl per the INI file.",
+    "pi_confidence": "high"
+}

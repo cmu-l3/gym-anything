@@ -1,0 +1,28 @@
+{
+  "id": "splunk_metrics_pipeline_conversion@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "The CISO's global dashboard tracking authentication failures is slow because it aggregates millions of raw SSH event logs every time it's opened. Log in to Splunk (http://localhost:8000) as 'admin' / 'SplunkAdmin1!' and optimize this by aggregating failed authentication events from the 'security_logs' index into a dedicated Metrics index named 'auth_metrics'. This aggregation must be managed by an hourly scheduled report named 'Auth_Metrics_Rollup' and include backfilled historical data from the last 30 days.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/splunk_metrics_pipeline_conversion/setup_task.sh",
+    "post_task": "/workspace/tasks/splunk_metrics_pipeline_conversion/export_result.sh"
+  },
+  "metadata": {
+    "expected_index_name": "auth_metrics",
+    "expected_datatype": "metric",
+    "expected_report_name": "Auth_Metrics_Rollup",
+    "expected_command": "mcollect"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_metrics_pipeline_conversion"
+    }
+  }
+}

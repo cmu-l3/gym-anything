@@ -1,0 +1,39 @@
+{
+  "id": "statefulset_database_cluster_restoration@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "A healthcare data platform's PostgreSQL StatefulSet cluster in the 'data-platform' namespace has degraded after a failed storage migration. Four separate misconfiguration failures were injected: the StatefulSet uses the wrong container image tag, the database Secret has an incorrect password key name, the StatefulSet's resource requests are missing (causing OOMKilled in production), and the headless Service is missing its 'clusterIP: None' setting causing DNS resolution failures for cluster members. A runbook at /home/ga/Desktop/database_cluster_runbook.md describes the intended configuration. Restore the cluster to its specified state. Login to Rancher at https://localhost (cluster: 'local') with credentials admin / Admin12345678!.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 120
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/statefulset_database_cluster_restoration/setup_task.sh",
+    "post_task": "/workspace/tasks/statefulset_database_cluster_restoration/export_result.sh"
+  },
+  "metadata": {
+    "target_namespace": "data-platform",
+    "runbook": "/home/ga/Desktop/database_cluster_runbook.md",
+    "num_failures": 4,
+    "injected_failures": [
+      "StatefulSet postgres-cluster uses image postgres:14-alpine instead of postgres:15-alpine",
+      "Secret 'postgres-credentials' has key 'DB_PASSWORD' instead of required 'POSTGRES_PASSWORD'",
+      "StatefulSet containers missing resource requests (cpu and memory)",
+      "Headless Service 'postgres-cluster' has clusterIP set instead of None (breaks StatefulSet DNS)"
+    ],
+    "verification_criteria": {
+      "C1": "StatefulSet postgres-cluster uses image tag postgres:15-alpine",
+      "C2": "Secret 'postgres-credentials' has key 'POSTGRES_PASSWORD'",
+      "C3": "StatefulSet containers have cpu and memory resource requests set",
+      "C4": "Service 'postgres-cluster' has clusterIP: None (headless)"
+    },
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_statefulset_database_cluster_restoration"
+    }
+  }
+}

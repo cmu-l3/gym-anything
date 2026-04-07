@@ -1,0 +1,129 @@
+{
+    "task_id": "configure_global_scripts@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "api_url",
+            "metadata_value": "https://localhost:8443/api/server/globalScripts",
+            "verified_value": "https://localhost:8443/api/server/globalScripts (endpoint path not explicitly confirmed in public documentation; base /api path and /server prefix verified for other endpoints like /server/version)",
+            "source": "NextGen Connect setup script confirms https://localhost:8443/api and /server/version endpoint; web search found references to globalScripts endpoint in REST API but exact /server path prefix not definitively documented",
+            "status": "unverified"
+        },
+        {
+            "key": "required_keys",
+            "metadata_value": "[\"systemStartTime\", \"auditMessageCount\", \"auditReceivedTimestamp\", \"auditTraceId\"]",
+            "verified_value": null,
+            "source": "These are custom keys defined by the task, not standard Mirth Connect keys. globalMap.put() and channelMap.put() patterns are verified to work with arbitrary keys in Mirth Connect scripts.",
+            "status": "unverified"
+        },
+        {
+            "key": "required_logs",
+            "metadata_value": "[\"AUDIT_DEPLOY\", \"AUDIT_UNDEPLOY\", \"AUDIT_PREPROCESSOR\", \"AUDIT_POSTPROCESSOR\"]",
+            "verified_value": null,
+            "source": "These are custom log strings defined by the task. logger.info() is verified to work in Mirth Connect global scripts for arbitrary message strings.",
+            "status": "unverified"
+        },
+        {
+            "key": "script_types_deploy",
+            "metadata_value": "Deploy",
+            "verified_value": "Deploy",
+            "source": "GitHub Mirth documentation and NextGen Healthcare docs confirm Deploy, Undeploy, Preprocessor, and Postprocessor are the four global script types in Mirth Connect. Deploy script executes once when all channels start up from deployment. Initializes with access to globalMap.",
+            "status": "verified"
+        },
+        {
+            "key": "script_types_undeploy",
+            "metadata_value": "Undeploy",
+            "verified_value": "Undeploy",
+            "source": "Confirmed in search results and Mirth Connect documentation. Undeploy script executes once when all channels shut down from undeployment with access to globalMap.",
+            "status": "verified"
+        },
+        {
+            "key": "script_types_preprocessor",
+            "metadata_value": "Preprocessor",
+            "verified_value": "Preprocessor",
+            "source": "Confirmed in Mirth Connect documentation. Global Preprocessor script executes before channel message processing with access to channelMap.",
+            "status": "verified"
+        },
+        {
+            "key": "script_types_postprocessor",
+            "metadata_value": "Postprocessor",
+            "verified_value": "Postprocessor",
+            "source": "Confirmed in Mirth Connect documentation. Global Postprocessor script executes after message processing with access to globalMap for counting/tracking.",
+            "status": "verified"
+        },
+        {
+            "key": "authentication_method",
+            "metadata_value": "Basic (admin/admin)",
+            "verified_value": "Basic Auth (admin/admin) is supported",
+            "source": "Confirmed in: NextGen Connect documentation stating 'Mirth Connect supports both session-based cookie authentication and basic authentication'; task_utils.sh uses curl with -u admin:admin; official docs state X-Requested-With header required",
+            "status": "verified"
+        },
+        {
+            "key": "required_header",
+            "metadata_value": "X-Requested-With: OpenAPI",
+            "verified_value": "X-Requested-With: OpenAPI",
+            "source": "setup_nextgen_connect.sh line 35-36 explicitly states 'CRITICAL: X-Requested-With header required by NextGen Connect 4.x' and includes header in all API calls. Verified in task_utils.sh api_call functions.",
+            "status": "verified"
+        },
+        {
+            "key": "data_format",
+            "metadata_value": "application/xml",
+            "verified_value": "application/xml (also supports application/json with auto-conversion)",
+            "source": "Setup script uses XML for global scripts payload. Web search confirms Mirth Connect supports both XML and JSON with automatic conversion between them. Default and primary format is XML.",
+            "status": "verified"
+        },
+        {
+            "key": "globalMap_availability",
+            "metadata_value": "Available in Deploy, Undeploy, Preprocessor, Postprocessor scripts",
+            "verified_value": "globalMap is available in all global scripts including Deploy, Undeploy, Preprocessor, and Postprocessor",
+            "source": "NextGen/Mirth documentation confirms globalMap is 'available across your entire server, across all channels'. Task description and docs show globalMap.put() usage in all four script types.",
+            "status": "verified"
+        },
+        {
+            "key": "channelMap_availability",
+            "metadata_value": "Available in Preprocessor script",
+            "verified_value": "channelMap is available in Preprocessor script for storing per-message data during preprocessing",
+            "source": "Mirth Connect documentation confirms channelMap is available in preprocessor scripts for message-specific data storage. Task requires channelMap.put() for auditReceivedTimestamp and auditTraceId.",
+            "status": "verified"
+        },
+        {
+            "key": "new_date_java",
+            "metadata_value": "new Date().toString() and new Date().toISOString() work in scripts",
+            "verified_value": "new Date() works in Mirth Connect JavaScript engine; has .toString() and .toISOString() methods",
+            "source": "GitHub examples show 'new Date()' usage in Mirth scripts. Java Date objects are available in the JavaScript execution context of Mirth Connect.",
+            "status": "verified"
+        },
+        {
+            "key": "uuid_generation",
+            "metadata_value": "java.util.UUID.randomUUID().toString() available",
+            "verified_value": "java.util.UUID is available in Mirth Connect script context",
+            "source": "Task description shows usage of java.util.UUID.randomUUID().toString() pattern which is standard Java UUID generation accessible in Mirth scripts.",
+            "status": "unverified"
+        },
+        {
+            "key": "nextgen_connect_version",
+            "metadata_value": "4.5.0 (implied from environment)",
+            "verified_value": "4.5.0",
+            "source": "setup_nextgen_connect.sh line 98 specifies Docker image: nextgenhealthcare/connect:4.5.0",
+            "status": "verified"
+        },
+        {
+            "key": "http_ports",
+            "metadata_value": "8080 (HTTP), 8443 (HTTPS)",
+            "verified_value": "Port 8080 for HTTP landing page, 8443 for HTTPS REST API",
+            "source": "setup_nextgen_connect.sh lines 82-83 expose ports 8080 and 8443. Script confirms 'HTTP Landing: http://localhost:8080' and 'REST API: https://localhost:8443/api'",
+            "status": "verified"
+        },
+        {
+            "key": "preprocessor_return_message",
+            "metadata_value": "Preprocessor script must return message",
+            "verified_value": "return message; is required in preprocessor script",
+            "source": "Task description and verifier.py line 91 check for 'return message' in preprocessor code. Default template shows 'return message;' requirement.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "NextGen Connect 4.5.0 is the target system. It exposes a REST API at https://localhost:8443/api requiring Basic authentication (admin/admin) and X-Requested-With: OpenAPI header. Global scripts (Deploy, Undeploy, Preprocessor, Postprocessor) are configured via XML-formatted API requests. The Deploy script executes once on channel deployment with globalMap access; Undeploy executes on shutdown with globalMap access; Preprocessor runs before message processing with channelMap access (must return message); Postprocessor runs after processing with globalMap access for counting. Java Date objects and java.util.UUID are available in the JavaScript execution context. Data is real server configuration, not synthetic test data.",
+    "pi_confidence": "high"
+}

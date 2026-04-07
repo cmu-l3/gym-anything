@@ -1,0 +1,67 @@
+{
+    "task_id": "sidecar_packet_capture_security@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/debug-auth",
+            "verified_value": "/home/ga/debug-auth",
+            "source": "Verified from setup_task.sh and export_result.sh which create and use this directory.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_service_name",
+            "metadata_value": "sniffer",
+            "verified_value": "sniffer",
+            "source": "Verified from export_result.sh which filters docker containers for the name 'sniffer'.",
+            "status": "verified"
+        },
+        {
+            "key": "target_service",
+            "metadata_value": "auth-service",
+            "verified_value": "auth-service",
+            "source": "Verified from setup_task.sh which creates the 'auth-service' and verifier.py which checks if network namespace is shared with it.",
+            "status": "verified"
+        },
+        {
+            "key": "pcap_file",
+            "metadata_value": "captures/capture.pcap",
+            "verified_value": "captures/capture.pcap",
+            "source": "Verified from export_result.sh which checks for the file at $PROJECT_DIR/captures/capture.pcap.",
+            "status": "verified"
+        },
+        {
+            "key": "required_caps",
+            "metadata_value": [
+                "NET_ADMIN",
+                "NET_RAW"
+            ],
+            "verified_value": [
+                "NET_ADMIN",
+                "NET_RAW"
+            ],
+            "source": "Verified from verifier.py which checks if 'NET_ADMIN' or 'NET_RAW' are present in the container's added capabilities.",
+            "status": "verified"
+        },
+        {
+            "key": "forbidden_caps",
+            "metadata_value": [
+                "ALL"
+            ],
+            "verified_value": null,
+            "source": "Contradicted by verifier.py, which explicitly accepts 'ALL' as a valid capability to satisfy the requirements ('ALL' in caps).",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_pcap_size_bytes",
+            "metadata_value": 100,
+            "verified_value": 100,
+            "source": "Verified from verifier.py which requires the pcap file size to be greater than this value.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task environment creates a synthetic Flask authentication service ('auth-service') at '/home/ga/debug-auth'. The agent must deploy a sidecar container named 'sniffer' to capture packets into 'captures/capture.pcap' (minimum 100 bytes). The sidecar must share the network namespace of the auth-service and use capabilities like NET_ADMIN or NET_RAW without running in privileged mode. The metadata claim that the 'ALL' capability is forbidden is contradicted by the verifier logic, which explicitly accepts it.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,39 @@
+{
+  "id": "cluster_rbac_audit_and_remediation@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "A cloud-native SaaS company's Kubernetes cluster has accumulated 4 RBAC security violations during rapid developer onboarding. The violations span the 'dev-team', 'qa-team', and 'platform-ops' namespaces. An internal security review document at /home/ga/Desktop/rbac_review_findings.md describes the violations by category and affected team, not by specific resource names. As the Kubernetes Security Engineer, you must read the review document, identify the specific misconfigurations by inspecting the cluster, and remediate all 4 findings. Login to Rancher at https://localhost (cluster: 'local') with credentials admin / Admin12345678!.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 120
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cluster_rbac_audit_and_remediation/setup_task.sh",
+    "post_task": "/workspace/tasks/cluster_rbac_audit_and_remediation/export_result.sh"
+  },
+  "metadata": {
+    "target_namespaces": ["dev-team", "qa-team", "platform-ops"],
+    "review_document": "/home/ga/Desktop/rbac_review_findings.md",
+    "num_violations": 4,
+    "injected_violations": [
+      "dev-team: ServiceAccount 'ci-runner' has ClusterRoleBinding to 'edit' ClusterRole (should be namespace-scoped RoleBinding)",
+      "qa-team: Role 'qa-tester' has wildcard verbs (*) on pods — excessive permissions",
+      "platform-ops: ServiceAccount 'ops-agent' is bound to cluster-admin (must be removed)",
+      "dev-team: Namespace missing label 'pod-security.kubernetes.io/enforce: restricted' required by policy"
+    ],
+    "verification_criteria": {
+      "C1": "No ClusterRoleBinding exists binding ci-runner ServiceAccount in dev-team to 'edit' ClusterRole",
+      "C2": "Role 'qa-tester' in qa-team does not have wildcard verbs (*) on pods resource",
+      "C3": "No ClusterRoleBinding exists binding ops-agent ServiceAccount in platform-ops to cluster-admin",
+      "C4": "dev-team namespace has label 'pod-security.kubernetes.io/enforce: restricted'"
+    },
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cluster_rbac_audit_and_remediation"
+    }
+  }
+}

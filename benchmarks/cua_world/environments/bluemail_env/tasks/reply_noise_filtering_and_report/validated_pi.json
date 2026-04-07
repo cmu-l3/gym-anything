@@ -1,0 +1,38 @@
+{
+    "task_id": "reply_noise_filtering_and_report@1",
+    "dataset": "SpamAssassin public corpus",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "archive_folder_name",
+            "metadata_value": "Replies-Archive",
+            "verified_value": "Replies-Archive",
+            "source": "export_result.sh checks for .Replies-Archive directory",
+            "status": "verified"
+        },
+        {
+            "key": "report_recipient",
+            "metadata_value": "manager@company.com",
+            "verified_value": "manager@company.com",
+            "source": "export_result.sh explicitly checks for manager@company.com in to_addr",
+            "status": "verified"
+        },
+        {
+            "key": "required_flag",
+            "metadata_value": "F",
+            "verified_value": "F",
+            "source": "export_result.sh evaluates the F flag in Maildir filenames",
+            "status": "verified"
+        },
+        {
+            "key": "subject_pattern",
+            "metadata_value": "(?i)re:",
+            "verified_value": "^(?i)\\\\s*re:",
+            "source": "export_result.sh uses subject.lower().strip().startswith(\"re:\") which strictly requires the subject to start with \"re:\". This explicitly contradicts the claimed case-insensitive regex \"(?i)re:\" which allows \"re:\" anywhere in the subject.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task operates on 50 real emails from the SpamAssassin public corpus. The setup script explicitly modifies their subjects to create a 50/50 split of replies and new topics. The expected archive folder name \"Replies-Archive\" and the recipient \"manager@company.com\" are verified to match the export_result.sh evaluation logic. The required flag corresponds to the \"F\" Maildir flag. A significant contradiction was found regarding the subject pattern: while the task instructions and metadata claim the pattern is \"(?i)re:\" (meaning \"contains Re:\"), the evaluation script strictly requires the subject to *start* with \"Re:\" after stripping whitespace (i.e., \"^(?i)\\\\s*re:\"). Consequently, an email with the subject \"[zzzzteana] RE: Alexander\" will be incorrectly penalized as a false positive if moved to the archive.",
+    "pi_confidence": "high"
+}

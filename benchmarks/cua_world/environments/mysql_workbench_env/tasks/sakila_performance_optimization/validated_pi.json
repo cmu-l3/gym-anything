@@ -1,0 +1,84 @@
+{
+    "task_id": "sakila_performance_optimization@1",
+    "dataset": "sakila",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_database",
+            "metadata_value": "sakila",
+            "verified_value": "sakila",
+            "source": "Verified from setup_task.sh and export_result.sh, which target the sakila database.",
+            "status": "verified"
+        },
+        {
+            "key": "dropped_indexes",
+            "metadata_value": [
+                {
+                    "table": "rental",
+                    "column": "customer_id",
+                    "original_name": "idx_fk_customer_id"
+                },
+                {
+                    "table": "payment",
+                    "column": "rental_id",
+                    "original_name": "idx_fk_rental_id"
+                },
+                {
+                    "table": "inventory",
+                    "column": "film_id",
+                    "original_name": "idx_fk_film_id"
+                }
+            ],
+            "verified_value": [
+                {
+                    "table": "rental",
+                    "column": "customer_id",
+                    "original_name": "idx_fk_customer_id"
+                },
+                {
+                    "table": "payment",
+                    "column": "rental_id",
+                    "original_name": "fk_payment_rental"
+                },
+                {
+                    "table": "inventory",
+                    "column": "film_id",
+                    "original_name": "idx_fk_film_id"
+                }
+            ],
+            "source": "Analyzed sakila-schema.sql downloaded from the official MySQL documentation source. The payment table does not define an explicit 'idx_fk_rental_id' index; its index for rental_id is implicitly created by the foreign key constraint 'fk_payment_rental' and inherits its name. The metadata original_name for payment is incorrect.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_view",
+            "metadata_value": "v_monthly_revenue",
+            "verified_value": "v_monthly_revenue",
+            "source": "Verified expected view name explicitly checked in task.json, setup_task.sh and export_result.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_procedure",
+            "metadata_value": "sp_monthly_revenue",
+            "verified_value": "sp_monthly_revenue",
+            "source": "Verified expected procedure name explicitly checked in task.json, setup_task.sh and export_result.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output_file",
+            "metadata_value": "/home/ga/Documents/exports/monthly_revenue_2005.csv",
+            "verified_value": "/home/ga/Documents/exports/monthly_revenue_2005.csv",
+            "source": "Verified expected output file path explicitly checked by verifier.py and export_result.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_month_count",
+            "metadata_value": 12,
+            "verified_value": 4,
+            "source": "Analyzed the underlying sakila dataset (sakila-data.sql). The payment table only has transaction records for 4 distinct months in the year 2005 (May, June, July, August), contradicting the metadata's expectation of 12 rows.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task requires resolving performance issues and generating reports on the official Sakila dataset in a MySQL environment. Two pieces of metadata in the task description are incorrect. First, the payment table does not contain an explicitly named index 'idx_fk_rental_id'; the index on the rental_id column is implicitly created by the foreign key constraint and inherits the name 'fk_payment_rental'. Second, while the metadata expects the final CSV export to contain 12 months of revenue data for 2005, the Sakila payment dataset only contains transaction data for 4 distinct months (May, June, July, August) in that year, rendering a 12-row return naturally impossible.",
+    "pi_confidence": "high"
+}

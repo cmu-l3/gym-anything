@@ -1,0 +1,31 @@
+{
+    "task_id": "apply_digital_collimation@1",
+    "dataset": null,
+    "case_id": "collimation_target.dcm",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/DICOM/exports/collimated_view.jpg",
+            "verified_value": "/home/ga/DICOM/exports/collimated_view.jpg",
+            "source": "Found in both setup_task.sh and export_result.sh scripts which explicitly create the EXPORT_DIR at '/home/ga/DICOM/exports' and write the final file there.",
+            "status": "verified"
+        },
+        {
+            "key": "max_edge_variance",
+            "metadata_value": 50,
+            "verified_value": 0.0,
+            "source": "Python code simulation of the exact DICOM windowing defined in setup_task.sh (WC=40, WW=400, Intercept=-1024) proves the noisy background mathematically maps to 0 in 8-bit JPEG. The actual edge variance is exactly 0.0 even without a shutter.",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_center_variance",
+            "metadata_value": 500,
+            "verified_value": 106.1,
+            "source": "Python code simulation of the DICOM standard windowing applied to the synthetic center anatomy yields an 8-bit JPEG variance of approximately 106.1. A threshold of 500 is mathematically impossible to achieve in 8-bit space for this data.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The data is entirely synthetic. The expected output path is verified to be /home/ga/DICOM/exports/collimated_view.jpg. However, the task's expected image variance thresholds are fundamentally flawed due to a misunderstanding of DICOM to 8-bit JPEG windowing. The synthetic background (raw 150) is perfectly clipped to black (0) by the chosen window (WC=40, WW=400, Intercept=-1024), resulting in a pre-shutter edge variance of exactly 0.0, trivializing the <50 threshold. Furthermore, the synthetic central anatomy (raw 1250 +/- 20) yields an 8-bit JPEG variance of ~106.1, making the >500 center variance threshold mathematically impossible to pass.",
+    "pi_confidence": "high"
+}

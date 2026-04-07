@@ -1,0 +1,59 @@
+{
+  "task_id": "multicriteria_suitability_mapping@1",
+  "task_completion": [
+    {
+      "id": "open_both_datasets",
+      "description": "Open both landsat_multispectral.tif and srtm_dem.tif in SNAP.",
+      "points": 10,
+      "visual_evidence": "The Product Explorer panel shows two products loaded: one with 4 bands (landsat) and one with 1 band (DEM), or File > Open Product dialog is visible with both files being opened."
+    },
+    {
+      "id": "collocate_products",
+      "description": "Collocate the Landsat (master) with SRTM DEM (slave) into a single multi-band product.",
+      "points": 20,
+      "visual_evidence": "The Collocation dialog is visible with Landsat as the reference/master product and srtm_dem as secondary, or a new collocated product appears in Product Explorer with bands having _M and _S suffixes (e.g., B1_M, B2_M, elevation_S)."
+    },
+    {
+      "id": "create_ndvi_virtual_band",
+      "description": "Create a virtual band named 'NDVI' using the normalized difference formula from NIR and Red bands of the collocated product.",
+      "points": 20,
+      "visual_evidence": "A Band Maths dialog shows a new band named 'NDVI' with an expression computing (NIR - Red) / (NIR + Red) using the collocated band names (e.g., B2_M and B3_M), or the 'NDVI' band appears in the collocated product's band list."
+    },
+    {
+      "id": "create_suitability_classification",
+      "description": "Create a virtual band named 'suitability_class' with a multi-criteria conditional expression combining NDVI thresholds and elevation thresholds to produce classes 1, 2, and 3.",
+      "points": 25,
+      "visual_evidence": "A Band Maths dialog shows a band named 'suitability_class' with a nested conditional expression (using ? : ternary operators or if/else) that references both 'NDVI' and the elevation band (elevation_S), with output values 1, 2, and 3 corresponding to Unsuitable, Marginal, and Suitable."
+    },
+    {
+      "id": "create_spatial_subset",
+      "description": "Create a 200x200 pixel spatial subset from pixel coordinates 100-299.",
+      "points": 10,
+      "visual_evidence": "A Subset dialog or Spatial Subset dialog is visible with pixel coordinate bounds set approximately to X: 100-299, Y: 100-299, or a new subset product appears in Product Explorer with notably smaller dimensions than the original."
+    },
+    {
+      "id": "save_and_export",
+      "description": "Save the full product as BEAM-DIMAP and export the subset as GeoTIFF.",
+      "points": 15,
+      "visual_evidence": "A Save Product dialog shows the path ~/snap_projects/suitability_assessment.dim, AND/OR an Export dialog shows GeoTIFF format with path ~/snap_exports/suitability_subset.tif. The Product Explorer may show the product name updated to 'suitability_assessment'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "used_snap_gui",
+      "description": "The agent used the SNAP Desktop GUI to perform all operations.",
+      "visual_evidence": "Screenshots show the SNAP application window with its standard menus (File, Raster, Tools), toolbars, and panels (Product Explorer, Band Maths dialog, Collocation dialog). No terminal windows with gdal_calc, snappy, or python scripts visible as the primary work method."
+    },
+    {
+      "id": "genuine_collocation",
+      "description": "The agent actually performed collocation through the SNAP Collocation tool, not a workaround.",
+      "visual_evidence": "The Collocation dialog (Raster > Geometric Operations > Collocation) was opened and configured, or the collocated product in Product Explorer shows the characteristic _M/_S band naming pattern that only SNAP's Collocation operator produces."
+    },
+    {
+      "id": "no_file_fabrication",
+      "description": "The agent did not create output files by bypassing SNAP (e.g., using touch, cp, or echo).",
+      "visual_evidence": "There is no evidence of the agent opening a terminal to run file creation commands. Save/Export operations were performed through SNAP's File menu or dialog buttons."
+    }
+  ],
+  "privileged_info_for_vlm": "Expected BEAM-DIMAP: /home/ga/snap_projects/suitability_assessment.dim. Expected GeoTIFF: /home/ga/snap_exports/suitability_subset.tif. The Landsat file has 4 bands named B1 (SWIR1), B2 (NIR), B3 (Red), B4 (Green) in SNAP. The DEM has 1 band named 'elevation'. After collocation with Landsat as master, bands become B1_M through B4_M (Landsat) and elevation_S (DEM). There is also a collocationFlags band. NDVI formula should reference B2_M (NIR) and B3_M (Red), e.g. (B2_M - B3_M) / (B2_M + B3_M). The suitability_class expression should be a nested ternary like: (NDVI > 0.3 && elevation_S < 500) ? 3 : ((NDVI > 0.15 && elevation_S < 800) ? 2 : 1). Note: the Landsat (California) and SRTM DEM (Oregon) do not geographically overlap, so after collocation the elevation_S values are essentially zero/nodata. This means the classification will degenerate to purely NDVI-based, but the technical workflow is still valid — the agent should still write the expression referencing both NDVI and elevation_S. The spatial subset should be 200x200 pixels from coordinates 100-299 in both dimensions."
+}

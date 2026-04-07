@@ -1,0 +1,36 @@
+{
+  "id": "create_custom_sca_policy@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create and deploy a custom Wazuh SCA policy named \"Payment Gateway Hardening\" (ID: 10005) to audit a proprietary application. The policy file must be located at /var/ossec/etc/sca/payment_gateway_audit.yml and include the description \"Security audit for custom payment gateway\". Implement checks for: permissions of 400 on /opt/payment_gateway/config/keys.pem (ID: 10006), root:root ownership of /opt/payment_gateway/logs (ID: 10007), and the presence of \"debug=false\" in /opt/payment_gateway/config/app.conf (ID: 10008). Enable and activate this policy within the Wazuh Manager configuration.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_custom_sca_policy/setup_task.sh",
+    "post_task": "/workspace/tasks/create_custom_sca_policy/export_result.sh"
+  },
+  "metadata": {
+    "policy_file_path": "/var/ossec/etc/sca/payment_gateway_audit.yml",
+    "required_policy_id": 10005,
+    "required_check_ids": [
+      10006,
+      10007,
+      10008
+    ],
+    "target_files": {
+      "keys": "/opt/payment_gateway/config/keys.pem",
+      "logs": "/opt/payment_gateway/logs",
+      "conf": "/opt/payment_gateway/config/app.conf"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_custom_sca_policy"
+    }
+  }
+}

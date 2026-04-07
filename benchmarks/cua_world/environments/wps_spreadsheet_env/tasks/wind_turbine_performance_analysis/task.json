@@ -1,0 +1,30 @@
+{
+  "id": "wind_turbine_performance_analysis@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Analyze one month of 10-minute wind turbine SCADA data in ~/Documents/wind_scada_2022.xlsx. In the 'SCADA' sheet, calculate 'Lost_Energy_kWh' as (Theoretical_Power_kW - Active_Power_kW) / 6 when Theoretical_Power_kW is greater than Active_Power_kW, and 0 otherwise. Classify each row into an 'Operating_State' using this priority: 'LOW_WIND' if Wind_Speed_ms < 3.5; 'FAULT' if Active_Power_kW <= 0; 'UNDERPERFORMING' if Lost_Energy_kWh > 50; and 'NORMAL' otherwise. Create a 'Monthly_Report' sheet with headers 'State', 'Count', and 'Lost_Energy_Sum' summarizing the data for each state. Calculate the 'Financial Loss' as the sum of lost energy from 'FAULT' and 'UNDERPERFORMING' states multiplied by 0.075. Save the updated workbook to ~/Documents/wind_scada_2022.xlsx.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/wind_turbine_performance_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/wind_turbine_performance_analysis/export_result.sh"
+  },
+  "metadata": {
+    "data_source": "La Haute Borne / Turbine SCADA open dataset",
+    "ppa_rate": 0.075,
+    "expected_sheets": [
+      "SCADA",
+      "Monthly_Report"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_turbine_performance"
+    }
+  }
+}

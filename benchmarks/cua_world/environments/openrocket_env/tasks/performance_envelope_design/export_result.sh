@@ -1,0 +1,30 @@
+#!/bin/bash
+echo "=== Exporting performance_envelope_design result ==="
+source /workspace/scripts/task_utils.sh || exit 1
+
+take_screenshot /tmp/envelope_design_final.png 2>/dev/null || true
+
+ORK_FILE="/home/ga/Documents/rockets/simple_model_rocket.ork"
+REPORT_FILE="/home/ga/Documents/exports/performance_envelope_report.txt"
+
+ork_exists="false"
+report_exists="false"
+[ -f "$ORK_FILE" ] && ork_exists="true"
+[ -f "$REPORT_FILE" ] && report_exists="true"
+
+ork_mtime=0
+report_size=0
+[ -f "$ORK_FILE" ] && ork_mtime=$(stat -c %Y "$ORK_FILE" 2>/dev/null)
+[ -f "$REPORT_FILE" ] && report_size=$(stat -c %s "$REPORT_FILE" 2>/dev/null)
+
+task_start_ts=$(grep "task_start_ts" /tmp/envelope_design_gt.txt | cut -d'=' -f2 2>/dev/null || echo "0")
+
+write_result_json "{
+  \"ork_exists\": $ork_exists,
+  \"ork_mtime\": $ork_mtime,
+  \"report_exists\": $report_exists,
+  \"report_size\": $report_size,
+  \"task_start_ts\": $task_start_ts
+}" /tmp/envelope_design_result.json
+
+echo "=== Export complete ==="

@@ -1,0 +1,31 @@
+{
+  "id": "calculate_reservoir_capacity@1",
+  "version": "1.0",
+  "env_id": "topocal_env@0.1",
+  "description": "Calculate the water capacity of a detention pond using TopoCal. The field crew has provided an as-built survey of the pond located at 'C:\\workspace\\data\\pond_asbuilt.xyz' (space-delimited, format: PointNumber X Y Z). The pond's spillway crest elevation is exactly 1845.50 m. Open TopoCal, import the survey points, generate a Digital Terrain Model (MDT / TIN), and calculate the volume of the depression below the 1845.50 m elevation. Use the fixed-elevation volume tool (in the Spanish UI, typically 'Cálculos' or 'MDT' -> 'Volúmenes' -> 'Por cota' or 'Cota fija'). Set the reference elevation (Cota) to exactly 1845.50. After calculating, save the TopoCal project to 'C:\\workspace\\data\\pond_project.tcp'. Finally, create a plain-text report at 'C:\\workspace\\data\\capacity_report.txt' containing exactly one line: 'Capacity: XXXX.X m3' (replacing XXXX.X with your calculated terraplén/fill volume representing the water capacity).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 45,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\calculate_reservoir_capacity\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\calculate_reservoir_capacity\\export_result.ps1"
+  },
+  "metadata": {
+    "input_file": "C:\\workspace\\data\\pond_asbuilt.xyz",
+    "output_project": "C:\\workspace\\data\\pond_project.tcp",
+    "output_report": "C:\\workspace\\data\\capacity_report.txt",
+    "target_elevation": 1845.50,
+    "ground_truth_volume": 12450.5,
+    "tolerance_rough_percent": 10.0,
+    "tolerance_precise_percent": 2.5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_calculate_reservoir_capacity"
+    }
+  }
+}

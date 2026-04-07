@@ -1,0 +1,66 @@
+{
+    "task_id": "trash_and_restore_documents@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_trash_docs",
+            "metadata_value": "[\"Annual Report 2023\", \"Project Proposal\"]",
+            "verified_value": "[\"Annual Report 2023\", \"Project Proposal\"]",
+            "source": "task.json metadata field; verified against task description (line 5), setup_task.sh (lines 21, 26), export_result.sh (lines 11-12), and verifier.py (lines 71-85). Task description explicitly states these documents should be moved to trash. Setup script creates both documents without initial trashing. Export script expects both to have isTrashed=true. Verifier awards 15 points each for confirming these documents are trashed.",
+            "status": "verified"
+        },
+        {
+            "key": "target_restore_doc",
+            "metadata_value": "Meeting Minutes Q2",
+            "verified_value": "Meeting Minutes Q2",
+            "source": "task.json metadata field; verified against task description (line 5), setup_task.sh (lines 35-48), export_result.sh (line 13), and verifier.py (lines 87-93). Task description explicitly states this document should be restored from trash. Setup script creates this document as a Note and explicitly trashes it via Document.Trash API call (line 47-48). Export script expects this document to have isTrashed=false after task. Verifier awards 25 points for confirming this document is restored (not trashed).",
+            "status": "verified"
+        },
+        {
+            "key": "target_untouched_docs",
+            "metadata_value": "[\"Q3 Status Report\", \"Budget Forecast 2024\"]",
+            "verified_value": "[\"Q3 Status Report\", \"Budget Forecast 2024\"]",
+            "source": "task.json metadata field; verified against task description (line 5), setup_task.sh (lines 30, 33), export_result.sh (lines 14-15), and verifier.py (lines 95-109). Task description explicitly states these documents should 'remain active and untouched'. Setup script creates both as Note documents without trashing them. Export script expects both to have isTrashed=false. Verifier awards 8 and 7 points respectively for confirming they remain active.",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_type",
+            "metadata_value": null,
+            "verified_value": "synthetic",
+            "source": "Code inspection: setup_task.sh creates all documents dynamically via Nuxeo REST API using create_doc_if_missing() function (task_utils.sh lines 88-117). No external data sources, URLs, or datasets are referenced. Documents are generated fresh for each task execution.",
+            "status": "verified"
+        },
+        {
+            "key": "total_documents_in_task",
+            "metadata_value": null,
+            "verified_value": "5",
+            "source": "setup_task.sh creates exactly 5 documents: Annual Report 2023 (File), Project Proposal (File), Q3 Status Report (Note), Budget Forecast 2024 (Note), Meeting Minutes Q2 (Note). Verified in export_result.sh lines 27-32 which queries all 5 documents.",
+            "status": "verified"
+        },
+        {
+            "key": "document_types",
+            "metadata_value": null,
+            "verified_value": "{\"Annual Report 2023\": \"File\", \"Project Proposal\": \"File\", \"Q3 Status Report\": \"Note\", \"Budget Forecast 2024\": \"Note\", \"Meeting Minutes Q2\": \"Note\"}",
+            "source": "setup_task.sh lines 21, 26, 30, 33, 41 show create_doc_if_missing calls with explicit type parameters. Annual Report 2023 and Project Proposal are File type; others are Note type.",
+            "status": "verified"
+        },
+        {
+            "key": "initial_state_meeting_minutes_q2",
+            "metadata_value": null,
+            "verified_value": "trashed",
+            "source": "setup_task.sh lines 44-48 explicitly trash Meeting Minutes Q2 using the Document.Trash API call before the task begins. This is the initial state the agent must restore.",
+            "status": "verified"
+        },
+        {
+            "key": "verification_framework",
+            "metadata_value": null,
+            "verified_value": "Programmatic state verification via Nuxeo REST API + optional VLM trajectory analysis",
+            "source": "verifier.py implements verification checking: (1) Document trashed/active states via isTrashed property from API (2) Timestamp validation to confirm actions occurred during task window (3) VLM trajectory sampling for UI interaction confirmation. Total possible score: 100 points (15+15+25+8+7+10+20).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task involves managing 5 documents in a Nuxeo Platform workspace: two PDFs (Annual Report 2023, Project Proposal) must be trashed, one Note (Meeting Minutes Q2) must be restored from an initially-trashed state, and two Notes (Q3 Status Report, Budget Forecast 2024) must remain untouched. All documents are synthetically generated via Nuxeo REST API during task setup. Verification is performed programmatically by querying Nuxeo API to confirm isTrashed boolean state of each document, with timestamp validation and optional VLM trajectory analysis for UI interaction confirmation.",
+    "pi_confidence": "high"
+}

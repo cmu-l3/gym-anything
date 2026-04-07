@@ -111,7 +111,7 @@ from gym_anything.api import from_config
 import os
 
 os.chdir('/path/to/repo')
-env = from_config('benchmarks/cua_world/environments/blue_sky_plan_env', task_id='implant_site_assessment')
+env = from_config('examples/blue_sky_plan_env', task_id='implant_site_assessment')
 obs = env.reset(seed=42, use_cache=True, cache_level='post_start', use_savevm=True)
 # Agent interacts with BSP to load DICOM, measure sites, annotate, save, export...
 obs, reward, done, info = env.step(action)

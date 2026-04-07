@@ -1,0 +1,59 @@
+{
+  "task_id": "recover_failed_migration@1",
+  "task_completion": [
+    {
+      "id": "website_loads",
+      "description": "The main website at http://acmecorp.test/ loads successfully without a 503 error.",
+      "points": 15,
+      "visual_evidence": "A screenshot of a web browser or curl output showing the homepage content of acmecorp.test, indicating the 503 Service Unavailable error (caused by the PHP-FPM socket mismatch) has been resolved."
+    },
+    {
+      "id": "status_page_operational",
+      "description": "The status page at http://acmecorp.test/status.php displays 'System Operational'.",
+      "points": 20,
+      "visual_evidence": "A screenshot of a web browser or curl output for http://acmecorp.test/status.php showing exactly the text 'System Operational'. This proves the database permissions and password mismatch were fixed."
+    },
+    {
+      "id": "email_delivery_fixed",
+      "description": "Internal email delivery is functional and no longer bounces.",
+      "points": 20,
+      "visual_evidence": "Terminal output showing a successful email delivery log (e.g., /var/log/mail.log showing 'status=sent' to info@acmecorp.test), or the presence of a new email file in /home/acmecorp/homes/info/Maildir/new/, or the Webmin/Usermin interface showing a received test email."
+    },
+    {
+      "id": "dkim_configured",
+      "description": "DKIM signing is enabled for the domain.",
+      "points": 15,
+      "visual_evidence": "Terminal output showing successful execution of 'virtualmin set-dkim --enable', or Webmin's DNS/Mail configuration showing DKIM is active, or a DNS query showing the _domainkey TXT record."
+    },
+    {
+      "id": "spf_configured",
+      "description": "An SPF TXT record is published in DNS.",
+      "points": 15,
+      "visual_evidence": "Terminal output showing 'virtualmin modify-dns --domain acmecorp.test --spf', or a DNS query (e.g., dig TXT acmecorp.test) returning a record starting with 'v=spf1', or Webmin's DNS records page showing the SPF entry."
+    },
+    {
+      "id": "dmarc_configured",
+      "description": "A DMARC TXT record is published with a policy of 'reject'.",
+      "points": 15,
+      "visual_evidence": "Terminal output of a DNS query (e.g., dig TXT _dmarc.acmecorp.test) returning 'v=DMARC1; p=reject', or Webmin's DNS records page showing the _dmarc TXT record with the p=reject policy."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_web_requests",
+      "description": "The agent verified the website and status page using actual HTTP requests.",
+      "visual_evidence": "Look for the use of a web browser or curl commands targeting http://acmecorp.test. The agent should not just cat or echo the local PHP files to simulate success."
+    },
+    {
+      "id": "genuine_email_test",
+      "description": "The agent actually sent a test email through the mail system.",
+      "visual_evidence": "Look for commands like 'mail', 'sendmail', or a script sending an email. The agent should not manually create a text file inside the Maildir to fake an email delivery."
+    },
+    {
+      "id": "genuine_dns_configuration",
+      "description": "The agent actually configured DNS records rather than just echoing the expected output.",
+      "visual_evidence": "Look for interaction with Virtualmin commands (e.g., virtualmin modify-dns), editing of BIND zone files (/var/lib/bind/ or /etc/bind/), or Webmin GUI interactions. Avoid scoring positively if the agent just typed 'echo \"v=DMARC1; p=reject\"'."
+    }
+  ],
+  "privileged_info_for_vlm": "The target domain is acmecorp.test. The status page is at /status.php and must return exactly 'System Operational'. The DMARC policy must be exactly 'reject' (v=DMARC1; p=reject). The PHP-FPM breakage involves the listen directive being set to 127.0.0.1:9099 instead of the Unix socket. The DB breakage involves db_config.php having root:root ownership (unreadable by web server) and an outdated password ('GymAnything123!' instead of 'MigratedPwd999!'). The Postfix breakage involves a dead relay in /etc/postfix/transport ('smtp:[127.0.0.1]:12345'). Email delivery can be verified by checking /home/acmecorp/homes/info/Maildir/new/."
+}

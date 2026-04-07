@@ -3,6 +3,7 @@ echo "=== Setting up create_prescription task ==="
 
 # Source shared utilities
 source /workspace/scripts/task_utils.sh
+wait_for_postgres
 
 # 1. Record initial prescription count
 INITIAL_COUNT=$(get_prescription_count)

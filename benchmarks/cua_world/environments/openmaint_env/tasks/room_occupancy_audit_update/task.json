@@ -1,0 +1,38 @@
+{
+  "id": "room_occupancy_audit_update@1",
+  "version": "1.0",
+  "env_id": "openmaint_env@0.1",
+  "description": "You are a Facilities Administrator auditing space utilization in Building A. Data inconsistencies have been reported regarding room occupancy status. Update the 'Notes' field for rooms RM-A-101 through RM-A-105 in OpenMaint (http://localhost:8090/cmdbuild/ui/, login: admin/admin) to reflect their true Occupancy Status. Determine the status based on the Room Type and Assigned User information found in each room's Description field according to the following rules (also available in /home/ga/Desktop/occupancy_rules.txt):\n\n1. If Room Type is 'Office' and has an Assigned User, the status is 'Occupied'.\n2. If Room Type is 'Office' and has no Assigned User, the status is 'Vacant'.\n3. If Room Type is 'Meeting Room', 'Storage', or any other non-office type, the status is 'Common Area'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/room_occupancy_audit_update/setup_task.sh",
+    "post_task": "/workspace/tasks/room_occupancy_audit_update/export_result.sh"
+  },
+  "metadata": {
+    "target_rooms": [
+      "RM-A-101",
+      "RM-A-102",
+      "RM-A-103",
+      "RM-A-104",
+      "RM-A-105"
+    ],
+    "expected_states": {
+      "RM-A-101": "Occupied",
+      "RM-A-102": "Vacant",
+      "RM-A-103": "Common Area",
+      "RM-A-104": "Common Area",
+      "RM-A-105": "Occupied"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_room_occupancy_audit_update"
+    }
+  }
+}

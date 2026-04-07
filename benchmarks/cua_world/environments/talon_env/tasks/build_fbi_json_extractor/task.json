@@ -1,0 +1,28 @@
+{
+  "id": "build_fbi_json_extractor@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Create a Talon Python module and command file in C:\\Users\\Docker\\AppData\\Roaming\\Talon\\user\\fbi_tools\\ that searches a local JSON file at C:\\workspace\\data\\fbi_wanted.json for FBI Wanted persons and inserts a formatted summary.\n\nThe Python implementation (fbi_search.py) must include a Talon action user.insert_fugitive_record(search_term: str) that performs a case-insensitive substring search on the 'title' field within the 'items' array of the JSON file. If a record is found, the action should insert a summary using the following format:\nSUBJECT: [title]\nALIASES: [comma-separated aliases OR 'None' if null/empty]\nWARNING: [warning_message OR 'None' if null/empty]\n\nIf no match is found, it should insert: \"NO RECORD FOUND FOR: [search_term]\".\n\nThe associated Talon file (fbi_search.talon) must define a global voice command \"fugitive search <user.text>:\" that passes the dictated text to the user.insert_fugitive_record action.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\build_fbi_json_extractor\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\build_fbi_json_extractor\\export_result.ps1"
+  },
+  "metadata": {
+    "data_path": "C:\\workspace\\data\\fbi_wanted.json",
+    "talon_dir": "C:\\Users\\Docker\\AppData\\Roaming\\Talon\\user\\fbi_tools",
+    "py_file": "fbi_search.py",
+    "talon_file": "fbi_search.talon"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fbi_extractor"
+    }
+  }
+}

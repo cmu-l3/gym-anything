@@ -1,0 +1,30 @@
+{
+  "id": "multicriteria_suitability_mapping@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "A land-use planner needs to identify sites suitable for development by combining satellite vegetation data with terrain elevation. Using 'landsat_multispectral.tif' (SWIR1=B1, NIR=B2, Red=B3, Green=B4) and 'srtm_dem.tif' (single band: elevation) from ~/snap_data/, collocate both datasets into a single product with the Landsat image as the master. Create a virtual band named 'NDVI' computing the Normalized Difference Vegetation Index from NIR and Red bands, and a virtual band named 'suitability_class' that classifies each pixel: value 3 (Suitable) where NDVI > 0.3 and elevation < 500, value 2 (Marginal) where NDVI > 0.15 and elevation < 800, and value 1 (Unsuitable) for all remaining pixels. Create a 200x200 pixel spatial subset (pixel coordinates 100 to 299 in both X and Y). Save the full collocated product as BEAM-DIMAP to ~/snap_projects/suitability_assessment.dim and export the spatial subset as GeoTIFF to ~/snap_exports/suitability_subset.tif.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multicriteria_suitability_mapping/setup_task.sh",
+    "post_task": "/workspace/tasks/multicriteria_suitability_mapping/export_result.sh"
+  },
+  "metadata": {
+    "expected_dim_path": "/home/ga/snap_projects/suitability_assessment.dim",
+    "expected_tif_path": "/home/ga/snap_exports/suitability_subset.tif",
+    "data_files": [
+      "/home/ga/snap_data/landsat_multispectral.tif",
+      "/home/ga/snap_data/srtm_dem.tif"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multicriteria_suitability_mapping"
+    }
+  }
+}

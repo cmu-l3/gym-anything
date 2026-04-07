@@ -1,14 +1,6 @@
 #!/bin/bash
 # Docker Desktop Setup Script (post_start hook)
 # Launches Docker Desktop and configures the environment
-#
-# Docker Desktop provides a GUI for:
-# - Viewing and managing containers
-# - Pulling and managing images
-# - Docker Compose project management
-# - Viewing logs and stats
-# - Kubernetes cluster management
-# - Docker Hub integration
 
 echo "=== Setting up Docker Desktop Environment ==="
 
@@ -18,7 +10,7 @@ sleep 5
 # Create working directories
 echo "Creating working directories..."
 mkdir -p /home/ga/Documents/docker-projects
-mkdir -p /home/ga/.docker
+mkdir -p /home/ga/.docker/desktop
 
 # Set ownership
 chown -R ga:ga /home/ga/Documents/docker-projects
@@ -64,26 +56,50 @@ cat > /home/ga/Documents/docker-projects/sample-web-app/html/index.html << 'INDE
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
         h1 { color: #2496ed; }
-        .docker-icon { font-size: 48px; }
     </style>
 </head>
 <body>
-    <div class="docker-icon">🐳</div>
     <h1>Welcome to Docker Desktop!</h1>
     <p>This is a sample nginx container managed by Docker Desktop.</p>
     <p>If you can see this page, Docker Desktop is working correctly!</p>
     <hr>
     <p><strong>Container:</strong> nginx:alpine</p>
-    <p><strong>Port:</strong> 8080 → 80</p>
+    <p><strong>Port:</strong> 8080 -> 80</p>
 </body>
 </html>
 INDEXHTML
 
 chown -R ga:ga /home/ga/Documents/docker-projects
 
-# Accept Docker Desktop terms (create settings file)
+# Pre-create Docker Desktop settings files to minimize dialogs
 echo "Configuring Docker Desktop settings..."
-mkdir -p /home/ga/.docker/desktop
+
+# settings-store.json is the actual config file Docker Desktop reads (PascalCase keys)
+cat > /home/ga/.docker/desktop/settings-store.json << 'SETTINGSSTOREJSON'
+{
+  "AnalyticsEnabled": false,
+  "AutoPauseTimeoutSeconds": 300,
+  "AutoStart": false,
+  "Cpus": 4,
+  "DisplayedOnboarding": true,
+  "EnableCLIHints": true,
+  "EnableDockerAI": true,
+  "ExtensionsEnabled": true,
+  "KernelForUDP": true,
+  "KubernetesEnabled": false,
+  "LicenseTermsVersion": 2,
+  "NetworkType": "gvisor",
+  "OnlyMarketplaceExtensions": true,
+  "ProxyEnableKerberosNTLM": false,
+  "SettingsVersion": 43,
+  "ThemeSource": "system",
+  "UseBackgroundIndexing": false,
+  "UseCredentialHelper": true,
+  "UseVpnkit": false
+}
+SETTINGSSTOREJSON
+
+# settings.json (legacy/alternative config with camelCase keys)
 cat > /home/ga/.docker/desktop/settings.json << 'SETTINGSJSON'
 {
   "analyticsEnabled": false,
@@ -99,6 +115,7 @@ cat > /home/ga/.docker/desktop/settings.json << 'SETTINGSJSON'
   "kubernetesEnabled": false
 }
 SETTINGSJSON
+
 chown -R ga:ga /home/ga/.docker
 
 # Create desktop shortcut for Docker Desktop
@@ -121,23 +138,16 @@ chown ga:ga /home/ga/Desktop/docker-desktop.desktop
 # Create utility scripts
 echo "Creating utility scripts..."
 
-# Script to check Docker Desktop status
 cat > /usr/local/bin/docker-desktop-status << 'STATUSEOF'
 #!/bin/bash
-# Check Docker Desktop status
 echo "=== Docker Desktop Status ==="
-
-# Check if Docker Desktop process is running
 if pgrep -f "com.docker.backend" > /dev/null || pgrep -f "/opt/docker-desktop/Docker" > /dev/null; then
     echo "Docker Desktop: RUNNING"
 else
     echo "Docker Desktop: NOT RUNNING"
 fi
-
-# Check Docker daemon
-if docker info > /dev/null 2>&1; then
+if timeout 5 docker info > /dev/null 2>&1; then
     echo "Docker Daemon: RUNNING"
-    echo ""
     echo "Docker version: $(docker --version)"
     echo "Containers: $(docker ps -q | wc -l) running, $(docker ps -aq | wc -l) total"
     echo "Images: $(docker images -q | wc -l)"
@@ -147,38 +157,33 @@ fi
 STATUSEOF
 chmod +x /usr/local/bin/docker-desktop-status
 
-# Script to list containers with details
 cat > /usr/local/bin/list-containers << 'LISTEOF'
 #!/bin/bash
-# List Docker containers with details
 echo "=== Docker Containers ==="
 docker ps -a --format "table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
 LISTEOF
 chmod +x /usr/local/bin/list-containers
 
-# Script to list images
 cat > /usr/local/bin/list-images << 'IMAGESEOF'
 #!/bin/bash
-# List Docker images
 echo "=== Docker Images ==="
 docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}"
 IMAGESEOF
 chmod +x /usr/local/bin/list-images
 
-# Start Docker Desktop for the ga user using systemctl --user
+# Start Docker Desktop
 echo "Starting Docker Desktop..."
 
-# Docker Desktop uses systemd user service
-# First, enable lingering for the user so user services can run
+# Enable lingering for user services
 loginctl enable-linger ga 2>/dev/null || true
 
-# Set up XDG_RUNTIME_DIR for user services
+# Set up XDG_RUNTIME_DIR
 mkdir -p /run/user/1000
 chown ga:ga /run/user/1000
 chmod 700 /run/user/1000
 
-# Start Docker Desktop via command line (as user ga)
-su - ga -c "DISPLAY=:1 XDG_RUNTIME_DIR=/run/user/1000 /opt/docker-desktop/bin/docker-desktop > /tmp/docker-desktop.log 2>&1 &"
+# Launch Docker Desktop as user ga
+su - ga -c "DISPLAY=:1 XDG_RUNTIME_DIR=/run/user/1000 setsid /opt/docker-desktop/bin/docker-desktop > /tmp/docker-desktop.log 2>&1 &"
 
 # Wait for Docker Desktop window to appear
 echo "Waiting for Docker Desktop to start..."
@@ -191,7 +196,6 @@ for i in {1..90}; do
         echo "Docker Desktop window detected after ${i}s"
         break
     fi
-    # Also check if the process is running
     if pgrep -f "com.docker.backend" > /dev/null || pgrep -f "/opt/docker-desktop/Docker" > /dev/null; then
         if [ $((i % 10)) -eq 0 ]; then
             echo "  Docker Desktop process running, waiting for window... (${i}s)"
@@ -210,50 +214,68 @@ if [ "$DOCKER_DESKTOP_STARTED" = true ]; then
         DISPLAY=:1 wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
     fi
 
-    # Dismiss any welcome dialogs, subscription agreement, and sign-in prompts
-    echo "Dismissing initial dialogs (subscription, sign-in, walkthroughs)..."
+    # ============================================================
+    # Dialog dismissal for Docker Desktop v4.65+
+    # Coordinates are for 1920x1080 resolution.
+    # Dialog 1: Subscription Service Agreement -> click "Accept"
+    # Dialog 2: Sign In -> click "Skip"
+    # ============================================================
+    echo "Dismissing initial dialogs (subscription, sign-in)..."
     sleep 3
 
-    # Function to dismiss dialogs by clicking known button locations
-    dismiss_dialogs() {
-        # Press Escape multiple times to close any modal dialogs
-        for i in 1 2 3; do
-            DISPLAY=:1 xdotool key Escape 2>/dev/null || true
-            sleep 0.5
-        done
-
-        # Look for and click "Accept" button on subscription agreement (usually bottom-right area)
-        # Coordinates are approximate for 1920x1080 resolution
-        DISPLAY=:1 xdotool mousemove 960 600 click 1 2>/dev/null || true
+    # --- Dialog 1: Subscription Service Agreement ---
+    # The "Accept" button is at ~(1757, 1043) in 1920x1080
+    # Try clicking it multiple times to be safe
+    for attempt in 1 2 3; do
+        echo "  Subscription dialog dismissal attempt $attempt..."
+        DISPLAY=:1 xdotool mousemove 1757 1043 click 1 2>/dev/null || true
+        sleep 2
+        # Also try Tab+Enter as fallback for keyboard navigation
+        DISPLAY=:1 xdotool key Tab Return 2>/dev/null || true
         sleep 1
+    done
 
-        # Look for and click "Skip" or "Continue without signing in" on sign-in dialog
-        # Try clicking "Skip" button area (usually at bottom of sign-in dialog)
-        DISPLAY=:1 xdotool mousemove 960 650 click 1 2>/dev/null || true
-        sleep 1
-
-        # Press Tab and Enter to navigate and accept dialogs
-        DISPLAY=:1 xdotool key Tab Tab Return 2>/dev/null || true
-        sleep 0.5
-
-        # Press Escape again to close any remaining popups
-        DISPLAY=:1 xdotool key Escape 2>/dev/null || true
-        sleep 0.5
-    }
-
-    # Run dialog dismissal multiple times to handle cascading dialogs
-    dismiss_dialogs
+    # --- Dialog 2: Sign In -> Skip ---
+    # The "Skip" link is at ~(1223, 254) in 1920x1080
     sleep 2
-    dismiss_dialogs
-    sleep 2
+    for attempt in 1 2 3; do
+        echo "  Sign-in skip attempt $attempt..."
+        DISPLAY=:1 xdotool mousemove 1223 254 click 1 2>/dev/null || true
+        sleep 2
+    done
 
-    # Click on Containers in sidebar to ensure we're at a known state
-    # Containers is typically at y=113 in the sidebar (scaled for 1920x1080)
-    DISPLAY=:1 xdotool mousemove 130 113 click 1 2>/dev/null || true
+    # Close any browser windows opened by the dialogs
+    DISPLAY=:1 wmctrl -c "Data Processing" 2>/dev/null || true
+    DISPLAY=:1 wmctrl -c "Firefox" 2>/dev/null || true
+    DISPLAY=:1 wmctrl -c "Chromium" 2>/dev/null || true
     sleep 1
 
-    # Close any "Walkthroughs" popup that may appear (X button usually at top-right of popup)
+    # Re-focus Docker Desktop after closing browser
+    WID=$(DISPLAY=:1 wmctrl -l | grep -i "docker" | head -1 | awk '{print $1}')
+    if [ -n "$WID" ]; then
+        DISPLAY=:1 wmctrl -ia "$WID" 2>/dev/null || true
+        DISPLAY=:1 wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+    fi
+
+    # Dismiss any remaining popups (notification banners, walkthroughs)
     DISPLAY=:1 xdotool key Escape 2>/dev/null || true
+    sleep 0.5
+    DISPLAY=:1 xdotool key Escape 2>/dev/null || true
+    sleep 0.5
+
+    # Close the Learning center / Walkthroughs panel if visible
+    # X button at ~(1883, 126) in 1920x1080 (from 1280x720: 1255, 84)
+    DISPLAY=:1 xdotool mousemove 1883 126 click 1 2>/dev/null || true
+    sleep 1
+
+    # Click on Containers in sidebar to ensure known state
+    # Containers is at ~(173, 155) in 1920x1080 (from 1280x720: 115, 103)
+    DISPLAY=:1 xdotool mousemove 173 155 click 1 2>/dev/null || true
+    sleep 1
+
+    # Close the Walkthroughs banner at bottom if visible
+    # X button at ~(1698, 861) in 1920x1080 (from 1280x720: 1132, 574)
+    DISPLAY=:1 xdotool mousemove 1698 861 click 1 2>/dev/null || true
     sleep 0.5
 
     echo "Initial dialog handling complete"
@@ -263,24 +285,43 @@ else
     echo "Check /tmp/docker-desktop.log for details"
 fi
 
-# Wait for Docker daemon to be ready (Docker Desktop starts its own daemon)
+# Wait for Docker daemon to be ready
+# Docker Desktop's daemon (desktop-linux context) becomes available after dialogs are accepted.
+# We also check the default Docker Engine context as fallback.
 echo "Waiting for Docker daemon..."
 DOCKER_READY=false
-for i in {1..60}; do
-    if docker info > /dev/null 2>&1; then
+for i in {1..90}; do
+    # Check as ga user (uses desktop-linux context after Docker Desktop starts)
+    if su - ga -c "timeout 5 docker info > /dev/null 2>&1"; then
         DOCKER_READY=true
-        echo "Docker daemon ready after ${i}s"
+        echo "Docker daemon ready (ga user) after $((i * 2))s"
         break
+    fi
+    # Also check as root with default context
+    if timeout 5 docker info > /dev/null 2>&1; then
+        DOCKER_READY=true
+        echo "Docker daemon ready (root/default) after $((i * 2))s"
+        break
+    fi
+    if [ $((i % 10)) -eq 0 ]; then
+        echo "  Still waiting for Docker daemon... ($((i * 2))s)"
     fi
     sleep 2
 done
 
 if [ "$DOCKER_READY" = true ]; then
-    # Pull some basic images that might be useful for tasks
+    # Pull common images (use ga user to go through Docker Desktop's daemon)
     echo "Pre-pulling common Docker images..."
-    docker pull hello-world:latest 2>/dev/null || true
-    docker pull alpine:latest 2>/dev/null || true
-    docker pull nginx:alpine 2>/dev/null || true
+    su - ga -c "docker pull hello-world:latest" 2>/dev/null || docker pull hello-world:latest 2>/dev/null || true
+    su - ga -c "docker pull alpine:latest" 2>/dev/null || docker pull alpine:latest 2>/dev/null || true
+    su - ga -c "docker pull nginx:alpine" 2>/dev/null || docker pull nginx:alpine 2>/dev/null || true
+
+    # Clean up auto-started welcome-to-docker container (if any)
+    su - ga -c "docker stop welcome-to-docker 2>/dev/null; docker rm welcome-to-docker 2>/dev/null" || true
+else
+    echo "WARNING: Docker daemon not ready after timeout"
+    echo "Checking Docker Desktop log for errors..."
+    tail -20 /tmp/docker-desktop.log 2>/dev/null || true
 fi
 
 echo ""

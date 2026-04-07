@@ -1,0 +1,33 @@
+{
+  "id": "surgical_scheduling_utilization@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Healthcare Database Administrator responsible for the scheduling systems at a large hospital network. The HOSPITAL_ADMIN schema in Oracle (connected as hosp_admin/HospAdmin2024 to XEPDB1) contains a SURGERY_SCHEDULE table where historical surgeries were double-booked due to a missing constraint. Identify all pairs of non-cancelled surgeries that overlap in time and share either the same room_id or surgeon_id. Save these results in a new table named DOUBLE_BOOKINGS_LOG with columns conflict1_id (the lower schedule_id), conflict2_id (the higher schedule_id), shared_resource_type ('ROOM', 'SURGEON', or 'BOTH'), and the rounded overlap_minutes.\n\nCreate a PL/SQL procedure PROC_SCHEDULE_SURGERY (parameters: p_room_id, p_surgeon_id, p_patient_id, p_procedure, p_start_time, p_end_time) to handle new bookings. The procedure must check for overlaps with existing non-cancelled surgeries; if a conflict exists, raise a custom exception using RAISE_APPLICATION_ERROR(-20001, 'Schedule conflict detected'). Otherwise, insert the record into SURGERY_SCHEDULE with status 'SCHEDULED' using SEQ_SURGERY_SCHEDULE.NEXTVAL.\n\nDevelop a view ROOM_UTILIZATION_VW that calculates utilized minutes per room per day (columns: room_id, operation_date, utilized_minutes). Use analytical SQL to merge overlapping intervals into continuous blocks to ensure true utilization is calculated without over-counting double-booked time. Export the contents of this view for the entire dataset to /home/ga/Documents/exports/or_utilization.csv.\n\nConnection details: Host=localhost, Port=1521, Service=XEPDB1, User=hosp_admin, Password=HospAdmin2024.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/surgical_scheduling_utilization/setup_task.sh",
+    "post_task": "/workspace/tasks/surgical_scheduling_utilization/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_file": "/home/ga/Documents/exports/or_utilization.csv",
+    "occupation": "Database Administrators / Healthcare Data Analysts",
+    "industry": "Healthcare",
+    "oracle_features": [
+      "Gaps and Islands",
+      "Analytical SQL",
+      "PL/SQL Procedures",
+      "Exception Handling"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_surgical_scheduling"
+    }
+  }
+}

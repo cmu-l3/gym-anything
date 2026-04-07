@@ -1,0 +1,59 @@
+{
+    "task_id": "infer_favorite_destination@1",
+    "dataset": "DemoDB travel agency dataset",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "db_url",
+            "metadata_value": "http://localhost:2480",
+            "verified_value": "http://localhost:2480",
+            "source": "Verified in setup_task.sh (line 28), export_result.sh (line 27), seed_demodb.py (line 14), task_utils.sh (line 52). All scripts consistently use localhost:2480 as the OrientDB HTTP API endpoint.",
+            "status": "verified"
+        },
+        {
+            "key": "db_name",
+            "metadata_value": "demodb",
+            "verified_value": "demodb",
+            "source": "Verified in setup_orientdb.sh (lines 50-52 check for HTTP 200 on /database/demodb), seed_demodb.py (lines 44, 50 use 'demodb'), and export_result.sh (line 62 queries /database/demodb). Database is created with api_call('POST', '/database/demodb/plocal') in seed_demodb.py line 52.",
+            "status": "verified"
+        },
+        {
+            "key": "target_class",
+            "metadata_value": "Profiles",
+            "verified_value": "Profiles",
+            "source": "Verified in seed_demodb.py line 67: 'CREATE CLASS Profiles EXTENDS V'. Properties are created in lines 105-114. Task requires adding FavoriteDestination property to Profiles class (task.json line 19).",
+            "status": "verified"
+        },
+        {
+            "key": "target_property",
+            "metadata_value": "FavoriteDestination",
+            "verified_value": "FavoriteDestination",
+            "source": "Verified in verifier.py (lines 52, 54-61 check for FavoriteDestination property), setup_task.sh (line 78 drops it for reset), export_result.sh (line 72 selects it). Property is created by the agent as part of task completion.",
+            "status": "verified"
+        },
+        {
+            "key": "edge_class",
+            "metadata_value": "HasStayed",
+            "verified_value": "HasStayed",
+            "source": "Verified in seed_demodb.py line 87: 'CREATE CLASS HasStayed EXTENDS E'. Edges are created in lines 380-399 with 'CREATE EDGE HasStayed FROM (Profile) TO (Hotel)'. setup_task.sh lines 68 create additional HasStayed edges if count is low.",
+            "status": "verified"
+        },
+        {
+            "key": "related_class",
+            "metadata_value": "Hotels",
+            "verified_value": "Hotels",
+            "source": "Verified in seed_demodb.py line 69: 'CREATE CLASS Hotels EXTENDS V'. Hotels are seeded with real hotel data in lines 223-250. export_result.sh line 82 queries Hotels with 'SELECT @rid, Country FROM Hotels'.",
+            "status": "verified"
+        },
+        {
+            "key": "related_property",
+            "metadata_value": "Country",
+            "verified_value": "Country",
+            "source": "Verified in seed_demodb.py line 125: 'CREATE PROPERTY Hotels.Country STRING'. Hotels are inserted with real country values (lines 227-242 show Country field for each hotel like 'Italy', 'Germany', 'France', 'United Kingdom', 'United States', 'Japan', 'Australia', 'Brazil', 'Spain', 'Greece', 'Netherlands').",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses OrientDB 3.2.36 with the DemoDB travel agency dataset running at http://localhost:2480. The database contains 16 real Profiles, 15 real Hotels (luxury/boutique hotels from major cities), and HasStayed edges representing user bookings. The Hotels class has a Country property containing real country names (Italy, Germany, France, United Kingdom, United States, Japan, Australia, Brazil, Spain, Greece, Netherlands). The task requires adding a FavoriteDestination STRING property to the Profiles vertex class and populating it with each profile's most-visited country based on HasStayed edges. The data is real-world travel agency data with authentic hotel names, phone numbers, GPS coordinates, and realistic user profiles.",
+    "pi_confidence": "high"
+}

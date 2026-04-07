@@ -1,0 +1,47 @@
+{
+  "task_id": "docker_volume_migration@1",
+  "task_completion": [
+    {
+      "id": "data_migrated",
+      "description": "Agent migrated existing data from the bind mount to the new named volume",
+      "points": 20,
+      "visual_evidence": "Look for terminal commands where the agent copies files from the local './pgdata' directory to the Docker volume 'employee_db_data'. This is typically done by running a temporary docker container that mounts both the local directory and the named volume, executing a 'cp', 'rsync', or 'tar' command between them."
+    },
+    {
+      "id": "compose_file_updated",
+      "description": "Agent updated docker-compose.yml to use the named volume",
+      "points": 30,
+      "visual_evidence": "Look for the contents of 'docker-compose.yml' (visible in a text editor like nano/vim or via 'cat'). The volume mapping for the database service must be changed to use 'employee_db_data:/var/lib/postgresql/data' (or similar internal path) instead of the local './pgdata' path. Additionally, 'employee_db_data' must be declared in a top-level 'volumes:' block."
+    },
+    {
+      "id": "database_running",
+      "description": "Agent ensured the database container is running after the configuration changes",
+      "points": 20,
+      "visual_evidence": "Look for terminal output from 'docker ps', 'docker compose ps', or 'docker-compose up -d' showing the 'employee-db' container successfully started and in an 'Up' state."
+    },
+    {
+      "id": "data_preserved",
+      "description": "Agent verified that all 100 original records are preserved in the database",
+      "points": 30,
+      "visual_evidence": "Look for a terminal command executing a SQL query against the database (e.g., 'docker exec -it employee-db psql -U postgres -d employees -c \"SELECT count(*) FROM employees;\"'). The output must show a standard PostgreSQL table result confirming exactly 100 rows exist."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_migration_performed",
+      "description": "Agent actually copied the data rather than inserting fake records",
+      "visual_evidence": "Ensure the agent used file-copying commands (cp, rsync, docker cp) to move the data from ./pgdata to the volume. The agent should NOT be running SQL 'INSERT' scripts to recreate the 100 rows from scratch."
+    },
+    {
+      "id": "genuine_file_edit",
+      "description": "Agent genuinely edited the docker-compose.yml file",
+      "visual_evidence": "Look for evidence of the file being edited in a real text editor (nano, vim) or via valid stream editors (sed), followed by a 'docker compose up' command to apply the actual saved file."
+    },
+    {
+      "id": "genuine_query_output",
+      "description": "Agent genuinely queried the database to verify data",
+      "visual_evidence": "The output of the row count verification should have the authentic formatting of the 'psql' command-line tool (e.g., ASCII table borders like ' count | 100 '), not just a manually typed echo statement."
+    }
+  ],
+  "privileged_info_for_vlm": "The project directory is /home/ga/projects/employee-db. The target Docker named volume must be exactly 'employee_db_data'. The container name is 'employee-db'. The database credentials are user 'postgres', password 'password', database 'employees'. A successful migration will preserve exactly 100 rows in the database."
+}

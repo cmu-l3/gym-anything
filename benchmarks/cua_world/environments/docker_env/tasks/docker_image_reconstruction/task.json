@@ -1,0 +1,63 @@
+{
+  "id": "docker_image_reconstruction@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "Reverse-engineer and reconstruct Dockerfiles for three production services (acme-api, acme-cron, acme-gateway) whose original build instructions have been lost. Using the existing ':production' images as a reference, recreate Dockerfiles in ~/projects/acme-services/<service>/ that replicate the original configurations, including users, working directories, environment variables, healthchecks, and entrypoints. Build the new images as '<service>:reconstructed' and provide a summary of your findings at ~/Desktop/reconstruction_notes.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 90,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_image_reconstruction/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_image_reconstruction/export_result.sh"
+  },
+  "metadata": {
+    "services": [
+      "api",
+      "cron",
+      "gateway"
+    ],
+    "expected_images": [
+      "acme-api:reconstructed",
+      "acme-cron:reconstructed",
+      "acme-gateway:reconstructed"
+    ],
+    "configs": {
+      "api": {
+        "User": "appuser",
+        "WorkingDir": "/opt/api",
+        "ExposedPorts": {
+          "5000/tcp": {}
+        },
+        "HasHealthcheck": true
+      },
+      "cron": {
+        "Env": [
+          "SCHEDULE_INTERVAL=300",
+          "LOG_LEVEL=INFO"
+        ],
+        "WorkingDir": "/opt/cron",
+        "Entrypoint": [
+          "python"
+        ],
+        "Cmd": [
+          "scheduler.py"
+        ]
+      },
+      "gateway": {
+        "ExposedPorts": {
+          "80/tcp": {}
+        }
+      }
+    },
+    "notes_file": "/home/ga/Desktop/reconstruction_notes.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_image_reconstruction"
+    }
+  }
+}

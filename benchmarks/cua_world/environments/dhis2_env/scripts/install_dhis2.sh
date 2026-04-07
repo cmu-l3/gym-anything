@@ -47,6 +47,21 @@ apt-get install -y \
     scrot \
     python3-pip
 
+# Authenticate with Docker Hub to avoid rate limits
+echo "dckr_pat_YISK01jQAaGVVmzkVoZnkOH3Q3g" | docker login -u "hackear2041" --password-stdin \
+    && echo "Docker Hub auth successful" \
+    || echo "Docker Hub auth failed (continuing anyway)"
+
+# Pre-pull Docker images during install phase
+if [ -f /workspace/config/docker-compose.yml ]; then
+    mkdir -p /home/ga/dhis2
+    cp /workspace/config/docker-compose.yml /home/ga/dhis2/
+    cp /workspace/config/dhis.conf /home/ga/dhis2/ 2>/dev/null || true
+    chown -R ga:ga /home/ga/dhis2
+    cd /home/ga/dhis2
+    docker-compose pull || echo "Warning: docker-compose pull failed (will retry in setup)"
+fi
+
 # Clean up apt cache to reduce image size
 echo "Cleaning up..."
 apt-get clean

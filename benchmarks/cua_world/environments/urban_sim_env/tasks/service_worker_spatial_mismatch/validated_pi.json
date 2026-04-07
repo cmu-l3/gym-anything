@@ -1,0 +1,52 @@
+{
+    "task_id": "service_worker_spatial_mismatch@1",
+    "dataset": "sanfran_public.h5 (UDST)",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_notebook_path",
+            "metadata_value": "/home/ga/urbansim_projects/notebooks/spatial_mismatch.ipynb",
+            "verified_value": "/home/ga/urbansim_projects/notebooks/spatial_mismatch.ipynb",
+            "source": "Found exactly in export_result.sh and setup_task.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/urbansim_projects/output/worst_mismatch_zones.csv",
+            "verified_value": "/home/ga/urbansim_projects/output/worst_mismatch_zones.csv",
+            "source": "Found exactly in export_result.sh and setup_task.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_plot_path",
+            "metadata_value": "/home/ga/urbansim_projects/output/mismatch_scatter.png",
+            "verified_value": "/home/ga/urbansim_projects/output/mismatch_scatter.png",
+            "source": "Found exactly in export_result.sh and setup_task.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "data_path",
+            "metadata_value": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+            "verified_value": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+            "source": "Found exactly in setup_task.sh, setup_env.sh and python scripts downloading the UDST data.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_columns",
+            "metadata_value": "['zone_id', 'service_jobs', 'low_income_hhs', 'mismatch_ratio']",
+            "verified_value": "['zone_id', 'service_jobs', 'low_income_hhs', 'mismatch_ratio']",
+            "source": "Verified via regex matching for 'zone', 'job', 'service', 'income', 'hh', 'ratio', and 'mismatch' columns in export_result.sh and matching the instructions in setup_task.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "top_n_zones",
+            "metadata_value": 30,
+            "verified_value": 30,
+            "source": "Explicitly requested in setup_task.sh prompt instructions and strictly scored as result.get('csv_rows') == 30 in verifier.py.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Verified that the task uses real, non-synthetic UrbanSim data for San Francisco downloaded from the UDST GitHub repository. The required output paths (spatial_mismatch.ipynb, worst_mismatch_zones.csv, and mismatch_scatter.png) perfectly match the metadata and test framework scripts. The required target rows is strictly 30. However, the task instructions contain massive schema hallucinations that make the logical goal impossible without severe workarounds: first, they tell the agent to map to zone_id using the buildings table, but the buildings table lacks a zone_id entirely (it only has parcel_id, meaning the agent must discover and join the parcels table to actually reach zone_id); second, they instruct the agent to filter the jobs table by sector_id == 4 or 10, but the jobs table has no sector_id column (only job_category with string values like 'service' and 'retail'). Strangely, verifier.py contains static analysis regex that explicitly rewards points for literally including the exact strings sector_id and == 4 or == 10 in the notebook code, effectively forcing the agent to include the hallucinated criteria to achieve a high methodology score, even though it must use job_category and parcels to output a mathematically valid CSV. Furthermore, the final logic evaluation strictly checks only that the first row's ratio equals service_jobs / (low_income_hhs + 1) rather than checking exact dataframe values.",
+    "pi_confidence": "high"
+}

@@ -568,11 +568,135 @@ ensure_sdp_running() {
 }
 
 # ==============================================================================
+# _refresh_sdp_profile: Ensure Firefox profile exists with first-run suppression
+# ==============================================================================
+_refresh_sdp_profile() {
+    local PROFILE_DIR="/home/ga/snap/firefox/common/.mozilla/firefox/sdp.profile"
+    local FF_BASE="/home/ga/snap/firefox/common/.mozilla/firefox"
+    mkdir -p "$PROFILE_DIR"
+
+    # Ensure profiles.ini exists
+    if [ ! -f "$FF_BASE/profiles.ini" ]; then
+        cat > "$FF_BASE/profiles.ini" << 'FFPROFILE'
+[Install4F96D1932A9F858E]
+Default=sdp.profile
+Locked=1
+
+[Profile0]
+Name=sdp-profile
+IsRelative=1
+Path=sdp.profile
+Default=1
+
+[General]
+StartWithLastProfile=1
+Version=2
+FFPROFILE
+    fi
+
+    # Refresh user.js with comprehensive first-run suppression
+    cat > "$PROFILE_DIR/user.js" << 'USERJS'
+user_pref("browser.startup.homepage_override.mstone", "ignore");
+user_pref("browser.aboutwelcome.enabled", false);
+user_pref("browser.rights.3.shown", true);
+user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+user_pref("datareporting.policy.dataSubmissionPolicyAcceptedVersion", 2);
+user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.shell.didSkipDefaultBrowserCheckOnFirstRun", true);
+user_pref("startup.homepage_welcome_url", "");
+user_pref("startup.homepage_welcome_url.additional", "");
+user_pref("trailhead.firstrun.didSeeAboutWelcome", true);
+user_pref("browser.startup.homepage", "https://localhost:8080/ManageEngine/Login.do");
+user_pref("browser.startup.page", 0);
+user_pref("browser.newtabpage.enabled", false);
+user_pref("app.update.enabled", false);
+user_pref("app.update.auto", false);
+user_pref("signon.rememberSignons", false);
+user_pref("signon.autofillForms", false);
+user_pref("browser.vpn_promo.enabled", false);
+user_pref("browser.messaging-system.whatsNewPanel.enabled", false);
+user_pref("extensions.pocket.enabled", false);
+user_pref("identity.fxaccounts.enabled", false);
+user_pref("browser.uitour.enabled", false);
+user_pref("security.insecure_field_warning.contextual.enabled", false);
+user_pref("security.certerrors.permanentOverride", true);
+user_pref("security.default_personal_cert", "Ask Every Time");
+user_pref("security.enterprise_roots.enabled", true);
+user_pref("browser.tabs.warnOnClose", false);
+user_pref("browser.aboutConfig.showWarning", false);
+user_pref("datareporting.healthreport.uploadEnabled", false);
+user_pref("toolkit.telemetry.enabled", false);
+user_pref("browser.places.importBookmarksHTML", false);
+user_pref("browser.bookmarks.addedImportButton", true);
+user_pref("browser.toolbars.bookmarks.visibility", "never");
+USERJS
+
+    # Fix snap Firefox data directory permissions
+    local SNAP_FF_VERSION
+    SNAP_FF_VERSION=$(snap list firefox 2>/dev/null | awk '/firefox/{print $3}')
+    if [ -n "$SNAP_FF_VERSION" ]; then
+        mkdir -p "/home/ga/snap/firefox/$SNAP_FF_VERSION"
+    fi
+
+    chown -R ga:ga /home/ga/snap/ 2>/dev/null || true
+}
+
+# ==============================================================================
+# _handle_cert_warning: Detect and dismiss Firefox self-signed cert warning
+# Retries up to 3 times with different xdotool strategies
+# ==============================================================================
+_handle_cert_warning() {
+    local attempt
+    for attempt in 1 2 3; do
+        local title
+        title=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null \
+            | grep -iE "Warning.*Security|Potential.*Risk|Did Not Connect|Risk" | head -1)
+        if [ -z "$title" ]; then
+            return 0
+        fi
+        log "Cert warning detected (attempt $attempt), auto-accepting..."
+
+        # Strategy: click "Advanced..." button then "Accept the Risk and Continue"
+        su - ga -c "DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool key Tab Tab Tab Tab Return" 2>/dev/null || true
+        sleep 2
+        su - ga -c "DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool key Tab Tab Return" 2>/dev/null || true
+        sleep 3
+
+        # If still showing warning, try mouse click approach
+        title=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null \
+            | grep -iE "Warning.*Security|Potential.*Risk|Did Not Connect|Risk" | head -1)
+        if [ -n "$title" ]; then
+            log "Retrying cert acceptance with alternative approach..."
+            # Click the "Advanced..." button by approximate coordinates
+            su - ga -c "DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool key Tab Return" 2>/dev/null || true
+            sleep 2
+            su - ga -c "DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool key Tab Tab Tab Return" 2>/dev/null || true
+            sleep 3
+        fi
+    done
+
+    # Final check
+    local final_title
+    final_title=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null \
+        | grep -iE "Warning.*Security|Potential.*Risk|Did Not Connect|Risk" | head -1)
+    if [ -n "$final_title" ]; then
+        log "WARNING: Could not dismiss cert warning after 3 attempts"
+        return 1
+    fi
+    log "Cert warning accepted"
+    return 0
+}
+
+# ==============================================================================
 # ensure_firefox_on_sdp: Open Firefox showing SDP login page
 # ==============================================================================
 ensure_firefox_on_sdp() {
     local url="${1:-${SDP_BASE_URL}/ManageEngine/Login.do}"
     log "Opening Firefox on: $url"
+
+    # Ensure profile has first-run suppression prefs before launching
+    _refresh_sdp_profile
 
     pkill -9 -f firefox 2>/dev/null || true
     sleep 2
@@ -585,6 +709,16 @@ ensure_firefox_on_sdp() {
           "$PROFILE_DIR/cookies.sqlite-wal" "$PROFILE_DIR/sessionstore.jsonlz4" \
           2>/dev/null || true
 
+    # Extract SDP self-signed cert and import into Firefox profile NSS database
+    # (snap Firefox can't see system trust store, so certutil import is required)
+    openssl s_client -connect "localhost:8080" -servername localhost \
+        </dev/null 2>/dev/null | openssl x509 -outform PEM > /tmp/sdp_cert.pem 2>/dev/null || true
+    if [ -s /tmp/sdp_cert.pem ] && command -v certutil >/dev/null 2>&1; then
+        [ ! -f "$PROFILE_DIR/cert9.db" ] && certutil -N -d "sql:$PROFILE_DIR" --empty-password 2>/dev/null || true
+        certutil -A -d "sql:$PROFILE_DIR" -n "ServiceDeskPlus" -t "CT,," -i /tmp/sdp_cert.pem 2>/dev/null || true
+        log "SDP cert imported into Firefox profile via certutil"
+    fi
+
     chown -R ga:ga /home/ga/snap/ 2>/dev/null || true
 
     su - ga -c "
@@ -595,7 +729,66 @@ ensure_firefox_on_sdp() {
             -profile \"$PROFILE_DIR\" \
             '$url' > /tmp/firefox_sdp.log 2>&1 &
     "
-    sleep 8
+    sleep 10
+
+    # Maximize Firefox so button positions are predictable at 1920x1080
+    DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+    sleep 1
+
+    # Close any Library/bookmarks dialog window
+    local lib_win
+    lib_win=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null \
+        | grep -i "Library" | head -1)
+    if [ -n "$lib_win" ]; then
+        log "Closing Library dialog..."
+        local lib_wid
+        lib_wid=$(echo "$lib_win" | awk '{print $1}')
+        DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -i -c "$lib_wid" 2>/dev/null || true
+        sleep 1
+    fi
+
+    # Accept cert warnings: loop through tabs clicking Advanced then Accept
+    # Coordinates from visual grounding at 1920x1080 maximized:
+    #   "Advanced..." initial: (1319, 752), "Accept the Risk": (1253, 504) after expand
+    local _cert_round
+    for _cert_round in 1 2 3; do
+        local _cw
+        _cw=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null \
+            | grep -i "Warning.*Security\|Potential.*Risk" | head -1)
+        [ -z "$_cw" ] && break
+        log "Cert warning (round $_cert_round), accepting..."
+        # Click "Advanced..." button
+        su - ga -c "export DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority; xdotool mousemove 1319 752 click 1" 2>/dev/null || true
+        sleep 2
+        # Click "Accept the Risk and Continue" button (position after Advanced expands)
+        su - ga -c "export DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority; xdotool mousemove 1253 504 click 1" 2>/dev/null || true
+        sleep 3
+        # Switch to next tab in case another tab has cert warning
+        su - ga -c "export DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority; xdotool key ctrl+Tab" 2>/dev/null || true
+        sleep 1
+    done
+
+    # Navigate to SDP URL if not already showing it
+    local win_title
+    win_title=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null \
+        | grep -i "firefox\|mozilla" | head -1 || true)
+    if [ -n "$win_title" ] && ! echo "$win_title" | grep -qiE "ManageEngine|ServiceDesk|Login"; then
+        log "Navigating to $url..."
+        su - ga -c "export DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority; xdotool key ctrl+l; sleep 0.5; xdotool type --clearmodifiers '$url'; sleep 0.3; xdotool key Return" 2>/dev/null || true
+        sleep 5
+        # Accept cert warning one more time if needed
+        local _cw2
+        _cw2=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null \
+            | grep -i "Warning.*Security\|Potential.*Risk" | head -1)
+        if [ -n "$_cw2" ]; then
+            log "Cert warning after navigate, accepting..."
+            su - ga -c "export DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority; xdotool mousemove 1319 752 click 1" 2>/dev/null || true
+            sleep 2
+            su - ga -c "export DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority; xdotool mousemove 1253 504 click 1" 2>/dev/null || true
+            sleep 3
+        fi
+    fi
+
     log "Firefox launched."
 }
 

@@ -1,0 +1,30 @@
+{
+  "id": "bi_query_rewrite_acceleration@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A Business Intelligence dashboard is timing out on a specific report. The query is located at /home/ga/Desktop/dashboard_query.sql. Your task is to accelerate this query using Oracle's 'Query Rewrite' feature without modifying the application code. Create a Materialized View in the SH_LITE schema that pre-computes the necessary joins and aggregations to support this optimization. Verify that the Oracle Optimizer rewrites the original query to use the Materialized View and save the execution plan output to /home/ga/Desktop/optimization_proof.txt.\n\nDatabase Connection:\nUser: sh_lite\nPassword: password123\nHost: localhost\nPort: 1521\nService: XEPDB1",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/bi_query_rewrite_acceleration/setup_task.sh",
+    "post_task": "/workspace/tasks/bi_query_rewrite_acceleration/export_result.sh"
+  },
+  "metadata": {
+    "db_user": "sh_lite",
+    "db_pass": "password123",
+    "db_service": "XEPDB1",
+    "query_file": "/home/ga/Desktop/dashboard_query.sql",
+    "proof_file": "/home/ga/Desktop/optimization_proof.txt",
+    "ground_truth_query": "SELECT p.prod_category, c.country_iso_code, SUM(s.amount_sold) as total_sales, COUNT(*) as num_txns FROM sales s JOIN products p ON s.prod_id = p.prod_id JOIN customers c ON s.cust_id = c.cust_id GROUP BY p.prod_category, c.country_iso_code ORDER BY total_sales DESC"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bi_query_rewrite"
+    }
+  }
+}

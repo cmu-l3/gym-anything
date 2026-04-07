@@ -1,0 +1,29 @@
+{
+  "id": "insurance_loss_triangle_ibnr@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Open /home/ga/Documents/claims_data.xlsx containing a Claims sheet (~250 rows with ClaimID, AccidentYear 2018-2023, DevelopmentPeriod 12/24/36/48/60/72, CumulativeIncurred) and an EarnedPremium sheet (AccidentYear, EarnedPremium, ExpectedLossRatio). Build a loss reserve analysis with four new sheets.\n\nCreate a 'Triangle' sheet with an incurred loss development triangle where rows are accident years (2018-2023) and columns are development periods (12, 24, 36, 48, 60, 72). Each cell should equal the total CumulativeIncurred for the matching accident year and development period. Year 2018 has all 6 periods, 2019 has 5, down to 2023 with only period 12; leave unavailable cells blank.\n\nCreate a 'Factors' sheet computing age-to-age development factors for each adjacent period pair (12 to 24, 24 to 36, through 60 to 72). For each pair, show each accident year's individual factor (later period value divided by earlier period value) and the all-year weighted-average factor (sum of all later-period values divided by sum of all earlier-period values).\n\nCreate a 'Projections' sheet where each accident year's latest available Triangle value is multiplied by successive weighted-average factors to project the Ultimate incurred loss at period 72. IBNR equals Ultimate minus LatestKnown. Include columns: AccidentYear, LatestKnown, projected values at each remaining period, Ultimate, IBNR.\n\nCreate a 'Summary' sheet showing per accident year: EarnedPremium, ExpectedLoss (EarnedPremium times ExpectedLossRatio), CDF (product of remaining weighted-average factors), and BF_IBNR (ExpectedLoss times (1 minus 1/CDF)). Display Chain-Ladder IBNR and BF_IBNR side by side with a totals row.\n\nBold headers, currency format on dollar amounts. Save as /home/ga/Documents/loss_reserve_analysis.xlsx.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/insurance_loss_triangle_ibnr/setup_task.sh",
+    "post_task": "/workspace/tasks/insurance_loss_triangle_ibnr/export_result.sh"
+  },
+  "metadata": {
+    "data_source": "Realistic synthetic P&C insurance claims with actuarial development patterns",
+    "expected_sheets": ["Triangle", "Factors", "Projections", "Summary"],
+    "required_formulas": ["SUMIFS", "PRODUCT"],
+    "input_file": "claims_data.xlsx",
+    "output_file": "loss_reserve_analysis.xlsx"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_insurance_loss_triangle_ibnr"
+    }
+  }
+}

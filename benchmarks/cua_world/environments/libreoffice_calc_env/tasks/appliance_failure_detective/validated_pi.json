@@ -1,0 +1,87 @@
+{
+    "task_id": "appliance_failure_detective@1",
+    "dataset": "dishwasher_failure_log",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "number_of_entries",
+            "metadata_value": "~45 dishwasher run logs (from README.md line 18); '46 dishwasher run entries' (from setup_task.sh line 68)",
+            "verified_value": "47 data rows (lines 15-61 of CSV creation in setup_task.sh)",
+            "source": "Manual count of CSV data lines in setup_task.sh; Verified via Python csv parsing showing 47 rows",
+            "status": "contradicted"
+        },
+        {
+            "key": "date_range",
+            "metadata_value": "March 15 - April 30, 2024",
+            "verified_value": "March 15, 2024 to April 30, 2024 (46 calendar days; approximately 1.5 months)",
+            "source": "First date row (line 15): 3/15/2024; Last date row (line 61): April 30 2024",
+            "status": "verified"
+        },
+        {
+            "key": "column_structure",
+            "metadata_value": "Date, Cycle Type, Load Size, Water Temp, Drainage Success, Notes (6 columns)",
+            "verified_value": "Date, Cycle Type, Load Size, Water Temp, Drainage Success, Notes (6 columns)",
+            "source": "CSV header (line 14 of setup_task.sh); Verified via csv.DictReader field names",
+            "status": "verified"
+        },
+        {
+            "key": "date_formats_present",
+            "metadata_value": "Inconsistent formats: MM/DD/YYYY, M/D/YY, some text dates",
+            "verified_value": "Four distinct date formats found: (1) M/D/YYYY format with 4-digit year (16 occurrences), (2) M/D/YY format with 2-digit year (11 occurrences), (3) M-D-YYYY with hyphens (10 occurrences), (4) Month D YYYY text format like 'March 19 2024' (10 occurrences)",
+            "source": "Analysis of date column values from CSV; Python script detected all 4 format patterns",
+            "status": "verified"
+        },
+        {
+            "key": "success_failure_mix",
+            "metadata_value": "Mixture of successful and failed runs",
+            "verified_value": "33 successful (Drainage Success='Yes'), 14 failures (Drainage Success='No'), for overall 29.8% failure rate",
+            "source": "Count of Drainage Success column values from 47 data rows",
+            "status": "verified"
+        },
+        {
+            "key": "cycle_type_categories",
+            "metadata_value": "Normal, Heavy, Quick",
+            "verified_value": "Normal (22 occurrences, 1 failure, 4.5% rate), Heavy (14 occurrences, 13 failures, 92.9% rate), Quick (11 occurrences, 0 failures, 0% rate)",
+            "source": "Categorical count of Cycle Type column across 47 rows",
+            "status": "verified"
+        },
+        {
+            "key": "load_size_categories",
+            "metadata_value": "Light, Medium, Full",
+            "verified_value": "Light (15 occurrences, 0 failures, 0% rate), Medium (19 occurrences, 3 failures, 15.8% rate), Full (13 occurrences, 11 failures, 84.6% rate)",
+            "source": "Categorical count of Load Size column across 47 rows",
+            "status": "verified"
+        },
+        {
+            "key": "water_temp_categories",
+            "metadata_value": "Cold, Warm, Hot",
+            "verified_value": "Cold (14 occurrences, 0 failures, 0% rate), Warm (19 occurrences, 1 failure, 5.3% rate), Hot (14 occurrences, 13 failures, 92.9% rate)",
+            "source": "Categorical count of Water Temp column across 47 rows",
+            "status": "verified"
+        },
+        {
+            "key": "highest_risk_condition",
+            "metadata_value": "Not explicitly stated in task materials",
+            "verified_value": "Heavy cycle combined with Full load and Hot water temperature shows the highest failure rate of 92.9% (13 failures out of 14 occurrences). By individual category: Heavy cycle (92.9%), Full load (84.6%), and Hot water (92.9%) all show very high failure rates, with Heavy=Hot showing perfect correlation",
+            "source": "Cross-tabulation of failure counts across all Cycle Type, Load Size, and Water Temp categories",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_type",
+            "metadata_value": "Not explicitly stated",
+            "verified_value": "Synthetic data - created programmatically via bash cat command in setup_task.sh lines 13-62",
+            "source": "setup_task.sh contains hardcoded CSV data with 'cat > ... << CSVEOF' heredoc syntax",
+            "status": "verified"
+        },
+        {
+            "key": "data_chronological_order",
+            "metadata_value": "Not explicitly stated; task requires sorting chronologically",
+            "verified_value": "Data in setup_task.sh is already in chronological order (March 15 to April 30, 2024, ascending)",
+            "source": "Manual verification of date sequence in CSV lines 15-61",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The appliance failure dataset contains 47 dishwasher run logs (not 45 or 46 as claimed) spanning March 15 to April 30, 2024. The data is synthetic, generated via bash script in setup_task.sh. It includes 6 columns: Date (in 4 inconsistent formats), Cycle Type, Load Size, Water Temperature, Drainage Success, and Notes. The overall failure rate is 29.8% (14 failures out of 47 runs). By failure analysis: Heavy cycles show 92.9% failure rate vs. Normal (4.5%) and Quick (0%); Full loads show 84.6% failure rate vs. Medium (15.8%) and Light (0%); Hot water shows 92.9% failure rate vs. Warm (5.3%) and Cold (0%). The highest-risk condition is the Heavy+Full+Hot combination which exhibits 92.9% failure rate (13 of 14 such runs failed).",
+    "pi_confidence": "high"
+}

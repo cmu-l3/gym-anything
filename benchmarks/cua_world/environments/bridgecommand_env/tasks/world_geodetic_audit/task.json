@@ -1,0 +1,44 @@
+{
+  "id": "world_geodetic_audit@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "Perform a comprehensive geodetic audit of all simulation world terrains installed in Bridge Command (/opt/bridgecommand/World/). Catalog the TerrainLat, TerrainLong, TerrainLatExtent, TerrainLongExtent, MapWidth, MapHeight, and SeaMaxDepth for each world, along with derived metrics for Approximate Area (sq nm) and Resolution (m/pixel). Export the data to a CSV catalog at /home/ga/Documents/world_catalog.csv using the header: WorldName,TerrainLat,TerrainLong,LatExtent,LongExtent,MapWidth,MapHeight,SeaMaxDepth,AreaSqNm,ResolutionMetersPerPixel. Produce a technical audit report of at least 50 lines at /home/ga/Documents/geodetic_audit_report.txt including per-world sections with parameters, coordinate bounds, training suitability recommendations (Open Ocean, Confined Water, or Coastal), and technical observations.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/world_geodetic_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/world_geodetic_audit/export_result.sh"
+  },
+  "metadata": {
+    "csv_path": "/home/ga/Documents/world_catalog.csv",
+    "report_path": "/home/ga/Documents/geodetic_audit_report.txt",
+    "required_columns": [
+      "WorldName",
+      "TerrainLat",
+      "TerrainLong",
+      "LatExtent",
+      "LongExtent",
+      "MapWidth",
+      "MapHeight",
+      "SeaMaxDepth",
+      "AreaSqNm",
+      "ResolutionMetersPerPixel"
+    ],
+    "tolerances": {
+      "coordinates": 0.02,
+      "dimensions": 0,
+      "depth": 1.0,
+      "calculated": 0.2
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_world_geodetic_audit"
+    }
+  }
+}

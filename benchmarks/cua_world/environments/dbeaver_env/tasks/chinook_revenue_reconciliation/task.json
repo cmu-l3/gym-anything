@@ -1,0 +1,31 @@
+{
+  "id": "chinook_revenue_reconciliation@1",
+  "version": "1.0",
+  "env_id": "dbeaver_env@0.1",
+  "description": "The Chinook digital media store's finance team has discovered that monthly revenue figures in the general ledger do not match invoice totals for several months in late 2013. The import log suggests a batch import may have been run twice after an initial failure, potentially causing duplicate data. Additionally, someone created a manual credit memo to partially offset the discrepancy, but it may have been applied to the wrong customer.\n\nConnect to '/home/ga/Documents/databases/chinook_ledger.db' with connection name 'LedgerAudit'. Investigate the discrepancy between the 'general_ledger' table (which contains correct pre-error revenue figures) and actual invoice data. Identify and remove any duplicate invoice line items introduced by the failed import, delete the improper compensating credit memo, recalculate affected invoice totals, and verify that all months now reconcile with the general ledger.\n\nDocument every correction in a 'correction_log' table (CorrectionId INTEGER PRIMARY KEY AUTOINCREMENT, CorrectionType TEXT, AffectedTable TEXT, AffectedIds TEXT, OldValue TEXT, NewValue TEXT, Reason TEXT). Export the correction log to '/home/ga/Documents/exports/correction_report.csv' and save all SQL to '/home/ga/Documents/scripts/reconciliation.sql'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 3600,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chinook_revenue_reconciliation/setup_task.sh",
+    "post_task": "/workspace/tasks/chinook_revenue_reconciliation/export_result.sh"
+  },
+  "metadata": {
+    "db_path": "/home/ga/Documents/databases/chinook_ledger.db",
+    "connection_name": "LedgerAudit",
+    "export_dir": "/home/ga/Documents/exports",
+    "script_dir": "/home/ga/Documents/scripts",
+    "expected_outputs": ["correction_report.csv"],
+    "expected_script": "reconciliation.sql",
+    "ground_truth_file": "/tmp/reconciliation_ground_truth.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chinook_revenue_reconciliation"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+    "task_id": "debug_multifault_simulation@1",
+    "dataset": "Webots Demos",
+    "case_id": "soccer.wbt",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "output_path",
+            "metadata_value": "/home/ga/Desktop/fixed_simulation.wbt",
+            "verified_value": "/home/ga/Desktop/fixed_simulation.wbt",
+            "source": "Verified in verifier.py and export_result.sh which both check this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "planted_errors",
+            "metadata_value": [
+                "basicTimeStep set to 256 (should be 8-64 for accurate robot simulation)",
+                "WorldInfo gravity set to 0.0 (should be ~9.81 for Earth simulation)",
+                "BLUE_PLAYER_1 robot Physics mass set to 0.0 (invalid - causes floating/no physics)"
+            ],
+            "verified_value": [],
+            "source": "Analyzed setup_task.sh and soccer.wbt. The script crashes and exits with code 1 at 'grep -q basicTimeStep' because Webots R2023b does not include this field natively in soccer.wbt. Even bypassing the crash, the regexes for Error 1 and 3 fail completely due to absent fields and non-matching node names.",
+            "status": "contradicted"
+        },
+        {
+            "key": "verification_ranges",
+            "metadata_value": {
+                "basicTimeStep_max": 64,
+                "gravity_min": 9.0,
+                "mass_min": 0.1
+            },
+            "verified_value": {
+                "basicTimeStep_max": 64,
+                "gravity_min": 9.0,
+                "mass_min": 0.1
+            },
+            "source": "Verified via verifier.py which strictly checks basicTimeStep <= 64, gravity >= 9.0, and mass > 0.1.",
+            "status": "verified"
+        },
+        {
+            "key": "base_world",
+            "metadata_value": "soccer.wbt",
+            "verified_value": "soccer.wbt",
+            "source": "Verified via setup_task.sh which copies soccer.wbt from Webots demos.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Senior Robotics Simulation Engineer / QA Engineer",
+            "verified_value": "Senior Robotics Simulation Engineer / QA Engineer",
+            "source": "Matches task description prompt.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Robotics Systems / Simulation Engineering",
+            "verified_value": "Robotics Systems / Simulation Engineering",
+            "source": "Matches task description prompt.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The baseline Webots demo world (soccer.wbt) is utilized, but setup_task.sh contains a fatal flaw: it exits immediately because 'basicTimeStep' is absent from the R2023b soccer.wbt file. Consequently, none of the 3 claimed physics errors (basicTimeStep, gravity, mass=0) are actually injected. Furthermore, the verifier requires all robot masses to be > 0.1 kg, meaning an agent would have to artificially inflate the mass of existing robots (like the wheels which natively weigh 0.005 kg) to pass, rather than fixing a single injected 0.0 kg error.",
+    "pi_confidence": "high"
+}

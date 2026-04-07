@@ -3,6 +3,7 @@ echo "=== Setting up schedule_appointment task ==="
 
 # Source shared utilities
 source /workspace/scripts/task_utils.sh
+wait_for_postgres
 
 # 1. Record initial appointment count
 INITIAL_COUNT=$(get_appointment_count)

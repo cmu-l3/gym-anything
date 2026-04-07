@@ -1,0 +1,28 @@
+{
+  "id": "scene_spatial_audit@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Scene Spatial Audit and Clearance Report",
+  "description": "A robotics engineer must produce a formal spatial audit document before a workcell passes safety review. Using the ZMQ Remote API, programmatically connect to the loaded CoppeliaSim scene, catalog every object, and compute minimum clearances. \n\nExpected Workflow:\n1. Connect to ZMQ Remote API on port 23000.\n2. Enumerate all objects in the scene (`sim.getObjects(0, sim.handle_all)`).\n3. Classify objects by type (joint, shape, dummy, sensor, etc.) and record positions and orientations in the world frame.\n4. For shape objects, record bounding box dimensions (`sim.getShapeBB`).\n5. Identify the robot base object and compute Euclidean distances from it to all other shapes.\n6. Compute the minimum clearance distance (excluding the robot's own child links/shapes).\n7. Save results in two files under `/home/ga/Documents/CoppeliaSim/exports/`:\n\nFile 1: `scene_inventory.csv`\n- Required columns: `object_id`, `object_name`, `object_type`, `pos_x`, `pos_y`, `pos_z`, `ori_alpha`, `ori_beta`, `ori_gamma`, `bbox_x`, `bbox_y`, `bbox_z`\n- Must contain >= 15 rows representing scene objects.\n\nFile 2: `spatial_analysis.json`\n- Required fields: `total_objects`, `joint_count`, `shape_count`, `dummy_count`, `sensor_count`, `robot_base_name`, `robot_base_xyz`, `nearest_obstacle_name`, `nearest_obstacle_distance_m`, `scene_bbox_min`, `scene_bbox_max`, `clearance_pairs` (list of dicts with shape name and distance).\n\nLogin credentials: username=ga, password=password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/scene_spatial_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/scene_spatial_audit/export_result.sh"
+  },
+  "metadata": {
+    "output_csv": "/home/ga/Documents/CoppeliaSim/exports/scene_inventory.csv",
+    "output_json": "/home/ga/Documents/CoppeliaSim/exports/spatial_analysis.json",
+    "min_rows": 15
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_scene_spatial_audit"
+    }
+  }
+}

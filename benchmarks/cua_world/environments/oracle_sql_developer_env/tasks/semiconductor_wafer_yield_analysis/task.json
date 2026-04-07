@@ -1,0 +1,35 @@
+{
+  "id": "semiconductor_wafer_yield_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Industrial Engineer optimizing semiconductor yield using the FAB_ANALYTICS schema in Oracle (connected as fab_admin/Yield2024 to XEPDB1). Analyze defect coordinates on silicon wafers to identify equipment failures and calculate yield metrics.\n\nThe analysis requires the creation of three views. `WAFER_DEFECT_STATS_VW` joins WAFERS and DEFECTS to calculate `wafer_id`, `lot_id`, `wafer_number`, `total_defects`, `max_defect_distance` (SQRT((x_coord - center_x)^2 + (y_coord - center_y)^2)), `edge_defect_pct` (percentage of defects with distance from center >= 90% of radius_mm), and `r_squared` (REGR_R2(y_coord, x_coord), treating NULL as 0). `WAFER_CLASSIFICATION_VW` classifies failure signatures by evaluating criteria in order: 'EDGE_RING' (edge_defect_pct >= 60 and total_defects > 50), 'SCRATCH' (r_squared >= 0.80 and total_defects > 30), or 'RANDOM' (all others), and sets an `is_scrap` flag (1) if total_defects > 100 or the signature is 'EDGE_RING' or 'SCRATCH'. `LOT_YIELD_SUMMARY_VW` aggregates results by `lot_id` to show `total_wafers`, `scrap_wafers`, and `yield_pct` (rounded to 2 decimals). Export the lot yield summary, ordered by yield_pct ascending, to /home/ga/Documents/exports/lot_yield_report.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/semiconductor_wafer_yield_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/semiconductor_wafer_yield_analysis/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/wafer_yield_result.json",
+    "expected_export_path": "/home/ga/Documents/exports/lot_yield_report.csv",
+    "occupation": "Industrial Engineers",
+    "industry": "Semiconductor Manufacturing",
+    "oracle_features": [
+      "REGR_R2",
+      "SQRT",
+      "POWER",
+      "CASE expressions",
+      "Aggregate functions"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_semiconductor_wafer_yield_analysis"
+    }
+  }
+}

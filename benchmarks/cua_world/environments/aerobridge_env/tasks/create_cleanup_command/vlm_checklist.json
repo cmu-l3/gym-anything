@@ -1,0 +1,53 @@
+{
+  "task_id": "create_cleanup_command@1",
+  "task_completion": [
+    {
+      "id": "inspect_model_definition",
+      "description": "Determine the correct field names and status values from the FlightPlan model definition.",
+      "points": 10,
+      "visual_evidence": "Screenshot showing the agent viewing the models.py file (or similar) in the registry app to inspect the FlightPlan model's fields (e.g., end_time, status)."
+    },
+    {
+      "id": "create_command_file",
+      "description": "Create the custom management command file at the correct path.",
+      "points": 15,
+      "visual_evidence": "Screenshot showing a text editor open with the file path registry/management/commands/close_expired_plans.py."
+    },
+    {
+      "id": "implement_filtering_logic",
+      "description": "Write Django ORM logic to identify 'Active' flight plans whose end time has passed.",
+      "points": 25,
+      "visual_evidence": "Code visible in close_expired_plans.py showing a query like `FlightPlan.objects.filter(...)` that checks for status='Active' and an end_time strictly in the past (e.g., using `end_time__lt=timezone.now()`)."
+    },
+    {
+      "id": "implement_update_and_output",
+      "description": "Write logic to update the status to 'Closed' and output a summary message to stdout.",
+      "points": 25,
+      "visual_evidence": "Code visible in close_expired_plans.py showing an `.update(status='Closed')` call on the queryset and a `self.stdout.write(...)` call to print the summary message."
+    },
+    {
+      "id": "execute_management_command",
+      "description": "Execute the command to clean up the current database.",
+      "points": 25,
+      "visual_evidence": "Terminal output showing the execution of `python manage.py close_expired_plans` and the resulting summary message (e.g., 'Closed X plans') printed to the console."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_file_editing",
+      "description": "The agent used a real text editor or IDE to write the Django management command.",
+      "visual_evidence": "The close_expired_plans.py file is seen open in an editor (like VS Code, vim, or nano) with syntax highlighting, rather than just being created via blind 'echo' commands."
+    },
+    {
+      "id": "genuine_django_orm_usage",
+      "description": "The agent used Django ORM to update the database rather than hardcoding a bypass.",
+      "visual_evidence": "The code in the command file actually imports and uses the FlightPlan model (e.g., `from registry.models import FlightPlan`) instead of executing raw sqlite3 shell commands or printing a fake success message without doing the work."
+    },
+    {
+      "id": "genuine_command_execution",
+      "description": "The agent actually ran the management command in the terminal.",
+      "visual_evidence": "The terminal shows the actual command `python manage.py close_expired_plans` being typed and executed, with standard Django execution context, not just echoing a fake output string."
+    }
+  ],
+  "privileged_info_for_vlm": "The task uses a synthetic Aerobridge environment. The FlightPlan model is located in the 'registry' app (not gcs_operations) and contains the specific fields: 'name', 'start_time', 'end_time', 'status', 'aircraft', and 'pilot'. The agent's code must use these exact field names (specifically 'status' and 'end_time') in their Django ORM queries to successfully complete the task."
+}

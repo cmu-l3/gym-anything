@@ -1,0 +1,47 @@
+{
+  "task_id": "debug_postgres_init_failure@1",
+  "task_completion": [
+    {
+      "id": "troubleshoot_environment",
+      "description": "Agent modifies the environment to allow database initialization, such as clearing the existing volume or fixing the compose file.",
+      "points": 30,
+      "visual_evidence": "Terminal showing commands like `docker compose down -v`, `docker volume rm inventory_pgdata`, or a text editor modifying `docker-compose.yml` (e.g., fixing the `init.sql` mapping or changing the volume name)."
+    },
+    {
+      "id": "start_docker_compose",
+      "description": "Agent starts the Docker Compose stack.",
+      "points": 20,
+      "visual_evidence": "Terminal showing `docker compose up` or `docker compose up -d` being executed in the `/home/ga/Documents/docker-projects/inventory` directory."
+    },
+    {
+      "id": "connect_to_database",
+      "description": "Agent connects to the PostgreSQL database to verify the fix.",
+      "points": 20,
+      "visual_evidence": "Terminal showing a `psql` session connected to the `inventory_db` container (e.g., using `docker exec -it inventory_db psql -U postgres -d inventory`)."
+    },
+    {
+      "id": "verify_products_table",
+      "description": "Agent verifies that the 'products' table was successfully created by the initialization script.",
+      "points": 30,
+      "visual_evidence": "Terminal showing the output of a `psql` command like `\\dt` or a `SELECT` query that clearly lists the `products` table in the database."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_docker_commands",
+      "description": "Check that Docker commands were actually executed and produced standard Docker output.",
+      "visual_evidence": "Terminal shows authentic Docker output (e.g., pulling images, creating networks/volumes, starting containers) rather than manually typed or echoed text."
+    },
+    {
+      "id": "genuine_psql_interaction",
+      "description": "Check that the database verification was done through a genuine psql session.",
+      "visual_evidence": "Terminal shows the standard `psql` prompt (e.g., `inventory=#`) and authentic tabular output for commands like `\\dt`."
+    },
+    {
+      "id": "automated_seeding_used",
+      "description": "Ensure the agent did not manually create the table inside the database.",
+      "visual_evidence": "The `CREATE TABLE products` command should NOT be visible in the `psql` prompt history; the table must be created automatically by the Docker Compose initialization."
+    }
+  ],
+  "privileged_info_for_vlm": "The project directory is '/home/ga/Documents/docker-projects/inventory'. The expected table to be created is 'products'. The Docker container name is 'inventory_db' and the volume name is 'inventory_pgdata'. The issue typically requires removing the existing volume 'inventory_pgdata' (e.g., `docker compose down -v`) or fixing the init.sql mapping in docker-compose.yml so that PostgreSQL runs the initialization script on startup."
+}

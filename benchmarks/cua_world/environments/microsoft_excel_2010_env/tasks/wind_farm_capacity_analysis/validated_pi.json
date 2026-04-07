@@ -1,0 +1,101 @@
+{
+    "task_id": "wind_farm_capacity_analysis@1",
+    "dataset": "Synthetic wind farm production data (20 GE 2.5 MW turbines, Iowa, 2023)",
+    "case_id": "50MW_Central_Iowa_Farm_2023",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "workbook_path",
+            "metadata_value": "C:\\Users\\Docker\\Documents\\wind_farm_production.xlsx",
+            "verified_value": "C:\\Users\\Docker\\Documents\\wind_farm_production.xlsx (path follows standard pattern; data file not yet created)",
+            "source": "task.json metadata field; file does not exist in data directory yet (needs to be generated)",
+            "status": "verified"
+        },
+        {
+            "key": "sheet_production",
+            "metadata_value": "Turbine_Production",
+            "verified_value": "Turbine_Production",
+            "source": "task.json metadata; verifier.py loads this sheet and expects 240 rows (20 turbines × 12 months)",
+            "status": "verified"
+        },
+        {
+            "key": "sheet_annual",
+            "metadata_value": "Turbine_Annual_Summary",
+            "verified_value": "Turbine_Annual_Summary",
+            "source": "task.json metadata; verifier.py expects 20 turbine rows (WT01-WT20) plus totals",
+            "status": "verified"
+        },
+        {
+            "key": "sheet_monthly",
+            "metadata_value": "Monthly_Farm_Summary",
+            "verified_value": "Monthly_Farm_Summary",
+            "source": "task.json metadata; verifier.py expects 12 month rows plus annual totals",
+            "status": "verified"
+        },
+        {
+            "key": "ppa_price",
+            "metadata_value": 45,
+            "verified_value": 45,
+            "source": "task.json metadata; verified against verifier.py line 82: 'annual_truth['Revenue'] = annual_truth['Actual_Production_MWh'] * 45'",
+            "status": "verified"
+        },
+        {
+            "key": "turbine_capacity_mw",
+            "metadata_value": 2.5,
+            "verified_value": 2.5,
+            "source": "task.json metadata; verified against verifier.py line 74: 'Nameplate_MW': 'first', # Should be 2.5, and lines 80-81 use this in CF calculations",
+            "status": "verified"
+        },
+        {
+            "key": "total_turbines",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "task.json metadata; verified against verifier.py lines 94-96: 'if len(df_annual_clean) != 20:' and description mentions 20 × GE 2.5 MW turbines",
+            "status": "verified"
+        },
+        {
+            "key": "wake_loss_range",
+            "metadata_value": [5.0, 15.0],
+            "verified_value": "[5.0, 15.0] is plausible for back-row wake losses",
+            "source": "Web search on wind farm wake effects: typical wake losses range 5-15% for downwind turbines. Verifier expects Wake_Loss in percentage form calculated as (Front_CF - Back_CF) / Front_CF * 100. At 5% loss, Back CF would be ~95% of Front CF; at 15% loss, Back CF would be ~85% of Front CF.",
+            "status": "verified"
+        },
+        {
+            "key": "underperforming_threshold",
+            "metadata_value": 28.0,
+            "verified_value": 28.0,
+            "source": "task.json metadata; verified against verifier.py line 85: 'if cf < 28: return \"UNDERPERFORMING\"'",
+            "status": "verified"
+        },
+        {
+            "key": "review_threshold",
+            "metadata_value": 32.0,
+            "verified_value": 32.0,
+            "source": "task.json metadata; verified against verifier.py line 86: 'if cf < 32: return \"REVIEW\"'",
+            "status": "verified"
+        },
+        {
+            "key": "iowa_location_justification",
+            "metadata_value": "Central Iowa is realistic for wind farm location",
+            "verified_value": "Verified: Iowa is the 2nd leading wind energy state in the US; typical capacity factors are 33-40% (above the 28-32% thresholds), making it realistic for a demonstration task",
+            "source": "Web search: Wikipedia Wind power in Iowa; Iowa Utilities Commission; EIA; Iowa Farm Bureau data shows Iowa leads nation in wind capacity",
+            "status": "verified"
+        },
+        {
+            "key": "ge_2_5_mw_turbine_realism",
+            "metadata_value": "GE 2.5 MW turbine is a real product model",
+            "verified_value": "Verified: GE Energy's 2.5 MW turbines (GE 2.5-88, GE 2.5-120, GE 2.5XL) are real commercial models deployed in North America",
+            "source": "Web search: GE Vernova turbine specifications; The Wind Power database; vendor technical documentation confirms GE 2.5 series exists and has capacity factors 28-40% range depending on site",
+            "status": "verified"
+        },
+        {
+            "key": "hours_in_year_standard",
+            "metadata_value": "Total_Hours should be 8760 for full year",
+            "verified_value": "8760 hours in a non-leap year (365 days × 24 hours); 2023 was not a leap year",
+            "source": "Task description: 'Total_Hours (SUMIF, should be 8760)' and verifier.py uses this in capacity factor calculations: Gross_CF = (Production / (2.5 * Hours_In_Month)) * 100",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The wind_farm_capacity_analysis task is for a 50 MW wind farm (20 × GE 2.5 MW turbines) located in central Iowa, analyzing 2023 annual production data. Data is synthetic (not from a real farm) but uses realistic parameters: annual hours = 8760, PPA price = $45/MWh, performance thresholds of 28% (underperforming), 32% (review), 5-15% expected wake loss from back-row turbines. Iowa is a leading wind energy state with typical capacity factors of 33-40%, making the 28-32% threshold range appropriate for identifying underperforming units. The task requires the agent to complete analysis sheets with SUMIF formulas, capacity factor calculations, revenue projections, and wake loss analysis across 20 turbines and 12 months.",
+    "pi_confidence": "high"
+}

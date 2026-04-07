@@ -1,0 +1,150 @@
+{
+  "task_id": "water_leak_detector@1",
+  "dataset": "water_usage_data.csv",
+  "case_id": null,
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "number_of_days",
+      "metadata_value": "30 days of data",
+      "verified_value": 30,
+      "source": "CSV in setup_task.sh contains 30 rows of water usage data (Jan 1-30, 2024)",
+      "status": "verified"
+    },
+    {
+      "key": "timeout_sec",
+      "metadata_value": "240",
+      "verified_value": 240,
+      "source": "task.json init.timeout_sec field",
+      "status": "verified"
+    },
+    {
+      "key": "max_steps",
+      "metadata_value": "15",
+      "verified_value": 15,
+      "source": "task.json init.max_steps field",
+      "status": "verified"
+    },
+    {
+      "key": "difficulty",
+      "metadata_value": "medium",
+      "verified_value": "medium",
+      "source": "task.json difficulty field and README.md",
+      "status": "verified"
+    },
+    {
+      "key": "rolling_average_window_days",
+      "metadata_value": "7 days",
+      "verified_value": 7,
+      "source": "README.md formula specification and task description: 'Calculate a 7-day rolling average baseline'",
+      "status": "verified"
+    },
+    {
+      "key": "anomaly_threshold_multiplier",
+      "metadata_value": "1.5 (150% of baseline)",
+      "verified_value": 1.5,
+      "source": "README.md line 19: 'Define anomaly threshold as 150% of baseline (baseline × 1.5)' and README line 36: 'Threshold - Baseline × 1.5'",
+      "status": "verified"
+    },
+    {
+      "key": "excess_water_calculation",
+      "metadata_value": "Amount wasted above baseline (not threshold) when usage exceeds threshold",
+      "verified_value": "Calculated as usage - baseline when usage > threshold, else 0",
+      "source": "README.md line 32: 'Excess Gallons - Amount wasted above baseline' and formula F8: =IF(B8>D8,B8-C8,0)",
+      "status": "verified"
+    },
+    {
+      "key": "cost_per_gallon",
+      "metadata_value": "$0.01",
+      "verified_value": 0.01,
+      "source": "README.md line 44: 'Estimated Cost: =SUM(F8:F31)*0.01 (assumes $0.01/gallon)'",
+      "status": "verified"
+    },
+    {
+      "key": "expected_leak_days_setup_script",
+      "metadata_value": "5-8 days",
+      "verified_value": 4,
+      "source": "setup_task.sh line 115 claims '5-8 days flagged', but actual calculation shows only 4 days with 150% threshold (Jan 8, 14, 18, 29)",
+      "status": "contradicted"
+    },
+    {
+      "key": "expected_leak_days_readme",
+      "metadata_value": "4-9 leak days detected",
+      "verified_value": 4,
+      "source": "README.md line 54 and verifier.py line 311 both state 4-9 as expected range",
+      "status": "verified"
+    },
+    {
+      "key": "expected_excess_water_readme",
+      "metadata_value": "200-600 gallons",
+      "verified_value": 346.6,
+      "source": "README.md line 54 specifies 200-600 gallons; actual data produces 346.6 gallons",
+      "status": "verified"
+    },
+    {
+      "key": "expected_excess_water_verifier_code",
+      "metadata_value": "150-800 gallons (from code check)",
+      "verified_value": 346.6,
+      "source": "verifier.py line 317: if 150 <= total_excess <= 800 (but feedback message says 200-600)",
+      "status": "verified"
+    },
+    {
+      "key": "anomaly_detection_method",
+      "metadata_value": "Rolling 7-day average baseline with 150% threshold",
+      "verified_value": "Day i baseline = average of previous 7 days (i-7 to i-1), threshold = baseline × 1.5",
+      "source": "README.md formulas and setup_task.sh description line 13",
+      "status": "verified"
+    },
+    {
+      "key": "data_min_daily_usage",
+      "metadata_value": "Normal usage 80-120 gal/day",
+      "verified_value": "Minimum: 0 gallons (meter outage on Jan 11), Normal range approximately 87-115 gal/day",
+      "source": "CSV data analysis; setup_task.sh line 13 mentions 'meter outages (0)'",
+      "status": "verified"
+    },
+    {
+      "key": "data_anomaly_days",
+      "metadata_value": "Anomalies 160-220 gal/day",
+      "verified_value": "Detected anomalies: 189, 172, 197, 207 gal (all > 150% threshold)",
+      "source": "CSV data: Jan 8=189, Jan 14=172, Jan 18=197, Jan 29=207",
+      "status": "verified"
+    },
+    {
+      "key": "total_excess_gallons_actual",
+      "metadata_value": "Expected range 200-600 gallons",
+      "verified_value": 346.6,
+      "source": "Sum of excess for 4 anomaly days: 89.9 + 72.1 + 98.0 + 86.6 = 346.6 gallons",
+      "status": "verified"
+    },
+    {
+      "key": "verifier_leak_count_range",
+      "metadata_value": "4-9 leak days",
+      "verified_value": 4,
+      "source": "verifier.py line 311: if 4 <= leak_count <= 9",
+      "status": "verified"
+    },
+    {
+      "key": "data_is_synthetic",
+      "metadata_value": "true (created by setup script)",
+      "verified_value": true,
+      "source": "Data is embedded in setup_task.sh lines 14-46 as hardcoded CSV values, not from external dataset",
+      "status": "verified"
+    },
+    {
+      "key": "data_contains_meter_outage",
+      "metadata_value": "Yes, meter outage on Jan 11 (0 gallons)",
+      "verified_value": true,
+      "source": "CSV row for 2024-01-11 has 0 gallons; setup_task.sh line 13 mentions 'meter outages (0)'",
+      "status": "verified"
+    },
+    {
+      "key": "first_anomaly_detection_row",
+      "metadata_value": "Row 8 (first day with 7 days of prior history)",
+      "verified_value": 8,
+      "source": "README.md line 34 and setup_task.sh line 106: 'Start calculations in row 8'",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "This is a synthetic water leak detection task using 30 days of household water meter readings (Jan 1-30, 2024). Key verified facts: data is fully synthetic, created by setup script with hardcoded CSV; task uses 7-day rolling average baseline to detect anomalies; threshold is 150% of baseline (baseline × 1.5); excess water calculated as (usage - baseline) only when usage exceeds threshold; only 4 anomaly days detected with this data (Jan 8, 14, 18, 29 with 189, 172, 197, 207 gallons respectively), totaling 346.6 gallons excess at $0.01/gallon = $3.47 cost; cost per gallon is $0.01 per README; data includes intentional meter outage on Jan 11 (0 gallons); anomaly days cluster around normal baseline of ~99-101 gal/day. NOTE: setup_task.sh claims 5-8 expected leak days but actual data with 150% threshold yields only 4 days, contradicting that claim. README and verifier specify 4-9 days which matches actual result. Verifier code checks 150-800 gallons excess but feedback message says 200-600 gallons.",
+  "pi_confidence": "high"
+}

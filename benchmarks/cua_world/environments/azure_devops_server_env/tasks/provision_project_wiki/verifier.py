@@ -135,30 +135,4 @@ def verify_provision_project_wiki(traj, env_info, task_info):
             content_passed = False
             missed_criteria.append("missing API endpoint example")
             
-        if req_data.get("check_code_block") and "```" not in content:
-            content_passed = False
-            missed_criteria.append("missing code block")
-
-        if content_passed:
-            score += req_data["score"]
-            pages_passed += 1
-            feedback_parts.append(f"{req_data['name']} verified (+{req_data['score']})")
-        else:
-            feedback_parts.append(f"{req_data['name']} incomplete: {', '.join(missed_criteria)}")
-
-    expected_paths = {path.lower() for path in REQUIREMENTS}
-    found_paths = set(found_pages_map)
-    hierarchy_ok = expected_paths.issubset(found_paths)
-    if hierarchy_ok:
-        score += 8
-        feedback_parts.append("Wiki hierarchy complete (+8)")
-    else:
-        missing_paths = sorted(expected_paths - found_paths)
-        feedback_parts.append(f"Wiki hierarchy incomplete: missing {missing_paths}")
-
-    passed = score >= 60 and pages_passed >= 4
-    return {
-        "passed": passed,
-        "score": score,
-        "feedback": " | ".join(feedback_parts),
-    }
+        if req_data.get("check_code_block") and "

@@ -1,0 +1,142 @@
+# Nginx web server deployment based on the official Kubernetes nginx example
+# Source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+# Uses real nginx:1.25-alpine image from Docker Hub
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: staging
+  labels:
+    app: nginx-web
+    tier: frontend
+data:
+  nginx.conf: |
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /tmp/nginx.pid;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+
+        access_log  /var/log/nginx/access.log  main;
+        sendfile        on;
+        keepalive_timeout  65;
+
+        server {
+            listen 80;
+            server_name _;
+
+            location / {
+                root   /usr/share/nginx/html;
+                index  index.html index.htm;
+            }
+
+            location /healthz {
+                access_log off;
+                return 200 "OK\n";
+                add_header Content-Type text/plain;
+            }
+
+            location /status {
+                stub_status on;
+                access_log off;
+            }
+        }
+    }
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>Staging Web Frontend</title></head>
+    <body>
+    <h1>Welcome to the Staging Environment</h1>
+    <p>This is the staging web frontend served by Nginx.</p>
+    <p>Cluster: local | Namespace: staging</p>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-web
+  namespace: staging
+  labels:
+    app: nginx-web
+    tier: frontend
+    version: "1.25"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-web
+  template:
+    metadata:
+      labels:
+        app: nginx-web
+        tier: frontend
+        version: "1.25"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25-alpine
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: nginx-config
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-web
+  namespace: staging
+  labels:
+    app: nginx-web
+    tier: frontend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: nginx-web

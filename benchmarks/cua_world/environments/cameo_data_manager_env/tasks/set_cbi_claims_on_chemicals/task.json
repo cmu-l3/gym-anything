@@ -1,0 +1,48 @@
+{
+  "id": "set_cbi_claims_on_chemicals@1",
+  "version": "1.0",
+  "env_id": "cameo_data_manager_env@0.1",
+  "description": "Import facility data for 'Praxair Distribution Inc.' (FAC-00147) from 'C:\\Users\\Docker\\Desktop\\praxair_import.xml' and update Confidential Business Information (CBI) claims. For 'Proprietary Cooling Blend X-40' (CAS 68476-85-7), claim the chemical identity as a Trade Secret with 'Refrigerant Gas Blend' as the generic class name. For 'Anhydrous Ammonia' (CAS 7664-41-7), claim the storage location as Confidential while ensuring it is not marked as a Trade Secret. Verify that 'Sulfuric Acid' has no CBI claims set. Export the modified facility data to 'C:\\Users\\Docker\\Desktop\\praxair_cbi_export.xml'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\set_cbi_claims_on_chemicals\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\set_cbi_claims_on_chemicals\\export_result.ps1"
+  },
+  "metadata": {
+    "import_file": "C:\\Users\\Docker\\Desktop\\praxair_import.xml",
+    "export_file": "C:\\Users\\Docker\\Desktop\\praxair_cbi_export.xml",
+    "facility_name": "Praxair Distribution Inc.",
+    "target_chemicals": [
+      {
+        "cas": "68476-85-7",
+        "name": "Proprietary Cooling Blend X-40",
+        "expect_trade_secret": true,
+        "expect_generic_name": "Refrigerant Gas Blend",
+        "expect_location_confidential": false
+      },
+      {
+        "cas": "7664-41-7",
+        "name": "Anhydrous Ammonia",
+        "expect_trade_secret": false,
+        "expect_location_confidential": true
+      },
+      {
+        "cas": "7664-93-9",
+        "name": "Sulfuric Acid",
+        "expect_trade_secret": false,
+        "expect_location_confidential": false
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_set_cbi_claims"
+    }
+  }
+}

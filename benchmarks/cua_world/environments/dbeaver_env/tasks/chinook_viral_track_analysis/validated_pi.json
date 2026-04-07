@@ -1,0 +1,94 @@
+{
+    "task_id": "chinook_viral_track_analysis@1",
+    "dataset": "Chinook Database (public dataset with synthetic data injection)",
+    "case_id": "viral_track_analysis_with_left_join",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "database_path",
+            "metadata_value": "/home/ga/Documents/databases/chinook_viral.db",
+            "verified_value": "/home/ga/Documents/databases/chinook_viral.db",
+            "source": "setup_task.sh line 12: TARGET_DB variable; verified path matches export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/Documents/exports/viral_tracks.csv",
+            "verified_value": "/home/ga/Documents/exports/viral_tracks.csv",
+            "source": "export_result.sh line 10: RESULT_CSV variable definition",
+            "status": "verified"
+        },
+        {
+            "key": "expected_sql_path",
+            "metadata_value": "/home/ga/Documents/scripts/viral_analysis.sql",
+            "verified_value": "/home/ga/Documents/scripts/viral_analysis.sql",
+            "source": "export_result.sh line 11: RESULT_SQL variable definition",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": ["AlbumTitle", "TrackName", "TrackRevenue", "AlbumAvgRevenue", "RevenueMultiplier"],
+            "verified_value": ["AlbumTitle", "TrackName", "TrackRevenue", "AlbumAvgRevenue", "RevenueMultiplier"],
+            "source": "Verified by executing ground truth SQL query from setup_task.sh (lines 62-91); columns match exact output structure",
+            "status": "verified"
+        },
+        {
+            "key": "target_track_partial_name",
+            "metadata_value": "For Those About To Rock",
+            "verified_value": "For Those About To Rock (We Salute You)",
+            "source": "Queried tracks table in chinook.db; track name is 'For Those About To Rock (We Salute You)' (TrackId=1 in AlbumId=1); metadata provides partial name that matches",
+            "status": "verified"
+        },
+        {
+            "key": "multiplier_threshold",
+            "metadata_value": 3.0,
+            "verified_value": 3.0,
+            "source": "setup_task.sh line 89: WHERE ts.TrackRevenue > (3.0 * ast.AlbumAvgRevenue); verified in SQL query logic",
+            "status": "verified"
+        },
+        {
+            "key": "database_source",
+            "metadata_value": null,
+            "verified_value": "Public Chinook Database from https://github.com/lerocha/chinook-database",
+            "source": "Verified 11 standard tables (albums, artists, customers, employees, genres, invoice_items, invoices, media_types, playlist_track, playlists, tracks); confirmed sample data matches expected Chinook content; available on Kaggle and GitHub",
+            "status": "verified"
+        },
+        {
+            "key": "expected_viral_track_count",
+            "metadata_value": null,
+            "verified_value": "84 tracks (after synthetic data injection with LEFT JOIN calculation)",
+            "source": "Executed COUNT query on test database with injected viral data; counted records matching WHERE ts.TrackRevenue > (3.0 * ast.AlbumAvgRevenue)",
+            "status": "verified"
+        },
+        {
+            "key": "top_viral_track",
+            "metadata_value": null,
+            "verified_value": "Walk On Water from Big Ones album (revenue multiplier: 12.0)",
+            "source": "Executed ground truth SQL query on injected database; identified highest RevenueMultiplier",
+            "status": "verified"
+        },
+        {
+            "key": "second_highest_viral_track",
+            "metadata_value": null,
+            "verified_value": "For Those About To Rock (We Salute You) from For Those About To Rock We Salute You album (revenue multiplier: 9.15)",
+            "source": "Executed ground truth SQL query; second highest result in ordered output",
+            "status": "verified"
+        },
+        {
+            "key": "album_average_calculation_method",
+            "metadata_value": null,
+            "verified_value": "LEFT JOIN with IFNULL to include tracks with zero sales in average calculation",
+            "source": "setup_task.sh lines 63-71: TrackSales CTE uses LEFT JOIN invoice_items and IFNULL(SUM(), 0); verifier.py lines 108-111 confirms this is critical for accuracy",
+            "status": "verified"
+        },
+        {
+            "key": "task_description_accuracy",
+            "metadata_value": null,
+            "verified_value": "Accurate - requires connecting to database, creating SQL analysis with proper LEFT JOIN logic, exporting CSV with specific headers, saving SQL script",
+            "source": "Verified task.json description matches setup_task.sh requirements and verifier.py scoring criteria (lines 5-11)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the Chinook Database, a real public music store dataset from https://github.com/lerocha/chinook-database, with synthetic revenue data injected via setup script. The Chinook database contains 11 standard tables including albums, tracks, invoices, and invoice_items. The task requires identifying viral tracks where total revenue exceeds 3.0 times the average track revenue of their album. Critical detail: calculating album average must use LEFT JOIN to include unsold tracks (revenue=0), dragging down the average. The injected data adds 150 units of Track 1 (148.50 revenue) and 5 units of Track 6 (4.95 revenue) to Album 1, plus 40 units of Track 23 (39.6 revenue) from another album. With proper LEFT JOIN logic, 84 viral tracks are identified, with the top being 'Walk On Water' from 'Big Ones' (multiplier 12.0) and the referenced track 'For Those About To Rock (We Salute You)' ranking second (multiplier 9.15). Required CSV output columns are AlbumTitle, TrackName, TrackRevenue, AlbumAvgRevenue, RevenueMultiplier, sorted by RevenueMultiplier descending.",
+    "pi_confidence": "high"
+}

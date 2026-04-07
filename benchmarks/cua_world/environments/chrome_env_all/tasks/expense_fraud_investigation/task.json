@@ -1,0 +1,47 @@
+{
+  "id": "expense_fraud_investigation@1",
+  "version": "1.0",
+  "env_id": "example.chrome_env_all@0.1",
+  "description": "The Finance department has flagged anomalies in Q4 expense data. An expense management system is running at http://localhost:8080 with a consolidated ledger of 50 transactions from 8 employees. An investigation brief with full details is on the Desktop. Investigate three fraud patterns: (1) Shell Company Invoices — identify all submissions to vendors named 'Pacific Coast Consulting' and 'Sterling Associates', and verify these vendors do not appear in the approved vendor directory on the Vendors page; (2) Double-Claim Detection — find cases where two different employees submitted expenses with matching vendor, date, and amount, indicating the same event was reimbursed twice; (3) Budget Code Misuse — cross-reference each transaction's project code (visible in the transaction detail view) against the Project Directory page to flag expenses charged to non-existent project codes or to codes whose project description clearly does not match the expense category. Compile all findings into ~/Documents/Fraud_Investigation/report.txt organized by pattern with three labeled sections. For each flagged transaction include: employee name, transaction ID, date, vendor, amount, and which pattern it matches. Bookmark the Expense Ledger page and the Project Directory page in a Chrome bookmark folder named 'Active Investigation'. Set Chrome download directory to ~/Documents/Fraud_Investigation.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/expense_fraud_investigation/setup_task.sh",
+    "post_task": "/workspace/tasks/expense_fraud_investigation/export_result.sh"
+  },
+  "metadata": {
+    "shell_company_vendors": ["Pacific Coast Consulting", "Sterling Associates"],
+    "shell_company_txns": ["TXN-008", "TXN-019", "TXN-031", "TXN-042"],
+    "double_claim_pairs": [
+      ["TXN-014", "TXN-015"],
+      ["TXN-025", "TXN-026"],
+      ["TXN-033", "TXN-034"]
+    ],
+    "budget_code_misuse_txns": ["TXN-022", "TXN-038", "TXN-027", "TXN-044"],
+    "invalid_project_codes": ["PRJ-099", "PRJ-087"],
+    "mismatched_project_entries": {
+      "TXN-027": "Client dinner charged to PRJ-003 (Server Infrastructure Upgrade)",
+      "TXN-044": "Cloud hosting charged to PRJ-007 (Office Renovation Phase 2)"
+    },
+    "all_violation_txns": [
+      "TXN-008", "TXN-014", "TXN-015", "TXN-019",
+      "TXN-022", "TXN-025", "TXN-026", "TXN-027",
+      "TXN-031", "TXN-033", "TXN-034", "TXN-038",
+      "TXN-042", "TXN-044"
+    ],
+    "clean_employees": ["Maria Rodriguez", "Lisa Thompson"],
+    "bookmark_folder": "Active Investigation",
+    "download_dir": "/home/ga/Documents/Fraud_Investigation",
+    "report_path": "/home/ga/Documents/Fraud_Investigation/report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_task"
+    }
+  }
+}

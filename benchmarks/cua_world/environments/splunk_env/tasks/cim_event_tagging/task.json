@@ -1,0 +1,37 @@
+{
+  "id": "cim_event_tagging@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Prepare your environment for Splunk Enterprise Security by normalizing log sources using Event Types and Tags. Log in to Splunk (http://localhost:8000) using 'admin' / 'SplunkAdmin1!'. Normalize the security logs by creating an Event Type named 'ssh_failed_login' (search: `index=security_logs \"Failed password\"`) with tags 'authentication' and 'failure', and an Event Type named 'apache_critical_error' (search: `index=web_logs (crit OR emerg OR error)`) with tags 'error' and 'critical'. Create a saved search named 'Unified_SOC_Alerts' scheduled to run hourly that aggregates findings from both sources using the tags (e.g., `tag=failure OR tag=critical | stats count`) rather than querying the indexes directly.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cim_event_tagging/setup_task.sh",
+    "post_task": "/workspace/tasks/cim_event_tagging/export_result.sh"
+  },
+  "metadata": {
+    "expected_et1": "ssh_failed_login",
+    "expected_et1_tags": [
+      "authentication",
+      "failure"
+    ],
+    "expected_et2": "apache_critical_error",
+    "expected_et2_tags": [
+      "error",
+      "critical"
+    ],
+    "expected_search": "Unified_SOC_Alerts",
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cim_event_tagging"
+    }
+  }
+}

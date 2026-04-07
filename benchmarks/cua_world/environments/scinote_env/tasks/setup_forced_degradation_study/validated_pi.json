@@ -1,0 +1,108 @@
+{
+    "task_id": "setup_forced_degradation_study@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_project_name",
+            "metadata_value": "Ibuprofen Forced Degradation - ICH Q1A",
+            "verified_value": "Ibuprofen Forced Degradation - ICH Q1A",
+            "source": "Confirmed in task description (line 1 of step 1). Export_result.sh searches via LIKE '%ibuprofen%forced%degrad%'. Verifier awards 5 pts for project found.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_experiment_name",
+            "metadata_value": "Stress Testing Panel",
+            "verified_value": "Stress Testing Panel",
+            "source": "Confirmed in task description (step 2). Export_result.sh searches via LIKE '%stress%test%panel%'. Verifier awards 5 pts for experiment found.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_task_names",
+            "metadata_value": ["Stock Solution Preparation", "Acid Hydrolysis (0.1M HCl)", "Base Hydrolysis (0.1M NaOH)", "Oxidative Stress (3% H2O2)", "HPLC Purity Analysis"],
+            "verified_value": ["Stock Solution Preparation", "Acid Hydrolysis (0.1M HCl)", "Base Hydrolysis (0.1M NaOH)", "Oxidative Stress (3% H2O2)", "HPLC Purity Analysis"],
+            "source": "Confirmed in task description step 2. Export searches: '%stock%solution%prep%', '%acid%hydro%', '%base%hydro%', '%oxidat%stress%', '%hplc%purity%'. These LIKE patterns match the task names correctly. Verifier awards 2 pts each (10 total).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_connections",
+            "metadata_value": [
+                {"from": "Stock Solution Preparation", "to": "Acid Hydrolysis (0.1M HCl)"},
+                {"from": "Stock Solution Preparation", "to": "Base Hydrolysis (0.1M NaOH)"},
+                {"from": "Stock Solution Preparation", "to": "Oxidative Stress (3% H2O2)"},
+                {"from": "Acid Hydrolysis (0.1M HCl)", "to": "HPLC Purity Analysis"},
+                {"from": "Base Hydrolysis (0.1M NaOH)", "to": "HPLC Purity Analysis"},
+                {"from": "Oxidative Stress (3% H2O2)", "to": "HPLC Purity Analysis"}
+            ],
+            "verified_value": "6 directed connections in fan-out/fan-in pattern. Stock connects OUT to Acid, Base, Oxidative (3 fan-out). Acid, Base, Oxidative connect OUT to HPLC (3 fan-in). Export checks connections table with output_id/input_id pairs. Verifier awards 5 pts each (30 total).",
+            "source": "Confirmed in task description step 2 and export_result.sh lines 80-120. SciNote connections table stores (output_id, input_id). Verified during live testing that connections table exists and supports INSERT.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_protocol_task",
+            "metadata_value": "Stock Solution Preparation",
+            "verified_value": "Stock Solution Preparation",
+            "source": "Confirmed in task description step 3: 'Add a protocol to Stock Solution Preparation'. Export queries protocols WHERE my_module_id=STOCK_ID. Verifier awards 12 pts for >= 6 steps.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_protocol_min_steps",
+            "metadata_value": 6,
+            "verified_value": 6,
+            "source": "The file ~/Desktop/degradation_protocol.txt contains exactly 6 numbered steps (confirmed by grep -c '^[0-9]\\.' = 6 during live testing). Step titles: 1. Stock Solution Preparation, 2. Acid Hydrolysis Sample, 3. Base Hydrolysis Sample, 4. Oxidative Degradation Sample, 5. Control Sample, 6. HPLC Analysis Parameters. Verifier: 12 pts for >= 6, 6 pts partial for >= 3.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_inventory_name",
+            "metadata_value": "Degradation Reagents",
+            "verified_value": "Degradation Reagents",
+            "source": "Confirmed in task description step 4. Export searches via LIKE '%degrad%reagent%'. Verifier awards 3 pts for inventory found.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_inventory_columns",
+            "metadata_value": ["CAS Number", "Grade"],
+            "verified_value": ["CAS Number", "Grade"],
+            "source": "Confirmed in task description step 4: 'columns CAS Number (Text) and Grade (Text)'. Export counts repository_columns. Verifier awards 5 pts for >= 2 columns. Both should be Text type in SciNote.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_inventory_items",
+            "metadata_value": ["Ibuprofen RS", "HCl 1M", "NaOH 1M"],
+            "verified_value": ["Ibuprofen RS", "HCl 1M", "NaOH 1M"],
+            "source": "Confirmed in task description step 4. Export collects item names. Verifier checks for keywords 'ibuprofen', 'hcl', 'naoh' in item names (3 pts each, 9 total). CAS numbers: Ibuprofen=58560-75-1 (alternative CAS, verified via CAS Common Chemistry; primary CAS 15687-27-1 also valid), HCl=7647-01-0 (verified via PubChem/Sigma-Aldrich), NaOH=1310-73-2 (verified via Wikipedia/Sigma-Aldrich). Grades: USP RS, ACS Reagent, ACS Reagent.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_assignment_task",
+            "metadata_value": "Stock Solution Preparation",
+            "verified_value": "Stock Solution Preparation",
+            "source": "Confirmed in task description step 5: 'Assign inventory items... to the Stock Solution Preparation task'. Export checks my_module_repository_rows WHERE my_module_id=STOCK_ID (with fallback to assigned_repository_rows). Verifier awards 5 pts per assigned item (10 total, cap 2).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_assigned_items",
+            "metadata_value": ["Ibuprofen RS", "HCl 1M"],
+            "verified_value": ["Ibuprofen RS", "HCl 1M"],
+            "source": "Confirmed in task description step 5. These two items should be assigned to the Stock Solution Preparation task. Export queries my_module_repository_rows (verified table exists during live testing with schema: id, repository_row_id, my_module_id, assigned_by_id, created_at, updated_at). Verifier checks assigned_count >= 2.",
+            "status": "verified"
+        },
+        {
+            "key": "smart_annotation_keyword",
+            "metadata_value": "Ibuprofen RS",
+            "verified_value": "Ibuprofen RS",
+            "source": "Confirmed in task description step 6: 'referencing Ibuprofen RS via smart annotation (#Ibuprofen RS)'. Export reads result_texts.text for the HPLC task. SciNote stores smart annotations as [#ItemName~rep_item~ID] in the atwho format (confirmed by reading app/assets/javascripts/sitewide/atwho_res.js beforeInsert handler during live testing). The /sa route exists (GET, JSON format). Verifier checks for both legacy atwho markers ([#, ~rep_item~) and modern ActionText markers. Awards 8 pts.",
+            "status": "verified"
+        },
+        {
+            "key": "result_task",
+            "metadata_value": "HPLC Purity Analysis",
+            "verified_value": "HPLC Purity Analysis",
+            "source": "Confirmed in task description step 6: 'On HPLC Purity Analysis, add a text result'. Export checks results WHERE my_module_id=HPLC_ID AND type='ResultText'. Verifier awards 3 pts for result text exists. The ~/Desktop/hplc_summary.txt file contains: Control 99.8%, Acid 84.7%, Base 89.2%, Oxidative 80.2% purity values, plus conclusion about oxidative susceptibility.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task requires creating documentation in SciNote ELN for an ICH Q1A forced degradation study of Ibuprofen. The agent starts from a blank SciNote state (no pre-existing projects, experiments, tasks, or inventories). Login credentials are admin@scinote.net / inHisHouseAtRlyehDeadCthulhuWaitsDreaming. The project must be named 'Ibuprofen Forced Degradation - ICH Q1A' and contain one experiment 'Stress Testing Panel'. The experiment requires 5 tasks connected in a fan-out/fan-in DAG: 'Stock Solution Preparation' has 3 outgoing connections to 'Acid Hydrolysis (0.1M HCl)', 'Base Hydrolysis (0.1M NaOH)', and 'Oxidative Stress (3% H2O2)', and all three stress tasks connect into 'HPLC Purity Analysis' (6 total directed connections). The protocol file at ~/Desktop/degradation_protocol.txt has exactly 6 numbered steps (Stock Solution Preparation, Acid Hydrolysis Sample, Base Hydrolysis Sample, Oxidative Degradation Sample, Control Sample, HPLC Analysis Parameters) which must be transcribed to the Stock Solution Preparation task's protocol. The inventory 'Degradation Reagents' needs 2 columns (CAS Number and Grade, both Text type) and 3 items: Ibuprofen RS (CAS 58560-75-1, USP RS), HCl 1M (CAS 7647-01-0, ACS Reagent), NaOH 1M (CAS 1310-73-2, ACS Reagent). Items 'Ibuprofen RS' and 'HCl 1M' must be assigned to the 'Stock Solution Preparation' task via SciNote's inventory assignment feature. The HPLC summary at ~/Desktop/hplc_summary.txt reports degradation results: Control 99.8% purity, Acid 84.7%, Base 89.2%, Oxidative 80.2%, with conclusion that ibuprofen is most susceptible to oxidative degradation. A text result referencing 'Ibuprofen RS' via smart annotation (#Ibuprofen RS, stored as [#Ibuprofen RS~rep_item~ID] in SciNote's atwho format) must be added to the HPLC Purity Analysis task.",
+    "pi_confidence": "high"
+}

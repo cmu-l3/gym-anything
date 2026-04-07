@@ -1,0 +1,34 @@
+{
+  "id": "pii_anonymization_gdpr@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Compliance Officer at a European fintech company. The analytics team has been querying production data directly, violating GDPR Article 25. You must build a PII anonymization layer in the GDPR_ADMIN schema (connected as gdpr_admin/Gdpr2024 to XEPDB1, Port 1521).\n\nCreate a PL/SQL package called DATA_ANONYMIZER_PKG containing functions to mask PII: MASK_NAME (deterministic ORA_HASH returning 'ANON_' || hash_value), MASK_EMAIL (hash local part, preserve domain), MASK_PHONE (preserve first 3 characters, mask rest with '*'), MASK_IBAN (preserve first and last 4 characters, mask middle with 'X'), GENERALIZE_ADDRESS (return 'city, country'), and SHIFT_DATE (deterministic date shift using a seed).\n\nUsing these functions, implement the following anonymized views:\n- CUSTOMERS_ANON_VW: Mask first_name/last_name (concatenated), email, phone, iban, address fields, and date_of_birth while keeping customer_id, country, and registration_date unmasked.\n- TRANSACTIONS_ANON_VW: Join TRANSACTIONS with CUSTOMERS to mask customer_name and use REPLACE to redact embedded names in descriptions with '[REDACTED]'.\n- SUPPORT_TICKETS_ANON_VW: Mask customer_name and customer_email, and use REGEXP_REPLACE on ticket_text to redact email and phone patterns.\n\nPerform a PII scan across all VARCHAR2 columns in the schema for email patterns using a PL/SQL block, inserting findings into a PII_SCAN_RESULTS(table_name, column_name, pii_type, matches_found) table. Create an ANONYMIZATION_LOG(log_id, operation, performed_date) table and record the view creation. Finally, export a CSV report comparing original and anonymized emails and phones for the first 20 customers to /home/ga/anonymization_report.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pii_anonymization_gdpr/setup_task.sh",
+    "post_task": "/workspace/tasks/pii_anonymization_gdpr/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/gdpr_result.json",
+    "occupation": "Compliance Officers",
+    "industry": "Financial Services / Fintech",
+    "oracle_features": [
+      "PL/SQL Packages",
+      "ORA_HASH",
+      "REGEXP_REPLACE",
+      "Data Masking",
+      "Dynamic SQL"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pii_anonymization"
+    }
+  }
+}

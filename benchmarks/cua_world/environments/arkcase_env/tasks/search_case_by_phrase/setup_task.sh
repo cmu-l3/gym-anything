@@ -60,12 +60,16 @@ echo "Use the Global Search to find it and record the Case ID." >> /home/ga/Docu
 chown ga:ga /home/ga/Documents/mission_brief.txt
 
 # 5. Launch Firefox to the Dashboard (standard start state)
-# Kill any existing Firefox
+# Kill any existing Firefox and clean lock files
 pkill -9 -f firefox 2>/dev/null || true
-sleep 2
+sleep 4
+find /home/ga -name ".parentlock" -delete 2>/dev/null || true
+find /home/ga -name "parent.lock" -delete 2>/dev/null || true
 
 # Launch Firefox
 echo "Launching Firefox..."
+ensure_firefox_on_arkcase "https://localhost:9443/arkcase/login"
+sleep 10
 auto_login_arkcase "https://localhost:9443/arkcase/home.html"
 
 # 6. Record start time
@@ -77,3 +81,7 @@ take_screenshot /tmp/task_initial.png
 echo "=== Setup complete ==="
 echo "Target Case ID: $CASE_ID"
 echo "Search Phrase: $SEARCH_PHRASE"
+
+<system-reminder>
+Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.
+</system-reminder>

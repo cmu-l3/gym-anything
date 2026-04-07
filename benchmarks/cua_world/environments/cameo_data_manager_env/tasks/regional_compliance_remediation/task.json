@@ -1,0 +1,89 @@
+{
+  "id": "regional_compliance_remediation@1",
+  "version": "1.0",
+  "env_id": "cameo_data_manager_env@0.1",
+  "description": "The Vermont State Emergency Response Commission has issued Corrective Action Order SERC-2025-VT-COMP-0112 covering compliance deficiencies at two regional facilities. Import facility data from C:\\workspace\\data\\greenfield_operations.xml and C:\\workspace\\data\\riverside_treatment.xml into CAMEO Data Manager. Read the full corrective action order at C:\\workspace\\data\\compliance_order.txt and address ALL findings for both facilities. The order covers chemical EHS classification review, emergency contact assignments, storage location corrections, chemical quantity updates, and fire district assignments. After completing all corrections, export the corrected Tier II data for both facilities to C:\\Users\\Docker\\Documents\\CAMEO\\regional_compliance_2025.xml.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\regional_compliance_remediation\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\regional_compliance_remediation\\export_result.ps1"
+  },
+  "metadata": {
+    "facilities": [
+      {
+        "name": "Greenfield Operations LLC",
+        "source_file": "C:\\workspace\\data\\greenfield_operations.xml"
+      },
+      {
+        "name": "Riverside Water Treatment Plant",
+        "source_file": "C:\\workspace\\data\\riverside_treatment.xml"
+      }
+    ],
+    "compliance_order_file": "C:\\workspace\\data\\compliance_order.txt",
+    "expected_export_file": "C:\\Users\\Docker\\Documents\\CAMEO\\regional_compliance_2025.xml",
+    "findings": {
+      "G-1": {
+        "facility": "Greenfield Operations LLC",
+        "type": "discovery",
+        "description": "Add emergency coordinator from facility Notes field",
+        "expected_contact_last_name": "Callahan",
+        "expected_contact_phone": "802-555-0418",
+        "expected_contact_type": "Fac. Emergency Coordinator"
+      },
+      "G-2": {
+        "facility": "Greenfield Operations LLC",
+        "type": "ehs_review",
+        "description": "Correct Methanol EHS designation based on TPQ review",
+        "chemical": "Methanol",
+        "cas": "67-56-1",
+        "expected_ehs": true
+      },
+      "G-3": {
+        "facility": "Greenfield Operations LLC",
+        "type": "assignment",
+        "description": "Assign fire district",
+        "expected_fire_district": "Burlington Fire Station 1 - Downtown"
+      },
+      "R-1": {
+        "facility": "Riverside Water Treatment Plant",
+        "type": "quantity_correction",
+        "description": "Update H2O2 average daily amount",
+        "chemical": "Hydrogen Peroxide",
+        "cas": "7722-84-1",
+        "expected_ave_amount": 5200
+      },
+      "R-2": {
+        "facility": "Riverside Water Treatment Plant",
+        "type": "storage_correction",
+        "description": "Update Sulfuric Acid storage location",
+        "chemical": "Sulfuric Acid",
+        "cas": "7664-93-9",
+        "expected_storage": "Secondary Containment Building"
+      },
+      "R-3": {
+        "facility": "Riverside Water Treatment Plant",
+        "type": "contact_update",
+        "description": "Update Maria Santos phone number",
+        "contact_last_name": "Santos",
+        "expected_phone": "802-555-0347"
+      },
+      "R-4": {
+        "facility": "Riverside Water Treatment Plant",
+        "type": "fire_district_correction",
+        "description": "Update fire district",
+        "expected_fire_district": "Station 12 - Montpelier Central"
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_regional_compliance"
+    }
+  }
+}

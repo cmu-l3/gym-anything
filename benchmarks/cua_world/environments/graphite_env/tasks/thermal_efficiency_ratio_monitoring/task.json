@@ -1,0 +1,33 @@
+{
+  "id": "thermal_efficiency_ratio_monitoring@1",
+  "version": "1.0",
+  "env_id": "graphite_env@0.1",
+  "description": "You are a Data Center Facility Engineer investigating potential cooling (HVAC) issues. Create and save a Graphite dashboard named 'HVAC Thermal Efficiency' to isolate cooling system failures from normal server heating. The dashboard must contain the following three graphs:\n\n- 'Raw Thermal Ratio': A graph calculating degrees per unit of compute load by dividing facility temperature (servers.datacenter.machine_temperature) by the fleet's average CPU utilization (averageSeries() on servers.ec2_instance_*.cpu.*) using the divideSeries() function. Alias the result as 'Degrees per CPU %'.\n- 'Smoothed Alerting Signal': A graph with two targets. Target 1 uses the division logic from the first graph wrapped in a movingMedian() filter with a window size of 12, aliased as 'Smoothed Ratio'. Target 2 is a static horizontal line at 3.0 using the threshold() function, aliased as 'Critical Ratio'.\n- 'Temperature vs CPU Overlay': A graph with two targets. Target 1 is the raw servers.datacenter.machine_temperature metric aliased as 'Facility Temp'. Target 2 is the fleet's average CPU utilization (averageSeries() on servers.ec2_instance_*.cpu.*) rendered on the right Y-axis using the secondYAxis() function, aliased as 'Fleet CPU'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 85,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/thermal_efficiency_ratio_monitoring/setup_task.sh",
+    "post_task": "/workspace/tasks/thermal_efficiency_ratio_monitoring/export_result.sh"
+  },
+  "metadata": {
+    "expected_dashboard_name": "HVAC Thermal Efficiency",
+    "expected_graph_titles": [
+      "Raw Thermal Ratio",
+      "Smoothed Alerting Signal",
+      "Temperature vs CPU Overlay"
+    ],
+    "occupation": "Data Center Facility Engineer",
+    "industry": "Infrastructure Operations",
+    "result_file": "/tmp/thermal_efficiency_ratio_monitoring_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_thermal_efficiency_ratio_monitoring"
+    }
+  }
+}

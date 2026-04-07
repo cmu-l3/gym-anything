@@ -1,0 +1,87 @@
+{
+    "task_id": "practice_activity_volume_analysis@1",
+    "dataset": "DrTuxTest",
+    "case_id": "IndexNomPrenom",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/Documents/monthly_activity.csv",
+            "verified_value": "/home/ga/Documents/monthly_activity.csv",
+            "source": "setup_task.sh line 24 creates directory; export_result.sh line 5 confirms path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_header",
+            "metadata_value": "Month,Count",
+            "verified_value": "Month,Count",
+            "source": "setup_task.sh line 95 generates header ['Month', 'Count']; verifier.py line 75 expects ['month', 'count']",
+            "status": "verified"
+        },
+        {
+            "key": "database",
+            "metadata_value": "DrTuxTest",
+            "verified_value": "DrTuxTest",
+            "source": "setup_task.sh line 46 connects to db='DrTuxTest'; setup_medintux.sh line 207 creates DATABASE DrTuxTest",
+            "status": "verified"
+        },
+        {
+            "key": "table",
+            "metadata_value": "IndexNomPrenom",
+            "verified_value": "IndexNomPrenom",
+            "source": "setup_task.sh line 50 queries IndexNomPrenom; task_utils.sh line 170 counts from IndexNomPrenom WHERE FchGnrl_Type='Dossier'; task_utils.sh line 3 comments real schema uses IndexNomPrenom (not Personnes)",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_path",
+            "metadata_value": "/var/lib/medintux/ground_truth_activity.csv",
+            "verified_value": "/var/lib/medintux/ground_truth_activity.csv",
+            "source": "setup_task.sh line 88 creates gt_path; export_result.sh line 6 uses GROUND_TRUTH_PATH",
+            "status": "verified"
+        },
+        {
+            "key": "modification_date_column",
+            "metadata_value": null,
+            "verified_value": "FchGnrl_DateModif",
+            "source": "setup_task.sh lines 30, 76 update FchGnrl_DateModif in IndexNomPrenom",
+            "status": "verified"
+        },
+        {
+            "key": "patient_type_filter",
+            "metadata_value": null,
+            "verified_value": "FchGnrl_Type = 'Dossier'",
+            "source": "setup_task.sh line 50, task_utils.sh line 170, setup_medintux.sh line 304 all use FchGnrl_Type='Dossier' to identify patient records",
+            "status": "verified"
+        },
+        {
+            "key": "data_randomization_window",
+            "metadata_value": null,
+            "verified_value": "12-18 months from task execution date",
+            "source": "setup_task.sh lines 55-57 calculate date range: end_date=today(), start_date=end_date - 540 days (18 months), creates random dates within this window",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_generation",
+            "metadata_value": null,
+            "verified_value": "Generated per-task-run from randomized modification dates",
+            "source": "setup_task.sh lines 28-33 document: 'We randomize the FchGnrl_DateModif column...to create a unique, verifiable ground truth for this specific run.' Lines 60-97 generate and save ground truth CSV with month counts",
+            "status": "verified"
+        },
+        {
+            "key": "database_backend",
+            "metadata_value": null,
+            "verified_value": "MySQL with pymysql/mysql client",
+            "source": "setup_task.sh line 39 imports pymysql; setup_medintux.sh uses MySQL commands",
+            "status": "verified"
+        },
+        {
+            "key": "medintux_version",
+            "metadata_value": null,
+            "verified_value": "2.16.012",
+            "source": "setup_medintux.sh line 166 references /opt/medintux/medintux-2.16.012.exe; lines 51, 144-147 reference MedinTux-2.16 path",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on the DrTuxTest MySQL database (MedinTux 2.16.012 medical practice system) using the IndexNomPrenom table's patient records (where FchGnrl_Type='Dossier'). The modification timestamp is stored in the FchGnrl_DateModif column. During task setup, modification dates are randomized to a 12-18 month window from the current date, and a ground truth CSV file is generated at /var/lib/medintux/ground_truth_activity.csv containing the month-by-month count of modified patient records. The agent must query this data and output a CSV file to /home/ga/Documents/monthly_activity.csv with header 'Month,Count' sorted chronologically, which will be compared exactly against the generated ground truth.",
+    "pi_confidence": "high"
+}

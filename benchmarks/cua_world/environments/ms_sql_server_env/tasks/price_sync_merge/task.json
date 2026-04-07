@@ -1,0 +1,34 @@
+{
+  "id": "price_sync_merge@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are a Data Engineer at Adventure Works Cycles. Synchronize the Pricing.SupplierPriceUpdate staging table into the Pricing.PriceMaster table using a MERGE statement while maintaining a strict audit trail. Create an audit table named Pricing.MergeAuditLog with columns: AuditID (INT IDENTITY PK), MergeAction (NVARCHAR(10)), ProductID (INT), ProductName (NVARCHAR(100)), OldListPrice (MONEY), NewListPrice (MONEY), PriceChangePercent (DECIMAL(10,2)), and AuditTimestamp (DATETIME). The MERGE statement should update PriceMaster when ProductIDs match and prices differ, and insert new rows when ProductIDs are missing. Use the OUTPUT clause to populate the audit log, calculating PriceChangePercent as ((New - Old) / Old * 100). Create a view Pricing.vw_MergeSummary that groups by MergeAction to show the row count and average price change percentage.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/price_sync_merge/setup_task.sh",
+    "post_task": "/workspace/tasks/price_sync_merge/export_result.sh"
+  },
+  "metadata": {
+    "target_table": "Pricing.PriceMaster",
+    "source_table": "Pricing.SupplierPriceUpdate",
+    "audit_table": "Pricing.MergeAuditLog",
+    "required_columns": [
+      "MergeAction",
+      "ProductID",
+      "OldListPrice",
+      "NewListPrice",
+      "PriceChangePercent"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_price_sync_merge"
+    }
+  }
+}

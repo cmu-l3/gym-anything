@@ -1,0 +1,75 @@
+{
+  "id": "create_service_dependency_map@1",
+  "version": "1.0",
+  "env_id": "tiddly_wiki_env@0.1",
+  "description": "You are a software architect documenting a microservices-based e-commerce platform in TiddlyWiki. Document the following six microservices as tiddlers tagged 'Microservice', including a one-sentence description in the body and the specified custom fields:\n\n- UserService: team 'Platform', service-status 'production', depends-on (empty)\n- ProductCatalog: team 'Commerce', service-status 'production', depends-on (empty)\n- InventoryService: team 'Commerce', service-status 'production', depends-on 'ProductCatalog'\n- PaymentGateway: team 'Platform', service-status 'production', depends-on 'UserService'\n- OrderService: team 'Commerce', service-status 'production', depends-on 'UserService ProductCatalog InventoryService PaymentGateway'\n- NotificationService: team 'Platform', service-status 'beta', depends-on 'UserService OrderService'\n\nThe 'depends-on' field should contain space-separated names of dependencies.\n\nAdditionally, create a dynamic 'Service Dependency Map' tiddler tagged 'Architecture'. This page must use TiddlyWiki widgets and filters to display:\n- A dynamic list of all microservices\n- The dependencies for each service\n- The reverse dependencies for each service (which other services depend on it)\n- A list of 'leaf services' (those with no dependencies)\n- A summary count of the total number of microservices\n\nAll listings on the map page must be generated dynamically using filter expressions rather than hardcoded names.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_service_dependency_map/setup_task.sh",
+    "post_task": "/workspace/tasks/create_service_dependency_map/export_result.sh"
+  },
+  "metadata": {
+    "services": [
+      {
+        "title": "UserService",
+        "team": "Platform",
+        "status": "production",
+        "deps": []
+      },
+      {
+        "title": "ProductCatalog",
+        "team": "Commerce",
+        "status": "production",
+        "deps": []
+      },
+      {
+        "title": "InventoryService",
+        "team": "Commerce",
+        "status": "production",
+        "deps": [
+          "ProductCatalog"
+        ]
+      },
+      {
+        "title": "PaymentGateway",
+        "team": "Platform",
+        "status": "production",
+        "deps": [
+          "UserService"
+        ]
+      },
+      {
+        "title": "OrderService",
+        "team": "Commerce",
+        "status": "production",
+        "deps": [
+          "UserService",
+          "ProductCatalog",
+          "InventoryService",
+          "PaymentGateway"
+        ]
+      },
+      {
+        "title": "NotificationService",
+        "team": "Platform",
+        "status": "beta",
+        "deps": [
+          "UserService",
+          "OrderService"
+        ]
+      }
+    ],
+    "map_title": "Service Dependency Map"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_service_dependency_map"
+    }
+  }
+}

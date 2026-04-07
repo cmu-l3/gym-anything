@@ -70,5 +70,5 @@ Tasks 1–4 all end on the **Interaction Details** page (deep navigation after s
 
 ## Evidence
 
-Evidence files are stored in `benchmarks/cua_world/environments/liverpool_cancer_ichart_env/evidence/`:
+Evidence files are stored in `examples/liverpool_cancer_ichart_env/evidence_docs/`:
 - `crizotinib_concurrent_comedication_screening_evidence.json`

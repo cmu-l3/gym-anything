@@ -1,0 +1,94 @@
+{
+    "task_id": "color_balance@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "metadata_field_exists",
+            "metadata_value": "N/A - no metadata field in task.json",
+            "verified_value": "False - task.json contains NO metadata field",
+            "source": "Direct inspection of task.json",
+            "status": "verified"
+        },
+        {
+            "key": "image_source_validity",
+            "metadata_value": "Image from Unsplash URL in setup script",
+            "verified_value": "Valid - HTTP 200 response, 1000x667 JPEG image, content-type: image/jpeg",
+            "source": "HTTP HEAD request to https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80&sat=2&hue=20",
+            "status": "verified"
+        },
+        {
+            "key": "image_color_cast_type",
+            "metadata_value": "warm/yellow color cast (from setup_balance_task.sh line 10-11)",
+            "verified_value": "cool/blue color cast (warmth = -6.81 to -19.16 depending on version)",
+            "source": "PIL/numpy image analysis: RGB mean values show R≈109, G≈109, B≈116, resulting in negative warmth indicator",
+            "status": "contradicted"
+        },
+        {
+            "key": "task_version",
+            "metadata_value": "1.0",
+            "verified_value": "1.0",
+            "source": "task.json version field",
+            "status": "verified"
+        },
+        {
+            "key": "task_id",
+            "metadata_value": "color_balance@1",
+            "verified_value": "color_balance@1",
+            "source": "task.json id field",
+            "status": "verified"
+        },
+        {
+            "key": "environment_id",
+            "metadata_value": "example.gimp_env@0.1",
+            "verified_value": "example.gimp_env@0.1",
+            "source": "task.json env_id field and env.json id field",
+            "status": "verified"
+        },
+        {
+            "key": "timeout_seconds",
+            "metadata_value": "90",
+            "verified_value": "90",
+            "source": "task.json init.timeout_sec field",
+            "status": "verified"
+        },
+        {
+            "key": "max_steps",
+            "metadata_value": "8",
+            "verified_value": "8",
+            "source": "task.json init.max_steps field",
+            "status": "verified"
+        },
+        {
+            "key": "reward_type",
+            "metadata_value": "sparse",
+            "verified_value": "sparse",
+            "source": "task.json init.reward_type field",
+            "status": "verified"
+        },
+        {
+            "key": "image_dimensions",
+            "metadata_value": "landscape format (not explicitly specified)",
+            "verified_value": "1000x667 pixels (landscape orientation confirmed)",
+            "source": "Downloaded image from URL and analyzed with PIL",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_pass_criteria",
+            "metadata_value": "Requires score ≥75 (4/5 criteria met)",
+            "verified_value": "Requires score ≥75 (4/5 criteria met). Criteria: (1) warmth reduction ≥30% or ≥10 units, (2) RGB variance decreased, (3) correct direction (blue↑ and red/yellow↓), (4) no overcorrection, (5) >3% pixels changed",
+            "source": "verifier.py lines 174-208",
+            "status": "verified"
+        },
+        {
+            "key": "critical_task_design_issue",
+            "metadata_value": "N/A",
+            "verified_value": "Task design issue: setup script claims 'warm landscape image' but actual image has cool/blue cast. Verifier criterion #1 requires 'warmth reduction' but if image is already cool (negative warmth), reducing warmth further moves in opposite direction to natural color balance correction.",
+            "source": "Comparison of setup_balance_task.sh description vs. actual image RGB analysis",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task.json file for color_balance@1 contains NO metadata field. The task uses GIMP 2.10, has a 90-second timeout, max 8 steps, and sparse reward. The input image is downloaded from Unsplash (valid URL, 1000x667 JPEG). However, there is a critical discrepancy: the setup script describes the image as having a 'warm/yellow color cast', but image analysis reveals it actually has a cool/blue color cast (RGB mean: R≈109, G≈109, B≈116, warmth≈-7 to -19). The verifier checks for warmth reduction as criterion #1, which creates a logical mismatch when the image has negative (cool) warmth instead of positive (warm) warmth. The verifier success threshold is ≥75% (4 of 5 criteria), with criteria including warmth reduction, RGB balance improvement, correct directional change, no overcorrection, and meaningful pixel-level modification.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,116 @@
+{
+    "task_id": "insurance_loss_triangle_ibnr@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "data_source",
+            "metadata_value": "Realistic synthetic P&C insurance claims with actuarial development patterns",
+            "verified_value": "Realistic synthetic P&C insurance claims with actuarial development patterns",
+            "source": "setup_task.sh generates 252 claim records using Python/openpyxl with random.seed(42). Triangle values follow decreasing development factors (1.22 to 1.01) matching real P&C insurance tail patterns. Confirmed via live environment test: all 21 triangle cells sum exactly to target values.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_sheets",
+            "metadata_value": ["Triangle", "Factors", "Projections", "Summary"],
+            "verified_value": ["Triangle", "Factors", "Projections", "Summary"],
+            "source": "Task description explicitly requires creating these 4 sheets. Verifier.py checks for sheet names containing 'triangle', 'factor', 'project', 'summary' (case-insensitive).",
+            "status": "verified"
+        },
+        {
+            "key": "required_formulas",
+            "metadata_value": ["SUMIFS", "PRODUCT"],
+            "verified_value": ["SUMIFS", "PRODUCT"],
+            "source": "SUMIFS is needed for 2-criteria aggregation (AccidentYear AND DevelopmentPeriod) to build the triangle from raw claims data. PRODUCT (or chained multiplication) is needed to compute CDF (cumulative development factor). SUMIFS with full-column cross-sheet references confirmed working in WPS Spreadsheet via live test (screenshot evidence: 02_sumifs_test_result.png).",
+            "status": "verified"
+        },
+        {
+            "key": "input_file",
+            "metadata_value": "claims_data.xlsx",
+            "verified_value": "claims_data.xlsx",
+            "source": "setup_task.sh creates /home/ga/Documents/claims_data.xlsx. Confirmed present in live environment with 11838 bytes, owned by ga user.",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "loss_reserve_analysis.xlsx",
+            "verified_value": "loss_reserve_analysis.xlsx",
+            "source": "Task description instructs agent to save as /home/ga/Documents/loss_reserve_analysis.xlsx. export_result.sh checks for this file. Confirmed stale output is cleared before task starts.",
+            "status": "verified"
+        },
+        {
+            "key": "triangle_values",
+            "metadata_value": null,
+            "verified_value": {
+                "2018": {"12": 5230000, "24": 6380000, "36": 6850000, "48": 7020000, "60": 7110000, "72": 7180000},
+                "2019": {"12": 5890000, "24": 7150000, "36": 7680000, "48": 7870000, "60": 7960000},
+                "2020": {"12": 6410000, "24": 7820000, "36": 8400000, "48": 8600000},
+                "2021": {"12": 7050000, "24": 8590000, "36": 9230000},
+                "2022": {"12": 7680000, "24": 9370000},
+                "2023": {"12": 8250000}
+            },
+            "source": "Computed from live environment data by summing CumulativeIncurred per (AccidentYear, DevelopmentPeriod) pair across all 252 claims. Each of the 21 triangle cells has exactly 12 claims. Values verified to match setup_task.sh target dictionary.",
+            "status": "verified"
+        },
+        {
+            "key": "weighted_average_factors",
+            "metadata_value": null,
+            "verified_value": {
+                "12_to_24": 1.218537,
+                "24_to_36": 1.074148,
+                "36_to_48": 1.024422,
+                "48_to_60": 1.012089,
+                "60_to_72": 1.009845
+            },
+            "source": "Independently computed: sum of later-period values / sum of earlier-period values for each transition. E.g., 12->24: (6380000+7150000+7820000+8590000+9370000)/(5230000+5890000+6410000+7050000+7680000) = 39310000/32260000 = 1.218537. All 5 factors verified via Python computation against the actual data.",
+            "status": "verified"
+        },
+        {
+            "key": "chain_ladder_ibnr",
+            "metadata_value": null,
+            "verified_value": {
+                "2018": 0.00,
+                "2019": 78368.50,
+                "2020": 189655.41,
+                "2021": 433936.36,
+                "2022": 1167951.49,
+                "2023": 3056006.57,
+                "total": 4925918.32
+            },
+            "source": "Independently computed by taking each AY's latest known diagonal value and multiplying by successive remaining weighted-average factors. E.g., AY 2023: 8250000 * 1.218537 * 1.074148 * 1.024422 * 1.012089 * 1.009845 = 11306006.57, IBNR = 11306006.57 - 8250000 = 3056006.57.",
+            "status": "verified"
+        },
+        {
+            "key": "bf_ibnr",
+            "metadata_value": null,
+            "verified_value": {
+                "2018": 0.00,
+                "2019": 75342.62,
+                "2020": 181247.77,
+                "2021": 417639.55,
+                "2022": 1124953.71,
+                "2023": 3074925.75,
+                "total": 4874109.40
+            },
+            "source": "Independently computed using BF formula: ExpectedLoss * (1 - 1/CDF). CDF = product of remaining weighted-average factors. E.g., AY 2023: CDF = 1.218537 * 1.074148 * 1.024422 * 1.012089 * 1.009845 = 1.370425. ExpectedLoss = 15800000 * 0.72 = 11376000. BF_IBNR = 11376000 * (1 - 1/1.370425) = 3074925.75.",
+            "status": "verified"
+        },
+        {
+            "key": "earned_premium_data",
+            "metadata_value": null,
+            "verified_value": {
+                "2018": {"premium": 10500000, "elr": 0.68},
+                "2019": {"premium": 11200000, "elr": 0.69},
+                "2020": {"premium": 12000000, "elr": 0.70},
+                "2021": {"premium": 13100000, "elr": 0.71},
+                "2022": {"premium": 14500000, "elr": 0.70},
+                "2023": {"premium": 15800000, "elr": 0.72}
+            },
+            "source": "Read directly from the live environment's EarnedPremium sheet via openpyxl. All 6 rows confirmed matching the values in setup_task.sh.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The input file claims_data.xlsx contains 252 synthetic P&C insurance claims (random.seed(42)) across a Claims sheet (columns: ClaimID, AccidentYear, DevelopmentPeriod, CumulativeIncurred) and an EarnedPremium sheet (6 rows with AccidentYear, EarnedPremium, ExpectedLossRatio). The claims aggregate into a 6x6 upper-triangular loss development triangle with 21 cells (12 claims each): AY 2018 has all periods 12-72, AY 2023 has only period 12. Target triangle values: (2018,12)=5,230,000; (2018,72)=7,180,000; (2019,12)=5,890,000; (2020,12)=6,410,000; (2021,12)=7,050,000; (2022,12)=7,680,000; (2022,24)=9,370,000; (2023,12)=8,250,000. Weighted-average development factors: 12->24=1.2185, 24->36=1.0741, 36->48=1.0244, 48->60=1.0121, 60->72=1.0098. Chain-Ladder IBNR by AY: 2018=0, 2019=78,369, 2020=189,655, 2021=433,936, 2022=1,167,951, 2023=3,056,007; Total CL IBNR=4,925,918. CDFs to ultimate: AY2019=1.0098, AY2020=1.0221, AY2021=1.0470, AY2022=1.1247, AY2023=1.3704. EarnedPremium: 2018=10.5M(68%), 2019=11.2M(69%), 2020=12M(70%), 2021=13.1M(71%), 2022=14.5M(70%), 2023=15.8M(72%). BF IBNR by AY: 2018=0, 2019=75,343, 2020=181,248, 2021=417,640, 2022=1,124,954, 2023=3,074,926; Total BF IBNR=4,874,109. The agent must create 4 new sheets (Triangle, Factors, Projections, Summary), use SUMIFS for triangle construction, bold headers, currency formatting, and save as loss_reserve_analysis.xlsx. SUMIFS with full-column cross-sheet references (e.g., Claims!C:C) confirmed working in WPS Spreadsheet.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,88 @@
+{
+    "task_id": "end_of_quarter_it_reconciliation@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "IT Director",
+            "verified_value": "IT Director",
+            "source": "Task description context — the task involves IT asset lifecycle management (offboarding, onboarding, warranty auditing, org restructuring). This is consistent with an IT Director role. No contradicting evidence.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Technology",
+            "verified_value": "Technology",
+            "source": "Task description uses technology company context (engineering department, IT department, multiple office locations). Consistent with a technology company. No contradicting evidence.",
+            "status": "verified"
+        },
+        {
+            "key": "departing_users",
+            "metadata_value": ["alee", "bkumar"],
+            "verified_value": ["alee", "bkumar"],
+            "source": "Verified via live DB query (02_users_db_query.txt): alee (Alex Lee, id=12, HR, HQ-B, activated=1) and bkumar (Bianca Kumar, id=13, Finance, NYC, activated=1) both exist. Setup script creates them at lines 106-118. Task description explicitly names them as departing. alee has 2 assets checked out (RECON-L001 laptop + RECON-MON-A monitor, confirmed assigned_to=12 in DB). bkumar has 1 asset (RECON-L002, assigned_to=13). Both have M365 seats assigned (confirmed in 04_m365_seats_query.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "new_hire_users",
+            "metadata_value": ["mrivera", "ytanaka"],
+            "verified_value": ["mrivera", "ytanaka"],
+            "source": "Verified via export_result.sh output (09_export_result_output.txt): mrivera and ytanaka both show found=false in baseline state, confirming they do NOT exist before the task. Task description specifies: mrivera (Marcus Rivera, mrivera@example.com, Engineering, HQ Building A) and ytanaka (Yuki Tanaka, ytanaka@example.com, Sales, New York Office). The agent must create them.",
+            "status": "verified"
+        },
+        {
+            "key": "expired_warranty_assets",
+            "metadata_value": ["RECON-L003", "RECON-L004"],
+            "verified_value": ["RECON-L003", "RECON-L004"],
+            "source": "Verified via live DB query (03_assets_db_query.txt). RECON-L003: Laptops category, purchased 2022-08-10, warranty 36 months, expires 2025-08-10 — BEFORE reference date 2026-03-19. Assigned to user 14 (dmiller). RECON-L004: Laptops category, purchased 2023-06-20, warranty 24 months, expires 2025-06-20 — BEFORE 2026-03-19. Assigned to user 15 (ezhang). Both are deployed laptops with expired warranties. Also confirmed via screenshot 08_recon_l003_detail_expired_warranty.png showing 'Warranty Expires: 2025-08-10' in the Snipe-IT UI. Note: RECON-L002 (bkumar's laptop) also has an expired warranty (expires 2025-02-15) but is NOT in this list because it gets checked in during Phase 1 and is thus no longer 'deployed' when Phase 3 runs.",
+            "status": "verified"
+        },
+        {
+            "key": "active_warranty_assets",
+            "metadata_value": ["RECON-L005", "RECON-L006"],
+            "verified_value": ["RECON-L005", "RECON-L006"],
+            "source": "Verified via live DB query (03_assets_db_query.txt). RECON-L005: Laptops category, purchased 2024-09-01, warranty 36 months, expires 2027-09-01 — AFTER 2026-03-19. Assigned to user 16 (fsingh). RECON-L006: Laptops category, purchased 2024-11-15, warranty 36 months, expires 2027-11-15 — AFTER 2026-03-19. Assigned to user 17 (gpark). Both are deployed laptops with active warranties that must NOT be modified in Phase 3.",
+            "status": "verified"
+        },
+        {
+            "key": "distractor_assets",
+            "metadata_value": ["RECON-D001", "RECON-MON-B"],
+            "verified_value": ["RECON-D001", "RECON-MON-B"],
+            "source": "Verified via live DB query (05_distractor_assets_query.txt). RECON-D001: category=Desktops (NOT Laptops), warranty expired 2024-03-01, assigned to dmiller (user 14). RECON-MON-B: category=Monitors (NOT Laptops), warranty expired 2024-05-01, unassigned. Both have expired warranties but are NOT laptops, so Phase 3 must NOT flag them. RECON-D001 is particularly tricky because dmiller also has RECON-L003 (a laptop with expired warranty) — the agent must flag L003 but NOT D001.",
+            "status": "verified"
+        },
+        {
+            "key": "spare_assets",
+            "metadata_value": ["RECON-S001", "RECON-S002"],
+            "verified_value": ["RECON-S001", "RECON-S002"],
+            "source": "Verified via live DB query (03_assets_db_query.txt). RECON-S001: Laptops category, Ready to Deploy, unassigned (assigned_to=NULL). RECON-S002: Laptops category, Ready to Deploy, unassigned. Both are available for Phase 2 new hire provisioning. Note: after Phase 1 checks in alee's and bkumar's laptops (RECON-L001, RECON-L002), those also become 'Ready to Deploy' laptops, so the agent has up to 4 available laptops for 2 new hires.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights",
+            "metadata_value": {
+                "c1_departing_hardware_checked_in": 10,
+                "c2_checked_in_ready_to_deploy": 5,
+                "c3_departing_users_deactivated": 8,
+                "c4_departing_m365_seats_removed": 7,
+                "c5_new_users_created": 10,
+                "c6_new_hires_laptop_checked_out": 8,
+                "c7_new_hires_m365_seats": 7,
+                "c8_expired_warranty_out_for_repair": 15,
+                "c9_expired_warranty_note": 5,
+                "c10_active_warranty_unchanged": 8,
+                "c11_distractors_unchanged": 5,
+                "c12_department_renamed": 5,
+                "c13_location_created": 4,
+                "c14_ppatel_location_updated": 3
+            },
+            "verified_value": "Sum = 100. Matches verifier.py scoring logic exactly.",
+            "source": "Cross-referenced with verifier.py docstring (lines 4-29) and scoring logic throughout the file. C1=10 (4+3+3), C2=5, C3=8 (4+4), C4=7 (3+4), C5=10 (5+5), C6=8 (4+4), C7=7 (3+4), C8=15 (8+7), C9=5 (3+2), C10=8 (4+4), C11=5 (2+1+2), C12=5, C13=4, C14=3. Total=100. Verified via baseline verifier run (11_verifier_baseline_score.txt) which correctly scored 13/100 (only C10=8 + C11=5 = 13 from unchanged criteria). Pass threshold is 65.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task requires 4 phases of IT reconciliation in Snipe-IT. Phase 1 (Departures): Alex Lee (alee, user id 12) has 2 hardware assets checked out: RECON-L001 (Dell Latitude 5540 laptop) and RECON-MON-A (Dell U2723QE monitor). Bianca Kumar (bkumar, user id 13) has 1 asset: RECON-L002 (HP EliteBook 840 G10 laptop). All 3 assets must be checked in and set to 'Ready to Deploy'. Both users must be deactivated. Both have Microsoft 365 Business Premium license seats that must be removed. Phase 2 (New Hires): Agent must create mrivera (Marcus Rivera, Engineering, HQ Building A / Headquarters - Building A, mrivera@example.com) and ytanaka (Yuki Tanaka, Sales, New York Office, ytanaka@example.com). Each needs a 'Ready to Deploy' laptop checked out and an M365 license seat assigned. Available spare laptops are RECON-S001 and RECON-S002 (plus L001 and L002 after Phase 1 check-in). Phase 3 (Warranty Audit): The reference date is March 19, 2026. Exactly 2 currently-deployed laptops have expired warranties: RECON-L003 (Lenovo ThinkPad T14s Gen 4, assigned to Diana Miller/dmiller, warranty expired 2025-08-10) and RECON-L004 (Dell Latitude 7440, assigned to Ethan Zhang/ezhang, warranty expired 2025-06-20). Both must be set to 'Out for Repair' with note containing 'Q1-2026 AUDIT'. Critical distractors: RECON-D001 is a Desktop (not laptop) with expired warranty also assigned to dmiller — must NOT be modified. RECON-MON-B is a Monitor with expired warranty — must NOT be modified. RECON-L002 (bkumar's laptop) has an expired warranty but was checked in during Phase 1 and is no longer deployed — must NOT be flagged. Active-warranty laptops RECON-L005 (fsingh, expires 2027-09-01) and RECON-L006 (gpark, expires 2027-11-15) must NOT be modified. Phase 4 (Org Update): 'Marketing' department must be renamed to 'Growth & Marketing'. Location 'Building C - Floor 3' must be created with address 500 Innovation Drive, San Francisco, CA 94105. User ppatel (Priyanka Patel, currently at New York Office) must have their default location updated to 'Building C - Floor 3'. Note: ezhang (Ethan Zhang) intentionally does NOT have an M365 seat — the task description says to ensure 'every user who currently has a laptop checked out also has a license seat', so after Phase 3 changes ezhang's laptop status but keeps it assigned, the agent should still assign ezhang an M365 seat as part of Phase 2's compliance requirement.",
+    "pi_confidence": "high"
+}

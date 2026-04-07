@@ -1,0 +1,108 @@
+{
+    "task_id": "chinook_query_optimization@1",
+    "dataset": "Chinook",
+    "case_id": "Chinook_Sqlite.sqlite",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "db_path",
+            "metadata_value": "/home/ga/Documents/databases/chinook_perf.db",
+            "verified_value": "/home/ga/Documents/databases/chinook_perf.db (created from /home/ga/Documents/databases/chinook.db during setup)",
+            "source": "setup_task.sh line 22: cp \"$CHINOOK_SRC\" \"$CHINOOK_PERF\"",
+            "status": "verified"
+        },
+        {
+            "key": "required_indexes_invoices_InvoiceDate",
+            "metadata_value": "{\"table\": \"invoices\", \"column\": \"InvoiceDate\"}",
+            "verified_value": "Invoice.InvoiceDate column exists (DATETIME type) in actual Chinook database. Table name should be 'Invoice' not 'invoices'.",
+            "source": "Downloaded Chinook SQLite database from https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite; verified with .schema Invoice command",
+            "status": "verified"
+        },
+        {
+            "key": "required_indexes_customers_City",
+            "metadata_value": "{\"table\": \"customers\", \"column\": \"City\"}",
+            "verified_value": "Customer.City column exists (NVARCHAR(40) type) in actual Chinook database. Table name should be 'Customer' not 'customers'.",
+            "source": "Downloaded Chinook SQLite database; verified with .schema Customer command",
+            "status": "verified"
+        },
+        {
+            "key": "required_indexes_tracks_Composer",
+            "metadata_value": "{\"table\": \"tracks\", \"column\": \"Composer\"}",
+            "verified_value": "Track.Composer column exists (NVARCHAR(220) type) in actual Chinook database. Table name should be 'Track' not 'tracks'.",
+            "source": "Downloaded Chinook SQLite database; verified with .schema Track command",
+            "status": "verified"
+        },
+        {
+            "key": "required_indexes_tracks_Milliseconds",
+            "metadata_value": "{\"table\": \"tracks\", \"column\": \"Milliseconds\"}",
+            "verified_value": "Track.Milliseconds column exists (INTEGER type) in actual Chinook database. Table name should be 'Track' not 'tracks'.",
+            "source": "Downloaded Chinook SQLite database; verified with .schema Track command",
+            "status": "verified"
+        },
+        {
+            "key": "sql_file",
+            "metadata_value": "/home/ga/Documents/scripts/create_indexes.sql",
+            "verified_value": "/home/ga/Documents/scripts/create_indexes.sql (path and filename structure is correct, file created during task)",
+            "source": "setup_task.sh lines 12-13 define SCRIPTS_DIR and clear the file at line 48",
+            "status": "verified"
+        },
+        {
+            "key": "report_file",
+            "metadata_value": "/home/ga/Documents/exports/optimization_report.csv",
+            "verified_value": "/home/ga/Documents/exports/optimization_report.csv (path and filename structure is correct, file created during task)",
+            "source": "setup_task.sh lines 13 and 49 define EXPORTS_DIR and clear the file",
+            "status": "verified"
+        },
+        {
+            "key": "database_source",
+            "metadata_value": "Not specified in metadata, but setup_task.sh references /home/ga/Documents/databases/chinook.db",
+            "verified_value": "Chinook database is a real public database from lerocha/chinook-database on GitHub. Download URL: https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite",
+            "source": "Web search and direct download verification of the Chinook database; GitHub repository: https://github.com/lerocha/chinook-database",
+            "status": "verified"
+        },
+        {
+            "key": "data_characteristics",
+            "metadata_value": "Not specified in task.json",
+            "verified_value": "Chinook data is MIXED: Media data (artists, albums, tracks) comes from real iTunes Library data. Customer and employee information is synthetic (fictitious names and addresses). Sales information is synthetically generated using random data.",
+            "source": "Official Chinook database documentation and GitHub README at https://github.com/lerocha/chinook-database",
+            "status": "verified"
+        },
+        {
+            "key": "invoice_table_row_count",
+            "metadata_value": "Not specified",
+            "verified_value": "412 rows in Invoice table",
+            "source": "Direct query: SELECT COUNT(*) FROM Invoice in downloaded Chinook database",
+            "status": "verified"
+        },
+        {
+            "key": "customer_table_row_count",
+            "metadata_value": "Not specified",
+            "verified_value": "59 rows in Customer table",
+            "source": "Direct query: SELECT COUNT(*) FROM Customer in downloaded Chinook database",
+            "status": "verified"
+        },
+        {
+            "key": "track_table_row_count",
+            "metadata_value": "Not specified",
+            "verified_value": "3,503 rows in Track table",
+            "source": "Direct query: SELECT COUNT(*) FROM Track in downloaded Chinook database",
+            "status": "verified"
+        },
+        {
+            "key": "task_query_table_names",
+            "metadata_value": "Task description queries use lowercase table names: invoices, customers, tracks",
+            "verified_value": "CONTRADICTED - Actual Chinook database uses uppercase table names: Invoice, Customer, Track. Queries with lowercase table names will fail.",
+            "source": "Tested queries with lowercase names returned 'no such table' error; tested with uppercase names work correctly",
+            "status": "contradicted"
+        },
+        {
+            "key": "task_query_date_range",
+            "metadata_value": "Task description queries use date range 2010-01-01 to 2012-12-31",
+            "verified_value": "CONTRADICTED - Actual Chinook database has no data in 2010-2012 range. Data dates range from 2021-01-01 to 2025-12-22.",
+            "source": "Direct query: SELECT MIN(InvoiceDate), MAX(InvoiceDate) FROM Invoice returned 2021-01-01|2025-12-22",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The Chinook database is a real, public sample database from GitHub (lerocha/chinook-database) containing a mix of real and synthetic data. Media data (artists, albums, tracks with 3,503 rows) comes from iTunes Library; customer and employee data are synthetic (59 customers, 8 employees); sales data are synthetically generated (412 invoices). The database has the required columns: Invoice.InvoiceDate, Customer.City, Track.Composer, and Track.Milliseconds. However, the actual database uses uppercase table names (Invoice, Customer, Track), while the task description contains SQL queries using lowercase names (invoices, customers, tracks) which will fail. Additionally, the task queries reference dates from 2010-2012, but the actual database contains data from 2021-2025.",
+    "pi_confidence": "high"
+}

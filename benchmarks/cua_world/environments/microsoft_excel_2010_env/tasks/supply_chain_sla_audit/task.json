@@ -1,0 +1,44 @@
+{
+  "id": "supply_chain_sla_audit@1",
+  "version": "1.0",
+  "env_id": "microsoft_excel_2010_env@0.1",
+  "description": "Audit carrier performance in the logistics dataset logistics_audit_q3.xlsx by identifying late shipments where Actual Days exceed Scheduled Days. Calculate the 'Rebate Amount' for each shipment on the 'Shipments' sheet using the rebate percentages from the SLA Policy table (Rebate = Sales Amount * Rebate % for late shipments, otherwise 0). Apply red conditional formatting to all Rebate Amounts greater than $50. Create a summary sheet named 'Audit_Summary' that displays the total rebate amount for each Shipping Mode. Save the updated workbook to logistics_audit_q3.xlsx.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\supply_chain_sla_audit\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\supply_chain_sla_audit\\export_result.ps1"
+  },
+  "metadata": {
+    "filename": "logistics_audit_q3.xlsx",
+    "file_path": "C:\\Users\\Docker\\Documents\\logistics_audit_q3.xlsx",
+    "sheet_data": "Shipments",
+    "sheet_policy": "SLA_Policy",
+    "sheet_summary": "Audit_Summary",
+    "sla_rules": {
+      "Same Day": 1.0,
+      "First Class": 0.5,
+      "Second Class": 0.1,
+      "Standard Class": 0.0
+    },
+    "expected_columns": [
+      "Order ID",
+      "Shipping Mode",
+      "Sales Amount",
+      "Scheduled Days",
+      "Actual Days",
+      "Rebate Amount"
+    ],
+    "conditional_format_threshold": 50
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_supply_chain_sla_audit"
+    }
+  }
+}

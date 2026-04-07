@@ -1,0 +1,53 @@
+{
+  "task_id": "investigate_apt_and_build_detection@1",
+  "task_completion": [
+    {
+      "id": "investigate_wazuh_alerts",
+      "description": "Investigate security alerts using the Wazuh dashboard or API",
+      "points": 10,
+      "visual_evidence": "Screenshots showing the Wazuh dashboard open in a browser, or terminal commands (like curl) querying the Wazuh indexer (port 9200) or manager API for alerts matching the wazuh-alerts-4.x-2025.03.* pattern."
+    },
+    {
+      "id": "create_apt_report",
+      "description": "Save the investigation findings to ~/apt_report.json with all required keys",
+      "points": 30,
+      "visual_evidence": "Terminal or text editor showing the creation or contents of ~/apt_report.json. The JSON must contain the exact keys: attacker_ip, compromised_account, compromised_host, lateral_movement_target, privilege_escalation_method, persistence_mechanism, and attack_timeline."
+    },
+    {
+      "id": "create_correlated_rules",
+      "description": "Create correlated detection rules in the wazuh-wazuh.manager-1 container using if_matched_sid",
+      "points": 30,
+      "visual_evidence": "Terminal showing interaction with the wazuh-wazuh.manager-1 container (e.g., via docker exec) and editing /var/ossec/etc/rules/local_rules.xml. The added rules must clearly show the use of the <if_matched_sid> XML tag to chain stages."
+    },
+    {
+      "id": "restart_wazuh_manager",
+      "description": "Restart the Wazuh manager",
+      "points": 10,
+      "visual_evidence": "Terminal showing a command executed inside the wazuh-wazuh.manager-1 container to restart the manager service (e.g., /var/ossec/bin/wazuh-control restart)."
+    },
+    {
+      "id": "verify_rules_via_api",
+      "description": "Confirm the rules load successfully by querying the manager API",
+      "points": 20,
+      "visual_evidence": "Terminal showing a curl command or API client querying the Wazuh Manager API (https://localhost:55000) to retrieve or validate the newly created rules, along with a successful response."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_investigation",
+      "description": "Verify the agent actually investigated the alerts rather than hallucinating the report",
+      "visual_evidence": "Look for actual search results, log entries, or API responses from Wazuh on screen before the apt_report.json is generated."
+    },
+    {
+      "id": "container_execution_verified",
+      "description": "Verify rule creation and restart occurred inside the actual container",
+      "visual_evidence": "Look for 'docker exec -it wazuh-wazuh.manager-1' commands or a shell prompt indicating the agent is inside the container, rather than just editing local files on the host."
+    },
+    {
+      "id": "no_hallucinated_api_response",
+      "description": "Verify the API verification was a genuine network request",
+      "visual_evidence": "Look for a real curl command or script execution targeting port 55000 with proper authentication, returning a standard Wazuh API JSON response, rather than a manually typed mock response."
+    }
+  ],
+  "privileged_info_for_vlm": "No privileged information available."
+}

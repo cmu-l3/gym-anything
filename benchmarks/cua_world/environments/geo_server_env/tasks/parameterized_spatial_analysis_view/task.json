@@ -1,0 +1,35 @@
+{
+  "id": "parameterized_spatial_analysis_view@1",
+  "env_id": "geo_server_env@0.1",
+  "description": "You are a GIS Engineer building a parameterized spatial analysis service on GeoServer (http://localhost:8080/geoserver/web/, admin / Admin123!). Create workspace `spatial_analytics` (URI: http://spatial.analytics.example.org) with a PostGIS store `city_demographics` (host: gs-postgis, port: 5432, db: gis, user: geoserver, pass: geoserver123). Create a SQL view layer `continental_city_stats` that spatially joins `ne_countries` (alias `c`) and `ne_populated_places` (alias `p`) using `ST_Contains(c.geom, p.geom)` with a LEFT JOIN. GROUP BY country to compute: `c.name AS country_name`, `c.adm0_a3 AS iso_code`, `c.continent`, `COUNT(p.gid) AS city_count`, `COALESCE(SUM(p.pop_max),0) AS total_urban_pop`, `c.geom AS geom`. Filter with `WHERE c.continent = '%target_continent%'` using a view parameter `target_continent` (default: Europe, regex: `^[a-zA-Z ]+$`). Declare geometry column `geom` as MultiPolygon, SRID 4326; compute bounding box from data. Create SLD style `urban_density_gradient` with five rules on `city_count`: 0 -> fill #D3D3D3, 1-2 -> #AEC7E8, 3-5 -> #2CA02C, 6-10 -> #FF7F0E, 11+ -> #D62728 (all with #333333 stroke). Set as default style for the layer. Generate two WMS GetMap PNGs (800x400, EPSG:4326, bbox -180,-90,180,90) using `viewparams=target_continent:Europe` and `viewparams=target_continent:Asia`, saved to `/home/ga/output/europe_density.png` and `/home/ga/output/asia_density.png`.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/parameterized_spatial_analysis_view/setup_task.sh",
+    "post_task": "/workspace/tasks/parameterized_spatial_analysis_view/export_result.sh"
+  },
+  "metadata": {
+    "expected_workspace": "spatial_analytics",
+    "expected_namespace": "http://spatial.analytics.example.org",
+    "expected_datastore": "city_demographics",
+    "expected_layer": "continental_city_stats",
+    "expected_style": "urban_density_gradient",
+    "expected_param_name": "target_continent",
+    "expected_param_default": "Europe",
+    "source_tables": ["ne_countries", "ne_populated_places"],
+    "expected_output_paths": [
+      "/home/ga/output/europe_density.png",
+      "/home/ga/output/asia_density.png"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_parameterized_spatial_analysis_view"
+    }
+  }
+}

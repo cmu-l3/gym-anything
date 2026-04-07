@@ -1,0 +1,33 @@
+{
+  "id": "soft_delete_architecture@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Retrofit the legacy 'INSURANCE_POLICIES' table to support soft deletion while maintaining application compatibility. The implementation requires renaming the table to 'INSURANCE_POLICIES_BASE' and adding audit columns: IS_ACTIVE (VARCHAR2(1), default 'Y', NOT NULL), DELETED_AT (DATE), and DELETED_BY (VARCHAR2(50)). A view named 'INSURANCE_POLICIES' must be created to expose the original table structure for active records (IS_ACTIVE = 'Y'). An INSTEAD OF DELETE trigger on this view should intercept deletion attempts and instead update the base table to set IS_ACTIVE to 'N', DELETED_AT to SYSDATE, and DELETED_BY to the current user. Verify the system by deleting Policy ID 1005 ('Dr. Arlene Stanton') through the view. Connection: Host=localhost, Port=1521, Database=XEPDB1, User=hr, Password=hr123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/soft_delete_architecture/setup_task.sh",
+    "post_task": "/workspace/tasks/soft_delete_architecture/export_result.sh"
+  },
+  "metadata": {
+    "test_policy_id": 1005,
+    "verifier_test_policy_id": 1010,
+    "base_table_name": "INSURANCE_POLICIES_BASE",
+    "view_name": "INSURANCE_POLICIES",
+    "audit_columns": [
+      "IS_ACTIVE",
+      "DELETED_AT",
+      "DELETED_BY"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_soft_delete_architecture"
+    }
+  }
+}

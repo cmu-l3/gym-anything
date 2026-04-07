@@ -1,0 +1,29 @@
+{
+  "id": "discounting_k_estimation@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "very_hard",
+  "description": "A psychology professor has collected delay discounting data from 16 participants using a computerized monetary choice questionnaire. The data is saved at ~/pebl/data/discounting_choices.csv with columns: participant_id, trial, immediate_amount, delayed_amount, delay_days, choice (0 = chose immediate, 1 = chose delayed), and rt_ms (reaction time). \n\nEstimate the hyperbolic discounting parameter 'k' for each valid participant and identify any corrupted or degenerate data. For each trial, the indifference k-value is: k_indiff = (delayed_amount / immediate_amount - 1) / delay_days. Estimate each participant's k as the geometric mean of the smallest k_indiff where the participant chose immediate (upper bound) and the largest k_indiff where the participant chose delayed (lower bound): k = sqrt(lower_bound * upper_bound). If these bounds cross due to choice noise, still use this formula.\n\nExclude degenerate responders who chose 100% immediate or 100% delayed, as well as any participants with corrupted data showing impossible reaction times (human deliberative choice typically takes >300 ms).\n\nProduce a JSON report at ~/pebl/analysis/discounting_report.json containing:\n- 'participants': A list of objects. For valid participants: 'id', 'k', 'ln_k' (natural log of k), and 'pct_immediate' (proportion of immediate choices). For excluded participants: 'id', 'excluded': true, and a 'reason' string.\n- 'group_median_k': The median k across all valid participants.\n- 'group_median_ln_k': The median ln(k) across all valid participants.\n- 'n_valid': The count of valid participants.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/discounting_k_estimation/setup_task.sh",
+    "post_task": "/workspace/tasks/discounting_k_estimation/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "sub-99999",
+    "contamination_type": "degenerate_responder_impossible_rt",
+    "n_real_participants": 15,
+    "output_file": "/home/ga/pebl/analysis/discounting_report.json",
+    "ground_truth_file": "/tmp/.discounting_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_discounting_k_estimation"
+    }
+  }
+}

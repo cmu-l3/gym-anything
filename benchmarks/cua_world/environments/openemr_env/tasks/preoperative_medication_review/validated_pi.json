@@ -1,0 +1,122 @@
+{
+    "task_id": "preoperative_medication_review@1",
+    "dataset": "Synthea-derived OpenEMR patient data (custom patient added by setup_task.sh)",
+    "case_id": "Margaret Chen, PID 47, DOB 1962-08-15",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "patient_fname",
+            "metadata_value": "Margaret",
+            "verified_value": "Margaret",
+            "source": "Live DB query: SELECT fname FROM patient_data WHERE pid=47 returned 'Margaret'. Confirmed in 02_patient_data_full.txt evidence.",
+            "status": "verified"
+        },
+        {
+            "key": "patient_lname",
+            "metadata_value": "Chen",
+            "verified_value": "Chen",
+            "source": "Live DB query: SELECT lname FROM patient_data WHERE pid=47 returned 'Chen'. Confirmed in 02_patient_data_full.txt evidence.",
+            "status": "verified"
+        },
+        {
+            "key": "patient_dob",
+            "metadata_value": "1962-08-15",
+            "verified_value": "1962-08-15",
+            "source": "Live DB query: SELECT DOB FROM patient_data WHERE pid=47 returned '1962-08-15'. Confirmed in 02_patient_data_full.txt evidence.",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/preop_review_result.json",
+            "verified_value": "/tmp/preop_review_result.json",
+            "source": "export_result.sh run confirmed it writes valid JSON to this path. Confirmed in 13_export_result_baseline.json evidence.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 70,
+            "verified_value": 70,
+            "source": "Verified against verifier.py scoring logic. Simulated scenarios: do-nothing=20 (FAIL), discontinue-all=90 (HARD FAIL via safe gate), correct-3+safe=95 (PASS). Threshold 70 is correctly calibrated.",
+            "status": "verified"
+        },
+        {
+            "key": "patient_pid_at_runtime",
+            "metadata_value": "auto-assigned",
+            "verified_value": 47,
+            "source": "Live DB query after setup_task.sh: patient created as PID 47 (MAX(pid)+1 from 46 existing Synthea patients). Stored in /tmp/task_patient_pid.",
+            "status": "verified"
+        },
+        {
+            "key": "active_conditions_count",
+            "metadata_value": "6 (implied by setup_task.sh)",
+            "verified_value": 6,
+            "source": "Live DB query: SELECT COUNT(*) FROM lists WHERE pid=47 AND type='medical_problem' returned 6. All have outcome=0 (active). Confirmed in 03_conditions_and_allergies.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "allergies_count",
+            "metadata_value": "2 (implied by setup_task.sh)",
+            "verified_value": 2,
+            "source": "Live DB query: SELECT COUNT(*) FROM lists WHERE pid=47 AND type='allergy' returned 2. Confirmed in 03_conditions_and_allergies.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "active_medications_count",
+            "metadata_value": "8 (implied by setup_task.sh)",
+            "verified_value": 8,
+            "source": "Live DB query: SELECT COUNT(*) FROM prescriptions WHERE patient_id=47 AND active=1 returned 8. Confirmed in 04_medications_full.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "medications_that_must_be_discontinued",
+            "metadata_value": "Not in metadata (agent must reason)",
+            "verified_value": ["Warfarin 5 MG Oral Tablet", "Clopidogrel 75 MG Oral Tablet", "Ibuprofen 400 MG Oral Tablet"],
+            "source": "Verified via medical knowledge: Warfarin (anticoagulant) must be stopped 5-7 days pre-op for bleeding risk. Clopidogrel (antiplatelet) must be stopped 5-7 days pre-op per ACC/AHA guidelines. Ibuprofen (NSAID) must be stopped 7 days pre-op for bleeding risk and nephrotoxicity. Cross-referenced with verifier.py scoring: 15 pts for Warfarin, 10 pts for Clopidogrel, 10 pts for Ibuprofen.",
+            "status": "verified"
+        },
+        {
+            "key": "medications_safe_to_continue",
+            "metadata_value": "Not in metadata (agent must reason)",
+            "verified_value": ["Lisinopril 20 MG Oral Tablet", "Amlodipine 10 MG Oral Tablet", "Atorvastatin 40 MG Oral Tablet", "Omeprazole 20 MG Oral Capsule"],
+            "source": "Verified via medical knowledge and ACC/AHA perioperative guidelines: ACE inhibitors (Lisinopril), CCBs (Amlodipine), statins (Atorvastatin), and PPIs (Omeprazole) are generally continued perioperatively. Cross-referenced with verifier.py: safe_medications_preserved gate requires >=3 of these 4 to remain active.",
+            "status": "verified"
+        },
+        {
+            "key": "metformin_perioperative_status",
+            "metadata_value": "Not in metadata (bonus in verifier)",
+            "verified_value": "Should be held/discontinued (bonus 5 pts)",
+            "source": "Metformin 1000 MG is active for this patient with CKD stage 2. Per ADA and perioperative guidelines, Metformin should be held 24-48h before surgery due to risk of lactic acidosis, especially with renal impairment and potential contrast use. Verifier awards 5 bonus points.",
+            "status": "verified"
+        },
+        {
+            "key": "historical_encounters_count",
+            "metadata_value": "3 (implied by setup_task.sh)",
+            "verified_value": 3,
+            "source": "Live DB query: SELECT COUNT(*) FROM form_encounter WHERE pid=47 returned 3. Dates: 2023-06-15, 2024-01-22, 2024-09-10. Confirmed in 05_encounters.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "openemr_version",
+            "metadata_value": "7.0.2 (from docker-compose.yml)",
+            "verified_value": "7.0.2",
+            "source": "Live query: docker exec openemr-app grep v_major/v_minor/v_patch version.php returned 7.0.2.",
+            "status": "verified"
+        },
+        {
+            "key": "login_credentials",
+            "metadata_value": "admin/pass (from task description)",
+            "verified_value": "admin/pass",
+            "source": "Live curl POST login test returned HTTP 200 with main_screen content, confirming credentials work.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_vitals",
+            "metadata_value": "BP 142/88, HR 76, Temp 98.4 F, RR 16, SpO2 97%, Wt 176 lbs, Ht 63 in (from task description)",
+            "verified_value": "BP 142/88, HR 76, Temp 98.4 F, RR 16, SpO2 97%, Wt 176 lbs, Ht 63 in",
+            "source": "These are specified in the task description as the vitals to record. The form_vitals table schema (evidence 17_form_vitals_schema.txt) confirms columns exist for all: bps, bpd, pulse, temperature, respiration, oxygen_saturation, weight, height. Verifier uses tolerance ranges (e.g., BP 80-200/40-120, HR 40-150, Temp 95-105F) rather than exact match.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Patient Margaret Chen (PID 47, DOB 1962-08-15) is a 63-year-old female with essential hypertension, type 2 diabetes, atrial fibrillation, osteoarthritis of the right hip, GERD, and CKD stage 2. She has allergies to penicillin and sulfonamides. She is on 8 active medications: Warfarin 5mg (anticoagulant for AFib), Clopidogrel 75mg (antiplatelet), Ibuprofen 400mg (NSAID for OA pain), Metformin 1000mg (diabetes), Lisinopril 20mg (ACE inhibitor for HTN), Amlodipine 10mg (CCB for HTN), Atorvastatin 40mg (statin), and Omeprazole 20mg (PPI for GERD). For pre-operative clearance before hip arthroplasty, the agent MUST discontinue Warfarin (surgical bleeding risk from anticoagulant), Clopidogrel (bleeding risk from antiplatelet), and Ibuprofen (bleeding risk and nephrotoxicity from NSAID). Metformin SHOULD be held (lactic acidosis risk, bonus points). Lisinopril, Amlodipine, Atorvastatin, and Omeprazole are SAFE to continue perioperatively — at least 3 of these 4 must remain active (anti-gaming gate). The agent must also: (1) create a new encounter dated today, (2) record vitals BP 142/88, HR 76, Temp 98.4F, RR 16, SpO2 97%, Wt 176 lbs, Ht 63 in, (3) order pre-operative labs (CBC, BMP/CMP, PT/INR, Type & Screen are standard), and (4) write a clearance note. Login is admin/pass. The patient has 3 prior encounters (wellness 2023, AFib follow-up 2024, hip surgical referral 2024). OpenEMR version 7.0.2. Patient is searchable by last name 'Chen' in the Patient Finder.",
+    "pi_confidence": "high"
+}

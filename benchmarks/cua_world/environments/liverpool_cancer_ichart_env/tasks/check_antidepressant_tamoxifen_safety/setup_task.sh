@@ -19,7 +19,12 @@ sleep 1
 input keyevent KEYCODE_HOME
 sleep 2
 
-# 5. Capture initial state screenshot for evidence
+# 5. Launch the app using robust helper
+echo "Launching Cancer iChart..."
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
+
+# 6. Capture initial state screenshot for evidence
 screencap -p /sdcard/initial_state.png 2>/dev/null || true
 
 echo "=== Task setup complete ==="

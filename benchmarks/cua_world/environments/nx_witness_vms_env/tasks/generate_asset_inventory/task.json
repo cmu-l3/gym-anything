@@ -1,0 +1,41 @@
+{
+  "id": "generate_asset_inventory@1",
+  "version": "1.0",
+  "env_id": "nx_witness_vms_env@0.1",
+  "description": "Generate a comprehensive JSON asset inventory report for the Nx Witness VMS system by querying the REST API at https://localhost:7001. The report must include data for the System, Servers, Cameras, Users, and Layouts, using the credentials admin/Admin1234!. Save the final inventory to /home/ga/Documents/system_inventory.json. Ensure no sensitive data, such as password hashes or auth tokens, is included in the output. The report must follow this structure:\n\n{\n  \"report_generated_at\": \"<ISO 8601 timestamp>\",\n  \"system\": { ...system info... },\n  \"servers\": [ ...list of servers... ],\n  \"cameras\": [ ...list of devices... ],\n  \"users\": [ ...list of users... ],\n  \"layouts\": [ ...list of layouts... ],\n  \"summary\": {\n    \"total_servers\": <count>,\n    \"total_cameras\": <count>,\n    \"total_users\": <count>,\n    \"total_layouts\": <count>\n  }\n}",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/generate_asset_inventory/setup_task.sh",
+    "post_task": "/workspace/tasks/generate_asset_inventory/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/system_inventory.json",
+    "required_keys": [
+      "report_generated_at",
+      "system",
+      "servers",
+      "cameras",
+      "users",
+      "layouts",
+      "summary"
+    ],
+    "sensitive_patterns": [
+      "passwordHash",
+      "cryptSha512Hash",
+      "digest",
+      "token",
+      "Admin1234!"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_generate_asset_inventory"
+    }
+  }
+}

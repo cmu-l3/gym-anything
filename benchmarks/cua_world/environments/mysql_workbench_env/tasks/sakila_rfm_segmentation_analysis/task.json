@@ -1,0 +1,30 @@
+{
+  "id": "sakila_rfm_segmentation_analysis@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "Perform a Recency, Frequency, Monetary (RFM) analysis on the Sakila customer database to identify high-value customers at risk of churning. Create a table named customer_rfm_scores in the sakila database with columns customer_id, recency_days, frequency_count, monetary_total, r_score, f_score, and m_score. Populate this table for all 599 customers using the reference date '2006-02-14 23:59:59', calculating scores (1-5) using NTILE(5) with customer_id ASC as a tie-breaker. R_Score 5 represents the most recent activity (lowest days), F_Score 5 the highest frequency, and M_Score 5 the highest spend. Export a list of 'High Value Churn Risks' (defined as R_Score <= 2 AND (F_Score >= 4 OR M_Score >= 4)) including columns customer_id, email, r_score, f_score, and m_score to /home/ga/Documents/exports/churn_risk_customers.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_rfm_segmentation_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_rfm_segmentation_analysis/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "target_table": "customer_rfm_scores",
+    "reference_date": "2006-02-14 23:59:59",
+    "expected_row_count": 599,
+    "export_path": "/home/ga/Documents/exports/churn_risk_customers.csv",
+    "churn_risk_logic": "R <= 2 AND (F >= 4 OR M >= 4)"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_rfm_segmentation_analysis"
+    }
+  }
+}

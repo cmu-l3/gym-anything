@@ -1,0 +1,213 @@
+{
+    "task_id": "contractor_overstay_watchlist_enforcement@1",
+    "dataset": "ACME Corp visitor_records.csv (synthetic, project-specific)",
+    "case_id": "December 2025 contractor overstay audit",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_month",
+            "metadata_value": "December 2025",
+            "verified_value": "December 2025",
+            "source": "Parsed all 52 rows of the expanded CSV. 42 rows have Sign In Date starting with '2025-12' (December 2025). 10 rows have '2026-01' (January 2026). The task description explicitly says 'December 2025'.",
+            "status": "verified"
+        },
+        {
+            "key": "badge_type_filter",
+            "metadata_value": "Contractor",
+            "verified_value": "Contractor",
+            "source": "Parsed Badge Type column. Values in dataset: Visitor (20), Contractor (14 in Dec), Vendor (18). The column header is exactly 'Badge Type' and the value is exactly 'Contractor' (case-sensitive match).",
+            "status": "verified"
+        },
+        {
+            "key": "policy_max_minutes",
+            "metadata_value": 120,
+            "verified_value": 120,
+            "source": "Task description says 'maximum of 120 minutes on-site' and 'strictly exceeded 120 minutes'. This means >120, not >=120. Contractors at exactly 120 minutes are NOT violations.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_violations",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Independent computation: parsed all 14 December 2025 contractors, calculated (sign_out_hour*60+sign_out_min) - (sign_in_hour*60+sign_in_min) for each. Exactly 5 have duration > 120: Maria Garcia (150), Jessica Harris (180), Margaret Allen (150), Alex Rivera (135), Rachel Kim (210). 6 contractors have exactly 120 min and are NOT violations. 3 contractors have <120 min.",
+            "status": "verified"
+        },
+        {
+            "key": "tier_rules.WARNING",
+            "metadata_value": "121-149 minutes",
+            "verified_value": "121-149 minutes",
+            "source": "Task description states 'WARNING for 121-149 minutes'. Only Alex Rivera (135 min) falls in this range. Verified: 121 <= 135 <= 149.",
+            "status": "verified"
+        },
+        {
+            "key": "tier_rules.SUSPENDED",
+            "metadata_value": "150-179 minutes",
+            "verified_value": "150-179 minutes",
+            "source": "Task description states 'SUSPENDED for 150-179 minutes'. Maria Garcia (150 min) and Margaret Allen (150 min) fall in this range. Verified: 150 <= 150 <= 179.",
+            "status": "verified"
+        },
+        {
+            "key": "tier_rules.BANNED",
+            "metadata_value": "180+ minutes",
+            "verified_value": "180+ minutes",
+            "source": "Task description states 'BANNED for 180 minutes or more'. Jessica Harris (180 min) and Rachel Kim (210 min) fall in this range. Verified: 180 >= 180 and 210 >= 180.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_1.name",
+            "metadata_value": "Alex Rivera",
+            "verified_value": "Alex Rivera",
+            "source": "Setup_task.ps1 appends record: 'Alex,Rivera,Siemens AG,...,2025-12-20,09:00,11:15,Contractor'. First Name='Alex', Last Name='Rivera'. Duration = (11*60+15)-(9*60+0) = 675-540 = 135 min. 135 > 120, so this is a violation.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_1.company",
+            "metadata_value": "Siemens AG",
+            "verified_value": "Siemens AG",
+            "source": "CSV field Company='Siemens AG' in the appended record in setup_task.ps1 line 39.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_1.duration_min",
+            "metadata_value": 135,
+            "verified_value": 135,
+            "source": "Computed: sign_in=09:00 (540 min), sign_out=11:15 (675 min). 675-540 = 135 minutes.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_1.tier",
+            "metadata_value": "WARNING",
+            "verified_value": "WARNING",
+            "source": "135 minutes falls in range 121-149, which maps to WARNING tier per the tier rules.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_2.name",
+            "metadata_value": "Maria Garcia",
+            "verified_value": "Maria Garcia",
+            "source": "Base CSV row 2: 'Maria,Garcia,Deloitte LLP,...,2025-12-01,10:00,12:30,Contractor'. First Name='Maria', Last Name='Garcia'.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_2.company",
+            "metadata_value": "Deloitte LLP",
+            "verified_value": "Deloitte LLP",
+            "source": "Base CSV row 2, Company field = 'Deloitte LLP'.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_2.duration_min",
+            "metadata_value": 150,
+            "verified_value": 150,
+            "source": "Computed: sign_in=10:00 (600 min), sign_out=12:30 (750 min). 750-600 = 150 minutes.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_2.tier",
+            "metadata_value": "SUSPENDED",
+            "verified_value": "SUSPENDED",
+            "source": "150 minutes falls in range 150-179, which maps to SUSPENDED tier.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_3.name",
+            "metadata_value": "Margaret Allen",
+            "verified_value": "Margaret Allen",
+            "source": "Base CSV row 29: 'Margaret,Allen,IBM Corporation,...,2025-12-16,10:00,12:30,Contractor'. First Name='Margaret', Last Name='Allen'.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_3.company",
+            "metadata_value": "IBM Corporation",
+            "verified_value": "IBM Corporation",
+            "source": "Base CSV row 29, Company field = 'IBM Corporation'.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_3.duration_min",
+            "metadata_value": 150,
+            "verified_value": 150,
+            "source": "Computed: sign_in=10:00 (600 min), sign_out=12:30 (750 min). 750-600 = 150 minutes.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_3.tier",
+            "metadata_value": "SUSPENDED",
+            "verified_value": "SUSPENDED",
+            "source": "150 minutes falls in range 150-179, which maps to SUSPENDED tier.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_4.name",
+            "metadata_value": "Jessica Harris",
+            "verified_value": "Jessica Harris",
+            "source": "Base CSV row 17: 'Jessica,Harris,ExxonMobil,...,2025-12-09,08:30,11:30,Contractor'. First Name='Jessica', Last Name='Harris'.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_4.company",
+            "metadata_value": "ExxonMobil",
+            "verified_value": "ExxonMobil",
+            "source": "Base CSV row 17, Company field = 'ExxonMobil'.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_4.duration_min",
+            "metadata_value": 180,
+            "verified_value": 180,
+            "source": "Computed: sign_in=08:30 (510 min), sign_out=11:30 (690 min). 690-510 = 180 minutes.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_4.tier",
+            "metadata_value": "BANNED",
+            "verified_value": "BANNED",
+            "source": "180 minutes meets the 180+ threshold, which maps to BANNED tier.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_5.name",
+            "metadata_value": "Rachel Kim",
+            "verified_value": "Rachel Kim",
+            "source": "Setup_task.ps1 appends record: 'Rachel,Kim,McKinsey & Co,...,2025-12-22,08:30,12:00,Contractor'. First Name='Rachel', Last Name='Kim'.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_5.company",
+            "metadata_value": "McKinsey & Co",
+            "verified_value": "McKinsey & Co",
+            "source": "CSV field Company='McKinsey & Co' in the appended record in setup_task.ps1 line 40.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_5.duration_min",
+            "metadata_value": 210,
+            "verified_value": 210,
+            "source": "Computed: sign_in=08:30 (510 min), sign_out=12:00 (720 min). 720-510 = 210 minutes.",
+            "status": "verified"
+        },
+        {
+            "key": "violation_5.tier",
+            "metadata_value": "BANNED",
+            "verified_value": "BANNED",
+            "source": "210 minutes exceeds the 180+ threshold, which maps to BANNED tier.",
+            "status": "verified"
+        },
+        {
+            "key": "non_violator_contractors",
+            "metadata_value": ["Jennifer Jones", "Linda Davis", "Joseph Thomas", "Daniel Robinson", "Lisa Lewis", "Ashley Hernandez", "Donna Wright", "Paul Nelson", "Emily Perez"],
+            "verified_value": ["Jennifer Jones", "Linda Davis", "Joseph Thomas", "Daniel Robinson", "Lisa Lewis", "Ashley Hernandez", "Donna Wright", "Paul Nelson", "Emily Perez"],
+            "source": "Independent computation of all 14 Dec 2025 contractors: 9 have duration <= 120 min. Jennifer Jones (120), Linda Davis (90), Joseph Thomas (120), Daniel Robinson (120), Lisa Lewis (90), Ashley Hernandez (120), Donna Wright (90), Paul Nelson (120), Emily Perez (120). All 9 names match the metadata list exactly.",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "C:\\Users\\Docker\\Desktop\\watchlist_enforcement_dec2025.csv",
+            "verified_value": "C:\\Users\\Docker\\Desktop\\watchlist_enforcement_dec2025.csv",
+            "source": "Consistent with task description which says 'create a compliance report at C:\\Users\\Docker\\Desktop\\watchlist_enforcement_dec2025.csv'. Path verified writable during live testing (Windows Desktop directory exists and is writable by Docker user).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The expanded visitor_records.csv (52 rows: 50 base + 2 appended by setup) contains 14 December 2025 contractors. Exactly 5 contractors strictly exceeded the 120-minute policy: (1) Alex Rivera / Siemens AG stayed 135 minutes (09:00-11:15 on Dec 20) — WARNING tier; (2) Maria Garcia / Deloitte LLP stayed 150 minutes (10:00-12:30 on Dec 1) — SUSPENDED tier; (3) Margaret Allen / IBM Corporation stayed 150 minutes (10:00-12:30 on Dec 16) — SUSPENDED tier; (4) Jessica Harris / ExxonMobil stayed 180 minutes (08:30-11:30 on Dec 9) — BANNED tier; (5) Rachel Kim / McKinsey & Co stayed 210 minutes (08:30-12:00 on Dec 22) — BANNED tier. The 9 non-violating contractors all have durations of exactly 120 minutes or less (6 at exactly 120 min, 3 at 90 min) and must NOT appear in the report. Key boundary condition: 'strictly exceeded' means >120, so exactly 120 minutes is NOT a violation. Important trap: Russell Stewart (United Technologies, Jan 10 2026, 150 min) is a contractor who overstayed but must be excluded because the audit covers December 2025 only. The compliance report CSV must list each violator's name, company, stay duration in minutes, and enforcement tier (WARNING/SUSPENDED/BANNED). All 5 violators must also be added to Lobby Track's Denied Visitor Watchlist through the GUI with reason notes containing the tier and exact duration.",
+    "pi_confidence": "high"
+}

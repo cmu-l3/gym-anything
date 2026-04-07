@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  sakai-db:
+    image: mariadb:10.6
+    container_name: sakai-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: sakai
+      MYSQL_USER: sakai
+      MYSQL_PASSWORD: sakaipass
+    command: >-
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=256M
+      --max-allowed-packet=64M
+      --innodb-log-file-size=64M
+    volumes:
+      - sakai_dbdata:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  sakai_dbdata:

@@ -1,0 +1,36 @@
+{
+  "id": "euclidean_spectral_target_detection@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "Process the 4-band Landsat image at /home/ga/snap_data/landsat_multispectral.tif (band_1: SWIR1, band_2: NIR, band_3: Red, band_4: Green) to identify target outcrops. Create a new band named 'spectral_distance' representing the 4-dimensional Euclidean distance between each pixel and the reference signature [180, 130, 100, 85]. Create a second band named 'target_outcrop' as a boolean mask where 'spectral_distance' is less than 25. Save the resulting product with all bands to /home/ga/snap_exports/target_detection.dim (BEAM-DIMAP) and export it to /home/ga/snap_exports/target_detection.tif (GeoTIFF).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/euclidean_spectral_target_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/euclidean_spectral_target_detection/export_result.sh"
+  },
+  "metadata": {
+    "data_file": "/home/ga/snap_data/landsat_multispectral.tif",
+    "target_signature": {
+      "band_1": 180,
+      "band_2": 130,
+      "band_3": 100,
+      "band_4": 85
+    },
+    "distance_threshold": 25,
+    "expected_outputs": [
+      "/home/ga/snap_exports/target_detection.dim",
+      "/home/ga/snap_exports/target_detection.tif"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_euclidean_spectral_target_detection"
+    }
+  }
+}

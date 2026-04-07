@@ -1,0 +1,42 @@
+{
+  "id": "legacy_appointment_reconciliation@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "A legacy appointment system has exported a list of future appointments to ~/Documents/legacy_appointments.csv. Reconcile this list against the MedinTux patient database 'DrTuxTest' (user: root, no password) by matching LastName and FirstName in the IndexNomPrenom table. Export unique matches to ~/Documents/ready_import.csv with columns GUID, Date_ISO (converted from DD/MM/YYYY to YYYY-MM-DD), Time, and Reason. Export rows that could not be automatically matched (patient not found or multiple patients found) to ~/Documents/review_required.csv with columns Date, Time, LastName, FirstName, Reason, and Error_Type.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/legacy_appointment_reconciliation/setup_task.sh",
+    "post_task": "/workspace/tasks/legacy_appointment_reconciliation/export_result.sh"
+  },
+  "metadata": {
+    "input_file": "/home/ga/Documents/legacy_appointments.csv",
+    "output_ready": "/home/ga/Documents/ready_import.csv",
+    "output_review": "/home/ga/Documents/review_required.csv",
+    "db_name": "DrTuxTest",
+    "test_cases": {
+      "unique_match": {
+        "last": "TESTUNIQUE",
+        "first": "Alice"
+      },
+      "duplicate_match": {
+        "last": "TESTDUP",
+        "first": "Bob"
+      },
+      "no_match": {
+        "last": "TESTMISSING",
+        "first": "Charlie"
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_legacy_appointment_reconciliation"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "id": "spatial_coverage_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A telecommunications company needs to identify gaps in their network coverage using Oracle Spatial. Using the EXISTING_TOWERS and PROPOSED_SITES tables in the HR schema, convert the existing latitude/longitude data into SDO_GEOMETRY columns named GEO_LOCATION using SRID 4326. Register both tables in USER_SDO_GEOM_METADATA with bounds of -180 to 180 for longitude and -90 to 90 for latitude and a tolerance of 0.05 meters, then create spatial indexes on the new columns. Identify 'unserviced' PROPOSED_SITES that are more than 25 kilometers away from all EXISTING_TOWERS. Export the SITE_NAME and STATE of these unserviced sites, sorted alphabetically by Site Name, to /home/ga/Desktop/priority_expansion_sites.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/spatial_coverage_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/spatial_coverage_analysis/export_result.sh"
+  },
+  "metadata": {
+    "srid": 4326,
+    "distance_threshold_meters": 25000,
+    "output_file": "/home/ga/Desktop/priority_expansion_sites.txt",
+    "tables": [
+      "EXISTING_TOWERS",
+      "PROPOSED_SITES"
+    ],
+    "geometry_column": "GEO_LOCATION",
+    "ground_truth_unserviced": [
+      "Albany Downtown",
+      "Atlantic City Boardwalk",
+      "Buffalo Waterfront",
+      "Burlington Church St",
+      "Harrisburg Capitol",
+      "Montauk Point",
+      "New Haven Green",
+      "Portland Old Port",
+      "Providence Waterplace",
+      "Syracuse University"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spatial_analysis"
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "quarterly_pipeline_reconciliation_with_ticket_crossref@1",
+  "version": "1.0",
+  "env_id": "vtiger_crm_env@0.1",
+  "description": "Perform the Q1 2026 pipeline reconciliation in Vtiger CRM (http://localhost:8000, admin / password). Review every open deal in the Potentials module (Sales Stage is not 'Closed Won' or 'Closed Lost') and cross-reference each deal's Organization against open support tickets in the HelpDesk module.\n\nFor each open deal, check if its Organization has open tickets (status 'Open', 'In Progress', or 'Waiting For Response') with Critical or Major severity. Apply these rules in priority order:\n\nRule 1 — Past-due: If Expected Close Date is before 2026-03-19, set Sales Stage to 'Closed Lost', Probability to 0%, and add '[Q1-AUDIT] Auto-closed - past due' to Description. This rule overrides Rules 2 and 3.\n\nRule 2 — Critical ticket: If the Organization has any open Critical-severity ticket (and deal is not past-due), set Sales Stage to 'Needs Analysis', Probability to 10%, and add '[Q1-AUDIT] Held - critical support escalation' to Description.\n\nRule 3 — Major ticket: If the Organization has open Major-severity tickets but no Critical ones (and deal is not past-due), reduce Probability by 20 points (minimum 5%), and add '[Q1-AUDIT] Risk-adjusted - major support issue' to Description.\n\nDo not modify deals whose Organizations have no qualifying tickets and whose close dates are in the future.\n\nAfter processing all deals, create a report titled 'Q1 2026 Pipeline Reconciliation' in Reports as a Tabular Report on the Potentials module.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 350,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/quarterly_pipeline_reconciliation_with_ticket_crossref/setup_task.sh",
+    "post_task": "/workspace/tasks/quarterly_pipeline_reconciliation_with_ticket_crossref/export_result.sh"
+  },
+  "metadata": {
+    "injected_conditions": {
+      "past_due_deals": [
+        {"deal": "BrightPath LMS Platform Build", "org": "BrightPath Education", "injected_closingdate": "2026-02-15"},
+        {"deal": "Catalyst LIMS Implementation", "org": "Catalyst Biotech", "injected_closingdate": "2026-01-30"}
+      ],
+      "critical_ticket_orgs": [
+        {"org": "Atlas Logistics Corp", "deal": "Atlas Supply Chain Analytics", "ticket": "CRITICAL: Fleet GPS tracking system - complete outage since 03/17"},
+        {"org": "Pinnacle Healthcare Systems", "deal": "Pinnacle EHR Security Upgrade", "ticket": "CRITICAL: EHR patient data sync failure - 72hr data gap"}
+      ],
+      "major_ticket_orgs": [
+        {"org": "GreenLeaf Manufacturing", "deal": "GreenLeaf IoT Factory Monitoring", "ticket": "Production line IoT sensor calibration drift affecting QA"},
+        {"org": "Sterling Financial Group", "deal": "Sterling Trading Platform Modernization", "ticket": "Quarterly compliance report generation failing since Feb update"}
+      ],
+      "precedence_test": {
+        "org": "Atlas Logistics Corp",
+        "extra_major_ticket": "Warehouse barcode scanner firmware incompatibility",
+        "note": "Atlas has BOTH Critical and Major tickets — Critical rule takes precedence"
+      },
+      "normalized_start_probabilities": {
+        "GreenLeaf IoT Factory Monitoring": 40,
+        "Sterling Trading Platform Modernization": 70
+      },
+      "clean_deals_no_action": [
+        "Apex Cloud Migration Phase 2",
+        "Horizon 5G Network Planning",
+        "Coastal Retail E-Commerce Replatform",
+        "Ironclad Claims AI Platform"
+      ]
+    },
+    "expected_outcomes": {
+      "BrightPath LMS Platform Build": {"stage": "Closed Lost", "probability": 0, "audit_tag": "[Q1-AUDIT] Auto-closed"},
+      "Catalyst LIMS Implementation": {"stage": "Closed Lost", "probability": 0, "audit_tag": "[Q1-AUDIT] Auto-closed"},
+      "Atlas Supply Chain Analytics": {"stage": "Needs Analysis", "probability": 10, "audit_tag": "[Q1-AUDIT] Held"},
+      "Pinnacle EHR Security Upgrade": {"stage": "Needs Analysis", "probability": 10, "audit_tag": "[Q1-AUDIT] Held"},
+      "GreenLeaf IoT Factory Monitoring": {"probability": 20, "audit_tag": "[Q1-AUDIT] Risk-adjusted"},
+      "Sterling Trading Platform Modernization": {"probability": 50, "audit_tag": "[Q1-AUDIT] Risk-adjusted"}
+    },
+    "expected_report_title": "Q1 2026 Pipeline Reconciliation",
+    "pass_threshold": 55
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_quarterly_pipeline_reconciliation"
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+    "task_id": "chinook_revenue_integrity_audit@1",
+    "dataset": "Chinook",
+    "case_id": "Invoice discrepancy audit across 5 corrupted invoices",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "audit_db_path",
+            "metadata_value": "/home/ga/Documents/databases/chinook_audit.db",
+            "verified_value": "/home/ga/Documents/databases/chinook_audit.db",
+            "source": "setup_task.sh creates this path by copying the source Chinook database",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/Documents/exports/invoice_discrepancies.csv",
+            "verified_value": "/home/ga/Documents/exports/invoice_discrepancies.csv",
+            "source": "task.json description specifies this export location",
+            "status": "verified"
+        },
+        {
+            "key": "expected_sql_path",
+            "metadata_value": "/home/ga/Documents/scripts/audit_query.sql",
+            "verified_value": "/home/ga/Documents/scripts/audit_query.sql",
+            "source": "task.json description requires SQL script to be saved to this location",
+            "status": "verified"
+        },
+        {
+            "key": "corrupted_invoice_ids",
+            "metadata_value": "[10, 55, 120, 250, 310]",
+            "verified_value": "[10, 55, 120, 250, 310]",
+            "source": "Downloaded and queried pristine Chinook database from https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite. All 5 invoices exist. Query of pristine database confirmed no other invoices have discrepancies > 0.05, validating the completeness of this list.",
+            "status": "verified"
+        },
+        {
+            "key": "discrepancy_10",
+            "metadata_value": 5.0,
+            "verified_value": 5.0,
+            "source": "Original Invoice 10 total in Chinook: 5.94. Stored total after corruption: 5.94 + 5.00 = 10.94. Calculated total (sum of line items): 5.94. Discrepancy = 10.94 - 5.94 = 5.0",
+            "status": "verified"
+        },
+        {
+            "key": "discrepancy_55",
+            "metadata_value": -2.0,
+            "verified_value": -2.0,
+            "source": "Original Invoice 55 total in Chinook: 0.99. Stored total after corruption: 0.99 - 2.00 = -1.01. Calculated total: 0.99. Discrepancy = -1.01 - 0.99 = -2.0",
+            "status": "verified"
+        },
+        {
+            "key": "discrepancy_120",
+            "metadata_value": 10.5,
+            "verified_value": 10.5,
+            "source": "Original Invoice 120 total in Chinook: 1.98. Stored total after corruption: 1.98 + 10.50 = 12.48. Calculated total: 1.98. Discrepancy = 12.48 - 1.98 = 10.5",
+            "status": "verified"
+        },
+        {
+            "key": "discrepancy_250",
+            "metadata_value": 0.99,
+            "verified_value": 0.99,
+            "source": "Original Invoice 250 total in Chinook: 13.86. Stored total after corruption: 13.86 + 0.99 = 14.85. Calculated total: 13.86. Discrepancy = 14.85 - 13.86 = 0.99",
+            "status": "verified"
+        },
+        {
+            "key": "discrepancy_310",
+            "metadata_value": -100.0,
+            "verified_value": -100.0,
+            "source": "Original Invoice 310 total in Chinook: 7.96. Stored total after corruption: 7.96 - 100.00 = -92.04. Calculated total: 7.96. Discrepancy = -92.04 - 7.96 = -100.0",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "Chinook sample database (real data based on iTunes library)",
+            "verified_value": "Real Chinook database. Media data created from actual iTunes Library. Customer/employee data manually created with fictitious names and verified addresses. Sales data auto-generated for 4-year period. Originally created by Luis Rocha, hosted at https://github.com/lerocha/chinook-database",
+            "source": "Web search results and GitHub repository README. setup_dbeaver.sh downloads from https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite",
+            "status": "verified"
+        },
+        {
+            "key": "invoice_count_threshold",
+            "metadata_value": "Identify invoices with absolute discrepancy > 0.05",
+            "verified_value": "Exactly 5 invoices (IDs: 10, 55, 120, 250, 310) have absolute discrepancies > 0.05 after corruption injection",
+            "source": "Queried pristine Chinook database with SQL HAVING clause to find all invoices with ABS(StoredTotal - CalculatedTotal) > 0.05. Result: 0 invoices in pristine state. After corruption injection per setup_task.sh, exactly 5 invoices exceed threshold.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Chinook database is real, based on actual iTunes library data. Five specific invoices (IDs 10, 55, 120, 250, 310) are corrupted by setup_task.sh through offset injection to their Total field. Discrepancies are: Invoice 10 = 5.0, Invoice 55 = -2.0, Invoice 120 = 10.5, Invoice 250 = 0.99, Invoice 310 = -100.0. These are the only invoices in the database with absolute discrepancy > 0.05. All metadata paths are correctly specified. Expected CSV output: /home/ga/Documents/exports/invoice_discrepancies.csv with columns InvoiceId, InvoiceDate, StoredTotal, CalculatedTotal, Discrepancy. Expected SQL script: /home/ga/Documents/scripts/audit_query.sql.",
+    "pi_confidence": "high"
+}

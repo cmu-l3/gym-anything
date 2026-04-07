@@ -1,0 +1,33 @@
+{
+  "id": "secure_mongodb_auth@1",
+  "version": "1.0",
+  "env_id": "socioboard_env@0.1",
+  "description": "Secure the MongoDB instance used by Socioboard. Currently, MongoDB is running on localhost:27017 without authentication enabled, and the four Socioboard microservices (user, feeds, publish, and notification) are connected without credentials. Enable authentication for the 'socioboard' database by creating a user named 'socioboard' with password 'SecureMongo2026!' and 'readWrite' roles. Configure the MongoDB server (/etc/mongod.conf) and the microservice configuration files (/opt/socioboard/socioboard-api/*/config/development.json) to implement and use these credentials. Ensure all services are functional, no microservice is crash-looping, and unauthenticated access to the database is no longer permitted.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/secure_mongodb_auth/setup_task.sh",
+    "post_task": "/workspace/tasks/secure_mongodb_auth/export_result.sh"
+  },
+  "metadata": {
+    "expected_mongo_user": "socioboard",
+    "expected_mongo_pass": "SecureMongo2026!",
+    "expected_mongo_db": "socioboard",
+    "services": [
+      "user",
+      "feeds",
+      "publish",
+      "notification"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secure_mongodb_auth"
+    }
+  }
+}

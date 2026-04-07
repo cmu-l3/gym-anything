@@ -89,7 +89,7 @@ chrome_env_all/
 import gym_anything as ga
 
 # Load the Chrome environment
-env = ga.from_config("benchmarks/cua_world/environments/chrome_env_all")
+env = ga.from_config("examples/chrome_env_all")
 
 # Reset the environment
 obs = env.reset(seed=42)

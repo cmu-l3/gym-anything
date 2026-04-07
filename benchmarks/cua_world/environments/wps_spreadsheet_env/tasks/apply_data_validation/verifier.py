@@ -36,70 +36,71 @@ def verify_data_validation(traj, env_info, task_info):
 
         sheet = wb.active
 
-        # Criterion 1: Data validation exists
+        # Criterion 1: Has data validation rules (25 points)
         has_dv = False
         dv_count = 0
+        dv_types = set()
 
         if hasattr(sheet, 'data_validations') and sheet.data_validations:
             dv = sheet.data_validations
             dv_count = len(dv.dataValidation) if dv.dataValidation else 0
             has_dv = dv_count > 0
+            for rule in (dv.dataValidation or []):
+                if rule.type:
+                    dv_types.add(rule.type)
 
         if has_dv:
             criteria_passed += 1
-            feedback_parts.append(f"Data validation: present ({dv_count} rules)")
+            feedback_parts.append(f"Data validation: present ({dv_count} rules, types: {dv_types})")
         else:
             feedback_parts.append("Data validation: NOT found")
 
-        # Criterion 2: Freeze panes
-        has_freeze = sheet.freeze_panes is not None
-
-        if has_freeze:
+        # Criterion 2: Has list validation (for Status/Priority dropdowns)
+        has_list = 'list' in dv_types
+        if has_list:
             criteria_passed += 1
-            feedback_parts.append("Freeze panes: present")
+            feedback_parts.append("List validation (dropdowns): found")
         else:
-            feedback_parts.append("Freeze panes: NOT found")
+            feedback_parts.append("List validation (dropdowns): NOT found")
 
-        # Criterion 3-5: VLM checks
+        # Criterion 3: Has whole number or decimal validation (for Budget)
+        has_number = 'whole' in dv_types or 'decimal' in dv_types
+        if has_number:
+            criteria_passed += 1
+            feedback_parts.append("Number validation (Budget): found")
+        else:
+            feedback_parts.append("Number validation (Budget): NOT found")
+
+        # Criterion 4: Has date validation (for Start Date)
+        has_date = 'date' in dv_types
+        if has_date:
+            criteria_passed += 1
+            feedback_parts.append("Date validation (Start Date): found")
+        else:
+            feedback_parts.append("Date validation (Start Date): NOT found")
+
+        # Criterion 5: VLM visual verification
         vlm_result = vlm_verify_screenshot(env_info, traj, """
 Analyze this WPS Spreadsheet screenshot. Answer in JSON:
 {
-    "has_dropdown_menus": true/false,
-    "has_freeze_effect": true/false,
-    "has_validation_indicators": true/false,
-    "has_proper_layout": true/false
+    "has_dropdown_indicators": true/false,
+    "data_visible": true/false,
+    "spreadsheet_formatted": true/false
 }
 Does the spreadsheet show:
-1. Dropdown menus or arrows indicating data validation?
-2. Frozen header row (stays in place when scrolling)?
-3. Visual indicators of validation rules?
-4. Well-organized table structure?
+1. Dropdown indicators or data validation markers on cells?
+2. Is the project data visible and formatted?
+3. Are there any validation error indicators?
 """)
 
         if vlm_result is not None:
-            has_dropdown = vlm_result.get("has_dropdown_menus", False)
-            has_freeze_effect = vlm_result.get("has_freeze_effect", False)
-            has_indicators = vlm_result.get("has_validation_indicators", False)
-
-            if has_dropdown or has_indicators:
+            if vlm_result.get("has_dropdown_indicators", False) or vlm_result.get("data_visible", False):
                 criteria_passed += 1
-                feedback_parts.append("Dropdown menus: detected")
+                feedback_parts.append("VLM: validation indicators detected")
             else:
-                feedback_parts.append("Dropdown menus: NOT detected")
-
-            if has_freeze_effect:
-                criteria_passed += 1
-                feedback_parts.append("Freeze effect: detected")
-            else:
-                feedback_parts.append("Freeze effect: NOT detected")
-
-            if has_indicators:
-                criteria_passed += 1
-                feedback_parts.append("Validation indicators: detected")
-            else:
-                feedback_parts.append("Validation indicators: NOT detected")
+                feedback_parts.append("VLM: no validation indicators detected")
         else:
-            total_criteria -= 2
+            total_criteria -= 1
             feedback_parts.append("VLM: unavailable")
 
         score = int((criteria_passed / total_criteria) * 100)

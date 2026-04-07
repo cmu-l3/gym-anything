@@ -1,0 +1,45 @@
+{
+    "task_id": "update_order_status@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_customer_name",
+            "metadata_value": "Maria Garcia",
+            "verified_value": "Maria Garcia",
+            "source": "setup_task.sh lines 19-25: wp user create with first_name='Maria' last_name='Garcia'",
+            "status": "verified"
+        },
+        {
+            "key": "initial_status",
+            "metadata_value": "wc-processing",
+            "verified_value": "wc-processing",
+            "source": "setup_task.sh line 53 (wp wc order create --status=processing) + WooCommerce official documentation confirming 'wc-processing' is the internal status code for Processing state. Reference: https://woocommerce.com/document/managing-orders/order-statuses/",
+            "status": "verified"
+        },
+        {
+            "key": "target_status",
+            "metadata_value": "wc-completed",
+            "verified_value": "wc-completed",
+            "source": "verifier.py line 44 checks 'if final_status == wc-completed' + WooCommerce official documentation confirming 'wc-completed' is the internal status code for Completed state. Reference: https://woocommerce.com/document/managing-orders/order-statuses/",
+            "status": "verified"
+        },
+        {
+            "key": "note_content",
+            "metadata_value": "Shipped via Express. Tracking: TRACK-2024-78542",
+            "verified_value": "Shipped via Express. Tracking: TRACK-2024-78542",
+            "source": "Consistent across: setup_task.sh line 78 (cleanup using '%TRACK-2024-78542%'), export_result.sh lines 30-35 (query for this exact tracking number), verifier.py line 63 (checks for 'Shipped via Express' and tracking number in note_content). Note is stored as private (is_customer_note=0 per export_result.sh lines 52-58).",
+            "status": "verified"
+        },
+        {
+            "key": "tracking_number",
+            "metadata_value": "TRACK-2024-78542",
+            "verified_value": "TRACK-2024-78542",
+            "source": "Synthetic test data appearing consistently in: setup_task.sh line 78, export_result.sh line 20 (TRACKING_NUMBER variable definition), export_result.sh line 34 (SQL query), verifier.py line 54 (expected_tracking variable). Not a real carrier tracking number.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task 'update_order_status@1' operates on a WooCommerce ecommerce platform with a MariaDB database. All task data is synthetic, created during task setup. The target customer is named Maria Garcia, with an initial order status of wc-processing (WooCommerce's internal code for 'Processing'). The task requires updating this order to wc-completed status (WooCommerce's internal code for 'Completed') and adding a private order note with the exact text: 'Shipped via Express. Tracking: TRACK-2024-78542'. The tracking number TRACK-2024-78542 is a synthetic test identifier, not a real shipping carrier tracking number. Order notes are stored in the WordPress database as comments with private/customer distinction tracked via the is_customer_note metadata field (0=private, 1=customer-facing). All metadata claims in the task definition are accurate and correctly implemented in the setup, export, and verification scripts.",
+    "pi_confidence": "high"
+}

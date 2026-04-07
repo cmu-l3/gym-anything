@@ -1,0 +1,36 @@
+{
+  "id": "docker_state_extraction@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are a DevOps engineer tasked with saving a legacy application. A container named 'acme-legacy-app' is running in production, but its original Dockerfile was deleted and the container has been modified in-place over time. Investigate the running container to identify all changes, including OS packages, Python libraries, environment variables, application files, and users. Document these findings in '~/Desktop/container_changes.txt'. Create a new 'Dockerfile' in '~/projects/acme-legacy-app/' that faithfully reproduces this state and build a new image tagged 'acme-legacy-app:restored'. Verify the restored image by ensuring the /health endpoint responds correctly when running.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_state_extraction/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_state_extraction/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/acme-legacy-app",
+    "target_image": "acme-legacy-app:restored",
+    "manifest_path": "/home/ga/Desktop/container_changes.txt",
+    "health_endpoint": "http://localhost:8000/health",
+    "pass_threshold": 65,
+    "base_image": "python:3.11-slim",
+    "required_files": [
+      "/app/inventory_api.py",
+      "/app/config.json",
+      "/app/start.sh",
+      "/app/data/inventory.db"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_state_extraction"
+    }
+  }
+}

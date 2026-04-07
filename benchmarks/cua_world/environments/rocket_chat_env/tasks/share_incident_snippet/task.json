@@ -1,0 +1,28 @@
+{
+  "id": "share_incident_snippet@1",
+  "version": "1.0",
+  "env_id": "rocket_chat_env@0.1",
+  "description": "Log in to Rocket.Chat using username 'admin' and password 'Admin1234!'. In the #release-updates channel, create and send a snippet named 'rollback_procedure.sh' with the following content:\n\n#!/bin/bash\n# Emergency Rollback Script\n# Use only when health checks fail > 3 times\n\necho \"[WARN] Initiating rapid rollback...\"\ndocker service update --rollback --update-failure-action pause my_app_stack\necho \"[INFO] Rollback signal sent. Monitoring logs...\"\ntimeout 60s docker service logs -f my_app_stack",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/share_incident_snippet/setup_task.sh",
+    "post_task": "/workspace/tasks/share_incident_snippet/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "target_channel": "release-updates",
+    "target_file_name": "rollback_procedure.sh",
+    "expected_content": "#!/bin/bash\n# Emergency Rollback Script\n# Use only when health checks fail > 3 times\n\necho \"[WARN] Initiating rapid rollback...\"\ndocker service update --rollback --update-failure-action pause my_app_stack\necho \"[INFO] Rollback signal sent. Monitoring logs...\"\ntimeout 60s docker service logs -f my_app_stack"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_share_incident_snippet"
+    }
+  }
+}

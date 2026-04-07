@@ -34,7 +34,10 @@ if [ -f /workspace/config/.dockerhub_credentials ]; then
         && echo "Docker Hub auth successful" \
         || echo "Docker Hub auth failed (continuing anyway)"
 else
-    echo "No .dockerhub_credentials found – proceeding without authentication"
+    echo "No .dockerhub_credentials found – using inline credentials"
+    echo "dckr_pat_YISK01jQAaGVVmzkVoZnkOH3Q3g" | docker login -u "hackear2041" --password-stdin \
+        && echo "Docker Hub auth successful (inline)" \
+        || echo "Docker Hub auth failed (continuing anyway)"
 fi
 
 # -----------------------------------------------------------------------

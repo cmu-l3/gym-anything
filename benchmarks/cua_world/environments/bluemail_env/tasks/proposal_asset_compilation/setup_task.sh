@@ -4,6 +4,9 @@ echo "=== Setting up proposal_asset_compilation task ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 # Record task start time
 date +%s > /tmp/task_start_time.txt
 
@@ -103,8 +106,8 @@ PYEOF
 chown -R ga:ga "$MAILDIR"
 chown ga:ga /tmp/expected_asset_hashes.json
 
-# Force Dovecot index update
-doveadm index -u ga INBOX 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # ------------------------------------------------------------------
 # Application Setup

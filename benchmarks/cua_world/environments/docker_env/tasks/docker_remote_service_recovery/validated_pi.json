@@ -1,0 +1,52 @@
+{
+    "task_id": "docker_remote_service_recovery@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "remote_host",
+            "metadata_value": "staging-node",
+            "verified_value": "staging-node",
+            "source": "setup_task.sh line 44-49 creates Docker-in-Docker container named staging-node",
+            "status": "verified"
+        },
+        {
+            "key": "remote_port",
+            "metadata_value": 2375,
+            "verified_value": 2375,
+            "source": "setup_task.sh line 49 shows 'dockerd --host=tcp://0.0.0.0:2375'. Docker documentation confirms 2375 is standard unencrypted Docker API port (https://docs.docker.com/engine/daemon/remote-access/)",
+            "status": "verified"
+        },
+        {
+            "key": "container_name",
+            "metadata_value": "web-proxy",
+            "verified_value": "web-proxy",
+            "source": "setup_task.sh line 71 and export_result.sh line 29 both reference 'web-proxy' container",
+            "status": "verified"
+        },
+        {
+            "key": "image",
+            "metadata_value": "nginx:alpine",
+            "verified_value": "nginx:alpine",
+            "source": "setup_task.sh line 74 shows image as 'nginx:alpine'. Verified as official Docker Hub image (https://hub.docker.com/_/nginx/) - part of Docker Official Images. Alpine-based image provides minimal footprint (~24MB vs ~140MB for Debian)",
+            "status": "verified"
+        },
+        {
+            "key": "required_env_var",
+            "metadata_value": "UPSTREAM_TARGET",
+            "verified_value": "UPSTREAM_TARGET",
+            "source": "setup_task.sh line 75 checks 'if [ -z \"$UPSTREAM_TARGET\" ]' and exits with error if missing. export_result.sh line 48 verifies env var presence",
+            "status": "verified"
+        },
+        {
+            "key": "required_port_publish",
+            "metadata_value": "8080",
+            "verified_value": "8080",
+            "source": "setup_task.sh line 72 shows port mapping '-p 8080:80' mapping host port 8080 to container port 80. export_result.sh line 54 verifies this mapping",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Docker remote service recovery task involves diagnosing and fixing a broken nginx:alpine container running on a remote Docker daemon accessible via TCP port 2375. The broken 'web-proxy' container requires the UPSTREAM_TARGET environment variable to start successfully. The fixed container must run nginx:alpine with port mapping 8080:80 on remote host 'staging-node'. All metadata claims are accurate and match the implemented task logic.",
+    "pi_confidence": "high"
+}

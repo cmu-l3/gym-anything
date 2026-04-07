@@ -1,0 +1,122 @@
+{
+    "task_id": "chinook_fraud_investigation@1",
+    "dataset": "Chinook Database (Sample digital media store database)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "db_path",
+            "metadata_value": "/home/ga/Documents/databases/chinook_fraud.db",
+            "verified_value": "/home/ga/Documents/databases/chinook_fraud.db",
+            "source": "setup_task.sh creates this path by copying and modifying original Chinook database",
+            "status": "verified"
+        },
+        {
+            "key": "output_path",
+            "metadata_value": "/home/ga/Documents/exports/fraud_audit.csv",
+            "verified_value": "/home/ga/Documents/exports/fraud_audit.csv",
+            "source": "Task description explicitly specifies this output file path",
+            "status": "verified"
+        },
+        {
+            "key": "connection_name",
+            "metadata_value": "ChinookFraud",
+            "verified_value": "ChinookFraud",
+            "source": "Task description line 11 requires creating DBeaver connection with this name",
+            "status": "verified"
+        },
+        {
+            "key": "financial_mismatch_ids",
+            "metadata_value": "[99, 128, 256]",
+            "verified_value": "[99, 128, 256]",
+            "source": "setup_task.sh lines 40, 43, 46 inject anomalies: Invoice 99 (+50.00), Invoice 256 (+10.00), Invoice 128 (-1.00). Verified by downloading original Chinook database and applying exact SQL modifications.",
+            "status": "verified"
+        },
+        {
+            "key": "financial_mismatch_99_details",
+            "metadata_value": null,
+            "verified_value": "Invoice 99: InvoiceTotal padded by +50.00 (calculated=3.98, total becomes 53.98)",
+            "source": "Direct SQL inspection of modified database. Original invoice 99 had Total=3.98 from 1 InvoiceLine item (3.98 * 1).",
+            "status": "verified"
+        },
+        {
+            "key": "financial_mismatch_128_details",
+            "metadata_value": null,
+            "verified_value": "Invoice 128: InvoiceTotal reduced by -1.00 (calculated=3.96, total becomes 2.96)",
+            "source": "Direct SQL inspection. Original invoice 128 had Total=3.96 from 1 item.",
+            "status": "verified"
+        },
+        {
+            "key": "financial_mismatch_256_details",
+            "metadata_value": null,
+            "verified_value": "Invoice 256: InvoiceTotal padded by +10.00 (calculated=8.91, total becomes 18.91)",
+            "source": "Direct SQL inspection. Original invoice 256 had Total=8.91.",
+            "status": "verified"
+        },
+        {
+            "key": "geo_mismatch_ids",
+            "metadata_value": "[44, 300]",
+            "verified_value": "[44, 300]",
+            "source": "setup_task.sh lines 54, 56 create geo mismatches by changing BillingCountry to 'Cayman Islands' and CustomerCountry to 'USA'. Verified by direct database inspection.",
+            "status": "verified"
+        },
+        {
+            "key": "geo_mismatch_44_details",
+            "metadata_value": null,
+            "verified_value": "Invoice 44: BillingCountry='Cayman Islands', CustomerCountry='USA' (was Australia)",
+            "source": "Direct SQL inspection. Original Invoice 44 had BillingCountry=Australia and customer country=Australia.",
+            "status": "verified"
+        },
+        {
+            "key": "geo_mismatch_300_details",
+            "metadata_value": null,
+            "verified_value": "Invoice 300: BillingCountry='Cayman Islands', CustomerCountry='USA' (was France)",
+            "source": "Direct SQL inspection. Original Invoice 300 had BillingCountry=France and customer country=France.",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": "[\"InvoiceId\", \"ViolationType\", \"InvoiceTotal\", \"CalculatedTotal\", \"BillingCountry\", \"CustomerCountry\"]",
+            "verified_value": "[\"InvoiceId\", \"ViolationType\", \"InvoiceTotal\", \"CalculatedTotal\", \"BillingCountry\", \"CustomerCountry\"]",
+            "source": "Task description explicitly specifies required CSV columns",
+            "status": "verified"
+        },
+        {
+            "key": "original_data_source",
+            "metadata_value": null,
+            "verified_value": "github.com/lerocha/chinook-database (Chinook_Sqlite.sqlite)",
+            "source": "setup_dbeaver.sh lines 27-28 reference https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite as download source",
+            "status": "verified"
+        },
+        {
+            "key": "chinook_database_description",
+            "metadata_value": null,
+            "verified_value": "Real public sample database representing a digital media store with 412 total invoices. Based on iTunes Library data.",
+            "source": "GitHub repository description and schema inspection confirms Chinook database structure with tables for Artist, Album, Track, Customer, Invoice, InvoiceLine, etc.",
+            "status": "verified"
+        },
+        {
+            "key": "total_invoices_in_database",
+            "metadata_value": null,
+            "verified_value": "412",
+            "source": "SELECT COUNT(*) FROM Invoice in both original and fraud databases returns 412",
+            "status": "verified"
+        },
+        {
+            "key": "financial_mismatch_tolerance",
+            "metadata_value": "$0.01",
+            "verified_value": "$0.01",
+            "source": "Task description states: 'allow for $0.01 floating point tolerance'",
+            "status": "verified"
+        },
+        {
+            "key": "all_mismatches_detectable",
+            "metadata_value": null,
+            "verified_value": "Yes - all 5 fraud records have differences far exceeding the $0.01 tolerance: financial mismatches (50.00, 1.00, 10.00) and geo mismatches (distinct country values)",
+            "source": "Direct database inspection shows all differences are substantial and easily detectable",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the Chinook database, a real public sample database from github.com/lerocha/chinook-database representing a digital media store with 412 invoices. The fraud database is synthetic, created by injecting deliberate anomalies into specific invoices. Financial mismatches exist in invoices 99 (Total overstated by $50.00), 128 (understated by $1.00), and 256 (overstated by $10.00). Geo mismatches affect invoices 44 and 300, where BillingCountry is set to 'Cayman Islands' but CustomerCountry is 'USA'. All five fraudulent records have substantial differences far exceeding the $0.01 tolerance, making them easily detectable through database queries.",
+    "pi_confidence": "high"
+}

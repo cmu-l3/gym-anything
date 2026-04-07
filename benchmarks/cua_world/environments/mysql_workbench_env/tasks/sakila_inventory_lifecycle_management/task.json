@@ -1,0 +1,32 @@
+{
+  "id": "sakila_inventory_lifecycle_management@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "Modify the Sakila database to support inventory lifecycle management. Alter the inventory table to add a column named status of type ENUM('Active', 'Lost', 'Damaged', 'Withdrawn') with a default of 'Active', ensuring all existing rows are updated to 'Active'. Implement a stored procedure sp_set_inventory_status(p_inventory_id INT, p_status VARCHAR(20)) that updates an item's status but fails with an error signal if the item is currently rented (exists in the rental table with a NULL return_date). Create a BEFORE INSERT trigger trg_prevent_renting_unavailable on the rental table that prevents rentals by raising an error (SIGNAL SQLSTATE '45000') if the inventory.status of the item is not 'Active'. Mark inventory item 10 as 'Damaged' and item 11 as 'Lost'. Export a list of all non-Active inventory items, including inventory_id, film_title, store_id, and status, to /home/ga/Documents/exports/unavailable_inventory.csv. Login credentials: host=localhost, user=ga, password=password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_inventory_lifecycle_management/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_inventory_lifecycle_management/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_file": "/home/ga/Documents/exports/unavailable_inventory.csv",
+    "target_items": {
+      "10": "Damaged",
+      "11": "Lost"
+    },
+    "test_rented_item_id": 1,
+    "db_user": "ga",
+    "db_password": "password123"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_inventory_lifecycle_management"
+    }
+  }
+}

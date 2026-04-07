@@ -1,0 +1,56 @@
+{
+  "id": "microservices_outage_rca@1",
+  "version": "1.0",
+  "env_id": "diagrams_net_env@0.1",
+  "description": "You are a Site Reliability Engineer at ShopStream Inc. On January 15, 2026, a cascading failure caused a 47-minute outage affecting 3.2 million users. You have three files: an architecture diagram at ~/Diagrams/shopstream_architecture.drawio (8 microservices, databases, cache, and message queue with their connections), a monitoring timeline at ~/Desktop/incident_timeline.csv (28 timestamped events from the outage), and a dependency matrix at ~/Desktop/service_dependencies.csv (communication types and timeout configurations). Perform a failure cascade root cause analysis by annotating the architecture diagram. Determine which service was the true root cause by analyzing the timeline against the dependency graph, and mark it with a red double-border and a 'ROOT CAUSE' label. Color-code every service by its status at peak impact (14:31 UTC): red for down, orange for degraded, green for healthy. Draw dashed red arrows tracing the failure propagation path from root cause through each affected downstream service, labeling each arrow with the calculated propagation delay. On a second diagram page named 'Remediated Architecture', show the post-incident fixes: convert the synchronous dependencies that amplified the cascade to asynchronous via message queue, and add circuit breaker annotations at the critical points where the cascade could have been stopped. Save the diagram and export as PDF to ~/Diagrams/shopstream_rca.pdf. Login: username 'ga', password 'password123'.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/microservices_outage_rca/setup_task.sh",
+    "post_task": "/workspace/tasks/microservices_outage_rca/export_result.sh"
+  },
+  "metadata": {
+    "output_diagram": "/home/ga/Diagrams/shopstream_architecture.drawio",
+    "output_pdf": "/home/ga/Diagrams/shopstream_rca.pdf",
+    "initial_page_count": 1,
+    "root_cause_service": "payment-service",
+    "root_cause_trigger": "payments-db connection pool exhaustion",
+    "service_status_at_peak": {
+      "payment-service": "down",
+      "order-processing": "down",
+      "shopping-cart": "degraded",
+      "api-gateway": "degraded",
+      "product-catalog": "degraded",
+      "notification-service": "degraded",
+      "inventory-service": "healthy",
+      "user-auth": "healthy"
+    },
+    "propagation_path": [
+      "payments-db -> payment-service",
+      "payment-service -> order-processing",
+      "order-processing -> shopping-cart",
+      "order-processing -> api-gateway",
+      "api-gateway -> product-catalog"
+    ],
+    "red_herring": "order-processing shows transient JVM GC pause at 14:23:00 before payment-service cascade begins at 14:23:15",
+    "remediation_sync_to_async": [
+      "order-processing -> payment-service",
+      "shopping-cart -> order-processing"
+    ],
+    "circuit_breaker_locations": [
+      "api-gateway -> order-processing",
+      "api-gateway -> shopping-cart",
+      "api-gateway -> product-catalog"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_microservices_outage_rca"
+    }
+  }
+}

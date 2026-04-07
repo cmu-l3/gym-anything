@@ -1,0 +1,44 @@
+{
+  "id": "wac_inventory_ledger@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are a cost accountant at a manufacturing company. Using Production.TransactionHistory in AdventureWorks2022, build a running inventory ledger with weighted average cost (WAC) valuation.\n\nCreate stored procedure Production.usp_BuildWACLedger that processes every product's transactions in chronological order (ordered by TransactionDate, then TransactionID for tiebreaking) and populates table Production.InventoryLedger with columns: TransactionID INT, ProductID INT, TransactionDate DATETIME, TransactionType NCHAR(1), Qty INT, UnitCost DECIMAL(18,6), RunningQty INT, RunningWAC DECIMAL(18,6), RunningTotalValue DECIMAL(18,2).\n\nFor each transaction:\n- Inflows (TransactionType W or P): ActualCost in TransactionHistory is already per-unit, so set UnitCost = ActualCost. Update RunningWAC = (RunningQty * OldWAC + ABS(Quantity) * UnitCost) / (RunningQty + ABS(Quantity)). Increase RunningQty by ABS(Quantity).\n- Outflows (TransactionType S): decrease RunningQty by ABS(Quantity). RunningWAC stays unchanged. If RunningQty drops to zero or below, reset both RunningQty and RunningWAC to zero.\n- RunningTotalValue = RunningQty * RunningWAC.\n\nCreate view Production.vw_CostVarianceReport joining each product's final RunningWAC (from its chronologically last transaction) against Production.Product.StandardCost. Include columns: ProductID, ProductName, FinalWAC, StandardCost, VariancePct (= (FinalWAC - StandardCost) / NULLIF(StandardCost, 0) * 100), and Flag ('INVESTIGATE' if ABS(VariancePct) > 15, else 'ACCEPTABLE'). Only include products with transactions.\n\nExport all INVESTIGATE rows ordered by ABS(VariancePct) DESC to /home/ga/Documents/exports/cost_variance.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/wac_inventory_ledger/setup_task.sh",
+    "post_task": "/workspace/tasks/wac_inventory_ledger/export_result.sh"
+  },
+  "metadata": {
+    "domain": "Cost Accounting / Inventory Management",
+    "occupation": "Cost Accountant",
+    "soc_code": "13-2011.01",
+    "soc_major_group": "Business and Financial Operations",
+    "application": "Azure Data Studio + Microsoft SQL Server 2022",
+    "database": "AdventureWorks2022",
+    "dataset": "AdventureWorks2022 Production.TransactionHistory (113K+ transaction records with WorkOrder, SalesOrder, and PurchaseOrder types)",
+    "key_tables": [
+      "Production.TransactionHistory",
+      "Production.Product"
+    ],
+    "required_objects": [
+      "Production.InventoryLedger table (9 columns)",
+      "Production.usp_BuildWACLedger stored procedure",
+      "Production.vw_CostVarianceReport view"
+    ],
+    "output_csv_path": "/home/ga/Documents/exports/cost_variance.csv",
+    "result_file": "/tmp/wac_result.json",
+    "variance_threshold_pct": 15,
+    "difficulty_rationale": "Requires sequential/stateful processing that cannot be expressed as a simple window function. Each row's RunningWAC depends recursively on the previous row's state. The agent must implement a cursor or recursive CTE, handle bidirectional flow (inflows update WAC, outflows do not), and correctly reset state when inventory reaches zero. This pattern is fundamentally harder than set-based SQL."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_wac_inventory_ledger"
+    }
+  }
+}

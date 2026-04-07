@@ -1,0 +1,28 @@
+{
+  "id": "firefox_pdf_memory_profiling@1",
+  "version": "1.0",
+  "env_id": "firefox_env@0.1",
+  "description": "Diagnose memory bloat in Firefox's built-in PDF viewer by rendering a heavy document, forcing garbage collection, and capturing two distinct memory reports using the about:memory tool.\n\nSteps:\n1. Open the PDF file `~/Documents/Heavy_Scientific_Report.pdf` in a Firefox tab so the viewer initializes.\n2. Open a new tab and navigate to `about:memory`.\n3. Click the 'GC' and 'CC' buttons under 'Free memory' to clear unreferenced objects and establish a clean baseline.\n4. Click 'Measure and save...' and explicitly save the baseline report as `~/Documents/memory_baseline.json.gz`.\n5. Switch back to the PDF tab and aggressively scroll through at least 20 pages of the document to force pdf.js to render heavy canvas graphics, intentionally bloating the memory profile.\n6. Switch back to the `about:memory` tab.\n7. Without clicking GC or CC, click 'Measure and save...' immediately and explicitly save the peak report as `~/Documents/memory_peak.json.gz`.\n\nNote: Do not rely on the default filename. You must explicitly type the requested filenames into the save dialog.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/firefox_pdf_memory_profiling/setup_task.sh",
+    "post_task": "/workspace/tasks/firefox_pdf_memory_profiling/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "expected_baseline": "/home/ga/Documents/memory_baseline.json.gz",
+    "expected_peak": "/home/ga/Documents/memory_peak.json.gz",
+    "target_pdf_name": "Heavy_Scientific_Report.pdf"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pdf_memory_profiling"
+    }
+  }
+}

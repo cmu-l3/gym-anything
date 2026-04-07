@@ -1,0 +1,70 @@
+{
+  "id": "workforce_optimization_views@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "You are an Operations Research Analyst preparing data for a workforce optimization model in the Oracle HR schema (localhost:1521/XEPDB1, User: hr, Password: hr123). Create a view named ORG_HIERARCHY_VW using hierarchical queries (CONNECT BY) with columns for EMPLOYEE_ID, FULL_NAME (First Last), JOB_ID, DEPARTMENT_NAME, MANAGER_NAME, HIERARCHY_LEVEL, and a pipe-delimited REPORTING_PATH. Create a view named SALARY_BAND_ANALYTICS_VW using window functions to include EMPLOYEE_ID, FULL_NAME, DEPARTMENT_NAME, SALARY, DEPT_SALARY_RANK, SALARY_QUARTILE, DEVIATION_FROM_DEPT_AVG (rounded to 2 decimals), and PREV_HIRE_SALARY. Create a table named DEPT_JOB_CROSSTAB using the PIVOT operator to show headcount by Department and Job Family (first 2 letters of JOB_ID) for families AD, FI, IT, SA, PU, ST, SH, HR, MK, AC, PR, and TOTAL_HEADCOUNT. Export these three objects to /home/ga/Desktop/org_hierarchy.csv, /home/ga/Desktop/salary_analytics.csv, and /home/ga/Desktop/dept_job_matrix.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/workforce_optimization_views/setup_task.sh",
+    "post_task": "/workspace/tasks/workforce_optimization_views/export_result.sh"
+  },
+  "metadata": {
+    "required_views": [
+      "ORG_HIERARCHY_VW",
+      "SALARY_BAND_ANALYTICS_VW"
+    ],
+    "required_tables": [
+      "DEPT_JOB_CROSSTAB"
+    ],
+    "required_csvs": [
+      "/home/ga/Desktop/org_hierarchy.csv",
+      "/home/ga/Desktop/salary_analytics.csv",
+      "/home/ga/Desktop/dept_job_matrix.csv"
+    ],
+    "hierarchy_columns": [
+      "EMPLOYEE_ID",
+      "FULL_NAME",
+      "JOB_ID",
+      "DEPARTMENT_NAME",
+      "MANAGER_NAME",
+      "HIERARCHY_LEVEL",
+      "REPORTING_PATH"
+    ],
+    "analytics_columns": [
+      "EMPLOYEE_ID",
+      "FULL_NAME",
+      "DEPARTMENT_NAME",
+      "SALARY",
+      "DEPT_SALARY_RANK",
+      "SALARY_QUARTILE",
+      "DEVIATION_FROM_DEPT_AVG",
+      "PREV_HIRE_SALARY"
+    ],
+    "pivot_columns": [
+      "DEPARTMENT_NAME",
+      "AD",
+      "FI",
+      "IT",
+      "SA",
+      "PU",
+      "ST",
+      "SH",
+      "HR",
+      "MK",
+      "AC",
+      "PR",
+      "TOTAL_HEADCOUNT"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_workforce_optimization"
+    }
+  }
+}

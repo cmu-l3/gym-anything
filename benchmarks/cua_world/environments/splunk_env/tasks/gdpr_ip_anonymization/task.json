@@ -1,0 +1,30 @@
+{
+  "id": "gdpr_ip_anonymization@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Your company is enforcing GDPR data minimization policies. Configure Splunk to permanently anonymize IPv4 addresses in web server logs before they are written to disk. Create a sourcetype named 'apache_gdpr' that uses an index-time SEDCMD to replace the last octet of IPv4 addresses with 'XXX' (e.g., 192.168.1.100 becomes 192.168.1.XXX). Ingest at least one Apache log file from '/opt/splunk_data/apache/' into a new index named 'gdpr_logs' using the 'apache_gdpr' sourcetype. Create a saved search named 'Anonymized_Traffic_Report' that queries the 'gdpr_logs' index. Splunk is available at http://localhost:8000 (username 'admin', password 'SplunkAdmin1!'). You may use the web interface, CLI, or configuration files.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/gdpr_ip_anonymization/setup_task.sh",
+    "post_task": "/workspace/tasks/gdpr_ip_anonymization/export_result.sh"
+  },
+  "metadata": {
+    "expected_index": "gdpr_logs",
+    "expected_sourcetype": "apache_gdpr",
+    "expected_report_name": "Anonymized_Traffic_Report",
+    "expected_mask": "XXX",
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_gdpr_ip_anonymization"
+    }
+  }
+}

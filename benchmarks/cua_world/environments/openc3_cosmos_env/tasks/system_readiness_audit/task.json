@@ -1,0 +1,29 @@
+{
+  "id": "system_readiness_audit@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a satellite ground station operator performing a pre-contact system readiness audit. Before the upcoming satellite pass, you must verify that the ground system is configured correctly and telemetry is flowing. Using OpenC3 COSMOS, perform the following audit: (1) Determine all configured target names in the system, (2) Determine the connection state (e.g., CONNECTED, DISCONNECTED) of all configured interfaces, and identify which target each interface is associated with, (3) Confirm active data flow by reading the current values of TEMP1 and TEMP2 from the INST HEALTH_STATUS telemetry packet, (4) Assess overall system readiness (system is ready if at least one interface is CONNECTED and telemetry is flowing). Write your findings to a formal JSON report at /home/ga/Desktop/system_readiness.json. The file must contain exactly these top-level keys: 'audit_time' (ISO 8601 datetime string), 'targets' (array of strings, all target names), 'interfaces' (dict mapping interface name to an object with 'state' string and 'target' string/null), 'telemetry_check' (dict containing 'packet' string, 'items' dict with TEMP1 and TEMP2 numeric values, and 'data_flowing' boolean), and 'system_ready' (boolean). The file must be created during this session. OpenC3 password: Cosmos2024!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/system_readiness_audit/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/system_readiness_audit/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/system_readiness_audit_result.json",
+    "output_file": "/home/ga/Desktop/system_readiness.json",
+    "required_targets": ["INST", "INST2"],
+    "occupation": "Ground Station Operator"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_system_readiness_audit"
+    }
+  }
+}

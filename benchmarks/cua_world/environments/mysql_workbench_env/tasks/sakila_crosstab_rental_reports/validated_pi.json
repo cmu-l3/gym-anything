@@ -1,0 +1,73 @@
+{
+    "task_id": "sakila_crosstab_rental_reports@1",
+    "dataset": "Sakila Sample Database",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "database",
+            "metadata_value": "sakila",
+            "verified_value": "sakila",
+            "source": "setup_mysql_workbench.sh and official MySQL documentation",
+            "status": "verified"
+        },
+        {
+            "key": "views.v_rental_by_day_category.columns",
+            "metadata_value": "['category', 'sun_rentals', 'mon_rentals', 'tue_rentals', 'wed_rentals', 'thu_rentals', 'fri_rentals', 'sat_rentals', 'total_rentals']",
+            "verified_value": "['category', 'sun_rentals', 'mon_rentals', 'tue_rentals', 'wed_rentals', 'thu_rentals', 'fri_rentals', 'sat_rentals', 'total_rentals']",
+            "source": "verifier.py checks these exact column names",
+            "status": "verified"
+        },
+        {
+            "key": "views.v_rental_by_day_category.expected_rows",
+            "metadata_value": 16,
+            "verified_value": 16,
+            "source": "sakila-data.sql INSERT statements for category table",
+            "status": "verified"
+        },
+        {
+            "key": "views.v_monthly_rental_trend.columns",
+            "metadata_value": "['rental_month', 'store_1_rentals', 'store_2_rentals', 'total_rentals']",
+            "verified_value": "['rental_month', 'store_1_rentals', 'store_2_rentals', 'total_rentals']",
+            "source": "verifier.py checks these exact column names",
+            "status": "verified"
+        },
+        {
+            "key": "views.v_monthly_rental_trend.min_rows",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "verifier.py condition v2.get('row_count', 0) >= 5. Sakila only has rentals in 4 months of 2005, making it strictly necessary to explicitly construct rows 1-12 to pass this threshold.",
+            "status": "verified"
+        },
+        {
+            "key": "views.v_rating_revenue_matrix.columns",
+            "metadata_value": "['rating', 'q1_revenue', 'q2_revenue', 'q3_revenue', 'q4_revenue', 'total_revenue']",
+            "verified_value": "['rating', 'q1_revenue', 'q2_revenue', 'q3_revenue', 'q4_revenue', 'total_revenue']",
+            "source": "verifier.py checks these exact column names",
+            "status": "verified"
+        },
+        {
+            "key": "views.v_rating_revenue_matrix.expected_rows",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "sakila-schema.sql ENUM values for rating column in film table",
+            "status": "verified"
+        },
+        {
+            "key": "exports.rental_by_day_category.csv",
+            "metadata_value": "/home/ga/Documents/exports/rental_by_day_category.csv",
+            "verified_value": "/home/ga/Documents/exports/rental_by_day_category.csv",
+            "source": "export_result.sh checks this file path",
+            "status": "verified"
+        },
+        {
+            "key": "exports.rating_revenue_matrix.csv",
+            "metadata_value": "/home/ga/Documents/exports/rating_revenue_matrix.csv",
+            "verified_value": "/home/ga/Documents/exports/rating_revenue_matrix.csv",
+            "source": "export_result.sh checks this file path",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task relies on the official, non-synthetic MySQL Sakila sample database. I confirmed there are exactly 16 distinct categories in the 'category' table and 5 ratings ('G','PG','PG-13','R','NC-17') in the 'film' table, which accurately matches the expected row counts for the first and third views. For the second view ('v_monthly_rental_trend'), the verifier strictly requires at least 5 rows; however, parsing Sakila's rental data reveals only 4 distinct months of actual rentals in 2005 (May, June, July, August). To pass the verifier's >= 5 row count check, the agent must explicitly generate all 1-12 months as indicated by the prompt's instruction 'Each row = one month (1-12)', instead of simply grouping existing rental records.",
+    "pi_confidence": "high"
+}

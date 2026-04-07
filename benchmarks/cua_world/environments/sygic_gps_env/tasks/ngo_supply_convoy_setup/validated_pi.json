@@ -1,0 +1,186 @@
+{
+    "task_id": "ngo_supply_convoy_setup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "Logistics Coordinator (SOC 13-1081)",
+            "verified_value": "Logisticians (SOC 13-1081); 'Logistics Coordinator' is a common job title within this SOC category",
+            "source": "BLS Standard Occupational Classification: https://www.bls.gov/soc/2018/major_groups.htm \u2014 SOC 13-1081 is 'Logisticians' under the 'Business and Financial Operations Occupations' major group (13-0000), minor group 'Logisticians and Project Management Specialists' (13-1080)",
+            "status": "verified"
+        },
+        {
+            "key": "pattern",
+            "metadata_value": "error_injection_plus_workflow",
+            "verified_value": "error_injection_plus_workflow",
+            "source": "setup_task.sh injects wrong vehicle profile (Personal Sedan, CAR, GAS) and wrong route prefs (Fastest, avoid_unpaved=true, avoid_ferries=false, arrive=false). Agent must fix these AND plan a multi-stop route with on-route POI. Verified via live test: injected values confirmed in prefs XML and vehicle DB dump.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_vehicle_fuel",
+            "metadata_value": "GAS instead of DIESEL",
+            "verified_value": "GAS injected; agent must create profile with DIESEL",
+            "source": "setup_task.sh line 42: INSERT vehicle with fuelType='GAS'. Live test vehicle_db_dump.txt confirms: '2|CAR|GAS|Personal Sedan|2024|EURO6|...|180.0|...'",
+            "status": "verified"
+        },
+        {
+            "key": "injected_vehicle_name",
+            "metadata_value": "Personal Sedan instead of Supply Vehicle",
+            "verified_value": "Personal Sedan injected; agent must create 'Supply Vehicle'",
+            "source": "setup_task.sh line 42: INSERT vehicle with name='Personal Sedan'. Live test vehicle_db_dump.txt confirms entry with name 'Personal Sedan'.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_vehicle_speed",
+            "metadata_value": "180 km/h instead of 80 km/h",
+            "verified_value": "180 km/h injected; agent must set 80 km/h",
+            "source": "setup_task.sh line 42: INSERT vehicle with maxSpeedKmh=180.0. Live test vehicle_db_dump.txt confirms '180.0' for Personal Sedan.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_route_compute",
+            "metadata_value": "Fastest (1) instead of Shortest (0)",
+            "verified_value": "Fastest (1) injected; agent must change to Shortest (0)",
+            "source": "setup_task.sh line 52: sed sets preferenceKey_routePlanning_routeComputing to '1'. Live test prefs_xml_full.txt confirms: '<string name=\"preferenceKey_routePlanning_routeComputing\">1</string>'. Encoding '0'=Shortest, '1'=Fastest, '2'=Economical is consistent across 6+ existing tasks (courier_urban_delivery, configure_delivery_vehicle, optimize_highway_navigation, restore_utility_crew_field_gps, overnight_refuse_collection, plan_property_tour_route).",
+            "status": "verified"
+        },
+        {
+            "key": "injected_avoid_unpaved",
+            "metadata_value": "true instead of false",
+            "verified_value": "true injected; agent must change to false (allow unpaved roads for field access)",
+            "source": "setup_task.sh line 55: sed sets tmp_preferenceKey_routePlanning_unpavedRoads_avoid to 'true'. Live test prefs_xml_full.txt confirms: '<boolean name=\"tmp_preferenceKey_routePlanning_unpavedRoads_avoid\" value=\"true\" />'. This is the KEY trap: most GPS users would leave 'avoid unpaved' on, but the task explicitly requires allowing unpaved roads for field delivery access.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_avoid_ferries",
+            "metadata_value": "false instead of true",
+            "verified_value": "false injected; agent must change to true",
+            "source": "setup_task.sh line 58: sed sets tmp_preferenceKey_routePlanning_ferries_avoid to 'false'. Live test prefs_xml_full.txt confirms: '<boolean name=\"tmp_preferenceKey_routePlanning_ferries_avoid\" value=\"false\" />'.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_arrive_in_direction",
+            "metadata_value": "false instead of true",
+            "verified_value": "false injected; agent must enable arrive-in-direction",
+            "source": "setup_task.sh line 61: sed sets preferenceKey_arriveInDrivingSide to 'false'. Live test prefs_xml_full.txt confirms: '<boolean name=\"preferenceKey_arriveInDrivingSide\" value=\"false\" />'. Sygic SDK docs (https://developers.sygic.com/maps-sdk/changelog/25.7/) confirm 'arriveInDrivingSide' as an official routing option.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_vehicle_type",
+            "metadata_value": "CAR",
+            "verified_value": "CAR",
+            "source": "Sygic public documentation (https://www.sygic.com/what-is/vehicle-profiles and https://www.sygic.com/enterprise/gps-navigation-for-trucks-vans-and-fleets) confirms supported vehicle types: Car, Van, Truck, RV/Bus, Motorhome. Task description does not specify a type change from default CAR; the agent creates a new vehicle profile which defaults to CAR type. Live test confirmed the 'Add vehicle' form defaults to CAR type.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_vehicle_fuel",
+            "metadata_value": "DIESEL",
+            "verified_value": "DIESEL",
+            "source": "Sygic public documentation (https://www.sygic.com/what-is/vehicle-profiles) confirms DIESEL as a supported fuel type. Task description explicitly says 'set fuel type to Diesel'. Vehicle DB schema confirms 'fuelType' TEXT NOT NULL column.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_vehicle_year",
+            "metadata_value": 2020,
+            "verified_value": 2020,
+            "source": "Task description says 'production year 2020'. Vehicle DB schema confirms 'productionYear' INTEGER NOT NULL column. Year 2020 is valid and falls within the Euro 6 emission standard period.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_vehicle_emission",
+            "metadata_value": "EURO6",
+            "verified_value": "EURO6",
+            "source": "Task description says 'emission standard Euro6'. Euro 6 is a real EU emission standard (https://en.wikipedia.org/wiki/European_emission_standards) introduced 2014 for type approvals, mandatory for all new sales by 2015/2016. Euro 6d became mandatory Jan 1, 2021. The Sygic GPS app uses emission categories for routing through emission zones (https://www.sygic.com/blog/2019/avoid-emission-zones-that-are-restricted-for-your-vehicle-type). Vehicle DB confirms 'emissionCategory' TEXT column; existing vehicle 'Vehicle 1' uses 'EURO5'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_vehicle_speed",
+            "metadata_value": 80,
+            "verified_value": 80,
+            "source": "Task description says 'maximum speed 80 km/h'. Vehicle DB schema confirms 'maxSpeedKmh' REAL NOT NULL column. 80 km/h is a realistic max speed for a heavy commercial/supply vehicle operating in Afghanistan's mountainous terrain. Tolerance of +/-10 km/h specified in metadata.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_route_compute",
+            "metadata_value": "0",
+            "verified_value": "0 (Shortest)",
+            "source": "Task description says 'set route calculation to Shortest'. Internal encoding '0'=Shortest is not in public Sygic docs but is internally consistent across the entire task suite. Sygic public docs (https://www.sygic.com/what-is/route-computing) confirm three route options: Fastest, Shortest, Economic. The encoding has been verified across 6+ setup/verifier scripts in the codebase.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_avoid_unpaved",
+            "metadata_value": "false",
+            "verified_value": "false (allow unpaved roads)",
+            "source": "Task description says 'allow unpaved roads (needed for field access to delivery sites)'. Boolean 'false' for the 'avoid' preference means unpaved roads are ALLOWED. Sygic docs (https://www.sygic.com/what-is/route-computing) confirm unpaved roads as an avoidable road type in route planning settings.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_avoid_ferries",
+            "metadata_value": "true",
+            "verified_value": "true (avoid ferries)",
+            "source": "Task description says 'avoid ferries'. Afghanistan is a landlocked country with no ferry services, making this a sensible setting. Sygic docs confirm ferries as an avoidable road type.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_arrive_in_direction",
+            "metadata_value": "true",
+            "verified_value": "true",
+            "source": "Task description says 'enable Arrive in driving direction'. Sygic SDK docs confirm this feature routes the vehicle to arrive at the destination on the correct side of the road.",
+            "status": "verified"
+        },
+        {
+            "key": "route_cities",
+            "metadata_value": [
+                "Kabul",
+                "Jalalabad",
+                "Kandahar"
+            ],
+            "verified_value": [
+                "Kabul",
+                "Jalalabad",
+                "Kandahar"
+            ],
+            "source": "All three are real cities in Afghanistan connected by major highways: Kabul-Jalalabad Highway (143 km, part of A01/National Highway \u2014 https://en.wikipedia.org/wiki/Kabul%E2%80%93Jalalabad_Road) and Kabul-Kandahar Highway (483 km, NH0101 \u2014 https://en.wikipedia.org/wiki/Kabul%E2%80%93Kandahar_Highway). The Afghanistan offline map (~24MB) is pre-downloaded during environment setup (setup_sygic_gps.sh). Live test confirmed: searching 'Jalalabad' and 'Kandahar' returned results in Sygic (evidence screenshots evidence_ngo_29_jalalabad.png, evidence_ngo_30_kandahar.png).",
+            "status": "verified"
+        },
+        {
+            "key": "poi_type",
+            "metadata_value": "gas_station",
+            "verified_value": "gas_station (SYPetrolStation in Sygic internal category)",
+            "source": "Sygic uses 'PETROL_STATION' / 'SYPetrolStation' as the internal POI category for gas stations. Live test prefs_xml_full.txt confirms 'SYPetrolStation' is in the 'preferenceKey_enabledPlacesOnRoute' set. Sygic POI API docs (https://www.sygic.com/developers/professional-navigation-sdk/android/api-examples/pois-api) confirm PETROL_STATION as a built-in POI category. Existing task 'add_gas_stop_on_route' uses this same feature.",
+            "status": "verified"
+        },
+        {
+            "key": "poi_filter",
+            "metadata_value": "on_route",
+            "verified_value": "on_route (Places on Route / Along Route feature)",
+            "source": "Sygic's GetPoiOnRoute API function and the 'Places on Route' UI feature allow finding POIs along an active route. The Sygic truck navigation manual (https://www.manula.com/manuals/sygic/sygic-truck-navigation/1373/en/topic/7-navigieren-zu-einem-interessanten-ort) documents clicking 'Travel via' to add on-route POIs as waypoints. Existing task 'add_gas_stop_on_route' verifier (verifier.py) marks 'on_route_filter_used' as CRITICAL criterion worth 30 points.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "Design choice for stub verifier. Consistent with thresholds used in other very_hard tasks: restore_utility_crew_field_gps uses 55, courier_urban_delivery uses 65, overnight_refuse_collection uses 65. The value 60 is appropriate for a task combining vehicle creation, settings configuration, and route planning.",
+            "status": "verified"
+        },
+        {
+            "key": "vehicle_db_schema",
+            "metadata_value": null,
+            "verified_value": "Table 'vehicle' with columns: id (INTEGER PK AUTOINCREMENT), type (TEXT NOT NULL), fuelType (TEXT NOT NULL), name (TEXT NOT NULL), productionYear (INTEGER NOT NULL), emissionCategory (TEXT), maxSpeedKmh (REAL NOT NULL), plus battery/EV fields (batteryCapacityKwh, weightInKg, maxChargingPowerKw, supportedConnectorTypes, consumptionAverageKwhPerKm) and dimension fields (totalWeightInKg, totalLengthInMm, widthInMm, heightInMm, trailer, propane) \u2014 all NOT NULL",
+            "source": "Live test: sqlite3 pragma table_info(vehicle) output captured in vehicle_db_schema.txt. Setup script correctly provides all NOT NULL columns in INSERT statement.",
+            "status": "verified"
+        },
+        {
+            "key": "selected_vehicle_pref_type",
+            "metadata_value": null,
+            "verified_value": "The selected_vehicle_profile_id preference is stored as <long> type in base_persistence_preferences.xml, not <string>",
+            "source": "Live test base_prefs_xml.txt line 14: '<long name=\"selected_vehicle_profile_id\" value=\"3\" />'. The setup script's sed pattern 'value=\"[^\"]*\"' correctly matches this format regardless of the XML element type.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The ngo_supply_convoy_setup task configures Sygic GPS Navigation (com.sygic.aura, v26.0.2) on Android for an NGO supply vehicle deployment in Afghanistan. The setup injects a wrong 'Personal Sedan' vehicle profile (CAR, GAS, 2024, EURO6, 180 km/h) that the agent must replace with a 'Supply Vehicle' profile (CAR type by default, DIESEL fuel, 2020, EURO6, 80 km/h). Four route settings are injected incorrectly and must be fixed: route computation from Fastest (internal value '1') to Shortest ('0'), avoid_unpaved from true to false (critical: the supply vehicle needs unpaved road access for field delivery sites), avoid_ferries from false to true (Afghanistan is landlocked), and arrive_in_direction from false to true. The agent must then plan a multi-stop route Kabul -> Jalalabad -> Kandahar using the pre-downloaded Afghanistan offline map (~24MB). All three cities are searchable in Sygic and connected by real highways: the Kabul-Jalalabad Highway (143 km) and the Kabul-Kandahar Highway (483 km). After the route is planned, the agent must add a gas station waypoint using the 'On Route' / 'Places on Route' filter (internally 'SYPetrolStation' category, confirmed present in the enabledPlacesOnRoute preference set). The vehicle database uses SQLite at /data/data/com.sygic.aura/databases/vehicles-database with a 'vehicle' table requiring all NOT NULL columns including battery/EV fields (set to 0 for non-EV vehicles). The selected vehicle profile ID is stored as a <long> in base_persistence_preferences.xml. Route preferences are in com.sygic.aura_preferences.xml using boolean values for avoidance settings and string values for route computing mode. The 'Add vehicle' form in Sygic defaults to CAR type with fields for name, fuel type, production year, emission standard (Euro 5/6 supported), and max speed. The 'On Route' POI filter only functions when an active route exists, creating a sequential dependency.",
+    "pi_confidence": "high"
+}

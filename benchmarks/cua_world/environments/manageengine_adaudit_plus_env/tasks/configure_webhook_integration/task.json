@@ -1,0 +1,36 @@
+{
+  "id": "configure_webhook_integration@1",
+  "version": "1.0",
+  "env_id": "manageengine_adaudit_plus_env@0.1",
+  "description": "Configure a Webhook integration in ADAudit Plus to forward alerts to a SOAR platform.\n\nLogin Credentials:\n- Username: admin\n- Password: Admin@2024\n\nCreate a new Webhook Profile named 'SOAR_Integration' with the following settings:\n- Method: POST\n- Webhook URL: 'https://soar-api.corp.local/v1/ingest/adaudit'\n- Headers: Key='x-api-key', Value='sk-9982-secure-token'\n- Data Type: JSON\n- Payload/Body: \n  {\n    \"source\": \"ADAuditPlus\",\n    \"alert\": \"%ALERT_NAME%\",\n    \"user\": \"%USER_NAME%\",\n    \"severity\": \"%SEVERITY%\",\n    \"message\": \"%MESSAGE%\"\n  }\n(Note: Use the appropriate macro/variable syntax available in the UI for the fields like Alert Name, User Name, etc.)",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_webhook_integration\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\configure_webhook_integration\\export_result.ps1",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "profile_name": "SOAR_Integration",
+    "target_url": "https://soar-api.corp.local/v1/ingest/adaudit",
+    "api_key": "sk-9982-secure-token",
+    "header_key": "x-api-key",
+    "json_keys": [
+      "source",
+      "alert",
+      "user",
+      "severity",
+      "message"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_webhook_integration"
+    }
+  }
+}

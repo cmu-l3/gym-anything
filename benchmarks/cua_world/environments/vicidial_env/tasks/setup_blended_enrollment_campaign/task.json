@@ -1,0 +1,57 @@
+{
+  "id": "setup_blended_enrollment_campaign@1",
+  "version": "1.0",
+  "env_id": "vicidial_env@0.1",
+  "description": "Set up a complete blended outbound/inbound campaign in Vicidial for PacificShield Health's 2026 Open Enrollment period. Log in to the Vicidial Admin at http://localhost/vicidial/admin.php (User: 6666, Password: andromeda).\n\nCampaign: Create campaign ID 'PSHLTH26', name 'PacificShield Open Enrollment 2026', Active Y, Dial Method RATIO, Auto Dial Level 1.5, Campaign Recording ALLCALLS, Campaign CallerID '8005550126'.\n\nLeads: Create a new List ID 8800 named 'PacificShield Enrollment'. Import leads from /home/ga/Documents/VicidialData/enrollment_leads.csv into this list using the Lead Loader.\n\nScript: Create script 'PS_ENROLL' ('PacificShield Enrollment Script') with open enrollment messaging that includes Vicidial variable tokens --A--first_name--B-- and --A--last_name--B--. Assign it to the PSHLTH26 campaign.\n\nDispositions: Add these campaign statuses to PSHLTH26: ENROLD (Enrolled Successfully, Sale: Y, Human Answered: Y), DECLIN (Declined Coverage, Human Answered: Y), CALLBK (Callback Requested, Scheduled Callback: Y, Human Answered: Y), NOELIG (Not Eligible, Human Answered: Y), HANGUP (Hung Up).\n\nBusiness Hours: Create Call Time 'PS_HOURS' ('PacificShield Business Hours') for Monday-Friday, 0900-1800.\n\nVoicemail: Create Voicemail Box 8800 named 'PacificShield VM', password 7890, Active Y.\n\nInbound: Create Inbound Group 'PS_INBOUND' ('PacificShield Inbound') using Call Time PS_HOURS. Set After Hours Action to VOICEMAIL with mailbox 8800. Enable blended mode on PSHLTH26: set Allow Closers to Y and add PS_INBOUND to its Closer Campaigns.\n\nLead Recycling: Configure for PSHLTH26: Status NA with 1800-second delay and 4 max attempts; Status B with 900-second delay and 6 max attempts. Both active.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_blended_enrollment_campaign/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_blended_enrollment_campaign/export_result.sh"
+  },
+  "metadata": {
+    "campaign_id": "PSHLTH26",
+    "campaign_name": "PacificShield Open Enrollment 2026",
+    "dial_method": "RATIO",
+    "auto_dial_level": "1.5",
+    "campaign_recording": "ALLCALLS",
+    "campaign_cid": "8005550126",
+    "list_id": "8800",
+    "list_name": "PacificShield Enrollment",
+    "script_id": "PS_ENROLL",
+    "script_name": "PacificShield Enrollment Script",
+    "script_required_tokens": ["--A--first_name--B--", "--A--last_name--B--"],
+    "expected_statuses": {
+      "ENROLD": {"status_name": "Enrolled Successfully", "sale": "Y", "human_answered": "Y"},
+      "DECLIN": {"status_name": "Declined Coverage", "human_answered": "Y"},
+      "CALLBK": {"status_name": "Callback Requested", "scheduled_callback": "Y", "human_answered": "Y"},
+      "NOELIG": {"status_name": "Not Eligible", "human_answered": "Y"},
+      "HANGUP": {"status_name": "Hung Up"}
+    },
+    "call_time_id": "PS_HOURS",
+    "call_time_name": "PacificShield Business Hours",
+    "call_time_start": "0900",
+    "call_time_stop": "1800",
+    "voicemail_id": "8800",
+    "voicemail_name": "PacificShield VM",
+    "voicemail_pass": "7890",
+    "inbound_group_id": "PS_INBOUND",
+    "inbound_group_name": "PacificShield Inbound",
+    "after_hours_action": "VOICEMAIL",
+    "after_hours_voicemail": "8800",
+    "lead_recycle_rules": {
+      "NA": {"attempt_delay": "1800", "attempt_maximum": "4", "active": "Y"},
+      "B": {"attempt_delay": "900", "attempt_maximum": "6", "active": "Y"}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_setup_blended_enrollment_campaign"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "quarterly_compliance_reconciliation@1",
+  "version": "1.0",
+  "env_id": "arkcase_env@0.1",
+  "description": "You are a FOIA Compliance Officer performing a quarterly reconciliation audit. Open ~/Documents/audit_directive.txt, which lists six complaint cases with their expected Priority and expected Assignee. For each case, navigate to it in ArkCase, compare the actual Priority and Assignee against the directive, and correct any discrepancies.\n\nFor each correction, add a case note: 'QA-Q1-2026: [Field] corrected from [old_value] to [new_value] per directive CCO-2026-Q1.'\n\nEXCEPTION RULE: If a case description contains the phrase 'classified national security', set its Priority to 'High' regardless of the directive. Add note: 'QA-Q1-2026: Priority escalated to High — classified national security content detected per EO 13526.' IMPORTANT: The phrase in the context of declassification (e.g., 'previously classified... declassified') does NOT trigger this rule.\n\nAfter auditing all cases, write ~/Documents/reconciliation_report.json as a JSON array with one object per case: case_number, title, priority_correct (boolean), assignee_correct (boolean), sensitive_flag (boolean), actions_taken (array of strings).\n\nLogin: arkcase-admin@dev.arkcase.com / ArkCase1234!",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 3000,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/quarterly_compliance_reconciliation/setup_task.sh",
+    "post_task": "/workspace/tasks/quarterly_compliance_reconciliation/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "total_cases": 6,
+    "cases_needing_priority_fix": 2,
+    "cases_needing_assignee_fix": 3,
+    "required_note_prefix": "QA-Q1-2026"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_quarterly_compliance_reconciliation"
+    }
+  }
+}

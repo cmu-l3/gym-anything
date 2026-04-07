@@ -1,0 +1,27 @@
+{
+  "id": "javascript_db_upsert@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a channel named 'Census_Upsert_Processor' to synchronize patient admission data. The channel must accept JSON data (e.g., {\"mrn\": \"M123\", \"name\": \"John Doe\", \"location\": \"ICU-01\"}) via an HTTP Listener on port 6665 and use a JavaScript Writer to perform a conditional 'upsert' (Insert if new, Update if exists) into the 'current_census' table in the PostgreSQL database (jdbc:postgresql://nextgen-postgres:5432/mirthdb, user/pass: postgres/postgres). The logic should update or insert the 'mrn', 'patient_name', 'location', and 'last_updated' (CURRENT_TIMESTAMP) columns while managing the database connection properly. Access the system via the REST API (https://localhost:8443/api) or Web Dashboard (https://localhost:8443) using credentials admin/admin.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/javascript_db_upsert/setup_task.sh",
+    "post_task": "/workspace/tasks/javascript_db_upsert/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Census_Upsert_Processor",
+    "table_name": "current_census",
+    "db_url": "jdbc:postgresql://nextgen-postgres:5432/mirthdb"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_javascript_db_upsert"
+    }
+  }
+}

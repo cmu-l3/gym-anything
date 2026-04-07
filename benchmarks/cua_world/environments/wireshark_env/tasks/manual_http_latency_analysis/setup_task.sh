@@ -10,8 +10,8 @@ PCAP_PATH="/home/ga/Documents/captures/http.cap"
 if [ ! -f "$PCAP_PATH" ]; then
     echo "ERROR: http.cap not found at $PCAP_PATH"
     # Fallback: try to find it in default locations or download
-    if [ -f "/usr/share/doc/wireshark-common/benchmarks/cua_world/environments/http.cap" ]; then
-        cp /usr/share/doc/wireshark-common/benchmarks/cua_world/environments/http.cap "$PCAP_PATH"
+    if [ -f "/usr/share/doc/wireshark-common/examples/http.cap" ]; then
+        cp /usr/share/doc/wireshark-common/examples/http.cap "$PCAP_PATH"
     else
         echo "Attempting download..."
         wget -q -O "$PCAP_PATH" "https://wiki.wireshark.org/uploads/27707187aeb30df68e70c8fb9d614981/http.cap" || true

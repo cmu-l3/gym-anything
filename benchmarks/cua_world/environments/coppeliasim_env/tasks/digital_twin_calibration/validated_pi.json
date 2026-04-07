@@ -1,0 +1,129 @@
+{
+    "task_id": "digital_twin_calibration@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "robot_model",
+            "metadata_value": "/opt/CoppeliaSim/models/robots/non-mobile/UR5.ttm",
+            "verified_value": "/opt/CoppeliaSim/models/robots/non-mobile/UR5.ttm",
+            "source": "Confirmed by (1) the tcp_calibration_check agent trajectory which loaded this exact model and scored 100/100, (2) payload_torque_validation task.json uses the same path, (3) CoppeliaSim's standard model library structure documented at manual.coppeliarobotics.com/en/models.htm",
+            "status": "verified"
+        },
+        {
+            "key": "scene_file",
+            "metadata_value": "messaging/movementViaRemoteApi.ttt",
+            "verified_value": "messaging/movementViaRemoteApi.ttt",
+            "source": "Confirmed by (1) setup_task.sh which searches for and launches this scene, (2) 5+ existing tasks use this scene (robot_workspace_sweep, joint_dynamics_profiling, tcp_calibration_check, singularity_dexterity_map, energy_consumption_profiling), (3) live environment testing confirmed the scene loads and CoppeliaSim starts with it. The scene includes a ZMQ remote API server on port 23000 and 3 pre-existing KUKA LBR iiwa robots (blueRobot, redRobot, greenRobot).",
+            "status": "verified"
+        },
+        {
+            "key": "num_joints",
+            "metadata_value": 6,
+            "verified_value": 6,
+            "source": "Confirmed by (1) Universal Robots official specification: UR5 is a 6-axis/6-DOF robot with 6 rotating joints (https://www.universal-robots.com/media/50588/ur5_en.pdf), (2) the tcp_calibration_check agent accessed joints index 0-5 successfully via sim.getObject('/UR5/joint', {index=i-1}) for i=1..6, (3) payload_torque_validation task references UR5 joints 1-6.",
+            "status": "verified"
+        },
+        {
+            "key": "kinematic_configs",
+            "metadata_value": 50,
+            "verified_value": 50,
+            "source": "Design parameter matching the task description ('50 distinct joint configurations'). Verified consistent with verifier.py threshold (kin_rows >= 65 = 50 + 5*3) and export_result.sh row counting logic.",
+            "status": "verified"
+        },
+        {
+            "key": "repeatability_configs",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Design parameter matching the task description ('for 5 selected configurations'). Export_result.sh counts is_repeatability rows and verifier.py uses total_kinematic_rows = 50 + 5*3 = 65.",
+            "status": "verified"
+        },
+        {
+            "key": "repeatability_repeats",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Design parameter matching the task description ('return to each 3 extra times'). Mathematically consistent: 50 + 5*3 = 65 = total_kinematic_rows.",
+            "status": "verified"
+        },
+        {
+            "key": "total_kinematic_rows",
+            "metadata_value": 65,
+            "verified_value": 65,
+            "source": "Verified by arithmetic: kinematic_configs(50) + repeatability_configs(5) * repeatability_repeats(3) = 50 + 15 = 65. Cross-checked against verifier.py which requires kin_rows >= 65 for full points (20 pts).",
+            "status": "verified"
+        },
+        {
+            "key": "excitation_frequency_hz",
+            "metadata_value": 0.2,
+            "verified_value": 0.2,
+            "source": "Design parameter matching the task description ('approximately 0.2 Hz'). Physically reasonable for UR5: at 0.2 Hz with ±1.5 rad amplitude, max angular velocity = 2*pi*0.2*1.5 = 1.88 rad/s = 108 deg/s, which is within UR5's joint velocity limits (~180 deg/s).",
+            "status": "verified"
+        },
+        {
+            "key": "excitation_duration_s",
+            "metadata_value": 10.0,
+            "verified_value": 10.0,
+            "source": "Design parameter matching the task description ('10 simulated seconds'). Provides 2 complete cycles at 0.2 Hz, sufficient for system identification. Export_result.sh checks dyn_csv_time_range_s to verify time span.",
+            "status": "verified"
+        },
+        {
+            "key": "validation_duration_s",
+            "metadata_value": 5.0,
+            "verified_value": 5.0,
+            "source": "Design parameter matching the task description ('5-second composite trajectory'). At CoppeliaSim's default 50ms step (20 Hz), produces 100 samples = min_validation_rows.",
+            "status": "verified"
+        },
+        {
+            "key": "min_dynamic_rows",
+            "metadata_value": 600,
+            "verified_value": 600,
+            "source": "Conservative minimum: 6 joints * 10s * 10Hz = 600 rows. At the default CoppeliaSim step time of 50ms (20Hz), actual output would be 6*10*20 = 1200 rows. The 600 threshold accommodates slower sampling or shorter runs. Cross-checked against verifier.py which requires dyn_rows >= 600 for full points.",
+            "status": "verified"
+        },
+        {
+            "key": "min_validation_rows",
+            "metadata_value": 100,
+            "verified_value": 100,
+            "source": "Minimum at default sampling: 5s * 20Hz = 100 rows. Cross-checked against verifier.py which requires val_rows >= 100 for full points.",
+            "status": "verified"
+        },
+        {
+            "key": "output_kinematic_csv",
+            "metadata_value": "/home/ga/Documents/CoppeliaSim/exports/kinematic_survey.csv",
+            "verified_value": "/home/ga/Documents/CoppeliaSim/exports/kinematic_survey.csv",
+            "source": "Path confirmed in (1) export_result.sh kin_csv variable, (2) setup_task.sh rm -f cleanup, (3) task description output specification.",
+            "status": "verified"
+        },
+        {
+            "key": "output_dynamic_csv",
+            "metadata_value": "/home/ga/Documents/CoppeliaSim/exports/dynamic_excitation.csv",
+            "verified_value": "/home/ga/Documents/CoppeliaSim/exports/dynamic_excitation.csv",
+            "source": "Path confirmed in (1) export_result.sh dyn_csv variable, (2) setup_task.sh rm -f cleanup, (3) task description output specification.",
+            "status": "verified"
+        },
+        {
+            "key": "output_params_json",
+            "metadata_value": "/home/ga/Documents/CoppeliaSim/exports/identified_parameters.json",
+            "verified_value": "/home/ga/Documents/CoppeliaSim/exports/identified_parameters.json",
+            "source": "Path confirmed in (1) export_result.sh par_json variable, (2) setup_task.sh rm -f cleanup, (3) task description output specification.",
+            "status": "verified"
+        },
+        {
+            "key": "output_validation_csv",
+            "metadata_value": "/home/ga/Documents/CoppeliaSim/exports/validation_results.csv",
+            "verified_value": "/home/ga/Documents/CoppeliaSim/exports/validation_results.csv",
+            "source": "Path confirmed in (1) export_result.sh val_csv variable, (2) setup_task.sh rm -f cleanup, (3) task description output specification.",
+            "status": "verified"
+        },
+        {
+            "key": "output_report_json",
+            "metadata_value": "/home/ga/Documents/CoppeliaSim/exports/characterization_report.json",
+            "verified_value": "/home/ga/Documents/CoppeliaSim/exports/characterization_report.json",
+            "source": "Path confirmed in (1) export_result.sh rep_json variable, (2) setup_task.sh rm -f cleanup, (3) task description output specification.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task operates in a synthetic CoppeliaSim EDU v4.9.0 environment. The agent must load a UR5 robot (6-DOF, model at /opt/CoppeliaSim/models/robots/non-mobile/UR5.ttm) into the pre-loaded movementViaRemoteApi.ttt scene (which contains 3 pre-existing KUKA LBR iiwa robots and a ZMQ remote API server on port 23000). The agent must produce 5 output files to /home/ga/Documents/CoppeliaSim/exports/: (1) kinematic_survey.csv with exactly 65 rows (50 survey + 15 repeatability), columns must include j1-j6 joint angles in radians and tcp_x/y/z in metres, with an is_repeatability flag; (2) dynamic_excitation.csv with at least 600 rows covering 6 distinct joint IDs, each with at least 10s of time-series data including position, velocity, acceleration, and torque columns — torque must be non-zero (verifier checks >10% of rows have abs(torque)>1e-6, confirming real simulation ran); (3) identified_parameters.json with a 'joints' array of 6 entries each containing inertia_kg_m2 (must be positive), viscous_friction, static_offset, and r_squared (must be in [0,1]); (4) validation_results.csv with at least 100 rows containing predicted and measured torque columns for all 6 joints; (5) characterization_report.json with three required sections: 'kinematic', 'dynamic', and 'validation' (each must be a dict). Joint torques are read via sim.getJointForce() which only returns meaningful values during active simulation with dynamically-enabled joints (returns 0.0 if simulation not running per CoppeliaSim V4.7+ behavior). The CoppeliaSim default simulation step is 50ms (20Hz). The verifier awards 20 points per file (100 total), with partial credit for incomplete outputs, passing threshold is 70/100. Anti-gaming: all output files are deleted before the task start timestamp is recorded, and all files must have modification times newer than the task start.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,143 @@
+{
+  "task_id": "offset_wrap@1",
+  "dataset": null,
+  "case_id": null,
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "id",
+      "metadata_value": "offset_wrap@1",
+      "verified_value": "offset_wrap@1",
+      "source": "Extracted from task.json id field",
+      "status": "verified"
+    },
+    {
+      "key": "version",
+      "metadata_value": "1.0",
+      "verified_value": "1.0",
+      "source": "Verified by cross-referencing all tasks in gimp_env_all; all use version 1.0",
+      "status": "verified"
+    },
+    {
+      "key": "env_id",
+      "metadata_value": "example.gimp_env@0.1",
+      "verified_value": "example.gimp_env@0.1",
+      "source": "Consistent across all gimp_env_all tasks; matches environment setup",
+      "status": "verified"
+    },
+    {
+      "key": "timeout_sec",
+      "metadata_value": "120",
+      "verified_value": "120",
+      "source": "Cross-referenced against all tasks; 120s is standard for multi-step GIMP operations (menu navigation + dialog interaction + parameter entry)",
+      "status": "verified"
+    },
+    {
+      "key": "max_steps",
+      "metadata_value": "8",
+      "verified_value": "8",
+      "source": "Reasonable for: (1) Open GIMP, (2-3) Navigate Layer→Transform→Offset menu, (4-6) Set X/Y offset values, (7) Select wrap-around mode, (8) Apply offset. Consistent with other multi-parameter dialog tasks.",
+      "status": "verified"
+    },
+    {
+      "key": "reward_type",
+      "metadata_value": "sparse",
+      "verified_value": "sparse",
+      "source": "All tasks in gimp_env_all use sparse rewards (only pass/fail feedback, no intermediate rewards)",
+      "status": "verified"
+    },
+    {
+      "key": "offset_x_pixels",
+      "metadata_value": "100",
+      "verified_value": "100",
+      "source": "Verified in: (1) setup_offset_task.sh instructions mention 100px, (2) verifier.py uses 100 in check_offset_accuracy() line 215, (3) README section 3 specifies 'Set X offset to 100 pixels'",
+      "status": "verified"
+    },
+    {
+      "key": "offset_y_pixels",
+      "metadata_value": "80",
+      "verified_value": "80",
+      "source": "Verified in: (1) setup_offset_task.sh instructions mention 80px, (2) verifier.py uses 80 in check_offset_accuracy() line 215, (3) README section 4 specifies 'Set Y offset to 80 pixels'",
+      "status": "verified"
+    },
+    {
+      "key": "primary_image_url",
+      "metadata_value": "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+      "verified_value": "Valid URL returning 800x600 RGB JPEG (129,326 bytes). Image successfully loads and is valid.",
+      "source": "Direct HTTP request and PIL Image analysis of downloaded file from Unsplash",
+      "status": "verified"
+    },
+    {
+      "key": "alternative_image_url",
+      "metadata_value": "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "verified_value": "Valid URL returning 800x533 RGB JPEG (36,501 bytes). Image successfully loads and is valid.",
+      "source": "Direct HTTP request and PIL Image analysis of downloaded file from Unsplash",
+      "status": "verified"
+    },
+    {
+      "key": "wrap_around_menu_path",
+      "metadata_value": "Layer → Transform → Offset (as stated in README)",
+      "verified_value": "Layer → Transform → Offset",
+      "source": "README section 2 and instructions in setup_offset_task.sh line 37-38 specify this exact menu path. GIMP official documentation confirms this is the correct path.",
+      "status": "verified"
+    },
+    {
+      "key": "wrap_around_mode_option",
+      "metadata_value": "'Wrap around' mode (not 'Fill with background color')",
+      "verified_value": "'Wrap around' mode is correctly distinguished from background fill in verifier",
+      "source": "Verifier.py check_wrap_around_mode() (lines 78-105) detects background fill by monitoring black/white pixel increase. Wrap-around uses numpy.roll() which correctly implements modular wraparound.",
+      "status": "verified"
+    },
+    {
+      "key": "verifier_ssim_threshold",
+      "metadata_value": ">= 0.95 for accurate offset detection (README line 92)",
+      "verified_value": "SSIM >= 0.95",
+      "source": "Verified in verifier.py line 246: 'if ssim_score >= 0.95'. Tested with reference offset image which produces SSIM=1.0 with itself.",
+      "status": "verified"
+    },
+    {
+      "key": "verifier_wrap_around_detection_method",
+      "metadata_value": "Monitor black/white pixel increase to distinguish wrap-around from background fill",
+      "verified_value": "Threshold: black_increase_ratio < 0.05 AND white_increase_ratio < 0.05 (less than 5% increase)",
+      "source": "verifier.py lines 102-103: 'wrap_around_used = black_increase_ratio < 0.05 and white_increase_ratio < 0.05'. Tested with reference offset which shows 0% increase in black/white pixels, correctly detecting wrap-around.",
+      "status": "verified"
+    },
+    {
+      "key": "verifier_boundary_continuity_threshold",
+      "metadata_value": ">= 60% of edge samples should show continuity",
+      "verified_value": ">= 60% continuity ratio required (line 162: 'continuity_ratio > 0.6')",
+      "source": "verifier.py lines 161-162. This checks if at least 60% of sampled edge pixels match expected source pixels within threshold of 30 pixel-value difference.",
+      "status": "verified"
+    },
+    {
+      "key": "verifier_scoring_criteria_count",
+      "metadata_value": "5 criteria total: (1) SSIM>=0.95, (2) Wrap-around mode, (3) Boundary continuity, (4) Dimensions preserved, (5) Image modified",
+      "verified_value": "5 criteria as specified",
+      "source": "verifier.py lines 243-255 enumerate all 5 criteria and score based on count: (criteria_met / 5) * 100",
+      "status": "verified"
+    },
+    {
+      "key": "verifier_pass_threshold",
+      "metadata_value": ">= 75% score required to pass",
+      "verified_value": "score >= 75 (verifier.py line 259)",
+      "source": "verifier.py line 259: 'passed = score >= 75'. This means agent must meet at least 4 out of 5 criteria (80% score) or have sufficiently high partial scores.",
+      "status": "verified"
+    },
+    {
+      "key": "verifier_reference_generation_method",
+      "metadata_value": "Uses numpy.roll() to programmatically apply offset with wrap-around",
+      "verified_value": "numpy.roll() correctly implements wrap-around: np.roll(..., shift=offset_y, axis=0) then np.roll(..., shift=offset_x, axis=1)",
+      "source": "verifier.py lines 33-34. Tested: verified that pixels at (0,0) come from (height-offset_y, width-offset_x) with modular wrap, proving correctness.",
+      "status": "verified"
+    },
+    {
+      "key": "synthetic_fallback_existence",
+      "metadata_value": "ImageMagick fallback if downloads fail: 'convert -size 400x300 -define gradient:direction=NorthWest gradient:red-blue -swirl 50'",
+      "verified_value": "Fallback present in setup_offset_task.sh lines 17-19 with exact command",
+      "source": "Code inspection of setup_offset_task.sh. Fallback creates synthetic 400x300 image if both Unsplash URLs fail.",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The offset_wrap task requires applying a 100px horizontal and 80px vertical offset with wrap-around mode to an image in GIMP. The primary data source is Unsplash (real image data: 800x600 JPEG), with a fallback to synthetic ImageMagick-generated patterns. The verifier uses numpy.roll() to generate a reference offset image and compares results using SSIM>=0.95. Wrap-around mode is correctly distinguished from background fill by monitoring black/white pixel increases (must be <5%). The task requires 4 out of 5 criteria to pass (80% score). All specified values (timeout=120s, max_steps=8, offsets=100x80px) are correct and reasonable. The verifier implementation is mathematically sound for detecting properly applied offset transformations.",
+  "pi_confidence": "high"
+}

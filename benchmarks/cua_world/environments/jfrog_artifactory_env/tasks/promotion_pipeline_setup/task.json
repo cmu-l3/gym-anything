@@ -1,0 +1,71 @@
+{
+  "id": "promotion_pipeline_setup@1",
+  "version": "1.0",
+  "env_id": "jfrog_artifactory_env@0.1",
+  "description": "You are the DevOps lead at MedSecure, a healthcare technology company. Set up a complete three-stage Maven artifact promotion pipeline in JFrog Artifactory (http://localhost:8082, admin/password). Create three local Maven repositories: 'medsecure-dev' (snapshots allowed), 'medsecure-staging' (releases only), and 'medsecure-prod' (releases only, with overwrite prevention enabled for immutability). Create a remote Maven repository 'maven-central-proxy' proxying https://repo1.maven.org/maven2. Create a virtual Maven repository 'medsecure-maven-all' aggregating all four, with resolution order medsecure-prod, medsecure-staging, medsecure-dev, maven-central-proxy, and default deployment target set to 'medsecure-dev'. Create groups 'platform-engineers' and 'qa-team'. Create user 'eng-sarah' (password: SarahEng2024!, email: sarah@medsecure.example.com) in the 'platform-engineers' group. Create permission target 'deploy-perms' granting platform-engineers Deploy, Read, and Delete on 'medsecure-dev' and 'medsecure-staging'. Create permission target 'qa-perms' granting qa-team Read on 'medsecure-staging' and 'medsecure-prod'. Deploy commons-io-2.15.1.jar from ~/Desktop to 'medsecure-dev' at Maven path org/apache/commons/commons-io/2.15.1/. Copy it to 'medsecure-staging', then to 'medsecure-prod'. Configure the SMTP mail server: host smtp.medsecure.example.com, port 587, TLS enabled, from address artifactory@medsecure.example.com, subject prefix [MedSecure-Artifacts]. Disable anonymous access.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/promotion_pipeline_setup/setup_task.sh",
+    "post_task": "/workspace/tasks/promotion_pipeline_setup/export_result.sh"
+  },
+  "metadata": {
+    "admin_user": "admin",
+    "admin_pass": "password",
+    "artifactory_url": "http://localhost:8082",
+    "occupation": "DevOps Lead",
+    "industry": "Healthcare Technology",
+    "target_repos": {
+      "local": ["medsecure-dev", "medsecure-staging", "medsecure-prod"],
+      "remote": ["maven-central-proxy"],
+      "virtual": ["medsecure-maven-all"]
+    },
+    "virtual_aggregation_order": [
+      "medsecure-prod",
+      "medsecure-staging",
+      "medsecure-dev",
+      "maven-central-proxy"
+    ],
+    "virtual_default_deploy": "medsecure-dev",
+    "target_groups": ["platform-engineers", "qa-team"],
+    "target_users": {
+      "eng-sarah": {
+        "password": "SarahEng2024!",
+        "email": "sarah@medsecure.example.com",
+        "group": "platform-engineers"
+      }
+    },
+    "target_permissions": {
+      "deploy-perms": {
+        "repos": ["medsecure-dev", "medsecure-staging"],
+        "group": "platform-engineers",
+        "privileges": ["Deploy", "Read", "Delete"]
+      },
+      "qa-perms": {
+        "repos": ["medsecure-staging", "medsecure-prod"],
+        "group": "qa-team",
+        "privileges": ["Read"]
+      }
+    },
+    "artifact_source": "/home/ga/Desktop/commons-io-2.15.1.jar",
+    "artifact_maven_path": "org/apache/commons/commons-io/2.15.1/commons-io-2.15.1.jar",
+    "artifact_deploy_repos": ["medsecure-dev", "medsecure-staging", "medsecure-prod"],
+    "smtp_config": {
+      "host": "smtp.medsecure.example.com",
+      "port": 587,
+      "tls": true,
+      "from": "artifactory@medsecure.example.com",
+      "subject_prefix": "[MedSecure-Artifacts]"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_promotion_pipeline_setup"
+    }
+  }
+}

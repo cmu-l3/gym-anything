@@ -1,0 +1,52 @@
+{
+    "task_id": "implement_soft_delete_view@1",
+    "dataset": "demodb (DemoDB travel agency synthetic dataset)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "database",
+            "metadata_value": "demodb",
+            "verified_value": "demodb",
+            "source": "seed_demodb.py line 52: api_call('POST', '/database/demodb/plocal'); setup_task.sh uses 'demodb' throughout; verifier queries 'demodb'",
+            "status": "verified"
+        },
+        {
+            "key": "target_class",
+            "metadata_value": "Reviews",
+            "verified_value": "Reviews",
+            "source": "seed_demodb.py line 76: CREATE CLASS Reviews EXTENDS V; setup_task.sh lines 28-35 insert into Reviews; verifier checks Reviews class",
+            "status": "verified"
+        },
+        {
+            "key": "target_property",
+            "metadata_value": "IsHidden",
+            "verified_value": "IsHidden",
+            "source": "setup_task.sh line 19 drops it (cleanup); task description specifies adding IsHidden; verifier checks for IsHidden BOOLEAN property",
+            "status": "verified"
+        },
+        {
+            "key": "target_view",
+            "metadata_value": "PublicReviews",
+            "verified_value": "PublicReviews",
+            "source": "setup_task.sh line 17 drops view if exists; export_result.sh line 24 queries 'SELECT Text FROM PublicReviews'; verifier checks PublicReviews view results",
+            "status": "verified"
+        },
+        {
+            "key": "marker_toxic",
+            "metadata_value": "MARKER_TOXIC_REVIEW",
+            "verified_value": "MARKER_TOXIC_REVIEW",
+            "source": "setup_task.sh line 29: INSERT INTO Reviews SET Stars=1, Text='MARKER_TOXIC_REVIEW'; verifier checks marker_toxic field for IsHidden=true",
+            "status": "verified"
+        },
+        {
+            "key": "marker_good",
+            "metadata_value": "MARKER_GOOD_REVIEW",
+            "verified_value": "MARKER_GOOD_REVIEW",
+            "source": "setup_task.sh line 35: INSERT INTO Reviews SET Stars=5, Text='MARKER_GOOD_REVIEW'; verifier checks marker_good field for IsHidden!=true",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on the 'demodb' database containing a 'Reviews' class with initial properties (Stars INTEGER, Text STRING, Date DATE). The task requires adding an IsHidden BOOLEAN property to Reviews, flagging low-quality reviews (1-2 stars) with IsHidden=true, and creating a 'PublicReviews' view that filters to show only non-hidden reviews. Verification uses injected marker records: MARKER_TOXIC_REVIEW (Stars=1, should be hidden) and MARKER_GOOD_REVIEW (Stars=5, should be visible). The database and all review data are synthetic (created by seed_demodb.py, not from external sources), including hardcoded hotel and restaurant names from real-world establishments used for realism.",
+    "pi_confidence": "high"
+}

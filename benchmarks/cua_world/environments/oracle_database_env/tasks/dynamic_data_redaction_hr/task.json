@@ -1,0 +1,37 @@
+{
+  "id": "dynamic_data_redaction_hr@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Implement Oracle Data Redaction on the HR.EMPLOYEES table to protect sensitive data. Create a user 'QA_TESTER' (password 'QaUser#2024') with CONNECT and SELECT privileges on HR.EMPLOYEES. Configure redaction policies so that when 'QA_TESTER' queries the table, SALARY and COMMISSION_PCT are fully redacted to 0, PHONE_NUMBER shows only the last 4 digits, and EMAIL shows only the first letter followed by asterisks. Ensure the 'HR' user continues to see unredacted data.\n\nConnection Details:\n- Admin: system/OraclePassword123@localhost:1521/XEPDB1\n- HR Schema: hr/hr123@localhost:1521/XEPDB1",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dynamic_data_redaction_hr/setup_task.sh",
+    "post_task": "/workspace/tasks/dynamic_data_redaction_hr/export_result.sh"
+  },
+  "metadata": {
+    "target_table": "HR.EMPLOYEES",
+    "target_user": "QA_TESTER",
+    "columns_to_redact": [
+      "SALARY",
+      "COMMISSION_PCT",
+      "PHONE_NUMBER",
+      "EMAIL"
+    ],
+    "redaction_types": {
+      "SALARY": "FULL",
+      "PHONE_NUMBER": "PARTIAL",
+      "EMAIL": "PARTIAL"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_redaction"
+    }
+  }
+}

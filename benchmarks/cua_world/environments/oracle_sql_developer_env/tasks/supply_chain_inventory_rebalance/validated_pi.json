@@ -1,0 +1,73 @@
+{
+    "task_id": "supply_chain_inventory_rebalance@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/supply_chain_result.json",
+            "verified_value": "/tmp/supply_chain_result.json",
+            "source": "export_result.sh explicitly writes to this output path.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "General and Operations Managers",
+            "verified_value": "General and Operations Managers",
+            "source": "Matches the role description in task.json and README.md.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Wholesale Trade / Logistics",
+            "verified_value": "Wholesale Trade / Logistics",
+            "source": "Matches the task's distribution center and inventory context.",
+            "status": "verified"
+        },
+        {
+            "key": "gdp_contribution",
+            "metadata_value": "$13.2B",
+            "verified_value": null,
+            "source": "Web search revealed no authoritative economic data stating a $13.2B GDP contribution for General and Operations Managers in Wholesale Trade/Logistics. It appears to be an AI-generated hallucination.",
+            "status": "contradicted"
+        },
+        {
+            "key": "design_pattern",
+            "metadata_value": "Error Injection + Parametric Analysis",
+            "verified_value": "Error Injection + Parametric Analysis",
+            "source": "setup_task.sh explicitly injects specific parameter errors which the agent must analyze and fix.",
+            "status": "verified"
+        },
+        {
+            "key": "oracle_features",
+            "metadata_value": "['MODEL Clause', 'Composite Partitioning', 'DBMS_SCHEDULER', 'JSON Columns', 'Window Functions']",
+            "verified_value": "['MODEL Clause', 'Composite Partitioning', 'DBMS_SCHEDULER', 'JSON Columns', 'Window Functions']",
+            "source": "setup_task.sh uses composite partitioning (PARTITION BY RANGE SUBPARTITION BY LIST) and the task instructions/export_result.sh strictly require the usage of the MODEL clause, JSON functions, DBMS_SCHEDULER, and window functions.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_errors.zero_reorder_points",
+            "metadata_value": "12 SKUs have reorder_point = 0",
+            "verified_value": "12 inventory parameter rows have reorder_point = 0 (affecting 3 distinct global SKUs across 4 warehouses)",
+            "source": "setup_task.sh lines 372-374: error applies to products 1, 5, 8 (3 SKUs) in warehouses 1, 2, 3, 4 (4 warehouses), resulting in 12 rows modified, not 12 distinct global SKUs.",
+            "status": "contradicted"
+        },
+        {
+            "key": "injected_errors.excessive_safety_stock",
+            "metadata_value": "8 SKUs have safety_stock > 12x avg demand",
+            "verified_value": "8 inventory parameter rows have excessive safety stock (affecting 2 distinct global SKUs across 4 warehouses)",
+            "source": "setup_task.sh lines 376-378: error applies to products 10, 15 (2 SKUs) in warehouses 1, 2, 3, 4 (4 warehouses), resulting in 8 rows modified, not 8 distinct global SKUs.",
+            "status": "contradicted"
+        },
+        {
+            "key": "injected_errors.zero_lead_time",
+            "metadata_value": "5 SKUs have lead_time_days = 0",
+            "verified_value": "5 SKUs have lead_time_days = 0 (in 1 warehouse)",
+            "source": "setup_task.sh lines 380-382: error applies to products 20, 21, 22, 23, 24 (5 distinct SKUs) in warehouse 5, resulting in exactly 5 rows modified.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically generated Oracle database tables representing a supply chain network. The setup scripts successfully utilize Oracle's Composite Partitioning and the task effectively requires using the MODEL clause, JSON features, Window Functions, and DBMS_SCHEDULER. However, the metadata claims regarding injected errors use imprecise terminology: while it claims '12 SKUs' and '8 SKUs' have zero reorder points and excessive safety stock respectively, the code actually injects these errors into 12 and 8 specific location-parameter rows, representing only 3 and 2 distinct global SKUs. The claim of 5 SKUs having zero lead time is accurate. Finally, the $13.2B GDP contribution claim is unsubstantiated by real-world economic data and appears to be hallucinated.",
+    "pi_confidence": "high"
+}

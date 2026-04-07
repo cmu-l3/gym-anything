@@ -1,0 +1,31 @@
+{
+  "id": "sidecar_xml_manifest_generation@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a channel named 'Document_Archive_Feed' that receives HL7 v2.x messages via a TCP Listener on port 6661 and archives them to /home/ga/archive_drop/. For each received message, the channel must generate two files: the raw HL7 message named 'adt-{MESSAGEID}.hl7' and an XML manifest named 'adt-{MESSAGEID}.xml'. The XML manifest must follow this structure:\n\n<IndexEntry>\n  <SourceSystem>NextGenConnect</SourceSystem>\n  <PatientID>[Extract PID.3.1]</PatientID>\n  <PatientName>[Extract PID.5.1 + space + PID.5.2]</PatientName>\n  <EventDate>[Extract EVN.2 and convert to YYYY-MM-DDTHH:MM:SS]</EventDate>\n  <OriginalFile>adt-{MESSAGEID}.hl7</OriginalFile>\n</IndexEntry>\n\nEnsure the HL7 timestamp from EVN.2 is converted to ISO 8601 format and the OriginalFile tag matches the HL7 filename exactly. The REST API is available at https://localhost:8443/api (admin/admin).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sidecar_xml_manifest_generation/setup_task.sh",
+    "post_task": "/workspace/tasks/sidecar_xml_manifest_generation/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Document_Archive_Feed",
+    "output_dir": "/home/ga/archive_drop",
+    "listen_port": "6661",
+    "test_message_id": "VERIFY001",
+    "expected_patient_id": "12345",
+    "expected_patient_name": "Doe John",
+    "expected_iso_date": "2023-01-01T12:00:00"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sidecar_xml_manifest"
+    }
+  }
+}

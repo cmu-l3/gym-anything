@@ -1,0 +1,30 @@
+{
+  "id": "pm_cost_accuracy_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "very_hard",
+  "description": "A cognitive psychology laboratory has collected Event-Based Prospective Memory (PM) data from undergraduate participants, stored at ~/pebl/data/prospective_memory_data.csv. The file contains columns for participant_id, block_type ('baseline' or 'pm_block'), trial_type ('ongoing' or 'pm_cue'), rt_ms (reaction time), and correct (1 for correct, 0 for error). Analyze the data to identify and exclude the automated participant who produced impossible physiological reaction times. For all valid participants, calculate the Baseline Ongoing RT (mean RT of correct ongoing trials in the baseline block), the PM Block Ongoing RT (mean RT of correct ongoing trials in the pm_block), the PM Cost (PM Block Ongoing RT minus Baseline Ongoing RT), and the PM Hit Rate (proportion of correct responses on pm_cue trials in the pm_block). Export a JSON report to ~/pebl/analysis/pm_report.json containing a 'participants' list. Each valid entry must include 'id', 'baseline_ongoing_rt_ms', 'pm_block_ongoing_rt_ms', 'pm_cost_ms', and 'pm_hit_rate'. The excluded participant should be recorded in the list with their 'id', 'excluded': true, and a 'reason'. The root of the JSON must also include 'group_mean_pm_cost_ms' and 'group_mean_pm_hit_rate' calculated from all valid participants.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 85,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pm_cost_accuracy_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/pm_cost_accuracy_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "sub-99",
+    "contamination_type": "automated_responder",
+    "contamination_description": "RTs consistently between 20-30ms across all trials",
+    "n_real_participants": 20,
+    "output_file": "/home/ga/pebl/analysis/pm_report.json",
+    "data_source": "Simulated laboratory PM dataset (Einstein & McDaniel paradigm)"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pm_cost_accuracy_analysis"
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+    "task_id": "docker_secrets_migration@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/acme-store",
+            "verified_value": "/home/ga/projects/acme-store",
+            "source": "setup_task.sh line 17: PROJECT_DIR=\"/home/ga/projects/acme-store\"; export_result.sh line 14 confirms same path; task description refers to ~/projects/acme-store/",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Desktop/secrets_audit_report.txt",
+            "verified_value": "/home/ga/Desktop/secrets_audit_report.txt",
+            "source": "setup_task.sh line 29 creates /home/ga/Desktop directory; export_result.sh line 15 defines REPORT_PATH=\"/home/ga/Desktop/secrets_audit_report.txt\"",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint",
+            "metadata_value": "http://localhost:8080/api/products",
+            "verified_value": "http://localhost:8080/api/products",
+            "source": "docker-compose.yml (in setup_task.sh) line 185 defines web service port mapping 8080:80; app.py (setup_task.sh line 74) defines @app.route('/api/products'); export_result.sh line 76 tests this exact endpoint with curl",
+            "status": "verified"
+        },
+        {
+            "key": "required_secrets[0]",
+            "metadata_value": "postgres_password",
+            "verified_value": "postgres_password",
+            "source": "Hardcoded value 'SuperSecret123!' found in docker-compose.yml POSTGRES_PASSWORD (setup_task.sh line 153) and DATABASE_URL (line 175); export_result.sh checks for this value; this is the name of the secret to be migrated from environment variable to Docker secret",
+            "status": "verified"
+        },
+        {
+            "key": "required_secrets[1]",
+            "metadata_value": "redis_password",
+            "verified_value": "redis_password",
+            "source": "Hardcoded value 'RedisPass456' found in docker-compose.yml redis command --requirepass (setup_task.sh line 163) and REDIS_URL env var (line 176); export_result.sh checks for this value; this is the name of the secret to be migrated",
+            "status": "verified"
+        },
+        {
+            "key": "required_secrets[2]",
+            "metadata_value": "flask_secret",
+            "verified_value": "flask_secret",
+            "source": "Hardcoded value 'my_flask_secret_key_2024' found in API Dockerfile ENV FLASK_SECRET (setup_task.sh line 116); export_result.sh line 46 checks for this value; this is the name of the secret to be migrated from Dockerfile ENV to Docker secret",
+            "status": "verified"
+        },
+        {
+            "key": "required_secrets[3]",
+            "metadata_value": "stripe_key",
+            "verified_value": "stripe_key",
+            "source": "Hardcoded value 'sk_live_a1b2c3d4e5f6g7h8i9j0' found in docker-compose.yml STRIPE_API_KEY environment variable (setup_task.sh line 177); export_result.sh line 45 checks for this value; this is the name of the secret to be migrated",
+            "status": "verified"
+        },
+        {
+            "key": "postgres_password_hardcoded_value",
+            "metadata_value": null,
+            "verified_value": "SuperSecret123!",
+            "source": "setup_task.sh lines 153 (POSTGRES_PASSWORD environment variable) and 175 (DATABASE_URL connection string); this is the value that must be moved to a Docker secret",
+            "status": "verified"
+        },
+        {
+            "key": "redis_password_hardcoded_value",
+            "metadata_value": null,
+            "verified_value": "RedisPass456",
+            "source": "setup_task.sh line 163 (redis-server --requirepass) and line 176 (REDIS_URL); this is the value that must be moved to a Docker secret",
+            "status": "verified"
+        },
+        {
+            "key": "flask_secret_hardcoded_value",
+            "metadata_value": null,
+            "verified_value": "my_flask_secret_key_2024",
+            "source": "setup_task.sh line 116 (API Dockerfile ENV FLASK_SECRET); this is the value that must be moved to a Docker secret and removed from Dockerfile",
+            "status": "verified"
+        },
+        {
+            "key": "stripe_key_hardcoded_value",
+            "metadata_value": null,
+            "verified_value": "sk_live_a1b2c3d4e5f6g7h8i9j0",
+            "source": "setup_task.sh line 177 (docker-compose.yml STRIPE_API_KEY); this is the value that must be moved to a Docker secret",
+            "status": "verified"
+        },
+        {
+            "key": "docker_compose_services",
+            "metadata_value": null,
+            "verified_value": "db (postgres:14), cache (redis:7-alpine), api (Flask Python 3.11), web (nginx:1.24-alpine)",
+            "source": "setup_task.sh lines 148-192 define the four services in docker-compose.yml; task description confirms 'Flask API, PostgreSQL database, Redis cache, and Nginx proxy'",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_pass_threshold",
+            "metadata_value": null,
+            "verified_value": "60 points out of 100",
+            "source": "verifier.py line 20 and line 130 define pass condition as score >= 60",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_scoring_breakdown",
+            "metadata_value": null,
+            "verified_value": "Secrets removal 40pts, Configuration 20pts, Functionality 30pts, Documentation 10pts",
+            "source": "verifier.py lines 5-18 document the complete scoring rubric",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic Docker security task for the AcmeCorp Store application. The task involves migrating four hardcoded secrets from docker-compose.yml and a Dockerfile to Docker Compose file-based secrets: (1) postgres_password with value 'SuperSecret123!' currently in POSTGRES_PASSWORD env and DATABASE_URL, (2) redis_password with value 'RedisPass456' in redis command and REDIS_URL, (3) flask_secret with value 'my_flask_secret_key_2024' in Dockerfile ENV, and (4) stripe_key with value 'sk_live_a1b2c3d4e5f6g7h8i9j0' in docker-compose.yml. The application stack includes PostgreSQL (postgres:14), Redis (redis:7-alpine), Flask API (python:3.11-slim), and Nginx (nginx:1.24-alpine) services. The project directory is /home/ga/projects/acme-store, the API endpoint is http://localhost:8080/api/products, and a compliance report must be written to /home/ga/Desktop/secrets_audit_report.txt. Verification requires secrets removal (40 points), proper configuration with secrets directory and compose definitions (20 points), all services running and API responding (30 points), and report existence (10 points), with a pass threshold of 60 points.",
+    "pi_confidence": "high"
+}

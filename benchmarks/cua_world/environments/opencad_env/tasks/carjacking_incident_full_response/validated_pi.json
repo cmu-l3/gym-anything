@@ -1,0 +1,143 @@
+{
+    "task_id": "carjacking_incident_full_response@1",
+    "dataset": "OpenCAD (GTA V game data + custom seed data)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_civilian_first",
+            "metadata_value": "Diego",
+            "verified_value": "Diego",
+            "source": "Task-created value. Diego Ramirez is not a GTA V character. The name is prescribed by the task description for the agent to enter into the civilian registration form. Cleanup in setup_task.sh ensures no prior 'Diego Ramirez' exists before the task starts (verified via live DB query: empty result for SELECT FROM ncic_names WHERE LOWER(name) LIKE '%diego%ramirez%').",
+            "status": "verified"
+        },
+        {
+            "key": "expected_civilian_last",
+            "metadata_value": "Ramirez",
+            "verified_value": "Ramirez",
+            "source": "Task-created value. See expected_civilian_first. OpenCAD stores names as a single 'name' field (e.g., 'Diego Ramirez'), not separate first/last columns. The export_result.sh searches for LOWER(name) LIKE '%diego%ramirez%'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_civilian_dob",
+            "metadata_value": "1993-08-22",
+            "verified_value": "1993-08-22",
+            "source": "Task-created value. Not derived from GTA V canon. The date is arbitrary and prescribed in the task description. The ncic_names table stores DOB in 'dob' column (DATE type, format YYYY-MM-DD). The export_result.sh fetches this field for verification.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_civilian_gender",
+            "metadata_value": "Male",
+            "verified_value": "Male",
+            "source": "Task-created value. The ncic_names table has a 'gender' column that stores values like 'Male', 'Female' (verified from seed_data.sql lines 17-20 showing existing records use 'Male'/'Female').",
+            "status": "verified"
+        },
+        {
+            "key": "expected_civilian_address",
+            "metadata_value": "4710 Palomino Avenue",
+            "verified_value": "4710 Palomino Avenue",
+            "source": "Task-created value. Palomino Avenue is not a documented GTA V street (not found in the streets table which is used for dispatch dropdowns). However, the ncic_names 'address' field is free-text (not a dropdown), so any address can be entered. The export_result.sh fetches this field for partial match verification.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_plate",
+            "metadata_value": "DGR-2247",
+            "verified_value": "DGR-2247",
+            "source": "Task-created value. Not a pre-existing plate in seed data. Verified via live DB query: no result for SELECT FROM ncic_plates WHERE UPPER(REPLACE(veh_plate,'-','')) LIKE '%DGR2247%'. The setup_task.sh deletes any prior DGR-2247 records. The export_result.sh searches for this plate with normalized comparison (removing hyphens, uppercasing).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_vehicle_brand",
+            "metadata_value": "Pegassi",
+            "verified_value": "Pegassi",
+            "source": "GTA V fictional car manufacturer. Pegassi is the GTA V equivalent of Lamborghini/Pagani. Confirmed via GTA Wiki (https://gta.fandom.com/wiki/Pegassi). The ncic_plates table stores this in 'veh_make' column. The vehicle dropdown in the Civilian module's 'Add New Plate' form should contain Pegassi as a make option (loaded from GTA V game data SQL).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_vehicle_model",
+            "metadata_value": "Zentorno",
+            "verified_value": "Zentorno",
+            "source": "GTA V fictional supercar by Pegassi, based on the Lamborghini Sesto Elemento. Confirmed via GTA Wiki (https://gta.fandom.com/wiki/Zentorno). The ncic_plates table stores this in 'veh_model' column. Note: In the Kimi K2.5 distillation run for new_resident_full_processing, the vehicle dropdown required agents to search/type for the correct make-model combination. The Zentorno should appear under Pegassi in the dropdown.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_vehicle_color",
+            "metadata_value": "Yellow",
+            "verified_value": "Yellow",
+            "source": "Task-created value. The ncic_plates table stores color in 'veh_pcolor' column. Note from live DB inspection: the color dropdown in OpenCAD uses descriptive names like 'Classic | Ice White' (observed in Kimi K2.5 new_resident_full_processing run). The agent may need to select a yellow variant like 'Race Yellow' or similar. The export_result.sh fetches veh_pcolor for comparison.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_call_type",
+            "metadata_value": "10-64",
+            "verified_value": "10-64",
+            "source": "Verified via live database query: SELECT code_id, code_name FROM incident_types WHERE code_id LIKE '%10-64%' returned '10-64 | Crime in Progress'. This is the correct code for 'Crime in Progress' in the OpenCAD GTA V data. NOTE: Originally the task used 10-31 which maps to 'Pick Up' in this database — this was corrected to 10-64 after live testing revealed the mismatch.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_street",
+            "metadata_value": "Vinewood Boulevard",
+            "verified_value": "Vinewood Boulevard",
+            "source": "Verified via live database query: SELECT name FROM streets WHERE LOWER(name) LIKE '%vinewood%' returned 4 results including 'Vinewood Boulevard'. This street exists in the dispatch call Street dropdown. Also confirmed in seed_data.sql line 74 (used in historical call record) and verified in successful agent runs for create_dispatch_call (Gemini successfully selected 'Vinewood Boulevard' from the dropdown).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_bolo_plate",
+            "metadata_value": "DGR-2247",
+            "verified_value": "DGR-2247",
+            "source": "Same as expected_plate. This is the plate number the agent must enter in the vehicle BOLO form. The bolos_vehicles table stores this in 'vehicle_plate' column. The export_result.sh searches for UPPER(REPLACE(vehicle_plate,'-','')) LIKE '%DGR2247%'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_citation_name_id",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Verified via live database query: SELECT id, name FROM ncic_names ORDER BY id returned 'id=3, name=Trevor Philips'. Also confirmed in seed_data.sql line 19: INSERT INTO ncic_names (id=3, name='Trevor Philips'). The citation must be linked to name_id=3 for Trevor Philips. The export_result.sh checks ncic_citations WHERE name_id=3.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_citation_person",
+            "metadata_value": "Trevor Philips",
+            "verified_value": "Trevor Philips",
+            "source": "GTA V main character. Verified in seed_data.sql line 19 and live DB query. Note the canonical spelling is 'Philips' (one L), not 'Phillips'. Trevor Philips already has existing records: 2 warrants (Assault with a Deadly Weapon, Reckless Endangerment) and 1 citation (Speeding, $250) in seed data. The baseline snapshot (ncic_citations MAX(id)=1) ensures only new citations created during the task are counted.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_citation_name",
+            "metadata_value": "Reckless Driving",
+            "verified_value": "Reckless Driving",
+            "source": "Standard traffic citation charge. The OpenCAD citation form has a free-text 'citation_name' field (not a dropdown), so the agent types this value directly. This is the same citation type used in the multi_jurisdiction_pursuit and lookup_ncic_name tasks, both of which were successfully completed by agents (Kimi K2.5 scored 100% on lookup_ncic_name with 'Reckless Driving' citation).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_fine",
+            "metadata_value": 750.0,
+            "verified_value": 750.0,
+            "source": "Task-created value. The citation_fine field in ncic_citations is a decimal/varchar type. $750 is the same fine used in multi_jurisdiction_pursuit (which Kimi K2.5 successfully entered, scoring 93%). The export_result.sh fetches citation_fine for numerical comparison. Typical US reckless driving fines range $300-$1,000.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_person_bolo_first",
+            "metadata_value": "Franklin",
+            "verified_value": "Franklin",
+            "source": "GTA V main character Franklin Clinton. Verified in seed_data.sql line 18: INSERT INTO ncic_names (id=2, name='Franklin Clinton'). Also verified via live DB query. The bolos_persons table has separate 'first_name' and 'last_name' columns (unlike ncic_names which uses a single 'name' field). The export_result.sh searches for LOWER(first_name) LIKE '%franklin%'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_person_bolo_last",
+            "metadata_value": "Clinton",
+            "verified_value": "Clinton",
+            "source": "GTA V main character Franklin Clinton. See expected_person_bolo_first. The export_result.sh searches for LOWER(last_name) LIKE '%clinton%'. Note: Franklin Clinton exists as name_id=2 in ncic_names but the person BOLO does NOT require linking to an existing ncic_names record — it creates a new entry in bolos_persons with the provided first_name/last_name.",
+            "status": "verified"
+        },
+        {
+            "key": "profession",
+            "metadata_value": "Dispatch Clerk / Records Technician",
+            "verified_value": "Dispatch Clerk / Records Technician",
+            "source": "Task-assigned role description. Consistent with the task workflow which spans both civilian records processing (Records Technician) and dispatch operations (Dispatch Clerk). These are real emergency services job functions.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task uses the OpenCAD Computer Aided Dispatch system populated with GTA V game data. The agent must complete 6 operations across 2-3 modules (Civilian, Dispatch, Police MDT). Key ground truth: (1) Diego Ramirez is a NEW civilian to register — does NOT exist in seed data. The ncic_names table stores names as a single 'name' field. The civilian registration form has a known focus bug where text can bleed between Name and DOB fields. (2) Vehicle plate DGR-2247 is NEW — the Pegassi Zentorno is a valid GTA V vehicle (Pegassi = Lamborghini). The vehicle color dropdown uses descriptive names (e.g., 'Race Yellow'). Vehicle registration requires navigating to 'Add New Plate' from the civilian profile. (3) Dispatch call must use incident type 10-64 (Crime in Progress) — NOT 10-31 which maps to 'Pick Up' in this database. Street 'Vinewood Boulevard' exists in the dropdown (confirmed). (4) Vehicle BOLO uses plate DGR-2247 in the bolos_vehicles table. (5) Citation must target Trevor Philips (name_id=3, spelling: 'Philips' with one L). Trevor already has 2 warrants and 1 citation in seed data — baseline snapshot ensures only new citations are counted. The citation_name field is free text. Fine is $750. (6) Person BOLO for Franklin Clinton (name_id=2 in ncic_names). The bolos_persons table has separate first_name/last_name columns. The task requires cross-module navigation: Civilian module for registration, then Dispatch console for call/BOLOs, then Police MDT for citation. Admin credentials: admin@opencad.local / Admin123!.",
+    "pi_confidence": "high"
+}

@@ -100,6 +100,9 @@ launch_firefox_to() {
     local wait_sec="${2:-5}"
     local profile="/home/ga/snap/firefox/common/.mozilla/firefox/openproject.profile"
 
+    # Wait for OpenProject web service to be ready before launching Firefox
+    wait_for_openproject || echo "WARNING: OpenProject may not be ready, attempting Firefox launch anyway"
+
     # Fix snap permissions
     chown -R ga:ga /home/ga/snap/ 2>/dev/null || true
 

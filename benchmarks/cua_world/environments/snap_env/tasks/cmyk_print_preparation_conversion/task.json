@@ -1,0 +1,32 @@
+{
+  "id": "cmyk_print_preparation_conversion@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "A cartographic publisher needs a satellite image converted from emissive RGB to subtractive CMYK color space for offset printing. Using the source image landsat7_rgb.tif located at /home/ga/snap_data/landsat7_rgb.tif, generate a product containing four bands named exactly: Cyan_pct, Magenta_pct, Yellow_pct, and Key_pct.\n\nThe conversion must follow these mathematical requirements:\n- Normalize input bands (0-255) to a 0.0-1.0 range (R = band_1 / 255.0, G = band_2 / 255.0, B = band_3 / 255.0).\n- Calculate Key (Black) as K = 1.0 - max(R, G, B).\n- Calculate Cyan, Magenta, and Yellow using the formula (1.0 - [Color] - K) / (1.0 - K), ensuring conditional logic handles cases where K = 1.0 to prevent division by zero (if K == 1.0 then 0.0).\n- Scale the final Cyan_pct, Magenta_pct, Yellow_pct, and Key_pct bands to 0-100 percentages.\n\nSave the final product in BEAM-DIMAP format to /home/ga/snap_exports/cmyk_print_ready.dim and export it as a GeoTIFF to /home/ga/snap_exports/cmyk_print_ready.tif.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cmyk_print_preparation_conversion/setup_task.sh",
+    "post_task": "/workspace/tasks/cmyk_print_preparation_conversion/export_result.sh"
+  },
+  "metadata": {
+    "expected_dim_path": "/home/ga/snap_exports/cmyk_print_ready.dim",
+    "expected_tif_path": "/home/ga/snap_exports/cmyk_print_ready.tif",
+    "required_bands": [
+      "Cyan_pct",
+      "Magenta_pct",
+      "Yellow_pct",
+      "Key_pct"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cmyk_conversion"
+    }
+  }
+}

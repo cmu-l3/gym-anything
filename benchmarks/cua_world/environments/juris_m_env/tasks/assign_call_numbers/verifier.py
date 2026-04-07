@@ -148,25 +148,7 @@ def verify_assign_call_numbers(
             )
             
             # Simple parsing of VLM JSON response (robustness handled by gym_anything usually, but explicit here)
-            parsed = vlm_response.get("parsed", {}) if isinstance(vlm_response, dict) else {}
-            if parsed.get("info_tab_visible"):
-                score += 10
-                feedback.append("VLM: Info tab visible.")
-            if parsed.get("fields_visible"):
-                score += 10
-                feedback.append("VLM: Metadata fields visible.")
-            if parsed.get("item_selection_visible"):
-                score += 10
-                feedback.append("VLM: Item selection workflow visible.")
-        else:
-            feedback.append("No trajectory frames available for VLM verification.")
-    except Exception as e:
-        logger.error(f"VLM verification failed: {e}")
-        feedback.append("VLM verification failed.")
-
-    passed = score >= 60 and modified_count > 0
-    return {
-        "passed": passed,
-        "score": min(score, 100),
-        "feedback": " | ".join(feedback),
-    }
+            import json
+            try:
+                # Handle potential markdown code blocks in response
+                clean_json = vlm_response.replace("

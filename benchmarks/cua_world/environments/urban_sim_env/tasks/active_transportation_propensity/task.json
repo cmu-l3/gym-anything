@@ -1,0 +1,34 @@
+{
+  "id": "active_transportation_propensity@1",
+  "version": "1.0",
+  "env_id": "urban_sim_env@0.1",
+  "difficulty": "medium",
+  "description": "Construct an Active Transportation Propensity Score (ATPS) index for San Francisco zones using UrbanSim data to identify optimal neighborhoods for micro-mobility investments. Using the starter notebook at /home/ga/urbansim_projects/notebooks/active_transportation_index.ipynb and the HDF5 data store at /home/ga/urbansim_projects/data/sanfran_public.h5, calculate a composite spatial index by linking households and jobs to zones via buildings and parcels. \n\nFor each zone, determine the parcel count, total households, total jobs, and zero-car households. Filter the dataset to exclude zones with fewer than 50 parcels or zero households. For the remaining zones, compute normalized components (0.0 - 1.0 range using Min-Max scaling) named hh_density_norm, job_density_norm, and zero_car_pct_norm based on household density, job density, and zero-car percentage. The final atp_score must be the equally weighted average of these three normalized components. \n\nExport the final dataframe, sorted descending by atp_score, to /home/ga/urbansim_projects/output/active_transit_scores.csv; the file must include the zone_id, raw components, normalized components, and the atp_score. Additionally, save a bar chart showing the three normalized components for the top 15 zones to /home/ga/urbansim_projects/output/top_atps_zones.png.",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/active_transportation_propensity/setup_task.sh",
+    "post_task": "/workspace/tasks/active_transportation_propensity/export_result.sh"
+  },
+  "metadata": {
+    "expected_notebook_path": "/home/ga/urbansim_projects/notebooks/active_transportation_index.ipynb",
+    "expected_csv_path": "/home/ga/urbansim_projects/output/active_transit_scores.csv",
+    "expected_plot_path": "/home/ga/urbansim_projects/output/top_atps_zones.png",
+    "data_path": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+    "required_norm_columns": [
+      "hh_density_norm",
+      "job_density_norm",
+      "zero_car_pct_norm"
+    ],
+    "score_column": "atp_score"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_active_transportation_propensity"
+    }
+  }
+}

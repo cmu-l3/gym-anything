@@ -1,0 +1,39 @@
+{
+  "id": "weather_station_qc_anomaly_detection@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Environmental Scientist performing quarterly quality control on 30 NOAA weather stations in the US Northeast using an Oracle database (Host=localhost, Port=1521, Service=XEPDB1, User=weather_analyst, Password=Weather2024). Your objective is to identify hardware issues, fill data gaps, and generate a finalized dataset.\n\nIdentify stuck sensors where TMAX, TMIN, or PRCP report the exact same value for 10 or more consecutive days, and detect impossible values where TMIN > TMAX, PRCP < 0, TMAX > 600, or TMIN < -900 (in tenths of a degree C). Record these findings in a table named QC_RESULTS with columns: result_id, station_id, obs_date, element, flag_type ('STUCK_SENSOR' or 'IMPOSSIBLE_VALUE'), and severity ('HIGH' or 'CRITICAL').\n\nCreate a PL/SQL function FUNC_IDW_ESTIMATE(p_station_id VARCHAR2, p_element VARCHAR2, p_obs_date DATE) RETURN NUMBER that returns an inverse-distance-weighted estimate using the Haversine formula and the nearest 3 stations with valid data on that date. Develop a view CLIMATE_ANOMALY_VW that aggregates monthly averages and flags anomalies (is_anomaly = 1) if the monthly average departs by more than 2 standard deviations from the station's annual mean for that element.\n\nCreate a materialized view QUALITY_CONTROLLED_OBS_MV containing TMAX, TMIN, and PRCP, excluding any flagged observations from QC_RESULTS. Convert temperatures to degrees Celsius (value_celsius) and precipitation to mm (value_mm), including station names and coordinates. Export a monthly climate summary (station_name, year_month, avg_tmax_c, avg_tmin_c, total_prcp_mm) from the quality-controlled data to /home/ga/climate_summary.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/weather_station_qc_anomaly_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/weather_station_qc_anomaly_detection/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/weather_qc_result.json",
+    "occupation": "Environmental Scientists and Specialists",
+    "industry": "Life, Physical, and Social Science",
+    "gdp_contribution": "$758M",
+    "design_pattern": "Error Injection + Spatial Analytics",
+    "oracle_features": [
+      "Window Functions",
+      "PL/SQL Math Functions",
+      "Materialized Views",
+      "Statistical Functions"
+    ],
+    "injected_errors": {
+      "stuck_sensor": "USW00090001 TMAX stuck at 222 for 45 days",
+      "impossible_values": "Various TMIN > TMAX and out-of-bounds temps across stations"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_weather_station_qc"
+    }
+  }
+}

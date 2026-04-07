@@ -1,0 +1,31 @@
+{
+    "task_id": "export_calendar_events@1",
+    "dataset": "odoo_scheduling",
+    "case_id": "calendar_events",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_path",
+            "metadata_value": "/home/ga/Documents/calendar_export.csv",
+            "verified_value": "/home/ga/Documents/calendar_export.csv",
+            "source": "setup_task.sh (lines 11-14) explicitly sets up this directory and cleans this path; task.json description (line 7) specifies this save location; export_result.sh (line 7) checks this exact path first",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": "[\"subject\", \"name\", \"start\", \"stop\", \"end\"]",
+            "verified_value": "[\"subject\", \"name\", \"start\", \"stop\", \"end\"]",
+            "source": "export_result.sh lines 72-81 define column detection: checks for 'subject'/'name'/'summary'/'event' for subject, 'start'/'begin' for start date, 'stop'/'end'/'finish' for end date. The metadata lists the primary column name variants from Odoo's calendar.event model exports.",
+            "status": "verified"
+        },
+        {
+            "key": "min_rows",
+            "metadata_value": 10,
+            "verified_value": 21,
+            "source": "setup_data.py lines 104-255 define exactly 21 calendar events: 4 near-term events (lines 107-133), 9 in Week 1 (lines 136-179), 5 in Week 2 (lines 188-222), 4 in Week 3 (lines 224-254). All events are created in the Odoo database before task execution. verifier.py lines 84-92 check row_count >= 10 to award full points, but the actual expected export contains 21 rows.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task exports calendar events from an Odoo database running on localhost:8069. The expected export location is /home/ga/Documents/calendar_export.csv. The CSV should include column name variants: subject/name/start/stop/end. The Odoo database is populated with 21 synthetic calendar events created by setup_data.py, spanning 3 weeks with realistic-looking fictional names (e.g., 'Weekly Team Kickoff', 'Q2 Financial Review') and attendees (e.g., 'Alice Johnson'). The minimum expected row count in task.json is 10, but the actual database contains 21 events.",
+    "pi_confidence": "high"
+}

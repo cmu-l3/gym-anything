@@ -1,0 +1,29 @@
+{
+  "id": "empirical_telemetry_conversion_derivation@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are performing a 'black-box' Independent Verification and Validation (IV&V) of the ground system's telemetry processing pipeline for the INST satellite. Empirically derive the active telemetry conversion polynomials (slope 'm' and intercept 'b' for the equation CONVERTED = m * RAW + b) for 'TEMP1' and 'TEMP2'. Set 'INST HEALTH_STATUS TEMP3' to exactly 85.0 (CONVERTED) as a control variable and ensure it remains overridden. For 'TEMP1' and 'TEMP2', capture at least two data points of RAW and CONVERTED values to calculate the coefficients, then return them to live fluctuating telemetry. Document your findings in a JSON report at /home/ga/Desktop/ivv_conversion_report.json using the following schema:\n\n{\n  \"test_operator\": \"IV&V_Agent\",\n  \"derivation\": {\n    \"TEMP1\": {\n      \"data_points\": [{\"raw\": <number>, \"converted\": <number>}, ...],\n      \"coefficients\": {\"m\": <number>, \"b\": <number>}\n    },\n    \"TEMP2\": {\n      \"data_points\": [{\"raw\": <number>, \"converted\": <number>}, ...],\n      \"coefficients\": {\"m\": <number>, \"b\": <number>}\n    }\n  }\n}\n\nOpenC3 password: Cosmos2024!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/empirical_telemetry_conversion_derivation/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/empirical_telemetry_conversion_derivation/export_result.sh"
+  },
+  "metadata": {
+    "output_file": "/home/ga/Desktop/ivv_conversion_report.json",
+    "result_file": "/tmp/ivv_export_result.json",
+    "target": "INST",
+    "control_temp3_val": 85.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_empirical_conversion"
+    }
+  }
+}

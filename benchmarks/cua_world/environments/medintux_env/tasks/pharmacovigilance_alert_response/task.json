@@ -1,0 +1,71 @@
+{
+  "id": "pharmacovigilance_alert_response@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "The Centre Regional de Pharmacovigilance (CRPV) has issued an urgent medication safety alert about a contaminated drug. The alert document, including the required substitution algorithm, is at ~/Documents/alerte_pharmacovigilance_metformine.txt. Identify all patients in your MedinTux practice currently prescribed the affected medication and, for each one, determine the correct medication change based on their most recent renal function and any documented drug allergies, per the alert algorithm. For each affected patient, create an updated prescription with the correct substitution (preserving their other current medications), add a consultation note referencing the alert number, and schedule a follow-up appointment if required by the alert. Save a summary CSV report to ~/Documents/rapport_pharmacovigilance_CRPV-2026-0847.csv with columns: Nom,Prenom,DFG,Action,Nouveau_Medicament.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pharmacovigilance_alert_response/setup_task.sh",
+    "post_task": "/workspace/tasks/pharmacovigilance_alert_response/export_result.sh"
+  },
+  "metadata": {
+    "target_patients": {
+      "DUBOIS_Marie-Claire": {
+        "nom": "DUBOIS",
+        "prenom": "Marie-Claire",
+        "recent_dfg": 32,
+        "stale_dfg": 48,
+        "algorithm_branch": "a",
+        "expected_substitution": "Sitagliptine 50mg",
+        "has_allergy_trap": false,
+        "requires_followup": true
+      },
+      "MARTIN_Sophie": {
+        "nom": "MARTIN",
+        "prenom": "Sophie",
+        "recent_dfg": 55,
+        "algorithm_branch": "b",
+        "expected_substitution": "Metformine 500mg",
+        "has_allergy_trap": false,
+        "requires_followup": false
+      },
+      "PETIT_Nathalie": {
+        "nom": "PETIT",
+        "prenom": "Nathalie",
+        "recent_dfg": 92,
+        "algorithm_branch": "c",
+        "expected_substitution": "Glucophage 850mg",
+        "has_allergy_trap": false,
+        "requires_followup": false
+      },
+      "HENRY_Emmanuel": {
+        "nom": "HENRY",
+        "prenom": "Emmanuel",
+        "recent_dfg": 38,
+        "algorithm_branch": "a",
+        "expected_substitution": "Repaglinide 1mg",
+        "has_allergy_trap": true,
+        "documented_allergy": "Gliptines (DPP-4)",
+        "requires_followup": true
+      }
+    },
+    "alert_reference": "CRPV-2026-0847",
+    "report_path": "~/Documents/rapport_pharmacovigilance_CRPV-2026-0847.csv",
+    "type_rub_prescription": 20020100,
+    "type_rub_consultation": 20030000,
+    "type_rub_terrain": 20060000,
+    "type_rub_biologie": 20080000,
+    "pass_threshold": 50
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pharmacovigilance_alert_response"
+    }
+  }
+}

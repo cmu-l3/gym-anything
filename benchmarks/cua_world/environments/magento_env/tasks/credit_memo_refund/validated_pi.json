@@ -1,0 +1,59 @@
+{
+    "task_id": "credit_memo_refund@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "customer_email",
+            "metadata_value": "john.smith@example.com",
+            "verified_value": "john.smith@example.com",
+            "source": "setup_task.sh line 34 (customer creation) and task.json description confirm this email for John Smith",
+            "status": "verified"
+        },
+        {
+            "key": "target_sku",
+            "metadata_value": "HEADPHONES-001",
+            "verified_value": "HEADPHONES-001",
+            "source": "setup_magento.sh line 283 defines product with SKU 'HEADPHONES-001'; task description confirms target SKU",
+            "status": "verified"
+        },
+        {
+            "key": "target_qty",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Task description line 5 states 'refund **exactly 1 unit** of the Wireless Headphones' and requirement '1. Refund Qty for Headphones must be **1** (not 2)'",
+            "status": "verified"
+        },
+        {
+            "key": "forbidden_sku",
+            "metadata_value": "LAPTOP-001",
+            "verified_value": "LAPTOP-001",
+            "source": "setup_magento.sh line 281 defines product with SKU 'LAPTOP-001'; task description requirement '2. Refund Qty for Laptop must be **0** (do not refund)'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_shipping_refund",
+            "metadata_value": 0.0,
+            "verified_value": 0.0,
+            "source": "Task description requirement '3. Shipping Refund must be **$0.00**'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_grand_total",
+            "metadata_value": 149.99,
+            "verified_value": 149.99,
+            "source": "setup_magento.sh line 283 defines HEADPHONES-001 price as 149.99; credit memo grand_total = 1 unit × $149.99 + $0.00 shipping = $149.99",
+            "status": "verified"
+        },
+        {
+            "key": "tolerance",
+            "metadata_value": 0.05,
+            "verified_value": 0.05,
+            "source": "verifier.py line 108 uses tolerance in calculation: abs(grand_total - expected_total) <= (expected_total * tolerance); 0.05 is reasonable 5% tolerance",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task creates a synthetic Magento environment with predetermined products and pricing. Customer 'John Smith' (john.smith@example.com) receives an order containing 1 Business Laptop Pro (LAPTOP-001, $999.99) and 2 Wireless Headphones (HEADPHONES-001, $149.99 each). The agent must process a credit memo refunding exactly 1 unit of Headphones ($149.99) with zero shipping refund, resulting in expected credit memo grand total of $149.99. The forbidden item is LAPTOP-001, which must not be refunded.",
+    "pi_confidence": "high"
+}

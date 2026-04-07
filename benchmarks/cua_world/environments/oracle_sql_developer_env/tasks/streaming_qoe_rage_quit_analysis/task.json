@@ -1,0 +1,30 @@
+{
+  "id": "streaming_qoe_rage_quit_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Site Reliability Engineer at a video streaming platform. The STREAM_SRE schema in Oracle (connected as stream_sre/Stream2024 to XEPDB1) contains client telemetry from a recent live sports broadcast. Users complained about constant rebuffering, leading to 'rage quits'. You must analyze the JSON telemetry to quantify the impact and isolate the failing ISP/CDN routes.\n\nYour tasks:\n\n1. PARSE JSON TELEMETRY: Create a view called PARSED_TELEMETRY_VW that extracts data from the raw_json_payload column in the RAW_CLIENT_TELEMETRY table. The view must include the base columns (event_id, sub_id, session_id, event_timestamp) plus the extracted JSON fields:\n   - player_state (VARCHAR2)\n   - bitrate_kbps (NUMBER)\n   - cdn_node_id (VARCHAR2)\n   - buffer_health_ms (NUMBER)\n\n2. CALCULATE SESSION QOE DURATIONS: Create a table called SESSION_QOE_METRICS that calculates the total time spent in each state per session.\n   - Use the LEAD() window function partitioned by session_id and ordered by event_timestamp to determine the duration of each event (difference in seconds between the current and next event).\n   - Aggregate by session_id to compute total_playing_seconds (sum of durations where state='PLAYING') and total_buffering_seconds (sum of durations where state='BUFFERING').\n   - Calculate the rebuffer_ratio as: total_buffering_seconds / (total_playing_seconds + total_buffering_seconds). Handle division by zero.\n\n3. DETECT RAGE QUITS: Create a view called RAGE_QUIT_ANALYSIS_VW using Oracle's MATCH_RECOGNIZE clause against your parsed telemetry view. A 'Rage Quit' is defined as a sequence where:\n   - A user experiences a BUFFERING event\n   - Followed by at least one additional BUFFERING event\n   - Ending with an ABORT event\n   - Where the total time between the first BUFFERING event and the ABORT event is <= 120 seconds.\n   - Output columns must include: session_id, first_buffer_time, abort_time, time_to_abort_seconds.\n\n4. AGGREGATE ROOT CAUSE: Create a Materialized View called ISP_DEGRADATION_MV that joins SUBSCRIBERS, SESSION_QOE_METRICS, and PARSED_TELEMETRY_VW to aggregate performance. Group by isp_name and cdn_node_id. Calculate the avg_rebuffer_ratio and total_rage_quits for each ISP/CDN combination.\n\nConnection details: Host=localhost, Port=1521, Service=XEPDB1, User=stream_sre, Password=Stream2024\n\nAll work must be performed through the SQL Developer GUI.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/streaming_qoe_rage_quit_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/streaming_qoe_rage_quit_analysis/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/streaming_qoe_result.json",
+    "occupation": "Site Reliability Engineers",
+    "industry": "Information / Telecommunications",
+    "gdp_contribution": "$161.0B",
+    "design_pattern": "Pattern Detection over Semi-Structured Data",
+    "oracle_features": ["JSON_VALUE/JSON_TABLE", "MATCH_RECOGNIZE", "LEAD Window Function", "Materialized Views", "Interval Arithmetic"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_streaming_qoe_rage_quit"
+    }
+  }
+}

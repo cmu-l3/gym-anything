@@ -1,0 +1,45 @@
+{
+  "id": "infusion_interlock_oq_protocol@1",
+  "version": "1.0",
+  "env_id": "openice_env@0.1",
+  "description": "You are a biomedical systems engineer conducting Operational Qualification (OQ) of OpenICE's Infusion Safety closed-loop interlock per IEC 80001-1 before clinical deployment. Validate four distinct safety behaviors.\n\nCreate a Simulated Pulse Oximeter and Simulated Infusion Pump in the OpenICE Supervisor, then launch the Infusion Safety clinical application. Configure SpO2 alarm monitoring with a low alarm threshold of 90%. Execute this test protocol:\n\nTest 1 - Threshold Response: Record the pump status at baseline SpO2. Then adjust SpO2 below the 90% threshold and record how the pump status changes. Take a screenshot to /home/ga/Desktop/oq_test_threshold.png.\n\nTest 2 - Recovery Hysteresis: With the pump in its post-alarm state from Test 1, gradually restore SpO2 above the threshold. Determine the exact SpO2 value at which the pump resumes normal operation. Document whether this recovery point equals the trigger threshold or differs (indicating hysteresis).\n\nTest 3 - Sensor Failure Fail-Safe: Restore normal operation, then simulate a sensor disconnection by removing the Pulse Oximeter from the system. Record the pump's response. Take a screenshot to /home/ga/Desktop/oq_test_failsafe.png.\n\nTest 4 - Boundary Condition: Reconnect a Pulse Oximeter. Set SpO2 to exactly 90% (the alarm threshold). Record whether the pump is active or stopped at the boundary.\n\nRecord observations in /home/ga/Desktop/oq_test_results.csv with columns: Test_ID,Test_Name,Expected_Behavior,Observed_Behavior,Pass_Fail\n\nWrite a validation report at /home/ga/Desktop/oq_validation_report.txt including: both device UDIs, all four test results, hysteresis finding, and overall OQ determination (PASS/FAIL).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/infusion_interlock_oq_protocol/setup_task.sh",
+    "post_task": "/workspace/tasks/infusion_interlock_oq_protocol/export_result.sh"
+  },
+  "metadata": {
+    "artifacts": {
+      "threshold_screenshot": "/home/ga/Desktop/oq_test_threshold.png",
+      "failsafe_screenshot": "/home/ga/Desktop/oq_test_failsafe.png",
+      "results_csv": "/home/ga/Desktop/oq_test_results.csv",
+      "validation_report": "/home/ga/Desktop/oq_validation_report.txt"
+    },
+    "required_devices": [
+      "Pulse Oximeter",
+      "Infusion Pump"
+    ],
+    "required_app": "Infusion Safety",
+    "test_protocol": {
+      "threshold_pct": 90,
+      "test_count": 4,
+      "test_names": [
+        "Threshold Response",
+        "Recovery Hysteresis",
+        "Sensor Failure Fail-Safe",
+        "Boundary Condition"
+      ]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_infusion_interlock_oq"
+    }
+  }
+}

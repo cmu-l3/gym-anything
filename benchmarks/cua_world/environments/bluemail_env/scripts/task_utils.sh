@@ -91,6 +91,31 @@ get_any_window() {
 }
 
 # ============================================================
+# Dovecot IMAP sync utilities
+# ============================================================
+
+# Force Dovecot to regenerate UIDVALIDITY so BlueMail discards its
+# cached sync state and does a full re-sync of the mailbox.
+# Call AFTER cleaning/repopulating Maildir and BEFORE restarting BlueMail.
+reset_dovecot_indexes() {
+    local MAILDIR="/home/ga/Maildir"
+    echo "Resetting Dovecot indexes (UIDVALIDITY will change)..."
+    rm -f "${MAILDIR}"/dovecot-uidvalidity* 2>/dev/null || true
+    rm -f "${MAILDIR}"/dovecot.index* 2>/dev/null || true
+    rm -f "${MAILDIR}"/dovecot-uidlist* 2>/dev/null || true
+    rm -f "${MAILDIR}"/dovecot.list* 2>/dev/null || true
+    # Also reset subfolder indexes
+    for subdir in "${MAILDIR}"/.*/; do
+        [ -d "$subdir" ] || continue
+        rm -f "${subdir}"dovecot-uidvalidity* 2>/dev/null || true
+        rm -f "${subdir}"dovecot.index* 2>/dev/null || true
+        rm -f "${subdir}"dovecot-uidlist* 2>/dev/null || true
+    done
+    doveadm force-resync -u ga '*' 2>/dev/null || true
+    echo "Dovecot indexes reset."
+}
+
+# ============================================================
 # Email data utilities
 # ============================================================
 IMPORT_DIR="/home/ga/Mail/import"

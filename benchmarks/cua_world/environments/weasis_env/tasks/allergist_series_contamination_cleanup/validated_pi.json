@@ -1,0 +1,73 @@
+{
+    "task_id": "allergist_series_contamination_cleanup@1",
+    "dataset": "Rubo Medical DICOM Samples",
+    "case_id": "0002.DCM, 0003.DCM",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_directory",
+            "metadata_value": "/home/ga/DICOM/studies/airway_series/",
+            "verified_value": "/home/ga/DICOM/studies/airway_series/",
+            "source": "setup_task.sh defines STUDY_DIR as /home/ga/DICOM/studies/airway_series/",
+            "status": "verified"
+        },
+        {
+            "key": "quarantine_directory",
+            "metadata_value": "/home/ga/DICOM/quarantine/",
+            "verified_value": "/home/ga/DICOM/quarantine/",
+            "source": "setup_task.sh defines QUARANTINE_DIR as /home/ga/DICOM/quarantine/",
+            "status": "verified"
+        },
+        {
+            "key": "export_report",
+            "metadata_value": "/home/ga/DICOM/exports/contamination_report.txt",
+            "verified_value": "/home/ga/DICOM/exports/contamination_report.txt",
+            "source": "export_result.sh checks for the report at /home/ga/DICOM/exports/contamination_report.txt",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Allergist/Immunologist",
+            "verified_value": "Allergist/Immunologist",
+            "source": "Matches the task description flavor text.",
+            "status": "verified"
+        },
+        {
+            "key": "clinical_scenario",
+            "metadata_value": "Series contamination cleanup for clinical presentation",
+            "verified_value": "Series contamination cleanup for clinical presentation",
+            "source": "Matches the task description flavor text.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_contaminants.count",
+            "metadata_value": "4",
+            "verified_value": "1",
+            "source": "setup_task.sh downloads dicom_viewer_0003.zip which contains only a single file (0003.DCM), resulting in exactly 1 injected contaminant file.",
+            "status": "contradicted"
+        },
+        {
+            "key": "injected_contaminants.source",
+            "metadata_value": "MR brain scan files mixed into CT chest directory",
+            "verified_value": "X-Ray Angiography (Modality XA) sample file mixed into an XA directory",
+            "source": "pydicom inspection of the downloaded 0003.DCM and 0002.DCM files reveals both are XA modality, not MR or CT.",
+            "status": "contradicted"
+        },
+        {
+            "key": "injected_contaminants.distinguishing_features",
+            "metadata_value": "Different Modality tag (MR vs CT), different PatientName/ID, different StudyDescription",
+            "verified_value": "Same Modality tag (XA) and PatientName (Rubo DEMO), but different PatientID and StudyDescription",
+            "source": "pydicom inspection shows both 0002.DCM and 0003.DCM share the Modality 'XA' and PatientName 'Rubo DEMO', differing only in PatientID and StudyDescription.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_features",
+            "metadata_value": "['dicom_header_inspection', 'file_classification', 'file_management', 'series_validation', 'text_report']",
+            "verified_value": "['dicom_header_inspection', 'file_classification', 'file_management', 'series_validation', 'text_report']",
+            "source": "verifier.py explicitly checks file removal logic, preservation of initial files, and report file generation with specific text constraints.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on real X-Ray Angiography (XA) sample DICOM files downloaded from rubomedical.com (0002.DCM and 0003.DCM). The metadata incorrectly claims the task injects 4 MR brain scan files into a CT chest directory; in reality, setup_task.sh downloads and injects exactly 1 contaminant file (0003.DCM) into a directory containing 1 legitimate file (0002.DCM). Furthermore, both the legitimate and contaminant files share the exact same Modality ('XA') and PatientName ('Rubo DEMO') tags, contradicting the metadata's claim that they differ in Modality and PatientName. They only differ by PatientID and StudyDescription. The expected target, quarantine, and report paths strictly match the metadata definitions and are explicitly enforced by export_result.sh and verifier.py.",
+    "pi_confidence": "high"
+}

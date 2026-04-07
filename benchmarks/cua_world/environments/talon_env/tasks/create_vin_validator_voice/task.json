@@ -1,0 +1,27 @@
+{
+  "id": "create_vin_validator_voice@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Create a Talon dictation system for auto-theft investigators that validates 17-character Vehicle Identification Numbers (VINs) using the ISO Modulo 11 check digit algorithm before typing. The system must be located in C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\vin_system\\ and include:\n\n- A Python module vin_math.py containing a validation function is_valid_vin based on the North American Modulo 11 algorithm (Weights: [8,7,6,5,4,3,2,10,0,9,8,7,6,5,4,3,2]; Transliteration: A=1, B=2, C=3, D=4, E=5, F=6, G=7, H=8, J=1, K=2, L=3, M=4, N=5, P=7, R=9, S=2, T=3, U=4, V=5, W=6, X=7, Y=8, Z=9; Invalid characters: I, O, Q).\n- A Talon list user.vin_characters in vin_characters.talon-list mapping phonetic words to uppercase VIN characters (excluding I, O, Q).\n- A Talon module vin_talon.py that registers the list, defines a vin capture for concatenated uppercase strings, and provides an action type_validated_vin to insert either the valid VIN or the string '[INVALID VIN]'.\n- A voice command mapping in vin.talon that links the command \"record vin <user.vin>:\" to the validation action.\n\nAdditionally, use the validation logic in a script C:\\workspace\\scripts\\process_vins.py to process the dataset at C:\\workspace\\data\\nhtsa_vins.csv and export a new CSV to C:\\workspace\\data\\vin_results.csv containing the original columns plus a boolean 'is_valid' column.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_vin_validator_voice\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_vin_validator_voice\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_output_csv": "C:\\workspace\\data\\vin_results.csv",
+    "talon_dir": "C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\vin_system",
+    "dataset_size": 500
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vin_validator"
+    }
+  }
+}

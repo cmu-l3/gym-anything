@@ -1,0 +1,87 @@
+{
+    "task_id": "optimize_network_signal_timing@1",
+    "dataset": "bologna_pasubio",
+    "case_id": "pasubio_signal_optimization",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "Transportation Engineers (17-2051.01)",
+            "verified_value": "Transportation Engineers (17-2051.01)",
+            "source": "Verified via O*NET OnLine (https://www.onetonline.org/link/summary/17-2051.01). SOC code 17-2051.01 is confirmed as 'Transportation Engineers', a specialty under 17-2051.00 Civil Engineers. Job duties include investigating traffic problems, recommending methods to improve traffic flow/safety, and designing transportation infrastructure — matching this task exactly.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Architecture and Engineering",
+            "verified_value": "Architecture and Engineering",
+            "source": "Verified via BLS (https://www.bls.gov/ooh/architecture-and-engineering/) and O*NET Code Connector (https://www.onetcodeconnector.org/find/family/code?s=17). SOC major group 17-0000 is 'Architecture and Engineering Occupations'. Code 17-2051.01 falls under this major group.",
+            "status": "verified"
+        },
+        {
+            "key": "scenario",
+            "metadata_value": "bologna_pasubio",
+            "verified_value": "bologna_pasubio",
+            "source": "Verified as a real-world SUMO scenario maintained by DLR (German Aerospace Center). Published in Bieker et al. 'Traffic Simulation for All: A Real World Traffic Scenario from the City of Bologna' (2014). Source repository: https://github.com/DLR-TS/sumo-scenarios/blob/main/bologna/pasubio/run.sumocfg. SUMO docs: https://sumo.dlr.de/docs/Data/Scenarios.html. The scenario data exists at examples/sumo_env/data/bologna_pasubio/ with network file pasubio_buslanes.net.xml (196KB, 2291 lines) and route files pasubio.rou.xml (8682 lines) + pasubio_busses.rou.xml (725 lines).",
+            "status": "verified"
+        },
+        {
+            "key": "tls_ids",
+            "metadata_value": ["218", "219", "220", "230", "231", "232", "233", "282"],
+            "verified_value": ["218", "219", "220", "230", "231", "232", "233", "282"],
+            "source": "Verified by parsing the source TLS file (examples/sumo_env/data/bologna_pasubio/pasubio_tls.add.xml) which contains exactly 8 tlLogic elements with IDs 218, 219, 220, 230, 231, 232, 233, 282, all with type='static' and programID='utopia'. Also confirmed via live environment testing: sumolib.net.readNet() returned TLS IDs ['230', '232', '231', '233', '282', '218', '219', '220'] — same 8 IDs (different order). Evidence: 17_functional_tests.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "min_green_duration_s",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "This is a task design constraint specified in the task description ('Maintain minimum 5-second green per phase'). It is consistent with standard MUTCD signal timing practice where minimum green for pedestrian safety is typically 4-7 seconds. The value is a requirement the agent must follow, not a factual data claim.",
+            "status": "verified"
+        },
+        {
+            "key": "cycle_length_range_s",
+            "metadata_value": [60, 150],
+            "verified_value": [60, 150],
+            "source": "This is a task design constraint specified in the task description ('keep cycle lengths between 60 and 150 seconds'). The original TLS programs have cycle lengths of 90s (TLS 218), 120s (TLS 219), 84s (TLS 220), 125s (TLS 230), 96s (TLS 231), 90s (TLS 232), 111s (TLS 233), 63s (TLS 282) — all within the 60-150s range. The constraint is reasonable for urban arterial signals.",
+            "status": "verified"
+        },
+        {
+            "key": "improvement_target_pct",
+            "metadata_value": 25,
+            "verified_value": 25,
+            "source": "Task design constraint. The equal-green-split baseline creates substantial artificial delay (worst junction 230 has 78.60s delay). The original demand-proportional timing existed before the 'controller upgrade reset'. Restoring proportional timing to the 3 worst junctions should easily achieve >25% reduction since the equal-split creates severe imbalance. Verified feasible via ground truth computation.",
+            "status": "verified"
+        },
+        {
+            "key": "num_target_intersections",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Task design constraint ('Identify the three intersections with the highest average delay'). Ground truth computation confirmed the worst 3 are: TLS 230 (78.60s delay), TLS 219 (60.75s delay), TLS 232 (58.74s delay). These 3 have delays significantly higher than the remaining 5 (range 5.99-30.08s), making the top-3 cutoff clear.",
+            "status": "verified"
+        },
+        {
+            "key": "optimized_tls_path",
+            "metadata_value": "/home/ga/SUMO_Scenarios/bologna_pasubio/pasubio_tls_optimized.add.xml",
+            "verified_value": "/home/ga/SUMO_Scenarios/bologna_pasubio/pasubio_tls_optimized.add.xml",
+            "source": "Task design parameter specifying where the agent must save the optimized TLS file. Verified during live testing that (1) the directory /home/ga/SUMO_Scenarios/bologna_pasubio/ exists and is writable by user ga, and (2) the file does NOT pre-exist after setup (confirmed in 14_clean_state_check.txt). The export_result.sh script checks this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "optimized_cfg_path",
+            "metadata_value": "/home/ga/SUMO_Scenarios/bologna_pasubio/run_optimized.sumocfg",
+            "verified_value": "/home/ga/SUMO_Scenarios/bologna_pasubio/run_optimized.sumocfg",
+            "source": "Task design parameter specifying where the agent must save the optimized simulation config. Verified during live testing that the directory exists and is writable, and the file does NOT pre-exist after setup. The export_result.sh script checks this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/SUMO_Output/intersection_optimization_report.csv",
+            "verified_value": "/home/ga/SUMO_Output/intersection_optimization_report.csv",
+            "source": "Task design parameter specifying where the agent must save the comparison report CSV. Verified during live testing that /home/ga/SUMO_Output/ exists (created by setup_task.sh), is owned by user ga, and the report file does NOT pre-exist. The export_result.sh script checks this exact path.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the real-world Bologna Pasubio SUMO scenario (DLR, 65 nodes, 111 edges, 8 signalized intersections). The setup script replaces the original demand-proportional TLS timing with an equal-green-split configuration, creating artificially high delays. The 8 TLS IDs are: 218, 219, 220, 230, 231, 232, 233, 282. The baseline simulation (seed=42) processes 8776 vehicles over 6236 simulated seconds with 0 teleports, producing avg waiting time 243.88s, avg time loss 334.56s, avg speed 4.46 m/s. The ground truth per-junction average delays under the equal-split baseline are: TLS 230 = 78.60s (worst), TLS 219 = 60.75s (2nd worst), TLS 232 = 58.74s (3rd worst), TLS 233 = 30.08s, TLS 220 = 22.35s, TLS 282 = 18.47s, TLS 231 = 18.39s, TLS 218 = 5.99s. The 3 target intersections for optimization are therefore 230, 219, and 232. Key approach volumes for junction 230: edge '8' has 1401 vehicles, '4[1][1][0]' has 1246, '3[0]' has 747, '100' and '7' have 591 each. For junction 219: edge '1[1]' has 2002 vehicles, '81' has 860, '38[0]a' has 582, '39[1][1][0]' has 530, '45' has 414, '42' has 400, '36' has 209, '47' has 4. For junction 232: edge '56[0]' has 1848, '56[1][0]' has 1608, '101' has 503, '35[0]' has 342, '38[1][1]a' has 200. The agent must create demand-proportional green splits for these 3 junctions, maintaining min 5s green per phase and 60-150s cycle lengths, then demonstrate >=25% delay reduction. The expected output files are pasubio_tls_optimized.add.xml, run_optimized.sumocfg, and intersection_optimization_report.csv with columns junction_id, baseline_delay_s, optimized_delay_s, improvement_pct. The edge-data collection uses 300-second aggregation intervals. Delay is computed as measured_traveltime minus free_flow_traveltime (edge_length / speed_limit) on approach edges, weighted by vehicle count.",
+    "pi_confidence": "high"
+}

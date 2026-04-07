@@ -1,0 +1,29 @@
+{
+  "id": "secure_build_with_buildkit_secrets@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "Build a Docker image tagged 'secure-app:latest' for a Python application located in '/home/ga/secure-build/'. The application depends on a proprietary library hosted at 'http://host.docker.internal:8090/proprietary_lib.tar.gz'. Use the 'X-Auth-Token' header, with the value provided in 'auth_token.txt', to download the library. You must use Docker BuildKit secrets to ensure the token is handled securely and does not appear in the final image history, environment variables, or metadata. The library must be saved to '/app/proprietary_lib.tar.gz' within the final image.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/secure_build_with_buildkit_secrets/setup_task.sh",
+    "post_task": "/workspace/tasks/secure_build_with_buildkit_secrets/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/secure-build",
+    "image_name": "secure-app:latest",
+    "server_port": 8090,
+    "artifact_path": "/app/proprietary_lib.tar.gz",
+    "token_filename": "auth_token.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secure_build"
+    }
+  }
+}

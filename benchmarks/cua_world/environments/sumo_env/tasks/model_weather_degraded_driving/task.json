@@ -1,0 +1,29 @@
+{
+  "id": "model_weather_degraded_driving@1",
+  "version": "1.0",
+  "env_id": "sumo_env@0.1",
+  "description": "Calibrate vehicle types in the Bologna Pasubio scenario to model degraded driving conditions during heavy rain. Using the baseline files in /home/ga/SUMO_Scenarios/bologna_pasubio/, create a modified vehicle definition file at /home/ga/SUMO_Output/pasubio_vtypes_rain.add.xml where all <vType> elements are updated with tau=\"1.8\", minGap=\"4.0\", and speedFactor=\"0.8\". Run both the baseline simulation and a rain simulation (using a configuration that references the modified vehicle types) to extract the average time loss from the tripinfo outputs. Calculate the percentage increase in average time loss from the baseline to the rain scenario. Save the results to /home/ga/SUMO_Output/weather_impact.txt containing exactly these three lines:\nBaseline Average Time Loss: [Value]\nRain Average Time Loss: [Value]\nPercentage Increase: [Value]%",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/model_weather_degraded_driving/setup_task.sh",
+    "post_task": "/workspace/tasks/model_weather_degraded_driving/export_result.sh"
+  },
+  "metadata": {
+    "vtypes_rain_path": "/home/ga/SUMO_Output/pasubio_vtypes_rain.add.xml",
+    "config_rain_path": "/home/ga/SUMO_Scenarios/bologna_pasubio/run_rain.sumocfg",
+    "tripinfo_baseline_path": "/home/ga/SUMO_Output/tripinfo_baseline.xml",
+    "tripinfo_rain_path": "/home/ga/SUMO_Output/tripinfo_rain.xml",
+    "report_path": "/home/ga/SUMO_Output/weather_impact.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_weather_degraded_driving"
+    }
+  }
+}

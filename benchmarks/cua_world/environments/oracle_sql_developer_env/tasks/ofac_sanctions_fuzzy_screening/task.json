@@ -1,0 +1,27 @@
+{
+  "id": "ofac_sanctions_fuzzy_screening@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Compliance Officer at a global manufacturing firm. The automated international trade screening API is offline, and you have a backlog of orders that must be screened manually against the US Treasury's Specially Designated Nationals (SDN) list to prevent export control violations. Using the 'Trade Compliance' database (User: compliance_officer, Password: Trade2024, Service: XEPDB1), identify pending orders where the ERP_CUSTOMERS.customer_name matches either the OFAC_SDN.sdn_name or an alias in OFAC_ALT.alt_name. \n\nA match is defined by a Jaro-Winkler similarity score of 88 or higher using case-insensitive comparison. Create a view named HIGH_RISK_MATCHES_VW containing the columns: order_id, customer_name, matching_sanctioned_name (the specific SDN name or ALT alias that triggered the match), similarity_score, and match_type ('PRIMARY' or 'ALIAS'). Update the 'status' of all matching orders in the ERP_ORDERS table from 'PENDING' to 'COMPLIANCE_HOLD'. Export the contents of the HIGH_RISK_MATCHES_VW view to /home/ga/Documents/exports/compliance_holds.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ofac_sanctions_fuzzy_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/ofac_sanctions_fuzzy_screening/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/exports/compliance_holds.csv",
+    "total_true_positives": 6,
+    "jw_threshold": 88
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ofac_sanctions_fuzzy_screening"
+    }
+  }
+}

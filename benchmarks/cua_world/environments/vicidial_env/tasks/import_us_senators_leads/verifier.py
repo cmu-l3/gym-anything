@@ -76,7 +76,7 @@ def verify_import_us_senators_leads(traj, env_info, task_info):
     checks.append(Check(leads_count == expected_count, f"leads in list {list_id}: {leads_count}/{expected_count}"))
 
     passed = all(c.ok for c in checks)
-    score = 100 if passed else max(0, min(99, int(round(100 * (leads_count / max(1, expected_count))))))
+    score = 100 if passed else max(0, min(99, int(round(100 * (leads_count / max(1, expected_count)))))))
 
     feedback = " | ".join(
         [("OK: " if c.ok else "FAIL: ") + c.msg for c in checks]

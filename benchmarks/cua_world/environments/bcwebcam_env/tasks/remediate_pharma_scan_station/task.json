@@ -1,0 +1,39 @@
+{
+  "id": "remediate_pharma_scan_station@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "You are a clinical engineer investigating reports of incorrect scans at a pharmacy barcode scanning station. The station's bcWebCam has been misconfigured \u2014 multiple barcode types were left enabled instead of only GS1 DataMatrix, causing spurious reads from nearby retail products.\n\nFix the configuration in bcWebCam's configuration file at C:\\Users\\Docker\\AppData\\Local\\bcWebCam\\bcWebCam.ini (close the application first so it does not overwrite your changes). Enable only DataMatrix 2D barcode scanning and disable all other types (linear, QR Code, Aztec, PDF417). Set clinical parameters: disable beep, remove the terminating character, set 5-second duplicate suppression, and set 65% window opacity. Note: this software uses comma as decimal separator for fractional values.\n\nAnalyze the scan log at C:\\Users\\Docker\\Documents\\ScanStation\\scan_log.txt, where each line has format TIMESTAMP | RAW_DATA. Classify entries by barcode type: GS1 DataMatrix entries begin with (01) followed by a 14-digit GTIN; EAN-13 entries are exactly 13 digits; entries starting with http are QR URLs; other formats are OTHER. Cross-reference DataMatrix GTINs against the approved medication database at C:\\Users\\Docker\\Documents\\ScanStation\\approved_medications.csv. Check expiry dates embedded in the DataMatrix data: digits after (17) encode YYMMDD format; flag entries expired before 2026-03-21.\n\nWrite an audit report to C:\\Users\\Docker\\Documents\\ScanStation\\audit_report.csv with columns: Timestamp, RawData, BarcodeType, GTIN, ProductName, Action. Action values: ACCEPT (valid DataMatrix, in database, not expired), REJECT (non-DataMatrix barcode), INVESTIGATE (DataMatrix with expired product or unknown GTIN).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\remediate_pharma_scan_station\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\remediate_pharma_scan_station\\export_result.ps1"
+  },
+  "metadata": {
+    "ini_path": "C:\\Users\\Docker\\AppData\\Local\\bcWebCam\\bcWebCam.ini",
+    "expected_barcode_d_type_nonzero": true,
+    "expected_barcode_l_type": "0",
+    "expected_barcode_p_type": "0",
+    "expected_barcode_a_type": "0",
+    "expected_barcode_pn_type": "0",
+    "expected_beep": "False",
+    "expected_bc_grace_period": "5",
+    "expected_send_keys_postfix": "",
+    "expected_opacity": "0,65",
+    "audit_report_path": "C:\\Users\\Docker\\Documents\\ScanStation\\audit_report.csv",
+    "expected_row_count": 10,
+    "expected_actions": ["ACCEPT", "REJECT", "ACCEPT", "REJECT", "ACCEPT", "REJECT", "INVESTIGATE", "INVESTIGATE", "REJECT", "ACCEPT"],
+    "expected_barcode_types": ["DATAMATRIX", "EAN13", "DATAMATRIX", "QR_URL", "DATAMATRIX", "EAN13", "DATAMATRIX", "DATAMATRIX", "EAN13", "DATAMATRIX"],
+    "expected_gtins": ["00300010633215", "", "00357111370104", "", "00363391312393", "", "00312547698521", "00398765432109", "", "00346587231092"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_remediate_pharma_scan_station"
+    }
+  }
+}

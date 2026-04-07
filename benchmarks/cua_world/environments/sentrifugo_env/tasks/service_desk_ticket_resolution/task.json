@@ -1,0 +1,51 @@
+{
+  "id": "service_desk_ticket_resolution@1",
+  "version": "1.0",
+  "env_id": "sentrifugo_env@0.1",
+  "description": "Process the maintenance updates from the weekend_maintenance_log.txt file on the Desktop in Sentrifugo. For issues marked as resolved in the log, update their status to 'Closed' and include the exact resolution comments provided. Ensure pending issues remain untouched. If any issues listed in the log are missing from the system due to a simulated outage, create them with an 'Open' status before resolving them.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/service_desk_ticket_resolution/setup_task.sh",
+    "post_task": "/workspace/tasks/service_desk_ticket_resolution/export_result.sh"
+  },
+  "metadata": {
+    "tickets_to_close": [
+      {
+        "employee": "Sarah Johnson",
+        "subject": "VPN access failing remotely",
+        "comment": "Reset user AD password, synced RSA token, and verified successful test login from external IP."
+      },
+      {
+        "employee": "Robert Taylor",
+        "subject": "Need a new secondary monitor",
+        "comment": "Deployed 27-inch Dell U2720Q to desk 4B. Connected via DisplayPort and configured extended desktop."
+      },
+      {
+        "employee": "Emily Williams",
+        "subject": "AC in zone B is too cold",
+        "comment": "HVAC tech inspected Zone B damper. Replaced faulty actuator and recalibrated thermostat to 72F baseline."
+      }
+    ],
+    "tickets_to_keep_open": [
+      {
+        "employee": "Michael Chen",
+        "subject": "Payroll tax deduction question"
+      },
+      {
+        "employee": "David Miller",
+        "subject": "Request for ergonomic standing desk"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_service_desk_ticket_resolution"
+    }
+  }
+}

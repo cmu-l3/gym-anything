@@ -1,0 +1,53 @@
+{
+  "task_id": "secure_dind_socket_access@1",
+  "task_completion": [
+    {
+      "id": "config_modified",
+      "description": "Verify the agent modified the configuration to securely grant Docker socket access to the non-root user",
+      "points": 20,
+      "visual_evidence": "Look for terminal output showing edits to /home/ga/build-agent/docker-compose.yml (e.g., adding 'group_add' with the host's docker GID) or Dockerfile (e.g., creating a docker group with the host's GID and adding the 'agent' user to it)."
+    },
+    {
+      "id": "container_running",
+      "description": "Verify the build-agent container is successfully running",
+      "points": 10,
+      "visual_evidence": "Look for terminal output of 'docker ps' showing the 'build-agent' container with a status of 'Up', or 'docker-compose up -d' completing successfully."
+    },
+    {
+      "id": "host_socket_permissions_unchanged",
+      "description": "Verify the host's Docker socket permissions were not changed to world-writable",
+      "points": 20,
+      "visual_evidence": "Look for terminal output of 'ls -l /var/run/docker.sock' or 'stat /var/run/docker.sock' on the host showing permissions like 'srw-rw----' (not 'srwxrwxrwx' or 777)."
+    },
+    {
+      "id": "container_user_is_agent",
+      "description": "Verify the container is still running as the 'agent' user (UID 1000)",
+      "points": 20,
+      "visual_evidence": "Look for terminal output of 'docker exec build-agent id' or 'docker exec build-agent whoami' showing 'uid=1000(agent)' or 'agent'."
+    },
+    {
+      "id": "docker_ps_success_in_container",
+      "description": "Verify 'docker ps' executes successfully inside the container",
+      "points": 30,
+      "visual_evidence": "Look for terminal output of the exact command 'docker exec build-agent docker ps' executing successfully and displaying the standard Docker container list headers (CONTAINER ID, IMAGE, COMMAND, etc.) without any 'permission denied' errors."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "no_chmod_777_host_socket",
+      "description": "Ensure the agent did not bypass the security requirement by making the host socket world-writable",
+      "visual_evidence": "Check the terminal history to ensure commands like 'chmod 777 /var/run/docker.sock' or 'chmod a+rw /var/run/docker.sock' were NOT executed on the host."
+    },
+    {
+      "id": "no_root_user_in_container",
+      "description": "Ensure the agent did not bypass the non-root requirement by running the container as root",
+      "visual_evidence": "Check that 'user: root' was NOT added to docker-compose.yml, and 'USER agent' was NOT removed or changed to 'USER root' in the Dockerfile."
+    },
+    {
+      "id": "genuine_command_execution",
+      "description": "Ensure the success outputs are from actual command execution",
+      "visual_evidence": "Check that the outputs for 'docker exec build-agent docker ps' appear as standard stdout in the terminal, not as text written in an editor or printed via 'echo'."
+    }
+  ],
+  "privileged_info_for_vlm": "The project directory is '/home/ga/build-agent'. The container name is 'build-agent'. The target user inside the container must remain 'agent' with UID 1000. The host's docker socket is mounted to the container. Success requires the container to run as the non-root 'agent' user, the host's /var/run/docker.sock permissions to remain unchanged (not world-writable), and the command 'docker exec build-agent docker ps' to execute successfully."
+}

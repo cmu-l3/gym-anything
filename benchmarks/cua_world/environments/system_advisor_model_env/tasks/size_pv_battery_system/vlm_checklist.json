@@ -1,0 +1,65 @@
+{
+  "task_id": "size_pv_battery_system@1",
+  "task_completion": [
+    {
+      "id": "import_pysam_modules",
+      "description": "Agent creates a Python script that imports the required PySAM modules.",
+      "points": 10,
+      "visual_evidence": "A Python script open in an editor showing import statements for 'PySAM.Pvwattsv8' and 'PySAM.Battwatts'."
+    },
+    {
+      "id": "configure_pv_system",
+      "description": "Agent configures the PV system parameters and weather file in the script.",
+      "points": 15,
+      "visual_evidence": "Script shows assignments for PV capacity (100 kW), tilt (33.4), azimuth (180), losses (14.08), DC-to-AC ratio (1.2), inverter efficiency (96), GCR (0.4), and sets the weather file path."
+    },
+    {
+      "id": "configure_battery_system",
+      "description": "Agent configures the battery system parameters in the script.",
+      "points": 15,
+      "visual_evidence": "Script shows assignments for battery capacity (200 kWh), power (50 kW), chemistry (Li-ion NMC), dispatch mode (peak shaving / look ahead), and positioning (behind-the-meter)."
+    },
+    {
+      "id": "assign_dummy_load",
+      "description": "Agent assigns a dummy electrical load profile and analysis period to the battery module.",
+      "points": 20,
+      "visual_evidence": "Script includes code explicitly setting a load profile (e.g., `batt.Battery.load = [...]` or similar array of 8760 values) and an analysis period (e.g., `batt.Lifetime.analysis_period = 1`) to ensure the battery dispatches."
+    },
+    {
+      "id": "execute_simulation",
+      "description": "Agent executes the PySAM simulation for both modules.",
+      "points": 10,
+      "visual_evidence": "Script contains calls to the `.execute()` methods for both the Pvwattsv8 and Battwatts instances."
+    },
+    {
+      "id": "save_json_report",
+      "description": "Agent writes the structured results to the specified JSON file.",
+      "points": 15,
+      "visual_evidence": "Script contains code to construct a dictionary with 'system_config', 'annual_results', and 'monthly_pv_generation_kwh' keys, and saves it using `json.dump` to '/home/ga/Documents/SAM_Projects/pv_battery_report.json'."
+    },
+    {
+      "id": "verify_json_output",
+      "description": "The JSON report is successfully generated with realistic simulation values.",
+      "points": 15,
+      "visual_evidence": "Terminal output showing successful script execution, or a view of the generated 'pv_battery_report.json' file containing a 'pv_annual_generation_kwh' value between 150000 and 195000, and a 'capacity_factor_percent' between 17 and 22."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_simulation_execution",
+      "description": "The agent actually ran a Python script to generate the JSON file.",
+      "visual_evidence": "Terminal history showing the execution of the Python script (e.g., `python simulate_system.py`) rather than manually creating and typing the JSON file."
+    },
+    {
+      "id": "no_hardcoded_results",
+      "description": "The agent extracts results dynamically from the PySAM modules rather than hardcoding expected values.",
+      "visual_evidence": "The Python script assigns dictionary values using PySAM output attributes (e.g., `pv.Outputs.annual_energy`, `batt.Outputs.annual_export_to_grid_energy`) instead of typing raw numbers like 177026."
+    },
+    {
+      "id": "correct_output_path",
+      "description": "The agent saved the file to the exact required directory.",
+      "visual_evidence": "The file path in the script or terminal commands strictly matches '/home/ga/Documents/SAM_Projects/pv_battery_report.json'."
+    }
+  ],
+  "privileged_info_for_vlm": "The expected annual PV generation is approximately 177,026 kWh (acceptable range: 150,000 - 195,000 kWh) and the capacity factor is approximately 20.2% (acceptable range: 17% - 22%). To successfully generate non-zero battery throughput, the agent MUST explicitly assign an arbitrary dummy electrical load profile (e.g., `batt.Battery.load = [50]*8760`) and an analysis period (e.g., `batt.Lifetime.analysis_period = 1`) to the Battwatts module. Without this undocumented step, PySAM will crash or yield 0.0 kWh throughput."
+}

@@ -1,0 +1,30 @@
+{
+  "id": "enable_compliance_archival@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure the Wazuh manager to monitor the custom application log file '/var/log/legacy_fin_app.log' using the syslog format and enable the global 'logall_json' setting. Simulate a log event by appending '2024-01-01 12:00:00 LegacyFinApp: INFO Transaction ID 998877 completed successfully by user_auditor' to the monitored file. Extract the resulting JSON event from the Wazuh archives and save the full JSON object to '/home/ga/archive_proof.json'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/enable_compliance_archival/setup_task.sh",
+    "post_task": "/workspace/tasks/enable_compliance_archival/export_result.sh"
+  },
+  "metadata": {
+    "target_log_file": "/var/log/legacy_fin_app.log",
+    "target_archive_file": "/var/ossec/logs/archives/archives.json",
+    "proof_file": "/home/ga/archive_proof.json",
+    "required_token": "Transaction ID 998877",
+    "required_log_content": "LegacyFinApp: INFO Transaction ID 998877",
+    "container_name": "wazuh-wazuh.manager-1"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_enable_compliance_archival"
+    }
+  }
+}

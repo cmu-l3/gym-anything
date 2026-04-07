@@ -1,0 +1,36 @@
+{
+  "id": "clinical_trial_safety_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Clinical Data Manager responsible for preparing the safety analysis database for a Phase III clinical trial (RVX4010-301). Using the TRIAL_DM schema in Oracle (Host: localhost, Port: 1521, Service: XEPDB1, User: trial_dm, Password: Trial2024), identify protocol deviations from the VISITS table and populate the PROTOCOL_DEVIATIONS table. Deviations to detect include out-of-window visits (actual_date more than 7 days before or after planned_date), missing visits (visit_status 'MISSED' or NULL actual_date for past visits), and sequence violations (higher visit_number with an earlier actual_date than a lower visit_number for the same subject). Create a view named TIME_TO_ONSET_VW that calculates the days between a subject's first_dose_date (from TREATMENT_EXPOSURE) and the AE onset_date, categorizing the AE into a 'RISK_WINDOW' column: 'IMMEDIATE' (0-7 days), 'EARLY' (8-30 days), 'DELAYED' (31-90 days), or 'LATE' (>90 days). Develop a SIGNAL_DETECTION_VW to calculate the Proportional Reporting Ratio (PRR) for each MedDRA Preferred Term (meddra_pt) comparing the Active Drug arm to Placebo using the formula PRR = (a / (a+b)) / (c / (c+d)), where 'a' and 'c' are AE counts and 'b' and 'd' are non-AE subject counts; flag signals where PRR >= 2.0 and 'a' >= 3. Generate a LAB_SHIFT_ANALYSIS_VW comparing each subject's baseline lab result (visit_number = 1) to post-baseline visits, categorizing values as 'LOW', 'NORMAL', or 'HIGH' based on reference ranges and outputting the shift pattern. Establish CDISC SDTM compliant views: SDTM_DM (Demographics), SDTM_AE (Adverse Events), and SDTM_LB (Labs) with the required clinical columns. Create a materialized view SAFETY_SUMMARY_MV showing AE incidence by meddra_soc with separate columns for 'RVX-4010 20MG' and 'PLACEBO' counts. Export the safety summary to /home/ga/safety_summary_report.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/clinical_trial_safety_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/clinical_trial_safety_analysis/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/clinical_safety_result.json",
+    "occupation": "Epidemiologists / Clinical Data Managers",
+    "industry": "Pharmaceutical R&D",
+    "gdp_contribution": "$635B",
+    "design_pattern": "Data Transformation and Signal Detection",
+    "oracle_features": [
+      "Window Functions",
+      "PIVOT",
+      "Materialized Views",
+      "Date Arithmetic",
+      "CDISC SDTM Standards"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_clinical_trial_safety_analysis"
+    }
+  }
+}

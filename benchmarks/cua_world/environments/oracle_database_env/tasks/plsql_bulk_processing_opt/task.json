@@ -1,0 +1,41 @@
+{
+  "id": "plsql_bulk_processing_opt@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A nightly payment settlement procedure 'PROCESS_DAILY_SETTLEMENTS' in the HR schema is running too slowly as transaction volumes have increased to 50,000+ per day. Refactor this PL/SQL procedure to use Oracle's bulk processing features, specifically implementing BULK COLLECT with a LIMIT clause and FORALL for updates to MERCHANT_BALANCES and inserts into SETTLEMENT_LOG. The implementation must eliminate the row-by-row commit pattern in favor of efficient batch processing. Connect to the database (User: hr, Pass: hr123, Host: localhost, Service: XEPDB1) to compile and execute the procedure, ensuring it successfully processes all transactions from DAILY_TRANSACTIONS.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/plsql_bulk_processing_opt/setup_task.sh",
+    "post_task": "/workspace/tasks/plsql_bulk_processing_opt/export_result.sh"
+  },
+  "metadata": {
+    "procedure_name": "PROCESS_DAILY_SETTLEMENTS",
+    "transaction_count": 50000,
+    "tables": [
+      "MERCHANT_BALANCES",
+      "DAILY_TRANSACTIONS",
+      "SETTLEMENT_LOG"
+    ],
+    "required_keywords": [
+      "BULK COLLECT",
+      "FORALL",
+      "LIMIT"
+    ],
+    "forbidden_keywords": [
+      "COMMIT"
+    ],
+    "connection_user": "hr",
+    "connection_password": "hr123"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bulk_processing"
+    }
+  }
+}

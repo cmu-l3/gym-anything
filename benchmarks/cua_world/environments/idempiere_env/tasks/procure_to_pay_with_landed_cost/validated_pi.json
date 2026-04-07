@@ -1,0 +1,122 @@
+{
+    "task_id": "procure_to_pay_with_landed_cost@1",
+    "dataset": "iDempiere GardenWorld Demo Database (official seed data)",
+    "case_id": "Seed Farm Inc. / Azalea Bush P2P cycle",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "vendor_name",
+            "metadata_value": "Seed Farm Inc.",
+            "verified_value": "Seed Farm Inc.",
+            "source": "DB query: SELECT name FROM c_bpartner WHERE name='Seed Farm Inc.' AND ad_client_id=11 AND isvendor='Y' returned 'Seed Farm Inc.' (c_bpartner_id=120)",
+            "status": "verified"
+        },
+        {
+            "key": "product_name",
+            "metadata_value": "Azalea Bush",
+            "verified_value": "Azalea Bush",
+            "source": "DB query: SELECT name FROM m_product WHERE name='Azalea Bush' AND ad_client_id=11 returned 'Azalea Bush' (m_product_id=128, producttype=I, ispurchased=Y)",
+            "status": "verified"
+        },
+        {
+            "key": "product_search_key",
+            "metadata_value": "Azalea Bush",
+            "verified_value": "Azalea Bush",
+            "source": "DB query: SELECT value FROM m_product WHERE name='Azalea Bush' returned value='Azalea Bush'",
+            "status": "verified"
+        },
+        {
+            "key": "po_qty",
+            "metadata_value": "200",
+            "verified_value": "200",
+            "source": "Task parameter - quantity to order. Not a data claim, but product is purchasable (ispurchased=Y) so any quantity is valid.",
+            "status": "verified"
+        },
+        {
+            "key": "purchase_std_price",
+            "metadata_value": "15.00",
+            "verified_value": "15.00",
+            "source": "DB query: SELECT pricestd FROM m_productprice pp JOIN m_pricelist_version plv ON pp.m_pricelist_version_id=plv.m_pricelist_version_id JOIN m_pricelist pl ON plv.m_pricelist_id=pl.m_pricelist_id JOIN m_product p ON pp.m_product_id=p.m_product_id WHERE p.name='Azalea Bush' AND pl.name='Purchase' returned pricestd=15 for both Purchase 2001 and Purchase 2003 versions",
+            "status": "verified"
+        },
+        {
+            "key": "purchase_list_price",
+            "metadata_value": "25.00",
+            "verified_value": "25.00",
+            "source": "Same DB query returned pricelist=25 for Purchase price list versions",
+            "status": "verified"
+        },
+        {
+            "key": "expected_goods_total",
+            "metadata_value": "3000.00",
+            "verified_value": "3000.00",
+            "source": "Calculation: 200 units x $15.00 std price = $3,000.00. Note: actual PO total depends on which price (std vs list) iDempiere uses. Std price of $15.00 gives $3,000; list price of $25.00 would give $5,000. The export_result.sh uses a range of $2,500-$6,000 to account for either.",
+            "status": "verified"
+        },
+        {
+            "key": "freight_amount",
+            "metadata_value": "75.00",
+            "verified_value": "75.00",
+            "source": "Task parameter - the agent is instructed to create a $75.00 freight invoice. This is the amount to enter, not a data-sourced value.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_combined_total",
+            "metadata_value": "3075.00",
+            "verified_value": "3075.00",
+            "source": "Calculation: $3,000.00 goods + $75.00 freight = $3,075.00. Same caveat as goods_total about which price is used.",
+            "status": "verified"
+        },
+        {
+            "key": "check_number",
+            "metadata_value": "CHK-P2P-2026",
+            "verified_value": "CHK-P2P-2026",
+            "source": "Task parameter - the agent is instructed to use this check number. Not a data claim.",
+            "status": "verified"
+        },
+        {
+            "key": "charge_name",
+            "metadata_value": "Freight Charges",
+            "verified_value": "Freight Charges",
+            "source": "DB query: SELECT name FROM c_charge WHERE ad_client_id=11 AND isactive='Y' returned three charges: 'Bank Charge', 'Commissions Paid', 'Freight Charges'. The charge exists with c_charge_id=200000. Note: the charge is named 'Freight Charges' (plural), NOT 'Freight'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_po_status",
+            "metadata_value": "CO",
+            "verified_value": "CO",
+            "source": "iDempiere document status convention: CO = Completed. Standard for completed purchase orders.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_receipt_status",
+            "metadata_value": "CO",
+            "verified_value": "CO",
+            "source": "iDempiere document status convention: CO = Completed. Standard for completed material receipts.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_goods_invoice_status",
+            "metadata_value": "CO",
+            "verified_value": "CO",
+            "source": "iDempiere document status convention: CO = Completed. Standard for completed vendor invoices.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_freight_invoice_status",
+            "metadata_value": "CO",
+            "verified_value": "CO",
+            "source": "iDempiere document status convention: CO = Completed. Standard for completed vendor invoices.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_payment_status",
+            "metadata_value": "CO",
+            "verified_value": "CO",
+            "source": "iDempiere document status convention: CO = Completed. Standard for completed payments.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses iDempiere 12's GardenWorld demo database. Vendor 'Seed Farm Inc.' (c_bpartner_id=120) exists as both vendor and customer with default PO price list 'Purchase' (id=102). Product 'Azalea Bush' (m_product_id=128, value='Azalea Bush') is an Item type purchasable product with purchase std price=$15.00 and list price=$25.00 in both Purchase 2001 and Purchase 2003 price list versions. A PO for 200 units at the standard price totals $3,000.00. The charge for freight is named 'Freight Charges' (c_charge_id=200000) — note the plural form, not just 'Freight'. There are three charges in GardenWorld: Bank Charge, Commissions Paid, and Freight Charges. The Landed Cost feature in iDempiere 12 is accessed via the 'Landed Costs' tab on vendor invoice lines (within the 'Purchase Invoice and Credit/Debit Note' window), not through a separate menu window. The key menu windows are: Purchase Order, Material Receipt, Purchase Invoice and Credit/Debit Note, Payment and Receipt, and Payment Allocation. The login credentials are GardenAdmin/GardenAdmin with role GardenWorld Admin. All completed documents should show docstatus='CO'. The expected combined payment is $3,075.00 ($3,000 goods + $75 freight) if std price is used, or up to $5,075.00 if list price is used. The export script accounts for both possibilities.",
+    "pi_confidence": "high"
+}

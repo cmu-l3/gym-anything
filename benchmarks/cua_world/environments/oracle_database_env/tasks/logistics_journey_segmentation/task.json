@@ -1,0 +1,40 @@
+{
+  "id": "logistics_journey_segmentation@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A logistics analysis task requiring the transformation of high-frequency GPS status logs into consolidated journey segments. Using the Oracle Database (HR schema, localhost:1521/XEPDB1, User: hr, Password: hr123), create a database view named JOURNEY_SEGMENTS from the CONTAINER_LOGS table. This view must consolidate consecutive logs with the same status into single rows, ensuring 'A-B-A' transitions (e.g., Transit -> Customs -> Transit) result in distinct segments. The view must include CONTAINER_ID, SEGMENT_ID (sequential per container), STATUS, START_TIME, END_TIME, and DURATION_MINS. Export the view contents to /home/ga/Desktop/journey_report.csv ordered by Container ID and Start Time.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/logistics_journey_segmentation/setup_task.sh",
+    "post_task": "/workspace/tasks/logistics_journey_segmentation/export_result.sh"
+  },
+  "metadata": {
+    "expected_view_name": "JOURNEY_SEGMENTS",
+    "expected_csv_path": "/home/ga/Desktop/journey_report.csv",
+    "containers": {
+      "101": {
+        "expected_segments": 4,
+        "description": "Transit->Customs->Transit->Docked"
+      },
+      "102": {
+        "expected_segments": 1,
+        "description": "Docked only"
+      },
+      "103": {
+        "expected_segments": 5,
+        "description": "Rapid A-B switching"
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_logistics_journey_segmentation"
+    }
+  }
+}

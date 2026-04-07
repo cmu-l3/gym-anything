@@ -43,6 +43,20 @@ apt-get install -y \
 apt-get install -y python3-pip python3-pymysql
 pip3 install --no-cache-dir mysql-connector-python PyMySQL || true
 
+# Authenticate with Docker Hub to avoid rate limits
+echo "dckr_pat_YISK01jQAaGVVmzkVoZnkOH3Q3g" | docker login -u "hackear2041" --password-stdin \
+    && echo "Docker Hub auth successful" \
+    || echo "Docker Hub auth failed (continuing anyway)"
+
+# Pre-pull Docker images during install phase
+if [ -f /workspace/config/docker-compose.yml ]; then
+    mkdir -p /home/ga/matomo
+    cp /workspace/config/docker-compose.yml /home/ga/matomo/
+    chown -R ga:ga /home/ga/matomo
+    cd /home/ga/matomo
+    docker-compose pull || echo "Warning: docker-compose pull failed (will retry in setup)"
+fi
+
 # Clean up package cache
 apt-get clean
 rm -rf /var/lib/apt/lists/*

@@ -1,0 +1,37 @@
+{
+  "id": "aircraft_cascading_delay_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Operations Research Analyst at a major airline analyzing how ground delays cascade through your flight network using the FLIGHT_OPS schema in Oracle (flight_ops/Flights2024 to XEPDB1). Create a view named AIRCRAFT_ITINERARY_VW that sequences each aircraft's daily flights chronologically using window functions to calculate PREV_ARR_DELAY (the arr_delay of the aircraft's immediately preceding flight that day) and ACTUAL_TURNAROUND_MINS (the difference in minutes between the current flight's actual_dep_time and the previous flight's actual_arr_time, where times are HH24MI integers). Create a view DELAY_AMPLIFIERS_VW that queries the itinerary view to isolate flights where PREV_ARR_DELAY <= 15 and DEP_DELAY > 15, calculating INJECTED_DELAY_MINS as (DEP_DELAY - GREATEST(0, PREV_ARR_DELAY)). Create an AIRPORT_PERFORMANCE_STATS_VW view aggregating the delay amplifiers by ORIGIN to include TOTAL_AMPLIFICATION_EVENTS, TOTAL_INJECTED_MINS, and AVG_INJECTED_MINS for airports with more than 10 amplification events. Create a SNOWBALL_DELAYS_VW view using Oracle's MATCH_RECOGNIZE clause to identify aircraft with 3 or more consecutive flights on the same day where dep_delay strictly increases and the final flight's dep_delay exceeds 90 minutes, outputting tail_number, flight_date, and final_delay_mins. Export the AIRPORT_PERFORMANCE_STATS_VW data, ordered by TOTAL_INJECTED_MINS descending, to /home/ga/Documents/exports/airport_delay_scorecard.csv. Connection details: Host=localhost, Port=1521, Service=XEPDB1, User=flight_ops, Password=Flights2024.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/aircraft_cascading_delay_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/aircraft_cascading_delay_analysis/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/flight_ops_result.json",
+    "occupation": "Operations Research Analysts",
+    "industry": "Transportation / Airlines",
+    "oracle_features": [
+      "Window Functions",
+      "MATCH_RECOGNIZE",
+      "LAG",
+      "LEAD",
+      "Aggregate Filtering"
+    ],
+    "expected_amplifiers_count": 12,
+    "expected_snowballs_count": 1,
+    "expected_stats_rows": 1
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cascading_delays"
+    }
+  }
+}

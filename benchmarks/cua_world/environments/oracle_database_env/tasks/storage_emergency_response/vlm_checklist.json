@@ -1,0 +1,65 @@
+{
+  "task_id": "storage_emergency_response@1",
+  "task_completion": [
+    {
+      "id": "database_connection",
+      "description": "Connect to the Oracle database as the SYSTEM user.",
+      "points": 10,
+      "visual_evidence": "A terminal or database client (like SQL*Plus or SQL Developer) showing a successful connection to the database (Service: XEPDB1) using the 'SYSTEM' user."
+    },
+    {
+      "id": "expand_primary_tablespace",
+      "description": "Add at least 50MB of capacity to the TS_EMR_LOGS tablespace.",
+      "points": 20,
+      "visual_evidence": "SQL command executing 'ALTER TABLESPACE TS_EMR_LOGS ADD DATAFILE ... SIZE 50M' (or resizing an existing datafile by +50M) followed by a 'Tablespace altered' or 'Database altered' confirmation message."
+    },
+    {
+      "id": "create_archive_tablespace",
+      "description": "Create a new tablespace named TS_ARCHIVE.",
+      "points": 15,
+      "visual_evidence": "SQL command executing 'CREATE TABLESPACE TS_ARCHIVE ...' followed by a 'Tablespace created' confirmation message."
+    },
+    {
+      "id": "move_historical_table",
+      "description": "Move the EMR_HISTORICAL_LOGS table to the TS_ARCHIVE tablespace.",
+      "points": 20,
+      "visual_evidence": "SQL command executing 'ALTER TABLE EMR_HISTORICAL_LOGS MOVE TABLESPACE TS_ARCHIVE' followed by a 'Table altered' confirmation message."
+    },
+    {
+      "id": "validate_indexes",
+      "description": "Ensure all associated indexes for EMR_HISTORICAL_LOGS are VALID.",
+      "points": 10,
+      "visual_evidence": "SQL commands showing 'ALTER INDEX <index_name> REBUILD' and/or a query against USER_INDEXES or DBA_INDEXES showing the STATUS as 'VALID' for indexes on EMR_HISTORICAL_LOGS."
+    },
+    {
+      "id": "insert_test_record",
+      "description": "Confirm system operation by inserting a test record into EMR_ADMISSION_LOGS.",
+      "points": 10,
+      "visual_evidence": "SQL command executing 'INSERT INTO EMR_ADMISSION_LOGS ...' followed by a '1 row created' confirmation message."
+    },
+    {
+      "id": "export_storage_report",
+      "description": "Export a report of the final free space for both tablespaces to /home/ga/Desktop/storage_report.txt.",
+      "points": 15,
+      "visual_evidence": "A terminal, text editor, or file manager showing the creation and content of 'storage_report.txt' on the Desktop, containing queried free space data for TS_EMR_LOGS and TS_ARCHIVE."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_database_interaction",
+      "description": "The agent interacts with a real database client rather than faking outputs.",
+      "visual_evidence": "Look for standard Oracle SQL*Plus prompts ('SQL>'), database client UI elements, and genuine Oracle error/success messages rather than manually typed text in a generic editor."
+    },
+    {
+      "id": "authentic_report_generation",
+      "description": "The storage report is generated from actual query results.",
+      "visual_evidence": "The contents of storage_report.txt should reflect actual database query outputs (e.g., formatted SQL*Plus output or spool files) rather than a hardcoded string copied directly from the prompt."
+    },
+    {
+      "id": "no_direct_file_manipulation_for_db",
+      "description": "The agent uses SQL commands to manage tablespaces, not direct OS file manipulation.",
+      "visual_evidence": "The agent must not attempt to manually edit or move .dbf files using bash commands (like 'mv' or 'truncate') to bypass Oracle's storage management."
+    }
+  ],
+  "privileged_info_for_vlm": "Primary tablespace: TS_EMR_LOGS. Archive tablespace: TS_ARCHIVE. Active table: EMR_ADMISSION_LOGS. Historical table: EMR_HISTORICAL_LOGS. Table owner: SYSTEM. Connection user: SYSTEM. Connection password: OraclePassword123."
+}

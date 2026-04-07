@@ -1,0 +1,49 @@
+{
+  "id": "posthospitalization_med_reconciliation@1",
+  "version": "1.0",
+  "env_id": "nosh_charting_system_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are a nurse care coordinator at Hillside Family Medicine completing medication reconciliation for Sherill Botsford (DOB: January 24, 1995) following hospitalization for hypertensive crisis. Log in as demo_provider (password: Provider1234!). Update the patient's medication list by discontinuing the pre-admission doses of Lisinopril 5mg and Amlodipine 5mg, and adding the new dose-adjusted versions: Lisinopril 10mg daily and Amlodipine 10mg daily. Create an encounter to document this post-hospitalization medication reconciliation visit.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/posthospitalization_med_reconciliation/setup_task.sh",
+    "post_task": "/workspace/tasks/posthospitalization_med_reconciliation/export_result.sh"
+  },
+  "metadata": {
+    "patient_pid": 10,
+    "patient_name": "Sherill Botsford",
+    "patient_dob": "1995-01-24",
+    "patient_sex": "f",
+    "occupation_context": "Nurse Care Coordinator — post-hospitalization medication reconciliation",
+    "seeded_state": {
+      "Lisinopril_5mg": "active (pre-admission dose, must be discontinued)",
+      "Amlodipine_5mg": "active (pre-admission dose, must be discontinued)"
+    },
+    "features_used": [
+      "medications_discontinue",
+      "medications_add",
+      "encounters"
+    ],
+    "required_actions": [
+      "Discontinue Lisinopril 5mg",
+      "Discontinue Amlodipine 5mg",
+      "Add Lisinopril 10mg as active medication",
+      "Add Amlodipine 10mg as active medication",
+      "Create encounter for medication reconciliation visit"
+    ],
+    "expected_db_state": {
+      "rx_list": "Lisinopril 5mg and Amlodipine 5mg discontinued (rxl_date_inactive set); Lisinopril 10mg and Amlodipine 10mg active",
+      "encounters": "1+ new encounter for pid=10"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_posthospitalization_med_reconciliation"
+    }
+  }
+}

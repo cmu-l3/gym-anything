@@ -1,0 +1,33 @@
+{
+  "id": "flatten_vitals_to_csv@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a data transformation channel in NextGen Connect named 'Vitals_Flattener' to flatten hierarchical HL7 vital signs data into a CSV format for research analytics. The channel must listen on TCP port 6661 for HL7 v2.x ORU^R01 messages. Extract PatientID (PID.3.1), ObservationTime (OBR.7), and vital signs from OBX segments based on LOINC codes: Heart Rate (8867-4), Systolic BP (8480-6), Diastolic BP (8462-4), and Oxygen Saturation (2708-6). Append the data to /tmp/research_data/vitals.csv using the format PatientID,ObservationTime,HeartRate,SystolicBP,DiastolicBP,SpO2 (no header). If a vital is missing, the field must be empty. Ignore OBX segments with other LOINC codes and ensure the output directory is created if it doesn't exist. A sample HL7 message is provided at /home/ga/sample_vitals.hl7.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/flatten_vitals_to_csv/setup_task.sh",
+    "post_task": "/workspace/tasks/flatten_vitals_to_csv/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Vitals_Flattener",
+    "port": 6661,
+    "output_file": "/tmp/research_data/vitals.csv",
+    "loinc_codes": {
+      "hr": "8867-4",
+      "sys": "8480-6",
+      "dia": "8462-4",
+      "spo2": "2708-6"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_flatten_vitals_to_csv"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+    "task_id": "netcdf_albedo_export@1",
+    "dataset": "opengeos landsat",
+    "case_id": "landsat_multispectral.tif",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "data_file",
+            "metadata_value": "/home/ga/snap_data/landsat_multispectral.tif",
+            "verified_value": "/home/ga/snap_data/landsat_multispectral.tif",
+            "source": "setup_task.sh explicit download path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_dim_file",
+            "metadata_value": "/home/ga/snap_exports/landsat_albedo.dim",
+            "verified_value": "/home/ga/snap_exports/landsat_albedo.dim",
+            "source": "export_result.sh explicit file check",
+            "status": "verified"
+        },
+        {
+            "key": "expected_nc_file",
+            "metadata_value": "/home/ga/snap_exports/landsat_albedo.nc",
+            "verified_value": "/home/ga/snap_exports/landsat_albedo.nc",
+            "source": "export_result.sh explicit file check",
+            "status": "verified"
+        },
+        {
+            "key": "expected_band_name",
+            "metadata_value": "albedo",
+            "verified_value": "albedo",
+            "source": "export_result.sh explicit band name substring check",
+            "status": "verified"
+        },
+        {
+            "key": "albedo_range",
+            "metadata_value": [0.01, 0.95],
+            "verified_value": [7.379, 154.159],
+            "source": "python rasterio execution on downloaded opengeos landsat.tif applying task formula",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_nc_size_kb",
+            "metadata_value": 50,
+            "verified_value": 50,
+            "source": "raster dimensions (2127x1564) and minimum 5 float variables yield approx 66,000 KB, safely bounded by 50 KB",
+            "status": "verified"
+        },
+        {
+            "key": "min_nc_vars",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "export_result.sh explicitly filters metadata variables and counts remaining data arrays; 4 original bands + 1 albedo = 5",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Completed PI audit for snap_env netcdf_albedo_export task by verifying real Landsat Top of Atmosphere GeoTIFF data from opengeos on GitHub. Confirmed the expected NetCDF variables count (5), minimum output size, and target paths against the export_result.sh script. However, the task description falsely claims the raw pixel values are on a 0-1 scale; they are uint8 (0-255). Applying the prompt's albedo formula exactly to the 0-255 pixels yields values from 7.4 to 154.2, directly contradicting the metadata's [0.01, 0.95] albedo_range claim. Additionally, discovered a critical defect: verifier.py is entirely missing from the environment, making the task programmatically unscorable.",
+    "pi_confidence": "high"
+}

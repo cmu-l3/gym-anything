@@ -93,6 +93,9 @@ launch_firefox_to() {
     local url="${1:-http://localhost/}"
     local wait_sec="${2:-5}"
 
+    # Wait for Emoncms web service to be ready before launching Firefox
+    wait_for_emoncms || echo "WARNING: Emoncms may not be ready, attempting Firefox launch anyway"
+
     # Fix snap permissions
     chown -R ga:ga /home/ga/snap/ 2>/dev/null || true
 

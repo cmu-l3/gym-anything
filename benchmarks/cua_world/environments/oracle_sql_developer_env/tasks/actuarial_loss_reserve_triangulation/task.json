@@ -1,0 +1,31 @@
+{
+  "id": "actuarial_loss_reserve_triangulation@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a pricing actuary analyzing the 'Commercial Auto' line of business using the SCHEDULE_P_RAW table in the ACTUARY_ADMIN schema. Create a view named COMPANY_TRIANGLE_VW for group_code '1767' and line_of_business 'Commercial Auto' that transforms the data so each accident_year is a row and development_lag values (1 through 10) are columns named DLAG_1 through DLAG_10 containing cumulative_paid_loss. Create a second view, COMPANY_LINK_RATIOS_VW, for the same group and line that calculates the Age-to-Age factor (cumulative_paid_loss at Lag N / cumulative_paid_loss at Lag N-1) with columns for accident_year, target_lag (N, from 2 to 10), and link_ratio. Create a third view, INDUSTRY_LDF_BENCHMARKS_VW, calculating the Volume-Weighted Average LDF (sum(Paid at Lag N) / sum(Paid at Lag N-1)) across all companies for 'Commercial Auto', where the denominator only includes records with valid values at Lag N; output columns should be target_lag and volume_weighted_ldf. Export the data from INDUSTRY_LDF_BENCHMARKS_VW to /home/ga/Documents/exports/industry_ldf_benchmarks.csv. Connection details: Host=localhost, Port=1521, Service=XEPDB1, User=actuary_admin, Password=Reserve2024.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/actuarial_loss_reserve_triangulation/setup_task.sh",
+    "post_task": "/workspace/tasks/actuarial_loss_reserve_triangulation/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_file": "/home/ga/Documents/exports/industry_ldf_benchmarks.csv",
+    "oracle_features": [
+      "PIVOT",
+      "LAG",
+      "Window Functions",
+      "Volume-Weighted Averages"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_actuarial_loss_reserve_triangulation"
+    }
+  }
+}

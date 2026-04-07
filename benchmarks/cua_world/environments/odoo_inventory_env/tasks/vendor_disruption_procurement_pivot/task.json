@@ -1,0 +1,61 @@
+{
+  "id": "vendor_disruption_procurement_pivot@1",
+  "version": "1.0",
+  "env_id": "odoo_inventory_env@0.1",
+  "description": "Our primary aerospace parts vendor has declared force majeure, effectively suspending all pending orders. Log in as admin/admin. Replace all pending purchase orders from the affected supplier with confirmed orders to qualified backup suppliers from the procurement database, maintaining original quantities. Update automated reorder rules to reflect these vendor changes without affecting orders from other suppliers.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/vendor_disruption_procurement_pivot/setup_task.sh",
+    "post_task": "/workspace/tasks/vendor_disruption_procurement_pivot/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/vendor_disruption_pivot_result.json",
+    "disrupted_vendor": "Precision Aeroparts Inc.",
+    "affected_codes": [
+      "AERO-BRK-001",
+      "AERO-HYD-002",
+      "AERO-TRB-003",
+      "AERO-FAS-004"
+    ],
+    "unaffected_codes": [
+      "AERO-AVN-005",
+      "AERO-CMP-006",
+      "AERO-RVT-007",
+      "AERO-BRG-008",
+      "AERO-SEL-009",
+      "AERO-SHM-010"
+    ],
+    "protected_po_products": [
+      "AERO-CMP-006",
+      "AERO-SEL-009"
+    ],
+    "backup_vendors": {
+      "AERO-BRK-001": "SkyTech Components Ltd.",
+      "AERO-HYD-002": "SkyTech Components Ltd.",
+      "AERO-TRB-003": "AeroAlloy Materials Corp.",
+      "AERO-FAS-004": "AeroAlloy Materials Corp."
+    },
+    "original_quantities": {
+      "AERO-BRK-001": 25,
+      "AERO-HYD-002": 40,
+      "AERO-TRB-003": 15,
+      "AERO-FAS-004": 100
+    },
+    "pass_threshold": 80
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vendor_disruption_procurement_pivot"
+    }
+  },
+  "natural_language": {
+    "prompt": "Our primary aerospace parts vendor has declared force majeure, effectively suspending all pending orders. Review vendor records to identify the affected supplier, locate all pending purchase orders associated with them, cancel those orders, and recreate them with qualified backup suppliers listed in our procurement database. Ensure new orders match the original quantities and are properly confirmed. Update automated reorder rules to reflect the vendor change. Do not disturb purchase orders from unaffected suppliers.",
+    "language": "en"
+  }
+}

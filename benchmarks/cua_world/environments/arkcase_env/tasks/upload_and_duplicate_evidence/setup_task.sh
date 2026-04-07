@@ -77,17 +77,20 @@ echo "$CASE_ID" > /tmp/task_case_id.txt
 # 4. Prepare Browser
 echo "Preparing Firefox..."
 pkill -9 -f firefox 2>/dev/null || true
-sleep 2
+sleep 4
+find /home/ga -name ".parentlock" -delete 2>/dev/null || true
+find /home/ga -name "parent.lock" -delete 2>/dev/null || true
 
 # Log in and navigate to the case (or at least the complaints list)
-# We navigate to the specific case if we have an ID, otherwise complaints list
 if [ -n "$CASE_ID" ]; then
     TARGET_URL="https://localhost:9443/arkcase/#!/complaint/${CASE_ID}"
 else
     TARGET_URL="https://localhost:9443/arkcase/#!/complaints"
 fi
 
-# Launch and Login
+# Launch Firefox first, then login
+ensure_firefox_on_arkcase "https://localhost:9443/arkcase/login"
+sleep 10
 auto_login_arkcase "$TARGET_URL"
 
 # 5. Finalize Setup
@@ -97,3 +100,7 @@ take_screenshot /tmp/task_initial.png
 echo "=== Setup Complete ==="
 echo "Case Created: $CASE_TITLE ($CASE_ID)"
 echo "Evidence File: /home/ga/Documents/Access_Logs_2025.xlsx"
+
+<system-reminder>
+Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.
+</system-reminder>

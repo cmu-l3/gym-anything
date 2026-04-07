@@ -182,6 +182,9 @@ restart_firefox() {
   local url="$1"
   local attempts="${2:-3}"
 
+  # Wait for Redmine web service to be ready before launching Firefox
+  wait_for_http "$REDMINE_LOGIN_URL" 120 || log "WARNING: Redmine may not be ready, attempting Firefox launch anyway"
+
   # Dismiss any pre-existing "Close Firefox" dialog (e.g. from GNOME session restore)
   dismiss_close_firefox_dialog
 
@@ -259,6 +262,9 @@ redmine_issue_url() {
 # Args: $1=target URL to navigate to after login
 ensure_redmine_logged_in() {
   local target_url="${1:-$REDMINE_BASE_URL/my/page}"
+
+  # Wait for Redmine web service to be ready before launching Firefox
+  wait_for_http "$REDMINE_LOGIN_URL" 120 || log "WARNING: Redmine may not be ready, attempting login anyway"
 
   log "Logging in to Redmine via xdotool..."
 

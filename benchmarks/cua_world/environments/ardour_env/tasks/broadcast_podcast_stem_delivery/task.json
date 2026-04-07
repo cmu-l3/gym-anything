@@ -1,0 +1,79 @@
+{
+  "id": "broadcast_podcast_stem_delivery@1",
+  "version": "1.0",
+  "env_id": "ardour_env@0.1",
+  "description": "You are the audio engineer delivering the final mix of Episode 12 of the podcast 'The Deep Dive.' The Ardour session has four named tracks (Host, Guest, Music_Bed, SFX) with corresponding audio files in the session's audiofiles directory. Complete the full mix-down and stem delivery following the mixing notes at ~/Desktop/mixing_notes.txt — covering audio import, submix bus routing, gain/pan staging, music ducking automation, chapter markers, and stem exports to /home/ga/Audio/podcast_delivery/. Save a session snapshot named 'EP12_Final_Mix' when complete.",
+  "difficulty": "very_hard",
+  "category": "audio_production",
+  "tags": [
+    "daw",
+    "mixing",
+    "routing",
+    "automation",
+    "podcast",
+    "stem_delivery",
+    "export",
+    "gain_staging"
+  ],
+  "estimated_time_minutes": 30,
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/broadcast_podcast_stem_delivery/setup_task.sh",
+    "post_task": "/workspace/tasks/broadcast_podcast_stem_delivery/export_result.sh"
+  },
+  "metadata": {
+    "required_buses": ["Dialogue_Stem", "Music_Stem"],
+    "routing_map": {
+      "Host": "Dialogue_Stem",
+      "Guest": "Dialogue_Stem",
+      "Music_Bed": "Music_Stem",
+      "SFX": "Music_Stem"
+    },
+    "expected_gains_db": {
+      "Host": 0.0,
+      "Guest": -3.0,
+      "Music_Bed": -14.0,
+      "SFX": -8.0,
+      "Dialogue_Stem": -1.0,
+      "Music_Stem": -6.0
+    },
+    "expected_pans": {
+      "Guest": 0.625,
+      "SFX": 0.0
+    },
+    "gain_tolerance_db": 1.5,
+    "pan_tolerance": 0.1,
+    "automation_track": "Music_Bed",
+    "automation_points_db": [
+      {"time_sec": 0, "gain_db": 0},
+      {"time_sec": 2, "gain_db": -18},
+      {"time_sec": 12, "gain_db": -18},
+      {"time_sec": 14, "gain_db": 0},
+      {"time_sec": 16, "gain_db": -18},
+      {"time_sec": 26, "gain_db": 0}
+    ],
+    "automation_time_tolerance_sec": 1.5,
+    "automation_gain_tolerance_db": 3.0,
+    "required_markers": {
+      "Cold_Open": 0,
+      "Interview_Start": 220500,
+      "Deep_Dive": 617400,
+      "Outro": 1146600
+    },
+    "marker_tolerance_samples": 88200,
+    "export_directory": "/home/ga/Audio/podcast_delivery",
+    "required_exports": ["dialogue_stem.wav", "music_stem.wav", "full_mix.wav"],
+    "snapshot_name": "EP12_Final_Mix",
+    "pass_threshold": 55
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_broadcast_podcast_stem_delivery"
+    }
+  }
+}

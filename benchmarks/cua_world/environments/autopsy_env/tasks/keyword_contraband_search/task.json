@@ -1,0 +1,32 @@
+{
+  "id": "keyword_contraband_search@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "A court order authorizes keyword searching a suspect's seized storage device for evidence of contraband trafficking. You must conduct a systematic keyword search using Autopsy's built-in search capabilities. Your mission: (1) Create a forensic case named 'Keyword_Search_2024' with case number 'INV-KWD-004'. (2) Add /home/ga/evidence/keyword_search.dd as a Disk Image data source. When configuring ingest modules, enable ONLY the 'Keyword Search' module. In the Keyword Search module settings, add these exact search terms one by one: 'secret', 'password', 'evidence', 'deleted'. Disable all other ingest modules, then click Finish. (3) After ingest completes, navigate to Results > Keyword Hits in the left panel to review all matches (there may be zero or more hits depending on the image content). (4) For each keyword hit found, write a record to /home/ga/Reports/keyword_hits.txt — one line per hit, pipe-delimited: KEYWORD|FILENAME|FILE_PATH|INODE|MATCH_CONTEXT (truncate context to 100 chars). If no hits are found for a keyword, do not write a line for it (an empty file is valid if no hits exist). (5) Write a summary to /home/ga/Reports/keyword_summary.txt with exactly these lines: 'TOTAL_KEYWORDS_SEARCHED: 4', 'KEYWORDS_WITH_HITS: <N>', 'TOTAL_HIT_FILES: <N>', followed by one line per keyword showing hit count: 'KEYWORD <word>: <N> files'.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/keyword_contraband_search/setup_task.sh",
+    "post_task": "/workspace/tasks/keyword_contraband_search/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Keyword_Search_2024",
+    "case_number": "INV-KWD-004",
+    "disk_image": "/home/ga/evidence/keyword_search.dd",
+    "search_keywords": ["secret", "password", "evidence", "deleted"],
+    "hits_file": "/home/ga/Reports/keyword_hits.txt",
+    "summary_file": "/home/ga/Reports/keyword_summary.txt",
+    "result_file": "/tmp/keyword_contraband_result.json",
+    "gt_file": "/tmp/keyword_contraband_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_keyword_contraband_search"
+    }
+  },
+  "difficulty": "very_hard"
+}

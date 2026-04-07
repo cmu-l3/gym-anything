@@ -26,8 +26,8 @@ HDF_FILE=$(find "$MUNCIE_DIR" -name "Muncie.p04*.hdf" | head -n 1)
 if [ -z "$HDF_FILE" ]; then
     echo "ERROR: Failed to generate HDF5 results file."
     # Try one last ditch effort to copy from backup if simulation failed
-    if [ -f "/opt/hec-ras/benchmarks/cua_world/environments/Muncie/Muncie.p04.hdf" ]; then
-        cp "/opt/hec-ras/benchmarks/cua_world/environments/Muncie/Muncie.p04.hdf" "$MUNCIE_DIR/"
+    if [ -f "/opt/hec-ras/examples/Muncie/Muncie.p04.hdf" ]; then
+        cp "/opt/hec-ras/examples/Muncie/Muncie.p04.hdf" "$MUNCIE_DIR/"
     fi
 fi
 

@@ -1,0 +1,30 @@
+{
+  "id": "dynamic_risk_scoring@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Your SOC team is suffering from alert fatigue due to uniform handling of SSH brute-force attempts. Build a dynamic risk-scoring engine in Splunk to prioritize high-value targets. Log in to Splunk at http://localhost:8000 (username: 'admin', password: 'SplunkAdmin1!'). Using the 'security_logs' index, calculate a total risk score per 'src_ip' based on failed login attempts, assigning 100 points for 'root', 50 for 'admin', and 10 for all other users. Filter for source IPs with a total risk score strictly greater than 500. Save the results as a Report named 'Dynamic_IP_Risk_Scoring' and create a scheduled Alert named 'High_Risk_IP_Detected' configured to run hourly (cron: '0 * * * *').",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dynamic_risk_scoring/setup_task.sh",
+    "post_task": "/workspace/tasks/dynamic_risk_scoring/export_result.sh"
+  },
+  "metadata": {
+    "report_name": "Dynamic_IP_Risk_Scoring",
+    "alert_name": "High_Risk_IP_Detected",
+    "target_index": "security_logs",
+    "threshold": 500,
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dynamic_risk_scoring"
+    }
+  }
+}

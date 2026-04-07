@@ -224,11 +224,11 @@ Additional tasks that could be implemented:
 3. Interact using `ask_cua.py` for VLM guidance + xdotool for actions
 4. Complete task objectives
 5. Verify with `env.verify()`
-6. Check evidence in `evidence/` folder
+6. Check evidence in `evidence_docs/` folder
 
 ## Evidence Documentation
 
-The `evidence/` folder should contain:
+The `evidence_docs/` folder should contain:
 - Screenshots of SAM running with project open
 - Logs from installation and setup scripts
 - Sample SAM project files

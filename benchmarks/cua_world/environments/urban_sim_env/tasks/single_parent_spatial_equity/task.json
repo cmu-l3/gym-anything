@@ -1,0 +1,39 @@
+{
+  "id": "single_parent_spatial_equity@1",
+  "version": "1.0",
+  "env_id": "urban_sim_env@0.1",
+  "difficulty": "hard",
+  "description": "Analyze the spatial distribution of single-parent households in San Francisco, compute their zone-level concentration, and calculate the correlation between single-parent presence, median neighborhood income, and local employment density. Using the Jupyter notebook at /home/ga/urbansim_projects/notebooks/single_parent_equity.ipynb and data from /home/ga/urbansim_projects/data/sanfran_public.h5 (households, jobs, buildings, and parcels tables), identify single-parent households—defined as having at least one child and exactly one adult (persons minus children)—after removing records with missing demographic data. \n\nPerform spatial joins to assign households and jobs to zones using the building-to-parcel-to-zone relationship. Aggregate data by zone to calculate total households, single-parent household count, percentage of single-parent households, median household income, total jobs, and employment density (total jobs divided by total parcel acres). Filter the analysis to include only zones with at least 50 households and non-zero parcel acreage. \n\nCalculate the Pearson correlation coefficients for the percentage of single-parent households against both median income and employment density. Export the filtered zone-level metrics to /home/ga/urbansim_projects/output/zone_single_parent_metrics.csv, sorted by the percentage of single-parent households in descending order. Save a summary to /home/ga/urbansim_projects/output/equity_summary.json containing the keys: 'total_zones_analyzed', 'citywide_single_parent_households', 'citywide_pct_single_parent', 'correlation_with_income' (rounded to 3 decimals), and 'correlation_with_employment_density' (rounded to 3 decimals). Finally, produce a bubble chart visualization (X-axis: log-scale employment density, Y-axis: % single-parent households, bubble size: total households, bubble color: median income) and save it to /home/ga/urbansim_projects/output/single_parent_bubble_chart.png.",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/single_parent_spatial_equity/setup_task.sh",
+    "post_task": "/workspace/tasks/single_parent_spatial_equity/export_result.sh"
+  },
+  "metadata": {
+    "expected_notebook_path": "/home/ga/urbansim_projects/notebooks/single_parent_equity.ipynb",
+    "expected_csv_path": "/home/ga/urbansim_projects/output/zone_single_parent_metrics.csv",
+    "expected_json_path": "/home/ga/urbansim_projects/output/equity_summary.json",
+    "expected_plot_path": "/home/ga/urbansim_projects/output/single_parent_bubble_chart.png",
+    "data_path": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+    "expected_csv_columns": [
+      "zone_id",
+      "total_households",
+      "single_parent_households",
+      "pct_single_parent",
+      "median_income",
+      "total_jobs",
+      "total_parcel_acres",
+      "employment_density"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_single_parent_equity"
+    }
+  }
+}

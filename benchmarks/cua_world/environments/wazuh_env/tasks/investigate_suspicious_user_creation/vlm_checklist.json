@@ -1,0 +1,59 @@
+{
+  "task_id": "investigate_suspicious_user_creation@1",
+  "task_completion": [
+    {
+      "id": "open_wazuh_dashboard",
+      "description": "Open the Wazuh dashboard to begin the investigation.",
+      "points": 10,
+      "visual_evidence": "A web browser is open displaying the Wazuh dashboard interface, likely on the 'Security events' or 'Modules' page."
+    },
+    {
+      "id": "locate_user_creation_alert",
+      "description": "Locate the 'New user with UID 0' alert in the dashboard.",
+      "points": 15,
+      "visual_evidence": "The Wazuh dashboard displays a list of events or a specific alert titled 'New user with UID 0'."
+    },
+    {
+      "id": "identify_username_and_alert_id",
+      "description": "Extract the backdoor username and the specific alert ID from the user creation event.",
+      "points": 20,
+      "visual_evidence": "The details of the 'New user with UID 0' alert are expanded in the dashboard, clearly showing the alert ID and the username (which will be in the format 'sysadmin_bk_XXX')."
+    },
+    {
+      "id": "locate_ssh_login_event",
+      "description": "Investigate preceding events to find the SSH login and identify the attacker's source IP address.",
+      "points": 25,
+      "visual_evidence": "The dashboard shows a search, filter, or list of preceding events (like 'sshd: Accepted password' or similar authentication logs) revealing an IP address (format '192.168.X.Y') associated with the backdoor user."
+    },
+    {
+      "id": "create_report_file",
+      "description": "Create the incident_findings.json file in the correct directory.",
+      "points": 10,
+      "visual_evidence": "A terminal or text editor is open showing the creation or editing of a file named 'incident_findings.json' located at '/home/ga/'."
+    },
+    {
+      "id": "populate_json_report",
+      "description": "Write the identified information into the JSON report with the correct keys.",
+      "points": 20,
+      "visual_evidence": "The contents of 'incident_findings.json' are visible, showing a valid JSON object with the exact keys: 'backdoor_username', 'attacker_source_ip', and 'related_alert_id', populated with the values found during the investigation."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "wazuh_gui_interaction",
+      "description": "The agent used the Wazuh dashboard GUI to perform the investigation.",
+      "visual_evidence": "Screenshots show active navigation, filtering, and querying within the Wazuh web interface rather than just using terminal commands to parse logs."
+    },
+    {
+      "id": "no_ground_truth_cheating",
+      "description": "The agent did not cheat by reading the ground truth file.",
+      "visual_evidence": "There should be no terminal commands or text editor windows showing the agent opening or reading '/var/lib/wazuh-dashboard/ground_truth.json' or the task setup scripts."
+    },
+    {
+      "id": "data_consistency",
+      "description": "The data in the final JSON report matches the data discovered in the dashboard.",
+      "visual_evidence": "The username, IP address, and alert ID typed into the JSON file exactly match the values visible in the Wazuh dashboard screenshots."
+    }
+  ],
+  "privileged_info_for_vlm": "The agent must create a JSON report at '/home/ga/incident_findings.json'. The ground truth values are dynamically generated during setup and stored in '/var/lib/wazuh-dashboard/ground_truth.json'. The backdoor username will follow the format 'sysadmin_bk_XXX' and the attacker IP will follow the format '192.168.X.Y'. The VLM should verify that the agent extracts these values from the Wazuh dashboard GUI and not by reading the ground truth file directly."
+}

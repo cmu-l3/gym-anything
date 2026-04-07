@@ -1,0 +1,80 @@
+{
+    "task_id": "investigate_and_block_spam_traffic@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "spam_ip",
+            "metadata_value": "192.0.2.105",
+            "verified_value": "192.0.2.105",
+            "source": "Verified consistency across: (1) task.json metadata, (2) setup_task.sh SPAM_IP variable definition (line 35), (3) verifier.py default value (line 28). Confirmed via cross-file comparison. IP belongs to RFC 5737 TEST-NET-1 range (192.0.2.0/24) reserved for documentation and examples.",
+            "status": "verified"
+        },
+        {
+            "key": "spam_ua",
+            "metadata_value": "TrafficBotPro/3.0",
+            "verified_value": "TrafficBotPro/3.0",
+            "source": "Verified consistency across: (1) task.json metadata, (2) setup_task.sh SPAM_UA variable definition (line 36), (3) verifier.py default value (line 29). Confirmed inserted into matomo_log_visit as browser name (line 56 of setup_task.sh).",
+            "status": "verified"
+        },
+        {
+            "key": "spam_referrer",
+            "metadata_value": "http://traffic-bot-pro.test/free-traffic",
+            "verified_value": "http://traffic-bot-pro.test/free-traffic",
+            "source": "Verified consistency across: (1) task.json metadata, (2) setup_task.sh SPAM_REF variable definition (line 37), (3) verifier.py default value (line 30). Confirmed inserted into matomo_log_visit referer_url field (line 59 of setup_task.sh). Uses .test TLD which is reserved for testing per RFC 6761.",
+            "status": "verified"
+        },
+        {
+            "key": "safe_ip",
+            "metadata_value": "127.0.0.1",
+            "verified_value": "127.0.0.1",
+            "source": "Verified in setup_task.sh line 79 where localhost (127.0.0.1) is explicitly injected as legitimate traffic. Confirmed in verifier.py lines 80-81 which check that 127.0.0.1 should NOT be blocked (safe traffic validation). Standard localhost IP.",
+            "status": "verified"
+        },
+        {
+            "key": "safe_referrer",
+            "metadata_value": "google.com",
+            "verified_value": "google.com",
+            "source": "Verified in setup_task.sh line 79 where 'https://www.google.com' is explicitly injected as legitimate traffic. Confirmed in verifier.py lines 84-86 which check that 'google' keyword should NOT be blocked (safe traffic validation). Real, well-known domain.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.ip_blocked",
+            "metadata_value": 30,
+            "verified_value": 30,
+            "source": "Verified in verifier.py line 56: 'score += 30' executed when spam IP is blocked. Matches task.json metadata specification.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.ua_blocked",
+            "metadata_value": 30,
+            "verified_value": 30,
+            "source": "Verified in verifier.py line 72: 'score += 30' executed when spam User Agent is blocked. Matches task.json metadata specification.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.referrer_blocked",
+            "metadata_value": 30,
+            "verified_value": 30,
+            "source": "Verified in verifier.py line 65: 'score += 30' executed when spam referrer is blocked. Matches task.json metadata specification.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.safe_traffic_preserved",
+            "metadata_value": 10,
+            "verified_value": 10,
+            "source": "Verified in verifier.py line 89: 'score += 10' executed when safe traffic is NOT blocked (lines 80-86 check localhost and google). Matches task.json metadata specification.",
+            "status": "verified"
+        },
+        {
+            "key": "passing_score_threshold",
+            "metadata_value": null,
+            "verified_value": 90,
+            "source": "Derived from verifier.py line 94: 'passed = score >= 90'. Sum of all scoring weights equals 100 (30+30+30+10). Passing requires 90 of 100 points.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic spam detection task injected into a Matomo analytics database. The spam pattern consists of 40 visits from IP 192.0.2.105 (RFC 5737 TEST-NET-1 range) with user agent 'TrafficBotPro/3.0' and referrer 'http://traffic-bot-pro.test/free-traffic' (.test TLD reserved for testing). Legitimate traffic includes localhost (127.0.0.1) and google.com referrers. Scoring: IP blocking (30 points), User Agent blocking (30 points), Referrer blocking (30 points), safe traffic preservation (10 points). Pass threshold: 90/100 points. All metadata values are internally consistent across setup scripts, database injection logic, and verification logic.",
+    "pi_confidence": "high"
+}

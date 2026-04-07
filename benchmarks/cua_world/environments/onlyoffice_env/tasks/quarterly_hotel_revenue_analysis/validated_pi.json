@@ -1,0 +1,59 @@
+{
+    "task_id": "quarterly_hotel_revenue_analysis@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "data_source",
+            "metadata_value": "Simulated Property Management System (PMS) Data",
+            "verified_value": "Simulated Property Management System (PMS) Data",
+            "source": "Code analysis of python generator in setup_task.sh",
+            "status": "verified"
+        },
+        {
+            "key": "hotel_rooms_total",
+            "metadata_value": 220,
+            "verified_value": 220,
+            "source": "Code analysis: Sum of rooms defined in python generator script is 80 King + 70 Double + 50 Deluxe + 20 Suite = 220.",
+            "status": "verified"
+        },
+        {
+            "key": "q3_days",
+            "metadata_value": 92,
+            "verified_value": 92,
+            "source": "Date arithmetic for Q3 2024 (July 31, Aug 31, Sept 30). Also explicitly confirmed by python script looping range(92).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/Documents/Spreadsheets/hotel_revenue_analysis.xlsx",
+            "verified_value": "/home/ga/Documents/Spreadsheets/hotel_revenue_analysis.xlsx",
+            "source": "Found exactly matching output path inside export_result.sh and verifier.py logic.",
+            "status": "verified"
+        },
+        {
+            "key": "kpi_tolerances.occupancy_range_pct",
+            "metadata_value": [60, 95],
+            "verified_value": [7.73, 25.0],
+            "source": "Code execution: The python generator script has a logical bug (dividing individual room_count by 5 and selecting only 5 rows per day), yielding an actual daily occupancy mathematically constrained between 7.73% and 25.00%.",
+            "status": "contradicted"
+        },
+        {
+            "key": "kpi_tolerances.adr_range_usd",
+            "metadata_value": [120, 250],
+            "verified_value": [128.22, 204.03],
+            "source": "Code execution: Evaluating the synthetic data generation script produced daily average rates ranging roughly $128 to $204, confirming it falls within the claimed [120, 250] range.",
+            "status": "verified"
+        },
+        {
+            "key": "kpi_tolerances.revpar_range_usd",
+            "metadata_value": [80, 200],
+            "verified_value": [14.96, 32.97],
+            "source": "Code execution: Due to the extremely low overall occupancy bug in the data generator (~16.35%), the RevPAR values range around $15 to $33 per day, entirely contradicting the [80, 200] claim.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically generated hotel Property Management System (PMS) data created dynamically via a Python script in setup_task.sh. I verified the hotel has exactly 220 rooms (80 King, 70 Double, 50 Deluxe, 20 Suite), Q3 2024 spans exactly 92 days, and the expected output path is /home/ga/Documents/Spreadsheets/hotel_revenue_analysis.xlsx. However, I discovered a critical logical bug in the data generation script: because it only loops 5 times total per day (once per rate code) and calculates 'sold' as a fraction of a single randomly chosen room type rather than the whole hotel, it only generates 5 under-sold records per day. While the resulting Average Daily Rate (ADR) of ~$147 correctly falls within the claimed [120, 250] USD tolerance range, the overall occupancy averages only ~16.35% (contradicting the claimed [60, 95] percentage range), and the resulting RevPAR averages ~$24.09 (contradicting the claimed [80, 200] USD range). Additionally, the verifier entirely fails to check these numerical tolerances.",
+    "pi_confidence": "high"
+}

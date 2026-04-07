@@ -1,0 +1,33 @@
+{
+  "id": "radiometric_quantization_error_assessment@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "Using the Landsat GeoTIFF at /home/ga/snap_data/landsat_multispectral.tif (band_2: NIR, band_3: Red), simulate the quantization of a 32-bit NDVI product into an 8-bit integer format and analyze the resulting error. Generate the following bands: 'NDVI_float' (float32) using the formula (band_2 - band_3) / (band_2 + band_3); 'NDVI_uint8' (uint8) using (NDVI_float + 1.0) * 127.5; 'NDVI_recon' (float32) using (NDVI_uint8 / 127.5) - 1.0; and 'Quantization_Error' (float32) using abs(NDVI_float - NDVI_recon). Save the complete product in BEAM-DIMAP format to /home/ga/snap_exports/quantization_study.dim and export it as a GeoTIFF to /home/ga/snap_exports/quantization_error.tif.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/radiometric_quantization_error_assessment/setup_task.sh",
+    "post_task": "/workspace/tasks/radiometric_quantization_error_assessment/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/snap_exports/quantization_study.dim",
+    "expected_geotiff_path": "/home/ga/snap_exports/quantization_error.tif",
+    "required_bands": [
+      "ndvi_float",
+      "ndvi_uint8",
+      "ndvi_recon",
+      "quantization_error"
+    ],
+    "data_source": "Landsat multi-spectral GeoTIFF from opengeos"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_radiometric_quantization"
+    }
+  }
+}

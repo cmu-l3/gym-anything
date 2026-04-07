@@ -1,0 +1,42 @@
+{
+  "id": "fiscal_period_close_reconciliation@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Corporate Controller responsible for closing the fiscal quarter for a mid-size manufacturing company. Using the FISCAL schema in Oracle (Host=localhost, Port=1521, Service=XEPDB1, User=fiscal_admin, Password=Fiscal2024), resolve discrepancies in the JOURNAL_ENTRIES and JOURNAL_LINES tables by correcting unbalanced entries, duplicate entries, improper intercompany eliminations, and capital expenditures misclassified as operating expenses. Create a materialized view named TRIAL_BALANCE_MV that shows the trial balance grouped by account category (Assets, Liabilities, Equity, Revenue, Expenses) using ROLLUP for subtotals and a grand total. Create a view named CONSOLIDATED_REPORT_VW showing the income statement with Revenue, COGS, Gross Profit, SGA Expenses, Operating Income, and Net Income lines. Export the corrected trial balance with columns ACCOUNT_CATEGORY, ACCOUNT_NAME, DEBIT_BALANCE, and CREDIT_BALANCE to /home/ga/fiscal_close_results.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fiscal_period_close_reconciliation/setup_task.sh",
+    "post_task": "/workspace/tasks/fiscal_period_close_reconciliation/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/fiscal_close_result.json",
+    "occupation": "Treasurers and Controllers",
+    "industry": "Manufacturing",
+    "gdp_contribution": "$19.9B",
+    "design_pattern": "Error Injection",
+    "oracle_features": [
+      "Materialized Views",
+      "ROLLUP",
+      "PL/SQL",
+      "Analytical Functions",
+      "Multi-table JOINs"
+    ],
+    "injected_errors": {
+      "unbalanced_je": "JE-2024-0047 has $5000 debit/credit mismatch",
+      "duplicate_je": "JE-2024-0023 is duplicated as JE-2024-0023-DUP",
+      "intercompany_not_eliminated": "IC transfer of $75000 between entities not eliminated",
+      "misclassified_capex": "Equipment purchase of $25000 booked to Utilities Expense instead of PP&E"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fiscal_period_close_reconciliation"
+    }
+  }
+}

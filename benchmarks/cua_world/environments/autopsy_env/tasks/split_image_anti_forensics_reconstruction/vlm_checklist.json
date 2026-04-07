@@ -1,0 +1,53 @@
+{
+  "task_id": "split_image_anti_forensics_reconstruction@1",
+  "task_completion": [
+    {
+      "id": "image_reconstructed",
+      "description": "Verify the agent reconstructed the split image into restored.dd",
+      "points": 15,
+      "visual_evidence": "Look for a terminal window showing a command like 'cat frag.001 system_backup.bak > restored.dd' or a file manager showing 'restored.dd' inside the /home/ga/evidence/ directory."
+    },
+    {
+      "id": "autopsy_case_created",
+      "description": "Verify the agent created the Autopsy case with the correct name and number",
+      "points": 15,
+      "visual_evidence": "Look for the Autopsy GUI showing the active case name 'Fragment_Recovery_2024' and case number 'INV-FRAG-001' in the title bar, case details, or new case wizard."
+    },
+    {
+      "id": "autopsy_data_source_added",
+      "description": "Verify the restored image was added as a data source with the correct ingest module",
+      "points": 20,
+      "visual_evidence": "Look for 'restored.dd' listed under 'Data Sources' in the Autopsy tree view. Also look for the 'File Type Identification' module being selected in the Ingest Modules configuration screen or shown in the ingest progress/messages."
+    },
+    {
+      "id": "reconstruction_log_created",
+      "description": "Verify the image reconstruction log contains the correct size, MD5 hash, and chunk start byte",
+      "points": 20,
+      "visual_evidence": "Look for a text editor or terminal output (e.g., 'cat') showing the contents of /home/ga/Reports/image_reconstruction_log.txt. It must include 'RECONSTRUCTED_IMAGE_SIZE_BYTES: 6160384', 'RECONSTRUCTED_MD5: e7dbb96759d9cd62b729463ebfe61dab', and 'HIDDEN_CHUNK_START_BYTE: 3072000'."
+    },
+    {
+      "id": "hidden_chunk_csv_created",
+      "description": "Verify the hidden chunk files CSV contains the correct header and identified file",
+      "points": 30,
+      "visual_evidence": "Look for a text editor or terminal output showing the contents of /home/ga/Reports/hidden_chunk_files.csv. It must contain the exact header 'FILENAME|INODE' and the data row 'tracking.log|28'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "autopsy_gui_used",
+      "description": "Verify the agent actually used the Autopsy GUI to create the case and process the image",
+      "visual_evidence": "The Autopsy graphical user interface must be visible in the screenshots, showing interaction with the case creation and data source addition wizards, rather than the agent attempting to mock the Autopsy SQLite databases via terminal."
+    },
+    {
+      "id": "actual_hash_and_size_calculation",
+      "description": "Verify the agent calculated the file size and MD5 hash legitimately",
+      "visual_evidence": "Look for terminal commands like 'md5sum restored.dd' and 'ls -l restored.dd' or 'stat restored.dd' being executed to determine the values, rather than the agent typing the final values directly without checking."
+    },
+    {
+      "id": "forensic_analysis_performed",
+      "description": "Verify the agent performed actual forensic analysis to find the hidden file",
+      "visual_evidence": "Look for the agent using Autopsy's file views/metadata tabs or Sleuth Kit terminal commands (e.g., 'istat', 'fls', 'blkstat') to check data run offsets, rather than just magically knowing 'tracking.log' is the answer."
+    }
+  ],
+  "privileged_info_for_vlm": "The reconstructed image size must be exactly 6160384 bytes. The reconstructed image MD5 hash must be e7dbb96759d9cd62b729463ebfe61dab. The only allocated, non-resident file residing at or above the 3,072,000 byte offset is 'tracking.log' with inode 28. The final CSV must contain 'tracking.log|28'."
+}

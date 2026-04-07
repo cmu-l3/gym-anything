@@ -1,0 +1,108 @@
+{
+    "task_id": "docker_compose_reverseengineer@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/inventory-tracker",
+            "verified_value": "/home/ga/projects/inventory-tracker",
+            "source": "setup_task.sh line 17: PROJECT_DIR=\"/home/ga/projects/inventory-tracker\"",
+            "status": "verified"
+        },
+        {
+            "key": "compose_file",
+            "metadata_value": "docker-compose.yml",
+            "verified_value": "docker-compose.yml",
+            "source": "export_result.sh line 7: COMPOSE_FILE=\"$PROJECT_DIR/docker-compose.yml\"; standard Docker Compose filename",
+            "status": "verified"
+        },
+        {
+            "key": "service_names",
+            "metadata_value": ["inv-db", "inv-cache", "inv-api", "inv-web"],
+            "verified_value": ["inv-db", "inv-cache", "inv-api", "inv-web"],
+            "source": "setup_task.sh: inv-db (line 99: --name inv-db), inv-cache (line 110: --name inv-cache), inv-api (line 118: --name inv-api), inv-web (line 130: --name inv-web)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_endpoints[0]",
+            "metadata_value": "http://localhost:8080/api/items",
+            "verified_value": "http://localhost:8080/api/items",
+            "source": "setup_task.sh lines 51-60: Flask route @app.route('/api/items') defined in API app; nginx proxy at port 8080 (line 132)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_endpoints[1]",
+            "metadata_value": "http://localhost:8080/api/status",
+            "verified_value": "http://localhost:8080/api/status",
+            "source": "setup_task.sh lines 44-49: Flask route @app.route('/api/status') defined in API app; nginx proxy at port 8080 (line 132)",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "task.json line 24: \"pass_threshold\": 60; verifier.py line 118: passed = score >= task_info[\"metadata\"][\"pass_threshold\"]",
+            "status": "verified"
+        },
+        {
+            "key": "base_images_used",
+            "metadata_value": null,
+            "verified_value": "postgres:14 (official), redis:7-alpine (official), nginx:1.24-alpine (official), python:3.11-slim (official base for inv-api:latest)",
+            "source": "setup_task.sh lines 106 (postgres:14), 114 (redis:7-alpine), 134 (nginx:1.24-alpine), 73 (FROM python:3.11-slim); verified via Docker Hub official images",
+            "status": "verified"
+        },
+        {
+            "key": "api_dependencies",
+            "metadata_value": null,
+            "verified_value": "flask==3.0.0, psycopg2-binary==2.9.9, redis==5.0.1",
+            "source": "setup_task.sh lines 66-70: requirements.txt specifies exact versions",
+            "status": "verified"
+        },
+        {
+            "key": "postgres_version",
+            "metadata_value": null,
+            "verified_value": "14",
+            "source": "setup_task.sh line 106: postgres:14",
+            "status": "verified"
+        },
+        {
+            "key": "redis_version",
+            "metadata_value": null,
+            "verified_value": "7-alpine",
+            "source": "setup_task.sh line 114: redis:7-alpine with redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru",
+            "status": "verified"
+        },
+        {
+            "key": "nginx_version",
+            "metadata_value": null,
+            "verified_value": "1.24-alpine",
+            "source": "setup_task.sh line 134: nginx:1.24-alpine",
+            "status": "verified"
+        },
+        {
+            "key": "container_port_mapping",
+            "metadata_value": null,
+            "verified_value": "inv-web publishes port 8080:80 (nginx); inv-api internal port 5000; inv-cache port 6379; inv-db port 5432",
+            "source": "setup_task.sh lines 99-134: postgres uses default 5432, redis uses default 6379, inv-api Flask app runs on port 5000 (line 63), nginx listens on 80 and publishes to 8080 (line 132)",
+            "status": "verified"
+        },
+        {
+            "key": "network_architecture",
+            "metadata_value": null,
+            "verified_value": "Two networks: inv-backend (inv-db, inv-cache, inv-api), inv-frontend (inv-api, inv-web); inv-api connected to both",
+            "source": "setup_task.sh lines 87-88 (network creation), 100 (inv-db in inv-backend), 111 (inv-cache in inv-backend), 119 (inv-api in inv-backend), 126 (inv-api also in inv-frontend), 131 (inv-web in inv-frontend)",
+            "status": "verified"
+        },
+        {
+            "key": "volume_usage",
+            "metadata_value": null,
+            "verified_value": "inv-pgdata volume for PostgreSQL persistence at /var/lib/postgresql/data; nginx config mounted read-only at /etc/nginx/conf.d/default.conf",
+            "source": "setup_task.sh line 92 (volume creation), line 104 (inv-db volume mount), line 133 (nginx config mount)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a Docker Compose reverse-engineering task for an inventory-tracker application with 4 services: inv-db (postgres:14), inv-cache (redis:7-alpine), inv-api (custom Python 3.11-slim Flask app with psycopg2 and redis), and inv-web (nginx:1.24-alpine). Services are deployed across two Docker networks: inv-backend (database, cache, API) and inv-frontend (API, web). The inv-api exposes Flask endpoints /api/status and /api/items at http://localhost:8080. Data is synthetic, created entirely by the task setup script. All base images are official Docker images. Scoring passes at 60 points or higher.",
+    "pi_confidence": "high"
+}

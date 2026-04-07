@@ -1,0 +1,129 @@
+{
+    "task_id": "microservices_outage_rca@1",
+    "dataset": "Synthetic monitoring data for ShopStream Inc. microservices outage scenario",
+    "case_id": "shopstream_architecture.drawio + incident_timeline.csv + service_dependencies.csv",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "root_cause_service",
+            "metadata_value": "payment-service",
+            "verified_value": "payment-service",
+            "source": "Independent timeline analysis: payment-service is the first service to show persistent errors (error_rate=5% at 14:22:00, then 38% at 14:23:15). The preceding order-processing event at 14:23:00 is explicitly labeled 'JVM garbage collection pause — transient — recovered by 14:23:10' and is a red herring. All subsequent service failures reference payment-service or its downstream effects.",
+            "status": "verified"
+        },
+        {
+            "key": "root_cause_trigger",
+            "metadata_value": "payments-db connection pool exhaustion",
+            "verified_value": "payments-db connection pool exhaustion",
+            "source": "Timeline shows payments-db connection_pool_usage climbing from 85% (14:20:00) to 94% (14:21:30) to 100% (14:22:45, 'Pool fully exhausted'). payment-service errors begin immediately after at 14:22:00-14:23:15 with detail 'Cannot acquire DB connection within timeout — pool exhausted'. The underlying cause was a long-running analytics query (first detected at 14:18:00) holding locks.",
+            "status": "verified"
+        },
+        {
+            "key": "service_status_at_peak.payment-service",
+            "metadata_value": "down",
+            "verified_value": "down",
+            "source": "At 14:31, payment-service last events are: health_status=UNHEALTHY (14:23:45) and circuit_breaker=OPEN (14:24:00). No recovery event before 14:31. Service is fully down.",
+            "status": "verified"
+        },
+        {
+            "key": "service_status_at_peak.order-processing",
+            "metadata_value": "down",
+            "verified_value": "down",
+            "source": "At 14:31, order-processing last events are: error_rate=45% (14:25:02) and p99_latency=31200ms (14:25:02). Detail says 'Threads blocked on synchronous payment-service call'. 45% error rate with 31-second latency = effectively down.",
+            "status": "verified"
+        },
+        {
+            "key": "service_status_at_peak.shopping-cart",
+            "metadata_value": "degraded",
+            "verified_value": "degraded",
+            "source": "At 14:31, shopping-cart last events are: error_rate=22% (14:25:30) and p99_latency=12400ms (14:25:45). 22% error rate is degraded but not fully down (most requests still succeed).",
+            "status": "verified"
+        },
+        {
+            "key": "service_status_at_peak.api-gateway",
+            "metadata_value": "degraded",
+            "verified_value": "degraded",
+            "source": "At 14:31, api-gateway last event is health_status=DEGRADED (14:26:45). Explicitly labeled DEGRADED in the timeline data.",
+            "status": "verified"
+        },
+        {
+            "key": "service_status_at_peak.product-catalog",
+            "metadata_value": "degraded",
+            "verified_value": "degraded",
+            "source": "At 14:31, product-catalog last event is health_status=DEGRADED (14:28:00). Explicitly labeled DEGRADED in the timeline data.",
+            "status": "verified"
+        },
+        {
+            "key": "service_status_at_peak.notification-service",
+            "metadata_value": "degraded",
+            "verified_value": "degraded",
+            "source": "At 14:31, notification-service last event is queue_depth=847 (14:31:00) with detail 'Email notification queue growing — payment confirmations not arriving'. Queue is backing up but service is not down, hence degraded.",
+            "status": "verified"
+        },
+        {
+            "key": "service_status_at_peak.inventory-service",
+            "metadata_value": "healthy",
+            "verified_value": "healthy",
+            "source": "At 14:31, inventory-service event is health_status=HEALTHY with detail 'No impact observed — async message consumption via RabbitMQ normal'. It uses async (RabbitMQ) communication, not sync HTTP, so the cascade doesn't affect it.",
+            "status": "verified"
+        },
+        {
+            "key": "service_status_at_peak.user-auth",
+            "metadata_value": "healthy",
+            "verified_value": "healthy",
+            "source": "At 14:31, user-auth event is health_status=HEALTHY with detail 'No impact — no dependency on payment processing path'. The dependency matrix confirms user-auth has no dependency on payment-service or order-processing.",
+            "status": "verified"
+        },
+        {
+            "key": "propagation_path",
+            "metadata_value": ["payments-db -> payment-service", "payment-service -> order-processing", "order-processing -> shopping-cart", "order-processing -> api-gateway", "api-gateway -> product-catalog"],
+            "verified_value": ["payments-db -> payment-service", "payment-service -> order-processing", "order-processing -> shopping-cart", "order-processing -> api-gateway", "api-gateway -> product-catalog"],
+            "source": "Each hop verified by cross-referencing timeline timestamps with dependency matrix timeouts: (1) payments-db pool exhausted at 14:22:45 → payment-service error at 14:23:15 (30s, matches PostgreSQL 5000ms timeout + queue); (2) payment-service UNHEALTHY at 14:23:45 → order-processing error at 14:25:02 (77s, matches 30000ms sync timeout); (3) order-processing error at 14:25:02 → shopping-cart error at 14:25:30 (28s, matches 10000ms sync timeout); (4) order-processing error at 14:25:02 → api-gateway error at 14:26:00 (58s, matches 10000ms timeout + health check); (5) api-gateway degraded at 14:26:45 → product-catalog degraded at 14:27:15 (30s, retry storm amplification via 5000ms timeout).",
+            "status": "verified"
+        },
+        {
+            "key": "red_herring",
+            "metadata_value": "order-processing shows transient JVM GC pause at 14:23:00 before payment-service cascade begins at 14:23:15",
+            "verified_value": "order-processing shows transient JVM GC pause at 14:23:00 before payment-service cascade begins at 14:23:15",
+            "source": "Timeline row 9: '2026-01-15T14:23:00,order-processing,p99_latency,2100ms,JVM garbage collection pause — transient — recovered by 14:23:10'. This event at 14:23:00 precedes payment-service's 38% error at 14:23:15 by 15 seconds, creating a false impression that order-processing failed first. However, the detail field explicitly says 'transient' and 'recovered by 14:23:10'. The real order-processing cascade failure occurs later at 14:25:02 with '30000ms timeout exceeded'.",
+            "status": "verified"
+        },
+        {
+            "key": "remediation_sync_to_async",
+            "metadata_value": ["order-processing -> payment-service", "shopping-cart -> order-processing"],
+            "verified_value": ["order-processing -> payment-service", "shopping-cart -> order-processing"],
+            "source": "The dependency matrix shows order-processing->payment-service is sync HTTP with 30000ms timeout (the primary cascade amplifier — 30s blocking call). shopping-cart->order-processing is sync HTTP with 10000ms timeout (secondary cascade vector). These are the only two sync dependencies in the failure propagation path. Converting them to async via RabbitMQ would prevent timeout cascading. The other affected service (api-gateway->product-catalog) was impacted by retry storms, not by direct sync timeout cascade.",
+            "status": "verified"
+        },
+        {
+            "key": "circuit_breaker_locations",
+            "metadata_value": ["api-gateway -> order-processing", "api-gateway -> shopping-cart", "api-gateway -> product-catalog"],
+            "verified_value": ["api-gateway -> order-processing", "api-gateway -> shopping-cart", "api-gateway -> product-catalog"],
+            "source": "The API gateway is the entry point for all client traffic. The dependency matrix confirms all three are sync HTTP dependencies. The timeline shows api-gateway's existing circuit breaker on order-processing tripped at 14:26:15 — but too late (3 minutes after cascade started). Pre-configured circuit breakers at all three gateway-to-backend paths would have isolated failures faster and prevented the retry storm that degraded product-catalog.",
+            "status": "verified"
+        },
+        {
+            "key": "initial_page_count",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Live testing confirmed: starter diagram has exactly 1 page named 'ShopStream Architecture'. Verified by grep '<diagram ' which returned count=1, and by export_result.sh which parsed page_count=1.",
+            "status": "verified"
+        },
+        {
+            "key": "output_diagram",
+            "metadata_value": "/home/ga/Diagrams/shopstream_architecture.drawio",
+            "verified_value": "/home/ga/Diagrams/shopstream_architecture.drawio",
+            "source": "Live testing confirmed file exists at this exact path, owned by ga:ga, 10322 bytes, valid draw.io XML with 18 vertices and 13 edges.",
+            "status": "verified"
+        },
+        {
+            "key": "output_pdf",
+            "metadata_value": "/home/ga/Diagrams/shopstream_rca.pdf",
+            "verified_value": "/home/ga/Diagrams/shopstream_rca.pdf",
+            "source": "Live testing confirmed this path is writable by ga user (touch test succeeded). File does not exist at task start (stale output cleared by setup_task.sh). File > Export as > PDF menu is accessible in draw.io.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The root cause of the ShopStream outage is Payment Service, triggered by Payments DB connection pool exhaustion (a long-running analytics query caused pool to hit 100% at 14:22:45). The order-processing event at 14:23:00 is a red herring — it is a transient JVM GC pause that recovered by 14:23:10, NOT the root cause. The real cascade begins when payment-service hits 38% error rate at 14:23:15. At peak impact (14:31 UTC), the correct service statuses are: Payment Service = DOWN (red), Order Processing = DOWN (red), Shopping Cart = DEGRADED (orange), API Gateway = DEGRADED (orange), Product Catalog = DEGRADED (orange), Notification Service = DEGRADED (orange), Inventory Service = HEALTHY (green), User Auth = HEALTHY (green). Inventory Service and User Auth are unaffected because they communicate via async RabbitMQ, not sync HTTP. The failure propagation path is: payments-db → payment-service (+30s) → order-processing (+77s, via 30000ms sync timeout) → shopping-cart (+28s, via 10000ms sync timeout) and → api-gateway (+58s) → product-catalog (+30s, retry storms). The two synchronous dependencies that should be converted to async are: order-processing→payment-service (30000ms timeout, primary cascade amplifier) and shopping-cart→order-processing (10000ms timeout, secondary cascade vector). Circuit breakers should be placed at: api-gateway→order-processing, api-gateway→shopping-cart, and api-gateway→product-catalog. The diagram starts with 1 page ('ShopStream Architecture'), 18 vertices, and 13 edges. The agent must create a second page named 'Remediated Architecture' and export a PDF to ~/Diagrams/shopstream_rca.pdf.",
+    "pi_confidence": "high"
+}

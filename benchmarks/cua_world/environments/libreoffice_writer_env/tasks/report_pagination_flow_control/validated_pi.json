@@ -1,0 +1,80 @@
+{
+    "task_id": "report_pagination_flow_control@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "source_file",
+            "metadata_value": "/home/ga/Documents/structural_analysis_draft.odt",
+            "verified_value": "/home/ga/Documents/structural_analysis_draft.odt",
+            "source": "Code analysis: setup_task.sh line 105 creates ODT in /home/ga/Documents/; export_result.sh and verifier.py reference this path",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "/home/ga/Documents/structural_analysis_final.odt",
+            "verified_value": "/home/ga/Documents/structural_analysis_final.odt",
+            "source": "Code analysis: task.json description, export_result.sh line 10, and verifier.py line 50 all consistently reference this file path",
+            "status": "verified"
+        },
+        {
+            "key": "required_styles",
+            "metadata_value": ["Heading 1", "Heading 2", "Text Body"],
+            "verified_value": ["Heading 1", "Heading 2", "Text Body"],
+            "source": "Web search + code analysis: These are standard LibreOffice Writer paragraph styles. Verified via: (1) LibreOffice Writer documentation confirming these as default styles; (2) setup_task.sh uses python-docx add_heading(level=1) for Heading 1, add_heading(level=2) for Heading 2; (3) add_paragraph() uses default body style Text Body; (4) verifier.py explicitly checks for these styles with variant names (Heading_20_1, Text_20_body, etc.)",
+            "status": "verified"
+        },
+        {
+            "key": "min_widows_orphans",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "Code analysis + LibreOffice documentation: Task description line states 'set to at least 2 lines'; verifier.py lines 150-151 enforce this with lambda x: x.isdigit() and int(x) >= 2 for both widows and orphans attributes; LibreOffice Writer standard widow/orphan control supports numeric values representing number of lines to keep together",
+            "status": "verified"
+        },
+        {
+            "key": "keep_with_next_attribute_existence",
+            "metadata_value": "Heading 1 and Heading 2 styles must have keep-with-next enabled",
+            "verified_value": "fo:keep-with-next attribute with values 'always' or 'true' is standard in ODT paragraph-properties for flow control",
+            "source": "Web search: OpenDocument Format specification and LibreOffice documentation confirm fo:keep-with-next is the XSL-FO attribute for flow control; verifier.py lines 123-144 check for this attribute with these exact values",
+            "status": "verified"
+        },
+        {
+            "key": "margin_bottom_attribute_existence",
+            "metadata_value": "Text Body style must have non-zero margin-bottom spacing",
+            "verified_value": "fo:margin-bottom is a standard ODT paragraph property; task requires 0.10 inches or 0.25cm spacing",
+            "source": "Web search: OpenDocument Format specification defines fo:margin-bottom in paragraph-properties; verifier.py lines 166-177 check for non-zero margin-bottom values; task description specifies '0.10\" (or 0.25cm)'",
+            "status": "verified"
+        },
+        {
+            "key": "odt_style_name_encoding",
+            "metadata_value": "Spaces in style names encoded as _20_ in ODT XML",
+            "verified_value": "Spaces in ODT style internal names are encoded as _20_ (hexadecimal for space character 0x20)",
+            "source": "Web search: OpenDocument Format documentation and GitHub examples confirm _20_ encoding; verifier.py lines 99-108 handle both encoded names (Heading_20_1) and display names (Heading 1)",
+            "status": "verified"
+        },
+        {
+            "key": "python_docx_heading_style_assignment",
+            "metadata_value": "python-docx add_heading(level=1) creates Heading 1 style, add_heading(level=2) creates Heading 2 style",
+            "verified_value": "python-docx.Document.add_heading() with level parameter automatically assigns correct style: level 1 = Heading 1, level 2 = Heading 2, etc.",
+            "source": "Web search: python-docx 1.2.0 documentation on Document.add_heading() method; python-docx stores built-in styles using English names like 'Heading 1'",
+            "status": "verified"
+        },
+        {
+            "key": "empty_paragraph_detection",
+            "metadata_value": "Original messy document has approximately 40 empty paragraphs",
+            "verified_value": "setup_task.sh creates document with multiple empty paragraphs: 3 after title, 1 after intro heading, 2 after first paragraph, 3 after content, plus 1 after each of 12 filler lines = ~40 empty paragraphs total",
+            "source": "Code analysis: setup_task.sh defines add_messy_space(n=2) function that adds n empty paragraphs; script calls this function multiple times: add_messy_space(3), add_messy_space(1), add_messy_space(2), add_messy_space(1) in loop, etc.; verifier.py line 88 comment states 'Original messy doc has ~40 empty paras'",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_type",
+            "metadata_value": null,
+            "verified_value": "Synthetic data generated by setup script",
+            "source": "Code analysis: setup_task.sh creates document entirely through python-docx API; no URLs, downloads, or external file references; content is programmatically generated placeholder text about structural analysis",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on a synthetic ODT document generated by the setup script containing an engineering report about structural analysis with intentionally problematic formatting (empty paragraphs for spacing and pagination issues). The document uses standard LibreOffice Writer paragraph styles: Heading 1, Heading 2, and Text Body. The metadata claims are accurate: source file path is /home/ga/Documents/structural_analysis_draft.odt, output file path is /home/ga/Documents/structural_analysis_final.odt, required styles are the three standard LibreOffice defaults, and minimum widow/orphan control is 2 lines. The ODT format stores style names with spaces encoded as _20_ in XML while preserving display names. The verifier checks for keep-with-next attribute (fo:keep-with-next='always' or 'true') on heading styles and widows/orphans >= 2 lines plus non-zero margin-bottom on Text Body style.",
+    "pi_confidence": "high"
+}

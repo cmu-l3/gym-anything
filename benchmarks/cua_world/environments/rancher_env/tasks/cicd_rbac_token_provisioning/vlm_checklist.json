@@ -1,0 +1,59 @@
+{
+  "task_id": "cicd_rbac_token_provisioning@1",
+  "task_completion": [
+    {
+      "id": "delete_cluster_role_binding",
+      "description": "Verify the 'github-actions-admin' ClusterRoleBinding has been revoked/deleted.",
+      "points": 15,
+      "visual_evidence": "In the Rancher UI (Cluster -> RBAC -> ClusterRoleBindings) or via terminal output, the 'github-actions-admin' binding is no longer listed, or a deletion confirmation message is visible."
+    },
+    {
+      "id": "create_role_cicd_deployer",
+      "description": "Verify the creation of a namespace-scoped Role named 'cicd-deployer' in the 'webapp' namespace.",
+      "points": 15,
+      "visual_evidence": "In the Rancher UI (Cluster -> RBAC -> Roles), a Role named 'cicd-deployer' is visible and explicitly located within the 'webapp' namespace."
+    },
+    {
+      "id": "role_permissions_deployments_services",
+      "description": "Verify the 'cicd-deployer' Role has permissions to manage 'deployments' and 'services'.",
+      "points": 20,
+      "visual_evidence": "The Role details or creation screen in Rancher shows rules granting access to 'Deployments' (apps API group) and 'Services' (core API group) with management verbs (e.g., create, update, delete, get, list)."
+    },
+    {
+      "id": "create_role_binding",
+      "description": "Verify the creation of a RoleBinding named 'cicd-deployer-binding' in the 'webapp' namespace linking the ServiceAccount to the Role.",
+      "points": 20,
+      "visual_evidence": "In the Rancher UI (Cluster -> RBAC -> RoleBindings), a RoleBinding named 'cicd-deployer-binding' exists in the 'webapp' namespace. Its target/subject is the 'github-actions' ServiceAccount, and it references the 'cicd-deployer' Role."
+    },
+    {
+      "id": "delete_opaque_secret",
+      "description": "Verify the broken 'Opaque' Secret associated with the ServiceAccount has been deleted.",
+      "points": 10,
+      "visual_evidence": "In the Rancher UI (Storage -> Secrets), the previous Opaque secret for github-actions is no longer present in the 'webapp' namespace, or a deletion confirmation is shown."
+    },
+    {
+      "id": "create_sa_token_secret",
+      "description": "Verify the creation of the new Secret named 'github-actions-token' with the correct type and annotation.",
+      "points": 20,
+      "visual_evidence": "In the Rancher UI (Storage -> Secrets), a Secret named 'github-actions-token' exists in the 'webapp' namespace. The details must show the type as 'kubernetes.io/service-account-token' and include the annotation 'kubernetes.io/service-account.name: github-actions'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_rancher_interaction",
+      "description": "The agent genuinely interacted with the Rancher web UI or Kubernetes API to configure RBAC and Secrets.",
+      "visual_evidence": "Screenshots show the progression of navigating through Rancher's RBAC and Secret management screens, filling out forms, or executing valid kubectl commands, rather than just showing a final mocked state."
+    },
+    {
+      "id": "no_text_editor_mocking",
+      "description": "The agent did not simply copy-paste the task description into a text file to fake completion.",
+      "visual_evidence": "The screenshots show actual Kubernetes resources being modified in Rancher or terminal, not just text files or notes containing the task requirements."
+    },
+    {
+      "id": "actual_resource_creation",
+      "description": "The agent actually applied the changes rather than just previewing them.",
+      "visual_evidence": "Screenshots show successful creation/deletion messages or the resources appearing in the active lists in the Rancher UI, not just unsubmitted web forms."
+    }
+  ],
+  "privileged_info_for_vlm": "The target Kubernetes namespace is strictly 'webapp' and the target ServiceAccount is 'github-actions'. Ensure all new Roles, RoleBindings, and Secrets are created within the 'webapp' namespace and correctly reference the 'github-actions' ServiceAccount."
+}

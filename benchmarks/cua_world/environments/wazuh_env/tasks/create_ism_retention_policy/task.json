@@ -1,0 +1,30 @@
+{
+  "id": "create_ism_retention_policy@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create an OpenSearch ISM (Index State Management) policy named 'wazuh-alert-retention' to manage the lifecycle of Wazuh alert indices at https://localhost:9200 (admin/SecretPassword). The policy must include a 'hot' state that transitions to 'warm' when the index age is 30 days, a 'warm' state that applies 'force_merge' (max_num_segments: 1) and 'read_only' actions before transitioning to 'delete' at 90 days, and a 'delete' state that removes the index. Configure an ISM template to apply this policy to indices matching 'wazuh-alerts-*' and ensure the policy is attached to all existing indices matching that pattern.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_ism_retention_policy/setup_task.sh",
+    "post_task": "/workspace/tasks/create_ism_retention_policy/export_result.sh"
+  },
+  "metadata": {
+    "policy_id": "wazuh-alert-retention",
+    "hot_min_age": "30d",
+    "warm_min_age": "90d",
+    "index_pattern": "wazuh-alerts-*",
+    "indexer_url": "https://localhost:9200",
+    "indexer_creds": "admin:SecretPassword"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_ism_retention_policy"
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+    "task_id": "zoning_non_conformance_analysis@1",
+    "dataset": "sanfran_public.h5",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_notebook_path",
+            "metadata_value": "/home/ga/urbansim_projects/notebooks/zoning_non_conformance.ipynb",
+            "verified_value": "/home/ga/urbansim_projects/notebooks/zoning_non_conformance.ipynb",
+            "source": "setup_task.sh explicitly creates the notebook at this path and export_result.sh checks it.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_1",
+            "metadata_value": "/home/ga/urbansim_projects/output/non_conforming_parcels.csv",
+            "verified_value": "/home/ga/urbansim_projects/output/non_conforming_parcels.csv",
+            "source": "verifier.py directly reads this file for the 60-point mathematical check.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_2",
+            "metadata_value": "/home/ga/urbansim_projects/output/zone_non_conformance_counts.csv",
+            "verified_value": "/home/ga/urbansim_projects/output/zone_non_conformance_counts.csv",
+            "source": "export_result.sh checks for the existence and modification time of this file.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_plot",
+            "metadata_value": "/home/ga/urbansim_projects/output/far_compliance_scatter.png",
+            "verified_value": "/home/ga/urbansim_projects/output/far_compliance_scatter.png",
+            "source": "export_result.sh checks for the existence, size, and modification time of this plot.",
+            "status": "verified"
+        },
+        {
+            "key": "data_path",
+            "metadata_value": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+            "verified_value": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+            "source": "setup_task.sh and install_urbansim.sh confirm the San Francisco HDF5 dataset is located here.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_columns",
+            "metadata_value": [
+                "parcel_id",
+                "zone_id",
+                "total_building_sqft",
+                "parcel_sqft",
+                "built_far",
+                "max_far",
+                "excess_sqft"
+            ],
+            "verified_value": [
+                "parcel_id",
+                "zone_id",
+                "total_building_sqft",
+                "parcel_sqft",
+                "built_far",
+                "max_far",
+                "excess_sqft"
+            ],
+            "source": "Task instructions enforce all columns. verifier.py rigorously checks for [\"parcel_id\", \"total_building_sqft\", \"parcel_sqft\", \"built_far\", \"max_far\", \"excess_sqft\"], covering almost all of them.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The San Francisco UrbanSim HDF5 dataset (sanfran_public.h5) is real-world geographic data downloaded from UDST's GitHub. While the task prompt explicitly instructs calculating `parcel_sqft = parcel_acres * 43560`, the `parcels` table in the HDF5 dataset actually lacks a `parcel_acres` column entirely, containing only `shape_area`. An agent strictly following instructions will encounter a KeyError. Furthermore, `verifier.py` has a blind spot: it strictly checks the mathematical consistency between the columns within the generated CSV (e.g., verifying `expected_far = tot_sqft / pcl_sqft` and `expected_excess = tot_sqft - (max_far * pcl_sqft)`), but it never verifies if the agent's baseline `parcel_sqft` values actually match the ground truth geographic data. The expected output file paths and columns are completely verified.",
+    "pi_confidence": "high"
+}

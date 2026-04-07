@@ -1,0 +1,27 @@
+{
+  "id": "downtime_patient_card_generator@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Create a 'Business Continuity' script (Python or Bash) that generates offline HTML patient cards for scheduled appointments. The script must read the schedule from ~/downtime_schedule.json (containing appointment times and patient GUIDs) and retrieve demographic details from the MedinTux MySQL database (DrTuxTest, user root, no password). For each patient, generate an HTML file saved to ~/downtime_cards/<Time>_<LastName>_<FirstName>.html (e.g., 0900_MARTIN_Jean.html), ensuring the output directory is created if it does not exist. Each HTML card must display the appointment time, patient full name (Last Name, First Name), calculated age in years, sex, address (including postal code and city), phone number (displaying 'N/A' if empty), and Social Security Number (NIR).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/downtime_patient_card_generator/setup_task.sh",
+    "post_task": "/workspace/tasks/downtime_patient_card_generator/export_result.sh"
+  },
+  "metadata": {
+    "schedule_file": "/home/ga/downtime_schedule.json",
+    "output_dir": "/home/ga/downtime_cards",
+    "ground_truth_path": "/var/lib/medintux/downtime_ground_truth.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_downtime_cards"
+    }
+  }
+}

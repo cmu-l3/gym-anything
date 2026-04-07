@@ -1,0 +1,32 @@
+{
+  "id": "investigate_waterborne_outbreak@1",
+  "version": "1.0",
+  "env_id": "epi_info_env@0.1",
+  "description": "You are the lead epidemiologist investigating a cryptosporidiosis outbreak of unknown source in a city. A survey of 200 residents across 5 neighborhoods is available at C:\\Users\\Docker\\Documents\\outbreak_survey.csv.\n\nThe data requires cleaning before analysis. The Sex column contains mixed formats (M/Male/male/F/Female/female) — standardize to Male and Female. The WaterSource column has inconsistent entries (Tap/tap/Municipal/municipal/Bottled/Well) — standardize into two categories: Municipal and Other. The Ill column has mixed formats (Yes/Y/1/No/N/0) — standardize to Yes and No. Create a binary variable MunicipalWater (Yes if cleaned WaterSource equals Municipal, else No) and a binary variable HighConsumption (Yes if DailyGlasses is 5 or more, else No).\n\nUsing Epi Info Classic Analysis, investigate the outbreak: compute the overall attack rate, determine which neighborhood has the highest attack rate, evaluate each exposure (MunicipalWater, UsesFilter, SwimmingPool, DaycareContact, HighConsumption) as a risk factor for illness using 2x2 tables, run multivariable logistic regression with Ill as outcome and all 5 exposures as predictors to identify any confounder (an exposure significant in crude analysis but not after adjustment), and generate an epidemic curve of OnsetDate for ill cases.\n\nSave findings to C:\\Users\\Docker\\Documents\\outbreak_report.txt containing: overall attack rate, highest-rate neighborhood and its rate, the primary risk factor with its crude risk ratio, adjusted odds ratio from logistic regression, any identified confounder, and whether DailyGlasses shows a dose-response relationship.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\investigate_waterborne_outbreak\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\investigate_waterborne_outbreak\\export_result.ps1",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "dataset": "C:\\Users\\Docker\\Documents\\outbreak_survey.csv",
+    "total_respondents": 200,
+    "analysis_modules": ["Classic Analysis"],
+    "expected_commands": ["READ", "RECODE", "DEFINE", "ASSIGN", "FREQ", "TABLES", "LOGISTIC", "GRAPH", "SELECT"],
+    "required_outputs": [
+      "C:\\Users\\Docker\\Documents\\outbreak_report.txt"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_investigate_waterborne_outbreak"
+    }
+  }
+}

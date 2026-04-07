@@ -1,0 +1,87 @@
+{
+    "task_id": "web_app_breach_investigation@1",
+    "dataset": "Synthetically generated PCAP via loopback traffic (tcpdump on lo, virtual IPs 10.13.37.0/24)",
+    "case_id": "incident_capture.pcapng",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "capture_path",
+            "metadata_value": "/home/ga/Documents/captures/incident_capture.pcapng",
+            "verified_value": "/home/ga/Documents/captures/incident_capture.pcapng",
+            "source": "Live testing: file confirmed at this path (58956 bytes, pcap format). Evidence: 03_pcap_file_info.txt shows '-rw-r--r-- 1 ga ga 58956' and 'pcap capture file, microsecond ts'.",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Documents/incident_report.txt",
+            "verified_value": "/home/ga/Documents/incident_report.txt",
+            "source": "Live testing: confirmed this path is writable by ga user (evidence: 20_write_permissions.txt shows WRITE_OK). export_result.sh reads from this path. Simulated agent write + export succeeded (evidence: 40_export_with_report.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_dir",
+            "metadata_value": "/var/lib/wireshark_ground_truth",
+            "verified_value": "/var/lib/wireshark_ground_truth",
+            "source": "Live testing: directory exists with mode 700 owned by root (evidence: 16_ground_truth_permissions.txt). Contains 8 ground truth files. Agent (ga user) cannot read it — only export_result.sh (runs as root) can.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.attacker_ip",
+            "metadata_value": "10.13.37.50",
+            "verified_value": "10.13.37.50",
+            "source": "Independently verified from PCAP via tshark: all 21 POST /admin/login requests originate from 10.13.37.50 (evidence: 38_all_http_requests.txt). IP conversation analysis shows .50 exchanged 312 packets with .20 and 8 packets with .100 (evidence: 07_ip_conversations.txt). Setup script line 27 confirms ATTACKER_IP='10.13.37.50'.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.webserver_ip",
+            "metadata_value": "10.13.37.20",
+            "verified_value": "10.13.37.20",
+            "source": "Independently verified from PCAP: all HTTP request destinations are 10.13.37.20:8080 (evidence: 38_all_http_requests.txt, 07_ip_conversations.txt). Python HTTP server bound to this IP (setup script line 167).",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.exfil_server_ip",
+            "metadata_value": "10.13.37.100",
+            "verified_value": "10.13.37.100",
+            "source": "Independently verified from PCAP: TCP stream 29 shows Node 1 = 10.13.37.100:9443 (evidence: 34_exfil_stream_content.txt). IP conversation shows .50↔.100 with 8 packets and 16KB of data (evidence: 07_ip_conversations.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.failed_logins",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "Independently verified from PCAP: tshark filter 'http.response.code == 401' returned exactly 20 packets (evidence: 08_brute_force_401_count.txt). HTTP request list shows 21 total POST /admin/login (20 failed + 1 successful) from 10.13.37.50 (evidence: 38_all_http_requests.txt). Setup script has exactly 20 entries in WRONG_PASSWORDS array (lines 36-41).",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.valid_credentials",
+            "metadata_value": "admin:S3cur3P@ss2024",
+            "verified_value": "admin:S3cur3P@ss2024",
+            "source": "Independently verified from PCAP: tshark extraction of frame 280 shows urlencoded-form fields username='admin', password='S3cur3P@ss2024' (evidence: 29_frame280_form_fields.txt). Raw POST body confirms: 'username=admin&password=S3cur3P@ss2024' (evidence: 30_frame280_raw_body.txt). The subsequent frame 284 is the HTTP 302 response redirecting to /admin/dashboard (evidence: 09_successful_login_302.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.webshell_filename",
+            "metadata_value": "cmd.php",
+            "verified_value": "cmd.php",
+            "source": "Independently verified from PCAP: frame 292 multipart Content-Disposition header reads 'form-data;name=\"file\";filename=\"cmd.php\"' (evidence: 12_upload_filename.txt). The POST was to /admin/upload with multipart/form-data content type (evidence: 11_webshell_upload.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.commands_executed",
+            "metadata_value": "id,uname -a,cat /etc/passwd,ls -la /opt/data",
+            "verified_value": "id,uname -a,cat /etc/passwd,ls -la /opt/data",
+            "source": "Independently verified from PCAP: tshark extraction of POST requests to /uploads/cmd.php shows 4 commands in chronological order — frame 304: cmd=id, frame 316: cmd=uname -a, frame 328: cmd=cat /etc/passwd, frame 340: cmd=ls -la /opt/data (evidence: 13_webshell_commands.txt). TCP stream 25 confirms the POST body 'cmd=id' and HTTP 200 response with 'uid=33(www-data)...' (evidence: 35_webshell_cmd_id_stream.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.exfil_bytes",
+            "metadata_value": 16350,
+            "verified_value": 16350,
+            "source": "Independently verified from PCAP: tshark sum of tcp.len for packets from .50 to .100:9443 = 16350 (evidence: 15_exfil_total_bytes.txt). TCP stream follow confirms '16350' as payload size with CSV data starting 'employee_id,name,email,department,salary,ssn' (evidence: 34_exfil_stream_content.txt). Note: this value is deterministic because the CSV is generated with random.seed(42) producing exactly 200 employee records.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This PCAP contains a simulated multi-phase web application breach on loopback interfaces with 4 IP addresses. The capture has 380 total packets spanning 7.084 seconds. The legitimate user is 10.13.37.10 (5 GET requests to /, /about, /status, /docs, /contact). The web server is at 10.13.37.20 port 8080 (Python BaseHTTP server). The attacker is 10.13.37.50 who performed a brute-force login attack with exactly 20 failed attempts (HTTP 401 responses) before successfully logging in with credentials admin:S3cur3P@ss2024 (the successful POST is frame 280, with the 302 redirect at frame 284 pointing to /admin/dashboard). After login, the attacker uploaded a webshell named cmd.php via multipart POST to /admin/upload (frame 292, filename visible in Content-Disposition header). The attacker then executed 4 OS commands via POST requests to /uploads/cmd.php with the commands in the POST body 'cmd=' field: (1) id, (2) uname -a, (3) cat /etc/passwd, (4) ls -la /opt/data (frames 304, 316, 328, 340). Finally, the attacker exfiltrated data to a separate server at 10.13.37.100 on TCP port 9443 (TCP stream 29). The exfiltrated data is a CSV file with 200 employee records (columns: employee_id, name, email, department, salary, ssn) totaling exactly 16350 application-layer bytes. The first record is EMP0001,Ahft Pacgpo. The exfil traffic is raw TCP (not HTTP), appearing as a single 'data' frame in the protocol hierarchy. Key Wireshark analysis hints: filter 'http.response.code == 401' shows the 20 brute-force failures; filter 'http.response.code == 302' isolates the single successful login; the credentials are in the HTML Form URL Encoded section of the POST request corresponding to the 302 response; the webshell filename appears in the MIME multipart Content-Disposition header; the commands appear as urlencoded-form 'cmd' field values in POST requests to /uploads/cmd.php; the exfil conversation is identifiable as the only TCP traffic to 10.13.37.100 on a non-HTTP port (9443).",
+    "pi_confidence": "high"
+}

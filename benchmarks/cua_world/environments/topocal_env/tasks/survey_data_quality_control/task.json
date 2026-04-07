@@ -1,0 +1,65 @@
+{
+  "id": "survey_data_quality_control@1",
+  "version": "1.0",
+  "env_id": "topocal_env@0.1",
+  "description": "You are a survey technician at a licensed land surveying firm in Boulder County, Colorado. Clean the raw survey dataset at C:\\Users\\Docker\\Desktop\\BoulderQC\\raw_survey.csv by removing outlier points with erroneous elevations based on the criteria in C:\\Users\\Docker\\Desktop\\BoulderQC\\QC_Protocol.txt. Export the cleaned dataset to C:\\Users\\Docker\\Desktop\\BoulderQC\\cleaned_survey.csv and a QC report to C:\\Users\\Docker\\Desktop\\BoulderQC\\QC_Report.txt. The report must document the original point count, the number of points removed, and the point number, coordinates, and reason for removal for each flagged point.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\survey_data_quality_control\\setup_task.ps1",
+    "pre_task_timeout": 720,
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\survey_data_quality_control\\export_result.ps1"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_survey_data_quality_control"
+    }
+  },
+  "metadata": {
+    "occupation": "Survey Technician",
+    "industry": "Land Surveying / Geomatics",
+    "location": "Boulder County, Colorado",
+    "data_source": "USGS NED 10m via OpenTopoData API + 6 synthetic outliers",
+    "coordinate_system": "UTM Zone 13N (EPSG:26913)",
+    "survey_point_count": 150,
+    "total_raw_points_with_outliers": 150,
+    "outlier_count": 6,
+    "outlier_point_ids": [
+      51,
+      52,
+      53,
+      54,
+      55,
+      56
+    ],
+    "outlier_elevation_errors_m": [
+      350,
+      420,
+      -380,
+      290,
+      -310,
+      470
+    ],
+    "expected_clean_row_count": 144,
+    "primary_deliverable": "cleaned_survey.csv",
+    "deliverable_path_csv": "C:\\Users\\Docker\\Desktop\\BoulderQC\\cleaned_survey.csv",
+    "secondary_deliverable": "QC_Report.txt",
+    "deliverable_path_report": "C:\\Users\\Docker\\Desktop\\BoulderQC\\QC_Report.txt",
+    "features_used": [
+      "ascii_import",
+      "dtm_creation",
+      "point_editing_deletion",
+      "point_export",
+      "text_report_creation"
+    ],
+    "pass_threshold": 60,
+    "scoring_breakdown": "csv_exists_new=30, row_count_reduced=25, report_exists_new=25, outlier_ids_mentioned=20",
+    "anti_gaming_note": "Max partial credit = 49 (12+12+15+10) which is below pass threshold 60. Agent must discover outlier identities independently.",
+    "result_file": "C:\\Users\\Docker\\survey_data_quality_control_result.json"
+  }
+}

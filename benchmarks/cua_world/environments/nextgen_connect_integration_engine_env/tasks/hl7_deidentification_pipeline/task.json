@@ -1,0 +1,43 @@
+{
+  "id": "hl7_deidentification_pipeline@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a de-identification pipeline named 'PHI_Deidentification_Pipeline' for HL7 ADT messages. The pipeline must read HL7 v2.x files from '/home/ga/hl7_input/' and write cleaned messages to '/home/ga/hl7_output/'. For each message, replace PID-5 (Patient Name) with 'ANONYMOUS^PATIENT', PID-11 (Address) with 'REMOVED^^REMOVED^XX^00000', and remove values for PID-13 (Home Phone) and PID-19 (SSN). All other segments and fields must remain unchanged. Verify the channel by processing the sample files (Johnson, Martinez, Thompson) provided in the input directory.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_deidentification_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_deidentification_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "input_dir": "/home/ga/hl7_input",
+    "output_dir": "/home/ga/hl7_output",
+    "channel_name": "PHI_Deidentification_Pipeline",
+    "forbidden_strings": [
+      "JOHNSON",
+      "MARTINEZ",
+      "THOMPSON",
+      "987654321",
+      "123456789",
+      "456789012",
+      "456 OAK AVENUE",
+      "789 PINE STREET",
+      "321 MAPLE DRIVE"
+    ],
+    "required_strings": [
+      "ANONYMOUS^PATIENT",
+      "REMOVED^^REMOVED^XX^00000"
+    ],
+    "min_files": 3
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_deidentification_pipeline"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "configure_agent_group_policy@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create a Wazuh agent group named 'linux-webservers' and upload a shared agent configuration (agent.conf) to it using the API at https://localhost:55000 (User: wazuh-wui, Pass: MyS3cr37P450r.*-). The configuration must include:\n- <localfile> for Apache access log: format 'apache', location '/var/log/apache2/access.log'\n- <localfile> for Apache error log: format 'apache', location '/var/log/apache2/error.log'\n- <localfile> for Syslog auth log: format 'syslog', location '/var/log/auth.log'\n- <syscheck> with frequency '600', monitoring '/var/www/html' (realtime='yes') and '/etc/apache2' (check_all='yes', report_changes='yes')\n- <wodle name='command'> with tag 'listening-ports', command 'ss -tlnp', interval '5m', run_on_start 'yes'\n- <rootcheck> with frequency '3600'",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_agent_group_policy/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_agent_group_policy/export_result.sh"
+  },
+  "metadata": {
+    "group_id": "linux-webservers",
+    "container_config_path": "/var/ossec/etc/shared/linux-webservers/agent.conf",
+    "expected_structure": {
+      "localfiles": 3,
+      "syscheck": true,
+      "wodle": true,
+      "rootcheck": true
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_agent_group_policy"
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "id": "quarterly_pipeline_audit@1",
+  "version": "1.0",
+  "env_id": "odoo_crm_env@0.1",
+  "description": "You are a CRM manager performing the Q1 2026 end-of-quarter pipeline audit in Odoo CRM. Your VP of Sales needs the pipeline cleaned up and ready for the Q2 forecast meeting. Login at http://localhost:8069 with admin / admin.\n\nPhase 1 - Set up infrastructure:\n\nBefore reviewing opportunities, create the following in the CRM:\n- A new pipeline stage called \"Negotiation\" positioned immediately after \"Proposition\" and before \"Won\"\n- A new lost reason: \"Champion Left Organization\"\n- A new sales team: \"Q2 Priority Accounts\" with Mitchell Admin as team leader\n\nPhase 2 - Review each of the 7 opportunities listed below.\n\nFor each opportunity, open it, read the internal notes in the chatter section at the bottom of the form, and take the appropriate action based on the decision rules below. Apply the FIRST matching rule.\n\nDecision Rules:\n\nRule 1 (Advance to Proposition): If the notes indicate budget approval and a formal proposal has been requested, move to \"Proposition\" stage and set probability to 65%.\n\nRule 2 (Mark as Lost): If the notes indicate the deal champion has left the organization with no active replacement, mark as Lost with reason \"Champion Left Organization\". Do NOT assign this opportunity to the Q2 sales team.\n\nRule 3 (Advance to Negotiation): If the notes describe a verbal agreement with contract or legal review in progress, move to the \"Negotiation\" stage, set probability to 85%, and set priority to High (2 stars).\n\nRule 4 (Rescope - downsize): If the notes indicate the customer has reduced scope with a specific revised price, update the opportunity title to reflect the new reduced scope as described in the notes, set expected revenue to the revised amount stated in the notes, and set probability to 75%.\n\nRule 5 (Expand and flag competitor): If the notes indicate scope expansion AND mention a specific competitor by name, update expected revenue to the expanded amount stated in the notes, create a new tag \"Competitor: OmniTech\" and apply it to the opportunity, set priority to High (2 stars), and set probability to 50%.\n\nRule 6 (Defer to Q2): If the notes indicate the customer is undergoing internal reorganization and wants to reconnect later, schedule a \"Call\" activity due on April 15, 2026 with summary \"Q2 follow-up: check on reorg status\". Keep the opportunity in its current stage.\n\nRule 7 (New decision maker): If the notes indicate a new decision maker has taken over and provide their contact details, create a new contact with the provided name, job title, email, and phone number. Link this contact to the customer company. Set this new contact as the opportunity's customer. Set probability to 60%.\n\nAdditional requirements for ALL reviewed opportunities:\n- Tag every reviewed opportunity with \"Q1-Reviewed\"\n- Assign every opportunity that is NOT marked as Lost to the \"Q2 Priority Accounts\" sales team\n\nOpportunities to review:\n1. DataVault Cloud Migration - Pinnacle Financial ($180,000, currently in Qualified)\n2. Network Infrastructure Refresh - Harbor Shipping Co ($95,000, currently in Proposition)\n3. ERP Modernization Suite - Atlas Manufacturing ($220,000, currently in Qualified)\n4. Full Office 365 Migration - Cascade Retail Group ($45,000, currently in Proposition)\n5. Cybersecurity Audit Package - NovaTech Solutions ($65,000, currently in Qualified)\n6. Managed IT Services - Greenfield Organics ($75,000, currently in New)\n7. Custom Analytics Platform - Redwood Data Systems ($135,000, currently in Qualified)",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/quarterly_pipeline_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/quarterly_pipeline_audit/export_result.sh"
+  },
+  "metadata": {
+    "opportunities": {
+      "opp1_name": "DataVault Cloud Migration - Pinnacle Financial",
+      "opp1_rule": "advance_proposition",
+      "opp2_name": "Network Infrastructure Refresh - Harbor Shipping Co",
+      "opp2_rule": "mark_lost",
+      "opp3_name": "ERP Modernization Suite - Atlas Manufacturing",
+      "opp3_rule": "advance_negotiation",
+      "opp4_name_before": "Full Office 365 Migration - Cascade Retail Group",
+      "opp4_name_after": "Email Migration - Cascade Retail Group",
+      "opp4_rule": "rescope",
+      "opp4_new_revenue": 18000,
+      "opp5_name": "Cybersecurity Audit Package - NovaTech Solutions",
+      "opp5_rule": "expand_competitor",
+      "opp5_new_revenue": 92000,
+      "opp5_competitor_tag": "Competitor: OmniTech",
+      "opp6_name": "Managed IT Services - Greenfield Organics",
+      "opp6_rule": "defer_q2",
+      "opp6_activity_date": "2026-04-15",
+      "opp7_name": "Custom Analytics Platform - Redwood Data Systems",
+      "opp7_rule": "new_contact",
+      "opp7_contact_name": "Elena Foster",
+      "opp7_contact_email": "elena.foster@redwooddatasystems.example.com",
+      "opp7_contact_phone": "+1 (503) 555-0147",
+      "opp7_contact_title": "VP of Operations"
+    },
+    "infrastructure": {
+      "new_stage": "Negotiation",
+      "lost_reason": "Champion Left Organization",
+      "sales_team": "Q2 Priority Accounts"
+    },
+    "common_tag": "Q1-Reviewed",
+    "pass_threshold": 55
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_quarterly_pipeline_audit"
+    }
+  }
+}

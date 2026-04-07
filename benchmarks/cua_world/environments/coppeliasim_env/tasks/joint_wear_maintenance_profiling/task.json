@@ -1,0 +1,31 @@
+{
+  "id": "joint_wear_maintenance_profiling@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Joint Wear and Maintenance Profiling",
+  "description": "A Reliability Engineer at an automated packaging facility is evaluating a proposed high-speed pick-and-place cycle for a new robot cell to identify which joint will require the earliest maintenance intervention based on accumulated angular travel and motion reversals. Using the CoppeliaSim ZMQ Remote API (port 23000) in synchronous mode, simulate 5 production cycles for the 6 revolute joints. Each cycle consists of moving sequentially through WP1 [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], WP2 [0.785, -0.524, 0.785, -0.785, 0.524, 0.0], WP3 [1.571, -1.047, 1.571, -1.571, 1.047, 0.785], WP4 [0.785, -0.524, 0.785, -0.785, 0.524, 0.0], and returning to WP1, using a 0.05 radian tolerance for waypoint arrival.\n\nRecord raw timestep data (time_s and joint positions j0-j5) to /home/ga/Documents/CoppeliaSim/exports/trajectory_trace.csv. Calculate wear metrics per cycle: accumulated travel (sum of absolute differences in actual position) and reversals (macroscopic direction changes of at least 0.05 radians). Log the per-cycle summary for all joints to /home/ga/Documents/CoppeliaSim/exports/joint_wear_log.csv. Extrapolate the averages to 2,000,000 annual cycles and export the results to /home/ga/Documents/CoppeliaSim/exports/maintenance_schedule.json. The JSON must include: simulated_cycles (5), annual_cycles (2000000), a wear_summary list (containing joint_idx, avg_travel_per_cycle_rad, avg_reversals_per_cycle, annual_travel_rad, and annual_reversals for each joint), critical_travel_joint (index of joint with highest annual travel), and critical_reversal_joint (index of joint with highest annual reversals).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/joint_wear_maintenance_profiling/setup_task.sh",
+    "post_task": "/workspace/tasks/joint_wear_maintenance_profiling/export_result.sh"
+  },
+  "metadata": {
+    "annual_cycles": 2000000,
+    "j0_annual_min": 5000000,
+    "j0_annual_max": 7500000,
+    "j5_annual_min": 2500000,
+    "j5_annual_max": 3800000,
+    "expected_critical_joint": 0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_joint_wear_maintenance_profiling"
+    }
+  }
+}

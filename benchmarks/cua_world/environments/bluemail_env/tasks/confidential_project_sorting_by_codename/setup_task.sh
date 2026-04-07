@@ -3,6 +3,9 @@ echo "=== Setting up confidential_project_sorting_by_codename ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 # Record task start time
 date +%s > /tmp/task_start_time.txt
 
@@ -36,7 +39,11 @@ Sent
 Trash
 EOF
 
-# Load 50 ham emails into Inbox
+# Load 50 ham emails into Inbox.
+# Seed them into Maildir/new so BlueMail sees them as newly arrived mail even
+# when the account was already configured during post_start and the app is open.
+# In the cached flow, copying straight into cur/:2,S can leave BlueMail showing
+# an empty/stale inbox until the client is manually restarted.
 # We use ham emails because they contain the technical terms (SpamAssassin dev discussions)
 echo "Loading emails..."
 TIMESTAMP=$(date +%s)
@@ -45,8 +52,8 @@ count=0
 for eml_file in "${ASSETS_HAM}"/ham_*.eml; do
     if [ -f "$eml_file" ] && [ $count -lt 50 ]; then
         # Create unique filename
-        FNAME="${TIMESTAMP}_${IDX}.$(hostname -s):2,S"
-        cp "$eml_file" "${MAILDIR}/cur/${FNAME}"
+        FNAME="${TIMESTAMP}_${IDX}.$(hostname -s)"
+        cp "$eml_file" "${MAILDIR}/new/${FNAME}"
         IDX=$((IDX + 1))
         count=$((count + 1))
     fi
@@ -60,8 +67,8 @@ echo "0" > /tmp/initial_project_folders_count
 # Fix permissions
 chown -R ga:ga "${MAILDIR}"
 
-# Force Dovecot index
-doveadm index -u ga INBOX 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # ============================================================
 # Launch BlueMail
@@ -73,7 +80,8 @@ fi
 
 # Maximize
 maximize_bluemail
-sleep 5
+# Give BlueMail extra time to pick up the newly seeded Maildir/new messages.
+sleep 20
 
 # Capture initial screenshot
 take_screenshot /tmp/task_initial.png ga

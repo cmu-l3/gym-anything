@@ -1,0 +1,35 @@
+{
+  "id": "sakila_qa_data_validation_suite@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "As a QA Analyst, build a reusable validation suite in MySQL Workbench (host: localhost, user: ga, password: password123) for the Sakila production database to detect data integrity issues. Create a table named 'qa_test_results' in the sakila schema with columns test_id (INT AUTO_INCREMENT PRIMARY KEY), test_name (VARCHAR(100)), test_description (VARCHAR(255)), records_found (INT), status (VARCHAR(10)), and executed_at (TIMESTAMP DEFAULT CURRENT_TIMESTAMP). Implement a stored procedure named 'sp_run_qa_suite' that truncates the results table and populates it with the results of five checks: 'temporal_violation_check' (return_date < rental_date), 'negative_payment_check' (amount < 0), 'invalid_email_check' (email without '@'), 'zero_rental_duration_check' (rental_duration = 0), and 'zero_replacement_cost_check' (replacement_cost = 0.00). For each check, the status must be 'FAIL' if records are found and 'PASS' otherwise. Execute the procedure and export the final 'qa_test_results' table to /home/ga/Documents/exports/qa_test_results.csv.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_qa_data_validation_suite/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_qa_data_validation_suite/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "expected_table": "qa_test_results",
+    "expected_procedure": "sp_run_qa_suite",
+    "expected_output_file": "/home/ga/Documents/exports/qa_test_results.csv",
+    "checks": {
+      "temporal_violation_check": 5,
+      "negative_payment_check": 4,
+      "invalid_email_check": 3,
+      "zero_rental_duration_check": 3,
+      "zero_replacement_cost_check": 2
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_qa_data_validation_suite"
+    }
+  }
+}

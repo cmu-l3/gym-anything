@@ -2,6 +2,7 @@
 echo "=== Setting up hypertension_care_protocol task ==="
 
 source /workspace/scripts/task_utils.sh
+wait_for_postgres
 
 # --- 1. Verify Roberto Carlos exists ---
 ROBERTO_PATIENT_ID=$(gnuhealth_db_query "

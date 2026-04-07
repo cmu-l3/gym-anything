@@ -1,0 +1,37 @@
+{
+  "id": "setup_deniable_corporate_archive@1",
+  "version": "1.0",
+  "env_id": "veracrypt_env@0.1",
+  "description": "Set up a deniable encrypted archive for your organization's sensitive investigation files. Create a hidden VeraCrypt volume container at /home/ga/Volumes/corporate_archive.hc (100 MB total) with the following specifications:\n\nOuter (decoy) volume: Encryption: AES-Twofish-Serpent (cascade), Hash: SHA-512, Password: 'AuditReady2024!', Filesystem: FAT.\n\nHidden volume: Size: 40 MB, Encryption: Serpent, Hash: Whirlpool, Password: 'InvestigationX!99', Keyfile: generate a VeraCrypt random keyfile and save it at /home/ga/Keyfiles/investigation.key, Filesystem: FAT.\n\nAfter creation, populate both compartments: copy all files from /home/ga/Documents/decoy_files/ into the outer volume, and all files from /home/ga/Documents/sensitive_files/ into the hidden volume. Verify the archive works by mounting each compartment to /home/ga/MountPoints/slot1 and confirming file access, then dismounting. Write a verification report at /home/ga/Documents/archive_setup_report.txt listing file names and SHA-256 hashes for both compartments. Ensure all volumes are dismounted when finished.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_deniable_corporate_archive/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_deniable_corporate_archive/export_result.sh"
+  },
+  "metadata": {
+    "volume_path": "/home/ga/Volumes/corporate_archive.hc",
+    "outer_password": "AuditReady2024!",
+    "hidden_password": "InvestigationX!99",
+    "keyfile_path": "/home/ga/Keyfiles/investigation.key",
+    "report_path": "/home/ga/Documents/archive_setup_report.txt",
+    "decoy_source": "/home/ga/Documents/decoy_files/",
+    "sensitive_source": "/home/ga/Documents/sensitive_files/",
+    "outer_encryption": "AES(Twofish(Serpent))",
+    "outer_hash": "SHA-512",
+    "hidden_encryption": "Serpent",
+    "hidden_hash": "Whirlpool",
+    "total_size_mb": 100,
+    "hidden_size_mb": 40
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_setup_deniable_corporate_archive"
+    }
+  }
+}

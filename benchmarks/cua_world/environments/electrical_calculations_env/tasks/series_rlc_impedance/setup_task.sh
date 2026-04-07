@@ -20,7 +20,12 @@ sleep 1
 input keyevent KEYCODE_HOME
 sleep 1
 
-# 5. Capture Initial State Evidence
+# 5. Launch the app using robust helper
+echo "Launching Electrical Calculations..."
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
+
+# 6. Capture Initial State Evidence
 screencap -p /sdcard/tasks/series_rlc_impedance/initial_state.png
 
 echo "=== Setup complete ==="

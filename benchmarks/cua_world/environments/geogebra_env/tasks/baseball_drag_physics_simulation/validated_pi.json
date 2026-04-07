@@ -1,0 +1,52 @@
+{
+    "task_id": "baseball_drag_physics_simulation@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_filename",
+            "metadata_value": "baseball_physics.ggb",
+            "verified_value": "baseball_physics.ggb",
+            "source": "export_result.sh EXPECTED_FILE path check",
+            "status": "verified"
+        },
+        {
+            "key": "vacuum_range_expected",
+            "metadata_value": 176.6,
+            "verified_value": 176.6,
+            "source": "Mathematical calculation: R = v0^2 * sin(2*theta) / g = 44.7^2 * sin(60)/9.8 = 176.57 \u2248 176.6",
+            "status": "verified"
+        },
+        {
+            "key": "drag_range_min",
+            "metadata_value": 115.0,
+            "verified_value": 109.8,
+            "source": "ODE integration for vector drag model (a = -k*v*v_vec). The verifier's lower bound of 115.0 completely excludes the mathematically accurate 109.8m range.",
+            "status": "contradicted"
+        },
+        {
+            "key": "drag_range_max",
+            "metadata_value": 135.0,
+            "verified_value": 109.8,
+            "source": "ODE integration for vector drag model (a = -k*v*v_vec). The verifier's accepted range [115.0, 135.0] is physically incorrect, likely based on a flawed model such as independent drag per axis (which yields ~118.2m).",
+            "status": "contradicted"
+        },
+        {
+            "key": "drag_const_k",
+            "metadata_value": 0.00545,
+            "verified_value": 0.00545,
+            "source": "Mathematical calculation: 0.5 * rho * Cd * A / m = 0.5 * 1.225 * 0.3 * 0.0043 / 0.145 = 0.005449",
+            "status": "verified"
+        },
+        {
+            "key": "tolerance",
+            "metadata_value": 2.0,
+            "verified_value": 5.0,
+            "source": "verifier.py hardcodes a tolerance of 5.0 for the vacuum point (abs(p['x'] - vac_expected) < 5.0) and does not use the 2.0 metadata value at all.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task is to build a physics simulation in GeoGebra. The expected filename (baseball_physics.ggb), vacuum trajectory range (176.6m), and drag constant k (0.00545) perfectly match mathematical expectations based on the prompt's parameters. However, the verifier requires the drag trajectory landing point to be between 115.0m and 135.0m. This explicitly contradicts physics; a correct numerical integration of the vector drag force (a = -k*v*v_vec) yields a true landing point of exactly ~109.8m. The 115-135m range likely stems from the task creator erroneously calculating drag independently per axis (a_x = -k*v_x^2, yielding ~118.2m). This is a critical defect because a perfectly accurate physics simulation will fail the verifier. Additionally, the metadata claims a tolerance of 2.0, but verifier.py hardcodes a tolerance of 5.0 for the vacuum landing point check.",
+    "pi_confidence": "high"
+}

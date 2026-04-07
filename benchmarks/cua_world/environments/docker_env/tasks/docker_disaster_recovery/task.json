@@ -1,0 +1,34 @@
+{
+  "id": "docker_disaster_recovery@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "Perform a complete disaster recovery drill on the 'acme' application stack (PostgreSQL: acme-db, Redis: acme-cache, Nginx: acme-web) located at ~/projects/disaster-recovery/. Back up the database dump (acme-db.sql), Redis snapshot (acme-cache.rdb), and configuration files (docker-compose.yml, nginx.conf) to ~/backups/. Simulate a total site failure by removing the stack and all persistent volumes (acme-pgdata, acme-redisdata), then restore the environment and data from your backups. Verify the integrity of the restored PostgreSQL tables (customer, film, rental) and Redis session keys. Document the entire recovery procedure in ~/Desktop/recovery_runbook.md.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_disaster_recovery/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_disaster_recovery/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/disaster-recovery",
+    "backup_dir": "/home/ga/backups",
+    "runbook_path": "/home/ga/Desktop/recovery_runbook.md",
+    "pg_counts": {
+      "customer": 599,
+      "film": 1000,
+      "rental": 16044
+    },
+    "redis_key_count": 50,
+    "pass_threshold": 65
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_disaster_recovery"
+    }
+  }
+}

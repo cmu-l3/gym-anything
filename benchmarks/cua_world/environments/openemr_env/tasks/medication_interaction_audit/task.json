@@ -1,0 +1,44 @@
+{
+  "id": "medication_interaction_audit@1",
+  "version": "1.0",
+  "env_id": "openemr_env@0.1",
+  "description": "Stage 3b\"\n    *   If the agent has to *calculate* the stage from lab values, then telling them it's \"Stage 3b\" is giving the answer.\n    *   But the task says \"A patient has been newly diagnosed with CKD Stage 3b.\" This implies the diagnosis is already in the chart or is the given state. The task is to *reconcile meds* based on that state.\n    *   So it's not an answer, it's a parameter.\n\n    *   Okay, original it is.\n\n    *   Wait, I'll just check the \"No Step-by-Step\" one more time.\n    *   \"1. Navigate... 2. Locate... 3",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/medication_interaction_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/medication_interaction_audit/export_result.sh"
+  },
+  "metadata": {
+    "patient_fname": "James",
+    "patient_lname": "Kowalski",
+    "patient_dob": "1968-04-15",
+    "condition": "CKD Stage 3b (eGFR 38 mL/min/1.73m²)",
+    "contraindicated_drugs": [
+      "Metformin",
+      "Ibuprofen",
+      "Nitrofurantoin"
+    ],
+    "safe_drugs": [
+      "Amlodipine",
+      "Atorvastatin",
+      "Lisinopril"
+    ],
+    "result_file": "/tmp/medication_audit_result.json",
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_medication_interaction_audit"
+    }
+  },
+  "natural_language": {
+    "prompt": "Patient James Kowalski (DOB: 1968-04-15) has been newly diagnosed with chronic kidney disease stage 3b (eGFR 38 mL/min/1.73m²). Review his current medication list and discontinue any medications that are contraindicated or require modification at this level of kidney function. Order appropriate laboratory monitoring as clinically indicated, and document your medication review in a clinical note.",
+    "language": "en"
+  }
+}

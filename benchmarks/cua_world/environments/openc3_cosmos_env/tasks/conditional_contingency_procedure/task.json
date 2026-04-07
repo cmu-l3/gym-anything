@@ -1,0 +1,31 @@
+{
+  "id": "conditional_contingency_procedure@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a flight operations engineer conducting a conditional payload pass. Mission flight rules mandate that the primary payload can only be operated if the spacecraft's thermal state is nominal. If the moving average of the primary temperature sensor exceeds 55.0 degrees, you must immediately abort the pass and safe the vehicle. Using OpenC3 COSMOS, automate a procedure to evaluate the 'INST HEALTH_STATUS TEMP1' telemetry item based on the arithmetic mean of exactly three samples taken at 1-second intervals. If the mean is below 55.0, execute the nominal branch by sending 'INST COLLECT' (TYPE: NORMAL, DURATION: 5). If the mean is 55.0 or higher, execute the contingency branch by sending 'INST ABORT'. Document the process in a structured JSON report at /home/ga/Desktop/conditional_pass_report.json containing exactly the keys: 'samples', 'mean_temperature', 'branch_executed', and 'command_sent'. OpenC3 password: Cosmos2024!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/conditional_contingency_procedure/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/conditional_contingency_procedure/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/conditional_contingency_procedure_result.json",
+    "output_file": "/home/ga/Desktop/conditional_pass_report.json",
+    "target": "INST",
+    "temperature_threshold": 55.0,
+    "nominal_command": "COLLECT",
+    "contingency_command": "ABORT"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_conditional_contingency_procedure"
+    }
+  }
+}

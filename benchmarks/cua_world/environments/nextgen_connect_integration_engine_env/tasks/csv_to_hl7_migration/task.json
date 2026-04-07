@@ -1,0 +1,32 @@
+{
+  "id": "csv_to_hl7_migration@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Migrate a legacy patient roster from a CSV file to HL7 format by creating a NextGen Connect channel named 'Legacy_CSV_Import'. The channel must read '/home/ga/legacy_data/patient_roster.csv' (skipping the header), transform the data into HL7 v2.x ADT^A28 messages, and write them to '/home/ga/hl7_import/' using unique filenames. Ensure 'DOB' is converted from 'MM/DD/YYYY' to 'YYYYMMDD', 'Gender' is converted from 'Male'/'Female' to 'M'/'F', and fields are mapped to PID.3 (PatientID), PID.5 (Name), and PID.11 (Address). Access the environment via terminal, REST API, or web dashboard at https://localhost:8443 (admin/admin). All output files must be valid HL7 messages.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/csv_to_hl7_migration/setup_task.sh",
+    "post_task": "/workspace/tasks/csv_to_hl7_migration/export_result.sh"
+  },
+  "metadata": {
+    "input_csv": "/home/ga/legacy_data/patient_roster.csv",
+    "output_dir": "/home/ga/hl7_import",
+    "expected_count": 20,
+    "channel_name": "Legacy_CSV_Import",
+    "validation_regex": {
+      "date": "^\\d{8}$",
+      "gender": "^[MF]$"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_csv_to_hl7_migration"
+    }
+  }
+}

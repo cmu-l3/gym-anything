@@ -1,0 +1,99 @@
+# AcmeCorp E-Commerce Backend - docker-compose.yml
+# BUG SUMMARY (5 bugs for agent to find and fix):
+#   Bug 1: POSTGRES_DATABASE should be POSTGRES_DB (wrong env var name)
+#   Bug 2: api service references network "backend-net" but only "app-network" is defined
+#   Bug 3: REDIS_URL has wrong scheme: "redis:6379" should be "redis://cache:6379"
+#   Bug 4: nginx upstream port is 3001 but api service listens on PORT 3000
+#   Bug 5: worker service command uses wrong module path "app.tasks" instead of "worker.tasks"
+
+version: "3.9"
+
+services:
+  db:
+    image: postgres:14
+    container_name: acme-db
+    environment:
+      POSTGRES_USER: acme
+      POSTGRES_PASSWORD: acme_secret_2024
+      POSTGRES_DATABASE: acme_store     # BUG 1: should be POSTGRES_DB
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acme"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cache:
+    image: redis:7-alpine
+    container_name: acme-cache
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: acme-api
+    environment:
+      DATABASE_URL: postgresql://acme:acme_secret_2024@db:5432/acme_store
+      REDIS_URL: redis:6379          # BUG 3: should be redis://cache:6379
+      PORT: "3000"
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    networks:
+      - backend-net                  # BUG 2: "backend-net" does not exist; should be "app-network"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    image: nginx:1.24-alpine
+    container_name: acme-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: acme-worker
+    environment:
+      DATABASE_URL: postgresql://acme:acme_secret_2024@db:5432/acme_store
+      REDIS_URL: redis://cache:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: ["python", "-m", "app.tasks"]  # BUG 5: module is "worker.tasks" not "app.tasks"
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db-data:

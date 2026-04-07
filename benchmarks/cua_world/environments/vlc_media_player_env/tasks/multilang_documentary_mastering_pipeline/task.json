@@ -1,0 +1,64 @@
+{
+  "id": "multilang_documentary_mastering_pipeline@1",
+  "version": "1.0",
+  "env_id": "vlc_env@0.1",
+  "description": "You are a post-production mastering engineer. Raw materials for a 90-second documentary are in /home/ga/Videos/source/: main_video.mov (1920x1080, scratch audio to discard), narration_en.wav and narration_es.wav (NOT time-aligned with video), music_effects.wav (stereo M&E, correctly aligned), subs_en.srt and subs_es.srt (both have timing errors — see sync_notes.txt for correction details). Each audio file and the video contain a sync marker in the first 10 seconds: the video has a half-second white flash, each audio has a half-second 1kHz tone burst. Determine each narration track's timing offset by finding its beep position relative to the video's flash. The M&E track is pre-aligned. Read /home/ga/Documents/sync_notes.txt for synchronization methodology and /home/ga/Documents/delivery_spec.json for detailed output requirements. Create all outputs in /home/ga/Videos/mastered/: (1) documentary_master.mkv — 30fps H.264 video + 3 sync-corrected audio tracks (EN/ES narration, M&E) + 2 timing-corrected subtitle tracks (EN/ES) with ISO 639 language tags, (2) dist_english.mp4 — 1280x720 H.264, EN narration mixed with M&E, EN subtitles hard-burned, (3) dist_spanish.mp4 — 1280x720 H.264, ES narration mixed with M&E, ES subtitles hard-burned, (4) dist_audio.m4a — EN narration mixed with M&E, no video, (5) qa_proof_sheet.png — 3x2 keyframe grid from the master at 15s intervals, (6) mastering_report.json — detected sync offsets, applied corrections, and ffprobe-measured stream inventory for all outputs.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 200,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multilang_documentary_mastering_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/multilang_documentary_mastering_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "ground_truth": {
+      "video_flash_time_sec": 5.0,
+      "en_beep_time_sec": 8.5,
+      "es_beep_time_sec": 6.8,
+      "me_beep_time_sec": 5.0,
+      "en_offset_sec": 3.5,
+      "es_offset_sec": 1.8,
+      "subtitle_en_shift_sec": 2.5,
+      "subtitle_es_shift_sec": 4.0
+    },
+    "output_directory": "/home/ga/Videos/mastered",
+    "deliverables": {
+      "master_mkv": "/home/ga/Videos/mastered/documentary_master.mkv",
+      "dist_english": "/home/ga/Videos/mastered/dist_english.mp4",
+      "dist_spanish": "/home/ga/Videos/mastered/dist_spanish.mp4",
+      "dist_audio": "/home/ga/Videos/mastered/dist_audio.m4a",
+      "proof_sheet": "/home/ga/Videos/mastered/qa_proof_sheet.png",
+      "report": "/home/ga/Documents/mastering_report.json"
+    },
+    "skills": [
+      "audio_sync_detection",
+      "subtitle_timing_correction",
+      "multi_track_muxing",
+      "audio_mixing",
+      "hard_subtitle_burning",
+      "video_downscaling",
+      "proof_sheet_generation",
+      "json_reporting"
+    ],
+    "tags": [
+      "video",
+      "audio",
+      "subtitles",
+      "synchronization",
+      "mastering",
+      "multi-language",
+      "very_hard"
+    ],
+    "occupation": "Post-Production Engineer (SOC 27-4012)",
+    "industry": "Film / Television Post-Production"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multilang_documentary_mastering_pipeline"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+    "task_id": "dna_cell_cycle_analysis@1",
+    "dataset": "BBBC008 (intended) / Synthetic (actual)",
+    "case_id": "nuclei.tif",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "input_image",
+            "metadata_value": "~/Fiji_Data/raw/cell_cycle/nuclei.tif",
+            "verified_value": "~/Fiji_Data/raw/cell_cycle/nuclei.tif (path is correct, but data source is synthetic)",
+            "source": "Code analysis of setup_task.sh: script attempts to download BBBC008_v1_images.zip but fails to find target file due to filename mismatch (looking for 'BBBC008_v1_A01_s1_w1.TIF' which does not exist in archive), falls back to generating synthetic 512x512 uint16 image",
+            "status": "verified"
+        },
+        {
+            "key": "expected_outputs",
+            "metadata_value": "[\"~/Fiji_Data/results/cell_cycle/measurements.csv\", \"~/Fiji_Data/results/cell_cycle/histogram.png\", \"~/Fiji_Data/results/cell_cycle/g1_peak_report.txt\"]",
+            "verified_value": "[\"~/Fiji_Data/results/cell_cycle/measurements.csv\", \"~/Fiji_Data/results/cell_cycle/histogram.png\", \"~/Fiji_Data/results/cell_cycle/g1_peak_report.txt\"]",
+            "source": "Verified in task.json description and export_result.sh script which checks for these three exact files",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_method",
+            "metadata_value": "Python skimage analysis (Otsu + watershed)",
+            "verified_value": "Python skimage analysis: Gaussian background subtraction (sigma=50), Otsu thresholding, Watershed segmentation with distance transform and peak local maxima for marker generation, integrated density measurement via intensity_image.sum()",
+            "source": "Code inspection of setup_task.sh lines 69-128: ground truth calculation uses filters.gaussian, filters.threshold_otsu, morphology.watershed, feature.peak_local_max, and measure.regionprops",
+            "status": "verified"
+        },
+        {
+            "key": "tolerance_percent",
+            "metadata_value": "15",
+            "verified_value": "15",
+            "source": "Verified in verifier.py line 76 which reads 'task_info.get(\"metadata\", {}).get(\"tolerance_percent\", 15)' and uses it for accuracy checking; also used in setup_task.sh ground truth calculation",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_bbbc008",
+            "metadata_value": "Implicit claim: uses BBBC008 real dataset (from setup_task.sh line 20 comment and URL)",
+            "verified_value": "BBBC008 download is attempted but fails due to filename mismatch: script looks for 'BBBC008_v1_A01_s1_w1.TIF' or '*w1.TIF' pattern, but actual BBBC008_v1_images.zip contains files named 'AS_09125_050116000001_*_slice*_channel*.tif'. Download succeeds (verified URL is accessible, 7.6MB archive), but file extraction fails, triggering fallback to synthetic data generation.",
+            "source": "Web search confirmed BBBC008 is real dataset of human HT29 colon cancer cells with Hoechst (DNA) staining. Downloaded and inspected BBBC008_v1_images.zip from https://data.broadinstitute.org/bbbc/BBBC008/BBBC008_v1_images.zip. File listing shows 24 TIF files with naming pattern 'human_ht29_colon_cancer_2_images/AS_09125_050116000001_*_slice*_channel*.tif' - no files match the pattern the script seeks.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task intends to use BBBC008, a real public dataset of human HT29 colon cancer cells (Broad Bioimage Benchmark Collection, accessible at https://data.broadinstitute.org/bbbc/BBBC008/). However, due to a filename mismatch in the setup script, the download succeeds but file extraction fails, causing the task to generate synthetic data instead. The synthetic data consists of a 512x512 uint16 image with 30 simulated G1-phase cells (intensity ~20000) and 10 G2-phase cells (intensity ~40000), generated with random seed 42. The ground truth calculation uses Python skimage with Otsu thresholding and watershed segmentation. A 15% tolerance is applied for accuracy evaluation. The three expected outputs are measurements.csv, histogram.png, and g1_peak_report.txt.",
+    "pi_confidence": "high"
+}

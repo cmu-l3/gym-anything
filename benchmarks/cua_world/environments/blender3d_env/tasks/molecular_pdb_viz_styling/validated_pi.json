@@ -1,0 +1,94 @@
+{
+    "task_id": "molecular_pdb_viz_styling@1",
+    "dataset": null,
+    "case_id": "caffeine.pdb",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "pdb_path",
+            "metadata_value": "/home/ga/Documents/caffeine.pdb",
+            "verified_value": "/home/ga/Documents/caffeine.pdb",
+            "source": "setup_task.sh line 17",
+            "status": "verified"
+        },
+        {
+            "key": "expected_blend",
+            "metadata_value": "/home/ga/BlenderProjects/molecular_setup.blend",
+            "verified_value": "/home/ga/BlenderProjects/molecular_setup.blend",
+            "source": "setup_task.sh line 56, export_result.sh line 10",
+            "status": "verified"
+        },
+        {
+            "key": "expected_render",
+            "metadata_value": "/home/ga/BlenderProjects/caffeine_viz.png",
+            "verified_value": "/home/ga/BlenderProjects/caffeine_viz.png",
+            "source": "setup_task.sh line 57, export_result.sh line 11",
+            "status": "verified"
+        },
+        {
+            "key": "min_atom_count",
+            "metadata_value": 10,
+            "verified_value": 13,
+            "source": "Parsed setup_task.sh hardcoded PDB data: 7 Carbon + 4 Nitrogen + 2 Oxygen = 13 heavy atoms (HETATM lines 25-37)",
+            "status": "verified"
+        },
+        {
+            "key": "molecule_composition_actual",
+            "metadata_value": "C8H10N4O2 (caffeine)",
+            "verified_value": "C7N4O2 (PDB file in task)",
+            "source": "Parsed setup_task.sh PDB: atoms listed are C2, C4, C5, C6, C1', C8, C3' (7 total carbons), N1, N3, N7, N9 (4 total nitrogens), O2, O6 (2 total oxygens). Real caffeine formula per PubChem CID 2519 is C8H10N4O2.",
+            "status": "contradicted"
+        },
+        {
+            "key": "target_materials.Carbon.color_val",
+            "metadata_value": 0.1,
+            "verified_value": null,
+            "source": "Verifier.py line 72 checks 'avg_val < 0.2', not '== 0.1'. The metadata specifies 0.1 but verifier accepts any value < 0.2",
+            "status": "unverified"
+        },
+        {
+            "key": "target_materials.Carbon.roughness_min",
+            "metadata_value": 0.8,
+            "verified_value": 0.8,
+            "source": "Verifier.py line 72 checks 'roughness > 0.8' (strictly greater). Metadata claims min 0.8, verifier enforces > 0.8",
+            "status": "contradicted"
+        },
+        {
+            "key": "target_materials.Oxygen.color_r_min",
+            "metadata_value": 0.8,
+            "verified_value": null,
+            "source": "Verifier.py line 91 checks 'color[0] > (color[1] + color[2])' (Red > Green+Blue), not 'Red >= 0.8'. These are different color constraints.",
+            "status": "unverified"
+        },
+        {
+            "key": "target_materials.Oxygen.emission_min",
+            "metadata_value": 4.0,
+            "verified_value": 4.0,
+            "source": "Verifier.py line 96 checks 'emission >= 4.0'. Task description (line 5 of task.json) specifies >= 5.0, creating contradiction.",
+            "status": "contradicted"
+        },
+        {
+            "key": "oxygen_emission_requirement_contradiction",
+            "metadata_value": "emission_min: 4.0",
+            "verified_value": "Emission >= 5.0 per task description, emission_min 4.0 per metadata",
+            "source": "Task.json line 5 description: 'Emission Strength >= 5.0', metadata line 23: 'emission_min': 4.0, verifier.py line 96: emission >= 4.0",
+            "status": "contradicted"
+        },
+        {
+            "key": "pdb_data_source",
+            "metadata_value": "Assumed to be from public PDB database",
+            "verified_value": "Synthetic/hardcoded in setup_task.sh, not downloaded",
+            "source": "setup_task.sh lines 15-52 explicitly generate PDB content with heredoc (cat > ... << 'EOF'), no download URL present",
+            "status": "contradicted"
+        },
+        {
+            "key": "caffeine_pdb_validity",
+            "metadata_value": "Valid caffeine structure (implied)",
+            "verified_value": "Invalid - has 7 carbons instead of correct 8 for C8H10N4O2",
+            "source": "PubChem CID 2519 specifies C8H10N4O2 formula. PDB file in task contains only 7 distinct carbon atoms (C2, C4, C5, C6, C1', C8, C3'), missing one carbon from the correct xanthine structure",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The caffeine PDB file is synthetically generated (not downloaded from public sources) and contains 13 heavy atoms (7 carbons, 4 nitrogens, 2 oxygens), exceeding the minimum atom count of 10. However, the PDB structure is chemically incomplete compared to the correct caffeine formula (C8H10N4O2), containing only C7N4O2 - missing one carbon atom. The task description requires oxygen emission strength >= 5.0, but metadata specifies 4.0, creating a contradiction that the verifier resolves by using the metadata value of 4.0. Material property checks in the verifier (color thresholds, roughness requirements) are less strict than metadata suggests: carbon color is checked as < 0.2 rather than exactly 0.1, and oxygen red color is verified using R > (G+B) instead of absolute R >= 0.8.",
+    "pi_confidence": "high"
+}

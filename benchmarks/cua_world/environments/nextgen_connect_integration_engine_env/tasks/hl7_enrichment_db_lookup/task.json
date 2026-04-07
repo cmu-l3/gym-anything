@@ -1,0 +1,28 @@
+{
+  "id": "hl7_enrichment_db_lookup@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a NextGen Connect channel named 'HL7_Enricher' to enrich HL7 v2.x messages received on TCP port 6661 (MLLP). The channel must extract the Patient MRN from PID-3.1, look up the corresponding email address in the 'patient_contacts' table of the PostgreSQL database (jdbc:postgresql://nextgen-postgres:5432/mirthdb; user: postgres; password: postgres), and insert that email into PID-13.4. Enriched messages should be written to /home/ga/enriched_output/. Configuration can be performed via the REST API at https://localhost:8443/api or using the provided Terminal and Firefox.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_enrichment_db_lookup/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_enrichment_db_lookup/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "HL7_Enricher",
+    "listen_port": "6661",
+    "db_table": "patient_contacts",
+    "output_dir": "/home/ga/enriched_output"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_enrichment_db_lookup"
+    }
+  }
+}

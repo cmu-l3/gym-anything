@@ -464,8 +464,17 @@ chown -R ga:ga /home/ga/snap/ 2>/dev/null || true
 echo "Firefox profile ready: ${FIREFOX_PROFILE_BASE}/openproject.profile"
 
 # -----------------------------------------------------------------------
-# 8. Kill any stale Firefox and launch fresh
+# 8. Re-verify OpenProject and launch Firefox
 # -----------------------------------------------------------------------
+echo "Re-verifying OpenProject is responsive before launching Firefox..."
+for i in $(seq 1 60); do
+    if curl -s -o /dev/null -w "%{http_code}" "${OP_LOGIN_URL}" 2>/dev/null | grep -qE "200|302|303"; then
+        echo "OpenProject web service ready"
+        break
+    fi
+    sleep 2
+done
+
 pkill -9 -f firefox 2>/dev/null || true
 for i in $(seq 1 10); do
     pgrep -f firefox >/dev/null 2>&1 || break

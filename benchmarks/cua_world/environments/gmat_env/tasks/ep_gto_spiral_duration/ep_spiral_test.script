@@ -1,0 +1,67 @@
+Create Spacecraft AeroCom1;
+GMAT AeroCom1.DateFormat = UTCGregorian;
+GMAT AeroCom1.Epoch = '01 Jan 2026 12:00:00.000';
+GMAT AeroCom1.CoordinateSystem = EarthMJ2000Eq;
+GMAT AeroCom1.DisplayStateType = Keplerian;
+GMAT AeroCom1.SMA = 24392.5;
+GMAT AeroCom1.ECC = 0.730;
+GMAT AeroCom1.INC = 27.0;
+GMAT AeroCom1.RAAN = 0.0;
+GMAT AeroCom1.AOP = 180.0;
+GMAT AeroCom1.TA = 0.0;
+GMAT AeroCom1.DryMass = 1500;
+GMAT AeroCom1.Tanks = {XenonTank};
+GMAT AeroCom1.Thrusters = {EPThruster};
+
+Create ChemicalTank XenonTank;
+GMAT XenonTank.AllowMassDepletion = true;
+GMAT XenonTank.FuelMass = 500;
+
+Create ChemicalThruster EPThruster;
+GMAT EPThruster.CoordinateSystem = Local;
+GMAT EPThruster.Origin = Earth;
+GMAT EPThruster.Axes = VNB;
+GMAT EPThruster.ThrustDirection1 = 1;
+GMAT EPThruster.ThrustDirection2 = 0;
+GMAT EPThruster.ThrustDirection3 = 0;
+GMAT EPThruster.DutyCycle = 1;
+GMAT EPThruster.ThrustScaleFactor = 1;
+GMAT EPThruster.DecrementMass = true;
+GMAT EPThruster.Tank = {XenonTank};
+GMAT EPThruster.GravitationalAccel = 9.81;
+GMAT EPThruster.C1 = 0.25;
+GMAT EPThruster.K1 = 1500;
+
+Create ForceModel DefaultProp_ForceModel;
+GMAT DefaultProp_ForceModel.CentralBody = Earth;
+GMAT DefaultProp_ForceModel.PrimaryBodies = {Earth};
+GMAT DefaultProp_ForceModel.Drag = None;
+GMAT DefaultProp_ForceModel.SRP = Off;
+GMAT DefaultProp_ForceModel.RelativisticCorrection = Off;
+GMAT DefaultProp_ForceModel.ErrorControl = RSSStep;
+GMAT DefaultProp_ForceModel.GravityField.Earth.Degree = 0;
+GMAT DefaultProp_ForceModel.GravityField.Earth.Order = 0;
+GMAT DefaultProp_ForceModel.GravityField.Earth.StmLimit = 100;
+
+Create Propagator DefaultProp;
+GMAT DefaultProp.FM = DefaultProp_ForceModel;
+GMAT DefaultProp.Type = RungeKutta89;
+GMAT DefaultProp.InitialStepSize = 60;
+GMAT DefaultProp.Accuracy = 9.999999999999999e-12;
+GMAT DefaultProp.MinStep = 0.001;
+GMAT DefaultProp.MaxStep = 2700;
+GMAT DefaultProp.MaxStepAttempts = 50;
+GMAT DefaultProp.StopIfAccuracyIsViolated = true;
+
+Create FiniteBurn FiniteBurn1;
+GMAT FiniteBurn1.Thrusters = {EPThruster};
+
+Create ReportFile ReportFile1;
+GMAT ReportFile1.Filename = 'ep_spiral_report.txt';
+GMAT ReportFile1.Precision = 16;
+GMAT ReportFile1.Add = {AeroCom1.ElapsedDays, AeroCom1.XenonTank.FuelMass, AeroCom1.Earth.SMA, AeroCom1.Earth.ECC, AeroCom1.Earth.INC};
+
+BeginMissionSequence;
+BeginFiniteBurn FiniteBurn1(AeroCom1);
+Propagate DefaultProp(AeroCom1) {AeroCom1.Earth.SMA >= 42164.17};
+EndFiniteBurn FiniteBurn1(AeroCom1);

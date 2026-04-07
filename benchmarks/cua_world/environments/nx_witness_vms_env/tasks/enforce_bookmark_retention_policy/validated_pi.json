@@ -1,0 +1,38 @@
+{
+    "task_id": "enforce_bookmark_retention_policy@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "api_base",
+            "metadata_value": "https://localhost:7001",
+            "verified_value": "https://localhost:7001",
+            "source": "Task_utils.sh line 4: NX_BASE=\"https://localhost:7001\"; setup_task.sh line 12 uses this endpoint; verified against task.json description authentication requirement",
+            "status": "verified"
+        },
+        {
+            "key": "retention_days",
+            "metadata_value": 30,
+            "verified_value": 30,
+            "source": "Task.json description explicitly states 'delete all bookmarks that are OLDER than 30 days'; setup_task.sh scenario definitions (lines 73-82) mark bookmarks with ages 40, 50, 45, 60, 90 days as requiring deletion (marked 'Old, No Hold -> DELETE') confirming 30-day threshold",
+            "status": "verified"
+        },
+        {
+            "key": "protected_keyword",
+            "metadata_value": "LegalHold",
+            "verified_value": "LegalHold",
+            "source": "Task.json description states 'contains the text LegalHold (case-insensitive)'; setup_task.sh lines 76, 77, 79 show test data with 'LegalHold' and 'legalhold' variants; verifier.py line 73 checks 'legalhold' in b['description'].lower() confirming case-insensitive matching",
+            "status": "verified"
+        },
+        {
+            "key": "log_file",
+            "metadata_value": "/home/ga/Documents/retention_log.txt",
+            "verified_value": "/home/ga/Documents/retention_log.txt",
+            "source": "Export_result.sh line 19: LOG_FILE=\"/home/ga/Documents/retention_log.txt\"; task.json description line 6 requires agent to save log file to this exact path",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "All metadata claims are verified. The task enforces a bookmark retention policy on Nx Witness VMS API at https://localhost:7001, deleting bookmarks older than 30 days except those with 'LegalHold' (case-insensitive) in the description, and requires logging deleted bookmark IDs to /home/ga/Documents/retention_log.txt. Test data is synthetic, created during setup via Python script generating 8 bookmarks with ages ranging 5-90 days to test policy compliance.",
+    "pi_confidence": "high"
+}

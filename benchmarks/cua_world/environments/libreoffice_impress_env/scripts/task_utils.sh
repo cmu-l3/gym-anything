@@ -1,34 +1,36 @@
 #!/bin/bash
 # Shared utilities for LibreOffice Impress task setup and export scripts
+# NOTE: Do NOT use set -euo pipefail in this file - it is sourced by other scripts
 
 # Wait for a window with specified title to appear
 # Args: $1 - window title pattern (grep pattern)
-#       $2 - timeout in seconds (default: 30)
+#       $2 - timeout in seconds (default: 60)
 # Returns: 0 if found, 1 if timeout
 wait_for_window() {
     local window_pattern="$1"
-    local timeout=${2:-30}
-    local elapsed=0
+    local timeout=${2:-60}
+    local start=$(date +%s)
 
     echo "Waiting for window matching '$window_pattern'..."
 
-    while [ $elapsed -lt $timeout ]; do
-        if wmctrl -l | grep -qi "$window_pattern"; then
-            echo "✅ Window found after ${elapsed}s"
+    while true; do
+        local elapsed=$(( $(date +%s) - start ))
+        if [ "$elapsed" -ge "$timeout" ]; then
+            echo "Timeout: Window not found after ${timeout}s"
+            return 1
+        fi
+        if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "$window_pattern"; then
+            echo "Window found after ${elapsed}s"
             return 0
         fi
-        sleep 0.5
-        elapsed=$((elapsed + 1))
+        sleep 1
     done
-
-    echo "❌ Timeout: Window not found after ${timeout}s"
-    return 1
 }
 
 # Wait for a file to be created or modified
 # Args: $1 - file path
 #       $2 - timeout in seconds (default: 10)
-# Returns: 0 if file exists and was recently modified, 1 if timeout
+# Returns: 0 if file exists, 1 if timeout
 wait_for_file() {
     local filepath="$1"
     local timeout=${2:-10}
@@ -36,73 +38,85 @@ wait_for_file() {
 
     echo "Waiting for file: $filepath"
 
-    while [ $(($(date +%s) - start)) -lt $timeout ]; do
+    while true; do
+        local elapsed=$(( $(date +%s) - start ))
+        if [ "$elapsed" -ge "$timeout" ]; then
+            echo "Timeout: File not ready: $filepath"
+            return 1
+        fi
         if [ -f "$filepath" ]; then
-            # Check if file was modified in the last 10 seconds
-            if [ $(find "$filepath" -mmin -0.2 2>/dev/null | wc -l) -gt 0 ] || \
-               [ $(($(date +%s) - start)) -lt 2 ]; then
-                echo "✅ File ready: $filepath"
-                return 0
-            fi
+            echo "File ready: $filepath"
+            return 0
         fi
         sleep 0.5
     done
-
-    echo "⚠️ Timeout: File not updated: $filepath"
-    return 1
 }
 
 # Wait for a process to start
 # Args: $1 - process name pattern (pgrep pattern)
-#       $2 - timeout in seconds (default: 20)
+#       $2 - timeout in seconds (default: 30)
 # Returns: 0 if process found, 1 if timeout
 wait_for_process() {
     local process_pattern="$1"
-    local timeout=${2:-20}
-    local elapsed=0
+    local timeout=${2:-30}
+    local start=$(date +%s)
 
     echo "Waiting for process matching '$process_pattern'..."
 
-    while [ $elapsed -lt $timeout ]; do
-        if pgrep -f "$process_pattern" > /dev/null; then
-            echo "✅ Process found after ${elapsed}s"
+    while true; do
+        local elapsed=$(( $(date +%s) - start ))
+        if [ "$elapsed" -ge "$timeout" ]; then
+            echo "Timeout: Process not found after ${timeout}s"
+            return 1
+        fi
+        if pgrep -fc "$process_pattern" > /dev/null 2>&1; then
+            echo "Process found after ${elapsed}s"
             return 0
         fi
-        sleep 0.5
-        elapsed=$((elapsed + 1))
+        sleep 1
     done
+}
 
-    echo "❌ Timeout: Process not found after ${timeout}s"
+# Focus a window by name pattern
+# Args: $1 - window name pattern
+# Returns: 0 if focused successfully, 1 otherwise
+focus_window() {
+    local pattern="$1"
+    DISPLAY=:1 wmctrl -a "$pattern" 2>/dev/null && return 0
+
+    # Try by window ID
+    local wid
+    wid=$(DISPLAY=:1 wmctrl -l | grep -i "$pattern" | head -1 | awk '{print $1}')
+    if [ -n "$wid" ]; then
+        DISPLAY=:1 wmctrl -ia "$wid" 2>/dev/null && return 0
+    fi
+
+    echo "Warning: Failed to focus window: $pattern"
     return 1
 }
 
-# Focus a window and verify it was focused
-# Args: $1 - window ID or name pattern
-# Returns: 0 if focused successfully, 1 otherwise
-focus_window() {
-    local window_id="$1"
-
-    # Try to activate the window
-    if wmctrl -ia "$window_id" 2>/dev/null || wmctrl -a "$window_id" 2>/dev/null; then
-        sleep 0.3
-        # Verify the window is now active
-        if wmctrl -la | grep -q "$window_id"; then
-            echo "✅ Window focused: $window_id"
-            return 0
-        fi
-    fi
-
-    echo "⚠️ Failed to focus window: $window_id"
-    return 1
+# Maximize a window by name pattern
+# Args: $1 - window name pattern
+maximize_window() {
+    local pattern="$1"
+    DISPLAY=:1 wmctrl -r "$pattern" -b add,maximized_vert,maximized_horz 2>/dev/null || true
 }
 
 # Get the window ID for LibreOffice Impress
 # Returns: window ID or empty string
 get_impress_window_id() {
-    wmctrl -l | grep -i 'LibreOffice Impress\|impress' | awk '{print $1; exit}'
+    DISPLAY=:1 wmctrl -l 2>/dev/null | grep -i 'impress\|\.odp\|\.pptx' | head -1 | awk '{print $1}'
 }
 
-# Safe xdotool command with display and user context
+# Kill all LibreOffice processes
+kill_libreoffice() {
+    pkill -f "soffice" 2>/dev/null || true
+    sleep 1
+    pkill -9 -f "soffice" 2>/dev/null || true
+    sleep 1
+}
+
+# Run xdotool command as specified user with DISPLAY set
 # Args: $1 - user (e.g., "ga")
 #       $2 - display (e.g., ":1")
 #       rest - xdotool arguments
@@ -110,15 +124,21 @@ safe_xdotool() {
     local user="$1"
     local display="$2"
     shift 2
-
-    su - "$user" -c "DISPLAY=$display xdotool $*" 2>&1 | grep -v "^$"
-    return ${PIPESTATUS[0]}
+    su - "$user" -c "DISPLAY=$display xdotool $*" 2>/dev/null || true
 }
 
-# Export these functions for use in other scripts
-export -f wait_for_window
-export -f wait_for_file
-export -f wait_for_process
-export -f focus_window
-export -f get_impress_window_id
-export -f safe_xdotool
+# Dismiss all LibreOffice startup dialogs (Recovery, Template, What's New)
+dismiss_dialogs() {
+    for attempt in 1 2 3; do
+        if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "Recovery\|Template\|What"; then
+            echo "Dismissing dialog (attempt $attempt)..."
+            su - ga -c "DISPLAY=:1 xdotool key Escape" 2>/dev/null || true
+            sleep 2
+        else
+            break
+        fi
+    done
+    # Extra Escape to dismiss any remaining popups/infobars
+    su - ga -c "DISPLAY=:1 xdotool key Escape" 2>/dev/null || true
+    sleep 1
+}

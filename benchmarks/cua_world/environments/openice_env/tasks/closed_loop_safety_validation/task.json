@@ -1,0 +1,35 @@
+{
+  "id": "closed_loop_safety_validation@1",
+  "version": "1.0",
+  "env_id": "openice_env@0.1",
+  "description": "You are a QA Engineer performing a functional validation of the OpenICE Infusion Safety system. Verify that the infusion pump stops when SpO2 drops below a threshold using a Pulse Oximeter and a simulated Infusion Pump in the Infusion Safety app. Validate the system behavior across three conditions: a nominal state (80% threshold), an interlock trigger state (100% threshold), and a recovery state (80% threshold). Save screenshots of the application for each condition to /home/ga/test_step_1_nominal.png, /home/ga/test_step_2_interlock.png, and /home/ga/test_step_3_recovery.png respectively. Document the results for each step in a CSV file at /home/ga/Desktop/fvp_results.csv using the headers: Step, Threshold_Setting, Observed_Pump_State, and Pass_Fail.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/closed_loop_safety_validation/setup_task.sh",
+    "post_task": "/workspace/tasks/closed_loop_safety_validation/export_result.sh"
+  },
+  "metadata": {
+    "artifacts": {
+      "nominal_screenshot": "/home/ga/test_step_1_nominal.png",
+      "interlock_screenshot": "/home/ga/test_step_2_interlock.png",
+      "recovery_screenshot": "/home/ga/test_step_3_recovery.png",
+      "report_csv": "/home/ga/Desktop/fvp_results.csv"
+    },
+    "expected_csv_rows": [
+      "1,80%,Infusing,PASS",
+      "2,100%,Stopped,PASS",
+      "3,80%,Infusing,PASS"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_closed_loop_safety"
+    }
+  }
+}

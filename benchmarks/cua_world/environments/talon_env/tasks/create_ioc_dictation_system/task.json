@@ -1,0 +1,29 @@
+{
+  "id": "create_ioc_dictation_system@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Create a three-file Talon configuration in C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\ioc_builder\\ for dictating and validating IP and MAC addresses, and develop a Python script to validate this logic against a live Emerging Threats blocklist.\n\nThe configuration must include:\n1. ioc_logic.py: Implements an IocBuilder class that buffers IP octets (integers) and MAC pairs (strings). It must include add_ip_octet(value) (validates 0-255, raises ValueError otherwise), get_ip() (returns dotted-decimal string), is_valid_ip() (returns True if 4 octets are buffered), add_mac_pair(value) (strips whitespace, validates hex, pads single characters with a leading zero, uppercases, and raises ValueError for invalid hex or length > 2), get_mac() (returns colon-separated string), is_valid_mac() (returns True if 6 pairs are buffered), and clear_ip()/clear_mac() methods.\n2. ioc_actions.py: Uses the Talon Module and @mod.action_class to expose the IocBuilder logic via actions: user.ioc_add_ip_octet(value: str), user.ioc_add_mac_pair(value: str), user.ioc_clear_ip(), user.ioc_clear_mac(), user.ioc_insert_ip() (inserts formatted IP and clears buffer), and user.ioc_insert_mac() (inserts formatted MAC and clears buffer).\n3. ioc_commands.talon: Maps the voice commands \"octet <number>\", \"hex pair <user.text>\", \"ip clear\", \"mac clear\", \"ip insert\", and \"mac insert\" to their respective actions.\n\nAdditionally, write and execute a test harness script at C:\\Users\\Docker\\Documents\\verify_threats.py. The script must download the blocklist from https://rules.emergingthreats.net/blockrules/compromised-ips.txt to C:\\Users\\Docker\\Documents\\compromised-ips.txt, parse the first 50 valid IP addresses (skipping comments), and use the IocBuilder class to validate each IP by feeding it octets and asserting that get_ip() matches the original source. The 50 validated IPs must be saved as a JSON array of strings to C:\\Users\\Docker\\Documents\\threat_report.json.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_ioc_dictation_system\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_ioc_dictation_system\\export_result.ps1"
+  },
+  "metadata": {
+    "target_dir": "C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\ioc_builder",
+    "harness_path": "C:\\Users\\Docker\\Documents\\verify_threats.py",
+    "report_path": "C:\\Users\\Docker\\Documents\\threat_report.json",
+    "threat_list_path": "C:\\Users\\Docker\\Documents\\compromised-ips.txt",
+    "expected_ip_count": 50
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_ioc_dictation_system"
+    }
+  }
+}

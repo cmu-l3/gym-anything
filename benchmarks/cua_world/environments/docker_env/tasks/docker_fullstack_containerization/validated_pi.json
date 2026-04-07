@@ -1,0 +1,45 @@
+{
+    "task_id": "docker_fullstack_containerization@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/acme-inventory",
+            "verified_value": "/home/ga/projects/acme-inventory",
+            "source": "Verified from setup_task.sh line 37: PROJECT_DIR=\"/home/ga/projects/acme-inventory\". Confirmed via live environment testing that this directory is created with all 16 source files.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_services",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Verified from README.md and source code architecture: (1) Flask REST API (api/), (2) PostgreSQL database (db/schema.sql+data.sql), (3) Redis cache/broker (referenced in config.py REDIS_URL and CELERY_BROKER_URL), (4) Celery worker (worker/), (5) Nginx reverse proxy (nginx/ directory, empty for agent to create). All 5 are referenced in the application source code and required for full functionality.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_product_count",
+            "metadata_value": 25,
+            "verified_value": 25,
+            "source": "Verified by parsing db/data.sql in setup_task.sh: exactly 25 INSERT rows for the product table with IDs 1-25 across 5 categories (ELEC-001 through ELEC-005, OFFC-001 through OFFC-005, SUPP-001 through SUPP-005, TECH-001 through TECH-005, ACCS-001 through ACCS-005). Cross-referenced with verifier.py which checks 'pcount == 25'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_warehouse_count",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Verified by parsing db/data.sql in setup_task.sh: exactly 3 INSERT rows for the warehouse table — ID=1 'West Coast Distribution Center' (Portland, OR, capacity 10000), ID=2 'East Coast Fulfillment Hub' (Newark, NJ, capacity 8000), ID=3 'Central Processing Facility' (Dallas, TX, capacity 12000).",
+            "status": "verified"
+        },
+        {
+            "key": "api_base_url",
+            "metadata_value": "http://localhost:8080",
+            "verified_value": "http://localhost:8080",
+            "source": "Verified from export_result.sh which curls all endpoints at http://localhost:8080/api/*, and from verifier.py which checks responses from the same URL. The task description states 'accessible at http://localhost:8080'. Nginx should listen on port 8080 and proxy to Flask on port 5000.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The ACME Inventory Management Platform source code is at ~/projects/acme-inventory/ with 16 files across 4 packages (api/, worker/, db/, nginx/). The application requires 5 Docker services: a Flask API, PostgreSQL 14, Redis, a Celery worker, and Nginx reverse proxy. Pre-loaded Docker images available are python:3.11-slim, postgres:14, redis:7-alpine, and nginx:1.24-alpine. The database has exactly 25 products (IDs 1-25, SKUs like ELEC-001 through ACCS-005, prices $8.99-$299.99), 3 warehouses (West Coast/Portland OR, East Coast/Newark NJ, Central/Dallas TX), and 75 inventory rows (25 products × 3 warehouses). Product ID=1 ('Wireless Ergonomic Mouse', $29.99) at warehouse ID=1 has initial quantity 342. The API serves 5 endpoints: GET /api/products, GET /api/inventory, POST /api/orders, GET /api/orders, GET /health. Configuration is in api/config.py with 7 environment variables all defaulting to localhost: DB_HOST, DB_PORT (5432), DB_NAME (acme_inventory), DB_USER (acme), DB_PASSWORD (acme_secret_2024), REDIS_URL (redis://localhost:6379/0), CELERY_BROKER_URL (redis://localhost:6379/1). The agent must override these to Docker service names. CRITICAL FRICTION POINT: db/ contains schema.sql and data.sql — alphabetically 'data.sql' sorts before 'schema.sql', so if mounted directly to /docker-entrypoint-initdb.d/ the seed data runs before table creation, causing empty tables. Agent must rename files (e.g., 01-schema.sql, 02-data.sql) or use an alternative init strategy. The wsgi.py at project root provides the gunicorn entry point: 'from api import create_app; app = create_app()'. The worker uses Celery task name 'tasks.process_order' and needs its own DATABASE_URL environment variable (postgresql://acme:acme_secret_2024@<db_host>:5432/acme_inventory). POST /api/orders dispatches the Celery task which decrements inventory and sets order status to 'completed'. The verifier creates a test order (product_id=1, quantity=2, warehouse_id=1) and checks that inventory decreases from 342 to 340. Pass threshold is 70/100 with a hard gate requiring the full async pipeline (order creation + worker processing + inventory decrement) to work.",
+    "pi_confidence": "high"
+}

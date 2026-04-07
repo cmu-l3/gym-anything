@@ -1,0 +1,53 @@
+{
+  "task_id": "remediate_pharma_scan_station@1",
+  "task_completion": [
+    {
+      "id": "ini_barcode_config",
+      "description": "Configure barcode types in bcWebCam.ini to enable only DataMatrix.",
+      "points": 20,
+      "visual_evidence": "Look for bcWebCam.ini open in an editor or modified via script. Under [BarcodeD], Type should be a nonzero value (e.g., 1). Under [BarcodeL] and [BarcodeP], Type should be 0. [BarcodeA] and [BarcodePN] should also be 0."
+    },
+    {
+      "id": "ini_clinical_config",
+      "description": "Configure clinical parameters in bcWebCam.ini (beep, postfix, grace period, opacity).",
+      "points": 20,
+      "visual_evidence": "Look for bcWebCam.ini open in an editor or modified via script. The following values must be set: Beep=False, SendKeysPostfix= (left empty after the equals sign), BcGracePeriod=5, and Opacity=0,65 (must use a comma, not a period)."
+    },
+    {
+      "id": "log_and_db_analysis",
+      "description": "Open and analyze the scan log and approved medications database.",
+      "points": 10,
+      "visual_evidence": "Look for scan_log.txt and approved_medications.csv open in a text editor, spreadsheet application, or terminal output, indicating the agent is reviewing the data to classify the barcodes."
+    },
+    {
+      "id": "audit_report_structure",
+      "description": "Create the audit_report.csv with the correct headers.",
+      "points": 20,
+      "visual_evidence": "Look for audit_report.csv being created or edited. It must contain the exact headers: Timestamp, RawData, BarcodeType, GTIN, ProductName, Action."
+    },
+    {
+      "id": "audit_report_classifications",
+      "description": "Correctly classify the 10 scan log entries in the audit report.",
+      "points": 30,
+      "visual_evidence": "Look at the data rows in audit_report.csv. The 'Action' column for the 10 rows should match the sequence: ACCEPT, REJECT, ACCEPT, REJECT, ACCEPT, REJECT, INVESTIGATE, INVESTIGATE, REJECT, ACCEPT. The 'BarcodeType' should correctly identify DATAMATRIX, EAN13, and QR_URL."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "app_closed_during_edit",
+      "description": "Ensure bcWebCam application is closed before editing its INI file.",
+      "visual_evidence": "The bcWebCam application window or system tray icon should not be actively running/visible while the agent is modifying bcWebCam.ini."
+    },
+    {
+      "id": "actual_file_modification",
+      "description": "Verify the agent actually saved the changes to the INI and CSV files.",
+      "visual_evidence": "Look for file save actions in the editor (e.g., Ctrl+S, asterisk disappearing from filename tab) or terminal commands confirming the files were written to disk, rather than just printing the answers to the console."
+    },
+    {
+      "id": "no_hallucinated_data",
+      "description": "Ensure the audit report uses the actual data from scan_log.txt.",
+      "visual_evidence": "The timestamps and raw data in audit_report.csv must match the entries seen in scan_log.txt, rather than being made up or copied from a generic example."
+    }
+  ],
+  "privileged_info_for_vlm": "INI Path: C:\\Users\\Docker\\AppData\\Local\\bcWebCam\\bcWebCam.ini. Expected INI values: [BarcodeD] Type > 0, [BarcodeL] Type=0, [BarcodeP] Type=0, [BarcodeA] Type=0, [BarcodePN] Type=0, Beep=False, BcGracePeriod=5, SendKeysPostfix= (empty), Opacity=0,65 (MUST use comma). Audit Report Path: C:\\Users\\Docker\\Documents\\ScanStation\\audit_report.csv. The report must have 10 rows. Expected Actions (Rows 1-10): ACCEPT, REJECT, ACCEPT, REJECT, ACCEPT, REJECT, INVESTIGATE, INVESTIGATE, REJECT, ACCEPT. Expected Barcode Types: DATAMATRIX, EAN13, DATAMATRIX, QR_URL, DATAMATRIX, EAN13, DATAMATRIX, DATAMATRIX, EAN13, DATAMATRIX. Expected GTINs for DataMatrix rows: 00300010633215, 00357111370104, 00363391312393, 00312547698521 (Expired), 00398765432109 (Unknown), 00346587231092."
+}

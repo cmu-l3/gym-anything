@@ -1,0 +1,31 @@
+{
+  "id": "ntfs_special_artifact_analysis@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "You are investigating a corporate espionage case involving a seized USB drive. Before analyzing user files, you must document all NTFS system structures and special artifacts to demonstrate a thorough forensic process and check for anti-forensics techniques. Your mission: (1) Create a new forensic case named 'NTFS_Artifact_Analysis_2024' with case number 'INV-NTFS-006' in Autopsy. (2) Add '/home/ga/evidence/ntfs_undel.dd' as a Disk Image data source; enable the 'File Type Identification' ingest module and disable all others. (3) After ingest completes, navigate the file system tree in the left panel to examine all directories including NTFS system metafiles (entries beginning with '$') and any files in the '$OrphanFiles' virtual directory. (4) Write a structured inventory to '/home/ga/Reports/ntfs_metafile_inventory.txt' with pipe-delimited entries. The first line MUST be the header: 'FILENAME|INODE|SIZE_BYTES|TYPE|ALLOCATION_STATUS'. Include one line per system metafile (like $MFT, $LogFile) and orphan file found. Use TYPEs: 'SYSTEM_METAFILE', 'ORPHAN_FILE'. Use ALLOCATION_STATUS 'ALLOCATED' or 'DELETED'. (5) Write an analysis report to '/home/ga/Reports/ntfs_artifact_report.txt' containing EXACTLY these section headers on their own lines or at the start of lines: 'VOLUME_FILE_SYSTEM: NTFS', 'TOTAL_METAFILES: <N>' (count of $-prefixed files), 'TOTAL_ORPHAN_FILES: <N>', 'MFT_SIZE_BYTES: <N>' (exact size of $MFT), 'LOGFILE_SIZE_BYTES: <N>' (exact size of $LogFile), 'METAFILE_LIST:' (followed by names of metafiles), 'ORPHAN_FILE_LIST:' (followed by names of orphan files, or 'None found'), and 'ANTI_FORENSICS_INDICATORS:' (your assessment of anomalies).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ntfs_special_artifact_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/ntfs_special_artifact_analysis/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "NTFS_Artifact_Analysis_2024",
+    "case_number": "INV-NTFS-006",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "inventory_file": "/home/ga/Reports/ntfs_metafile_inventory.txt",
+    "report_file": "/home/ga/Reports/ntfs_artifact_report.txt",
+    "result_file": "/tmp/ntfs_artifact_result.json",
+    "gt_file": "/tmp/ntfs_artifact_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ntfs_special_artifact_analysis"
+    }
+  }
+}

@@ -24,7 +24,12 @@ sleep 1
 input keyevent KEYCODE_HOME
 sleep 2
 
-# 5. Take initial screenshot (optional, but good for debugging)
+# 5. Launch the app using robust helper
+echo "Launching Electrical Calculations..."
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
+
+# 6. Take initial screenshot (optional, but good for debugging)
 screencap -p /sdcard/initial_state.png
 
 echo "=== Setup Complete ==="

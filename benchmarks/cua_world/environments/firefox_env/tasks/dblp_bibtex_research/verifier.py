@@ -118,7 +118,7 @@ def verify_dblp_bibtex_research(traj, env_info, task_info):
     def get_field(field, text):
         # matches field = {value} or field = "value"
         # simplistic match, handles multiline
-        pattern = re.compile(rf"{field}\s*=\s*[\"{{](.*?)[\"}}]", re.IGNORECASE | re.DOTALL)
+        pattern = re.compile(rf"{field}\s*=\s*[\"\{](.*?)[\"\}]", re.IGNORECASE | re.DOTALL)
         match = pattern.search(text)
         if match:
             return match.group(1).replace('\n', ' ').strip()

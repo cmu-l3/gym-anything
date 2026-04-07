@@ -1,0 +1,46 @@
+{
+    "task_id": "deployment_rollout_deadlock_forensics@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "Site Reliability Engineer / Platform Engineer",
+            "verified_value": "Site Reliability Engineer / Platform Engineer",
+            "source": "Task involves troubleshooting Kubernetes deployment strategies, ResourceQuotas, and RBAC issues, which aligns with SRE/Platform Engineering.",
+            "status": "verified"
+        },
+        {
+            "key": "target_namespace",
+            "metadata_value": "financial-ops",
+            "verified_value": "financial-ops",
+            "source": "setup_task.sh line 19 ('kubectl create namespace financial-ops') and export_result.sh queries.",
+            "status": "verified"
+        },
+        {
+            "key": "target_deployments",
+            "metadata_value": [
+                "ledger-writer",
+                "risk-analyzer",
+                "compliance-api"
+            ],
+            "verified_value": [
+                "ledger-writer",
+                "risk-analyzer",
+                "compliance-api"
+            ],
+            "source": "setup_task.sh lines 73, 101, 120 (Deployment definitions).",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 70,
+            "verified_value": 70,
+            "source": "verifier.py line 70 ('pass_threshold = task_info.get(\"metadata\", {}).get(\"pass_threshold\", 70)') and docstring.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically generated Kubernetes resources within the 'financial-ops' namespace. Three target deployments ('ledger-writer', 'risk-analyzer', and 'compliance-api') are explicitly defined and injected via setup scripts. The ledger-writer deadlocks due to a file lock in default RollingUpdate, risk-analyzer deadlocks because its resource requests hit the 2 CPU ResourceQuota during surges, and compliance-api crashes mid-rollout due to missing RBAC permissions (requiring the 'secret-reader' service account). The verifier explicitly enforces fixes addressing these specific root causes to pass the 70 point threshold.",
+    "pi_confidence": "high"
+}

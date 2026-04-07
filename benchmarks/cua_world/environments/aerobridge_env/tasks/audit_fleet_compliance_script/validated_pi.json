@@ -1,0 +1,66 @@
+{
+    "task_id": "audit_fleet_compliance_script@1",
+    "dataset": "Aerobridge Aircraft Registry",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "script_path",
+            "metadata_value": "/home/ga/fleet_compliance_audit.py",
+            "verified_value": "/home/ga/fleet_compliance_audit.py",
+            "source": "setup_task.sh:16-17 and export_result.sh:66; consistent across all task scripts",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/fleet_compliance_report.txt",
+            "verified_value": "/home/ga/fleet_compliance_report.txt",
+            "source": "setup_task.sh:17 and export_result.sh:83; consistent across all task scripts",
+            "status": "verified"
+        },
+        {
+            "key": "required_imports_django",
+            "metadata_value": "django",
+            "verified_value": "django",
+            "source": "setup_task.sh uses 'import django'; export_result.sh verifies presence of 'django' in script content",
+            "status": "verified"
+        },
+        {
+            "key": "required_imports_registry_models",
+            "metadata_value": "registry.models",
+            "verified_value": "registry.models",
+            "source": "setup_task.sh:42 'from registry.models import Aircraft'; export_result.sh:39 uses same import",
+            "status": "verified"
+        },
+        {
+            "key": "required_imports_Aircraft",
+            "metadata_value": "Aircraft",
+            "verified_value": "Aircraft",
+            "source": "setup_task.sh:42 'from registry.models import Aircraft'; verifier.py line 39 confirms this import",
+            "status": "verified"
+        },
+        {
+            "key": "compliant_needs_manufacturer",
+            "metadata_value": "manufacturer",
+            "verified_value": "manufacturer",
+            "source": "setup_task.sh:52-56 checks 'ac.manufacturer'; Aerobridge GitHub models.py confirms ForeignKey to Company named 'manufacturer'",
+            "status": "verified"
+        },
+        {
+            "key": "compliant_needs_operator",
+            "metadata_value": "operator",
+            "verified_value": "operator",
+            "source": "setup_task.sh:52-56 checks 'ac.operator'; Aerobridge GitHub models.py confirms ForeignKey to Operator named 'operator'",
+            "status": "verified"
+        },
+        {
+            "key": "compliant_needs_type_certificate",
+            "metadata_value": "type_certificate",
+            "verified_value": null,
+            "source": "setup_task.sh:53 directly checks 'ac.type_certificate'; but Aerobridge GitHub Aircraft model (openskies-sh/aerobridge/registry/models.py) has NO direct type_certificate field. The Aircraft model has only: manufacturer (ForeignKey), operator (ForeignKey), name (CharField), flight_controller_id, status, final_assembly (OneToOneField to AircraftAssembly), photo (URLField), and metadata fields. Type certificate is accessible only through nested relationship: Aircraft.final_assembly.aircraft_model.type_certificate",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task requires agents to write a Django script that audits Aircraft compliance. The script paths, required Django imports, and access to manufacturer and operator fields are all correctly specified. However, the compliance criteria includes 'type_certificate' as a direct field on Aircraft objects, but the actual Aerobridge Aircraft model from GitHub does not have a direct type_certificate attribute. Aircraft can only access type_certificate through a nested chain: Aircraft → final_assembly → AircraftAssembly → aircraft_model → AircraftModel → type_certificate. The setup script's direct check 'ac.type_certificate' would raise an AttributeError when executed against the actual Aerobridge database.",
+    "pi_confidence": "high"
+}

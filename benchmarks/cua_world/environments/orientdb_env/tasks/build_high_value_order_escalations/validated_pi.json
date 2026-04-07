@@ -1,0 +1,73 @@
+{
+    "task_id": "build_high_value_order_escalations@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_orders['3'].EscalationTier",
+            "metadata_value": "P2",
+            "verified_value": "P2",
+            "source": "Tiering rule in README.md (P1 when Price >= 3000; P2 otherwise). Order 3 has Price=2100.0 < 3000, so P2 applies. Verified against setup_task.sh line 38 which sets Price=2100.0.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_orders['3'].Reason",
+            "metadata_value": "pending_high_value",
+            "verified_value": "pending_high_value",
+            "source": "README.md requirement: 'Set Reason = pending_high_value' for all escalations. Order 3 meets criteria (Status='Pending', Price >= 1800).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_orders['3'].OwnerEmail",
+            "metadata_value": "anna.mueller@example.com",
+            "verified_value": "anna.mueller@example.com",
+            "source": "setup_task.sh line 43: CREATE EDGE HasOrder FROM Profiles (Email='anna.mueller@example.com') TO Orders (OrderedId=3). Verified against seed_demodb.py which ensures profile 'anna.mueller@example.com' exists.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_orders['3'].SnapshotPrice",
+            "metadata_value": 2100.0,
+            "verified_value": 2100.0,
+            "source": "setup_task.sh line 38: INSERT INTO Orders SET OrderedId=3, Price=2100.0. Matches seed_demodb.py line 343.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_orders['7'].EscalationTier",
+            "metadata_value": "P1",
+            "verified_value": "P1",
+            "source": "Tiering rule in README.md (P1 when Price >= 3000). Order 7 has Price=3200.0 >= 3000, so P1 applies. Verified against setup_task.sh line 39 which sets Price=3200.0.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_orders['7'].Reason",
+            "metadata_value": "pending_high_value",
+            "verified_value": "pending_high_value",
+            "source": "README.md requirement: 'Set Reason = pending_high_value' for all escalations. Order 7 meets criteria (Status='Pending', Price >= 1800).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_orders['7'].OwnerEmail",
+            "metadata_value": "james.brown@example.com",
+            "verified_value": "james.brown@example.com",
+            "source": "setup_task.sh line 44: CREATE EDGE HasOrder FROM Profiles (Email='james.brown@example.com') TO Orders (OrderedId=7). Verified against seed_demodb.py which ensures profile 'james.brown@example.com' exists.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_orders['7'].SnapshotPrice",
+            "metadata_value": 3200.0,
+            "verified_value": 3200.0,
+            "source": "setup_task.sh line 39: INSERT INTO Orders SET OrderedId=7, Price=3200.0. Matches seed_demodb.py line 347.",
+            "status": "verified"
+        },
+        {
+            "key": "non_target_order_ids[0]",
+            "metadata_value": 10,
+            "verified_value": 10,
+            "source": "README.md requirement: 'No escalation should exist for OrderedId=10'. Escalation criteria: Status='Pending' AND Price >= 1800. setup_task.sh line 40 sets Order 10 to Status='Completed' (not 'Pending'), so it fails the escalation filter. Verified against seed_demodb.py line 350 which shows original seed had this order as 'Pending', but setup_task.sh overrides it to 'Completed'.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "All metadata claims for the build_high_value_order_escalations task are verified against source code. Order 3 (Price=2100.0, Status=Pending) should have EscalationTier=P2 with OwnerEmail=anna.mueller@example.com and SnapshotPrice=2100.0. Order 7 (Price=3200.0, Status=Pending) should have EscalationTier=P1 with OwnerEmail=james.brown@example.com and SnapshotPrice=3200.0. Both orders have Reason=pending_high_value. Order 10 (Status=Completed) should not be escalated as its status is not 'Pending'. The data is synthetic, created during task setup in OrientDB's demodb database.",
+    "pi_confidence": "high"
+}

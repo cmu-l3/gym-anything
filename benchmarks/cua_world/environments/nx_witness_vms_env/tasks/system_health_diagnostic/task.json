@@ -1,0 +1,34 @@
+{
+  "id": "system_health_diagnostic@1",
+  "version": "1.0",
+  "env_id": "nx_witness_vms_env@0.1",
+  "description": "You are a Security Manager performing a quarterly system health diagnostic of your Nx Witness VMS installation. Programmatically query the VMS REST API at https://localhost:7001 (self-signed SSL; disable verification) using the 'admin' account (password: 'Admin1234!') to compile a comprehensive diagnostic report. Authentication is handled via bearer tokens obtained from the /rest/v1/login/sessions endpoint.\n\nThe report must be saved to ~/reports/system_health_report.json in pretty-printed JSON format (2-space indentation) with the following structure:\n\n{\n  \"report_metadata\": {\n    \"generated_at\": \"<ISO 8601 timestamp>\",\n    \"report_type\": \"system_health_diagnostic\",\n    \"system_name\": \"<systemName from /rest/v1/system/info>\"\n  },\n  \"server_info\": {\n    \"servers\": [ <array of server objects from /rest/v1/servers, each with at least id, name, version, status> ]\n  },\n  \"cameras\": {\n    \"devices\": [ <array of device objects from /rest/v1/devices, each with at least id, name, status, model, vendor> ],\n    \"summary\": {\n      \"total_count\": <integer>,\n      \"online_count\": <integer - devices with status 'Online'>,\n      \"offline_count\": <integer - devices not 'Online'>\n    }\n  },\n  \"users\": {\n    \"accounts\": [ <array of user objects from /rest/v1/users, each with at least id, name, email, fullName, isEnabled> ],\n    \"summary\": {\n      \"total_count\": <integer>\n    }\n  },\n  \"storage\": {\n    \"locations\": [ <array of storage objects from /rest/v1/storages> ]\n  },\n  \"system_settings\": { <object containing settings from /rest/v1/system/settings> }\n}\n\nThe report must reflect the actual live data from",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/system_health_diagnostic/setup_task.sh",
+    "post_task": "/workspace/tasks/system_health_diagnostic/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/reports/system_health_report.json",
+    "api_base": "https://localhost:7001",
+    "required_keys": [
+      "report_metadata",
+      "server_info",
+      "cameras",
+      "users",
+      "storage",
+      "system_settings"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_system_health_diagnostic"
+    }
+  }
+}

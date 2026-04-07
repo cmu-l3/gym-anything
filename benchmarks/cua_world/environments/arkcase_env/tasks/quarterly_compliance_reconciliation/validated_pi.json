@@ -1,0 +1,101 @@
+{
+    "task_id": "quarterly_compliance_reconciliation@1",
+    "dataset": "ArkCase FOIA Complaint Cases (synthetically created via API)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "total_cases",
+            "metadata_value": 6,
+            "verified_value": 6,
+            "source": "Counted 6 create_complaint() calls in setup_task.sh (lines 62, 75, 87, 100, 113, 126). Live test confirmed 6 rows returned by DB query: SELECT cm_complaint_id FROM acm_complaint WHERE cm_complaint_id IN (101,102,103,104,105,106) returned 6 rows.",
+            "status": "verified"
+        },
+        {
+            "key": "cases_needing_priority_fix",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "Traced initial priorities from setup_task.sh API payloads vs directive expected values. Case 1: initial=Low, directive=Medium (NEEDS FIX). Case 2: initial=Low, directive=Low (matches). Case 3: initial=Medium, directive=Medium (matches). Case 4: initial=Low, directive=High (NEEDS FIX). Case 5: initial=Medium, directive=Medium (matches). Case 6: initial=Medium, directive=Medium (matches). Count=2. Note: Cases 2 and 6 need priority overrides via the exception rule, but that is a separate mechanism from a 'priority fix' (directive mismatch).",
+            "status": "verified"
+        },
+        {
+            "key": "cases_needing_assignee_fix",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "All cases created by arkcase-admin via API (default assignee). Directive expected assignees: Case 1=arkcase-admin (match), Case 2=arkcase-admin (match), Case 3=arkcase-admin (match), Case 4=sally-acm (NEEDS FIX), Case 5=sally-acm (NEEDS FIX), Case 6=sally-acm (NEEDS FIX). Count=3. Live test confirmed assignee field was empty/admin for all 6 cases.",
+            "status": "verified"
+        },
+        {
+            "key": "required_note_prefix",
+            "metadata_value": "QA-Q1-2026",
+            "verified_value": "QA-Q1-2026",
+            "source": "Cross-referenced with: task description ('QA-Q1-2026: [Field] corrected...'), directive text in setup_task.sh line 270-272, and export_result.sh note query (ILIKE '%QA-Q1-2026%'). All three sources use the same prefix.",
+            "status": "verified"
+        },
+        {
+            "key": "sensitive_keyword_cases",
+            "metadata_value": "not in metadata (implicitly 2 genuine + 1 trap)",
+            "verified_value": "Cases 2, 5, 6 contain 'classified national security'. Case 5 is in declassification context (should NOT trigger override). Cases 2 and 6 are genuine triggers.",
+            "source": "Live DB query: SELECT cm_complaint_id, CASE WHEN cm_complaint_details LIKE '%classified national security%' THEN 'KEYWORD_FOUND' ELSE 'NO_KEYWORD' END FROM acm_complaint. Results: 101=NO_KEYWORD, 102=KEYWORD_FOUND, 103=NO_KEYWORD, 104=NO_KEYWORD, 105=KEYWORD_FOUND, 106=KEYWORD_FOUND. Case 105 context verified via SUBSTRING query: 'classified national security material under Executive Order 13526 but have been fully declassified pursuant to Section 3.3'.",
+            "status": "verified"
+        },
+        {
+            "key": "correct_final_priorities",
+            "metadata_value": "not in metadata (in ground_truth.json)",
+            "verified_value": {
+                "case1": "Medium",
+                "case2": "High",
+                "case3": "Medium",
+                "case4": "High",
+                "case5": "Medium",
+                "case6": "High"
+            },
+            "source": "Derived from directive expected priorities + exception rule: Case 1: Low->Medium (directive fix). Case 2: Low->High (exception rule override — description contains genuine 'classified national security'). Case 3: Medium stays Medium (no change). Case 4: Low->High (directive fix). Case 5: Medium stays Medium (declassified context — exception rule does NOT apply). Case 6: Medium->High (exception rule override — description contains genuine 'classified national security'). Verified against ground_truth.json correct_final_priority field.",
+            "status": "verified"
+        },
+        {
+            "key": "correct_final_assignees",
+            "metadata_value": "not in metadata (in ground_truth.json)",
+            "verified_value": {
+                "case1": "arkcase-admin",
+                "case2": "arkcase-admin",
+                "case3": "arkcase-admin",
+                "case4": "sally-acm",
+                "case5": "sally-acm",
+                "case6": "sally-acm"
+            },
+            "source": "Directly from the directive's expected assignee values for each case. Cases 4, 5, 6 need reassignment from arkcase-admin to sally-acm.",
+            "status": "verified"
+        },
+        {
+            "key": "initial_case_priorities",
+            "metadata_value": "not in metadata",
+            "verified_value": {
+                "case1_DOE_Contract": "Low",
+                "case2_Immigration": "Low",
+                "case3_FAA_Safety": "Medium",
+                "case4_VA_Claims": "Low",
+                "case5_Declassified_EPA": "Medium",
+                "case6_Defense_Intel": "Medium"
+            },
+            "source": "From setup_task.sh API payloads: Case 1 priority='Low' (line 65), Case 2 priority='Low' (line 78), Case 3 priority='Medium' (line 90), Case 4 priority='Low' (line 103), Case 5 priority='Medium' (line 116), Case 6 priority='Medium' (line 129). Live DB confirmed: 101=Low, 102=Low, 103=Medium, 104=Low, 105=Medium, 106=Medium.",
+            "status": "verified"
+        },
+        {
+            "key": "requesting_party_organizations_real",
+            "metadata_value": "not in metadata",
+            "verified_value": "GAP, AILA, EFF, National Security Archive (GWU) are confirmed real organizations that file FOIA requests. ASN (Aviation Safety Network) exists but is not confirmed as a FOIA filer. Wounded Warrior Project exists but uses legislative advocacy rather than FOIA requests.",
+            "source": "Web search verification: GAP (whistleblower.org) confirmed as DOE FOIA filer. AILA (aila.org) confirmed with dedicated FOIA program. EFF (eff.org) confirmed with FOIA litigation program. NSA at GWU (nsarchive.gwu.edu) confirmed as leading FOIA user (70,000+ requests). ASN (aviation-safety.net) exists but no evidence of FOIA filing. WWP (woundedwarriorproject.org) does not file institutional FOIAs.",
+            "status": "verified"
+        },
+        {
+            "key": "legal_references_accurate",
+            "metadata_value": "not in metadata",
+            "verified_value": "EO 13526 is correctly referenced as governing classified national security information. Section 3.3 correctly covers automatic declassification. 5 U.S.C. section 552 is correctly identified as the FOIA statute.",
+            "source": "Web search: EO 13526 confirmed at archives.gov/isoo/policy-documents/cnsi-eo.html. Section 3.3 'Automatic Declassification' confirmed in the EO text. 5 U.S.C. § 552 confirmed as FOIA at justice.gov/oip/freedom-information-act-5-usc-552.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task creates 6 FOIA complaint cases in ArkCase with deliberate discrepancies between actual and expected field values. The agent must read ~/Documents/audit_directive.txt and reconcile each case. GROUND TRUTH — Initial priorities (set by API): Case 1 (DOE Contract Awards)=Low, Case 2 (Immigration Enforcement)=Low, Case 3 (FAA Safety)=Medium, Case 4 (VA Claims)=Low, Case 5 (Declassified EPA)=Medium, Case 6 (Defense Intelligence)=Medium. Directive expected priorities: Case 1=Medium, Case 2=Low, Case 3=Medium, Case 4=High, Case 5=Medium, Case 6=Medium. All cases initially assigned to arkcase-admin; directive expects Cases 4, 5, 6 reassigned to sally-acm. EXCEPTION RULE: Cases 2, 5, 6 contain the phrase 'classified national security' in their descriptions. Cases 2 and 6 are GENUINE triggers — priority must be overridden to High regardless of directive. Case 5 is a TRAP — the phrase appears in declassification context ('previously classified national security material...but have been fully declassified pursuant to Section 3.3') so the override must NOT be applied; priority stays Medium. CORRECT FINAL STATE: Case 1: Priority=Medium, Assignee=arkcase-admin (1 correction). Case 2: Priority=High, Assignee=arkcase-admin (1 override). Case 3: Priority=Medium, Assignee=arkcase-admin (no corrections). Case 4: Priority=High, Assignee=sally-acm (2 corrections). Case 5: Priority=Medium, Assignee=sally-acm (1 correction, override correctly NOT applied). Case 6: Priority=High, Assignee=sally-acm (1 correction + 1 override). Each correction requires a 'QA-Q1-2026' prefixed case note. The agent must also produce ~/Documents/reconciliation_report.json as a JSON array with case_number, title, priority_correct, assignee_correct, sensitive_flag, and actions_taken per case. ArkCase login: arkcase-admin@dev.arkcase.com / ArkCase1234!",
+    "pi_confidence": "high"
+}

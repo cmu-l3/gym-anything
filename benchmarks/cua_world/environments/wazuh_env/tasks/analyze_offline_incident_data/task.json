@@ -1,0 +1,27 @@
+{
+  "id": "analyze_offline_incident_data@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Perform forensic analysis on a recovered log file (~/evidence/recovered_alerts.json) containing Wazuh alerts from a compromised host. Reconstruct the attack timeline and create a JSON report at ~/incident_report.json with the following fields: incident_type (\"Brute Force / Account Compromise\"), attacker_ip, compromised_user, attack_start_timestamp (the timestamp of the first failed authentication attempt), compromise_timestamp (the timestamp of the first successful login), and time_to_compromise_seconds (the integer number of seconds between the attack start and the compromise). Ensure the timestamps match the format found in the logs exactly.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/analyze_offline_incident_data/setup_task.sh",
+    "post_task": "/workspace/tasks/analyze_offline_incident_data/export_result.sh"
+  },
+  "metadata": {
+    "evidence_file": "/home/ga/evidence/recovered_alerts.json",
+    "output_file": "/home/ga/incident_report.json",
+    "ground_truth_file": "/var/lib/wazuh-task-truth.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_analyze_offline_incident_data"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "evaluate_pv_summer_peak_capacity_value@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "An energy policy analyst at an Arizona utility is evaluating a proposed 100 MW solar plant. To assign a 'capacity credit' to the plant, the utility needs to know the plant's average MW output specifically during the summer peak stress hours: June through August, between 4:00 PM and 8:00 PM.\n\nWrite a Python script using PySAM (`Pvwattsv8`) to model a 100 MW DC Southwest-facing PV system in Phoenix, AZ, extract the 8760-hour AC generation profile, and calculate the system's average Capacity Value percentage during summer peak hours.\n\nSystem Configuration:\n- Location: Phoenix, AZ (find and use the bundled Phoenix TMY weather file)\n- System Capacity: 100,000 kW DC\n- Module Type: 0 (Standard)\n- Array Type: 0 (Fixed - Open Rack)\n- Tilt: 25 degrees\n- Azimuth: 225 degrees (Southwest-facing)\n- DC-to-AC Ratio: 1.2\n- Inverter Efficiency: 96%\n- System Losses: 14%\n\nAnalysis Requirements:\n1. Run the simulation to get the 8760 hourly AC power output (`ac` array, in kW).\n2. Filter for Summer Peak Hours: June 1st through August 31st (inclusive), hours 16:00 to 20:00 local time (the four hourly periods starting at 16, 17, 18, and 19).\n3. Calculate the average AC power generation (in kW) across those specific hours.\n4. Calculate the Capacity Value Percentage: (Average Peak AC Generation kW / Max AC Capacity kW) * 100. (Note: Max AC Capacity = DC System Capacity / DC-to-AC Ratio).\n\nSave your Python script to:\n/home/ga/Documents/SAM_Projects/calc_capacity_value.py\n\nSave the results as a JSON file to:\n/home/ga/Documents/SAM_Projects/capacity_value_report.json\n\nThe JSON must contain exactly these keys:\n- system_capacity_kw_dc (float)\n- max_ac_capacity_kw (float)\n- tilt_deg (float)\n- azimuth_deg (float)\n- summer_peak_average_kw_ac (float)\n- capacity_value_percent (float)\n- weather_file_used (string)",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_pv_summer_peak_capacity_value/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_pv_summer_peak_capacity_value/export_result.sh"
+  },
+  "metadata": {
+    "expected_json_filename": "capacity_value_report.json",
+    "expected_script_filename": "calc_capacity_value.py",
+    "expected_dc_capacity_kw": 100000.0,
+    "expected_max_ac_capacity_kw": 83333.33,
+    "plausible_peak_kw_min": 20000,
+    "plausible_peak_kw_max": 65000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_evaluate_pv_summer_peak_capacity_value"
+    }
+  }
+}

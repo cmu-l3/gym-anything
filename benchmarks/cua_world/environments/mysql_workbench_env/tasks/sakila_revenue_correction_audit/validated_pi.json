@@ -1,0 +1,45 @@
+{
+    "task_id": "sakila_revenue_correction_audit@1",
+    "dataset": "Sakila Sample Database",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_database",
+            "metadata_value": "sakila",
+            "verified_value": "sakila",
+            "source": "Verified via setup_task.sh and export_result.sh scripts which target the 'sakila' database directly.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_view",
+            "metadata_value": "v_audit_underpayments",
+            "verified_value": "v_audit_underpayments",
+            "source": "Verified via task.json prompt and export_result.sh which explicitly checks for the view 'v_audit_underpayments'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/Documents/exports/underpayment_audit.csv",
+            "verified_value": "/home/ga/Documents/exports/underpayment_audit.csv",
+            "source": "Verified via export_result.sh which reads from CSV_PATH='/home/ga/Documents/exports/underpayment_audit.csv'.",
+            "status": "verified"
+        },
+        {
+            "key": "corrupted_value",
+            "metadata_value": "0.01",
+            "verified_value": "0.01",
+            "source": "Verified via setup_task.sh which explicitly executes 'UPDATE payment ... SET p.amount = 0.01;'.",
+            "status": "verified"
+        },
+        {
+            "key": "min_corrupted_count",
+            "metadata_value": 30,
+            "verified_value": 30,
+            "source": "Verified via setup_task.sh which limits the corruption updates to exactly 40 records (which is >= 30). The Sakila DB is sufficiently large to guarantee 40 records match the condition rental_rate > 2.99.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on the synthetic Sakila sample database. A data corruption script (setup_task.sh) introduces an anomaly by updating exactly 40 payment records (for films with a rental rate > $2.99) to an amount of $0.01. The task requires the agent to identify these anomalies via a SQL view named 'v_audit_underpayments', export them to '/home/ga/Documents/exports/underpayment_audit.csv', and revert the corrupted 'amount' values back to their original 'rental_rate' while leaving valid records untouched.",
+    "pi_confidence": "high"
+}

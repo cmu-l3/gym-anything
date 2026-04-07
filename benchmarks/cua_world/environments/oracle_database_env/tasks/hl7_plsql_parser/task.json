@@ -1,0 +1,38 @@
+{
+  "id": "hl7_plsql_parser@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A legacy Patient Administration System is sending raw HL7 v2.5 ADT (Admission) messages to the Oracle database table RAW_HL7_LOG. Parse these text messages and extract structured patient data into a new table PATIENT_ADMISSIONS using the provided credentials (User: hr, Pass: hr123, Service: XEPDB1). The PATIENT_ADMISSIONS table must include columns: MRN (VARCHAR2), PATIENT_NAME (VARCHAR2, format 'Last, First'), ADMISSION_DATE (DATE), MESSAGE_EVENT (VARCHAR2), and DIAGNOSIS_CODE (VARCHAR2). Implement a PL/SQL procedure named PARSE_HL7_BATCH that iterates through RAW_HL7_LOG, parses the HL7 text in the MESSAGE_BODY column, and populates PATIENT_ADMISSIONS. Follow these HL7 parsing rules: MSH-9 for Message Event, PID-3 for MRN (first component), PID-5 for Name (Last^First), PV1-44 for Admission Date (YYYYMMDDHHMM or YYYYMMDD), and DG1-3 for Diagnosis Code (first component). Handle variable date formats and missing DG1 segments gracefully.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_plsql_parser/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_plsql_parser/export_result.sh"
+  },
+  "metadata": {
+    "source_table": "RAW_HL7_LOG",
+    "target_table": "PATIENT_ADMISSIONS",
+    "procedure_name": "PARSE_HL7_BATCH",
+    "expected_columns": [
+      "MRN",
+      "PATIENT_NAME",
+      "ADMISSION_DATE",
+      "MESSAGE_EVENT",
+      "DIAGNOSIS_CODE"
+    ],
+    "sentinel_mrn": "TEST999",
+    "sentinel_name_expected": "Everdeen, Katniss",
+    "sentinel_event": "ADT^A01",
+    "sentinel_diagnosis": "J01.90"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_parser"
+    }
+  }
+}

@@ -12,9 +12,9 @@ mkdir -p "$PROJECT_DIR"
 
 # --- 1. Restore/Setup Muncie Project ---
 echo "Restoring Muncie project..."
-if [ -d "/opt/hec-ras/benchmarks/cua_world/environments/Muncie" ]; then
+if [ -d "/opt/hec-ras/examples/Muncie" ]; then
     rm -rf "$PROJECT_DIR"/*
-    cp -r /opt/hec-ras/benchmarks/cua_world/environments/Muncie/* "$PROJECT_DIR/"
+    cp -r /opt/hec-ras/examples/Muncie/* "$PROJECT_DIR/"
     chown -R ga:ga "$PROJECT_DIR"
 else
     echo "ERROR: Muncie example not found in /opt/hec-ras/examples"

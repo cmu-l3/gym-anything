@@ -1,0 +1,31 @@
+{
+  "id": "encryption_entropy_screening@1",
+  "version": "1.0",
+  "env_id": "autopsy_env@0.1",
+  "description": "A judge has issued a supplemental warrant requiring investigators to determine whether any files on a suspect's seized USB drive were encrypted or password-protected. The presence of encryption could indicate consciousness of guilt or hidden evidence. Perform a forensic screening of all allocated files in the disk image /home/ga/evidence/ntfs_undel.dd using Autopsy (Case: Encryption_Screening_2024, Case Number: INV-ENC-006) and Shannon entropy analysis (0.0-8.0 scale).\n\nExport the findings to a pipe-delimited file at /home/ga/Reports/entropy_analysis.csv using the header: FILENAME|FULL_PATH|SIZE_BYTES|ENTROPY_BPB|CLASSIFICATION. Classify files as 'LOW' (entropy < 4.0), 'MEDIUM' (4.0 to 6.499), 'HIGH' (6.5 to 7.499), or 'SUSPICIOUS' (entropy >= 7.5).\n\nGenerate a screening summary at /home/ga/Reports/encryption_screening_report.txt containing the following sections:\nCASE_NUMBER: INV-ENC-006\nIMAGE_ANALYZED: ntfs_undel.dd\nTOTAL_FILES_ANALYZED: [count]\nENCRYPTION_MODULE_HITS: [count from Autopsy]\nENTROPY_CLASSIFICATION_SUMMARY: LOW: [n], MEDIUM: [n], HIGH: [n], SUSPICIOUS: [n]\nHIGH_ENTROPY_FILES: [List of files with entropy >= 6.5, or 'None']\nCONCLUSION: [1-3 sentence forensic conclusion]",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/encryption_entropy_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/encryption_entropy_screening/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Encryption_Screening_2024",
+    "case_number": "INV-ENC-006",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "csv_file": "/home/ga/Reports/entropy_analysis.csv",
+    "report_file": "/home/ga/Reports/encryption_screening_report.txt",
+    "result_file": "/tmp/encryption_screening_result.json",
+    "gt_file": "/tmp/encryption_screening_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_encryption_entropy_screening"
+    }
+  }
+}

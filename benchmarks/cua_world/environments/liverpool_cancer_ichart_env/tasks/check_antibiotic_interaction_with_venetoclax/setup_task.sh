@@ -24,9 +24,8 @@ am force-stop $PACKAGE
 sleep 2
 
 echo "Launching Cancer iChart..."
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 6
-
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
 # 5. Handle potential startup dialogs (e.g. 'Get Interaction Data')
 # The environment setup script handles the initial download, but we ensure it's dismissed here
 # Tap generic 'OK' coordinates just in case: [815, 1403]
@@ -42,8 +41,7 @@ input keyevent 4 # Back
 sleep 1
 
 # Relaunch to ensure foreground
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 3
+launch_cancer_ichart
 
 # 7. Tap 'Search For Drug Interactions' if on Welcome screen
 # Coordinates approx middle of screen or use heuristics.

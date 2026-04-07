@@ -1,0 +1,63 @@
+{
+    "task_id": "web_attack_investigation@1",
+    "dataset": "SecRepo and Loghub",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "required_indexes",
+            "metadata_value": [
+                "web_logs",
+                "security_logs"
+            ],
+            "verified_value": [
+                "web_logs",
+                "security_logs"
+            ],
+            "source": "scripts/setup_splunk.sh ingests Apache logs into web_logs and SSH logs into security_logs. verifier.py checks for these exact indexes.",
+            "status": "verified"
+        },
+        {
+            "key": "min_dashboard_panels",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "verifier.py checks if best_dash.get('panel_count', 0) >= 2.",
+            "status": "verified"
+        },
+        {
+            "key": "splunk_user",
+            "metadata_value": "admin",
+            "verified_value": "admin",
+            "source": "scripts/install_splunk.sh sets USERNAME = admin in user-seed.conf.",
+            "status": "verified"
+        },
+        {
+            "key": "splunk_pass",
+            "metadata_value": "SplunkAdmin1!",
+            "verified_value": "SplunkAdmin1!",
+            "source": "scripts/install_splunk.sh sets PASSWORD = SplunkAdmin1! in user-seed.conf.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_breakdown",
+            "metadata_value": {
+                "new_report_created": 20,
+                "report_is_cross_index": 20,
+                "new_dashboard_created": 20,
+                "dashboard_has_multiple_panels": 20,
+                "dashboard_references_logs": 20
+            },
+            "verified_value": {
+                "new_report_created": 20,
+                "report_cross_index": 20,
+                "new_dashboard_created": 20,
+                "dashboard_has_multiple_panels": 20,
+                "dashboard_refs_logs": 20
+            },
+            "source": "verifier.py explicitly uses 'report_cross_index' and 'dashboard_refs_logs' as keys in the subscores dictionary, contradicting the metadata keys.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task relies on real-world log data downloaded from SecRepo and Loghub, ingested into 'web_logs' (Apache logs) and 'security_logs' (SSH/auth logs). The agent must use Splunk credentials (admin / SplunkAdmin1!) to create a cross-index report and a new dashboard with at least 2 panels. The verifier's subscore keys for cross-index report and log references slightly differ from the claimed scoring breakdown keys.",
+    "pi_confidence": "high"
+}

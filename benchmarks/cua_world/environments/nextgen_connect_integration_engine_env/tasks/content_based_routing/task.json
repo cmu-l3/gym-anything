@@ -1,0 +1,29 @@
+{
+  "id": "content_based_routing@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Configure and deploy a content-based routing channel named 'HL7_Message_Router' in NextGen Connect. The channel must receive HL7 v2.x messages via a TCP Listener on port 6661 (MLLP) and route them to specific directories based on the message type (MSH-9.1). Create three File Writer destinations: 'ADT_Destination' (Filter: MSH-9.1 equals 'ADT') outputting to /tmp/output/adt/, 'ORM_Destination' (Filter: MSH-9.1 equals 'ORM') outputting to /tmp/output/orm/, and 'ORU_Destination' (Filter: MSH-9.1 equals 'ORU') outputting to /tmp/output/oru/. Use unique filenames for the output (e.g., '${message.messageId}.hl7') and ensure the channel is deployed and 'STARTED'. Sample HL7 messages are provided in /home/ga/ for testing.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/content_based_routing/setup_task.sh",
+    "post_task": "/workspace/tasks/content_based_routing/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "HL7_Message_Router",
+    "listen_port": "6661",
+    "adt_dir": "/tmp/output/adt",
+    "orm_dir": "/tmp/output/orm",
+    "oru_dir": "/tmp/output/oru"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_content_based_routing"
+    }
+  }
+}

@@ -107,6 +107,8 @@ Type=Application
 DESKTOPEOF
 chown ga:ga /home/ga/Desktop/OpenBCI_GUI.desktop
 chmod +x /home/ga/Desktop/OpenBCI_GUI.desktop
+# Mark desktop file as trusted (GNOME requirement)
+su - ga -c "dbus-launch gio set /home/ga/Desktop/OpenBCI_GUI.desktop metadata::trusted true" 2>/dev/null || true
 
 # ============================================================
 # Warm-up launch: Start the GUI to initialize settings/prefs,
@@ -174,11 +176,11 @@ launch_openbci() {
     pkill -f "OpenBCI_GUI" 2>/dev/null || true
     sleep 2
 
-    su - ga -c "setsid DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority \
-        bash /home/ga/launch_openbci.sh > /tmp/openbci_task.log 2>&1 &"
+    su - ga -c "export DISPLAY=:1; export XAUTHORITY=/run/user/1000/gdm/Xauthority; \
+        setsid bash /home/ga/launch_openbci.sh > /tmp/openbci_task.log 2>&1 &"
 
     echo "Waiting for OpenBCI GUI window..."
-    for i in $(seq 1 45); do
+    for i in $(seq 1 60); do
         if DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null | \
            grep -i "openbci" > /dev/null 2>&1; then
             echo "OpenBCI GUI window appeared after ${i}s"
@@ -186,7 +188,7 @@ launch_openbci() {
         fi
         sleep 1
     done
-    echo "WARNING: OpenBCI GUI window did not appear within 45s"
+    echo "WARNING: OpenBCI GUI window did not appear within 60s"
     return 1
 }
 

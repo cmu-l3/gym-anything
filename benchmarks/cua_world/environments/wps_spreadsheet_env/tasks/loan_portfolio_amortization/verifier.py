@@ -3,11 +3,11 @@
 
 import sys
 import os
+import json
 import logging
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../', 'utils'))
 from wps_verification_utils import (
-    copy_json_from_env,
     copy_and_parse_spreadsheet,
     cleanup_verification_temp,
     vlm_verify_screenshot,
@@ -34,9 +34,15 @@ def verify_loan_portfolio(traj, env_info, task_info):
         return {"passed": False, "score": 0, "feedback": "Copy function not available"}
 
     container_paths = ["/home/ga/Documents/loan_portfolio_model.xlsx"]
-    result_data = copy_json_from_env(copy_from_env, '/tmp/loan_portfolio_result.json')
-    if result_data and result_data.get('found_path'):
-        container_paths.insert(0, result_data['found_path'])
+    try:
+        rp = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'tmp_loan_result.json')
+        copy_from_env('/tmp/loan_portfolio_result.json', rp)
+        with open(rp) as f:
+            rd = json.load(f)
+        if rd.get('found_path'):
+            container_paths.insert(0, rd['found_path'])
+    except Exception:
+        pass
 
     success = False
     wb = None

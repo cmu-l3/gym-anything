@@ -1,0 +1,53 @@
+{
+  "task_id": "bi_query_rewrite_acceleration@1",
+  "task_completion": [
+    {
+      "id": "access_query_file",
+      "description": "Agent reads the target query file to understand the query that needs acceleration.",
+      "points": 10,
+      "visual_evidence": "A text editor or terminal command (like 'cat' or 'less') displaying the contents of /home/ga/Desktop/dashboard_query.sql."
+    },
+    {
+      "id": "connect_to_oracle",
+      "description": "Agent connects to the Oracle database using the provided credentials.",
+      "points": 10,
+      "visual_evidence": "A database client (e.g., SQL*Plus, SQLcl, DBeaver, or VS Code extension) showing an active connection for user 'sh_lite' to 'localhost:1521/XEPDB1'."
+    },
+    {
+      "id": "create_materialized_view",
+      "description": "Agent creates a Materialized View with Query Rewrite enabled.",
+      "points": 30,
+      "visual_evidence": "Execution of a SQL statement starting with 'CREATE MATERIALIZED VIEW' and including 'ENABLE QUERY REWRITE' (or a subsequent 'ALTER MATERIALIZED VIEW ... ENABLE QUERY REWRITE') in the database client, followed by a success message."
+    },
+    {
+      "id": "verify_query_rewrite",
+      "description": "Agent generates an execution plan for the original query to verify that the optimizer uses the new Materialized View.",
+      "points": 20,
+      "visual_evidence": "Execution of 'EXPLAIN PLAN FOR ...' followed by 'SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);' (or similar plan generation) where the output table clearly shows 'MAT_VIEW REWRITE ACCESS' or lists the newly created materialized view's name in the 'Name' column of the plan."
+    },
+    {
+      "id": "save_proof_file",
+      "description": "Agent saves the execution plan output to the required proof file.",
+      "points": 30,
+      "visual_evidence": "A text editor or terminal showing the file /home/ga/Desktop/optimization_proof.txt being created and populated with the Oracle execution plan output."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_db_client_used",
+      "description": "Agent interacted with a genuine Oracle database client to execute the SQL commands and generate the plan.",
+      "visual_evidence": "Screenshots should show a real database interface (like SQL*Plus in a terminal or a GUI client) processing the commands, rather than the agent just typing out fake SQL responses in a text editor."
+    },
+    {
+      "id": "query_file_unmodified",
+      "description": "Agent did not modify the original application query file.",
+      "visual_evidence": "The file /home/ga/Desktop/dashboard_query.sql should only be read, not edited or overwritten. The task explicitly states 'without modifying the application code'."
+    },
+    {
+      "id": "authentic_plan_output",
+      "description": "The execution plan saved in the proof file appears to be a genuine Oracle output.",
+      "visual_evidence": "The contents of optimization_proof.txt should match standard Oracle DBMS_XPLAN formatting (e.g., ASCII tables with columns like Id, Operation, Name, Rows, Bytes, Cost), not manually fabricated text."
+    }
+  ],
+  "privileged_info_for_vlm": "Database credentials: User 'sh_lite', Password 'password123', Service 'XEPDB1'. Target query file: /home/ga/Desktop/dashboard_query.sql. Proof file: /home/ga/Desktop/optimization_proof.txt. The ground truth query that needs to be optimized and rewritten is: 'SELECT p.prod_category, c.country_iso_code, SUM(s.amount_sold) as total_sales, COUNT(*) as num_txns FROM sales s JOIN products p ON s.prod_id = p.prod_id JOIN customers c ON s.cust_id = c.cust_id GROUP BY p.prod_category, c.country_iso_code ORDER BY total_sales DESC'."
+}

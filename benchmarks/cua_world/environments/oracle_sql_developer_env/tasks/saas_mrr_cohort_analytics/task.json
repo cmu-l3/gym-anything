@@ -1,0 +1,35 @@
+{
+  "id": "saas_mrr_cohort_analytics@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Business Intelligence Analyst at a B2B SaaS company. Using the raw transactional logs in the SAAS_ADMIN schema (saas_admin/SaaS2024@localhost:1521/XEPDB1), transform the event logs into standard SaaS metrics for a year-end financial dashboard.\n\nIdentify customers who repeatedly upgrade (new_mrr > 0) and then downgrade to a free tier (new_mrr = 0) within 14 days, occurring at least three times. Create a view named PROMO_ABUSERS_VW with columns customer_id, abuse_start_date, abuse_end_date, and number_of_cycles.\n\nCreate a view named COHORT_RETENTION_VW showing retention percentages (0-100, rounded to 2 decimal places) for months 0 through 6. Group customers by their signup month (COHORT_MONTH). A customer is considered retained in Month N if their latest event as of the end of that month shows an active subscription (new_mrr > 0). Required columns: COHORT_MONTH, TOTAL_CUSTOMERS, M0, M1, M2, M3, M4, M5, M6.\n\nGenerate a table named MRR_WATERFALL_2023 for each month in 2023. The table must include REPORTING_MONTH, BEGINNING_MRR, NEW_MRR, EXPANSION_MRR, CONTRACTION_MRR, CHURN_MRR, REACTIVATION_MRR, and ENDING_MRR. All metric values must be positive and satisfy the equation: BEGINNING_MRR + NEW_MRR + EXPANSION_MRR - CONTRACTION_MRR - CHURN_MRR + REACTIVATION_MRR = ENDING_MRR. Use the following definitions: New (first ever paid event), Expansion (increase in MRR for active customers), Contraction (decrease in MRR where new_mrr > 0), Churn (lost MRR where new_mrr = 0), and Reactivation (regained MRR from previously churned customers).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/saas_mrr_cohort_analytics/setup_task.sh",
+    "post_task": "/workspace/tasks/saas_mrr_cohort_analytics/export_result.sh"
+  },
+  "metadata": {
+    "expected_abusers": [
+      "9991",
+      "9992"
+    ],
+    "expected_waterfall_rows": 12,
+    "june_2023_churn_mrr": 250,
+    "oracle_features": [
+      "MATCH_RECOGNIZE",
+      "PIVOT",
+      "Window Functions"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_saas_mrr_cohort_analytics"
+    }
+  }
+}

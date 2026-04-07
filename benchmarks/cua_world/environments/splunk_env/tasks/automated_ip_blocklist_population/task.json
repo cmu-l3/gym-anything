@@ -1,0 +1,29 @@
+{
+  "id": "automated_ip_blocklist_population@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "A Security Engineer needs to implement an 'Active Defense' capability where the SIEM automatically appends high-volume SSH brute-force IPs to a blocklist for the web security team to monitor. Create a Scheduled Alert named 'Populate_Blocklist_Alert' that queries 'security_logs' for failed authentication events, aggregates by 'src_ip', filters for IPs with more than 10 failures, and uses 'outputlookup' in append mode to write these IPs to 'auto_blocklist.csv' on an hourly cron schedule (0 * * * *). Ensure the 'auto_blocklist.csv' file is populated with data on disk. Additionally, create a Report named 'Blocklist_Web_Activity_Report' that queries 'web_logs' and uses a subsearch with 'inputlookup auto_blocklist.csv' to identify web log events originating from the blocked IPs. Use the Splunk interface at http://localhost:8000 with credentials admin / SplunkAdmin1!.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/automated_ip_blocklist_population/setup_task.sh",
+    "post_task": "/workspace/tasks/automated_ip_blocklist_population/export_result.sh"
+  },
+  "metadata": {
+    "alert_name": "Populate_Blocklist_Alert",
+    "report_name": "Blocklist_Web_Activity_Report",
+    "lookup_filename": "auto_blocklist.csv",
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_automated_ip_blocklist_population"
+    }
+  }
+}

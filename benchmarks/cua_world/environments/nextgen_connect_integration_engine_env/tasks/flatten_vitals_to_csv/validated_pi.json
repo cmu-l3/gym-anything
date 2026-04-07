@@ -1,0 +1,101 @@
+{
+    "task_id": "flatten_vitals_to_csv@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "loinc_codes.hr",
+            "metadata_value": "8867-4",
+            "verified_value": "8867-4",
+            "source": "LOINC.org official registry - https://loinc.org/8867-4/",
+            "status": "verified"
+        },
+        {
+            "key": "loinc_codes.sys",
+            "metadata_value": "8480-6",
+            "verified_value": "8480-6",
+            "source": "LOINC.org official registry - https://loinc.org/8480-6/",
+            "status": "verified"
+        },
+        {
+            "key": "loinc_codes.dia",
+            "metadata_value": "8462-4",
+            "verified_value": "8462-4",
+            "source": "LOINC.org official registry - https://loinc.org/8462-4/",
+            "status": "verified"
+        },
+        {
+            "key": "loinc_codes.spo2",
+            "metadata_value": "2708-6",
+            "verified_value": "2708-6",
+            "source": "LOINC.org official registry - https://loinc.org/2708-6/",
+            "status": "verified"
+        },
+        {
+            "key": "hl7_field_patient_id",
+            "metadata_value": "PID.3.1",
+            "verified_value": "PID.3.1",
+            "source": "HL7 v2.5 standard - PID segment field 3 contains Patient Identifier List (CX composite), component 1 is the ID value. Verified at https://hl7-definition.caristix.com/v2/HL7v2.5/Fields/PID.3",
+            "status": "verified"
+        },
+        {
+            "key": "hl7_field_observation_time",
+            "metadata_value": "OBR.7",
+            "verified_value": "OBR.7",
+            "source": "HL7 v2.5 standard - OBR-7 is Observation Date/Time field. Verified at official HL7 documentation and caristix.com HL7 field definitions",
+            "status": "verified"
+        },
+        {
+            "key": "loinc_code_location",
+            "metadata_value": "OBX.3 field",
+            "verified_value": "OBX.3",
+            "source": "HL7 v2.5 OBX segment - OBX.3 (Observation Identifier) contains the LOINC code in the CE/CWE composite field. Verified at https://usnistgov.github.io/v2plusDemo/segment-definition/OBX.html",
+            "status": "verified"
+        },
+        {
+            "key": "message_type",
+            "metadata_value": "ORU^R01",
+            "verified_value": "ORU^R01",
+            "source": "HL7 standard - ORU^R01 is Unsolicited Observation Message (Unsolicited transmission of an observation result). Verified at https://www.hl7.eu/refactored/msgORU_R01.html",
+            "status": "verified"
+        },
+        {
+            "key": "transport_protocol",
+            "metadata_value": "MLLP (implied by setup)",
+            "verified_value": "MLLP",
+            "source": "HL7 standard transport - MLLP (Minimal Lower Layer Protocol) is the standard for HL7 message transmission over TCP/IP. Messages are wrapped with VT (0x0B) as start block and FS/CR (0x1C/0x0D) as end block. Verified in export_result.sh verification logic and at https://www.hl7.org/documentcenter/public/wg/inm/mllp_transport_specification.PDF",
+            "status": "verified"
+        },
+        {
+            "key": "csv_format",
+            "metadata_value": "PatientID,ObservationTime,HeartRate,SystolicBP,DiastolicBP,SpO2",
+            "verified_value": "PatientID,ObservationTime,HeartRate,SystolicBP,DiastolicBP,SpO2",
+            "source": "Task description and test cases in export_result.sh confirm this exact CSV column order and format",
+            "status": "verified"
+        },
+        {
+            "key": "csv_missing_value_handling",
+            "metadata_value": "Empty field (e.g., '123,20230101,80,,,98')",
+            "verified_value": "Empty field when vital missing",
+            "source": "Test case 2 in export_result.sh explicitly demonstrates missing BP values as empty: 'PT1002,202401011300,82,,,95'",
+            "status": "verified"
+        },
+        {
+            "key": "vital_signs_mapping",
+            "metadata_value": "OBX segments with LOINC codes 8867-4,8480-6,8462-4,2708-6 contain HR,Sys,Dia,SpO2",
+            "verified_value": "All vital signs correctly mapped via LOINC codes",
+            "source": "LOINC.org registry confirms: 8867-4=Heart rate, 8480-6=Systolic BP, 8462-4=Diastolic BP, 2708-6=Oxygen saturation in arterial blood",
+            "status": "verified"
+        },
+        {
+            "key": "sample_hl7_message_vitals",
+            "metadata_value": "Heart Rate=80, Systolic=120, Diastolic=80, SpO2=98",
+            "verified_value": "All vitals present in sample message",
+            "source": "Sample message in setup_task.sh contains OBX segments with values: 8867-4(80), 8480-6(120), 8462-4(80), 2708-6(98)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task requires building a HL7 v2.5 integration channel that extracts vital signs from ORU^R01 (unsolicited observation) messages and flattens them to CSV format. The vital signs are identified by standard LOINC codes: 8867-4 (Heart Rate), 8480-6 (Systolic BP), 8462-4 (Diastolic BP), and 2708-6 (Oxygen Saturation). Patient ID is extracted from HL7 PID segment field 3.1, observation time from OBR field 7, and vital values from OBX segment field 3. The output CSV has no header row and includes columns for PatientID, ObservationTime, HeartRate, SystolicBP, DiastolicBP, and SpO2, with empty values for missing vitals. Messages arrive via MLLP-wrapped TCP protocol on port 6661 and are appended as single lines to /tmp/research_data/vitals.csv. All test data used is synthetic, generated by the verification scripts.",
+    "pi_confidence": "high"
+}

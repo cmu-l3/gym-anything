@@ -1,0 +1,53 @@
+{
+  "task_id": "docker_sidecar_implementation@1",
+  "task_completion": [
+    {
+      "id": "log_sidecar_configured",
+      "description": "The docker-compose.yml file is modified to include a log-sidecar service that tails the transaction log and handles the race condition.",
+      "points": 25,
+      "visual_evidence": "Screenshots of the docker-compose.yml file show a 'log-sidecar' service using the 'alpine' image. It must have a volume mount for the audit directory (e.g., /var/opt/settlement/audit) and a command that handles the file not existing immediately (e.g., using 'tail -F', 'tail -f --retry', or a shell loop with 'sleep' waiting for the file before tailing)."
+    },
+    {
+      "id": "report_sidecar_configured",
+      "description": "The docker-compose.yml file is modified to include a report-sidecar service that serves the reports directory on host port 8080.",
+      "points": 25,
+      "visual_evidence": "Screenshots of the docker-compose.yml file show a 'report-sidecar' service using the 'nginx:alpine' image. It must map host port 8080 to the container port (e.g., '8080:80') and mount the reports directory (/var/opt/settlement/reports/) to the nginx web root (typically /usr/share/nginx/html)."
+    },
+    {
+      "id": "legacy_core_unmodified",
+      "description": "The legacy application's image and code in docker-compose.yml remain unmodified.",
+      "points": 10,
+      "visual_evidence": "Screenshots of the docker-compose.yml file show the 'legacy-core' service is still present and its image or core configuration has not been replaced or altered to natively serve the logs/reports."
+    },
+    {
+      "id": "services_running",
+      "description": "All three services (legacy-core, log-sidecar, report-sidecar) are started and running successfully.",
+      "points": 20,
+      "visual_evidence": "Terminal output of commands like 'docker compose ps' or 'docker ps' showing 'legacy-core', 'log-sidecar', and 'report-sidecar' all in an 'Up' (running) state."
+    },
+    {
+      "id": "sidecar_functionality_verified",
+      "description": "The sidecars are verified to be functioning correctly (logs are tailed, reports are served).",
+      "points": 20,
+      "visual_evidence": "Terminal output showing successful execution of 'docker compose logs log-sidecar' displaying transaction log entries, AND/OR a successful 'curl http://localhost:8080' (or browser window) displaying the HTML report."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_docker_execution",
+      "description": "Verify the agent actually executed docker compose commands to start the services.",
+      "visual_evidence": "Look for actual terminal execution of 'docker compose up -d' or similar commands with genuine Docker daemon output, rather than just echoing text to the screen."
+    },
+    {
+      "id": "actual_file_editing",
+      "description": "Verify the agent modified the docker-compose.yml file using a real editor or standard shell commands.",
+      "visual_evidence": "Look for the use of text editors (nano, vim, VS Code) or shell commands (sed, awk, echo) to modify the file at /home/ga/projects/settlement-system/docker-compose.yml."
+    },
+    {
+      "id": "no_manual_log_faking",
+      "description": "Verify the agent did not manually create fake logs or reports to bypass the legacy application.",
+      "visual_evidence": "Ensure there are no commands manually writing text into /var/opt/settlement/audit/transaction.log or /var/opt/settlement/reports/ to fake the output."
+    }
+  ],
+  "privileged_info_for_vlm": "The project directory is /home/ga/projects/settlement-system. The legacy application writes logs to /var/opt/settlement/audit/transaction.log and reports to /var/opt/settlement/reports/. The report-sidecar must map to host port 8080. The pass threshold for the task is 80 points."
+}

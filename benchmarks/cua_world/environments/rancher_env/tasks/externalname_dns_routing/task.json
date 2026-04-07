@@ -1,0 +1,32 @@
+{
+  "id": "externalname_dns_routing@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "Restore database connectivity for the 'inventory-frontend' application in the 'legacy-apps' namespace. The application is failing to connect to 'database-svc:5432' because the database was migrated to 'postgres-primary.core-data.svc.cluster.local:5432' in the 'core-data' namespace. Create an 'ExternalName' Service named 'database-svc' in the 'legacy-apps' namespace pointing to the new FQDN. Update the 'db-protection' NetworkPolicy in the 'core-data' namespace to allow Ingress on TCP port 5432 from pods in the 'legacy-apps' namespace using a 'namespaceSelector', while ensuring 'rogue-ns' remains blocked. Do not modify the 'inventory-frontend' Deployment. Login to Rancher at https://localhost with credentials admin / Admin12345678!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/externalname_dns_routing/setup_task.sh",
+    "post_task": "/workspace/tasks/externalname_dns_routing/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Cloud Systems Engineer / Site Reliability Engineer",
+    "target_namespaces": [
+      "core-data",
+      "legacy-apps",
+      "rogue-ns"
+    ],
+    "expected_external_name": "postgres-primary.core-data.svc.cluster.local",
+    "pass_threshold": 80
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_externalname_dns_routing"
+    }
+  }
+}

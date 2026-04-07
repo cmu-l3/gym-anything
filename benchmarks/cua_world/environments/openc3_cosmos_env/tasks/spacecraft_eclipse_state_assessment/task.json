@@ -1,0 +1,30 @@
+{
+  "id": "spacecraft_eclipse_state_assessment@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a mission operations analyst. The thermal subsystem team needs an automated assessment of whether the INST satellite is in sunlight or eclipse based on ADCS position vectors. Using the Cylindrical Shadow Model (Earth Radius: 6371.0 km, Sun Vector: [1.0, 0.0, 0.0]), determine the illumination state for 5 consecutive samples of POSX, POSY, and POSZ telemetry items spaced approximately 1 second apart. The state is 'IN_ECLIPSE' if the satellite is behind the Earth relative to the Sun (POSX < 0) and its perpendicular distance from the Sun-Earth axis (rho = sqrt(POSY^2 + POSZ^2)) is less than the Earth's radius; otherwise, it is 'IN_SUNLIGHT'. Save a JSON assessment report to /home/ga/Desktop/eclipse_report.json containing the keys: 'analyst' ('ga'), 'target' ('INST'), 'samples_collected' (5), 'shadow_model' ('cylindrical'), 'samples' (an array of 5 objects with numeric 'posx', 'posy', 'posz', 'rho', and string 'state'), and 'current_mode' (the state of the final sample). OpenC3 password: Cosmos2024!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/spacecraft_eclipse_state_assessment/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/spacecraft_eclipse_state_assessment/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/eclipse_assessment_result.json",
+    "output_file": "/home/ga/Desktop/eclipse_report.json",
+    "target": "INST",
+    "earth_radius_km": 6371.0,
+    "occupation": "Mission Operations Analyst"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spacecraft_eclipse_state_assessment"
+    }
+  }
+}

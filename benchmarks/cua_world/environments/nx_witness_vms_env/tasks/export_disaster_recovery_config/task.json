@@ -1,0 +1,36 @@
+{
+  "id": "export_disaster_recovery_config@1",
+  "version": "1.0",
+  "env_id": "nx_witness_vms_env@0.1",
+  "description": "Perform a comprehensive configuration export of the Nx Witness VMS system using the REST API (https://localhost:7001, admin/Admin1234!). Retrieve the current state of System Info, Servers, Devices (Cameras), Users, Layouts, Event Rules, and System Settings. Compile this data into a single JSON file saved to /home/ga/dr_export/disaster_recovery_config.json using the following structure:\n\n{\n  \"metadata\": {\n    \"exportTimestamp\": \"<ISO8601>\",\n    \"systemName\": \"<name>\",\n    \"exportVersion\": \"1.0\"\n  },\n  \"systemInfo\": { ... },\n  \"servers\": [ ... ],\n  \"devices\": [ ... ],",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/export_disaster_recovery_config/setup_task.sh",
+    "post_task": "/workspace/tasks/export_disaster_recovery_config/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/dr_export/disaster_recovery_config.json",
+    "ground_truth_path": "/tmp/dr_ground_truth.json",
+    "required_keys": [
+      "metadata",
+      "systemInfo",
+      "servers",
+      "devices",
+      "users",
+      "layouts",
+      "eventRules",
+      "systemSettings"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_export_disaster_recovery_config"
+    }
+  }
+}

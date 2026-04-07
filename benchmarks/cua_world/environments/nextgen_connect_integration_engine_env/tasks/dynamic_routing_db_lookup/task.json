@@ -1,0 +1,30 @@
+{
+  "id": "dynamic_routing_db_lookup@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a NextGen Connect channel named 'Dynamic_Clinic_Router' that listens on TCP port 6661 and dynamically routes HL7 messages based on a database lookup. For each message, the channel must identify the 'Receiving Facility' (MSH-6) and query the 'clinic_routes' table (columns: facility_id, host, port) in the PostgreSQL database (jdbc:postgresql://nextgen-postgres:5432/mirthdb, credentials: postgres/postgres) to determine the target 'host' and 'port'. The message must be routed to this destination using dynamic variables; hardcoding multiple static destinations is not allowed. Simulated endpoints are active on the target ports to receive the routed traffic.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dynamic_routing_db_lookup/setup_task.sh",
+    "post_task": "/workspace/tasks/dynamic_routing_db_lookup/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Dynamic_Clinic_Router",
+    "source_port": 6661,
+    "target_port_a": 6671,
+    "target_port_b": 6672,
+    "facility_a": "CLINIC_A",
+    "facility_b": "CLINIC_B"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dynamic_routing_db_lookup"
+    }
+  }
+}

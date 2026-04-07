@@ -1,0 +1,115 @@
+{
+    "task_id": "generate_document_audit_report@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/audit_report.json",
+            "verified_value": "/home/ga/audit_report.json",
+            "source": "Verified against task setup script (setup_task.sh) which explicitly removes stale file and task description specifies this path. Confirmed as standard home directory path for GA user.",
+            "status": "verified"
+        },
+        {
+            "key": "required_fields",
+            "metadata_value": "[\"document_title\", \"document_path\", \"event_id\", \"event_date\", \"principal\", \"category\"]",
+            "verified_value": "[\"document_title\", \"document_path\", \"event_id\", \"event_date\", \"principal\", \"category\"]",
+            "source": "Verified against Nuxeo REST API LogEntry entity type documentation (https://doc.nuxeo.com/rest-api/1/log-entry-entity-type/). These fields map to LogEntry properties: dc:title->document_title, docPath->document_path, eventId->event_id, eventDate->event_date, principalName->principal, category->category.",
+            "status": "verified"
+        },
+        {
+            "key": "workspace_path",
+            "metadata_value": "/default-domain/workspaces/Projects",
+            "verified_value": "/default-domain/workspaces/Projects",
+            "source": "Verified against Nuxeo Platform concepts documentation. Standard Nuxeo path pattern is /default-domain/workspaces/[workspace-name]. This path is created in setup_task.sh if missing. Confirmed through Nuxeo Platform documentation (https://doc.nuxeo.com/nxdoc/nuxeo-platform-concepts/).",
+            "status": "verified"
+        },
+        {
+            "key": "api_version",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "v1 (REST API v1)",
+            "source": "Verified from setup_nuxeo.sh and task_utils.sh which use endpoint: http://localhost:8080/nuxeo/api/v1. This is the current standard REST API version in Nuxeo.",
+            "status": "verified"
+        },
+        {
+            "key": "nuxeo_version",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "10.10",
+            "source": "Verified from docker-compose.yml which specifies image: nuxeo:10.10 (line 22).",
+            "status": "verified"
+        },
+        {
+            "key": "database_backend",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "PostgreSQL 11",
+            "source": "Verified from docker-compose.yml which specifies postgres:11 service with Nuxeo configured to use PostgreSQL backend (NUXEO_DB_TYPE: postgresql, lines 27-32).",
+            "status": "verified"
+        },
+        {
+            "key": "audit_endpoint",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "/@audit web adapter on document endpoint",
+            "source": "Verified from export_result.sh line 52 which calls: requests.get(f'{NUXEO_URL}/id/{doc_uid}/@audit', auth=AUTH). Confirmed against Nuxeo REST API web adapters documentation: https://doc.nuxeo.com/nxdoc/rest-api-web-adapters/ which lists @audit as 'Returns audit trail records corresponding to the target Document'.",
+            "status": "verified"
+        },
+        {
+            "key": "query_language",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "NXQL (Nuxeo Query Language)",
+            "source": "Verified from setup_task.sh and export_result.sh which use NXQL syntax (SELECT * FROM Document WHERE ...). Query syntax verified against Nuxeo NXQL documentation: https://doc.nuxeo.com/nxdoc/nxql/.",
+            "status": "verified"
+        },
+        {
+            "key": "nxql_filters_used",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "ecm:path STARTSWITH, ecm:mixinType, ecm:isProxy, ecm:isTrashed",
+            "source": "Verified from setup_task.sh line 22 and export_result.sh line 45. All filters confirmed in Nuxeo NXQL documentation: ecm:path STARTSWITH for path matching, ecm:mixinType for facet filtering, ecm:isProxy for proxy filtering, ecm:isTrashed for trash state filtering.",
+            "status": "verified"
+        },
+        {
+            "key": "minimum_document_coverage",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "2 distinct documents minimum",
+            "source": "Verified from task.json task description (line 105) which states 'Ensure the report includes audit entries for at least 2 distinct documents found in the workspace.' Also confirmed in verifier.py lines 119-123 which scores 15 points for coverage >= 2 documents.",
+            "status": "verified"
+        },
+        {
+            "key": "admin_credentials",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "Username: Administrator, Password: Administrator",
+            "source": "Verified from task_utils.sh lines 7-8 (NUXEO_ADMIN='Administrator', NUXEO_PASS='Administrator') and setup_nuxeo.sh line 10 (NUXEO_AUTH='Administrator:Administrator').",
+            "status": "verified"
+        },
+        {
+            "key": "timeout_seconds",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "300",
+            "source": "Verified from task.json init section (line 8) which specifies timeout_sec: 300.",
+            "status": "verified"
+        },
+        {
+            "key": "max_steps",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "50",
+            "source": "Verified from task.json init section (line 9) which specifies max_steps: 50.",
+            "status": "verified"
+        },
+        {
+            "key": "dublin_core_title_field",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "dc:title",
+            "source": "Verified from create_doc_if_missing function in task_utils.sh (line 108) which uses 'dc:title' property. Confirmed as standard Dublin Core metadata property in Nuxeo: https://doc.nuxeo.com/studio/schemas/.",
+            "status": "verified"
+        },
+        {
+            "key": "data_provenance",
+            "metadata_value": "Not explicitly claimed",
+            "verified_value": "Synthetic - created during task setup",
+            "source": "Verified from setup_task.sh lines 24-33 which creates documents 'Kickoff-Meeting' and 'Budget-Draft' if document count < 2. Data is not downloaded from external sources but generated locally in the Nuxeo instance.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task operates on Nuxeo Platform 10.10, a real open-source ECM system, with a synthetic PostgreSQL database. Documents are created in the /default-domain/workspaces/Projects workspace during task setup. The agent must query the Nuxeo REST API (v1) using NXQL and the /@audit web adapter to retrieve audit trail entries for documents. The audit report must be JSON with fields document_title, document_path, event_id, event_date, principal, and category, covering at least 2 distinct documents. The output file is saved to /home/ga/audit_report.json. Authentication uses default Administrator credentials. The task includes anti-gaming measures: documents are created/modified during setup to ensure fresh audit events, and file timestamps are checked to verify creation during task execution.",
+    "pi_confidence": "high"
+}

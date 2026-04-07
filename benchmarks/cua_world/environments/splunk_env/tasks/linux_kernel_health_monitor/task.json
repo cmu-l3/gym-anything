@@ -1,0 +1,33 @@
+{
+  "id": "linux_kernel_health_monitor@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "As a Systems Administrator monitoring a Linux fleet via Splunk (http://localhost:8000, credentials: admin / SplunkAdmin1!), configure an observability dashboard for critical kernel events. Create three event types in the Search & Reporting app named 'linux_oom_event' (searching index=system_logs for \"Out of memory\" OR \"oom-killer\"), 'linux_hardware_fault' (searching index=system_logs for \"Machine Check Exception\" OR \"Hardware Error\"), and 'linux_disk_error' (searching index=system_logs for \"I/O error\" OR \"EXT4-fs error\"). Apply the tag 'system_failure' to these event types and construct a Classic Dashboard named 'Linux_Kernel_Health' containing at least two visualization panels that utilize the 'system_failure' tag in their SPL searches.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/linux_kernel_health_monitor/setup_task.sh",
+    "post_task": "/workspace/tasks/linux_kernel_health_monitor/export_result.sh"
+  },
+  "metadata": {
+    "expected_dashboard_name": "Linux_Kernel_Health",
+    "expected_tag": "system_failure",
+    "expected_event_types": [
+      "linux_oom_event",
+      "linux_hardware_fault",
+      "linux_disk_error"
+    ],
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_linux_kernel_health_monitor"
+    }
+  }
+}

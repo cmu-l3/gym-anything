@@ -1,0 +1,47 @@
+{
+  "id": "ar_payment_allocation_aging@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are an Accounts Receivable analyst. Build a payment allocation and aging system in AdventureWorks2022 using Azure Data Studio.\n\nThe environment has pre-seeded an AR schema with table AR.PaymentLedger (~34,600 payment records derived from actual sales orders, including full payments, split payments, late partial payments, and unpaid invoices). Each row has PaymentID (identity), CustomerID, PaymentDate, Amount (DECIMAL 18,2), and PaymentMethod.\n\nAR.PaymentAllocation table: AllocationID (INT IDENTITY PK), PaymentID (INT, NOT NULL), SalesOrderID (INT, NOT NULL), AllocatedAmount (DECIMAL 18,2, NOT NULL), AllocatedAt (DATETIME2, DEFAULT GETDATE()).\n\nAR.usp_AllocatePayments stored procedure: Match each payment to invoices (Sales.SalesOrderHeader) for the same CustomerID using strict FIFO -- oldest unpaid invoice first (by OrderDate ASC, then SalesOrderID ASC). For each payment, allocate up to the invoice's remaining balance, then carry any surplus to the next oldest invoice. If a payment has surplus after all of a customer's invoices are fully paid, record it with SalesOrderID = -1 as a credit balance. The procedure must be idempotent.\n\nAR.vw_InvoiceOpenBalance view: For every row in Sales.SalesOrderHeader, show SalesOrderID, CustomerID, OrderDate, TotalDue, TotalAllocated (from PaymentAllocation where SalesOrderID > 0), and OpenBalance (TotalDue minus TotalAllocated). Include all invoices, even those fully paid with zero open balance.\n\nAR.fn_AgingBuckets(@AsOfDate DATE) inline table-valued function: Return one row per customer with columns CustomerID, Current_0_30 (sum of OpenBalance for invoices 0-30 days past OrderDate), Days31_60, Days61_90, Days91_120, Days121Plus, and TotalOpenAR. Only include invoices with OpenBalance > 0.\n\nExport the output of AR.fn_AgingBuckets('2014-06-30') ordered by TotalOpenAR descending to /home/ga/Documents/exports/ar_aging_report.csv with headers.\n\nReconciliation: SUM(AllocatedAmount) across all rows in AR.PaymentAllocation must equal SUM(Amount) from AR.PaymentLedger within $0.01.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 4800,
+    "max_steps": 400,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ar_payment_allocation_aging/setup_task.sh",
+    "post_task": "/workspace/tasks/ar_payment_allocation_aging/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "domain": "Accounts Receivable / Financial Analysis",
+    "occupation": "Accounts Receivable Analyst",
+    "soc_code": "13-2011.01",
+    "soc_major_group": "Business and Financial Operations Occupations",
+    "application": "Azure Data Studio + Microsoft SQL Server 2022",
+    "database": "AdventureWorks2022",
+    "dataset": "AdventureWorks2022 Sales (31K orders, 19K customers) + seeded AR.PaymentLedger (~34.6K rows)",
+    "key_tables": [
+      "Sales.SalesOrderHeader",
+      "Sales.Customer",
+      "AR.PaymentLedger"
+    ],
+    "required_objects": [
+      "AR.PaymentAllocation table",
+      "AR.usp_AllocatePayments stored procedure",
+      "AR.vw_InvoiceOpenBalance view",
+      "AR.fn_AgingBuckets inline TVF"
+    ],
+    "output_csv_path": "/home/ga/Documents/exports/ar_aging_report.csv",
+    "result_file": "/tmp/ar_aging_result.json",
+    "reconciliation_tolerance": 0.01,
+    "difficulty_rationale": "FIFO payment-to-invoice allocation requires stateful row-by-row processing via cursor or recursive logic. The agent must handle customer boundaries (payments only apply to same customer's invoices), partial allocations across invoices, and overpayment credit balances. A nested cursor over 25K payments and 31K invoices is ~80-110 lines of T-SQL with precise variable management. The reconciliation gate (total allocated = total payments within $0.01) catches any off-by-one or rounding errors. Downstream objects (view, TVF, CSV) depend on the allocation being correct, creating cascading failure modes."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ar_payment_allocation_aging"
+    }
+  }
+}

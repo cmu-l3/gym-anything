@@ -1,0 +1,47 @@
+{
+    "task_id": "sakila_stored_procedure_debugging@1",
+    "dataset": "Sakila Sample Database",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "database",
+            "metadata_value": "sakila",
+            "verified_value": "sakila",
+            "source": "Confirmed by analyzing setup_mysql_workbench.sh, which downloads the official Sakila dataset from MySQL, and setup_task.sh which targets the 'sakila' database for injection.",
+            "status": "verified"
+        },
+        {
+            "key": "procedures",
+            "metadata_value": [
+                "sp_report_sales_by_category",
+                "sp_identify_dead_inventory",
+                "sp_calculate_customer_credit"
+            ],
+            "verified_value": [
+                "sp_report_sales_by_category",
+                "sp_identify_dead_inventory",
+                "sp_calculate_customer_credit"
+            ],
+            "source": "Confirmed by analyzing setup_task.sh, which explicitly creates these three intentionally broken stored procedures in the database, and verifier.py which evaluates them.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_exports",
+            "metadata_value": [
+                "/home/ga/Documents/exports/sales_by_category.csv",
+                "/home/ga/Documents/exports/dead_inventory.csv",
+                "/home/ga/Documents/exports/top_credit_customers.csv"
+            ],
+            "verified_value": [
+                "/home/ga/Documents/exports/sales_by_category.csv",
+                "/home/ga/Documents/exports/dead_inventory.csv",
+                "/home/ga/Documents/exports/top_credit_customers.csv"
+            ],
+            "source": "Confirmed by analyzing export_result.sh and verifier.py, which check for the existence, modification time, and line count of these three exact CSV files.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on the official MySQL Sakila sample database, a well-known synthetic dataset for a fictional DVD rental store. The environment downloads it directly from MySQL's documentation site. The task initialization script injects three intentionally broken stored procedures into the 'sakila' schema. 'sp_report_sales_by_category' fails due to a strict-mode GROUP BY error. 'sp_identify_dead_inventory' uses an incorrect INNER JOIN instead of a LEFT JOIN/NOT EXISTS to find missing rentals. 'sp_calculate_customer_credit' fails because the 'credit_score' column is missing (intentionally dropped during setup). The evaluation scripts confirm success by verifying that the procedures are fixed to run successfully, modifying the schema as needed, returning correct results, and exporting outputs to three specific CSV files in '/home/ga/Documents/exports/'.",
+    "pi_confidence": "high"
+}

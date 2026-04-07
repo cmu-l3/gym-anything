@@ -1,0 +1,33 @@
+{
+  "id": "unstructured_clinical_note_mining@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Perform a patient safety audit by mining unstructured clinical text in the 'DrTuxTest' database. Identify all patients who have the word 'pénicilline' (including variations like 'penicilline' or 'PENICILLINE') mentioned in the 'Legacy_Observations' table, which contains data from an older system linked to patients via GUID. The search must be case-insensitive and accent-insensitive. Export the results to '~/Documents/penicillin_safety_review.csv' with the following columns: PatientGUID, LastName, FirstName, NoteDate, and NoteText.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/unstructured_clinical_note_mining/setup_task.sh",
+    "post_task": "/workspace/tasks/unstructured_clinical_note_mining/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/penicillin_safety_review.csv",
+    "ground_truth_path": "/tmp/ground_truth_ids.txt",
+    "required_columns": [
+      "PatientGUID",
+      "LastName",
+      "FirstName",
+      "NoteDate",
+      "NoteText"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_clinical_mining"
+    }
+  }
+}

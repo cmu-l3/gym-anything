@@ -1,0 +1,32 @@
+{
+  "id": "deck_log_reconstruction@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "Extract navigational data (Date/Time, Weather/Visibility, Own Ship Name, Position, Heading, Speed, and Traffic Count) from all scenario directories in /opt/bridgecommand/Scenarios/. Convert initial positions from Decimal Degrees to Degrees and Decimal Minutes (DDM) and calculate total planned voyage distance in Nautical Miles using the Haversine formula for scenarios with waypoints. Generate a deck log at /home/ga/Documents/deck_log.txt, sorted alphabetically by scenario name, using the format: 'Entry No: X', 'Scenario: [Name]', 'Position: [DDM]', 'Planned Distance: [X] nm'. Generate a voyage statistics summary at /home/ga/Documents/voyage_statistics.txt containing a summary table and aggregate statistics for Mean Speed, Max Beaufort, Total Traffic, and Total Waypoint Distance. This is a data processing task; the simulator GUI is not required.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/deck_log_reconstruction/setup_task.sh",
+    "post_task": "/workspace/tasks/deck_log_reconstruction/export_result.sh"
+  },
+  "metadata": {
+    "deck_log_path": "/home/ga/Documents/deck_log.txt",
+    "stats_path": "/home/ga/Documents/voyage_statistics.txt",
+    "scenarios_root": "/opt/bridgecommand/Scenarios",
+    "tolerances": {
+      "position_minutes": 0.15,
+      "distance_nm": 0.5,
+      "speed_kts": 0.1
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_deck_log_reconstruction"
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+    "task_id": "update_arrest_report@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_civilian",
+            "metadata_value": "Elena Fisher",
+            "verified_value": "Elena Fisher",
+            "source": "setup_task.sh line 19 creates synthetic civilian with INSERT INTO ncic_names",
+            "status": "verified"
+        },
+        {
+            "key": "old_charge",
+            "metadata_value": "Petty Theft",
+            "verified_value": "Petty Theft",
+            "source": "setup_task.sh line 32 explicitly sets charges='Petty Theft' in INSERT statement",
+            "status": "verified"
+        },
+        {
+            "key": "new_charge",
+            "metadata_value": "Grand Larceny",
+            "verified_value": "Grand Larceny",
+            "source": "Grand Larceny is a verified legal charge category (https://www.law.cornell.edu/wex/petty_larceny); verified as real charge via law.cornell.edu and multiple legal sources",
+            "status": "verified"
+        },
+        {
+            "key": "expected_narrative_snippet",
+            "metadata_value": "Suspect apprehended at jewelry store",
+            "verified_value": "Suspect apprehended at jewelry store attempting to conceal earrings. Suspect was cooperative.",
+            "source": "setup_task.sh line 28 sets NARRATIVE variable containing this exact substring",
+            "status": "verified"
+        }
+    ],
+    "critical_issues": [
+        {
+            "issue_type": "database_schema_mismatch",
+            "severity": "critical",
+            "description": "The task setup script attempts to use a non-existent 'arrest_reports' table. Official OpenCAD database schema (from github.com/opencad-community/OpenCAD-php) contains 'ncic_arrests' table, not 'arrest_reports'.",
+            "affected_lines": ["setup_task.sh:11-32", "export_result.sh:26-35"],
+            "official_schema_tables": [
+                "active_users", "aop", "bolos_persons", "bolos_vehicles", "calls", "calls_users", "call_history",
+                "call_list", "citation_types", "civilian_names", "colors", "config", "departments", "dispatchers",
+                "genders", "incident_types", "ncic_arrests", "ncic_citations", "ncic_plates", "ncic_names",
+                "ncic_warnings", "ncic_warrants", "ncic_weapons", "radio_codes", "statuses", "streets", "tones",
+                "users", "user_departments", "user_departments_temp", "vehicles", "warning_types", "warrant_types", "weapons"
+            ],
+            "actual_ncic_arrests_columns": ["id", "name_id", "arrest_reason", "arrest_fine", "issued_date", "issued_by"],
+            "task_attempts_to_use_columns": ["id", "date", "time", "location", "charges", "narrative", "name", "officer_name", "user_id", "name_id"],
+            "verification_source": "https://raw.githubusercontent.com/opencad-community/OpenCAD-php/master/sql/oc_install.sql"
+        }
+    ],
+    "privileged_info_summary": "The task targets a synthetic civilian named Elena Fisher with date of birth 1985-10-14 and address at 4248 Magellan Ave. The task involves updating an arrest charge from 'Petty Theft' (a real misdemeanor charge involving property theft below state thresholds) to 'Grand Larceny' (a real felony charge for high-value theft, typically $950+ in California). The arrest narrative includes the verified snippet 'Suspect apprehended at jewelry store attempting to conceal earrings.' However, the underlying task implementation contains a critical flaw: it attempts to use a 'arrest_reports' database table that does not exist in the official OpenCAD schema, which instead uses 'ncic_arrests' table with different columns (arrest_reason, arrest_fine, issued_date, issued_by) rather than the task's expected columns (date, time, location, charges, narrative, officer_name).",
+    "pi_confidence": "high"
+}

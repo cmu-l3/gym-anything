@@ -1,0 +1,45 @@
+{
+    "task_id": "secure_hmac_webhook_receiver@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "channel_name",
+            "metadata_value": "CloudBook_Webhook",
+            "verified_value": "CloudBook_Webhook",
+            "source": "Code analysis: Consistently used in setup_task.sh (line 23), export_result.sh (line 75), and task.json description. Verified by grep search across task scripts.",
+            "status": "verified"
+        },
+        {
+            "key": "port",
+            "metadata_value": 6675,
+            "verified_value": 6661,
+            "source": "Docker port mapping analysis: setup_nextgen_connect.sh (lines 84-91) exposes ONLY ports 6661-6668. Port 6675 is outside this range and cannot be accessed from host machine via localhost:6675. Export test script (line 15) attempts to use port 6675, but this will fail due to Docker port mapping constraint.",
+            "status": "contradicted"
+        },
+        {
+            "key": "secret",
+            "metadata_value": "HealthSecure2025",
+            "verified_value": "HealthSecure2025",
+            "source": "Code analysis: Used consistently in export_result.sh (line 16) for HMAC-SHA256 signature generation, setup_task.sh (line 25) shows the same secret value, and task.json description line 19. HMAC implementation verified using Python hmac.new() with hashlib.sha256.",
+            "status": "verified"
+        },
+        {
+            "key": "header",
+            "metadata_value": "X-Signature",
+            "verified_value": "X-Signature",
+            "source": "Code analysis: Consistently used in export_result.sh (lines 36, 44) as HTTP header for HMAC validation, setup_task.sh (line 24) mentions the header name, and task.json description line 20. Grep search confirms usage in curl commands for webhook signature validation.",
+            "status": "verified"
+        },
+        {
+            "key": "output_dir",
+            "metadata_value": "/home/ga/appointments",
+            "verified_value": "/home/ga/appointments",
+            "source": "Code analysis: Consistently used in setup_task.sh (lines 9-11, 47) for directory creation and cleanup, export_result.sh (line 17) for test output location, and task.json metadata line 21. Directory is initialized with proper permissions (chown -R ga:ga).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task implements a secure HMAC-SHA256 webhook receiver for NextGen Connect with channel name CloudBook_Webhook, secret HealthSecure2025, and X-Signature header validation. The output directory is /home/ga/appointments. However, there is a critical contradiction: the metadata specifies port 6675, but the Docker environment (setup_nextgen_connect.sh) only exposes ports 6661-6668, making port 6675 inaccessible from the host machine. The data is synthetic, using simulated webhook test payloads. All other parameters (secret, header, channel name, output directory) are correctly and consistently specified across setup, test, and verification scripts.",
+    "pi_confidence": "high"
+}

@@ -16,8 +16,8 @@ mkdir -p /home/ga/Documents/analysis_scripts
 
 # --- 3. Copy Muncie example project to user home ---
 echo "--- Copying Muncie example project ---"
-if [ -d "$HECRAS_HOME/benchmarks/cua_world/environments/Muncie" ]; then
-    cp -r "$HECRAS_HOME/benchmarks/cua_world/environments/Muncie"/* /home/ga/Documents/hec_ras_projects/Muncie/ 2>/dev/null || true
+if [ -d "$HECRAS_HOME/examples/Muncie" ]; then
+    cp -r "$HECRAS_HOME/examples/Muncie"/* /home/ga/Documents/hec_ras_projects/Muncie/ 2>/dev/null || true
 
     # Copy wrk_source files to the working directory (these are the input files)
     cd /home/ga/Documents/hec_ras_projects/Muncie

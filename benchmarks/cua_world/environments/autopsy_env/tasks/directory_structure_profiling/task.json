@@ -1,0 +1,31 @@
+{
+  "id": "directory_structure_profiling@1",
+  "version": "1.0",
+  "env_id": "autopsy_env@0.1",
+  "description": "You are a detective investigating corporate espionage. A seized USB drive image must be structurally profiled to determine if the data collection was systematically organized. Create a forensic case in Autopsy named 'Directory_Profile_2024' with case number 'INV-DSP-007' and add /home/ga/evidence/ntfs_undel.dd as a Disk Image data source, enabling only the 'File Type Identification' ingest module. Generate a pipe-delimited directory tree listing at /home/ga/Reports/directory_tree.txt with a header row and the format: 'DEPTH|ENTRY_TYPE|NAME|FULL_PATH|SIZE_BYTES'. DEPTH is the nesting level (0 = root), and ENTRY_TYPE is 'DIR', 'FILE', 'DEL_FILE', or 'DEL_DIR'. Exclude virtual Autopsy nodes like '$CarvedFiles' or '$OrphanFiles', but include standard system and hidden files. Additionally, write an organizational profile to /home/ga/Reports/organization_profile.txt containing exactly these sections on separate lines: 'VOLUME_FILESYSTEM: <type>', 'TOTAL_DIRECTORIES: <N>', 'TOTAL_FILES: <N>', 'ALLOCATED_FILES: <N>', 'DELETED_FILES: <N>', 'MAX_DIRECTORY_DEPTH: <N>', 'FILE_EXTENSION_DISTRIBUTION:' (followed by lines formatted '  .<ext>: <N> files' sorted by count descending, using '<none>' for no extension), 'TOP_LEVEL_DIRECTORIES:' (followed by lines formatted '  <dirname>/ (N items)'), and 'ORGANIZATIONAL_ASSESSMENT: <systematic|flat|minimal>'. Both report files must follow these strict formatting requirements.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/directory_structure_profiling/setup_task.sh",
+    "post_task": "/workspace/tasks/directory_structure_profiling/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Directory_Profile_2024",
+    "case_number": "INV-DSP-007",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "tree_file": "/home/ga/Reports/directory_tree.txt",
+    "profile_file": "/home/ga/Reports/organization_profile.txt",
+    "result_file": "/tmp/directory_profile_result.json",
+    "gt_file": "/tmp/directory_profile_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_directory_structure_profiling"
+    }
+  },
+  "difficulty": "hard"
+}

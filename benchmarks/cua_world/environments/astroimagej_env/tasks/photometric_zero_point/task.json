@@ -1,0 +1,27 @@
+{
+  "id": "photometric_zero_point@1",
+  "version": "1.0",
+  "env_id": "astroimagej_env@0.1",
+  "description": "Measure the instrumental flux of 5 known standard stars in a V-band image of Messier 12, and calculate the average photometric Zero Point (ZP) using the provided standard star catalog.\n\nStarting State: AstroImageJ is installed. The VLT V-band image of Messier 12 and its corresponding standard star catalog are located in `/opt/fits_samples/m12/`.\n\nExpected Actions:\n1. Inspect the standard star catalog `/opt/fits_samples/m12/m12_B_V.xls` (you may use a Python script). Identify the pixel coordinates (X, Y) and True V-band magnitudes (`V`) for the first 5 stars listed in the catalog.\n2. Open AstroImageJ and load the image `/opt/fits_samples/m12/Vcomb.fits`.\n3. Configure the Aperture Settings (Edit -> Aperture Settings) precisely:\n   - Radius = 6\n   - Inner Sky = 10\n   - Outer Sky = 20\n4. Place apertures on the first 5 stars from the catalog using their X, Y coordinates. Crucial: Measure them in the exact order they appear in the catalog (Rows 1 through 5).\n5. Save the resulting AstroImageJ Measurements table as a CSV file at `~/AstroImages/measurements/m12_photometry.csv`.\n6. Using the data in your CSV, calculate the Instrumental Magnitude (m_inst) for each star using the background-subtracted flux (the `Source-Sky` column):\n   m_inst = -2.5 * log10(Source-Sky)\n7. Calculate the Zero Point (ZP) for each of the 5 stars:\n   ZP = V_true - m_inst\n8. Calculate the mean (average) Zero Point across all 5 stars.\n9. Save your final result in a JSON file at `~/AstroImages/processed/zero_point_report.json` strictly using this format:\n   {\n     \"average_zp\": 27.15,\n     \"stars_measured\": 5\n   }",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/photometric_zero_point/setup_task.sh",
+    "post_task": "/workspace/tasks/photometric_zero_point/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv": "/home/ga/AstroImages/measurements/m12_photometry.csv",
+    "expected_json": "/home/ga/AstroImages/processed/zero_point_report.json",
+    "data_dir": "/opt/fits_samples/m12/"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_photometric_zero_point"
+    }
+  }
+}

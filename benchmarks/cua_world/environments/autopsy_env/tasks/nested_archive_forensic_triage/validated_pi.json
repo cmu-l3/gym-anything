@@ -1,0 +1,31 @@
+{
+    "task_id": "nested_archive_forensic_triage@1",
+    "dataset": null,
+    "case_id": "Archive_Triage_2024",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "case_name",
+            "metadata_value": "Archive_Triage_2024",
+            "verified_value": "Archive_Triage_2024",
+            "source": "export_result.sh checks for this exact case name directory and DB",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/nested_archive_result.json",
+            "verified_value": "/tmp/nested_archive_result.json",
+            "source": "verifier.py attempts to read results from this path",
+            "status": "verified"
+        },
+        {
+            "key": "gt_file",
+            "metadata_value": "/tmp/nested_archive_gt.json",
+            "verified_value": "/tmp/nested_archive_gt.json",
+            "source": "setup_task.sh writes MD5 ground truths here and verifier.py reads them",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Verified that the task operates on synthetically generated evidence files. The setup script dynamically creates a nested archive structure (vm_disk_01.dd and usb_clone.dd inside payloads.zip, which is then compressed into server_backup.tar.gz and renamed to server_backup.dat) and computes ground truth hashes to /tmp/nested_archive_gt.json. The expected case name 'Archive_Triage_2024' matches both the task instructions and export script's directory searches. However, a critical defect was discovered in export_result.sh: the bash variable TEMP_JSON is not exported to Python, causing the Python script to write its JSON output to a fallback path (/tmp/temp_result.json), while an empty file is copied to the final /tmp/nested_archive_result.json. This guarantees the verifier's json.load() will fail, rendering the task inherently unscorable.",
+    "pi_confidence": "high"
+}

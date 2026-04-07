@@ -1,0 +1,108 @@
+{
+    "task_id": "insured_consultation_billing@1",
+    "dataset": null,
+    "case_id": "patient_10002_carlos_mendoza",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "insurer_name",
+            "metadata_value": "MediShield Pan-Africa",
+            "verified_value": "MediShield Pan-Africa",
+            "source": "Task-defined target value. Consistent across task.json description, setup_task.sh cleanup (LIKE '%MediShield%'), and export_result.sh search query. Live DB query confirmed no pre-existing MediShield insurer (count=0 in evidence 05_no_medishield.txt). The agent must create this entity via the UI.",
+            "status": "verified"
+        },
+        {
+            "key": "insurer_official_name",
+            "metadata_value": "MediShield Pan-Africa Ltd",
+            "verified_value": "MediShield Pan-Africa Ltd",
+            "source": "Task-defined target value from description. Maps to DB column OC_INSURAR_OFFICIAL_NAME (varchar(255)) in oc_insurars table, confirmed by live schema dump (evidence 08a_schema_oc_insurars.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "insurer_language",
+            "metadata_value": "en",
+            "verified_value": "en",
+            "source": "Task description says 'language set to English'. DB column OC_INSURAR_LANGUAGE is varchar(2), storing ISO 639-1 codes. 'en' is correct for English. Confirmed by live schema dump showing varchar(2) type (evidence 08a_schema_oc_insurars.txt). Note: the OpenClinic UI displays this as 'Anglais' in the French-language dropdown but stores 'en' in the database.",
+            "status": "verified"
+        },
+        {
+            "key": "db_table_insurars",
+            "metadata_value": "oc_insurars",
+            "verified_value": "oc_insurars",
+            "source": "Confirmed by live DB DESCRIBE command (evidence 08a_schema_oc_insurars.txt). CRITICAL: Table uses 'insurar' spelling (NOT 'insurer'). All column prefixes use OC_INSURAR_. This is the actual OpenClinic GA v5.09.12 schema.",
+            "status": "verified"
+        },
+        {
+            "key": "db_table_insurances",
+            "metadata_value": "oc_insurances",
+            "verified_value": "oc_insurances",
+            "source": "Confirmed by live DB DESCRIBE command (evidence 08b_schema_oc_insurances.txt). Key columns: OC_INSURANCE_PATIENTUID (varchar(255), NOT 'PATIENTID'), OC_INSURANCE_INSURARUID (varchar(255), stores 'serverid.objectid' format like '1.42'), OC_INSURANCE_NR (policy number). This table is in openclinic_dbo, not ocadmin_dbo.",
+            "status": "verified"
+        },
+        {
+            "key": "db_table_insurarinvoices",
+            "metadata_value": "oc_insurarinvoices",
+            "verified_value": "oc_insurarinvoices",
+            "source": "Confirmed by live DB DESCRIBE command (evidence 08c_schema_oc_insurarinvoices.txt). Key columns: OC_INSURARINVOICE_OBJECTID, OC_INSURARINVOICE_INSURARUID (varchar(25), stores 'serverid.objectid'), OC_INSURARINVOICE_BALANCE (float). In openclinic_dbo.",
+            "status": "verified"
+        },
+        {
+            "key": "target_patient_id",
+            "metadata_value": "10002",
+            "verified_value": "10002",
+            "source": "Confirmed by live DB query (evidence 02_patient_10002.txt): personid=10002, lastname=MENDOZA, firstname=CARLOS, gender=M, dateofbirth=1965-03-22. Also confirmed in seed_data.sql line 36. Health record exists (evidence 02b_health_record.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "target_patient_name",
+            "metadata_value": "Carlos Mendoza",
+            "verified_value": "Carlos Mendoza",
+            "source": "Confirmed by live DB query (evidence 02_patient_10002.txt): lastname=MENDOZA, firstname=CARLOS. Database stores names in UPPERCASE. The searchname field is 'MENDOZA CARLOS'. In the OpenClinic UI, the patient will appear as 'MENDOZA CARLOS' or similar uppercase rendering.",
+            "status": "verified"
+        },
+        {
+            "key": "insurance_policy_number",
+            "metadata_value": "MSPA-2026-4471",
+            "verified_value": "MSPA-2026-4471",
+            "source": "Task-defined target value. Maps to DB column OC_INSURANCE_NR (varchar(255)) in oc_insurances table (evidence 08b_schema_oc_insurances.txt). Live query confirmed no insurance assignment exists for patient 10002 initially (evidence 06_no_insurance_assignment.txt, count=0).",
+            "status": "verified"
+        },
+        {
+            "key": "service_code",
+            "metadata_value": "SPEC01",
+            "verified_value": "SPEC01",
+            "source": "Task-defined target value. Maps to OC_PRESTATION_CODE in oc_prestations table (evidence 08f_schema_oc_prestations.txt). Setup_task.sh deletes any existing SPEC01. Live query confirmed no SPEC01 exists initially (evidence 04_no_spec01.txt, count=0).",
+            "status": "verified"
+        },
+        {
+            "key": "service_description",
+            "metadata_value": "Specialist Consultation",
+            "verified_value": "Specialist Consultation",
+            "source": "Task-defined target value. Maps to OC_PRESTATION_DESCRIPTION in oc_prestations table. Agent must type this when creating the service.",
+            "status": "verified"
+        },
+        {
+            "key": "service_price",
+            "metadata_value": "45.00",
+            "verified_value": "45.00",
+            "source": "Task-defined target value. Maps to OC_PRESTATION_PRICE (double type) in oc_prestations table. Export_result.sh checks this column for the SPEC01 service.",
+            "status": "verified"
+        },
+        {
+            "key": "preexisting_charge_code",
+            "metadata_value": "GENCON",
+            "verified_value": "GENCON",
+            "source": "Confirmed by live DB query (evidence 03a_gencon_service.txt): OC_PRESTATION_OBJECTID=88001, OC_PRESTATION_CODE='GENCON', OC_PRESTATION_DESCRIPTION='General Consultation', OC_PRESTATION_PRICE=30. Created by setup_task.sh as the trap charge's service.",
+            "status": "verified"
+        },
+        {
+            "key": "preexisting_charge_amount",
+            "metadata_value": "30.00",
+            "verified_value": "30.00",
+            "source": "Confirmed by live DB query (evidence 03c_trap_debet.txt): OC_DEBET_OBJECTID=88003, OC_DEBET_AMOUNT=30, OC_DEBET_DATE=2026-03-05, OC_DEBET_ENCOUNTERUID='1.88002', OC_DEBET_PRESTATIONUID=88001 (GENCON), OC_DEBET_INSURARINVOICEUID=NULL. The charge is 14 days old, has no insurer link, and must NOT appear on any insurer invoice.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "OpenClinic GA v5.09.12 with French-language UI. All billing tables use 'insurar' spelling (not 'insurer'): oc_insurars, oc_insurances, oc_insurarinvoices — all in openclinic_dbo database. UID references use 'serverid.objectid' format (e.g., '1.42'). Patient 10002 is MENDOZA CARLOS (male, DOB 1965-03-22, address: 27 Calle Mayor, Madrid, ES). The agent must create insurer 'MediShield Pan-Africa' (official name 'MediShield Pan-Africa Ltd', language 'en' stored as 2-char ISO code). Insurance assignment uses OC_INSURANCE_PATIENTUID (NOT PATIENTID) and OC_INSURANCE_NR for policy number 'MSPA-2026-4471'. Service SPEC01 ('Specialist Consultation', price 45.00) must be created in oc_prestations. A pre-existing trap charge exists: GENCON service (OID 88001, price 30.00) with encounter OID 88002 (type visit.consult, 14 days ago) and debet OID 88003 (amount 30, no insurer invoice link). This trap charge must NOT be included in the insurer invoice — only the new SPEC01 charge should be billed to MediShield. Debets link to patients indirectly through encounters (debet.OC_DEBET_ENCOUNTERUID -> encounter.OC_ENCOUNTER_PATIENTUID), not via a direct patient column. The insurer invoice table links to insurers via OC_INSURARINVOICE_INSURARUID in 'serverid.objectid' format. Login credentials: username '4', password 'openclinic'. The UI forces a mandatory password change on first login. Key navigation paths: insurer management is under 'Gestion des assureurs' in the Système > Gestion menu.",
+    "pi_confidence": "high"
+}

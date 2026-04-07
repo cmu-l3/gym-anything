@@ -1,0 +1,39 @@
+{
+  "id": "multi_subsystem_correlation@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a mission analyst investigating a suspected anomaly where thermal fluctuations in the INST satellite may be correlated with attitude control system drift. Analyze the correlation between the thermal subsystem (HEALTH_STATUS packet: TEMP1, TEMP2, TEMP3, TEMP4) and the attitude determination subsystem (ADCS packet: Q1, Q2) using at least 20 time-synchronized telemetry samples spaced approximately 1 second apart. Compute a 6x6 Pearson correlation matrix for these items and identify cross-subsystem correlations (pairs where one item is from HEALTH_STATUS and the other from ADCS). Save a structured report to /home/ga/Desktop/correlation_report.json containing: 'sample_count' (integer >= 20), 'items' (list of exactly 6 strings:",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multi_subsystem_correlation/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/multi_subsystem_correlation/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/multi_subsystem_correlation_result.json",
+    "output_file": "/home/ga/Desktop/correlation_report.json",
+    "target": "INST",
+    "health_status_items": [
+      "TEMP1",
+      "TEMP2",
+      "TEMP3",
+      "TEMP4"
+    ],
+    "adcs_items": [
+      "Q1",
+      "Q2"
+    ],
+    "min_samples": 20
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multi_subsystem_correlation"
+    }
+  }
+}

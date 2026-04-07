@@ -1,0 +1,34 @@
+{
+  "id": "object_relational_logistics@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A logistics company needs to optimize their shipment manifest system by leveraging Oracle's Object-Relational features for better data locality. Using the connection localhost:1521/XEPDB1 (User: hr, Password: hr123), migrate data from /home/ga/Desktop/legacy_manifests.csv into a new schema. This requires creating an Object Type T_MANIFEST_ITEM (with attributes ITEM_NAME VARCHAR2, QUANTITY NUMBER, and UNIT_WEIGHT_KG NUMBER) and a Collection Type T_MANIFEST_TAB as a TABLE OF T_MANIFEST_ITEM. Store this data in a table SHIPMENT_OBJECTS with columns SHIPMENT_ID (NUMBER PK), DESTINATION (VARCHAR2), and MANIFEST (of type T_MANIFEST_TAB), ensuring the nested table storage is explicitly named STORED_MANIFEST_ITEMS. Consolidate the legacy CSV data so each SHIPMENT_ID has exactly one row in the table with all associated items in its MANIFEST collection. Additionally, create a view V_MANIFEST_WEIGHTS that calculates SHIPMENT_ID, ITEM_COUNT_DISTINCT (unique item types), TOTAL_ITEMS (sum of quantities), and TOTAL_WEIGHT_KG (sum of quantity * unit_weight) for each shipment.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/object_relational_logistics/setup_task.sh",
+    "post_task": "/workspace/tasks/object_relational_logistics/export_result.sh"
+  },
+  "metadata": {
+    "csv_path": "/home/ga/Desktop/legacy_manifests.csv",
+    "expected_shipment_count": 4,
+    "check_shipment_id": 1003,
+    "expected_1003_weight": 238.5,
+    "expected_1003_item_count": 150,
+    "expected_types": [
+      "T_MANIFEST_ITEM",
+      "T_MANIFEST_TAB"
+    ],
+    "expected_storage_table": "STORED_MANIFEST_ITEMS"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_object_relational_logistics"
+    }
+  }
+}

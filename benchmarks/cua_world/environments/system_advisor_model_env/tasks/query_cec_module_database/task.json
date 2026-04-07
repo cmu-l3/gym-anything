@@ -1,0 +1,29 @@
+{
+  "id": "query_cec_module_database@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "medium",
+  "description": "A Solar Sales Representative needs to shortlist premium high-efficiency solar panels for a high-net-worth residential customer proposal. Extract and rank the top 15 monocrystalline silicon modules by efficiency from the California Energy Commission (CEC) Modules database located in the SAM installation directory (/opt/SAM/). Filter for modules where technology contains 'Mono', rated power (Pmp or STC) is at least 380 W, and module efficiency is at least 20.0% (calculated as Pmp / (Area * 10) if an explicit efficiency column is not present). Save the top 15 modules, sorted by efficiency in descending order, to /home/ga/Documents/SAM_Projects/premium_modules_report.json.\n\nThe JSON structure must exactly match this format:\n{\n  \"query_criteria\": {\n    \"technology\": \"Mono-c-Si\",\n    \"min_pmp_w\": 380,\n    \"min_efficiency_pct\": 20.0\n  },\n  \"total_modules_matching\": <integer count of ALL modules matching criteria before selecting top 15>,\n  \"top_15_modules\": [\n    {\n      \"rank\": 1,\n      \"name\": \"<Full module name>\",\n      \"pmp_w\": <power in watts>,\n      \"efficiency_pct\": <efficiency as percentage>,\n      \"voc_v\": <open-circuit voltage>,\n      \"isc_a\": <short-circuit current>,\n      \"area_m2\": <module area in m2>,\n      \"technology\": \"<technology string>\",\n      \"bifacial\": <0 or 1>,\n      \"n_series\": <number of cells>\n    }\n  ]\n}",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/query_cec_module_database/setup_task.sh",
+    "post_task": "/workspace/tasks/query_cec_module_database/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/SAM_Projects/premium_modules_report.json",
+    "min_pmp_w": 380,
+    "min_efficiency_pct": 20.0,
+    "required_technology": "mono",
+    "top_k_count": 15
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_query_cec_module_database"
+    }
+  }
+}

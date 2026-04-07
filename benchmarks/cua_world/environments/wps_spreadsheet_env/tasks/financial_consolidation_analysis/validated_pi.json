@@ -1,0 +1,94 @@
+{
+    "task_id": "financial_consolidation_analysis@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "Accountants and Auditors",
+            "verified_value": "Accountants and Auditors",
+            "source": "Task requirements involve creating consolidated financial statements, eliminating intercompany balances, calculating financial ratios, and variance analysis, which aligns perfectly with ONET 13-2011.00 (Accountants and Auditors).",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Professional, Scientific, and Technical Services",
+            "verified_value": "Professional, Scientific, and Technical Services",
+            "source": "Task involves accounting services which falls under NAICS 5412 (Accounting, Tax Preparation, Bookkeeping, and Payroll Services), a subsector of Professional, Scientific, and Technical Services.",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "Financial statement data based on real SEC EDGAR filing patterns for mid-cap holding companies",
+            "verified_value": "Financial statement data based on SEC EDGAR 10-K filings for small-cap companies",
+            "source": "setup_task.sh explicitly states: 'Based on SEC EDGAR 10-K filings for small-cap companies in software/services (Alpha), distribution (Beta), and manufacturing (Gamma) sectors.' This contradicts the 'mid-cap' claim in the metadata.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_new_sheets",
+            "metadata_value": ["Consolidated", "Financial_Ratios", "Variance_Analysis", "Dashboard"],
+            "verified_value": ["Consolidated", "Financial_Ratios", "Variance_Analysis", "Dashboard"],
+            "source": "Task description and verifier.py explicitly require and check for the existence of these 4 specific sheet names.",
+            "status": "verified"
+        },
+        {
+            "key": "required_features",
+            "metadata_value": ["multi-sheet cross-references", "intercompany elimination formulas", "financial ratio formulas", "conditional formatting", "grouped bar chart"],
+            "verified_value": ["multi-sheet cross-references", "intercompany elimination formulas", "financial ratio formulas", "conditional formatting", "grouped bar chart"],
+            "source": "All 5 features are explicitly requested in the task description and structurally validated in verifier.py (via _check_formula_references, conditional_formatting checks, and _charts checks).",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.consolidated_revenue",
+            "metadata_value": 96500000,
+            "verified_value": 96500000,
+            "source": "Calculated from data/consolidation_trial_balances.csv and data/consolidation_intercompany.csv: Sum of revenue (49.2M + 34.3M + 18.5M = 102M) minus intercompany revenue eliminations (3.2M + 1.5M + 0.8M = 5.5M) equals 96.5M.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.consolidated_net_income",
+            "metadata_value": 8493000,
+            "verified_value": 8493000,
+            "source": "Calculated from data/consolidation_trial_balances.csv: Sum of net income (4,458,000 + 3,360,000 + 675,000 = 8,493,000). Intercompany revenue and expenses perfectly offset each other, leaving total net income unaffected.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.consolidated_total_assets",
+            "metadata_value": 96950000,
+            "verified_value": 96950000,
+            "source": "Calculated from CSV files: Sum of total assets (49.2M + 30M + 19M = 98.2M) minus intercompany AR eliminations (850k + 400k = 1.25M) equals 96,950,000.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.ic_total_revenue_elimination",
+            "metadata_value": 5500000,
+            "verified_value": 5500000,
+            "source": "Calculated from data/consolidation_intercompany.csv: 3,200,000 (Alpha to Beta) + 1,500,000 (Beta to Gamma) + 800,000 (Alpha to Gamma) = 5,500,000.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.current_ratio",
+            "metadata_value": 2.92,
+            "verified_value": 2.92,
+            "source": "Consolidated current assets = 51.35M - 1.25M IC AR = 50.1M. Consolidated current liabilities = 18.4M - 1.25M IC AP = 17.15M. 50.1M / 17.15M = 2.921.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.gross_margin_pct",
+            "metadata_value": 41.2,
+            "verified_value": 41.2,
+            "source": "Consolidated gross profit = 41.254M sum - (5.5M IC Rev - 4.0M IC COGS = 1.5M) = 39.754M. 39.754M / 96.5M = 41.195%. Rounds to 41.2.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.prior_year_revenue",
+            "metadata_value": 91800000,
+            "verified_value": 91800000,
+            "source": "Explicitly defined in data/consolidation_prior_year.csv as 91,800,000 for Revenue.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically generated accounting data from CSVs mimicking SEC EDGAR 10-K filings for small-cap (not mid-cap) companies. Calculations derived directly from the underlying CSV data perfectly match the provided ground truth metrics: Consolidated Revenue of 96,500,000 (102M sum minus 5.5M intercompany eliminations), Consolidated Net Income of 8,493,000, Total Assets of 96,950,000 (98.2M sum minus 1.25M AR eliminations), Current Ratio of 2.92 (50.1M / 17.15M), and Gross Margin of 41.2%. The expected sheet names ('Consolidated', 'Financial_Ratios', 'Variance_Analysis', 'Dashboard') and specific required features (formulas, conditional formatting, chart) are explicitly codified in the task description and verifier scripts.",
+    "pi_confidence": "high"
+}

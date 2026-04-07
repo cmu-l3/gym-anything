@@ -1,0 +1,59 @@
+{
+    "task_id": "merge_error_logging@1",
+    "dataset": "Oracle HR schema",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "staging_table",
+            "metadata_value": "EMPLOYEE_UPDATES",
+            "verified_value": "EMPLOYEE_UPDATES",
+            "source": "setup_task.sh creates the staging table `employee_updates` via SQL.",
+            "status": "verified"
+        },
+        {
+            "key": "target_table",
+            "metadata_value": "EMPLOYEES",
+            "verified_value": "EMPLOYEES",
+            "source": "Task description and setup_task.sh which configures constraints directly on the `employees` table.",
+            "status": "verified"
+        },
+        {
+            "key": "error_table",
+            "metadata_value": "ERR_EMPLOYEES_LOG",
+            "verified_value": "ERR_EMPLOYEES_LOG",
+            "source": "Task description requests this name, and verifier.py checks for `ERR_EMPLOYEES_LOG` in the database.",
+            "status": "verified"
+        },
+        {
+            "key": "report_file",
+            "metadata_value": "/home/ga/Desktop/sync_errors.csv",
+            "verified_value": "/home/ga/Desktop/sync_errors.csv",
+            "source": "Task description specifies this path and verifier.py verifies its existence.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_valid_inserts",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "Analyzed the 10 rows inserted into the staging table in setup_task.sh. IDs 301 and 302 do not exist in the standard HR schema and contain valid data, leading to 2 successful inserts.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_valid_updates",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Analyzed the 10 rows inserted into the staging table in setup_task.sh. IDs 100, 103, and 104 exist in the HR schema and their staged data does not violate any constraints.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_errors",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Analyzed the 10 rows inserted into the staging table in setup_task.sh. Exactly 5 rows violate constraints: ID 101 (negative salary check constraint), ID 303 (invalid job_id foreign key), ID 304 (invalid department_id foreign key), ID 305 (duplicate email SKING unique constraint), and ID 102 (duplicate email AHUNOLD unique constraint).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires merging data from the staging table EMPLOYEE_UPDATES into the target production table EMPLOYEES and logging errors to ERR_EMPLOYEES_LOG. A report file should be saved to /home/ga/Desktop/sync_errors.csv. Based on the staging table data setup, there are exactly 10 rows involved: 2 are valid inserts (new IDs 301, 302), 3 are valid updates (existing IDs 100, 103, 104), and 5 rows contain intentional constraint violations (negative salary, invalid job_id, invalid department_id, and duplicate emails) which are expected to trigger error logging.",
+    "pi_confidence": "high"
+}

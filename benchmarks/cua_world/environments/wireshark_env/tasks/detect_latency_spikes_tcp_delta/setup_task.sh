@@ -22,8 +22,8 @@ PCAP_PATH="/home/ga/Documents/captures/200722_tcp_anon.pcapng"
 if [ ! -f "$PCAP_PATH" ]; then
     echo "ERROR: Required PCAP file not found at $PCAP_PATH"
     # Try to copy from backup or download if missing (fail-safe)
-    if [ -f /usr/share/doc/wireshark-common/benchmarks/cua_world/environments/200722_tcp_anon.pcapng ]; then
-        cp /usr/share/doc/wireshark-common/benchmarks/cua_world/environments/200722_tcp_anon.pcapng "$PCAP_PATH"
+    if [ -f /usr/share/doc/wireshark-common/examples/200722_tcp_anon.pcapng ]; then
+        cp /usr/share/doc/wireshark-common/examples/200722_tcp_anon.pcapng "$PCAP_PATH"
     else
         echo "Fatal: Cannot locate 200722_tcp_anon.pcapng"
         exit 1

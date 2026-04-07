@@ -1,0 +1,34 @@
+{
+  "id": "fga_privacy_compliance_audit@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A Health Informatics Specialist at a hospital needs to comply with a new internal privacy rule: 'Any access to the contact details or compensation of Executive staff (Salary ≥ $15,000) must be logged for review.' Implement a Fine-Grained Auditing (FGA) policy named 'AUDIT_VIP_ACCESS' on the HR.EMPLOYEES table that triggers on SELECT statements when the SALARY is greater than or equal to 15,000 and any of the following columns are accessed: SALARY, EMAIL, or PHONE_NUMBER. After verifying the policy, export the resulting audit records to /home/ga/Desktop/vip_audit_proof.csv including the DB_USER, OBJECT_NAME, SQL_TEXT, and TIMESTAMP columns.\n\nDatabase Credentials:\n- System Administrator: User: system, Password: OraclePassword123, Host: localhost, Port: 1521, Service: XEPDB1\n- HR User: User: hr, Password: hr123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fga_privacy_compliance_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/fga_privacy_compliance_audit/export_result.sh"
+  },
+  "metadata": {
+    "policy_name": "AUDIT_VIP_ACCESS",
+    "target_schema": "HR",
+    "target_table": "EMPLOYEES",
+    "min_salary": 15000,
+    "audit_columns": [
+      "SALARY",
+      "EMAIL",
+      "PHONE_NUMBER"
+    ],
+    "evidence_file": "/home/ga/Desktop/vip_audit_proof.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fga_compliance"
+    }
+  }
+}

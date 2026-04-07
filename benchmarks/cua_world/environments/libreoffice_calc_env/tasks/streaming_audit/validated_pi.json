@@ -1,0 +1,206 @@
+{
+  "task_id": "streaming_audit@1",
+  "dataset": "streaming_subscriptions.ods",
+  "case_id": null,
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "number_of_services",
+      "metadata_value": "8 streaming services",
+      "verified_value": 8,
+      "source": "setup_task.sh creates 8 data rows with services: Netflix, Disney+, HBO Max, Spotify Premium, YouTube Premium, Hulu, Apple TV+, Amazon Prime",
+      "status": "verified"
+    },
+    {
+      "key": "difficulty",
+      "metadata_value": "medium",
+      "verified_value": "medium",
+      "source": "task.json difficulty field and README",
+      "status": "verified"
+    },
+    {
+      "key": "timeout_seconds",
+      "metadata_value": "300",
+      "verified_value": 300,
+      "source": "task.json init.timeout_sec field and README Duration: 300 seconds",
+      "status": "verified"
+    },
+    {
+      "key": "max_steps",
+      "metadata_value": "50",
+      "verified_value": 50,
+      "source": "task.json init.max_steps field and README (~50)",
+      "status": "verified"
+    },
+    {
+      "key": "success_criteria_count",
+      "metadata_value": "6 criteria",
+      "verified_value": 6,
+      "source": "README lists exactly 6 success criteria (Required Columns, Monthly Cost, Renewal Alerts, Cost/Hour, Total Cost, Formulas Consistent), verified in verifier.py total_criteria = 6",
+      "status": "verified"
+    },
+    {
+      "key": "pass_threshold",
+      "metadata_value": "75% (5 out of 6 criteria)",
+      "verified_value": 75,
+      "source": "README explicitly states '75% (5 out of 6 criteria must pass)'; verifier.py line 484: passed = score >= 75, where score = int((criteria_passed / 6) * 100)",
+      "status": "verified"
+    },
+    {
+      "key": "annual_subscriptions_count",
+      "metadata_value": "3 annual subscriptions",
+      "verified_value": 3,
+      "source": "setup_task.sh data_rows: Disney+ ($79.99/Annual), Apple TV+ ($99.99/Annual), Amazon Prime ($139.00/Annual)",
+      "status": "verified"
+    },
+    {
+      "key": "monthly_subscriptions_count",
+      "metadata_value": "5 monthly subscriptions",
+      "verified_value": 5,
+      "source": "setup_task.sh data_rows: Netflix, HBO Max, Spotify Premium, YouTube Premium, Hulu (all Monthly)",
+      "status": "verified"
+    },
+    {
+      "key": "shared_subscriptions_count",
+      "metadata_value": "3 shared subscriptions",
+      "verified_value": 3,
+      "source": "setup_task.sh data_rows: HBO Max (shared with Sarah), YouTube Premium (shared with Roommate), Amazon Prime (shared with Family)",
+      "status": "verified"
+    },
+    {
+      "key": "services_with_zero_hours",
+      "metadata_value": "1 service with zero hours watched",
+      "verified_value": 1,
+      "source": "setup_task.sh data_rows: Hulu has 0 hours watched (tests division by zero handling)",
+      "status": "verified"
+    },
+    {
+      "key": "renewal_alert_threshold_days",
+      "metadata_value": "30 days",
+      "verified_value": 30,
+      "source": "README Renewal Alert formula and README line 19 'flag subscriptions renewing in ≤30 days'; verifier.py line 107 checks for '<=30'",
+      "status": "verified"
+    },
+    {
+      "key": "services_renewing_within_30_days",
+      "metadata_value": "3 services renew within 30 days",
+      "verified_value": 3,
+      "source": "setup_task.sh relative dates: HBO Max (+15 days), YouTube Premium (+25 days), Amazon Prime (+25 days)",
+      "status": "verified"
+    },
+    {
+      "key": "monthly_cost_formula_pattern",
+      "metadata_value": "=IF(C2=\"Annual\", B2/12, B2)",
+      "verified_value": "IF(Cnumber=\"Annual\", Bnumber/12, Bnumber)",
+      "source": "README line 37 shows exact formula; verifier.py check_monthly_cost_formula() validates pattern: IF + \"Annual\" + /12 division",
+      "status": "verified"
+    },
+    {
+      "key": "days_to_renewal_formula_pattern",
+      "metadata_value": "=D2-TODAY()",
+      "verified_value": "Dnumber-TODAY()",
+      "source": "README line 42 shows exact formula; verifier.py check_days_to_renewal_formula() validates: TODAY() function + D column reference + subtraction",
+      "status": "verified"
+    },
+    {
+      "key": "renewal_alert_formula_pattern",
+      "metadata_value": "=IF(F2<=30, \"RENEWING SOON\", \"\")",
+      "verified_value": "IF(days_col<=30, alert_text, empty)",
+      "source": "README line 47 shows formula with <=30 threshold; verifier.py checks for IF + <=30 threshold + alert text (RENEW, SOON, ALERT, or DUE)",
+      "status": "verified"
+    },
+    {
+      "key": "cost_per_hour_formula_pattern",
+      "metadata_value": "=IF(F2=0, \"Not Used\", E2/G2)",
+      "verified_value": "IF(hours=0, text_output, monthly_cost/hours)",
+      "source": "README line 52 shows formula; verifier.py checks for IF/IFERROR for zero handling + F column (hours) reference + division",
+      "status": "verified"
+    },
+    {
+      "key": "cost_per_hour_zero_handling",
+      "metadata_value": "Division by zero handled with IF/IFERROR",
+      "verified_value": true,
+      "source": "README line 52: 'Handle zero hours'; verifier.py line 128 checks for IF or IFERROR; line 394-396 checks that zero hours result in text output",
+      "status": "verified"
+    },
+    {
+      "key": "amount_owed_formula_pattern",
+      "metadata_value": "=IF(E2<>\"\", E2/2, 0)",
+      "verified_value": "IF(shared_with<>\"\", monthly_cost/2, 0)",
+      "source": "README line 57 shows 50% split formula; verifier.py checks for IF + empty string check + /2 division",
+      "status": "verified"
+    },
+    {
+      "key": "amount_owed_split_percentage",
+      "metadata_value": "50% (divide by 2)",
+      "verified_value": 0.5,
+      "source": "README line 58: 'Calculate 50% split'; formula divides by 2; verifier.py line 173 checks for '/2' or '÷2' or '*0.5'",
+      "status": "verified"
+    },
+    {
+      "key": "data_file_location",
+      "metadata_value": "/home/ga/Documents/streaming_subscriptions.ods",
+      "verified_value": "/home/ga/Documents/streaming_subscriptions.ods",
+      "source": "setup_task.sh line 103 saves to this path; verifier.py line 196 reads from this container_path",
+      "status": "verified"
+    },
+    {
+      "key": "data_format",
+      "metadata_value": "ODS (OpenDocument Spreadsheet)",
+      "verified_value": "ODS",
+      "source": "setup_task.sh uses odf.opendocument.OpenDocumentSpreadsheet; creates .ods file; verifier.py file_format='ods'",
+      "status": "verified"
+    },
+    {
+      "key": "data_generation_method",
+      "metadata_value": "Synthetic data generated by Python script",
+      "verified_value": "Programmatic generation with relative dates",
+      "source": "setup_task.sh uses Python ODF library to create spreadsheet with datetime.date.today() + timedelta for relative dates",
+      "status": "verified"
+    },
+    {
+      "key": "renewal_dates_are_dynamic",
+      "metadata_value": "Renewal dates calculated relative to today",
+      "verified_value": true,
+      "source": "setup_task.sh lines 37-42 calculate dates as today + N days (15, 25, 45, 60, 90 days) using datetime.timedelta()",
+      "status": "verified"
+    },
+    {
+      "key": "total_monthly_cost_normalized",
+      "metadata_value": "Sum of monthly costs across all services",
+      "verified_value": 89.53,
+      "source": "Calculated from setup_task.sh data: Netflix(15.99) + Disney+(79.99/12≈6.67) + HBO Max(15.99) + Spotify(10.99) + YouTube(11.99) + Hulu(7.99) + Apple TV+(99.99/12≈8.33) + Amazon(139/12≈11.58) = $89.53",
+      "status": "verified"
+    },
+    {
+      "key": "required_columns",
+      "metadata_value": "Monthly Cost, Days to Renewal, Renewal Alert, Cost/Hour, Amount Owed",
+      "verified_value": 5,
+      "source": "README line 16-21 lists all 5 calculated columns required; verifier.py lines 252-259 checks for all 5",
+      "status": "verified"
+    },
+    {
+      "key": "formula_consistency_requirement",
+      "metadata_value": "Formulas must be applied to all data rows (rows 2-9)",
+      "verified_value": true,
+      "source": "README line 72 'Formulas Applied Consistently'; verifier.py lines 461-479 checks that formulas appear in rows 2-7 (min 6 rows required)",
+      "status": "verified"
+    },
+    {
+      "key": "data_rows_count",
+      "metadata_value": "8 data rows (rows 2-9 after header)",
+      "verified_value": 8,
+      "source": "setup_task.sh creates 8 data_rows entries plus 1 header row",
+      "status": "verified"
+    },
+    {
+      "key": "verifier_mode",
+      "metadata_value": "Program-based verification",
+      "verified_value": "verifier.py::verify_streaming_audit",
+      "source": "task.json success.mode = 'program'; spec.program = 'verifier.py::verify_streaming_audit'",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "This is a synthetic spreadsheet audit task with 8 streaming services (Netflix, Disney+, HBO Max, Spotify Premium, YouTube Premium, Hulu, Apple TV+, Amazon Prime). Key verified facts: 8 services with 3 annual and 5 monthly subscriptions, 300-second timeout, 50 max steps, medium difficulty, 6 success criteria with 75% (5/6) pass threshold. Data is entirely synthetic, programmatically generated with dynamic relative renewal dates. 3 services are shared (HBO Max, YouTube Premium, Amazon Prime), 1 has zero hours (Hulu for division-by-zero testing), and 3 renew within 30 days (HBO Max at 15 days, YouTube Premium and Amazon Prime at 25 days each). Requires 5 calculated columns with specific formulas: Monthly Cost (normalize annual by /12), Days to Renewal (TODAY() subtraction), Renewal Alert (flag if <=30 days), Cost/Hour (handle zero hours with IF), Amount Owed (50% split for shared subscriptions). Normalized monthly total cost is $89.53. All formula patterns and logic verified against README and verifier.py implementation.",
+  "pi_confidence": "high"
+}

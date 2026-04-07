@@ -1,42 +1,57 @@
 #!/bin/bash
-set -euo pipefail
+set -e
 
 source /workspace/scripts/task_utils.sh
 
 echo "=== Setting up Create Flowchart Task ==="
 
-sudo -u ga mkdir -p /home/ga/Documents/Presentations
+# Ensure directories exist
+mkdir -p /home/ga/Documents/Presentations
+chown -R ga:ga /home/ga/Documents
 
-python3 << 'PYEOF'
-from odf.opendocument import OpenDocumentPresentation
-from odf.draw import Page
+# Kill any leftover LibreOffice processes and clean recovery files
+kill_libreoffice
+rm -rf /home/ga/.config/libreoffice/4/user/backup/ 2>/dev/null || true
+rm -rf /tmp/lu*/ 2>/dev/null || true
+rm -f /tmp/.~lock.* 2>/dev/null || true
 
-doc = OpenDocumentPresentation()
-page = Page(name="Flowchart")
-doc.presentation.addElement(page)
-doc.save("/home/ga/Documents/Presentations/flowchart_test.odp")
-PYEOF
+# Copy the blank flowchart template (has a title for context)
+cp /workspace/assets/flowchart_blank.odp /home/ga/Documents/Presentations/flowchart_test.odp
+chown ga:ga /home/ga/Documents/Presentations/flowchart_test.odp
 
-sudo chown ga:ga /home/ga/Documents/Presentations/flowchart_test.odp
+echo "Copied flowchart template with 1 titled slide"
 
-su - ga -c "DISPLAY=:1 libreoffice --impress /home/ga/Documents/Presentations/flowchart_test.odp > /tmp/impress_task.log 2>&1 &"
+# Launch LibreOffice Impress with the presentation
+echo "Launching LibreOffice Impress..."
+su - ga -c "DISPLAY=:1 setsid libreoffice --impress /home/ga/Documents/Presentations/flowchart_test.odp > /tmp/impress_task.log 2>&1 &"
 
-wait_for_process "soffice" 15
-wait_for_window "LibreOffice Impress" 90
-
-su - ga -c "DISPLAY=:1 xdotool mousemove 600 600 click 1" || true
-sleep 1
-
-wid=$(get_impress_window_id)
-if [ -n "$wid" ]; then
-    focus_window "$wid"
+# Wait for LibreOffice to start
+if ! wait_for_process "soffice" 30; then
+    echo "ERROR: LibreOffice failed to start"
+    cat /tmp/impress_task.log 2>/dev/null || true
 fi
 
+# Wait for window to appear
+if ! wait_for_window "Impress\|impress\|flowchart_test\|\.odp" 90; then
+    echo "WARNING: LibreOffice Impress window did not appear in time"
+fi
+sleep 3
+
+# Dismiss any Document Recovery dialog if it appears
+if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "Recovery"; then
+    echo "Dismissing Document Recovery dialog..."
+    su - ga -c "DISPLAY=:1 xdotool key Escape" || true
+    sleep 2
+fi
+
+# Focus and maximize the Impress window
+focus_window "Impress" || focus_window "flowchart_test" || focus_window "LibreOffice" || true
+sleep 1
+maximize_window "Impress" || maximize_window "flowchart_test" || maximize_window "LibreOffice" || true
+sleep 1
+
 echo "=== Create Flowchart Task Setup Complete ==="
-echo "📝 Instructions:"
-echo "  Create a simple flowchart with:"
-echo "    - Start/End ovals"
-echo "    - Process rectangles"
-echo "    - Decision diamonds"
-echo "    - Connectors between shapes"
-echo "  Represent a simple process (e.g., making coffee, login flow)"
+echo "Task: Create a Software Development Lifecycle flowchart"
+echo "  Use shapes (ovals, rectangles, diamonds) and connectors"
+echo "  Minimum: 4 shapes and 2 connectors"
+echo "  File: /home/ga/Documents/Presentations/flowchart_test.odp"

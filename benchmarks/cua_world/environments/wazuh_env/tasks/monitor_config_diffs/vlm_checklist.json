@@ -1,0 +1,53 @@
+{
+  "task_id": "monitor_config_diffs@1",
+  "task_completion": [
+    {
+      "id": "configure_fim_target",
+      "description": "Configure Wazuh to monitor the target critical application configuration file.",
+      "points": 20,
+      "visual_evidence": "Look for a terminal showing a text editor (like nano or vim) or a command (like sed/echo) adding the path '/var/ossec/etc/critical_app.conf' to the <syscheck> section of the Wazuh configuration file (ossec.conf)."
+    },
+    {
+      "id": "configure_fim_attributes",
+      "description": "Enable real-time monitoring and content diffing for the target file.",
+      "points": 20,
+      "visual_evidence": "Look for the attributes 'report_changes=\"yes\"' and 'realtime=\"yes\"' applied to the <directories> tag containing the target file path in the Wazuh configuration."
+    },
+    {
+      "id": "apply_configuration",
+      "description": "Apply the new FIM configuration by restarting the Wazuh manager.",
+      "points": 10,
+      "visual_evidence": "Look for a terminal command restarting the Wazuh manager, such as '/var/ossec/bin/wazuh-control restart' or restarting the wazuh-wazuh.manager-1 docker container."
+    },
+    {
+      "id": "modify_target_file",
+      "description": "Modify the content of the target file to trigger a FIM alert.",
+      "points": 20,
+      "visual_evidence": "Look for a terminal command modifying the content of '/var/ossec/etc/critical_app.conf', such as using 'echo' to append text or editing it with a text editor."
+    },
+    {
+      "id": "verify_alert_diff",
+      "description": "Verify that the generated FIM alert includes the exact content difference.",
+      "points": 30,
+      "visual_evidence": "Look for a log output (e.g., tailing /var/ossec/logs/alerts/alerts.json or alerts.log) or the Wazuh dashboard showing a syscheck alert for the target file that explicitly includes the 'syscheck.diff' field or shows the exact content changes."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_wazuh_config",
+      "description": "Verify that the configuration changes were made to the actual ossec.conf file.",
+      "visual_evidence": "Check that the configuration edits are shown inside a genuine text editor interface (nano, vim) or via valid shell commands, rather than just being typed out as a standalone text block."
+    },
+    {
+      "id": "genuine_file_modification",
+      "description": "Verify that the target file was actually modified in the system.",
+      "visual_evidence": "Check that the file modification was executed via a valid terminal command (e.g., echo, sed, or a text editor) inside the container, rather than just simulated or stated."
+    },
+    {
+      "id": "genuine_alert_log",
+      "description": "Verify that the FIM alert showing the diff comes from an actual Wazuh log or dashboard.",
+      "visual_evidence": "Check that the alert output is displayed by reading an actual log file (like alerts.json) using commands like cat, tail, or grep, or viewed in the Wazuh UI, rather than a manually crafted JSON object printed to the terminal."
+    }
+  ],
+  "privileged_info_for_vlm": "Target container: wazuh-wazuh.manager-1. Target file to monitor: /var/ossec/etc/critical_app.conf. Required FIM attributes in ossec.conf: report_changes=\"yes\" and realtime=\"yes\". The VLM must verify that the final alert contains the exact content difference, typically represented by the 'syscheck.diff' field in the alert JSON."
+}

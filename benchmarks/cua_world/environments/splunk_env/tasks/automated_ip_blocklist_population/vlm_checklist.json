@@ -1,0 +1,53 @@
+{
+  "task_id": "automated_ip_blocklist_population@1",
+  "task_completion": [
+    {
+      "id": "alert_query_created",
+      "description": "The agent constructs the SPL query to find high-volume SSH brute-force IPs and write them to a lookup file.",
+      "points": 25,
+      "visual_evidence": "The Splunk search bar contains a query referencing 'security_logs', filtering for failed authentications, aggregating by 'src_ip' (e.g., stats count by src_ip) with a count > 10, and ending with '| outputlookup append=t auto_blocklist.csv' (or similar append mode syntax)."
+    },
+    {
+      "id": "alert_saved_and_scheduled",
+      "description": "The agent saves the alert with the correct name and cron schedule.",
+      "points": 15,
+      "visual_evidence": "A 'Save As Alert' dialog or the Splunk Alerts list showing the name 'Populate_Blocklist_Alert' and a schedule set to Cron with the value '0 * * * *'."
+    },
+    {
+      "id": "lookup_file_populated",
+      "description": "The agent ensures the lookup file is populated with data on disk.",
+      "points": 15,
+      "visual_evidence": "The agent executes the alert query in the Search app (showing a green checkmark and results found) OR runs a verification search like '| inputlookup auto_blocklist.csv' showing IP addresses in the results table."
+    },
+    {
+      "id": "report_query_created",
+      "description": "The agent constructs the SPL query for the web activity report using the lookup file as a subsearch.",
+      "points": 25,
+      "visual_evidence": "The Splunk search bar contains a query referencing 'web_logs' and includes a subsearch syntax like '[ | inputlookup auto_blocklist.csv ]' or '[ search | inputlookup auto_blocklist.csv ]' to filter the web events."
+    },
+    {
+      "id": "report_saved",
+      "description": "The agent saves the web activity search as a Report with the correct name.",
+      "points": 20,
+      "visual_evidence": "A 'Save As Report' dialog or the Splunk Reports list showing the name 'Blocklist_Web_Activity_Report'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "splunk_gui_used",
+      "description": "The agent interacted with the Splunk Web UI to create the alerts and reports.",
+      "visual_evidence": "Screenshots show the Splunk web interface at http://localhost:8000 being used to enter queries and save objects, rather than terminal curl commands or Python API scripts."
+    },
+    {
+      "id": "actual_search_execution",
+      "description": "The agent actually executed the searches to verify they work against real data.",
+      "visual_evidence": "The search interface shows a timeline of events, parsed fields on the left sidebar, and a table of results, indicating the query was genuinely processed by the Splunk engine."
+    },
+    {
+      "id": "no_terminal_lookup_spoofing",
+      "description": "The agent used Splunk's outputlookup command to create the file, rather than manually creating the CSV in the terminal.",
+      "visual_evidence": "There are no terminal windows showing 'echo', 'cat', or 'nano' commands being used to manually create or edit 'auto_blocklist.csv' directly in the Splunk application directories."
+    }
+  ],
+  "privileged_info_for_vlm": "The target Alert name must be exactly 'Populate_Blocklist_Alert'. The target Report name must be exactly 'Blocklist_Web_Activity_Report'. The lookup file must be named 'auto_blocklist.csv'. The Splunk credentials are admin / SplunkAdmin1!."
+}

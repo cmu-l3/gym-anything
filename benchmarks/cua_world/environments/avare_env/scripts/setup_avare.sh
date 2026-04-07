@@ -65,7 +65,12 @@ pm grant $PACKAGE android.permission.NEARBY_WIFI_DEVICES 2>/dev/null
 # First-run warmup: handle registration + database download
 # ==========================================
 echo "Launching Avare for first-run warmup..."
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
+_RESOLVED=$(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER "$PACKAGE" 2>/dev/null | tail -1)
+if [ -n "$_RESOLVED" ] && echo "$_RESOLVED" | grep -q "/"; then
+    am start -W -n "$_RESOLVED" 2>/dev/null || true
+else
+    monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null || true
+fi
 sleep 12
 
 # Step 1: Nearby devices permission dialog may still appear

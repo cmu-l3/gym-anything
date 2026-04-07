@@ -1,0 +1,59 @@
+{
+    "task_id": "generate_attendee_schedule_report@1",
+    "dataset": "odoo_scheduling",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_attendee",
+            "metadata_value": "Grace Patel",
+            "verified_value": "Grace Patel",
+            "source": "setup_data.py line 46; Grace Patel is created as a contact with email grace.patel@northbridge.org and appears as attendee in 7 calendar events",
+            "status": "verified"
+        },
+        {
+            "key": "output_path",
+            "metadata_value": "/home/ga/Documents/grace_patel_schedule.txt",
+            "verified_value": "/home/ga/Documents/grace_patel_schedule.txt",
+            "source": "setup_task.sh line 10, export_result.sh line 14, task.json description and metadata all consistently reference this path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_format",
+            "metadata_value": "Name | Date | Time",
+            "verified_value": "Event Name | YYYY-MM-DD | HH:MM",
+            "source": "task.json description line 5 specifies 'Event Name | YYYY-MM-DD | HH:MM'; verifier.py line 15-16 parses format with 'Event Name | YYYY-MM-DD | HH:MM'",
+            "status": "verified"
+        },
+        {
+            "key": "grace_patel_event_count",
+            "metadata_value": null,
+            "verified_value": "7 events",
+            "source": "Code analysis of setup_data.py: Grace Patel is attendee in (1) Operations Daily Sync line 117, (2) Finance Planning Session line 130, (3) Investor Update Preparation line 191, (4) HR Policy Review line 198, (5) Budget Committee Meeting line 212, (6) Quarterly Business Review line 228, (7) All-Hands Meeting line 251",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": null,
+            "verified_value": "Synthetic data created programmatically via Odoo RPC in Docker container",
+            "source": "setup_data.py creates all contacts and events via xmlrpc.client; setup_odoo.sh lines 48-54 initialize Odoo database with calendar,contacts modules; Email domain @northbridge.org and job positions are fabricated",
+            "status": "verified"
+        },
+        {
+            "key": "database_backend",
+            "metadata_value": null,
+            "verified_value": "PostgreSQL (odoo_scheduling database) running in Docker container",
+            "source": "setup_odoo.sh lines 20-21 start PostgreSQL in Docker; line 49 creates database 'odoo_scheduling'; export_result.sh uses xmlrpc.client to authenticate against http://localhost:8069 with db='odoo_scheduling'",
+            "status": "verified"
+        },
+        {
+            "key": "verification_method",
+            "metadata_value": null,
+            "verified_value": "Ground truth queried from Odoo DB via XML-RPC (export_result.sh lines 29-67); agent output compared against database records for event names, dates, and times",
+            "source": "export_result.sh lines 29-67 execute Python script to query calendar.event records where partner_ids contains Grace Patel; verifier.py lines 118-198 compare agent output against ground truth events",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires an agent to search Odoo Calendar for all events where Grace Patel is an attendee and create a report at /home/ga/Documents/grace_patel_schedule.txt in the format 'Event Name | YYYY-MM-DD | HH:MM'. Grace Patel is a CFO role in the synthetic test data and appears as an attendee in exactly 7 calendar events: Operations Daily Sync, Finance Planning Session, Investor Update Preparation, HR Policy Review, Budget Committee Meeting, Quarterly Business Review, and All-Hands Meeting. The data is synthetic, created programmatically by setup_data.py which generates realistic but fictional contacts and calendar events in an Odoo 17 instance running on PostgreSQL. The verifier retrieves ground truth from the Odoo database via XML-RPC and scores the agent based on correct event count, date accuracy, and time matching within a 5-minute tolerance.",
+    "pi_confidence": "high"
+}

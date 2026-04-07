@@ -1,0 +1,37 @@
+{
+  "id": "multidimensional_sales_cube@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are a financial planning analyst at Adventure Works Cycles. The CFO needs a comprehensive sales summary for the annual budget review that aggregates data across products, territories, and time. Using the AdventureWorks2022 database, develop a multi-dimensional sales aggregation system. Create an inline table-valued function 'dbo.fn_SalesCube' that accepts @StartDate and @EndDate and returns sales data aggregated by GROUPING SETS (Grand Total, Category, Category+Subcategory, TerritoryGroup, TerritoryGroup+Territory, Year, and Year+Quarter) including a 'GroupingLevel' column using GROUPING_ID(). Create a view 'dbo.vw_SalesCubeSummary' that uses CROSS APPLY with this function for the date range '2011-01-01' to '2014-12-31' and adds a human-readable 'AggregationLabel' column. Additionally, create a stored procedure 'dbo.usp_ExportSalesCube' that accepts date parameters, populates a table 'dbo.SalesCubeExport' with the function results, and generates a summary text report at '/home/ga/Documents/exports/sales_cube_report.txt' containing the grand total revenue and top performing categories. Execute the stored procedure for the dates '2011-01-01' to '2014-12-31' to ensure the function, view, and procedure are functional, the 'dbo.SalesCubeExport' table is populated with at least 50 rows covering multiple aggregation levels, and the report file is created.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multidimensional_sales_cube/setup_task.sh",
+    "post_task": "/workspace/tasks/multidimensional_sales_cube/export_result.sh"
+  },
+  "metadata": {
+    "database": "AdventureWorks2022",
+    "required_objects": [
+      "dbo.fn_SalesCube",
+      "dbo.vw_SalesCubeSummary",
+      "dbo.usp_ExportSalesCube",
+      "dbo.SalesCubeExport"
+    ],
+    "output_file": "/home/ga/Documents/exports/sales_cube_report.txt",
+    "min_grouping_levels": 4,
+    "expected_grand_total_range": [
+      100000000,
+      150000000
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multidimensional_sales_cube"
+    }
+  }
+}

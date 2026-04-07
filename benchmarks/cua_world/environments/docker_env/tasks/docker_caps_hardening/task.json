@@ -1,0 +1,36 @@
+{
+  "id": "docker_caps_hardening@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are a Security Engineer hardening a network diagnostic microservice located at '~/projects/net-monitor/'. Apply the Principle of Least Privilege by reconfiguring the 'net-monitor' service to run as the non-root user 'monitor' (UID 1000). The configuration must drop all default capabilities and add only the specific capabilities required for binding port 80 (NET_BIND_SERVICE) and sending ICMP packets (NET_RAW). Ensure the service remains functional and responds correctly to 'curl http://localhost:80' and 'curl http://localhost:80/ping?target=127.0.0.1'. Login: user 'ga', password 'password123'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_caps_hardening/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_caps_hardening/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/net-monitor",
+    "service_name": "net-monitor",
+    "expected_user": "monitor",
+    "expected_uid": "1000",
+    "required_caps": [
+      "NET_BIND_SERVICE",
+      "NET_RAW"
+    ],
+    "health_endpoint": "http://localhost:80",
+    "ping_endpoint": "http://localhost:80/ping?target=127.0.0.1",
+    "admin_user": "ga",
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_caps_hardening"
+    }
+  }
+}

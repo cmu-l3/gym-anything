@@ -1,0 +1,58 @@
+{
+  "id": "pneumonia_care_correction@1",
+  "version": "1.0",
+  "env_id": "bahmni_env@0.1",
+  "description": "Log in to Bahmni (User: superman, Pass: Admin123). Patient Amina Nyong'o (BAH000030) was admitted earlier today with community-acquired pneumonia. A trainee began the clinical record but made errors. The patient has a documented Penicillin allergy. Complete the care pathway:\n\n1. Correct the patient's weight from the erroneously recorded 185 kg to 68 kg\n2. Record the missing triage vitals: temperature 38.7 C, respiratory rate 24/min, SpO2 93%, blood pressure 100/65 mmHg\n3. Discontinue the active Amoxicillin order (reason: Penicillin allergy contraindication) and prescribe a safe non-penicillin, non-cephalosporin antibiotic (e.g., Azithromycin or Levofloxacin)\n4. Document diagnoses: Pneumonia as primary confirmed, Sepsis as secondary presumed\n5. Record disposition as Admit Patient with note: ICU admission for sepsis management\n6. Schedule a follow-up OPD appointment for 7 days from today\n7. Write a clinical encounter note of at least 200 characters documenting the corrections and care plan\n\nAll actions must be on patient BAH000030.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pneumonia_care_correction/setup_task.sh",
+    "post_task": "/workspace/tasks/pneumonia_care_correction/export_result.sh",
+    "pre_task_timeout": 900
+  },
+  "metadata": {
+    "patient_identifier": "BAH000030",
+    "patient_given_name": "Amina",
+    "patient_family_name": "Nyong'o",
+    "erroneous_weight": 185,
+    "correct_weight": 68,
+    "target_vitals": {
+      "temperature": 38.7,
+      "respiratory_rate": 24,
+      "spo2": 93,
+      "systolic_bp": 100,
+      "diastolic_bp": 65
+    },
+    "contraindicated_drug": "Amoxicillin",
+    "allergy": "Penicillin",
+    "safe_antibiotic_whitelist": [
+      "azithromycin", "clarithromycin", "erythromycin",
+      "levofloxacin", "moxifloxacin", "ciprofloxacin",
+      "doxycycline", "vancomycin", "metronidazole",
+      "trimethoprim", "sulfamethoxazole", "linezolid",
+      "clindamycin", "meropenem"
+    ],
+    "blacklisted_drugs": [
+      "amoxicillin", "ampicillin", "penicillin", "piperacillin",
+      "cephalexin", "cefazolin", "ceftriaxone", "cefuroxime",
+      "cefixime", "cefotaxime"
+    ],
+    "target_diagnoses": [
+      {"name": "Pneumonia", "order": "PRIMARY", "certainty": "CONFIRMED"},
+      {"name": "Sepsis", "order": "SECONDARY", "certainty": "PRESUMED"}
+    ],
+    "disposition": "Admit Patient",
+    "follow_up_days": 7,
+    "min_note_length": 200
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pneumonia_care_correction"
+    }
+  }
+}

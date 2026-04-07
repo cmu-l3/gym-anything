@@ -73,7 +73,7 @@ def verify_configure_kiosk_toolbar(traj, env_info, task_info):
         if match:
             array_content = match.group(1)
             # Extract strings
-            found_buttons = re.findall(r"""['"]([^'"]+)['"]""", array_content)
+            found_buttons = re.findall(r['"]([^'"]+)['"]', array_content)
             found_set = set(found_buttons)
             
             # Check for required buttons

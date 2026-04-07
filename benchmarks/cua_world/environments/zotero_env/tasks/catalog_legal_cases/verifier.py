@@ -2,27 +2,7 @@
 import json
 import os
 import tempfile
-from difflib import SequenceMatcher
-
-
-def _ratio(left: str, right: str) -> int:
-    return int(SequenceMatcher(None, left, right).ratio() * 100)
-
-
-def _partial_ratio(left: str, right: str) -> int:
-    if not left or not right:
-        return 0
-    if len(left) > len(right):
-        left, right = right, left
-    if left in right:
-        return 100
-    window = len(left)
-    best = 0
-    for start in range(0, len(right) - window + 1):
-        best = max(best, _ratio(left, right[start : start + window]))
-        if best == 100:
-            break
-    return best
+from fuzzywuzzy import fuzz  # Standard in the environment usually, or use simple string matching
 
 def verify_catalog_legal_cases(traj, env_info, task_info):
     """
@@ -80,7 +60,7 @@ def verify_catalog_legal_cases(traj, env_info, task_info):
                 continue
             
             case_title = case['fields'].get('title') or ""
-            ratio = _ratio(target_title.lower(), case_title.lower())
+            ratio = fuzz.ratio(target_title.lower(), case_title.lower())
             
             if ratio > best_match_ratio:
                 best_match_ratio = ratio
@@ -105,7 +85,7 @@ def verify_catalog_legal_cases(traj, env_info, task_info):
             
             # Court (5 pts)
             act_court = matched_case.get('court') or ""
-            if _partial_ratio(target['court'].lower(), act_court.lower()) > 90:
+            if fuzz.partial_ratio(target['court'].lower(), act_court.lower()) > 90:
                 target_score += 5
             else:
                 target_feedback.append(f"Court mismatch (expected '{target['court']}', got '{act_court}')")

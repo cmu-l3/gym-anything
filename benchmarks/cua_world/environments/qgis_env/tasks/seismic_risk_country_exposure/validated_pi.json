@@ -1,0 +1,122 @@
+{
+    "task_id": "seismic_risk_country_exposure@1",
+    "dataset": "USGS Earthquake Feed + Natural Earth Countries",
+    "case_id": "earthquakes_month + world_countries",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "earthquake_source",
+            "metadata_value": "/home/ga/GIS_Data/earthquakes_month.geojson",
+            "verified_value": "/home/ga/GIS_Data/earthquakes_month.geojson",
+            "source": "setup_task.sh downloads from https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson to this path",
+            "status": "verified"
+        },
+        {
+            "key": "countries_source",
+            "metadata_value": "/home/ga/GIS_Data/world_countries.geojson",
+            "verified_value": "/home/ga/GIS_Data/world_countries.geojson",
+            "source": "setup_task.sh downloads from https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson to this path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output",
+            "metadata_value": "/home/ga/GIS_Data/exports/country_seismic_exposure.geojson",
+            "verified_value": "/home/ga/GIS_Data/exports/country_seismic_exposure.geojson",
+            "source": "task.json description and export_result.sh confirm this output path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_fields",
+            "metadata_value": ["quake_count", "mean_mag", "max_mag", "risk_tier"],
+            "verified_value": ["quake_count", "mean_mag", "max_mag", "risk_tier"],
+            "source": "task.json and setup_task.sh GT computation (lines 124-137) validate these exact four fields with specifications: quake_count (integer), mean_mag (float, 2 decimals), max_mag (float), risk_tier (string)",
+            "status": "verified"
+        },
+        {
+            "key": "gt_file",
+            "metadata_value": "/tmp/gt_seismic.json",
+            "verified_value": "/tmp/gt_seismic.json",
+            "source": "setup_task.sh line 78 and 155 confirm ground truth is saved to this path",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_earthquake",
+            "metadata_value": "USGS real-time earthquake feed (M2.5+, last 30 days)",
+            "verified_value": "USGS real-time earthquake feed from https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson",
+            "source": "Web search confirmed USGS earthquake feed exists and is publicly available. Downloaded actual data: 1917 earthquakes M2.5+, FeatureCollection of Point geometries with mag property",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_countries",
+            "metadata_value": "Natural Earth country boundaries",
+            "verified_value": "Natural Earth country boundaries via datasets/geo-countries GitHub repository (https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson)",
+            "source": "Web search confirmed datasets/geo-countries is official repository providing Natural Earth data. Downloaded actual data: 258 countries with MultiPolygon/Polygon geometries",
+            "status": "verified"
+        },
+        {
+            "key": "countries_field_ADMIN",
+            "metadata_value": "Country boundaries have 'ADMIN' field for country name",
+            "verified_value": "Countries have 'name' field for country name (not 'ADMIN')",
+            "source": "Downloaded actual geojson file from https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson and inspected properties. Field names are: 'name', 'ISO3166-1-Alpha-2', 'ISO3166-1-Alpha-3'. Repository README confirms field is 'name' from admin field",
+            "status": "contradicted"
+        },
+        {
+            "key": "countries_field_ISO_A3",
+            "metadata_value": "Country boundaries have 'ISO_A3' field for ISO code",
+            "verified_value": "Countries have 'ISO3166-1-Alpha-3' field for ISO 3-letter code (not 'ISO_A3')",
+            "source": "Downloaded actual geojson file and verified field names. ISO codes are stored in 'ISO3166-1-Alpha-3' field. Repository README confirms this naming convention from ogr2ogr conversion",
+            "status": "contradicted"
+        },
+        {
+            "key": "data_freshness",
+            "metadata_value": "USGS feed data is last 30 days (real-time, varies by run)",
+            "verified_value": "USGS data is real-time and updated every 5-15 minutes per USGS documentation",
+            "source": "Web search confirmed USGS earthquake feed is updated automatically every 5-15 minutes. Downloaded data shows current timestamp and count metadata",
+            "status": "verified"
+        },
+        {
+            "key": "data_is_real_not_synthetic",
+            "metadata_value": "Data is real earthquake and country data from authoritative sources",
+            "verified_value": "Data is real: USGS earthquake feed (https://earthquake.usgs.gov/earthquakes/feed/) is official US Geological Survey real-time data; Natural Earth data via datasets/geo-countries is official geodata repository",
+            "source": "Web search confirmed both data sources are real, authoritative, publicly available. Downloaded and inspected actual files containing real earthquake events and actual country boundaries",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_computation",
+            "metadata_value": "GT file contains expected country statistics computed from downloaded data using shapely point-in-polygon",
+            "verified_value": "setup_task.sh lines 65-158 compute GT with shapely: loads earthquakes_month.geojson, loads countries.geojson, performs point-in-polygon for each country, computes quake_count, mean_mag (2 decimals), max_mag, risk_tier, saves to /tmp/gt_seismic.json",
+            "source": "Code analysis of setup_task.sh and test GT computation with actual downloaded data: 51 countries have earthquakes, 658 earthquakes accounted for out of 1917 total",
+            "status": "verified"
+        },
+        {
+            "key": "risk_tier_thresholds",
+            "metadata_value": "risk_tier: 'low' if quake_count < 5, 'medium' if quake_count >= 5 and < 15, 'high' if quake_count >= 15",
+            "verified_value": "risk_tier: 'low' if count < 5, 'medium' if count < 15, 'high' otherwise",
+            "source": "setup_task.sh lines 127-132 and export_result.sh lines 139-144 both implement these exact thresholds",
+            "status": "verified"
+        },
+        {
+            "key": "output_filtering",
+            "metadata_value": "Output must include ONLY countries with at least 1 earthquake, exclude countries with zero earthquakes",
+            "verified_value": "setup_task.sh line 123 and export_result.sh filtering confirm: only countries with quakes_in list non-empty are included",
+            "source": "Code analysis shows conditional 'if quakes_in:' ensures only countries with earthquakes are in GT results",
+            "status": "verified"
+        },
+        {
+            "key": "task_difficulty",
+            "metadata_value": "very_hard",
+            "verified_value": null,
+            "source": "Task requires: spatial join (point-in-polygon), attribute aggregation, conditional field computation, complex GIS workflow in QGIS - these are advanced GIS skills. Task description indicates real-world reinsurance workflow. Timeout 600 sec, 80 max steps suggests complex multi-step task",
+            "status": "unverified"
+        },
+        {
+            "key": "timeout_seconds",
+            "metadata_value": 600,
+            "verified_value": 600,
+            "source": "task.json init.timeout_sec = 600 (10 minutes). Reasonable for QGIS GUI automation task involving spatial joins and GeoJSON output",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The seismic_risk_country_exposure task uses real, publicly available data: USGS earthquake feed (M2.5+, last 30 days, updated every 5-15 minutes) and Natural Earth country boundaries from datasets/geo-countries GitHub repository. Data is not synthetic. However, the task description contains two field name errors: it claims the countries file has 'ADMIN' and 'ISO_A3' fields, but the actual data has 'name' and 'ISO3166-1-Alpha-3' fields respectively. The setup_task.sh script handles both naming conventions through fallback logic, so the task still functions correctly. Expected output fields (quake_count, mean_mag, max_mag, risk_tier) are correct. Ground truth computation uses shapely point-in-polygon to count earthquakes per country (verified: 51 countries with earthquakes, 658 earthquakes accounted from 1917 total). Risk tier thresholds are correctly specified: low (count<5), medium (5<=count<15), high (count>=15). Task is marked very_hard difficulty with 600-second timeout, which is reasonable for advanced spatial GIS work.",
+    "pi_confidence": "high"
+}

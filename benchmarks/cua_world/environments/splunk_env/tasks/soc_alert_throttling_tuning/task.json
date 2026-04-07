@@ -1,0 +1,34 @@
+{
+  "id": "soc_alert_throttling_tuning@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Log in to Splunk at http://localhost:8000 ('admin' / 'SplunkAdmin1!') and configure a scheduled alert named 'Web_Error_Spike' to mitigate alert fatigue. The alert must query the 'web_logs' index to detect high volumes of web errors grouped by client IP address, scheduled to run every 5 minutes (*/5 * * * *). Implement alert throttling to suppress subsequent alerts for the same client IP address for exactly 1 hour after the alert fires.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/soc_alert_throttling_tuning/setup_task.sh",
+    "post_task": "/workspace/tasks/soc_alert_throttling_tuning/export_result.sh"
+  },
+  "metadata": {
+    "alert_name": "Web_Error_Spike",
+    "expected_index": "web_logs",
+    "suppression_period_options": [
+      "1h",
+      "60m",
+      "3600s",
+      "3600"
+    ],
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_soc_alert_throttling_tuning"
+    }
+  }
+}

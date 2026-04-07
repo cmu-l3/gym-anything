@@ -1,0 +1,31 @@
+{
+  "id": "world_data_import_functions@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "Set up an analytics environment for country data by creating a database named 'world_analytics' and a table 'country_indicators' with columns: id (INT AUTO_INCREMENT PRIMARY KEY), CountryCode (CHAR(3) NOT NULL), CountryName (VARCHAR(100)), Population (INT), SurfaceArea (DECIMAL(12,2)), GNP (DECIMAL(12,2)), LifeExpectancy (DECIMAL(4,1)), PopulationDensity (DECIMAL(10,2)), and GNPPerCapita (DECIMAL(10,2)). Import data from '/home/ga/Documents/imports/country_indicators.csv' and establish a Foreign Key constraint on 'CountryCode' referencing 'world.country.Code'. Create deterministic functions 'fn_development_level' (returning 'High' if >= 10000, 'Medium' if >= 1000 and < 10000, 'Low' if < 1000 or NULL) and 'fn_density_category' (returning 'Dense' if >= 200, 'Moderate' if >= 50 and < 200, 'Sparse' if < 50 or NULL). Define a view 'v_country_analysis' that includes CountryCode, CountryName, Population, GNPPerCapita, PopulationDensity, and the results of both functions. Export the view results to '/home/ga/Documents/exports/country_analysis.csv'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/world_data_import_functions/setup_task.sh",
+    "post_task": "/workspace/tasks/world_data_import_functions/export_result.sh"
+  },
+  "metadata": {
+    "import_file": "/home/ga/Documents/imports/country_indicators.csv",
+    "export_file": "/home/ga/Documents/exports/country_analysis.csv",
+    "target_db": "world_analytics",
+    "target_table": "country_indicators",
+    "source_row_count_min": 200,
+    "function_dev_level": "fn_development_level",
+    "function_density": "fn_density_category"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_world_data_import"
+    }
+  }
+}

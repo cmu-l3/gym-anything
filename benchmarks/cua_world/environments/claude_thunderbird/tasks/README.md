@@ -268,7 +268,7 @@ From `thunderbird_verification_utils.py`:
 cd /data/Gym-Anything
 python -c "
 import gym_anything as ga
-env = ga.from_config('benchmarks/cua_world/environments/claude_thunderbird', task_id='compose_email')
+env = ga.from_config('examples/claude_thunderbird', task_id='compose_email')
 obs = env.reset()
 # Interact with environment
 env.close()

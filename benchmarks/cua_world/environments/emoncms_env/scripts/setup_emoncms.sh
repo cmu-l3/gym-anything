@@ -470,8 +470,17 @@ USER_JS_EOF
 chown -R ga:ga /home/ga/snap/ 2>/dev/null || true
 
 # -----------------------------------------------------------------------
-# 9. Kill stale Firefox and launch
+# 9. Re-verify Emoncms is still responsive after seeding, then launch Firefox
 # -----------------------------------------------------------------------
+echo "Re-verifying Emoncms is responsive before launching Firefox..."
+for i in $(seq 1 60); do
+    if curl -s -o /dev/null -w "%{http_code}" "${EMONCMS_URL}/" 2>/dev/null | grep -qE "200|302|301"; then
+        echo "Emoncms web service ready"
+        break
+    fi
+    sleep 2
+done
+
 pkill -9 -f firefox 2>/dev/null || true
 
 for i in $(seq 1 10); do

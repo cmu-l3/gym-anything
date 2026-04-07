@@ -1,0 +1,29 @@
+{
+  "id": "secure_hmac_webhook_receiver@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a secure HTTP Webhook channel in NextGen Connect named 'CloudBook_Webhook'. The channel must use an HTTP Listener on port 6675 as the source. Implement a JavaScript Source Filter to validate incoming requests by comparing the 'X-Signature' header (containing an HMAC-SHA256 hex digest of the raw request body) against a calculated HMAC using the shared secret 'HealthSecure2025'. Messages with missing or invalid signatures must be rejected. Configure the destination as a File Writer to /home/ga/appointments/ using the filename '${message.messageId}.json' to store the raw JSON payload.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/secure_hmac_webhook_receiver/setup_task.sh",
+    "post_task": "/workspace/tasks/secure_hmac_webhook_receiver/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "CloudBook_Webhook",
+    "port": 6675,
+    "secret": "HealthSecure2025",
+    "header": "X-Signature",
+    "output_dir": "/home/ga/appointments"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secure_hmac_webhook_receiver"
+    }
+  }
+}

@@ -14,37 +14,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def copy_json_from_env(copy_from_env, container_path):
-    """
-    Copy a JSON file from the environment into a temporary host file and parse it.
-
-    Args:
-        copy_from_env: Environment-provided file copy helper.
-        container_path: Path to the JSON file inside the environment.
-
-    Returns:
-        dict | None: Parsed JSON payload, or None if the copy/load fails.
-    """
-    tmp_path = None
-
-    try:
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
-            tmp_path = tmp.name
-
-        copy_from_env(container_path, tmp_path)
-        with open(tmp_path) as f:
-            return json.load(f)
-    except Exception as e:
-        logger.debug(f"Failed to copy JSON from {container_path}: {e}")
-        return None
-    finally:
-        if tmp_path and os.path.exists(tmp_path):
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                logger.debug(f"Failed to remove temporary JSON file {tmp_path}")
-
-
 def copy_and_parse_spreadsheet(container_path, copy_from_env, file_format='xlsx'):
     """
     Copy a spreadsheet file from the container and parse it.

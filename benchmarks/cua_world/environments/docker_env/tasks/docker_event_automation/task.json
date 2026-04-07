@@ -1,0 +1,31 @@
+{
+  "id": "docker_event_automation@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "Create a 'Smart Watchdog' Python script at '~/projects/watchdog/watchdog.py' to monitor Docker events for the 'payment-gateway' container. The script must listen for 'die' events, restart the container if it crashes (exit code > 0), and log each event with a timestamp and exit code to '~/projects/watchdog/watchdog.log'. Implement a circuit breaker that stops restart attempts and writes 'CRITICAL: Flapping detected' to '~/projects/watchdog/alert.txt' if the container fails 3 times within a 60-second rolling window.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_event_automation/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_event_automation/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/watchdog",
+    "target_container": "payment-gateway",
+    "script_path": "/home/ga/projects/watchdog/watchdog.py",
+    "log_path": "/home/ga/projects/watchdog/watchdog.log",
+    "alert_path": "/home/ga/projects/watchdog/alert.txt",
+    "max_retries": 3,
+    "window_seconds": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_event_automation"
+    }
+  }
+}

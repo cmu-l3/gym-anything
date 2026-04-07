@@ -11,7 +11,6 @@ apt-get install -y \
   docker.io \
   docker-compose \
   firefox \
-  epiphany-browser \
   curl \
   jq \
   wmctrl \
@@ -26,7 +25,8 @@ apt-get install -y \
   dbus-x11 \
   libcanberra-gtk-module \
   libcanberra-gtk3-module \
-  mysql-client
+  mysql-client \
+  libnss3-tools
 
 systemctl enable docker
 systemctl start docker

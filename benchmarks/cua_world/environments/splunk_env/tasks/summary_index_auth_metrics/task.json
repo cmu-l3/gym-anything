@@ -1,0 +1,29 @@
+{
+  "id": "summary_index_auth_metrics@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Build a summary indexing pipeline to pre-compute authentication metrics in Splunk (http://localhost:8000) using credentials 'admin' / 'SplunkAdmin1!'. The pipeline requires a new index named 'auth_summary' and a saved search named 'Auth_Metrics_Collector' scheduled to run every 4 hours (cron '0 */4 * * *'). The search must aggregate authentication events from the 'security_logs' index and use the 'collect' command to populate the 'auth_summary' index. Ensure the 'auth_summary' index contains at least one pre-computed summary event.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/summary_index_auth_metrics/setup_task.sh",
+    "post_task": "/workspace/tasks/summary_index_auth_metrics/export_result.sh"
+  },
+  "metadata": {
+    "expected_index_name": "auth_summary",
+    "expected_search_name": "Auth_Metrics_Collector",
+    "source_index": "security_logs",
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_summary_index_auth_metrics"
+    }
+  }
+}

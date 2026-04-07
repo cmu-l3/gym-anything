@@ -327,7 +327,3 @@ def _is_within_tolerance(measured, expected, tolerance_pct):
 def _is_plausible(value, dim_range):
     """Check if value is within plausible anatomical range."""
     return dim_range['min'] <= value <= dim_range['max']
-
-
-def verify_measure_tumor_bbox(traj, env_info, task_info):
-    return verify_tumor_bbox(traj, env_info, task_info)

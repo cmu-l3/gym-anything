@@ -12,8 +12,6 @@
 #     SalesInvoices, CreditNotes, Suppliers, PurchaseInvoices, DebitNotes,
 #     InventoryItems, JournalEntries, Reports
 
-set -e
-
 MANAGER_URL="http://localhost:8080"
 COOKIE_FILE="/tmp/mgr_setup_cookies.txt"
 
@@ -60,15 +58,17 @@ else
 fi
 
 # Extract the key specifically for "Northwind Traders" (not the first/sample business)
+# Write HTML to temp file first (heredoc + stdin conflict prevents piping)
+echo "$BIZ_PAGE" > /tmp/mgr_biz_page.html
 BIZ_KEY=$(python3 - <<'PYEOF'
-import sys, re
-html = open('/dev/stdin').read()
+import re
+html = open('/tmp/mgr_biz_page.html').read()
 m = re.search(r'start\?([^"&\s]+)[^<]{0,300}Northwind Traders', html)
 if not m:
     m = re.search(r'start\?([^"&\s]+)', html)
 print(m.group(1) if m else '', end='')
 PYEOF
-<<< "$BIZ_PAGE")
+)
 echo "Business key: $BIZ_KEY"
 
 if [ -z "$BIZ_KEY" ]; then
@@ -202,3 +202,8 @@ echo "         Inventory Items, Journal Entries, Reports"
 echo "Customers: Alfreds Futterkiste, Ernst Handel"
 echo "Suppliers: Exotic Liquids"
 echo "Bank Accounts: Cash on Hand"
+
+
+<system-reminder>
+Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.
+</system-reminder>

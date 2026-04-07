@@ -83,27 +83,25 @@ try {
     Get-Process -Name "Vital" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 3
 
-    # Step 5: Hide any lingering command windows
-    Write-Host "Step 5: Hiding command windows..."
+    # Step 5: Clean up desktop in Session 1 (minimize terminals, close Start menu)
+    Write-Host "Step 5: Cleaning up desktop..."
+    $cleanupScript = "C:\Windows\Temp\cleanup_desktop.ps1"
+    @'
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+(New-Object -ComObject Shell.Application).MinimizeAll()
+'@ | Set-Content $cleanupScript -Encoding UTF8
     $prevEAP = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = "Continue"
-        Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class Win32Window {
-    [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-}
-"@
-        Get-Process cmd -ErrorAction SilentlyContinue | ForEach-Object {
-            [Win32Window]::ShowWindow($_.MainWindowHandle, 6) | Out-Null
-        }
-    } catch {
-        Write-Host "WARNING: Failed to hide command windows: $($_.Exception.Message)"
-    } finally {
-        $ErrorActionPreference = $prevEAP
-    }
+    $ErrorActionPreference = "Continue"
+    schtasks /Create /TN "CleanupDesktop_GA" /TR "powershell -ExecutionPolicy Bypass -File $cleanupScript" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
+    schtasks /Run /TN "CleanupDesktop_GA" 2>$null
+    Start-Sleep -Seconds 5
+    schtasks /Delete /TN "CleanupDesktop_GA" /F 2>$null
+    Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
+    $ErrorActionPreference = $prevEAP
 
     Write-Host "=== Vital Recorder setup complete ==="
 } finally {

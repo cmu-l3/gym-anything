@@ -167,27 +167,7 @@ def verify_buffer_populated_places(traj, env_info, task_info):
             
             vlm_response = query_vlm(images=frames + [final_img], prompt=prompt)
             vlm_data = {}
-            if isinstance(vlm_response, dict):
-                vlm_data = vlm_response.get("parsed", {})
-
-            if isinstance(vlm_data.get("score"), (int, float)):
-                vlm_score = max(0, min(35, int(vlm_data["score"])))
-                score += vlm_score
-                feedback_parts.append(f"VLM score: {vlm_score}/35")
-            else:
-                if vlm_data.get("tool_dialog_visible"):
-                    score += 10
-                if vlm_data.get("points_visible"):
-                    score += 5
-                if vlm_data.get("buffers_visible"):
-                    score += 20
-                feedback_parts.append("VLM workflow and output inspection complete")
-    except Exception as e:
-        feedback_parts.append(f"VLM verification failed: {e}")
-
-    passed = score >= 60 and output_exists and created_during_task
-    return {
-        "passed": passed,
-        "score": min(score, 100),
-        "feedback": " | ".join(feedback_parts)
-    }
+            try:
+                # Extract JSON from response if wrapped in backticks
+                content = vlm_response.strip()
+                if "

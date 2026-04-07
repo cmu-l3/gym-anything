@@ -1,0 +1,75 @@
+{
+  "id": "contractor_overstay_watchlist_enforcement@1",
+  "version": "1.0",
+  "env_id": "jolly_lobby_track_windows_env@0.1",
+  "description": "As ACME Corp's Security Director, conduct the year-end contractor compliance audit for December 2025. Company policy caps contractor visits at a maximum of 120 minutes on-site. Using the visitor records available in Lobby Track's data directory, identify every December 2025 contractor whose recorded stay (sign-out time minus sign-in time) strictly exceeded 120 minutes. Add each violator to Lobby Track's Denied Visitor Watchlist with a reason note containing their enforcement tier: 'WARNING' for 121-149 minutes, 'SUSPENDED' for 150-179 minutes, or 'BANNED' for 180 minutes or more, along with the exact stay duration in minutes. Then create a compliance report at C:\\Users\\Docker\\Desktop\\watchlist_enforcement_dec2025.csv listing each violator's name, company, stay duration, and enforcement tier.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\contractor_overstay_watchlist_enforcement\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\contractor_overstay_watchlist_enforcement\\export_result.ps1"
+  },
+  "metadata": {
+    "target_month": "December 2025",
+    "badge_type_filter": "Contractor",
+    "policy_max_minutes": 120,
+    "expected_violations": 5,
+    "tier_rules": {
+      "WARNING": "121-149 minutes",
+      "SUSPENDED": "150-179 minutes",
+      "BANNED": "180+ minutes"
+    },
+    "violation_1": {
+      "name": "Alex Rivera",
+      "company": "Siemens AG",
+      "duration_min": 135,
+      "tier": "WARNING"
+    },
+    "violation_2": {
+      "name": "Maria Garcia",
+      "company": "Deloitte LLP",
+      "duration_min": 150,
+      "tier": "SUSPENDED"
+    },
+    "violation_3": {
+      "name": "Margaret Allen",
+      "company": "IBM Corporation",
+      "duration_min": 150,
+      "tier": "SUSPENDED"
+    },
+    "violation_4": {
+      "name": "Jessica Harris",
+      "company": "ExxonMobil",
+      "duration_min": 180,
+      "tier": "BANNED"
+    },
+    "violation_5": {
+      "name": "Rachel Kim",
+      "company": "McKinsey & Co",
+      "duration_min": 210,
+      "tier": "BANNED"
+    },
+    "non_violator_contractors": [
+      "Jennifer Jones",
+      "Linda Davis",
+      "Joseph Thomas",
+      "Daniel Robinson",
+      "Lisa Lewis",
+      "Ashley Hernandez",
+      "Donna Wright",
+      "Paul Nelson",
+      "Emily Perez"
+    ],
+    "output_file": "C:\\Users\\Docker\\Desktop\\watchlist_enforcement_dec2025.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_contractor_overstay_watchlist_enforcement"
+    }
+  }
+}

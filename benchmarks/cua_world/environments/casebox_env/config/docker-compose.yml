@@ -1,0 +1,38 @@
+version: "3.8"
+
+volumes:
+  casebox_db_data:
+
+services:
+  casebox-db:
+    image: mysql:5.7
+    container_name: casebox-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: casebox
+      MYSQL_USER: casebox
+      MYSQL_PASSWORD: CaseboxPass123
+      MYSQL_ROOT_PASSWORD: RootPass123
+    volumes:
+      - casebox_db_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max_allowed_packet=64M
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pRootPass123"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+
+  casebox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: casebox
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - /workspace/data:/seed:ro
+    depends_on:
+      casebox-db:
+        condition: service_healthy

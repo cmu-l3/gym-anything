@@ -1,0 +1,34 @@
+{
+  "id": "carrier_delay_pattern_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Logistics Analyst at a regional freight consolidator. The operations team suspects certain carriers have systemic delay issues—patterns of 3+ consecutive late shipments on specific routes—and want data before contract renegotiations. Analyze 6 months of shipment data in the LOGISTICS schema (connected as logistics_analyst / Logistics2024 to XEPDB1; Host=localhost, Port=1521). \n\nDetect carriers with 3 or more consecutive late shipments (actual_delivery > expected_delivery) on the same route by creating a view CONSECUTIVE_DELAY_PATTERNS using the MATCH_RECOGNIZE clause, ordered by ship_date and partitioned by carrier_id and route_id, including columns carrier_id, route_id, and consecutive_late_count. Create a view CARRIER_SCORECARDS calculating per-carrier rolling 30-day shipment counts using a range interval of 30 days, including carrier_id and ship_date. Identify routes where average actual transit time exceeds SLA transit time (sla_hours) by more than 20% in a view ROUTE_BOTTLENECK_ANALYSIS with columns route_id, origin_city, dest_city, sla_hours, and avg_actual_transit_hours. Populate a new table AT_RISK_SHIPMENTS (alert_id, shipment_id, carrier_id, route_id) using a procedure PROC_FLAG_AT_RISK_SHIPMENTS that identifies 'IN_TRANSIT' shipments where the carrier-route historical on-time rate is below 70%. Create a view CARRIER_COMPARISON_PIVOT using the PIVOT clause to cross-tabulate carrier names against total shipment counts. Export a summary report containing carrier names and total shipment counts to /home/ga/carrier_performance.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/carrier_delay_pattern_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/carrier_delay_pattern_analysis/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "result_file": "/tmp/carrier_delay_result.json",
+    "occupation": "Logistics Analysts",
+    "industry": "Transportation / Logistics",
+    "oracle_features": [
+      "MATCH_RECOGNIZE",
+      "Window Functions",
+      "PIVOT",
+      "PL/SQL"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_carrier_delay_pattern_analysis"
+    }
+  }
+}

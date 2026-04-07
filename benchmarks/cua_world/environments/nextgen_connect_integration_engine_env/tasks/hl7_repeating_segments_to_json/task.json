@@ -1,0 +1,28 @@
+{
+  "id": "hl7_repeating_segments_to_json@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a channel named 'NK1_to_JSON' that listens on TCP port 6661 (MLLP) for HL7 v2 messages. Extract the Patient ID (PID.3.1) and all Next of Kin (NK1) records to transform them into a JSON object containing a 'patientId' field and a 'contacts' array. Each contact in the array must include 'name' (formatted as 'Family, Given') and 'relationship' fields. Save the resulting JSON to '/home/ga/json_out/${patientId}_contacts.json'. A sample message with multiple NK1 segments is provided at '/home/ga/sample_data/sample_adt_nk1.hl7'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_repeating_segments_to_json/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_repeating_segments_to_json/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "NK1_to_JSON",
+    "port": 6661,
+    "output_dir": "/home/ga/json_out",
+    "sample_data": "/home/ga/sample_data/sample_adt_nk1.hl7"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_repeating_segments_to_json"
+    }
+  }
+}

@@ -3,6 +3,9 @@ echo "=== Setting up Knowledge Base Extraction Task ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 # Configuration
 MAILDIR="/home/ga/Maildir"
 ASSETS_HAM="/workspace/assets/emails/ham"
@@ -68,9 +71,8 @@ chown -R ga:ga "${DOCS_DIR}"
 echo "$IDX" > /tmp/initial_inbox_count
 date +%s > /tmp/task_start_time
 
-# 6. Force Dovecot re-indexing
-doveadm index -u ga INBOX 2>/dev/null || true
-doveadm index -u ga Junk 2>/dev/null || true
+# 6. Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # 7. Ensure BlueMail is running and ready
 if ! is_bluemail_running; then

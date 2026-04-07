@@ -1,0 +1,37 @@
+{
+  "id": "safety_zone_audit@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Safety Zone Compliance Audit",
+  "description": "A robotics engineer must verify that a robot arm's motion profiles comply with a restricted safety zone for ISO 10218 workcell safety certification. Using the ZMQ Remote API in CoppeliaSim with stepping mode enabled, command the robot through at least 6 distinct motion profiles and monitor the end-effector position for violations within a cuboid exclusion zone defined by X [+0.2, +0.6], Y [-0.4, +0.0], and Z [+0.0, +0.4] meters. At every simulation step, record the timestep index, simulation time, profile ID, end-effector (x, y, z) position, and violation status (where a violation occurs if the position is simultaneously within all three coordinate ranges).\n\nExport the following files to /home/ga/Documents/CoppeliaSim/exports/:\n- safety_zone_log.csv: one row per sampled timestep with columns step_id, sim_time_s, profile_id, ee_x, ee_y, ee_z, and in_violation (0 or 1).\n- safety_compliance_report.json: summary with fields total_steps_monitored, total_violations, violation_rate_pct, num_profiles, profiles_with_violations, max_penetration_m, zone_min (array [x,y,z]), zone_max (array [x,y,z]), and compliant (boolean: true if zero violations).\n\nLogin: username=ga, password=password123.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/safety_zone_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/safety_zone_audit/export_result.sh"
+  },
+  "metadata": {
+    "output_csv": "/home/ga/Documents/CoppeliaSim/exports/safety_zone_log.csv",
+    "output_json": "/home/ga/Documents/CoppeliaSim/exports/safety_compliance_report.json",
+    "zone_min": [
+      0.2,
+      -0.4,
+      0.0
+    ],
+    "zone_max": [
+      0.6,
+      0.0,
+      0.4
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_safety_zone_audit"
+    }
+  }
+}

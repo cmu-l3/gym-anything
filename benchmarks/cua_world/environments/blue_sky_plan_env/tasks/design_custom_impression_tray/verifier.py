@@ -96,36 +96,7 @@ def verify_design_custom_impression_tray(traj, env_info, task_info):
 
     try:
         vlm_response = query_vlm(images=images_to_check, prompt=vlm_prompt)
-        analysis = vlm_response.get("parsed") or vlm_response.get("result", {})
+        analysis = vlm_response.get('result', {})
         if isinstance(analysis, str):
-            cleaned = analysis.replace("```json", "").replace("```", "").strip()
-            try:
-                analysis = json.loads(cleaned)
-            except Exception:
-                analysis = {}
-
-        if analysis.get("tray_tool_used"):
-            score += 15
-            feedback_parts.append("Tray workflow detected.")
-        if analysis.get("boundary_drawn"):
-            score += 20
-            feedback_parts.append("Boundary drawing detected.")
-        if analysis.get("tray_mesh_visible"):
-            score += 20
-            feedback_parts.append("Tray mesh visible.")
-        if analysis.get("handle_visible"):
-            score += 15
-            feedback_parts.append("Tray handle visible.")
-        if analysis.get("spacer_setting_seen"):
-            score += 5
-            feedback_parts.append("Spacer settings or related tray controls seen.")
-    except Exception as exc:
-        logger.warning("VLM verification failed: %s", exc)
-        feedback_parts.append("VLM verification unavailable.")
-
-    passed = score >= 60 and output_exists
-    return {
-        "passed": passed,
-        "score": min(score, 100),
-        "feedback": " ".join(feedback_parts),
-    }
+            # clean up potential markdown wrapping
+            analysis = analysis.replace("

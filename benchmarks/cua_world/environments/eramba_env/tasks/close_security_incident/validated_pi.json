@@ -1,0 +1,66 @@
+{
+    "task_id": "close_security_incident@1",
+    "dataset": null,
+    "case_id": "Unauthorized VPN Access from External IP",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_incident_title",
+            "metadata_value": "Unauthorized VPN Access from External IP",
+            "verified_value": "Unauthorized VPN Access from External IP",
+            "source": "Verified in setup_task.sh line 17 and 25 where incident is created with this exact title in security_incidents table",
+            "status": "verified"
+        },
+        {
+            "key": "required_root_cause_keywords",
+            "metadata_value": "[\"third-party\", \"credentials\", \"breach\"]",
+            "verified_value": null,
+            "source": "Database schema inspection (db_schema_discovery.json) shows security_incidents table has no 'analysis' or 'remediation' columns where root cause text would be stored. Export script attempts to query non-existent columns.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_resolution_keywords",
+            "metadata_value": "[\"password reset\", \"MFA\", \"blocking\"]",
+            "verified_value": null,
+            "source": "Database schema inspection shows security_incidents table lacks columns to store resolution text. Export_result.sh queries 'remediation' and 'closure_notes' which don't exist in Eramba schema.",
+            "status": "contradicted"
+        },
+        {
+            "key": "initial_status",
+            "metadata_value": "1",
+            "verified_value": "1",
+            "source": "Verified in setup_task.sh line 24 where incident status is explicitly set to 1. Eramba training material (eramba.org/learning/courses/19) confirms Open/Closed statuses exist; 1 represents Open status.",
+            "status": "verified"
+        },
+        {
+            "key": "incident_description",
+            "metadata_value": "Employee credentials compromised in third-party breach; enforce MFA and password resets",
+            "verified_value": "On 2025-01-10 at 03:42 UTC, the SIEM detected anomalous VPN connections originating from IP 203.0.113.42. The IP geolocates to an unauthorized region. Multiple employee accounts were accessed sequentially.",
+            "source": "Verified in setup_task.sh lines 25 and 39 where incident description is created with specific wording",
+            "status": "verified"
+        },
+        {
+            "key": "software",
+            "metadata_value": "Eramba GRC",
+            "verified_value": "Eramba Community Edition (ghcr.io/eramba/eramba:latest running in Docker)",
+            "source": "Verified in docker-compose.yml line 35 which specifies the Eramba container image. Eramba is a real open-source GRC platform (GitHub: StayPirate/eramba).",
+            "status": "verified"
+        },
+        {
+            "key": "database_schema_mismatch",
+            "metadata_value": "Not applicable (metadata doesn't claim schema details)",
+            "verified_value": "CRITICAL: Eramba security_incidents table schema (from db_schema_discovery.json) does NOT include 'analysis', 'remediation', or 'closure_notes' columns. Schema includes: id, title, description, reporter, victim, open_date, closure_date, expired, type, security_incident_status_id, auto_close_incident, security_incident_classification_id, lifecycle_incomplete, ongoing_incident, workflow_status, workflow_owner_id, created, modified, edited, deleted, deleted_date.",
+            "source": "Database schema verified from evidence_docs/db_schema_discovery.json. Setup_task.sh and export_result.sh attempt to use non-existent columns.",
+            "status": "unverified"
+        },
+        {
+            "key": "status_field_name",
+            "metadata_value": "Not claimed in metadata, but verifier expects 'status' field",
+            "verified_value": "Actual Eramba column is 'security_incident_status_id' (foreign key), not 'status'. Scripts incorrectly query 'status' field which doesn't exist.",
+            "source": "Verified from db_schema_discovery.json showing actual table structure. Export_result.sh line 45 queries non-existent 'status' field.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetic data within Eramba Community Edition GRC platform. The target incident 'Unauthorized VPN Access from External IP' is created with initial status 1 (Open) containing a SIEM-detected anomalous VPN connection from IP 203.0.113.42. However, critical infrastructure issues exist: the task setup scripts attempt to store root cause and resolution information in database columns (analysis, remediation, closure_notes) that do not exist in Eramba's actual security_incidents schema. Additionally, the export script queries a 'status' field that doesn't exist (actual column is security_incident_status_id, a foreign key reference). These schema mismatches mean the task cannot function as designed—required text fields for keywords verification have no storage mechanism in the actual database.",
+    "pi_confidence": "high"
+}

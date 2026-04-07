@@ -1,0 +1,45 @@
+{
+    "task_id": "integrate_security_webhook@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_health_url",
+            "metadata_value": "https://ops-api.internal/webhooks/health",
+            "verified_value": "https://ops-api.internal/webhooks/health",
+            "source": "Task specification (task.json description lines 5-14). This is a synthetic internal-only URL used for testing the event rule configuration.",
+            "status": "verified"
+        },
+        {
+            "key": "target_panic_url",
+            "metadata_value": "https://ops-api.internal/webhooks/panic",
+            "verified_value": "https://ops-api.internal/webhooks/panic",
+            "source": "Task specification (task.json description lines 15-24). This is a synthetic internal-only URL used for testing the event rule configuration.",
+            "status": "verified"
+        },
+        {
+            "key": "target_panic_name",
+            "metadata_value": "Panic Alert",
+            "verified_value": "Panic Alert",
+            "source": "Task specification (task.json description line 18, metadata line 19). Specified as the name for the Soft Trigger rule.",
+            "status": "verified"
+        },
+        {
+            "key": "required_health_macros",
+            "metadata_value": ["{event.sourceName}", "{event.time}"],
+            "verified_value": "[{event.source}, {event.time}]",
+            "source": "Web search of Nx Witness documentation: The official documented macro for Generic Events is {event.source}, not {event.sourceName}. According to Network Optix support articles, {event.source} will be replaced by the content in the 'Source contains' field. {event.sourceName} does not appear in any official Nx Witness documentation (web search returned zero results for {event.sourceName} Nx Witness). The verifier code accepts both {event.sourceName} and {event.source} as correct (line 73 of verifier.py), but the task.json metadata claims {event.sourceName} which contradicts the official documentation.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_panic_macros",
+            "metadata_value": ["{user.name}", "{event.cameraId}"],
+            "verified_value": "null",
+            "source": "Web search of Nx Witness documentation reveals critical issues: (1) {user.name} is not a documented Nx Witness macro variable. Web search returned zero results for {user.name} as a Nx Witness event rule macro. (2) More importantly, Soft Trigger events do NOT support any macro variables at all. According to Network Optix support articles (https://support.networkoptix.com/hc/en-us/community/posts/1500000832681), 'There are no variables (aka placeholders) available for the Soft Trigger event. Only for Generic Event and Analytics Event.' The supported placeholders for events that do support them are: {event.caption}, {event.description}, {event.cameraId}, {event.cameraName}, {event.eventType}, {event.eventName}, and {event.source}. Since Soft Triggers support zero variables, neither {user.name} nor {event.cameraId} can be used in Soft Trigger HTTP request actions.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task configures two Nx Witness VMS event rules: (1) Storage Failure rule sends POST requests to https://ops-api.internal/webhooks/health, and (2) Soft Trigger rule named 'Panic Alert' sends POST requests to https://ops-api.internal/webhooks/panic. The environment uses Nx Witness version 5.1.5 or 6.0.1, deployed locally at https://localhost:7001. However, the metadata claims contain inaccurate macro variable specifications: the Health rule metadata requires {event.sourceName} which should be {event.source}, and the Panic rule metadata requires {user.name} and {event.cameraId} but Soft Trigger events do not support any variable macros according to official Nx Witness documentation.",
+    "pi_confidence": "high"
+}

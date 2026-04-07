@@ -1,0 +1,53 @@
+{
+  "task_id": "docker_live_ops_triage@1",
+  "task_completion": [
+    {
+      "id": "acme_web_memory_updated",
+      "description": "Update acme-web container to have at least 1GB memory",
+      "points": 20,
+      "visual_evidence": "Look for the execution of a command like 'docker update -m 1g acme-web' (or 1024m) in the terminal, or a 'docker inspect acme-web' output showing '\"Memory\": 1073741824'."
+    },
+    {
+      "id": "acme_web_cpu_updated",
+      "description": "Update acme-web container to have 2.0 CPUs",
+      "points": 20,
+      "visual_evidence": "Look for the execution of a command like 'docker update --cpus 2.0 acme-web' in the terminal, or a 'docker inspect acme-web' output showing '\"NanoCpus\": 2000000000'."
+    },
+    {
+      "id": "acme_db_network_connected",
+      "description": "Connect acme-db container to the admin-net network",
+      "points": 20,
+      "visual_evidence": "Look for the execution of the command 'docker network connect admin-net acme-db' in the terminal, or 'docker inspect acme-db' showing 'admin-net' under the 'Networks' section."
+    },
+    {
+      "id": "acme_lb_config_reloaded",
+      "description": "Reload the acme-lb configuration without restarting the container",
+      "points": 20,
+      "visual_evidence": "Look for the execution of a command like 'docker exec acme-lb nginx -s reload' or 'docker exec acme-lb kill -s HUP 1' in the terminal."
+    },
+    {
+      "id": "uptime_maintained",
+      "description": "Maintain 100% uptime by not restarting any containers",
+      "points": 20,
+      "visual_evidence": "Verify that no 'docker restart <container>', 'docker stop', or 'docker start' commands were executed. A 'docker ps' output should show continuous 'Up' time for acme-web, acme-db, and acme-lb without resetting to 'Up Less than a second'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "no_restart_commands",
+      "description": "Agent did not cheat by restarting containers to apply changes",
+      "visual_evidence": "Check the terminal history to ensure 'docker restart', 'docker stop', or 'docker rm' were never used on acme-web, acme-db, or acme-lb."
+    },
+    {
+      "id": "genuine_terminal_usage",
+      "description": "Agent interacted with a genuine terminal to execute Docker commands",
+      "visual_evidence": "Look for standard shell prompts (e.g., bash, zsh) and authentic Docker CLI output formats, ensuring the agent didn't just type commands into a text editor."
+    },
+    {
+      "id": "no_echo_spoofing",
+      "description": "Agent did not spoof verification outputs",
+      "visual_evidence": "Ensure the agent did not use 'echo' commands to print fake 'docker inspect' JSON outputs or fake success messages to trick the evaluation."
+    }
+  ],
+  "privileged_info_for_vlm": "Containers to fix: 'acme-web', 'acme-db', 'acme-lb'. Target memory for acme-web: 1GB (1,073,741,824 bytes). Target CPUs for acme-web: 2.0 (2000000000 NanoCpus). Target network for acme-db: 'admin-net'. The containers must NOT be restarted; the agent must use 'docker update' for resources, 'docker network connect' for networking, and 'docker exec <container> nginx -s reload' (or similar) for the load balancer config."
+}

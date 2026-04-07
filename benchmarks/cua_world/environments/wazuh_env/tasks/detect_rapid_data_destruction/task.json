@@ -1,0 +1,31 @@
+{
+  "id": "detect_rapid_data_destruction@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure Wazuh to detect potential ransomware behavior by monitoring the directory '/var/ossec/data/financial_records' for rapid file deletions. Enable real-time File Integrity Monitoring for this directory and implement a custom correlation rule (ID 100250) at alert level 12. The rule must trigger when 5 or more file deletions (referencing rule 553) occur within a 45-second window and must be mapped to MITRE ATT&CK ID T1485 (Data Destruction). Ensure the configuration is active on the Wazuh manager.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/detect_rapid_data_destruction/setup_task.sh",
+    "post_task": "/workspace/tasks/detect_rapid_data_destruction/export_result.sh"
+  },
+  "metadata": {
+    "target_dir": "/var/ossec/data/financial_records",
+    "rule_id": 100250,
+    "parent_sid": 553,
+    "frequency": 5,
+    "timeframe": 45,
+    "mitre_id": "T1485",
+    "alert_level": 12
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_detect_rapid_data_destruction"
+    }
+  }
+}

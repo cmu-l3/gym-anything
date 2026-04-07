@@ -1,0 +1,53 @@
+{
+  "task_id": "resolve_microservice_port_conflict@1",
+  "task_completion": [
+    {
+      "id": "identify_rogue_process",
+      "description": "Identify the rogue process occupying port 3000.",
+      "points": 20,
+      "visual_evidence": "Terminal shows a command like 'lsof -i :3000', 'netstat -tulnp | grep 3000', or 'ss -lptn | grep 3000' with output revealing a process (likely python or 'rogue_analytics.py') using the port."
+    },
+    {
+      "id": "terminate_rogue_process",
+      "description": "Terminate the identified rogue process.",
+      "points": 20,
+      "visual_evidence": "Terminal shows a termination command such as 'kill -9 <PID>' (where <PID> matches the process found in the previous step) or 'pkill -f rogue_analytics.py'."
+    },
+    {
+      "id": "start_user_service",
+      "description": "Start or restart the 'user-service' in PM2.",
+      "points": 20,
+      "visual_evidence": "Terminal shows a PM2 command targeting the service, such as 'pm2 restart user-service', 'pm2 start user-service', or 'pm2 reload user-service'."
+    },
+    {
+      "id": "verify_user_service_online",
+      "description": "Verify that 'user-service' is running successfully in PM2.",
+      "points": 20,
+      "visual_evidence": "Terminal shows the output of 'pm2 list', 'pm2 status', or the immediate output of the restart command, displaying 'user-service' with a status of 'online' (usually in green)."
+    },
+    {
+      "id": "verify_service_listening_port_3000",
+      "description": "Verify the restored service is listening on its designated port (3000).",
+      "points": 20,
+      "visual_evidence": "Terminal shows a command like 'lsof -i :3000' revealing a 'node' process (the PM2 user-service) listening on the port, OR 'pm2 logs user-service' showing a successful startup message indicating it is listening on port 3000."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "config_file_unmodified",
+      "description": "Ensure the agent did not modify the user-service configuration file.",
+      "visual_evidence": "No text editors (nano, vim) are seen modifying '/opt/socioboard/socioboard-api/user/config/development.json', and no commands like 'sed' or 'echo' are used to alter its contents."
+    },
+    {
+      "id": "port_unchanged",
+      "description": "Ensure the agent did not change the port the service runs on.",
+      "visual_evidence": "The agent consistently checks and targets port 3000 for the final verification, rather than working around the conflict by starting the service on a different port (e.g., 3001)."
+    },
+    {
+      "id": "authentic_kill_command",
+      "description": "Ensure the agent genuinely killed the rogue process based on its findings.",
+      "visual_evidence": "The PID used in the 'kill' command exactly matches the PID outputted by the earlier port identification command (e.g., lsof or netstat)."
+    }
+  ],
+  "privileged_info_for_vlm": "Target port is 3000. The rogue process occupying the port is a Python script named 'rogue_analytics.py'. The service to be restored in PM2 is named 'user-service'. The configuration file that MUST NOT be modified is '/opt/socioboard/socioboard-api/user/config/development.json'."
+}

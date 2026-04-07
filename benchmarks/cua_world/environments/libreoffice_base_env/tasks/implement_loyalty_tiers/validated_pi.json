@@ -1,0 +1,80 @@
+{
+    "task_id": "implement_loyalty_tiers@1",
+    "dataset": "Chinook",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "db_path",
+            "metadata_value": "/home/ga/chinook.odb",
+            "verified_value": "/home/ga/chinook.odb",
+            "source": "Task setup scripts reference this path consistently; setup_task.sh calls setup_libreoffice_base_task with /home/ga/chinook.odb",
+            "status": "verified"
+        },
+        {
+            "key": "tiers.Platinum",
+            "metadata_value": 45.00,
+            "verified_value": "> 45.00 (strictly greater than)",
+            "source": "Task description line 5 states 'Platinum: Total Spending > $45.00'; verifier.py lines 156-161 implements 'if spent > 45.00'; Chinook database analysis shows minimum Platinum customer spending is 45.62, no customer at exactly 45.00",
+            "status": "contradicted"
+        },
+        {
+            "key": "tiers.Gold_Min",
+            "metadata_value": 40.00,
+            "verified_value": 40.00,
+            "source": "Task description line 5 states 'Gold: ... 40 <= Total'; verifier.py implements 'elif 40.00 <= spent <= 45.00'; Chinook database shows Gold tier customers range from 40.62 to 43.62",
+            "status": "verified"
+        },
+        {
+            "key": "tiers.Gold_Max",
+            "metadata_value": 45.00,
+            "verified_value": 45.00,
+            "source": "Task description line 5 states 'Gold: ... <= 45'; verifier.py implements 'elif 40.00 <= spent <= 45.00'; Chinook database shows maximum Gold spending is 43.62",
+            "status": "verified"
+        },
+        {
+            "key": "tiers.Silver",
+            "metadata_value": 40.00,
+            "verified_value": "< 40.00 (boundary at 40.00)",
+            "source": "Task description line 5 states 'Silver: Total Spending < $40.00'; verifier.py implements 'else: Silver'; Chinook database shows Silver tier customers range from 36.64 to 39.62, with no customers at exactly 40.00",
+            "status": "verified"
+        },
+        {
+            "key": "database.total_customers",
+            "metadata_value": null,
+            "verified_value": 59,
+            "source": "SELECT COUNT(*) FROM Customer in Chinook database",
+            "status": "verified"
+        },
+        {
+            "key": "database.total_invoices",
+            "metadata_value": null,
+            "verified_value": 412,
+            "source": "SELECT COUNT(*) FROM Invoice in Chinook database",
+            "status": "verified"
+        },
+        {
+            "key": "tier_distribution.platinum_count",
+            "metadata_value": null,
+            "verified_value": 5,
+            "source": "Chinook database: customers with SUM(Invoice.Total) > 45.00",
+            "status": "verified"
+        },
+        {
+            "key": "tier_distribution.gold_count",
+            "metadata_value": null,
+            "verified_value": 9,
+            "source": "Chinook database: customers with 40.00 <= SUM(Invoice.Total) <= 45.00",
+            "status": "verified"
+        },
+        {
+            "key": "tier_distribution.silver_count",
+            "metadata_value": null,
+            "verified_value": 45,
+            "source": "Chinook database: customers with SUM(Invoice.Total) < 40.00",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Chinook database is a real, non-synthetic sample music store database from GitHub (lerocha/chinook-database). It contains 59 customers and 412 invoices. The task requires adding a LoyaltyTier column to the Customer table based on total spending from invoices: Platinum (> 45.00) has 5 customers with spending 45.62-49.62, Gold (40.00-45.00 inclusive) has 9 customers with spending 40.62-43.62, and Silver (< 40.00) has 45 customers with spending 36.64-39.62. Database stored at /home/ga/chinook.odb as specified. NOTE: Metadata claim 'Platinum': 45.00 is incorrect; the actual boundary is strictly greater than 45.00, not equal to 45.00.",
+    "pi_confidence": "high"
+}

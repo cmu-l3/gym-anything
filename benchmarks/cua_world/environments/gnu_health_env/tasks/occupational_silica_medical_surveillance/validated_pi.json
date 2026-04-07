@@ -1,0 +1,66 @@
+{
+    "task_id": "occupational_silica_medical_surveillance@1",
+    "dataset": "GNU Health Demo Database",
+    "case_id": "John Zenon",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_patient_firstname",
+            "metadata_value": "John",
+            "verified_value": "John",
+            "source": "setup_task.sh queries party_party for name ILIKE '%John%'",
+            "status": "verified"
+        },
+        {
+            "key": "target_patient_lastname",
+            "metadata_value": "Zenon",
+            "verified_value": "Zenon",
+            "source": "setup_task.sh queries party_party for lastname ILIKE '%Zenon%'",
+            "status": "verified"
+        },
+        {
+            "key": "icd10_prefix",
+            "metadata_value": "Z57",
+            "verified_value": "Z57",
+            "source": "verifier.py checks gpath.code LIKE 'Z57%'",
+            "status": "verified"
+        },
+        {
+            "key": "min_lab_orders",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "verifier.py requires new_lab_count >= 2",
+            "status": "verified"
+        },
+        {
+            "key": "followup_min_days",
+            "metadata_value": 350,
+            "verified_value": 350,
+            "source": "verifier.py checks appt_days_diff >= 350",
+            "status": "verified"
+        },
+        {
+            "key": "followup_max_days",
+            "metadata_value": 380,
+            "verified_value": 380,
+            "source": "verifier.py checks appt_days_diff <= 380",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Occupational Health and Safety Technician",
+            "verified_value": "Architect",
+            "source": "Parsed gnuhealth-50-demo.sql party_party table (id 3) and gnuhealth_occupation table (id 6); the patient is actually an Architect in the DB, contradicting both the prompt ('construction worker') and the metadata.",
+            "status": "contradicted"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Construction / Industrial Hygiene",
+            "verified_value": null,
+            "source": "No such field exists for the patient in the GNU Health schema; used as flavor text.",
+            "status": "unverified"
+        }
+    ],
+    "privileged_info_summary": "The task relies on the synthetic GNU Health demo database (gnuhealth-50-demo.sql). We verified that the target patient 'John Zenon' is identified correctly. The verifier enforces exactly the metadata bounds: a minimum of 2 new lab orders, a follow-up appointment interval between 350 and 380 days, and the use of the Z57 ICD-10 prefix. However, we discovered a contradiction: while the prompt describes John Zenon as a 'construction worker' and the metadata lists 'Occupational Health and Safety Technician', his actual database occupation (id 6) maps to 'Architect'. Furthermore, there is no 'industry' field in the schema, rendering the industry claim unverified flavor text. The setup script also injects a distractor Z57 diagnosis into another patient, Ana Betz.",
+    "pi_confidence": "high"
+}

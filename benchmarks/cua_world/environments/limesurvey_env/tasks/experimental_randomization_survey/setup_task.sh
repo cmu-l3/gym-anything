@@ -27,20 +27,9 @@ wait_for_mysql() {
 }
 wait_for_mysql || echo "Warning: MySQL wait timed out, proceeding anyway..."
 
-# Ensure Firefox is open to the admin page
-focus_firefox
-if ! pgrep -f "firefox" > /dev/null; then
-    echo "Starting Firefox..."
-    su - ga -c "DISPLAY=:1 firefox -profile /home/ga/.mozilla/firefox/default.profile 'http://localhost/index.php/admin' &"
-    sleep 10
-else
-    # Navigate to admin page if already open
-    DISPLAY=:1 xdotool key ctrl+l
-    sleep 0.5
-    DISPLAY=:1 xdotool type "http://localhost/index.php/admin"
-    DISPLAY=:1 xdotool key Return
-    sleep 3
-fi
+# Ensure Firefox is open to the admin page — use restart_firefox from task_utils
+# to avoid "Firefox is already running" lock file conflicts
+restart_firefox "http://localhost/index.php/admin"
 
 # Maximize Firefox
 DISPLAY=:1 wmctrl -r "Firefox" -b add,maximized_vert,maximized_horz 2>/dev/null || true

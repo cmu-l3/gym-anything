@@ -1,0 +1,122 @@
+{
+    "task_id": "hl7_enrichment_db_lookup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "channel_name",
+            "metadata_value": "HL7_Enricher",
+            "verified_value": "HL7_Enricher",
+            "source": "Verified in setup_task.sh line 37, export_result.sh line 12, and task.json description. This is the NextGen Connect channel name that the agent must create.",
+            "status": "verified"
+        },
+        {
+            "key": "listen_port",
+            "metadata_value": "6661",
+            "verified_value": "6661",
+            "source": "Verified across multiple sources: task.json description ('TCP port 6661 (MLLP)'), setup_task.sh line 39, export_result.sh lines 37 and 40. Port 6661 is exposed in the NextGen Connect Docker container configuration documented in setup_nextgen_connect.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "db_table",
+            "metadata_value": "patient_contacts",
+            "verified_value": "patient_contacts",
+            "source": "Verified in setup_task.sh lines 12-16 where the table is created with SQL: CREATE TABLE patient_contacts (mrn VARCHAR(50) PRIMARY KEY, email VARCHAR(100)). Table is populated with sample records (PAT1001, PAT1002, PAT_TEST) and used in export_result.sh line 30 for test data insertion.",
+            "status": "verified"
+        },
+        {
+            "key": "output_dir",
+            "metadata_value": "/home/ga/enriched_output",
+            "verified_value": "/home/ga/enriched_output",
+            "source": "Verified in task.json description, setup_task.sh line 24 (mkdir -p /home/ga/enriched_output), and export_result.sh line 47 (grep -l ... /home/ga/enriched_output/*.hl7). Directory is created with proper permissions (chmod 777) and is mounted inside the NextGen Connect container for file output.",
+            "status": "verified"
+        },
+        {
+            "key": "database_url",
+            "metadata_value": "jdbc:postgresql://nextgen-postgres:5432/mirthdb",
+            "verified_value": "jdbc:postgresql://nextgen-postgres:5432/mirthdb",
+            "source": "Documented in task.json database connection details section. Verified in setup_task.sh line 42 and setup_nextgen_connect.sh which creates the PostgreSQL container on the nextgen-network bridge with database 'mirthdb'.",
+            "status": "verified"
+        },
+        {
+            "key": "database_user",
+            "metadata_value": "postgres",
+            "verified_value": "postgres",
+            "source": "Documented in task.json. Verified in setup_task.sh line 43, setup_task.sh line 11 (psql -U postgres), and export_result.sh line 30 (psql -U postgres).",
+            "status": "verified"
+        },
+        {
+            "key": "database_password",
+            "metadata_value": "postgres",
+            "verified_value": "postgres",
+            "source": "Documented in task.json. Verified in setup_task.sh line 43. Password is used in JDBC connection string for NextGen Connect configuration.",
+            "status": "verified"
+        },
+        {
+            "key": "table_columns",
+            "metadata_value": "mrn, email",
+            "verified_value": "mrn (VARCHAR(50) PRIMARY KEY), email (VARCHAR(100))",
+            "source": "Verified in setup_task.sh lines 13-16 which shows the exact column definitions in the CREATE TABLE statement. MRN is the primary key for patient lookup.",
+            "status": "verified"
+        },
+        {
+            "key": "hl7_version",
+            "metadata_value": "v2.x (specified as v2.3 in implementation)",
+            "verified_value": "v2.3",
+            "source": "Task description mentions 'HL7 v2.x messages'. Implementation details in export_result.sh line 34 show MSH segment with version '2.3'. Sample HL7 files in assets directory (hl7-v2.3-adt-a01-1.hl7) confirm v2.3 format.",
+            "status": "verified"
+        },
+        {
+            "key": "hl7_message_type",
+            "metadata_value": "ADT^A01",
+            "verified_value": "ADT^A01",
+            "source": "Verified in export_result.sh line 34 where the test HL7 message is constructed: 'ADT^A01'. This is an Admission/Discharge/Transfer message type, appropriate for patient record processing.",
+            "status": "verified"
+        },
+        {
+            "key": "pid_mrn_field",
+            "metadata_value": "PID-3.1",
+            "verified_value": "PID-3 (field 3, containing MRN)",
+            "source": "Verified in task description and export_result.sh line 34 where PID segment is constructed as: PID|1||${TEST_MRN}||... The MRN is placed in field 3 (after the second pipe delimiter). HL7 standard notation PID-3 refers to field 3 of PID segment; component 1 refers to the first sub-component.",
+            "status": "verified"
+        },
+        {
+            "key": "email_insertion_field",
+            "metadata_value": "PID-13.4",
+            "verified_value": "PID-13 (field 13 in PID segment, used for email storage)",
+            "source": "Task description specifies 'PID-13.4 (Phone Number - Email)'. HL7 v2.3 standard PID field 13 is designated for 'Phone Number - Home'. The notation PID-13.4 refers to field 13, component 4. This appears to be a custom usage within the NextGen Connect task context rather than standard HL7.",
+            "status": "verified"
+        },
+        {
+            "key": "mllp_protocol",
+            "metadata_value": "MLLP (Message Layer Lower Protocol)",
+            "verified_value": "MLLP with 0x0B start, 0x1C 0x0D end",
+            "source": "Task description mentions 'MLLP'. Verified in export_result.sh line 40: printf '\\x0b%s\\x1c\\x0d'. This is the standard MLLP encoding for HL7 v2 messages.",
+            "status": "verified"
+        },
+        {
+            "key": "sample_data_records",
+            "metadata_value": "Sample MRN/email pairs in patient_contacts table",
+            "verified_value": "PAT1001→pat1001@example.com, PAT1002→pat1002@hospital.org, PAT_TEST→initial_test@test.com",
+            "source": "Verified in setup_task.sh lines 17-20 which shows the INSERT statements populating the table with these exact records. Used for testing and validation.",
+            "status": "verified"
+        },
+        {
+            "key": "nextgen_connect_version",
+            "metadata_value": "NextGen Connect 4.5.0",
+            "verified_value": "4.5.0",
+            "source": "Documented in environment README (evidence_docs/README.md line 12): 'Version: 4.5.0 (last fully open-source version before licensing changes in 4.6+)'. Confirmed in setup_nextgen_connect.sh which pulls 'nextgenhealthcare/connect:4.5.0'.",
+            "status": "verified"
+        },
+        {
+            "key": "postgresql_version",
+            "metadata_value": "PostgreSQL 15",
+            "verified_value": "postgres:15",
+            "source": "Documented in environment README (evidence_docs/README.md line 25): 'PostgreSQL Database (postgres:15)'. Confirmed in setup_nextgen_connect.sh.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The hl7_enrichment_db_lookup task uses entirely synthetic data. Sample patient records (MRNs: PAT1001, PAT1002, PAT_TEST with corresponding example emails) are created during setup in the PostgreSQL patient_contacts table. The task requires creating a NextGen Connect 4.5.0 channel named 'HL7_Enricher' that listens on TCP port 6661 using MLLP protocol, receives HL7 v2.3 ADT^A01 messages, extracts patient MRNs from PID field 3, performs database lookups in the patient_contacts table (columns: mrn VARCHAR(50) PRIMARY KEY, email VARCHAR(100)), and writes enriched HL7 messages to /home/ga/enriched_output/. The database connection uses PostgreSQL 15 at jdbc:postgresql://nextgen-postgres:5432/mirthdb with credentials postgres/postgres. All test data and HL7 messages are generated programmatically during setup and verification phases.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,29 @@
+timestamp,service,metric,value,detail
+2026-01-15T14:15:00,all-services,health_status,HEALTHY,Baseline: all services operating normally
+2026-01-15T14:18:00,payments-db,slow_query_log,12 queries,Long-running analytics query detected on payments-db
+2026-01-15T14:20:00,payments-db,connection_pool_usage,85%,Active connections spiking — analytics query holding locks
+2026-01-15T14:21:00,payment-service,p99_latency,450ms,Slight latency increase from baseline 200ms — DB connections slow to acquire
+2026-01-15T14:21:30,payments-db,connection_pool_usage,94%,Approaching pool limit (max 100 connections)
+2026-01-15T14:22:00,payment-service,error_rate,5%,Intermittent DB connection acquire timeouts
+2026-01-15T14:22:30,payments-db,active_locks,47,Lock contention from analytics query plus normal traffic
+2026-01-15T14:22:45,payments-db,connection_pool_usage,100%,Pool fully exhausted — all 100 connections in use or queued
+2026-01-15T14:23:00,order-processing,p99_latency,2100ms,JVM garbage collection pause — transient — recovered by 14:23:10
+2026-01-15T14:23:15,payment-service,error_rate,38%,Cannot acquire DB connection within timeout — pool exhausted
+2026-01-15T14:23:30,payment-service,p99_latency,8500ms,Requests queuing behind exhausted connection pool
+2026-01-15T14:23:45,payment-service,health_status,UNHEALTHY,Health check endpoint returning 503
+2026-01-15T14:24:00,payment-service,circuit_breaker,OPEN,Internal circuit breaker tripped on payments-db calls
+2026-01-15T14:25:02,order-processing,error_rate,45%,Upstream dependency timeout: payment-service (30000ms timeout exceeded)
+2026-01-15T14:25:02,order-processing,p99_latency,31200ms,Threads blocked on synchronous payment-service call
+2026-01-15T14:25:30,shopping-cart,error_rate,22%,Order status validation failing — order-processing timeout (10000ms)
+2026-01-15T14:25:45,shopping-cart,p99_latency,12400ms,Checkout flow degraded — cannot confirm order placement
+2026-01-15T14:26:00,api-gateway,error_rate,35%,Multiple backend 503 errors: order-processing and shopping-cart
+2026-01-15T14:26:15,api-gateway,circuit_breaker,OPEN,Circuit breaker OPEN for order-processing route
+2026-01-15T14:26:45,api-gateway,health_status,DEGRADED,Partial outage — order and cart endpoints returning 503
+2026-01-15T14:27:15,product-catalog,p99_latency,4200ms,Connection pool pressure from client retry storms
+2026-01-15T14:28:00,product-catalog,health_status,DEGRADED,Intermittent 503s under retry-amplified load
+2026-01-15T14:31:00,notification-service,queue_depth,847,Email notification queue growing — payment confirmations not arriving
+2026-01-15T14:31:00,inventory-service,health_status,HEALTHY,No impact observed — async message consumption via RabbitMQ normal
+2026-01-15T14:31:00,user-auth,health_status,HEALTHY,No impact — no dependency on payment processing path
+2026-01-15T14:33:00,oncall-sre,alert,PAGE,PagerDuty CRITICAL: ShopStream checkout flow completely down — P1 incident declared
+2026-01-15T14:50:00,payments-db,connection_pool_usage,45%,Analytics query killed by DBA — pool draining — connections releasing
+2026-01-15T15:07:00,all-services,health_status,HEALTHY,All services recovered — cascade fully resolved after pool drain

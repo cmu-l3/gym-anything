@@ -1,0 +1,38 @@
+{
+  "id": "soc_alert_fatigue_mitigation@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Your SOC is experiencing 'alert fatigue' due to repeated SSH brute-force alerts for the same attacking IPs. Using the Splunk web interface (http://localhost:8000, credentials admin/SplunkAdmin1!), create a scheduled alert named 'Throttled_SSH_Brute_Force' that identifies source IPs in the 'security_logs' index with more than 5 failed SSH login attempts. The alert must run every 5 minutes (cron '*/5 * * * *') and utilize throttling to suppress subsequent alerts for the same 'src_ip' for exactly 24 hours.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/soc_alert_fatigue_mitigation/setup_task.sh",
+    "post_task": "/workspace/tasks/soc_alert_fatigue_mitigation/export_result.sh"
+  },
+  "metadata": {
+    "expected_alert_name": "Throttled_SSH_Brute_Force",
+    "expected_suppress_period_options": [
+      "24h",
+      "86400",
+      "86400s",
+      "1d"
+    ],
+    "expected_suppress_fields": [
+      "src_ip",
+      "clientip",
+      "src",
+      "source_ip",
+      "ip"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_soc_alert_fatigue_mitigation"
+    }
+  }
+}

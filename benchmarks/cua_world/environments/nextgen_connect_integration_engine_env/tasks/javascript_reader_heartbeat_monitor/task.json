@@ -1,0 +1,30 @@
+{
+  "id": "javascript_reader_heartbeat_monitor@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a channel named 'Heartbeat_Monitor' that generates synthetic HL7 v2.5 ADT^A01 heartbeat messages every 15 seconds. The messages must contain 'HEARTBEAT_MONITOR' as the MSH Sending Application and 'HEARTBEAT001' as the PID Patient ID. Save the output as unique files to /opt/heartbeat_output/. Ensure the channel is active and produces at least two files. Access the system via the NextGen Connect Administrator at http://localhost:8080 or the REST API at https://localhost:8443/api (admin/admin).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/javascript_reader_heartbeat_monitor/setup_task.sh",
+    "post_task": "/workspace/tasks/javascript_reader_heartbeat_monitor/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Heartbeat_Monitor",
+    "expected_polling_ms": 15000,
+    "output_dir": "/opt/heartbeat_output",
+    "expected_sender": "HEARTBEAT_MONITOR",
+    "expected_msg_type": "ADT^A01",
+    "expected_pid": "HEARTBEAT001"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_heartbeat_monitor"
+    }
+  }
+}

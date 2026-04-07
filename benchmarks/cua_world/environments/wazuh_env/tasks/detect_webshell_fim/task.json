@@ -1,0 +1,30 @@
+{
+  "id": "detect_webshell_fim@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure Wazuh's File Integrity Monitoring (FIM) to detect web shell uploads by monitoring /var/www/html in real-time with report_changes=\"yes\" enabled. Implement a custom rule (ID 100050, Level 12) in local_rules.xml that triggers when a .php file is added to that directory, configured as a child of rule ID 554. Verify the configuration by creating a file named backdoor.php in /var/www/html and ensuring the alert triggers.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/detect_webshell_fim/setup_task.sh",
+    "post_task": "/workspace/tasks/detect_webshell_fim/export_result.sh"
+  },
+  "metadata": {
+    "target_dir": "/var/www/html",
+    "rule_id": 100050,
+    "rule_level": 12,
+    "parent_sid": 554,
+    "test_file": "backdoor.php",
+    "verifier_file": "verification_trigger.php"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_detect_webshell_fim"
+    }
+  }
+}

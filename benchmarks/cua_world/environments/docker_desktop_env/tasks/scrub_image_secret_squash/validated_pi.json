@@ -1,0 +1,45 @@
+{
+    "task_id": "scrub_image_secret_squash@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "unsafe_image",
+            "metadata_value": "legacy-app:unsafe",
+            "verified_value": "legacy-app:unsafe",
+            "source": "setup_task.sh line 77: 'docker build -t legacy-app:unsafe .'",
+            "status": "verified"
+        },
+        {
+            "key": "safe_image",
+            "metadata_value": "legacy-app:safe",
+            "verified_value": "legacy-app:safe",
+            "source": "export_result.sh line 18: 'if docker image inspect legacy-app:safe'",
+            "status": "verified"
+        },
+        {
+            "key": "secret_string",
+            "metadata_value": "AKIA_TEST_SECRET_DO_NOT_USE",
+            "verified_value": "AKIA_TEST_SECRET_DO_NOT_USE",
+            "source": "setup_task.sh line 50: 'echo \"AWS_ACCESS_KEY_ID=AKIA_TEST_SECRET_DO_NOT_USE\" > secrets.txt' and export_result.sh line 24: grep check for this exact string",
+            "status": "verified"
+        },
+        {
+            "key": "expected_env",
+            "metadata_value": "APP_COLOR=blue",
+            "verified_value": "APP_COLOR=blue",
+            "source": "setup_task.sh line 71: 'ENV APP_COLOR=blue' in Dockerfile; export_result.sh line 42 verifies presence in image config",
+            "status": "verified"
+        },
+        {
+            "key": "expected_port",
+            "metadata_value": "5000",
+            "verified_value": "5000",
+            "source": "setup_task.sh lines 70-72: 'ENV PORT=5000' and 'EXPOSE 5000'; export_result.sh line 44 checks for '5000/tcp' in ExposedPorts",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task creates a Docker image 'legacy-app:unsafe' containing a critical secret 'AKIA_TEST_SECRET_DO_NOT_USE' in its layer history. The image has metadata: ENV variable APP_COLOR=blue and exposed port 5000/tcp. The agent must create 'legacy-app:safe' without the secret while preserving all metadata and application functionality.",
+    "pi_confidence": "high"
+}

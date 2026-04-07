@@ -1,0 +1,56 @@
+{
+  "id": "brain_parenchymal_fraction@1",
+  "version": "1.0",
+  "env_id": "slicer3d_env@0.1",
+  "description": "Using the pre-loaded MRHead brain MRI, perform a brain parenchymal fraction (BPF) assessment for hydrocephalus evaluation. Create two non-overlapping segments: (1) 'Cerebrum' — brain parenchyma excluding skull, extracerebral CSF, and cerebellum, (2) 'Ventricles' — lateral ventricular CSF only, excluding sulcal CSF and the third/fourth ventricles. Compute the volume of each structure in milliliters. Calculate BPF = cerebrum_volume / (cerebrum_volume + ventricle_volume) and classify the result as normal, mild atrophy, moderate atrophy, or severe atrophy. Create a 3D surface rendering showing both structures in distinct colors. Save the segmentation to ~/Documents/SlicerData/BrainAssessment/brain_bpf.seg.nrrd, a screenshot of the 3D rendering to ~/Documents/SlicerData/BrainAssessment/brain_3d.png, and generate ~/Documents/SlicerData/BrainAssessment/bpf_report.json containing cerebrum_volume_ml, ventricle_volume_ml, bpf, and classification.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/brain_parenchymal_fraction/setup_task.sh",
+    "post_task": "/workspace/tasks/brain_parenchymal_fraction/export_result.sh",
+    "pre_task_timeout": 1800
+  },
+  "metadata": {
+    "data_source": "MRHead sample data (built-in)",
+    "output_dir": "/home/ga/Documents/SlicerData/BrainAssessment",
+    "output_segmentation": "brain_bpf.seg.nrrd",
+    "output_report": "bpf_report.json",
+    "output_screenshot": "brain_3d.png",
+    "expected_segments": {
+      "cerebrum": {
+        "keywords": ["cerebrum", "Cerebrum", "CEREBRUM", "brain", "Brain", "BRAIN", "parenchyma", "Parenchyma"],
+        "expected_voxel_range": [300000, 1500000]
+      },
+      "ventricles": {
+        "keywords": ["ventricle", "Ventricle", "VENTRICLE", "ventricles", "Ventricles", "CSF", "csf"],
+        "expected_voxel_range": [1000, 100000]
+      }
+    },
+    "report_required_fields": ["cerebrum_volume_ml", "ventricle_volume_ml", "bpf", "classification"],
+    "scoring_weights": {
+      "segmentation_file_exists": 10,
+      "two_segments_present": 15,
+      "cerebrum_volume_plausible": 15,
+      "ventricle_volume_plausible": 15,
+      "bpf_calculated": 15,
+      "classification_present": 5,
+      "three_d_screenshot": 10,
+      "report_complete": 10,
+      "values_self_consistent": 5
+    },
+    "passing_thresholds": {
+      "min_score": 60,
+      "required": ["segmentation_file_exists", "two_segments_present"]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_brain_parenchymal_fraction"
+    }
+  }
+}

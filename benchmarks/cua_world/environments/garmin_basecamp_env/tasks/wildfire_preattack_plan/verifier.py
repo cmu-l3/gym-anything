@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+"""Stub verifier for wildfire_preattack_plan task.
+Actual verification is done externally via VLM evaluators.
+"""
+
+
+def verify_wildfire_preattack_plan(traj, env_info, task_info):
+    """Stub verifier -- real verification is done via external VLM evaluation."""
+    return {"passed": True, "score": 100, "feedback": "Stub verifier -- VLM evaluation is external"}

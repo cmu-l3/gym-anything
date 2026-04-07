@@ -12,17 +12,16 @@ export XAUTHORITY=/home/ga/.Xauthority
 wait_for_window() {
     local window_pattern="$1"
     local timeout=${2:-30}
-    local elapsed=0
+    local start=$(date +%s)
 
     echo "Waiting for window matching '$window_pattern'..."
 
-    while [ $elapsed -lt $timeout ]; do
+    while [ $(($(date +%s) - start)) -lt $timeout ]; do
         if wmctrl -l | grep -qi "$window_pattern"; then
-            echo "Window found after ${elapsed}s"
+            echo "Window found after $(($(date +%s) - start))s"
             return 0
         fi
         sleep 0.5
-        elapsed=$((elapsed + 1))
     done
 
     echo "Timeout: Window not found after ${timeout}s"
@@ -62,17 +61,16 @@ wait_for_file() {
 wait_for_process() {
     local process_pattern="$1"
     local timeout=${2:-20}
-    local elapsed=0
+    local start=$(date +%s)
 
     echo "Waiting for process matching '$process_pattern'..."
 
-    while [ $elapsed -lt $timeout ]; do
+    while [ $(($(date +%s) - start)) -lt $timeout ]; do
         if pgrep -f "$process_pattern" > /dev/null; then
-            echo "Process found after ${elapsed}s"
+            echo "Process found after $(($(date +%s) - start))s"
             return 0
         fi
         sleep 0.5
-        elapsed=$((elapsed + 1))
     done
 
     echo "Timeout: Process not found after ${timeout}s"
@@ -110,8 +108,23 @@ safe_xdotool() {
     local display="$2"
     shift 2
 
-    su - "$user" -c "DISPLAY=$display xdotool $*" 2>&1 | grep -v "^$"
+    su - "$user" -c "DISPLAY=$display XAUTHORITY=/home/$user/.Xauthority xdotool $*" 2>&1 | grep -v "^$"
     return ${PIPESTATUS[0]}
+}
+
+# Cleanly terminate Calligra and fall back to a hard kill if needed.
+kill_calligra_processes() {
+    pkill -TERM -f calligrawords 2>/dev/null || true
+    sleep 2
+    pkill -KILL -f calligrawords 2>/dev/null || true
+    rm -f /home/ga/Documents/.~lock.* 2>/dev/null || true
+}
+
+# Launch Calligra Words with a document and detach from the shell.
+launch_calligra_document() {
+    local document_path="$1"
+    local log_path="${2:-/tmp/calligra_words_task.log}"
+    su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority setsid calligrawords \"$document_path\" > \"$log_path\" 2>&1 < /dev/null &"
 }
 
 # Take a screenshot
@@ -129,4 +142,6 @@ export -f wait_for_process
 export -f focus_window
 export -f get_calligra_window_id
 export -f safe_xdotool
+export -f kill_calligra_processes
+export -f launch_calligra_document
 export -f take_screenshot

@@ -25,4 +25,9 @@ echo "Task start marker created."
 input keyevent KEYCODE_WAKEUP
 input keyevent 82 # KEYCODE_MENU/UNLOCK if needed
 
+# 6. Launch the app using robust helper
+echo "Launching Cancer iChart..."
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
+
 echo "=== Setup Complete ==="

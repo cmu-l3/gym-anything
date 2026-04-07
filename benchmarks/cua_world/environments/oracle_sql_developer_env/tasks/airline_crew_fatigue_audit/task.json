@@ -1,0 +1,34 @@
+{
+  "id": "airline_crew_fatigue_audit@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Operations Research Analyst at an airline auditing pilot schedules for FAA Part 117 fatigue rule violations using the AVIATION_AUDIT schema in Oracle (Host=localhost, Port=1521, Service=XEPDB1, User=aviation_audit, Password=Flight2024). Create a view named CREW_REST_PERIODS_VW that calculates continuous rest hours between duties (checkout to next checkin) using a LEAD window function partitioned by crew_id; columns must include crew_id, flight_id (from current_flight_id), next_flight_id, check_out_time, next_check_in_time, and rest_hours. Create a view named ROLLING_FLIGHT_HOURS_VW to track cumulative 28-day flight block hours per crew member using a window function with a range of 28 preceding days; columns must include crew_id, flight_id, actual_dep, flight_hours, and rolling_28d_hours. Create a table named FAA_VIOLATION_REPORT with columns for violation_id, crew_id, violation_type, flight_id, event_date, and details. Develop and execute a PL/SQL procedure named PROC_AUDIT_VIOLATIONS that truncates the report table and populates it with 'INSUFFICIENT_REST' (rest < 10 hours, using next_check_in_time as event_date) and 'EXCEEDED_28D_LIMIT' (rolling 28d > 100 hours, using actual_dep as event_date) violations. Export the populated FAA_VIOLATION_REPORT table to /home/ga/Documents/faa_audit_report.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/airline_crew_fatigue_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/airline_crew_fatigue_audit/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/faa_audit_report.csv",
+    "expected_rest_violations": 1,
+    "expected_limit_violations": 1,
+    "oracle_features": [
+      "Window Functions",
+      "LEAD",
+      "RANGE BETWEEN",
+      "PL/SQL",
+      "Date Arithmetic"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_airline_crew_fatigue_audit"
+    }
+  }
+}

@@ -81,9 +81,33 @@ safe_xdotool() {
     return ${PIPESTATUS[0]}
 }
 
+# Kill VSCode
+kill_vscode() {
+    pkill -u ga -f 'code.*--ms-enable-electron' 2>/dev/null || \
+    pkill -u ga -f 'code' 2>/dev/null || true
+    sleep 1
+}
+
+# Get VSCode window ID
+get_vscode_window_id() {
+    wmctrl -l 2>/dev/null | grep -i 'Visual Studio Code\|Code' | awk '{print $1; exit}'
+}
+
+# Take a screenshot
+take_screenshot() {
+    local output_file="${1:-/tmp/screenshot.png}"
+    DISPLAY=:1 import -window root "$output_file" 2>/dev/null || \
+    DISPLAY=:1 scrot "$output_file" 2>/dev/null || \
+    echo "Warning: Could not take screenshot"
+    [ -f "$output_file" ] && echo "Screenshot saved: $output_file"
+}
+
 # Export these functions
 export -f wait_for_window
 export -f wait_for_file
 export -f wait_for_vscode
 export -f focus_vscode_window
 export -f safe_xdotool
+export -f kill_vscode
+export -f get_vscode_window_id
+export -f take_screenshot

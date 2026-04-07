@@ -1,0 +1,37 @@
+{
+  "id": "bom_cost_explosion_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Industrial Engineer at a consumer electronics manufacturer preparing for a quarterly production costing exercise. The BOM database inherited from a recent ERP migration has data integrity issues—specifically, three circular references that cause infinite loops in cost rollup queries. Connect to the MFG_ENGINEER schema (Password: Mfg2024, Service: XEPDB1) to clean the hierarchy and build the MRP analysis. Identify and delete the 3 erroneous BOM_LINES records causing cycles using CONNECT BY NOCYCLE and CONNECT_BY_ISCYCLE, recording the fixes in a table named BOM_FIXES_LOG (fix_id, bom_line_id, fix_action, fix_date). Create a view COSTED_BOM_EXPLOSION_VW using CONNECT BY PRIOR to explode all top-level products (item_type = 'FINISHED_GOOD') through all levels, including LEVEL, SYS_CONNECT_BY_PATH(item_number, '/'), and component_item_id. Create a reverse-BOM view WHERE_USED_VW using CONNECT BY PRIOR (PRIOR parent_item_id = component_item_id) to show all parent assemblies. Implement a PL/SQL procedure PROC_CALC_MRP(p_product_id NUMBER, p_quantity NUMBER) that explodes the BOM, calculates total required material quantities, and inserts them into a table MRP_REQUIREMENTS (req_id, product_id, component_item_id, total_quantity, calc_date). Execute this procedure for the 'WS-5000' product for a quantity of 500 units. Create a materialized view BOM_COST_SUMMARY_MV summarizing total BOM lines per top-level product using the ROLLUP operator on product category and item_number. Export the MRP_REQUIREMENTS table to /home/ga/bom_mrp_report.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/bom_cost_explosion_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/bom_cost_explosion_analysis/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/bom_result.json",
+    "occupation": "Industrial Engineers",
+    "industry": "Manufacturing - Consumer Electronics",
+    "gdp_contribution": "$758M",
+    "oracle_features": [
+      "CONNECT BY",
+      "NOCYCLE",
+      "SYS_CONNECT_BY_PATH",
+      "ROLLUP",
+      "Materialized Views",
+      "PL/SQL"
+    ],
+    "expected_csv": "/home/ga/bom_mrp_report.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bom_cost_explosion_analysis"
+    }
+  }
+}

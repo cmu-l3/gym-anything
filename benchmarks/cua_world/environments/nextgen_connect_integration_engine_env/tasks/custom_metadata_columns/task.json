@@ -1,0 +1,35 @@
+{
+  "id": "custom_metadata_columns@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a NextGen Connect channel named 'ADT_Metadata_Tracker' to track patient ADT events. The channel must use a TCP Listener on port 6661 for HL7 v2.x data and a File Writer destination at '/tmp/adt_output/' with the filename pattern 'adt_${DATE}_${COUNT}.hl7'. Configure the channel to populate custom metadata columns for 'PatientMRN' (mapped to PID.3.1), 'PatientName' (mapped to PID.5), and 'EventType' (mapped to MSH.9.2). Process the test messages located at '/home/ga/adt_a01.hl7' and '/home/ga/adt_a04.hl7' and verify that the metadata is correctly populated. Access the system via the REST API at https://localhost:8443/api (admin/admin) or the provided terminal.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/custom_metadata_columns/setup_task.sh",
+    "post_task": "/workspace/tasks/custom_metadata_columns/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "ADT_Metadata_Tracker",
+    "expected_port": "6661",
+    "expected_columns": [
+      "PatientMRN",
+      "PatientName",
+      "EventType"
+    ],
+    "msg1_mrn": "MRN78432",
+    "msg1_event": "A01",
+    "msg2_mrn": "MRN91205",
+    "msg2_event": "A04"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_custom_metadata_columns"
+    }
+  }
+}

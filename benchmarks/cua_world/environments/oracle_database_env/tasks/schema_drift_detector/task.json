@@ -1,0 +1,50 @@
+{
+  "id": "schema_drift_detector@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A deployment failure occurred because the Development schema (HR_DEV) has drifted from Production (HR_PROD). You must build a drift detection tool. Connect to the database (localhost:1521/XEPDB1) as SYSTEM/OraclePassword123. Create a reporting table named SYSTEM.SCHEMA_DRIFT_LOG with columns OBJECT_NAME, DRIFT_TYPE, DEV_VALUE, and PROD_VALUE. Compare the HR_PROD and HR_DEV schemas to detect missing tables, missing or extra columns, data type mismatches (including precision/scale), and nullability mismatches. Populate the reporting table with these findings and export the log to /home/ga/Desktop/drift_report.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/schema_drift_detector/setup_task.sh",
+    "post_task": "/workspace/tasks/schema_drift_detector/export_result.sh"
+  },
+  "metadata": {
+    "prod_schema": "HR_PROD",
+    "dev_schema": "HR_DEV",
+    "log_table": "SYSTEM.SCHEMA_DRIFT_LOG",
+    "report_file": "/home/ga/Desktop/drift_report.txt",
+    "expected_drifts": [
+      {
+        "object": "REGIONS",
+        "type": "MISSING_TABLE_IN_DEV"
+      },
+      {
+        "object": "FEATURE_FLAGS",
+        "type": "EXTRA_TABLE_IN_DEV"
+      },
+      {
+        "object": "EMPLOYEES.SALARY",
+        "type": "DATATYPE_MISMATCH"
+      },
+      {
+        "object": "DEPARTMENTS.COST_CENTER",
+        "type": "EXTRA_COLUMN_IN_DEV"
+      },
+      {
+        "object": "JOBS.MIN_SALARY",
+        "type": "NULLABLE_MISMATCH"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_schema_drift"
+    }
+  }
+}

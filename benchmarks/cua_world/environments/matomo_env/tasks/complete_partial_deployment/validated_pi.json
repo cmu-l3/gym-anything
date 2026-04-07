@@ -1,0 +1,283 @@
+{
+    "task_id": "complete_partial_deployment@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_site",
+            "metadata_value": "GlobalRetail Corp",
+            "verified_value": "GlobalRetail Corp",
+            "source": "Live DB query confirmed site exists at idsite=2 with name 'GlobalRetail Corp'. Screenshot 09_site_settings.png shows it in the Manage Measurables page.",
+            "status": "verified"
+        },
+        {
+            "key": "site_config.expected_currency",
+            "metadata_value": "EUR",
+            "verified_value": "EUR",
+            "source": "deployment_spec.txt line 11 says 'Currency: EUR (Euro)'. EUR is a valid ISO 4217 currency code. Matomo supports EUR in its site settings (confirmed via matomo.org docs). This is the TARGET value; the initial state is correctly seeded as USD (confirmed by DB dump showing currency=USD for idsite=2).",
+            "status": "verified"
+        },
+        {
+            "key": "site_config.expected_timezone",
+            "metadata_value": "Europe/Berlin",
+            "verified_value": "Europe/Berlin",
+            "source": "deployment_spec.txt line 12 says 'Timezone: Europe/Berlin'. Europe/Berlin is a valid IANA timezone. Matomo uses IANA timezones (confirmed via developer.matomo.org FAQ on timezone settings). Initial state correctly seeded as UTC (confirmed by DB dump showing timezone=UTC for idsite=2).",
+            "status": "verified"
+        },
+        {
+            "key": "site_config.expected_ecommerce",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "deployment_spec.txt line 13 says 'E-commerce: Enabled'. Matomo stores ecommerce as 0 (disabled) or 1 (enabled). Initial state confirmed as ecommerce=0 by DB dump. Target is 1.",
+            "status": "verified"
+        },
+        {
+            "key": "site_config.expected_excluded_parameters",
+            "metadata_value": "fbclid,gclid,session_id",
+            "verified_value": "fbclid,gclid,session_id",
+            "source": "deployment_spec.txt line 14 specifies these exact parameters. fbclid is Facebook Click ID, gclid is Google Ads Click ID, session_id is a generic session tracker — all are real URL parameters commonly excluded from analytics. Matomo stores them as comma-separated in the excluded_parameters column. Initial state confirmed empty by DB dump.",
+            "status": "verified"
+        },
+        {
+            "key": "site_config.initial_currency",
+            "metadata_value": "USD",
+            "verified_value": "USD",
+            "source": "DB dump from live environment shows matomo_site row for idsite=2: currency=USD. Screenshot 09_site_settings.png shows 'CURRENCY: US Dollar' for GlobalRetail Corp.",
+            "status": "verified"
+        },
+        {
+            "key": "site_config.initial_timezone",
+            "metadata_value": "UTC",
+            "verified_value": "UTC",
+            "source": "DB dump from live environment shows matomo_site row for idsite=2: timezone=UTC. Screenshot 09_site_settings.png shows 'TIME ZONE: UTC' for GlobalRetail Corp.",
+            "status": "verified"
+        },
+        {
+            "key": "site_config.initial_ecommerce",
+            "metadata_value": 0,
+            "verified_value": 0,
+            "source": "DB dump from live environment shows matomo_site row for idsite=2: ecommerce=0.",
+            "status": "verified"
+        },
+        {
+            "key": "goals.product_page_view.name",
+            "metadata_value": "Product Page View",
+            "verified_value": "Product Page View",
+            "source": "DB dump shows goal idgoal=1 for idsite=2 with name='Product Page View'. Screenshot 05_goals_page.png shows 'Product Page View' in the Manage Goals table.",
+            "status": "verified"
+        },
+        {
+            "key": "goals.product_page_view.expected_pattern",
+            "metadata_value": "/products/",
+            "verified_value": "/products/",
+            "source": "DB dump shows pattern='/products/' for goal 1. Screenshot 05_goals_page.png shows 'Pattern contains: /products/'. deployment_spec.txt line 20 confirms 'Pattern: /products/'. should_change=false is correct — this goal is already properly configured.",
+            "status": "verified"
+        },
+        {
+            "key": "goals.product_page_view.expected_pattern_type",
+            "metadata_value": "contains",
+            "verified_value": "contains",
+            "source": "DB dump shows pattern_type='contains' for goal 1. Screenshot 05_goals_page.png shows 'Pattern contains:'. deployment_spec.txt line 20 confirms 'Match: contains'.",
+            "status": "verified"
+        },
+        {
+            "key": "goals.add_to_cart.initial_pattern",
+            "metadata_value": "/cart",
+            "verified_value": "/cart",
+            "source": "DB dump shows pattern='/cart' for goal 2. Screenshot 05_goals_page.png shows 'Pattern contains: /cart'. This is the deliberately WRONG initial pattern.",
+            "status": "verified"
+        },
+        {
+            "key": "goals.add_to_cart.expected_pattern",
+            "metadata_value": "/cart/add",
+            "verified_value": "/cart/add",
+            "source": "deployment_spec.txt line 23 specifies 'Pattern: /cart/add'. The agent must fix the initial '/cart' to '/cart/add'.",
+            "status": "verified"
+        },
+        {
+            "key": "goals.add_to_cart.expected_pattern_type",
+            "metadata_value": "contains",
+            "verified_value": "contains",
+            "source": "deployment_spec.txt line 22 specifies 'Match: contains'. DB dump confirms current pattern_type is already 'contains' (correct type, wrong pattern).",
+            "status": "verified"
+        },
+        {
+            "key": "goals.checkout_started.expected_pattern",
+            "metadata_value": "/checkout/start",
+            "verified_value": "/checkout/start",
+            "source": "deployment_spec.txt line 26 specifies 'Pattern: /checkout/start'. DB dump and export result.json confirm this goal does not exist yet (found=false). Agent must create it.",
+            "status": "verified"
+        },
+        {
+            "key": "goals.checkout_started.expected_pattern_type",
+            "metadata_value": "contains",
+            "verified_value": "contains",
+            "source": "deployment_spec.txt line 25 specifies 'Match: contains'.",
+            "status": "verified"
+        },
+        {
+            "key": "goals.purchase_complete.expected_pattern",
+            "metadata_value": "/order/confirmation",
+            "verified_value": "/order/confirmation",
+            "source": "deployment_spec.txt line 29 specifies 'Pattern: /order/confirmation'. DB dump confirms this goal does not exist yet. Agent must create it.",
+            "status": "verified"
+        },
+        {
+            "key": "goals.purchase_complete.expected_pattern_type",
+            "metadata_value": "exact",
+            "verified_value": "exact",
+            "source": "deployment_spec.txt line 28 specifies 'Match: exact'. Line 31 explicitly notes 'Goal 4 uses exact match, all others use contains'. Matomo stores this as pattern_type='exact' in the DB. This is the only goal with exact match type — a deliberate precision test.",
+            "status": "verified"
+        },
+        {
+            "key": "custom_dimensions.customer_tier.expected_scope",
+            "metadata_value": "visit",
+            "verified_value": "visit",
+            "source": "DB dump shows idcustomdimension=1 for idsite=2 with scope='visit', active=1. Screenshot 08_custom_dimensions.png shows 'Customer Tier' under 'Visit Dimensions' with an active checkmark. deployment_spec.txt line 36 confirms 'Scope: Visit'. should_change=false is correct.",
+            "status": "verified"
+        },
+        {
+            "key": "custom_dimensions.page_category.expected_scope",
+            "metadata_value": "action",
+            "verified_value": "action",
+            "source": "deployment_spec.txt line 37 specifies 'Page Category | Scope: Action | Status: Active'. DB dump and screenshot 08_custom_dimensions.png confirm no Action Dimension exists yet. Matomo's custom dimensions support 'action' scope (confirmed by screenshot showing separate 'Action Dimensions' section). should_create=true is correct.",
+            "status": "verified"
+        },
+        {
+            "key": "segments.high_value_customers.expected_definition",
+            "metadata_value": "visitorType==returning;actions>5",
+            "verified_value": "visitorType==returning;actions>5",
+            "source": "deployment_spec.txt lines 42-43: 'Visitor type is Returning AND Number of actions greater than 5'. Matomo segment API syntax (developer.matomo.org/api-reference/reporting-api-segmentation) confirms: visitorType is the segment name for visitor type, 'returning' is the accepted value, ';' is the AND operator, 'actions' is the segment name for number of actions, '>' is greater-than operator. DB dump confirms no segments exist yet.",
+            "status": "verified"
+        },
+        {
+            "key": "segments.mobile_shoppers.expected_definition",
+            "metadata_value": "deviceType==Smartphone",
+            "verified_value": "deviceType==Smartphone",
+            "source": "deployment_spec.txt lines 45-46: 'Device type is Smartphone'. Matomo API documentation lists 'deviceType' as the segment name. NOTE: The API docs list lowercase 'smartphone' as the value, but Matomo's UI generates 'Smartphone' (capital S) when creating segments via the GUI. A known Matomo bug (forum.matomo.org/t/59396) causes case-sensitivity inconsistencies. The existing remediate_analytics_audit task in this same repo uses 'deviceType==Smartphone' (capital S) and its verifier does case-insensitive matching. Either case works for scoring.",
+            "status": "verified"
+        },
+        {
+            "key": "segments.expected_visibility",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "deployment_spec.txt line 40 says 'both visible to all users'. Matomo stores this as enable_all_users=1 in the matomo_segment table. The export_result.sh queries this field.",
+            "status": "verified"
+        },
+        {
+            "key": "tag_manager.container_name",
+            "metadata_value": "GlobalRetail Tracker",
+            "verified_value": "GlobalRetail Tracker",
+            "source": "deployment_spec.txt line 51 specifies 'Container: GlobalRetail Tracker'. Screenshot 06_tagmanager_page.png confirms Tag Manager page is functional with empty state. DB dump confirms no containers exist for site 2. TagManager plugin is activated (confirmed by plugin list and screenshot showing 'Tag Manager' in top navigation).",
+            "status": "verified"
+        },
+        {
+            "key": "tag_manager.trigger_name",
+            "metadata_value": "AllPages",
+            "verified_value": "AllPages",
+            "source": "deployment_spec.txt lines 53-54 specify 'Trigger: AllPages, Type: Pageview'.",
+            "status": "verified"
+        },
+        {
+            "key": "tag_manager.trigger_type",
+            "metadata_value": "Pageview",
+            "verified_value": "PageView",
+            "source": "deployment_spec.txt line 54 says 'Type: Pageview'. Matomo Tag Manager internally stores the pageview trigger type as 'PageView' (capital V) in the database. The existing setup_tag_manager task's verifier does a substring check for 'PageView'. The metadata says 'Pageview' — functionally equivalent since verifiers do case-insensitive substring matching, but the exact DB value is 'PageView'.",
+            "status": "verified"
+        },
+        {
+            "key": "tag_manager.tags.pageview_tracker.name",
+            "metadata_value": "PageViewTracker",
+            "verified_value": "PageViewTracker",
+            "source": "deployment_spec.txt line 56 specifies 'Tag 1: PageViewTracker'.",
+            "status": "verified"
+        },
+        {
+            "key": "tag_manager.tags.pageview_tracker.type",
+            "metadata_value": "Matomo",
+            "verified_value": "Matomo",
+            "source": "deployment_spec.txt line 57 says 'Type: Matomo Analytics'. Matomo Tag Manager internally stores the Matomo Analytics tag type as 'Matomo' in the database type field. Confirmed by the existing setup_tag_manager task's verifier which checks for 'Matomo' substring.",
+            "status": "verified"
+        },
+        {
+            "key": "tag_manager.tags.conversion_event.name",
+            "metadata_value": "ConversionEvent",
+            "verified_value": "ConversionEvent",
+            "source": "deployment_spec.txt line 61 specifies 'Tag 2: ConversionEvent'.",
+            "status": "verified"
+        },
+        {
+            "key": "tag_manager.tags.conversion_event.type",
+            "metadata_value": "CustomHtml",
+            "verified_value": "CustomHtml",
+            "source": "deployment_spec.txt line 62 says 'Type: Custom HTML'. Matomo Tag Manager internally stores this as 'CustomHtml' in the database type field. Confirmed by the existing setup_tag_manager task's verifier which checks for 'CustomHtml' substring.",
+            "status": "verified"
+        },
+        {
+            "key": "tag_manager.tags.conversion_event.content",
+            "metadata_value": "<script>console.log(\"conversion-tracked\");</script>",
+            "verified_value": "<script>console.log(\"conversion-tracked\");</script>",
+            "source": "deployment_spec.txt line 63 specifies exactly this HTML content. The existing setup_tag_manager task's verifier performs whitespace-normalized comparison of the customHtml parameter field.",
+            "status": "verified"
+        },
+        {
+            "key": "tag_manager.publish_version_name",
+            "metadata_value": "v1-launch",
+            "verified_value": "v1-launch",
+            "source": "deployment_spec.txt line 66 specifies 'Publish the container as version name: v1-launch'. Matomo stores published versions in matomo_tagmanager_container_version with a name field.",
+            "status": "verified"
+        },
+        {
+            "key": "users.marketing_lead.login",
+            "metadata_value": "marketing_lead",
+            "verified_value": "marketing_lead",
+            "source": "deployment_spec.txt line 71 specifies 'Login: marketing_lead'. DB dump confirms no user with this login exists yet. Screenshot 07_users_page.png shows only admin user.",
+            "status": "verified"
+        },
+        {
+            "key": "users.marketing_lead.expected_access",
+            "metadata_value": "view",
+            "verified_value": "view",
+            "source": "deployment_spec.txt line 74 specifies 'Access level: View'. Matomo stores access as 'view', 'write', 'admin', or 'superuser' in the matomo_access table. 'view' is a valid access level.",
+            "status": "verified"
+        },
+        {
+            "key": "users.data_analyst.login",
+            "metadata_value": "data_analyst",
+            "verified_value": "data_analyst",
+            "source": "deployment_spec.txt line 77 specifies 'Login: data_analyst'. DB dump confirms no user with this login exists.",
+            "status": "verified"
+        },
+        {
+            "key": "users.data_analyst.expected_access",
+            "metadata_value": "admin",
+            "verified_value": "admin",
+            "source": "deployment_spec.txt line 80 specifies 'Access level: Admin'. Matomo's 'admin' access level grants full site management without superuser privileges. Valid access level confirmed.",
+            "status": "verified"
+        },
+        {
+            "key": "dashboard.expected_name",
+            "metadata_value": "Client Overview",
+            "verified_value": "Client Overview",
+            "source": "deployment_spec.txt line 86 specifies 'Dashboard name: Client Overview'. DB dump confirms no custom dashboards exist yet.",
+            "status": "verified"
+        },
+        {
+            "key": "dashboard.expected_modules",
+            "metadata_value": ["VisitsSummary", "Referrers", "DevicesDetection", "Goals"],
+            "verified_value": ["VisitsSummary", "Referrers", "DevicesDetection", "Goals"],
+            "source": "deployment_spec.txt lines 89-92 specifies these 4 widget modules. All four are real Matomo plugin module names confirmed by the activated plugins list in the DB dump: VisitsSummary (line 113), Referrers (line 104), DevicesDetection (line 106), Goals (line 107). Matomo dashboard stores widgets as JSON with 'module' parameter matching these names.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights_total",
+            "metadata_value": "107 (capped at 100)",
+            "verified_value": "107 (capped at 100)",
+            "source": "Sum of all scoring_weights values: 3+3+2+4+5+5+6+2+5+2+6+5+2+5+5+5+4+3+5+3+3+4+3+4+2+3+2+2+2+2 = 107. Verifier.py documents 'capped at 100' and pass threshold >= 70.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires completing a partially-configured Matomo analytics deployment for site 'GlobalRetail Corp' (site ID 2). INITIAL STATE: Site has currency=USD (should be EUR), timezone=UTC (should be Europe/Berlin), ecommerce=0 (should be 1), and no excluded URL parameters (should be fbclid,gclid,session_id). Two goals exist: 'Product Page View' (idgoal=1, pattern /products/, contains — CORRECT, do not modify) and 'Add to Cart' (idgoal=2, pattern /cart, contains — WRONG, should be /cart/add). One custom dimension exists: 'Customer Tier' (visit scope, active — CORRECT, do not modify). No segments, Tag Manager containers, non-admin users, or custom dashboards exist. TARGET STATE per deployment spec: Fix site config (EUR, Europe/Berlin, ecommerce enabled, exclude fbclid/gclid/session_id). Fix 'Add to Cart' goal pattern to /cart/add. Create goals 'Checkout Started' (/checkout/start, contains) and 'Purchase Complete' (/order/confirmation, EXACT match — only goal with exact type). Create custom dimension 'Page Category' (action scope, active). Create segments 'High-Value Customers' (visitorType==returning;actions>5, visible to all) and 'Mobile Shoppers' (deviceType==Smartphone, visible to all). Set up Tag Manager container 'GlobalRetail Tracker' with trigger 'AllPages' (Pageview type), tags 'PageViewTracker' (Matomo Analytics type) and 'ConversionEvent' (Custom HTML type with content <script>console.log(\"conversion-tracked\");</script>), both linked to AllPages trigger, published as version 'v1-launch'. Create users 'marketing_lead' (view access to GlobalRetail Corp only) and 'data_analyst' (admin access to GlobalRetail Corp only). Create dashboard 'Client Overview' with widgets from modules VisitsSummary, Referrers, DevicesDetection, and Goals. Do NOT modify 'Initial Site' (site ID 1). Login credentials: admin / Admin12345. Matomo URL: http://localhost/.",
+    "pi_confidence": "high"
+}

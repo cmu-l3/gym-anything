@@ -1,0 +1,37 @@
+{
+  "id": "ejection_delay_tuning@1",
+  "version": "1.0",
+  "env_id": "example.openrocket_env@0.1",
+  "description": "A model rocket has suffered parachute damage on previous flights due to incorrect motor ejection delays. The current design at /home/ga/Documents/rockets/zipper_prevention.ork has three motor configurations with dangerous delays (Estes E16 at 15s, AeroTech F67 at 14s, AeroTech G40 at 0s). Analyze the flight profiles, determine the optimal delay for each configuration, edit the motor settings to the nearest optimal integer delay, and verify via simulation that deployment velocity is strictly < 15 m/s. IMPORTANT: The parachute deployment event MUST remain set to 'Motor ejection charge' — do NOT change it to Apogee. Save the corrected design to /home/ga/Documents/rockets/zipper_prevention_fixed.ork and write a flight preparation report to /home/ga/Documents/exports/delay_report.txt listing each motor and its tuned delay.",
+  "difficulty": "hard",
+  "tags": ["motor-tuning", "recovery", "safety", "simulation", "flight-profile"],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 45,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ejection_delay_tuning/setup_task.sh",
+    "post_task": "/workspace/tasks/ejection_delay_tuning/export_result.sh"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ejection_delay_tuning"
+    }
+  },
+  "metadata": {
+    "source_ork": "simple_model_rocket.ork",
+    "start_ork_vm_path": "/home/ga/Documents/rockets/zipper_prevention.ork",
+    "fixed_ork_vm_path": "/home/ga/Documents/rockets/zipper_prevention_fixed.ork",
+    "report_vm_path": "/home/ga/Documents/exports/delay_report.txt",
+    "delay_ranges": {
+      "E16": {"min": 3.0, "max": 8.0},
+      "F67": {"min": 4.0, "max": 9.0},
+      "G40": {"min": 5.0, "max": 9.0}
+    },
+    "max_deployment_velocity_ms": 15.0,
+    "required_deploy_event": "ejectioncharge",
+    "pass_threshold": 65
+  }
+}

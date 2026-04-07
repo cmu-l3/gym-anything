@@ -1,0 +1,31 @@
+{
+    "task_id": "configure_apache_api_proxy@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_proxy_paths",
+            "metadata_value": "{\"user\": \"/proxy/user\", \"feeds\": \"/proxy/feeds\", \"publish\": \"/proxy/publish\", \"notification\": \"/proxy/notification\"}",
+            "verified_value": "{\"user\": \"/proxy/user\", \"feeds\": \"/proxy/feeds\", \"publish\": \"/proxy/publish\", \"notification\": \"/proxy/notification\"}",
+            "source": "Task instructions and verifier.py logic explicitly enforce these string values.",
+            "status": "verified"
+        },
+        {
+            "key": "env_file_path",
+            "metadata_value": "/opt/socioboard/socioboard-web-php/.env",
+            "verified_value": "/opt/socioboard/socioboard-web-php/.env",
+            "source": "setup_socioboard.sh script explicitly configures the PHP Laravel frontend using this file path.",
+            "status": "verified"
+        },
+        {
+            "key": "apache_conf_path",
+            "metadata_value": "/etc/apache2/sites-available/000-default.conf",
+            "verified_value": "/etc/apache2/sites-available/socioboard.conf",
+            "source": "setup_socioboard.sh explicitly runs 'a2dissite 000-default.conf' and 'a2ensite socioboard.conf', making socioboard.conf the actual active virtual host for port 80.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The environment relies on a locally deployed Socioboard 4.0 stack. The expected frontend `.env` path and the synthetic proxy routing paths match the claims. However, there are multiple critical contradictions in the prompt and task design: 1) The active Apache virtual host for port 80 is `socioboard.conf`, not `000-default.conf` (which is explicitly disabled by setup scripts). 2) The `export_result.sh` strictly parses `000-default.conf`, creating a catch-22 where modifying the truly active config fails the verifier's static check, but modifying the claimed config fails the live routing check (unless the agent also enables it, which breaks the main frontend). 3) The prompt claims the microservices are managed by `pm2`, but they actually run as `systemd` services (e.g., `socioboard-user.service`). 4) The prompt asserts Feeds runs on port 3001 and Publish on 3002, but the underlying systemd services map Publish to 3001 and Feeds to 3002.",
+    "pi_confidence": "high"
+}

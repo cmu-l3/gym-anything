@@ -1,0 +1,52 @@
+{
+    "task_id": "chinook_data_recovery@1",
+    "dataset": "Chinook Database",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "production_db",
+            "metadata_value": "/home/ga/Documents/databases/chinook.db",
+            "verified_value": "/home/ga/Documents/databases/chinook.db",
+            "source": "Verified via setup_task.sh which copies the base database to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "backup_db",
+            "metadata_value": "/home/ga/Documents/databases/chinook_backup.db",
+            "verified_value": "/home/ga/Documents/databases/chinook_backup.db",
+            "source": "Verified via setup_task.sh which creates the backup at this path.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_2009_invoices",
+            "metadata_value": 83,
+            "verified_value": 83,
+            "source": "Queried local copy of Chinook Database schema.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_2009_items",
+            "metadata_value": 438,
+            "verified_value": 454,
+            "source": "Queried local copy of Chinook Database via `SELECT COUNT(*) FROM invoice_items WHERE InvoiceId IN (SELECT InvoiceId FROM invoices WHERE InvoiceDate LIKE '2009%');` which returned exactly 454.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_2025_invoices",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "setup_task.sh explicitly inserts 5 new invoices with Date '2025-01-XX'.",
+            "status": "verified"
+        },
+        {
+            "key": "script_path",
+            "metadata_value": "/home/ga/Documents/scripts/recovery_script.sql",
+            "verified_value": "/home/ga/Documents/scripts/recovery_script.sql",
+            "source": "export_result.sh explicitly checks this path.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires restoring 2009 invoices and invoice items from the Chinook backup DB to the production DB while preserving synthetic 2025 invoices. Verified that the production and backup DB paths match the metadata. The baseline Chinook DB correctly contains 83 invoices from 2009, and the setup script explicitly inserts exactly 5 new invoices for 2025. However, there is a contradiction regarding the expected 2009 items: the metadata claims 438 items, but a direct SQL query of the invoice_items table for 2009 invoices reveals there are exactly 454 items. Additionally, verifier.py erroneously enforces the 438 value, which may artificially penalize correct executions.",
+    "pi_confidence": "high"
+}

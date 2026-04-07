@@ -1,0 +1,42 @@
+{
+  "id": "production_capacity_bottleneck@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are an Operations Manager at Adventure Works Cycles identifying manufacturing bottlenecks to plan for capital equipment expenditures. Using Azure Data Studio connected to the local SQL Server instance (AdventureWorks2022), build a capacity analysis system. \n\nThe system requires a scalar function 'dbo.fn_UtilizationRate(@ActualHours, @AvailableHours)' that returns a decimal (0-1) representing Actual / Available (returning NULL if Available is 0 or NULL). Create a view 'dbo.vw_WorkCenterMonthlyMetrics' that aggregates data from Production.WorkOrderRouting and Production.Location, grouping by LocationID, Year, and Month (excluding rows where ActualStartDate is NULL). The view must include LocationID, LocationName, CalendarYear, CalendarMonth, TotalWorkOrders, TotalActualHours, AvailableHours (Location.Availability * 4.33), UtilizationRate (using the function), AvgCostVariancePct (avg of (ActualCost - PlannedCost)/PlannedCost * 100), and AvgScheduleSlipDays (avg of ActualEndDate - ScheduledEndDate).\n\nStore the results in a table 'Production.BottleneckAnalysis' with columns for LocationID, LocationName, AnalysisYear, MonthsAnalyzed, AvgUtilizationRate, PeakUtilizationRate, AvgCostVariancePct, TotalScheduleSlipDays, BottleneckScore, and BottleneckRank. Implement a stored procedure 'dbo.usp_IdentifyBottlenecks (@AnalysisYear INT)' that truncates the analysis table, inserts aggregated data from the view for the given year, and calculates BottleneckScore as (AvgUtilizationRate * 40) + (AvgCostVariancePct * 0.3) + (TotalScheduleSlipDays/MonthsAnalyzed * 1.0) and BottleneckRank using DENSE_RANK() over BottleneckScore descending. Execute the procedure for the year 2013 and export the final contents of 'Production.BottleneckAnalysis' to '/home/ga/Documents/exports/bottleneck_report_2013.csv' including a header row.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/production_capacity_bottleneck/setup_task.sh",
+    "post_task": "/workspace/tasks/production_capacity_bottleneck/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/exports/bottleneck_report_2013.csv",
+    "analysis_year": 2013,
+    "min_expected_rows": 5,
+    "required_view_columns": [
+      "LocationID",
+      "LocationName",
+      "CalendarYear",
+      "CalendarMonth",
+      "TotalActualHours",
+      "AvailableHours",
+      "UtilizationRate"
+    ],
+    "required_table_columns": [
+      "LocationID",
+      "AnalysisYear",
+      "BottleneckScore",
+      "BottleneckRank"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_production_capacity_bottleneck"
+    }
+  }
+}

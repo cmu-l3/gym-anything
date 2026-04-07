@@ -3,11 +3,11 @@
 
 import sys
 import os
+import json
 import logging
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../', 'utils'))
 from wps_verification_utils import (
-    copy_json_from_env,
     copy_and_parse_spreadsheet,
     cleanup_verification_temp,
     get_spreadsheet_text,
@@ -76,17 +76,32 @@ def verify_financial_consolidation(traj, env_info, task_info):
 
     # Load ground truth
     gt = task_info.get('metadata', {}).get('ground_truth', {})
-    gt_override = copy_json_from_env(copy_from_env, '/tmp/financial_consolidation_gt.json')
-    if gt_override:
-        gt = gt_override
+    gt_file = None
+    try:
+        gt_file_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'tmp_gt.json')
+        # Try to copy GT from env
+        try:
+            copy_from_env('/tmp/financial_consolidation_gt.json', gt_file_path)
+            with open(gt_file_path) as f:
+                gt = json.load(f)
+        except Exception:
+            pass
+    except Exception:
+        pass
 
     container_paths = [
         "/home/ga/Documents/meridian_holdings_consolidation.xlsx",
     ]
     # Also search for any consolidation-related file
-    result_data = copy_json_from_env(copy_from_env, '/tmp/financial_consolidation_result.json')
-    if result_data and result_data.get('found_path'):
-        container_paths.insert(0, result_data['found_path'])
+    try:
+        docs_list_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'tmp_docs.txt')
+        copy_from_env('/tmp/financial_consolidation_result.json', docs_list_path)
+        with open(docs_list_path) as f:
+            result_data = json.load(f)
+        if result_data.get('found_path'):
+            container_paths.insert(0, result_data['found_path'])
+    except Exception:
+        pass
 
     success = False
     wb = None

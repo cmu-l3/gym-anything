@@ -1,0 +1,46 @@
+{
+  "id": "income_segregation_indices@1",
+  "version": "1.0",
+  "env_id": "urban_sim_env@0.1",
+  "description": "You are an urban planner preparing an income segregation analysis for the city's Affirmatively Furthering Fair Housing (AFFH) report. Using the San Francisco UrbanSim household data from the HDF5 store at ../data/sanfran_public.h5, compute income-based residential segregation indices in a Jupyter notebook at /home/ga/urbansim_projects/notebooks/income_segregation.ipynb using the 'UrbanSim (Python 3)' kernel. \n\nMap households to zones by joining households.building_id to buildings.parcel_id to parcels.zone_id, excluding households that cannot be mapped. Classify households into three income groups based on tercile boundaries: Low income (below 33rd percentile), Moderate income (33rd to 67th percentile), and High income (above 67th percentile). Calculate the Dissimilarity Index (D) between low-income and non-low-income households (D = 0.5 × Σ_i |low_i/LOW_total − nonlow_i/NONLOW_total|) and the Theil Entropy Index (H) for three-group segregation (H = Σ_i (t_i / T) × (E - E_i) / E, where E is citywide entropy and E_i is zone-level entropy). \n\nExport a zone-level CSV to /home/ga/urbansim_projects/output/zone_income_distribution.csv including zone_id, total_households, and the count and percentage for each income group. Save a JSON file to /home/ga/urbansim_projects/output/segregation_indices.json containing the dissimilarity_index, theil_index, num_zones_analyzed, num_households_analyzed, and the income_tercile_boundaries list. Generate a stacked bar chart showing income group distribution percentages for the 15 most populated zones at /home/ga/urbansim_projects/output/income_segregation_chart.png. Ensure all cells in the notebook are executed.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/income_segregation_indices/setup_task.sh",
+    "post_task": "/workspace/tasks/income_segregation_indices/export_result.sh"
+  },
+  "metadata": {
+    "expected_notebook_path": "/home/ga/urbansim_projects/notebooks/income_segregation.ipynb",
+    "expected_csv_path": "/home/ga/urbansim_projects/output/zone_income_distribution.csv",
+    "expected_json_path": "/home/ga/urbansim_projects/output/segregation_indices.json",
+    "expected_plot_path": "/home/ga/urbansim_projects/output/income_segregation_chart.png",
+    "data_path": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+    "expected_csv_columns": [
+      "zone_id",
+      "total_households",
+      "low_income_count",
+      "moderate_income_count",
+      "high_income_count",
+      "low_income_pct",
+      "moderate_income_pct",
+      "high_income_pct"
+    ],
+    "expected_json_keys": [
+      "dissimilarity_index",
+      "theil_index",
+      "num_zones_analyzed",
+      "num_households_analyzed",
+      "income_tercile_boundaries"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_income_segregation"
+    }
+  }
+}

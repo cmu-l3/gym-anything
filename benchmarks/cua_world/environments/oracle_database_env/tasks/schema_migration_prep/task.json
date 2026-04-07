@@ -1,0 +1,41 @@
+{
+  "id": "schema_migration_prep@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Prepare the Oracle HR schema for migration to a new instance. Extract the DDL for all objects in the HR schema (tables, views, indexes, sequences, etc.) into /home/ga/Desktop/hr_schema_ddl.sql. Create a migration manifest file at /home/ga/Desktop/migration_manifest.txt listing every object Name, Type, Status, and Row Count (for tables). Create backup copies of the EMPLOYEES, DEPARTMENTS, and JOBS tables named BKP_EMPLOYEES, BKP_DEPARTMENTS, and BKP_JOBS respectively. Generate a dependency report documenting foreign key relationships and object dependencies at /home/ga/Desktop/dependency_report.txt. Connection: Host=localhost, Port=1521, Database=XEPDB1, User=hr, Password=hr123.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/schema_migration_prep/setup_task.sh",
+    "post_task": "/workspace/tasks/schema_migration_prep/export_result.sh"
+  },
+  "metadata": {
+    "backup_tables": [
+      "BKP_EMPLOYEES",
+      "BKP_DEPARTMENTS",
+      "BKP_JOBS"
+    ],
+    "source_tables": [
+      "EMPLOYEES",
+      "DEPARTMENTS",
+      "JOBS"
+    ],
+    "output_files": [
+      "/home/ga/Desktop/hr_schema_ddl.sql",
+      "/home/ga/Desktop/migration_manifest.txt",
+      "/home/ga/Desktop/dependency_report.txt"
+    ],
+    "min_ddl_size_bytes": 2000,
+    "min_manifest_lines": 15
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_schema_migration_prep"
+    }
+  }
+}

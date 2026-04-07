@@ -1,0 +1,88 @@
+{
+  "id": "enrollment_reconciliation_report@1",
+  "version": "1.0",
+  "env_id": "openclinica_env@0.1",
+  "description": "You are a Clinical Data Manager preparing an enrollment reconciliation report for the Phase II Diabetes Trial (DM-TRIAL-2024) for a sponsor monitoring visit. Log into OpenClinica (username: root, password: Admin123!) and create a structured report file at ~/Documents/enrollment_reconciliation.txt using data gathered from the web interface.\n\nThe report must contain the following exact section headers and details:\n\n=== STUDY INFORMATION ===\nStudy Name: [Full study name from the system]\nProtocol ID: [Unique identifier]\nPrincipal Investigator: [PI Name]\nStudy Status: [Current status]\n\n=== ENROLLED SUBJECTS ===\nTotal Subjects: [Count of all subjects in this study, regardless of status]\n[For each subject, create one line formatted as follows:]\n[Subject Label] | [Gender: Male/Female] | [DOB: YYYY-MM-DD] | [Status]\n\n=== EVENT DEFINITIONS ===\nTotal Events: [Count of event definitions]\n[For each event definition, create one line formatted as follows:]\n[Event Name] | [Type: Scheduled/Unscheduled/Common] | [Repeating: Yes/No]\n\n=== STUDY USERS ===\n[For each user assigned a role in this study, create one line formatted as follows:]\n[Username] | [First Name Last Name] | [Role Name]\n\nEnsure the data is extracted via the application interface rather than direct database queries.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/enrollment_reconciliation_report/setup_task.sh",
+    "post_task": "/workspace/tasks/enrollment_reconciliation_report/export_result.sh"
+  },
+  "metadata": {
+    "expected_file": "/home/ga/Documents/enrollment_reconciliation.txt",
+    "study_info": {
+      "name": "Phase II Diabetes Trial",
+      "protocol_id": "DM-TRIAL-2024",
+      "pi": "Sarah Chen"
+    },
+    "expected_subjects": [
+      {
+        "label": "DM-101",
+        "gender": "Female",
+        "dob": "1968-03-22"
+      },
+      {
+        "label": "DM-102",
+        "gender": "Male",
+        "dob": "1952-11-07"
+      },
+      {
+        "label": "DM-103",
+        "gender": "Female",
+        "dob": "1980-07-14"
+      },
+      {
+        "label": "DM-104",
+        "gender": "Male",
+        "dob": "1945-09-30"
+      },
+      {
+        "label": "DM-105",
+        "gender": "Female",
+        "dob": "1973-06-12"
+      }
+    ],
+    "expected_events": [
+      {
+        "name": "Screening Visit",
+        "type": "Scheduled",
+        "repeating": "No"
+      },
+      {
+        "name": "Baseline Assessment",
+        "type": "Scheduled",
+        "repeating": "No"
+      },
+      {
+        "name": "Week 4 Follow-up",
+        "type": "Scheduled",
+        "repeating": "Yes"
+      }
+    ],
+    "expected_users": [
+      {
+        "username": "root",
+        "role": "director"
+      },
+      {
+        "username": "mrivera",
+        "role": "data_manager"
+      },
+      {
+        "username": "lchang",
+        "role": "monitor"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_enrollment_reconciliation_report"
+    }
+  }
+}

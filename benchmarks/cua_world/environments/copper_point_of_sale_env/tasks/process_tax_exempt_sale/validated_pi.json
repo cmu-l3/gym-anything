@@ -1,0 +1,87 @@
+{
+    "task_id": "process_tax_exempt_sale@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_customer",
+            "metadata_value": "City General Hospital",
+            "verified_value": "NOT PRE-EXISTING in customers.csv database; must be created during task execution",
+            "source": "Analysis of /examples/copper_point_of_sale_env/data/customers.csv - contains 30 customer records (rows 2-31), verified via grep for 'City General Hospital' and 'Hospital' - no matches found",
+            "status": "contradicted"
+        },
+        {
+            "key": "target_item",
+            "metadata_value": "Industrial Cleaner 1Gal",
+            "verified_value": "NOT PRE-EXISTING in products.csv inventory; contradicts task description claiming 'exists in inventory'; must be created during task execution",
+            "source": "Analysis of /examples/copper_point_of_sale_env/data/products.csv - contains 100 product records with columns: Item Name, Description, Category, Price, Cost, Quantity, Barcode, SKU, Tax Rate, Taxable. Verified via grep for 'Industrial Cleaner' - no matches found",
+            "status": "contradicted"
+        },
+        {
+            "key": "target_qty",
+            "metadata_value": 2,
+            "verified_value": "2 (stated in metadata and task description)",
+            "source": "task.json metadata field and task description 'consisting of 2 units of Industrial Cleaner 1Gal'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_subtotal",
+            "metadata_value": 50.00,
+            "verified_value": "50.00 (mathematically correct: 2 units × $25.00/unit = $50.00)",
+            "source": "Mathematical calculation: qty (2) × unit_price ($25.00) = expected_subtotal",
+            "status": "verified"
+        },
+        {
+            "key": "expected_tax",
+            "metadata_value": 0.00,
+            "verified_value": "0.00 (for tax-exempt customer; would be $4.00 with 8% rate if not exempt: $50.00 × 0.08 = $4.00)",
+            "source": "Task description states 'total tax for this transaction should be $0.00 due to the customer's exemption status'. Verified NCH Copper POS supports tax exemption via web search",
+            "status": "verified"
+        },
+        {
+            "key": "expected_total",
+            "metadata_value": 50.00,
+            "verified_value": "50.00 (mathematically correct: subtotal $50.00 + tax $0.00 = $50.00)",
+            "source": "Mathematical calculation: subtotal ($50.00) + tax ($0.00) = expected_total",
+            "status": "verified"
+        },
+        {
+            "key": "tax_rate_percent",
+            "metadata_value": 8,
+            "verified_value": "8 (plausible; actual products in database use 8.25%, but 8% is within normal sales tax ranges)",
+            "source": "Analysis of products.csv shows taxable items use 8.25% tax rate; 8% is a reasonable configuration for the test environment",
+            "status": "verified"
+        },
+        {
+            "key": "copper_data_path",
+            "metadata_value": "C:\\ProgramData\\NCH Software\\Copper",
+            "verified_value": "Installation confirmed at C:\\Program Files (x86)\\NCH Software\\Copper per environment notes; data directory configured in environment as C:\\Users\\Docker\\Documents\\CopperData\\",
+            "source": "env_creation_notes/specific_env_notes/copper_point_of_sale_env/notes.md lines 5-10 (install path) and lines 109-110 (data location)",
+            "status": "unverified"
+        },
+        {
+            "key": "software_is_real",
+            "metadata_value": null,
+            "verified_value": "NCH Copper Point of Sale v3.06 (July 2018) is a real, publicly available retail POS system from NCH Software (Australian company)",
+            "source": "Web search confirms: https://www.nchsoftware.com/point-of-sale/index.html - official product page; software supports tax exemption feature, multiple payment methods, inventory management, and customer management",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": null,
+            "verified_value": "Products data from Shopify Partners product-csvs; customers data from datablist sample data; both are synthetic/generated for testing purposes",
+            "source": "env_creation_notes/specific_env_notes/copper_point_of_sale_env/notes.md line 111",
+            "status": "verified"
+        },
+        {
+            "key": "missing_setup_scripts",
+            "metadata_value": null,
+            "verified_value": "Task hooks reference 'setup_task.ps1' and 'export_result.ps1' but these files do NOT exist in the task directory; similar tasks (add_inventory_item, add_customer, etc.) have these scripts",
+            "source": "Glob search for *.ps1 files in process_tax_exempt_sale task directory returns no setup_task.ps1 or export_result.ps1; comparison with other tasks shows these should exist",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The 'process_tax_exempt_sale' task operates on NCH Copper Point of Sale v3.06, a real retail POS software that supports tax exemption. The metadata claims are mathematically consistent: 2 units × $25.00 = $50.00 subtotal, with $0.00 tax due to exemption status, yielding $50.00 total. However, the task description contradicts the actual test data: it claims the item 'Industrial Cleaner 1Gal' already 'exists in inventory', but the products.csv database contains 100 sample products and does NOT include this item. Similarly, 'City General Hospital' is not in the 30-record customers.csv. Both must be created during task execution. The task's setup scripts (setup_task.ps1, export_result.ps1) referenced in hooks are missing, which prevents the expected pre-task item/customer setup. The 8% tax rate is plausible (actual database items use 8.25%), and the tax exemption logic is correctly implemented in Copper POS. Data is synthetic (generated from Shopify and datablist sources for testing).",
+    "pi_confidence": "high"
+}

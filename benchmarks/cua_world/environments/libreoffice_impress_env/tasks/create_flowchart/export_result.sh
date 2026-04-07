@@ -1,17 +1,26 @@
 #!/bin/bash
-set -euo pipefail
+set -e
 
 source /workspace/scripts/task_utils.sh
 
 echo "=== Exporting Create Flowchart Result ==="
 
-wid=$(get_impress_window_id)
-if [ -n "$wid" ]; then
-    focus_window "$wid"
-fi
+focus_window "Impress" || focus_window "flowchart_test" || true
+sleep 1
 
-safe_xdotool ga :1 key --delay 200 ctrl+s
-wait_for_file "/home/ga/Documents/Presentations/flowchart_test.odp" 5
-safe_xdotool ga :1 key --delay 200 ctrl+q
+# Save file
+su - ga -c "DISPLAY=:1 xdotool key --delay 200 ctrl+s" || true
+sleep 3
+su - ga -c "DISPLAY=:1 xdotool key Return" || true
+sleep 2
+
+echo "Files in Presentations directory:"
+ls -lh /home/ga/Documents/Presentations/ 2>/dev/null || true
+
+# Close Impress
+su - ga -c "DISPLAY=:1 xdotool key --delay 200 ctrl+q" || true
+sleep 2
+su - ga -c "DISPLAY=:1 xdotool key Return" || true
+sleep 1
 
 echo "=== Export Complete ==="

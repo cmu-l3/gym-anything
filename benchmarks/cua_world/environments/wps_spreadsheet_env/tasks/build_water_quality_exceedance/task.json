@@ -1,0 +1,33 @@
+{
+  "id": "build_water_quality_exceedance@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Build a water quality exceedance analysis workbook in WPS Spreadsheet using the raw data from /home/ga/Documents/water_quality_raw.csv. The final workbook, saved to /home/ga/Documents/water_quality_report.xlsx, must include four sheets. The 'Raw Data' sheet should contain the imported CSV data with bold headers. The 'Regulatory Limits' sheet must feature a table with columns for Parameter, MCL_Value, Unit, and Standard_Type, including limits for pH_Low (6.5), pH_High (8.5), Nitrate (10), Lead (0.015), Arsenic (0.010), Turbidity (4), TDS (500), Fluoride (4.0), and Copper (1.3). The 'Exceedance Analysis' sheet should use VLOOKUP to fetch MCL values and IF formulas to generate an 'Exceedance_Flag' ('EXCEED' or 'PASS') based on whether Result_Value exceeds the MCL (or falls outside the 6.5-8.5 range for pH). Finally, the 'Summary' sheet must include a 'Parameter Exceedance Summary' table and a 'Station Compliance Summary' table calculating totals and percentage rates using COUNTIF/COUNTIFS.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/build_water_quality_exceedance/setup_task.sh",
+    "post_task": "/workspace/tasks/build_water_quality_exceedance/export_result.sh"
+  },
+  "metadata": {
+    "input_csv": "/home/ga/Documents/water_quality_raw.csv",
+    "expected_output_path": "/home/ga/Documents/water_quality_report.xlsx",
+    "ground_truth_file": "/tmp/ground_truth_exceedances.json",
+    "expected_sheets": [
+      "Raw Data",
+      "Regulatory Limits",
+      "Exceedance Analysis",
+      "Summary"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_water_quality_report"
+    }
+  }
+}

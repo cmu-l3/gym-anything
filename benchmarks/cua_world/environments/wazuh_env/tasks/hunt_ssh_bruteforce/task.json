@@ -1,0 +1,50 @@
+{
+  "id": "hunt_ssh_bruteforce@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Investigate a suspected SSH brute-force campaign in the 'wazuh-alerts-4.x-2024.01.15' index. Identify attacker IPs with 10 or more failed attempts (rules 5710, 5712, 5716, 5720, 5551) and compromised hosts that recorded a successful login (rules 5715, 5501) from those IPs. Export a JSON report to '~/threat_hunt_report.json' with the following structure:\n\n{\n  \"hunt_id\": \"SSH-BRUTE-2024-001\",\n  \"total_ssh_failure_alerts\": <integer>,",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hunt_ssh_bruteforce/setup_task.sh",
+    "post_task": "/workspace/tasks/hunt_ssh_bruteforce/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/threat_hunt_report.json",
+    "ground_truth": {
+      "total_failures": 145,
+      "total_successes": 23,
+      "attackers": [
+        {
+          "ip": "185.220.101.42",
+          "failures": 87,
+          "compromised": [
+            "web-server-01"
+          ]
+        },
+        {
+          "ip": "45.33.32.156",
+          "failures": 43,
+          "compromised": []
+        },
+        {
+          "ip": "103.253.41.98",
+          "failures": 15,
+          "compromised": [
+            "db-server-01"
+          ]
+        }
+      ]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hunt_ssh_bruteforce"
+    }
+  }
+}

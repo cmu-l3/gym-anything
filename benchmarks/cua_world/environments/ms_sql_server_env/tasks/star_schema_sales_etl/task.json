@@ -1,0 +1,62 @@
+{
+  "id": "star_schema_sales_etl@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are a data warehouse engineer. Build a sales analytics star schema in a new DW schema from AdventureWorks2022.\n\nDW.DimDate: One row per day, 2010-01-01 to 2014-12-31. Columns: DateKey (INT, YYYYMMDD format), FullDate, Year, Quarter, Month, MonthName, DayOfWeek, DayName, IsWeekend (BIT), FiscalYear (July-June: July 2013 = FY2014), FiscalQuarter (Q1=Jul-Sep, Q2=Oct-Dec, Q3=Jan-Mar, Q4=Apr-Jun).\n\nDW.DimProduct: Surrogate key ProductSK (IDENTITY). All products LEFT JOINed to ProductSubcategory and ProductCategory. NULL category = 'Uncategorized', NULL subcategory = 'General'. Include ProductID, ProductName, ProductNumber, CategoryName, SubcategoryName, Color, ListPrice, StandardCost, IsActive (1 if SellEndDate IS NULL).\n\nDW.DimCustomer: Surrogate key CustomerSK (IDENTITY). CustomerName: 'FirstName LastName' for individuals (those with PersonID), 'Store: StoreName' for store-only customers. Include CustomerID, AccountNumber, CustomerType ('Individual'/'Store'), TerritoryName, TerritoryGroup, CountryRegionCode.\n\nDW.FactSales: One row per SalesOrderDetail line. Foreign keys: OrderDateKey, ShipDateKey (NULL if ShipDate NULL) to DimDate.DateKey; ProductSK to DimProduct; CustomerSK to DimCustomer. Include SalesOrderID, SalesOrderDetailID, OrderQty, UnitPrice, UnitPriceDiscount, LineTotal, AllocatedTax (= LineTotal/SubTotal * TaxAmt per order; 0 when SubTotal = 0), AllocatedFreight (same logic), TotalLineAmount (LineTotal + AllocatedTax + AllocatedFreight).\n\nCreate stored procedure DW.usp_LoadStarSchema to populate everything with surrogate key lookups. Execute it.\n\nValidation: SUM(FactSales.LineTotal) must equal SUM(Sales.SalesOrderDetail.LineTotal) within $0.01.\n\nExport total revenue (SUM of TotalLineAmount) by FiscalYear and TerritoryGroup to /home/ga/Documents/exports/dw_revenue_summary.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 3600,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/star_schema_sales_etl/setup_task.sh",
+    "post_task": "/workspace/tasks/star_schema_sales_etl/export_result.sh"
+  },
+  "metadata": {
+    "domain": "Data Warehouse Engineering / Business Intelligence",
+    "occupation": "Data Warehouse Engineer",
+    "soc_code": "15-1252.00",
+    "soc_major_group": "Computer and Mathematical Occupations",
+    "application": "Azure Data Studio + Microsoft SQL Server 2022",
+    "database": "AdventureWorks2022",
+    "dataset": "AdventureWorks2022 Sales (31K orders, 121K line items, 504 products, 19K customers)",
+    "key_tables": [
+      "Sales.SalesOrderHeader",
+      "Sales.SalesOrderDetail",
+      "Sales.Customer",
+      "Sales.SalesTerritory",
+      "Sales.Store",
+      "Person.Person",
+      "Production.Product",
+      "Production.ProductSubcategory",
+      "Production.ProductCategory"
+    ],
+    "required_objects": [
+      "DW schema",
+      "DW.DimDate table",
+      "DW.DimProduct table",
+      "DW.DimCustomer table",
+      "DW.FactSales table",
+      "DW.usp_LoadStarSchema stored procedure"
+    ],
+    "output_csv_path": "/home/ga/Documents/exports/dw_revenue_summary.csv",
+    "result_file": "/tmp/star_schema_result.json",
+    "dimdate_expected_rows_min": 1826,
+    "dimdate_expected_rows_max": 1827,
+    "fiscal_year_test_date": "2013-07-15",
+    "fiscal_year_expected": 2014,
+    "fiscal_quarter_test_date": "2013-10-15",
+    "fiscal_quarter_expected": 2,
+    "weekend_test_date": "2013-01-05",
+    "weekend_expected": 1,
+    "reconciliation_tolerance": 0.01,
+    "difficulty_rationale": "Requires building a complete dimensional model with interdependent tables. The fact table cannot load without correct dimensions. Proportional tax/freight allocation requires careful handling of division by zero and rounding. Fiscal year logic (July-June) is a common off-by-one trap. Customer dimension requires understanding the dual-type relationship (PersonID vs StoreID) in AdventureWorks. Surrogate key lookups across three dimensions create cascading failure modes where a single missing dimension row breaks reconciliation."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_star_schema_sales_etl"
+    }
+  }
+}

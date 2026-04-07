@@ -1,0 +1,108 @@
+{
+    "task_id": "materialize_monthly_revenue@1",
+    "dataset": "demodb",
+    "case_id": "Orders_to_MonthlyStats_aggregation",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "database",
+            "metadata_value": "demodb",
+            "verified_value": "demodb",
+            "source": "Verified in setup_task.sh line 16 (DROP CLASS MonthlyStats from demodb), export_result.sh line 27 (queries demodb), and seed_demodb.py lines 50-52 (creates demodb database)",
+            "status": "verified"
+        },
+        {
+            "key": "source_class",
+            "metadata_value": "Orders",
+            "verified_value": "Orders",
+            "source": "Verified in setup_task.sh line 47 (CREATE CLASS Orders), seed_demodb.py lines 75 and 145-153 (Orders class properties), and export_result.sh line 27 (queries Orders class)",
+            "status": "verified"
+        },
+        {
+            "key": "target_class",
+            "metadata_value": "MonthlyStats",
+            "verified_value": "MonthlyStats",
+            "source": "Verified in task.json description, setup_task.sh line 16 (DROP CLASS MonthlyStats), verifier.py line 54 (checks for MonthlyStats class creation)",
+            "status": "verified"
+        },
+        {
+            "key": "required_properties_Year",
+            "metadata_value": "INTEGER",
+            "verified_value": "INTEGER",
+            "source": "Verified in task.json metadata (Year: INTEGER) and task description (Year with type Integer). verifier.py lines 65 allows [INTEGER, LONG, SHORT]",
+            "status": "verified"
+        },
+        {
+            "key": "required_properties_Month",
+            "metadata_value": "INTEGER",
+            "verified_value": "INTEGER",
+            "source": "Verified in task.json metadata (Month: INTEGER) and task description (Month with type Integer). verifier.py line 66 allows [INTEGER, LONG, SHORT]",
+            "status": "verified"
+        },
+        {
+            "key": "required_properties_TotalRevenue",
+            "metadata_value": "DOUBLE",
+            "verified_value": "DOUBLE",
+            "source": "Verified in task.json metadata (TotalRevenue: DOUBLE) and task description (TotalRevenue with type Double). verifier.py line 67 allows [DOUBLE, FLOAT, DECIMAL]",
+            "status": "verified"
+        },
+        {
+            "key": "required_properties_OrderCount",
+            "metadata_value": "INTEGER",
+            "verified_value": "INTEGER",
+            "source": "Verified in task.json metadata (OrderCount: INTEGER) and task description (OrderCount with type Integer). verifier.py line 68 allows [INTEGER, LONG, SHORT]",
+            "status": "verified"
+        },
+        {
+            "key": "required_index_type",
+            "metadata_value": "UNIQUE",
+            "verified_value": "UNIQUE",
+            "source": "Verified in task.json metadata and task.json description: 'Create a UNIQUE index on MonthlyStats covering both Year and Month properties'. verifier.py lines 90 checks for UNIQUE index on (Year, Month)",
+            "status": "verified"
+        },
+        {
+            "key": "data_origin",
+            "metadata_value": null,
+            "verified_value": "Synthetically generated in setup_task.sh",
+            "source": "setup_task.sh lines 18-81: Python script generates ~150 random Orders records with random dates (2022-01-01 to 2023-12-31, 730-day range), random prices (20.0-500.0), and random statuses (paid, pending, cancelled, refunded)",
+            "status": "verified"
+        },
+        {
+            "key": "data_record_count_approximate",
+            "metadata_value": null,
+            "verified_value": "~150 records",
+            "source": "setup_task.sh line 59: for _ in range(150) - generates 150 random Order records",
+            "status": "verified"
+        },
+        {
+            "key": "source_data_status_filter",
+            "metadata_value": null,
+            "verified_value": "Only 'paid' status orders are aggregated",
+            "source": "export_result.sh line 27: SELECT with WHERE Status='paid' filters source data. verifier.py line 118 double-checks status='paid'. Task description requirement 3 states: 'Filter: Only include orders where Status is paid'",
+            "status": "verified"
+        },
+        {
+            "key": "aggregation_function_revenue",
+            "metadata_value": null,
+            "verified_value": "Sum of Price field (TotalRevenue)",
+            "source": "Task description: 'Calculate sum of Price (as TotalRevenue)'. verifier.py lines 129 accumulates revenue: ground_truth[key]['revenue'] += price",
+            "status": "verified"
+        },
+        {
+            "key": "aggregation_function_count",
+            "metadata_value": null,
+            "verified_value": "Count of orders (OrderCount)",
+            "source": "Task description: 'count of orders (as OrderCount)'. verifier.py lines 130 increments count: ground_truth[key]['count'] += 1",
+            "status": "verified"
+        },
+        {
+            "key": "grouping_by_date_fields",
+            "metadata_value": null,
+            "verified_value": "Year and Month extracted from Date field",
+            "source": "Task description requirement 3: 'Group by Year and Month of the Date field'. verifier.py lines 124-128 parse date and extract year/month: key = (dt.year, dt.month)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The materialize_monthly_revenue task operates on the demodb database using OrientDB. The source data consists of synthetically generated Orders records (~150 records with random dates spanning 2022-2023, prices between $20-$500, and random statuses). The task requires creating a MonthlyStats vertex class with Integer Year/Month, Double TotalRevenue, and Integer OrderCount properties, plus a UNIQUE composite index on (Year, Month). Aggregation filters for paid orders only, groups by Year and Month from the Date field, sums the Price field for TotalRevenue, and counts orders for OrderCount.",
+    "pi_confidence": "high"
+}

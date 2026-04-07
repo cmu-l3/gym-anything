@@ -1,0 +1,115 @@
+{
+    "task_id": "chinook_composer_normalization@1",
+    "dataset": "Chinook Database",
+    "case_id": "composer_normalization_task",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "db_path",
+            "metadata_value": "/home/ga/Documents/databases/chinook_normalize.db",
+            "verified_value": "/home/ga/Documents/databases/chinook_normalize.db",
+            "source": "task.json metadata field; verified against setup_task.sh and export_result.sh which use the same path",
+            "status": "verified"
+        },
+        {
+            "key": "connection_name",
+            "metadata_value": "ChinookNormalize",
+            "verified_value": "ChinookNormalize",
+            "source": "task.json metadata field; verified against task description and export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "export_path",
+            "metadata_value": "/home/ga/Documents/exports/top_composers.csv",
+            "verified_value": "/home/ga/Documents/exports/top_composers.csv",
+            "source": "task.json metadata field; verified against setup_task.sh and export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "script_path",
+            "metadata_value": "/home/ga/Documents/scripts/normalize_composers.sql",
+            "verified_value": "/home/ga/Documents/scripts/normalize_composers.sql",
+            "source": "task.json metadata field; verified against setup_task.sh and export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "required_tables",
+            "metadata_value": "[\"composers\", \"track_composers\"]",
+            "verified_value": "[\"composers\", \"track_composers\"]",
+            "source": "task.json metadata field; verified against task description which specifies creating 'composers' and 'track_composers' tables",
+            "status": "verified"
+        },
+        {
+            "key": "required_view",
+            "metadata_value": "v_track_composers",
+            "verified_value": "v_track_composers",
+            "source": "task.json metadata field; verified against task description which specifies creating view 'v_track_composers'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_composer_count",
+            "metadata_value": "850 (fallback value in setup_task.sh)",
+            "verified_value": 947,
+            "source": "Direct analysis of chinook.db: SELECT COUNT(DISTINCT composers) after parsing comma-separated Composer field from tracks where Composer IS NOT NULL AND Composer != ''",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_bridge_count",
+            "metadata_value": "3500 (fallback value in setup_task.sh)",
+            "verified_value": 3713,
+            "source": "Direct analysis of chinook.db: COUNT of all composer-track links when splitting and parsing Composer field from 2525 tracks with non-null Composer values",
+            "status": "contradicted"
+        },
+        {
+            "key": "top_composer_name",
+            "metadata_value": "Steve Harris (fallback value in setup_task.sh)",
+            "verified_value": "Steve Harris",
+            "source": "Direct analysis of chinook.db: Verified by parsing all Composer values and counting tracks per composer",
+            "status": "verified"
+        },
+        {
+            "key": "top_composer_count",
+            "metadata_value": "0 (fallback value in setup_task.sh)",
+            "verified_value": 80,
+            "source": "Direct analysis of chinook.db: Steve Harris appears in 80 distinct tracks when Composer values are parsed",
+            "status": "contradicted"
+        },
+        {
+            "key": "total_tracks_with_composer",
+            "metadata_value": "0 (fallback value in setup_task.sh)",
+            "verified_value": 2525,
+            "source": "Direct analysis of chinook.db: SELECT COUNT(*) FROM tracks WHERE Composer IS NOT NULL AND Composer != ''",
+            "status": "contradicted"
+        },
+        {
+            "key": "composer_column_contains_comma_separated_values",
+            "metadata_value": "true (from task description)",
+            "verified_value": true,
+            "source": "Direct analysis of chinook.db: Sample data shows composers like 'Angus Young, Malcolm Young, Brian Johnson' in TrackId 1",
+            "status": "verified"
+        },
+        {
+            "key": "example_composer_value",
+            "metadata_value": "Angus Young, Malcolm Young, Brian Johnson (from task description example)",
+            "verified_value": "Angus Young, Malcolm Young, Brian Johnson",
+            "source": "Direct search in chinook.db: Found in tracks with TrackIds 1, 6-14 (AC/DC album tracks)",
+            "status": "verified"
+        },
+        {
+            "key": "database_type",
+            "metadata_value": "SQLite (from task description and env.json)",
+            "verified_value": "SQLite",
+            "source": "Confirmed by file extension .db and sqlite3 schema inspection",
+            "status": "verified"
+        },
+        {
+            "key": "database_source",
+            "metadata_value": "Public Chinook sample database (inferred from database name and schema)",
+            "verified_value": "Public Chinook sample database from GitHub (lerocha/chinook-database)",
+            "source": "Web search confirmed Chinook is a well-known public sample database; schema and table names match public Chinook database specification",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the public Chinook sample database, a well-known SQLite database representing a digital media store. The database contains 3,503 total tracks, of which 2,525 have non-null Composer values. The Composer column contains comma-separated composer names (e.g., 'Angus Young, Malcolm Young, Brian Johnson'). When properly parsed by splitting on commas and trimming whitespace, these 2,525 tracks contain 3,713 total composer-track links representing 947 unique composers. 'Steve Harris' is the top composer by track count with 80 appearances. However, the setup script contains inaccurate fallback values: it claims expected_composer_count=850 (actual: 947), expected_bridge_count=3500 (actual: 3713), and top_composer_count=0 (actual: 80). These discrepancies could cause verification issues if the dynamic calculation in setup_task.sh fails.",
+    "pi_confidence": "high"
+}

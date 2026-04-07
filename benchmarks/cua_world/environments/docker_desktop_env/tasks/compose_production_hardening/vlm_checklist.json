@@ -1,0 +1,53 @@
+{
+  "task_id": "compose_production_hardening@1",
+  "task_completion": [
+    {
+      "id": "restart_policies_implemented",
+      "description": "Verify that restart policies are implemented for all services.",
+      "points": 15,
+      "visual_evidence": "Look for a text editor or terminal output showing the contents of /home/ga/webapp/docker-compose.yml. Check that 'restart: always', 'restart: unless-stopped', or 'restart: on-failure' is added under the 'nginx', 'app', and 'redis' service definitions."
+    },
+    {
+      "id": "health_checks_implemented",
+      "description": "Verify that health checks are implemented for all services.",
+      "points": 20,
+      "visual_evidence": "Look for the 'healthcheck:' block under the 'nginx', 'app', and 'redis' service definitions in the docker-compose.yml file. It should include a 'test:' command (like curl, ping, or redis-cli ping)."
+    },
+    {
+      "id": "resource_limits_implemented",
+      "description": "Verify that CPU and memory resource limits are implemented for all services.",
+      "points": 20,
+      "visual_evidence": "Look for resource limits in the docker-compose.yml file. This is typically found under 'deploy:' -> 'resources:' -> 'limits:' with 'cpus:' and 'memory:' specified, or using the older 'mem_limit:' and 'cpus:' keys directly under the 'nginx', 'app', and 'redis' services."
+    },
+    {
+      "id": "network_isolation_implemented",
+      "description": "Verify that frontend and backend networks are created and services are properly isolated.",
+      "points": 25,
+      "visual_evidence": "Look for a top-level 'networks:' block defining 'frontend' and 'backend' in docker-compose.yml. Check the service definitions to ensure 'networks:' are assigned appropriately (e.g., redis should only be on the 'backend' network, while nginx and app connect to the required networks to function)."
+    },
+    {
+      "id": "application_functional",
+      "description": "Verify that the application is running and fully functional at port 9080.",
+      "points": 20,
+      "visual_evidence": "Look for a web browser navigated to http://localhost:9080 showing the running application, OR a terminal showing a successful 'curl http://localhost:9080' command returning HTML content, alongside 'docker compose ps' showing the services as 'Up' (and ideally 'healthy')."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_file_modification",
+      "description": "Ensure the agent actually modified the docker-compose.yml file.",
+      "visual_evidence": "Look for evidence of a text editor (like nano, vim, or VS Code) being used to edit /home/ga/webapp/docker-compose.yml, or terminal commands like 'sed' or 'echo' modifying the file, rather than just printing the expected output."
+    },
+    {
+      "id": "services_restarted",
+      "description": "Ensure the agent applied the changes by restarting the Docker Compose services.",
+      "visual_evidence": "Look for terminal commands like 'docker compose up -d', 'docker-compose up --build', or 'docker compose restart' being executed in the /home/ga/webapp/ directory after the file modifications."
+    },
+    {
+      "id": "genuine_testing",
+      "description": "Ensure the agent genuinely tested the application's functionality.",
+      "visual_evidence": "Look for actual execution of 'curl' commands or a real web browser window opened to localhost:9080, rather than a mocked or echoed success message."
+    }
+  ],
+  "privileged_info_for_vlm": "The application directory is /home/ga/webapp. The docker-compose.yml file must define exactly three services: 'nginx', 'app', and 'redis'. The application must remain accessible at port 9080. Network isolation requires at least two networks: 'frontend' and 'backend'. For proper isolation, 'redis' should only be connected to the 'backend' network, while 'nginx' and 'app' bridge the necessary networks."
+}

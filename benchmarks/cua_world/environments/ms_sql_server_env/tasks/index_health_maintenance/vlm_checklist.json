@@ -1,0 +1,53 @@
+{
+  "task_id": "index_health_maintenance@1",
+  "task_completion": [
+    {
+      "id": "schema_and_tables_created",
+      "description": "Create the DBAMaintenance schema and the IndexHealthReport and OverlappingIndexes tables",
+      "points": 15,
+      "visual_evidence": "Look for a SQL client (like Azure Data Studio, SSMS, or terminal) showing the successful execution of CREATE SCHEMA DBAMaintenance and CREATE TABLE statements for IndexHealthReport and OverlappingIndexes, or these objects visible in the database Object Explorer."
+    },
+    {
+      "id": "analyze_health_proc_created_and_executed",
+      "description": "Develop and execute the usp_AnalyzeIndexHealth stored procedure",
+      "points": 25,
+      "visual_evidence": "Look for SQL code creating the procedure 'usp_AnalyzeIndexHealth' that queries 'sys.dm_db_index_physical_stats' and includes logic for 'REBUILD' (>30%) and 'REORGANIZE' (10-30%). There should be evidence of its execution (e.g., 'EXEC DBAMaintenance.usp_AnalyzeIndexHealth' followed by a success message)."
+    },
+    {
+      "id": "detect_overlap_proc_created_and_executed",
+      "description": "Develop and execute the usp_DetectOverlappingIndexes stored procedure",
+      "points": 25,
+      "visual_evidence": "Look for SQL code creating the procedure 'usp_DetectOverlappingIndexes' with logic to find 'EXACT_DUPLICATE' or 'LEFT_PREFIX' overlaps. There should be evidence of its execution (e.g., 'EXEC DBAMaintenance.usp_DetectOverlappingIndexes' followed by a success message)."
+    },
+    {
+      "id": "tables_populated_with_data",
+      "description": "Verify that the IndexHealthReport table is populated with analysis results",
+      "points": 15,
+      "visual_evidence": "Look for a SELECT query result grid showing rows in DBAMaintenance.IndexHealthReport. The grid should display columns like PageCount (>= 8), FragmentationPct, and RecommendedAction ('REBUILD', 'REORGANIZE', or 'NONE'). There should be a substantial number of rows (at least 50)."
+    },
+    {
+      "id": "maintenance_script_created",
+      "description": "Generate the final SQL script containing ALTER INDEX statements",
+      "points": 20,
+      "visual_evidence": "Look for a text editor, file manager, or terminal showing the file '/home/ga/Documents/exports/index_maintenance.sql'. The file contents must show 'ALTER INDEX ... REBUILD' or 'ALTER INDEX ... REORGANIZE' statements corresponding to the database tables, or a comment if no maintenance was needed."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_db_connection",
+      "description": "Agent actually connected to and queried the AdventureWorks2022 database",
+      "visual_evidence": "Look for a genuine SQL client interface (Azure Data Studio, DBeaver, SSMS, or sqlcmd terminal) showing an active connection to the AdventureWorks2022 database, rather than just typing SQL into a disconnected text editor."
+    },
+    {
+      "id": "authentic_data_population",
+      "description": "Data in the report tables is dynamically generated from the database, not hardcoded",
+      "visual_evidence": "Check the query results for IndexHealthReport. The FragmentationPct and PageCount values should be varied and realistic decimal/integer numbers, not repetitive or mock data inserted via manual INSERT statements."
+    },
+    {
+      "id": "script_matches_analysis",
+      "description": "The generated maintenance script contains actual AdventureWorks table and index names",
+      "visual_evidence": "Inspect the contents of 'index_maintenance.sql'. The ALTER INDEX statements should reference real AdventureWorks tables (e.g., Sales.SalesOrderDetail, Person.Person) rather than generic placeholders like 'TableName' or 'IndexName'."
+    }
+  ],
+  "privileged_info_for_vlm": "The expected schema is 'DBAMaintenance'. The two tables must be named 'IndexHealthReport' and 'OverlappingIndexes'. The two stored procedures must be named 'usp_AnalyzeIndexHealth' and 'usp_DetectOverlappingIndexes'. The final output script must be saved exactly at '/home/ga/Documents/exports/index_maintenance.sql'. A correct execution of the health analysis procedure on the AdventureWorks2022 database (filtering for indexes with >= 8 pages) will generate at least 50 rows in the IndexHealthReport table."
+}

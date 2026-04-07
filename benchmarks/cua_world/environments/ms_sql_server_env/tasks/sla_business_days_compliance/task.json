@@ -1,0 +1,53 @@
+{
+  "id": "sla_business_days_compliance@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "A Logistics Operations Manager needs to track shipping performance based on 'business days' rather than calendar days in the AdventureWorks2022 database using Azure Data Studio. Implement a business day tracking system including a 'Sales.HolidayReference' table (populated with 2011-05-30, 2011-07-04, 2011-09-05, 2011-11-24, 2011-12-25, 2012-01-01, 2012-05-28, and 2012-07-04) and a scalar function 'dbo.fn_GetNetWorkingDays(@StartDate DATETIME, @EndDate DATETIME)' that returns an INT of working days (excluding weekends and holidays, exclusive of StartDate, inclusive of EndDate). Use these to create a view 'Sales.vw_ShippingSLABreach' identifying orders from 'Sales.SalesOrderHeader' where shipping took longer than 3 business days, featuring columns SalesOrderID, OrderDate, ShipDate, CalendarDaysTaken, and BusinessDaysTaken. Export the top 100 rows, ordered by BusinessDaysTaken descending, to /home/ga/Documents/sla_breaches.csv with headers.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sla_business_days_compliance/setup_task.sh",
+    "post_task": "/workspace/tasks/sla_business_days_compliance/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/sla_breaches.csv",
+    "required_holidays": [
+      "2011-05-30",
+      "2011-07-04",
+      "2011-09-05",
+      "2011-11-24",
+      "2011-12-25",
+      "2012-01-01",
+      "2012-05-28",
+      "2012-07-04"
+    ],
+    "test_cases": {
+      "weekend": {
+        "start": "2011-07-08",
+        "end": "2011-07-11",
+        "expected": 1
+      },
+      "holiday": {
+        "start": "2011-07-01",
+        "end": "2011-07-05",
+        "expected": 1
+      },
+      "standard": {
+        "start": "2011-07-11",
+        "end": "2011-07-14",
+        "expected": 3
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sla_compliance"
+    }
+  }
+}

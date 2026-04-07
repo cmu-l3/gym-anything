@@ -1,0 +1,31 @@
+{
+  "id": "secure_wipe_pattern_detection@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "You are investigating a suspect for evidence spoliation (intentional destruction of evidence). The suspect claims they simply deleted some old files, but you suspect they used a secure shredding utility to overwrite the file payloads with zeroes or 0xFF patterns. Conduct a forensic investigation in Autopsy by creating case 'Spoliation_Investigation_2024' (number 'INV-WIPE-001') and analyzing the disk image /home/ga/evidence/wiped_evidence.dd using the 'File Type Identification' ingest module. Identify all deleted user files and classify their payload condition as 'WIPED_ZERO' (0x00), 'WIPED_FF' (0xFF), or 'INTACT'. Export a pipe-delimited inventory to /home/ga/Reports/wiping_analysis.csv using the header 'FILENAME|SIZE_BYTES|PAYLOAD_STATUS'. Additionally, provide an analytical summary at /home/ga/Reports/spoliation_summary.txt including the total number of deleted files analyzed, the count for each status category, and a brief assessment of whether intentional data destruction occurred.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/secure_wipe_pattern_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/secure_wipe_pattern_detection/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Spoliation_Investigation_2024",
+    "case_number": "INV-WIPE-001",
+    "disk_image": "/home/ga/evidence/wiped_evidence.dd",
+    "csv_report": "/home/ga/Reports/wiping_analysis.csv",
+    "summary_report": "/home/ga/Reports/spoliation_summary.txt",
+    "result_file": "/tmp/secure_wipe_result.json",
+    "gt_file": "/tmp/wiped_files_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secure_wipe_pattern_detection"
+    }
+  },
+  "difficulty": "hard"
+}

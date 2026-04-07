@@ -1,0 +1,59 @@
+{
+  "id": "smartdesk_product_launch_validation@1",
+  "version": "1.0",
+  "env_id": "odoo_env@0.1",
+  "description": "Launch the SmartDesk Pro \u2014 a motorized standing desk. Configure it with two attributes: Size (Standard at $1,200 / Large at +$300) and Finish (Oak / White / Walnut, with Walnut +$200), producing 6 variants. Build a two-level BOM: each desk uses a Motorized Lift Frame sub-assembly (Linear Actuator \u00d72, Steel Frame \u00d71, Control Unit \u00d71, Cable Harness \u00d71), a finish-specific Desktop Surface assigned via variant-conditional BOM lines (Oak Board for Oak, White Laminate for White, Walnut Board for Walnut), and a universal Hardware Kit. Create wholesale pricelist 'Authorized Dealer Network': 1\u20134 units at list price, 5\u20139 units at 15% off, 10+ at 25% off. Validate the BOM by manufacturing 1 unit of Standard/Walnut \u2014 confirm it consumes Motorized Lift Frame, Walnut Board, and Hardware Kit (not Oak Board or White Laminate). Then create and confirm a sales order for Cascade Furniture Partners: 8\u00d7 SmartDesk Pro Standard/Walnut at dealer pricing. Verify the order total matches the expected amount calculated in the product launch guide on the Desktop.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/smartdesk_product_launch_validation/setup_task.sh",
+    "post_task": "/workspace/tasks/smartdesk_product_launch_validation/export_result.sh"
+  },
+  "metadata": {
+    "product_name": "SmartDesk Pro",
+    "sub_assembly_name": "Motorized Lift Frame",
+    "base_price": 1200.00,
+    "size_extra_large": 300.00,
+    "finish_extra_walnut": 200.00,
+    "variant_count": 6,
+    "pricelist_name": "Authorized Dealer Network",
+    "pricelist_tiers": [
+      {"min_qty": 1, "discount_pct": 0},
+      {"min_qty": 5, "discount_pct": 15},
+      {"min_qty": 10, "discount_pct": 25}
+    ],
+    "validation_mfg": {
+      "variant": "Standard / Walnut",
+      "qty": 1,
+      "expected_components": ["Motorized Lift Frame", "Walnut Board", "Hardware Kit"],
+      "forbidden_components": ["Oak Board", "White Laminate"]
+    },
+    "validation_order": {
+      "customer": "Cascade Furniture Partners",
+      "variant": "Standard / Walnut",
+      "qty": 8,
+      "expected_unit_price": 1190.00,
+      "expected_total": 9520.00
+    },
+    "components": {
+      "Linear Actuator": {"ref": "LIN-ACT", "cost": 85.00, "vendor": "TechMotion Supply"},
+      "Control Unit": {"ref": "CTRL-UNIT", "cost": 120.00, "vendor": "TechMotion Supply"},
+      "Cable Harness": {"ref": "CBL-HRNS", "cost": 15.00, "vendor": "TechMotion Supply"},
+      "Steel Frame": {"ref": "STL-FRM", "cost": 95.00, "vendor": "Nordic Timber Co."},
+      "Oak Board": {"ref": "OAK-BRD", "cost": 180.00, "vendor": "Nordic Timber Co."},
+      "White Laminate": {"ref": "WHT-LAM", "cost": 110.00, "vendor": "Nordic Timber Co."},
+      "Walnut Board": {"ref": "WNT-BRD", "cost": 220.00, "vendor": "Nordic Timber Co."},
+      "Hardware Kit": {"ref": "HW-KIT", "cost": 25.00, "vendor": "Nordic Timber Co."}
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_smartdesk_product_launch"
+    }
+  }
+}

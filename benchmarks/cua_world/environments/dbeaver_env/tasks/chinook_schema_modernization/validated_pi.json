@@ -1,0 +1,59 @@
+{
+  "task_id": "chinook_schema_modernization@1",
+  "dataset": "Chinook Music Store Sample Database",
+  "case_id": "chinook_legacy.db",
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "db_path",
+      "metadata_value": "/home/ga/Documents/databases/chinook_legacy.db",
+      "verified_value": "/home/ga/Documents/databases/chinook_legacy.db",
+      "source": "setup_task.sh line 28-29 creates this exact path; export_result.sh line 9 references it",
+      "status": "verified"
+    },
+    {
+      "key": "connection_name",
+      "metadata_value": "ChinookLegacy",
+      "verified_value": "ChinookLegacy",
+      "source": "task.json description line 5 specifies 'Name the connection ChinookLegacy'; export_result.sh line 41-44 validates this exact name",
+      "status": "verified"
+    },
+    {
+      "key": "orphan_invoice_ids",
+      "metadata_value": "[9001, 9002]",
+      "verified_value": "[9001, 9002]",
+      "source": "setup_task.sh lines 72-73 insert invoices with IDs 9001 and 9002 with non-existent customer IDs (9999 and 9998 respectively, when max customer ID is 59)",
+      "status": "verified"
+    },
+    {
+      "key": "orphan_item_ids",
+      "metadata_value": "[90001, 90002]",
+      "verified_value": "[90001, 90002]",
+      "source": "setup_task.sh lines 76-77 insert invoice items with IDs 90001 (references invoice 9001) and 90002 (references non-existent invoice 9999). Both become orphaned after invoice 9001 deletion, representing the complete set for cleanup.",
+      "status": "verified"
+    },
+    {
+      "key": "required_fk_invoices",
+      "metadata_value": "REFERENCES customers(CustomerId)",
+      "verified_value": "REFERENCES customers(CustomerId)",
+      "source": "task.json description requires adding FK to invoices table on CustomerId referencing customers(CustomerId); export_result.sh line 77 validates SQL contains 'REFERENCES CUSTOMERS'",
+      "status": "verified"
+    },
+    {
+      "key": "required_fk_items",
+      "metadata_value": "REFERENCES invoices(InvoiceId)",
+      "verified_value": "REFERENCES invoices(InvoiceId)",
+      "source": "task.json description requires adding FK to invoice_items table on InvoiceId referencing invoices(InvoiceId); export_result.sh line 86 validates SQL contains 'REFERENCES INVOICES'",
+      "status": "verified"
+    },
+    {
+      "key": "required_cascade",
+      "metadata_value": "ON DELETE CASCADE",
+      "verified_value": "ON DELETE CASCADE",
+      "source": "task.json description explicitly states invoice_items FK 'must be configured with ON DELETE CASCADE'; export_result.sh line 89 validates 'ON DELETE CASCADE' presence in schema definition",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The task uses the Chinook Music Store Sample Database, a well-known public database with 59 customers and 412 invoices. The setup script creates a legacy version with intentional data integrity violations: two orphaned invoices (IDs 9001, 9002) with non-existent customer references, and two orphaned invoice items (IDs 90001, 90002). The task requires fixing these orphans and adding foreign key constraints with cascading deletes to the invoices and invoice_items tables. The database is synthetic, using real iTunes media data combined with fictional but realistic customer information and auto-generated sales data.",
+  "pi_confidence": "high"
+}

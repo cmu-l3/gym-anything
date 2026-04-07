@@ -1,0 +1,80 @@
+{
+    "task_id": "multicriteria_suitability_mapping@1",
+    "dataset": "opengeos/data",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_dim_path",
+            "metadata_value": "/home/ga/snap_projects/suitability_assessment.dim",
+            "verified_value": "/home/ga/snap_projects/suitability_assessment.dim",
+            "source": "Confirmed directory /home/ga/snap_projects/ exists and is writable by user ga during live testing. setup_task.sh creates and cleans this directory. Path matches task description.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_tif_path",
+            "metadata_value": "/home/ga/snap_exports/suitability_subset.tif",
+            "verified_value": "/home/ga/snap_exports/suitability_subset.tif",
+            "source": "Confirmed directory /home/ga/snap_exports/ exists and is writable by user ga during live testing. setup_task.sh creates and cleans this directory. Path matches task description.",
+            "status": "verified"
+        },
+        {
+            "key": "data_files[0]",
+            "metadata_value": "/home/ga/snap_data/landsat_multispectral.tif",
+            "verified_value": "/home/ga/snap_data/landsat_multispectral.tif",
+            "source": "File exists, 10,133,205 bytes. Downloaded from https://raw.githubusercontent.com/opengeos/data/main/raster/landsat.tif. Confirmed during live testing: valid GeoTIFF, 4 bands (B1, B2, B3, B4), uint8, 2127x1564 pixels, WGS 84 / Pseudo-Mercator (EPSG:3857). Source dataset is LANDSAT_LE7_TOA_5YEAR (Landsat 7 TOA reflectance, 1999-2003).",
+            "status": "verified"
+        },
+        {
+            "key": "data_files[1]",
+            "metadata_value": "/home/ga/snap_data/srtm_dem.tif",
+            "verified_value": "/home/ga/snap_data/srtm_dem.tif",
+            "source": "File exists, 6,004,315 bytes. Downloaded from https://raw.githubusercontent.com/opengeos/data/main/raster/dem.tif. Confirmed during live testing: valid GeoTIFF, little-endian byte order, 1 band named 'elevation' in SNAP, float data type. Geographic location is Oregon (~44N latitude).",
+            "status": "verified"
+        },
+        {
+            "key": "band_mapping_claim",
+            "metadata_value": "SWIR1=B1, NIR=B2, Red=B3, Green=B4",
+            "verified_value": "Blue=B1, Green=B2, Red=B3, NIR=B4",
+            "source": "The file is from LANDSAT_LE7_TOA_5YEAR dataset. Landsat 7 ETM+ standard band assignments are: B1=Blue (0.45-0.52um), B2=Green (0.52-0.60um), B3=Red (0.63-0.69um), B4=NIR (0.77-0.90um). This contradicts the task description claim that B1=SWIR1 and B2=NIR. Confirmed by WebFetch of the source file metadata and cross-referenced with the terrain_vegetation_composite task's validated_pi.json which independently documented the same contradiction. However, this same incorrect mapping is used consistently across ALL snap_env tasks (compute_ndvi, tasseled_cap_transformation, etc.), making it the de facto convention for the benchmark.",
+            "status": "contradicted"
+        },
+        {
+            "key": "collocation_band_names",
+            "metadata_value": "not in metadata, but described in vlm_checklist privileged_info",
+            "verified_value": "B1_M, B2_M, B3_M, B4_M, elevation_S, collocationFlags",
+            "source": "Confirmed by running SNAP GPT Collocation operator on the actual data files during live testing. The Landsat master bands receive _M suffix, the DEM slave band becomes elevation_S (not band_1_S). An additional collocationFlags band (int8) is automatically created by SNAP.",
+            "status": "verified"
+        },
+        {
+            "key": "ndvi_formula_validity",
+            "metadata_value": "NDVI from NIR and Red bands: (B2_M - B3_M) / (B2_M + B3_M)",
+            "verified_value": "Expression (B2_M - B3_M) / (B2_M + B3_M) is syntactically valid and produces float32 values from -0.204 to 0.429. However, since B2 is actually Green (not NIR) and B3 is Red, this computes GRVI (Green-Red Vegetation Index), not true NDVI. True NDVI would require (B4_M - B3_M) / (B4_M + B3_M).",
+            "source": "Ran GPT BandMaths on the collocation output during live testing. 3,304,640 valid pixels out of 3,326,628 total (21,988 NaN from 0/0 in nodata areas). NDVI>0.3: 9,266 pixels (0.3%). NDVI 0.15-0.3: 141,139 pixels (4.2%). NDVI<=0.15: 3,154,235 pixels (94.8%). This follows the same convention as all other snap_env tasks.",
+            "status": "verified"
+        },
+        {
+            "key": "geographic_overlap",
+            "metadata_value": "not in metadata, but relevant for task validity",
+            "verified_value": "Landsat (California, ~36-38N) and DEM (Oregon, ~44N) do NOT geographically overlap",
+            "source": "Confirmed by inspecting elevation_S values after collocation during live testing. All elevation_S values are denormalized near-zero (~3.143e-319 in float64), indicating no valid elevation data in the Landsat footprint. The collocationFlags band is all zeros, confirming no spatial overlap. The classification expression therefore degenerates to purely NDVI-based: class 3 for ~0.3% of pixels, class 2 for ~4.2%, class 1 for ~95.5%.",
+            "status": "verified"
+        },
+        {
+            "key": "classification_expression_validity",
+            "metadata_value": "(NDVI > 0.3 && elevation_S < 500) ? 3 : ((NDVI > 0.15 && elevation_S < 800) ? 2 : 1)",
+            "verified_value": "Expression syntax is valid in SNAP's BandMaths expression parser. The && and ternary ? : operators are supported. References to NDVI (virtual band) and elevation_S (collocation band) are resolved correctly when NDVI is created first as a virtual band on the same product.",
+            "source": "Verified by running GPT BandMaths with the expression (using inlined NDVI) on the collocation output. Expression parsed and executed successfully. In the GUI workflow, the agent creates NDVI first as a virtual band, then the classification expression can reference it by name.",
+            "status": "verified"
+        },
+        {
+            "key": "subset_feasibility",
+            "metadata_value": "200x200 pixel subset from coordinates 100-299",
+            "verified_value": "Feasible. The Landsat image is 2127x1564 pixels, so a 200x200 subset from pixel 100-299 in both X and Y is well within bounds. SNAP Subset operator is available (confirmed via GPT -h).",
+            "source": "Image dimensions confirmed during live testing via PIL (2127x1564). SNAP Subset operator confirmed available via GPT operator listing.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses two real datasets from github.com/opengeos/data. The Landsat file (landsat_multispectral.tif) is a 4-band Landsat 7 TOA image (2127x1564 px, uint8, EPSG:3857) with bands named B1-B4 in SNAP. The DEM file (srtm_dem.tif) has a single band named 'elevation'. After collocation with Landsat as master, bands become B1_M, B2_M, B3_M, B4_M (Landsat), elevation_S (DEM), and collocationFlags (auto-generated). CRITICAL: The Landsat and DEM do NOT geographically overlap (California vs Oregon), so elevation_S values are all near-zero after collocation. The classification will degenerate to purely NDVI-based, but the agent should still write the expression referencing both NDVI and elevation_S. The NDVI expression (B2_M - B3_M) / (B2_M + B3_M) produces values from -0.204 to 0.429 with ~94.8% of pixels having NDVI <= 0.15, ~4.2% between 0.15-0.3, and only ~0.3% above 0.3. ALSO CRITICAL: The task description claims B1=SWIR1, B2=NIR, B3=Red, B4=Green, but the actual Landsat 7 bands are B1=Blue, B2=Green, B3=Red, B4=NIR. This same incorrect mapping is used across all snap_env tasks. Expected output: BEAM-DIMAP at ~/snap_projects/suitability_assessment.dim and GeoTIFF subset at ~/snap_exports/suitability_subset.tif (200x200 pixels from coordinates 100-299).",
+    "pi_confidence": "high"
+}

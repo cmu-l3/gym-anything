@@ -1,0 +1,60 @@
+{
+  "id": "patient_data_audit@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "You are helping a French medical practice prepare for a regulatory compliance inspection by the ARS (Agence Régionale de Santé). Identify all patient records in the MedinTux MySQL database 'DrTuxTest' (localhost, user 'root', no password) with missing critical demographic fields and generate a CSV audit report at ~/audit_report.csv. Query the 'fchpat' table joined with 'IndexNomPrenom' (fchpat.FchPat_GUID_Doss = IndexNomPrenom.FchGnrl_IDDos) where IndexNomPrenom.FchGnrl_Type = 'Dossier'. Identify missing fields for date of birth (FchPat_Nee is NULL, '', or '0000-00-00'), social security number (FchPat_NumSS is NULL or ''), postal address (FchPat_Adresse is NULL or ''), and phone number (FchPat_Tel1 is NULL or ''). The CSV report must include headers last_name, first_name, dob_missing, ssn_missing, address_missing, and phone_missing, using 1 for missing and 0 for present. Include only patients with at least one missing field.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/patient_data_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/patient_data_audit/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/audit_report.csv",
+    "required_headers": [
+      "last_name",
+      "first_name",
+      "dob_missing",
+      "ssn_missing",
+      "address_missing",
+      "phone_missing"
+    ],
+    "test_patients": {
+      "AUDIT_COMPLET": {
+        "missing": []
+      },
+      "AUDIT_NODOB": {
+        "missing": [
+          "dob"
+        ]
+      },
+      "AUDIT_NOSS": {
+        "missing": [
+          "ssn"
+        ]
+      },
+      "AUDIT_NOADDR": {
+        "missing": [
+          "address"
+        ]
+      },
+      "AUDIT_MULTI": {
+        "missing": [
+          "dob",
+          "address",
+          "phone"
+        ]
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_patient_data_audit"
+    }
+  }
+}

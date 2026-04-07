@@ -1,0 +1,100 @@
+{
+  "id": "collaborative_filtering_recommendation_engine@1",
+  "version": "1.0",
+  "env_id": "orientdb_env@0.1",
+  "description": "The travel platform needs a graph-based collaborative filtering recommendation engine in demodb. Using OrientDB Studio at http://localhost:2480/studio/index.html (credentials: root / GymAnything123!), create a SimilarTraveler edge class (mandatory SharedHotelCount INTEGER, SimilarityScore DOUBLE) linking every pair of Profiles that share 2 or more Hotels via HasStayed edges, with one edge in each direction; set SharedHotelCount to the co-visited hotel count and SimilarityScore to SharedHotelCount divided by the total distinct hotels either profile visited (Jaccard similarity). Using these similarity edges, create a HotelRecommendation vertex class (mandatory TargetEmail STRING, HotelName STRING, RecommendedBy STRING, Score DOUBLE; UNIQUE composite index on TargetEmail and HotelName) with one vertex per profile-hotel pair where a similar traveler stayed at a hotel the target profile has not; set Score to the maximum SimilarityScore among recommenders and RecommendedBy to that recommender's email. Summarize the results in a single RecommendationReport vertex (mandatory TotalRecommendations INTEGER, ProfilesWithRecommendations INTEGER, MostRecommendedHotel STRING being the hotel appearing most often with ties broken alphabetically, HighestSimilarityPair STRING formatted as email1|email2 with emails alphabetically ordered, ReportBatch STRING set to collab_q1_2026).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/collaborative_filtering_recommendation_engine/setup_task.sh",
+    "post_task": "/workspace/tasks/collaborative_filtering_recommendation_engine/export_result.sh"
+  },
+  "metadata": {
+    "expected_similar_pairs": [
+      {
+        "a": "john.smith@example.com",
+        "b": "david.jones@example.com",
+        "shared": 3,
+        "score": 0.75
+      },
+      {
+        "a": "anna.mueller@example.com",
+        "b": "thomas.schafer@example.com",
+        "shared": 2,
+        "score": 0.667
+      },
+      {
+        "a": "maria.garcia@example.com",
+        "b": "sophie.martin@example.com",
+        "shared": 2,
+        "score": 0.50
+      },
+      {
+        "a": "david.jones@example.com",
+        "b": "anna.mueller@example.com",
+        "shared": 2,
+        "score": 0.40
+      }
+    ],
+    "expected_similar_edge_count": 8,
+    "expected_recommendations": [
+      {
+        "target": "john.smith@example.com",
+        "hotel": "Hotel Adlon Kempinski",
+        "by": "david.jones@example.com",
+        "score": 0.75
+      },
+      {
+        "target": "david.jones@example.com",
+        "hotel": "Melia Berlin",
+        "by": "anna.mueller@example.com",
+        "score": 0.40
+      },
+      {
+        "target": "maria.garcia@example.com",
+        "hotel": "Fairmont Le Manoir",
+        "by": "sophie.martin@example.com",
+        "score": 0.50
+      },
+      {
+        "target": "sophie.martin@example.com",
+        "hotel": "Hotel Artemide",
+        "by": "maria.garcia@example.com",
+        "score": 0.50
+      },
+      {
+        "target": "anna.mueller@example.com",
+        "hotel": "The Plaza Hotel",
+        "by": "david.jones@example.com",
+        "score": 0.40
+      },
+      {
+        "target": "anna.mueller@example.com",
+        "hotel": "Hotel Artemide",
+        "by": "david.jones@example.com",
+        "score": 0.40
+      },
+      {
+        "target": "thomas.schafer@example.com",
+        "hotel": "The Savoy",
+        "by": "anna.mueller@example.com",
+        "score": 0.667
+      }
+    ],
+    "expected_recommendation_count": 7,
+    "expected_profiles_with_recs": 6,
+    "expected_most_recommended_hotel": "Hotel Artemide",
+    "expected_highest_similarity_pair": "david.jones@example.com|john.smith@example.com",
+    "report_batch": "collab_q1_2026"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_collaborative_filtering_recommendation_engine"
+    }
+  }
+}

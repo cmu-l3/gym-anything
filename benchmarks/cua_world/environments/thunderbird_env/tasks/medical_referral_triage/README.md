@@ -68,6 +68,6 @@ The agent acts as the Practice Manager at Oakwood Medical Group. A week's worth 
 ## Testing
 
 ```bash
-python3 benchmarks/cua_world/environments/thunderbird_env/tasks/medical_referral_triage/verifier.py
+python3 examples/thunderbird_env/tasks/medical_referral_triage/verifier.py
 ```
 Expected: 4/4 tests passed

@@ -1,0 +1,39 @@
+{
+  "id": "abc_inventory_classification@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Perform an ABC inventory analysis on the 250 SKUs in /home/ga/Documents/inventory_abc_analysis.xlsx. The analysis requires calculating 'Annual_Value' (Annual_Demand * Unit_Cost), sorting the data descending by that value, and determining the 'Cumulative_Value' and 'Cumulative_Pct' (formatted as a percentage). Each item must be assigned an 'ABC_Class' ('A' for <= 80%, 'B' for 80-95%, and 'C' for > 95%). The final workbook must include a 'Summary' sheet with a table starting at A1 (headers 'Class' and 'Item_Count') counting the items in each class. Save the results to /home/ga/Documents/inventory_abc_analysis.xlsx.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/abc_inventory_classification/setup_task.sh",
+    "post_task": "/workspace/tasks/abc_inventory_classification/export_result.sh"
+  },
+  "metadata": {
+    "target_file": "/home/ga/Documents/inventory_abc_analysis.xlsx",
+    "expected_sheets": [
+      "Inventory",
+      "Summary"
+    ],
+    "required_columns": [
+      "Annual_Value",
+      "Cumulative_Value",
+      "Cumulative_Pct",
+      "ABC_Class"
+    ],
+    "abc_thresholds": {
+      "A": 0.8,
+      "B": 0.95
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_abc_classification"
+    }
+  }
+}

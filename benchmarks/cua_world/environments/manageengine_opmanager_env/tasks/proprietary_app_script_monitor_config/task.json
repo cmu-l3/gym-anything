@@ -1,0 +1,29 @@
+{
+  "id": "proprietary_app_script_monitor_config@1",
+  "version": "1.0",
+  "env_id": "manageengine_opmanager_env@0.1",
+  "description": "A media processing background service writes its transcoding queue length to '/var/log/transcoder/status.log'. You must configure OpManager to monitor this proprietary application metric.\n\nFirst, create a CLI (Linux/SSH) credential named exactly 'Local-Script-Exec' with the username 'ga' and password 'password123'. \n\nSecond, create a Script Template named exactly 'Video-Transcoder-Queue' with Output Type 'Numeric' that executes the script: 'bash /opt/custom_monitors/check_transcode_queue.sh'. \n\nFinally, associate this script monitor to the localhost device (127.0.0.1) using the new credential, and configure a Critical threshold condition to alert if the queue length is > 500.\n\nLog in to OpManager at http://localhost:8060 using credentials admin / Admin@123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/proprietary_app_script_monitor_config/setup_task.sh",
+    "post_task": "/workspace/tasks/proprietary_app_script_monitor_config/export_result.sh"
+  },
+  "metadata": {
+    "expected_credential_name": "Local-Script-Exec",
+    "expected_template_name": "Video-Transcoder-Queue",
+    "expected_script_path": "/opt/custom_monitors/check_transcode_queue.sh",
+    "expected_threshold": "500",
+    "result_file": "/tmp/script_monitor_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_proprietary_app_script_monitor_config"
+    }
+  }
+}

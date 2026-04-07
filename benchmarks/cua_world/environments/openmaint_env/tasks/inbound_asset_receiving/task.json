@@ -1,0 +1,38 @@
+{
+  "id": "inbound_asset_receiving@1",
+  "version": "1.0",
+  "env_id": "openmaint_env@0.1",
+  "description": "You are an Inventory Clerk at a corporate IT department processing a shipment of new workstations and peripherals. Using the digital packing slip at /home/ga/Desktop/packing_slip_INV-9920.txt, process the inbound shipment in OpenMaint (login: admin/admin at http://localhost:8090/cmdbuild/ui/). Create Asset records for items in the 'Current Shipment' section marked 'Condition: OK', using the 'Computer' class for laptops and 'Equipment' or 'Asset' for monitors. For each record, set the Code to 'AST-REC-{RowNumber}' (e.g., AST-REC-01), the Description to Manufacturer + Model, the Serial Number exactly as it appears on the slip, and the Status to 'In Stock' or 'Active'. Do not register items marked 'DAMAGED' or those listed under 'BACKORDER FULFILLED'. Record the Serial Numbers of any damaged items in a log at /home/ga/Desktop/rejection_log.txt.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/inbound_asset_receiving/setup_task.sh",
+    "post_task": "/workspace/tasks/inbound_asset_receiving/export_result.sh"
+  },
+  "metadata": {
+    "packing_slip_path": "/home/ga/Desktop/packing_slip_INV-9920.txt",
+    "rejection_log_path": "/home/ga/Desktop/rejection_log.txt",
+    "valid_serials": [
+      "8H29F2X",
+      "CN-0Y9N-71618-88A-123",
+      "CN-0Y9N-71618-88A-124"
+    ],
+    "damaged_serial": "9J30G3Y",
+    "backorder_serial": "BC-1122-3344",
+    "expected_codes": [
+      "AST-REC-01",
+      "AST-REC-03",
+      "AST-REC-04"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_inbound_asset_receiving"
+    }
+  }
+}

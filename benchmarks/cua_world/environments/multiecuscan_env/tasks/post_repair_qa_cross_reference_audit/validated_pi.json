@@ -1,0 +1,94 @@
+{
+    "task_id": "post_repair_qa_cross_reference_audit@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "vehicle_make",
+            "metadata_value": "Fiat",
+            "verified_value": "Fiat",
+            "source": "fiat_vehicle_specs.csv row 15 confirms Fiat Ducato with engine code F1AE3481D. Multiecuscan software Make list includes 'Fiat'. Live VM testing confirmed Fiat is selectable.",
+            "status": "verified"
+        },
+        {
+            "key": "vehicle_model",
+            "metadata_value": "Ducato (250) Facelift",
+            "verified_value": "Ducato",
+            "source": "fiat_vehicle_specs.csv row 15 lists 'Ducato' as model. Multiecuscan lists Ducato variants under Fiat. Agent trajectories (Kimi-K2.5 prepurchase run_12) confirmed Ducato is selectable in the software. The '(250) Facelift' is a chassis designation not in the CSV but consistent with 2011-2023 year range.",
+            "status": "verified"
+        },
+        {
+            "key": "vehicle_engine",
+            "metadata_value": "2.3 Multijet 130HP",
+            "verified_value": "2.3 Multijet 148HP (109kW)",
+            "source": "fiat_vehicle_specs.csv row 15: F1AE3481D = 2286cc Diesel, 109kW, 148HP. The 130HP (96kW) variant is engine code 250A1.000 (row 14). The metadata claims 130HP but the engine code F1AE3481D corresponds to 148HP in the CSV. The 2.3L displacement (2286cc) is correct. This discrepancy exists in the work order but does not break the task since the agent should discover it via CSV cross-reference.",
+            "status": "contradicted"
+        },
+        {
+            "key": "vehicle_engine_code",
+            "metadata_value": "F1AE3481D",
+            "verified_value": "F1AE3481D",
+            "source": "fiat_vehicle_specs.csv row 15: 'Fiat,Ducato,2011-2023,F1AE3481D,2286,Diesel,109,148,350,Bosch,EDC17C49,CAN,4,Yes,Euro 5'. Engine code exists and maps to Fiat Ducato 2.3L Diesel.",
+            "status": "verified"
+        },
+        {
+            "key": "vehicle_year",
+            "metadata_value": 2016,
+            "verified_value": "2016 (within 2011-2023 range)",
+            "source": "fiat_vehicle_specs.csv lists F1AE3481D year range as 2011-2023. Year 2016 falls within this range.",
+            "status": "verified"
+        },
+        {
+            "key": "vehicle_vin",
+            "metadata_value": "ZFA25000002198745",
+            "verified_value": "ZFA25000002198745 (synthetic)",
+            "source": "VIN is synthetic, created by the task setup script. ZFA prefix is correct for Fiat Auto (Fabbrica Italiana Automobili). The VIN is not verifiable against a real vehicle database since this is a simulation environment. Format appears valid (17 characters, correct manufacturer prefix).",
+            "status": "verified"
+        },
+        {
+            "key": "vehicle_registration",
+            "metadata_value": "BD17 HRX",
+            "verified_value": "BD17 HRX (synthetic)",
+            "source": "Registration is synthetic, created by the task setup script. BD17 format is consistent with UK vehicle registration (BD = Birmingham area, 17 = registered March-August 2017). However this is a simulated scenario — no real vehicle check possible.",
+            "status": "verified"
+        },
+        {
+            "key": "vehicle_mileage_miles",
+            "metadata_value": 156830,
+            "verified_value": "156830 (synthetic)",
+            "source": "Mileage is synthetic, specified in the work order created by setup_task.ps1. Consistent with a 2016 commercial vehicle (high mileage is typical for a Ducato used in fleet/delivery). Not independently verifiable since simulation mode.",
+            "status": "verified"
+        },
+        {
+            "key": "ecu_systems_required",
+            "metadata_value": ["Engine", "Body Computer"],
+            "verified_value": ["Engine", "Body Computer"],
+            "source": "Both systems confirmed available in Multiecuscan for Fiat vehicles. Agent trajectory analysis: Kimi-K2.5 electrical_consumer_drain_audit run_10 (100/100 score) successfully connected to both Engine ECU (Bosch Motronic Me17.3.0) and Body Computer (Delphi 312 MY12) in simulation mode for a Fiat 500L. The same system types are available for Ducato. Live VM testing confirmed Engine, ABS, and Airbag visible in the System panel (Body appears when appropriate vehicle is selected).",
+            "status": "verified"
+        },
+        {
+            "key": "csv_cross_reference_files",
+            "metadata_value": ["dtc_database_full.csv", "obd2_parameter_reference.csv", "fiat_vehicle_specs.csv"],
+            "verified_value": ["dtc_database_full.csv", "obd2_parameter_reference.csv", "fiat_vehicle_specs.csv"],
+            "source": "All three files confirmed present on Desktop at C:\\Users\\Docker\\Desktop\\MultiecuscanData\\ during live VM testing. File sizes: dtc_database_full.csv (168,158 bytes, 3071 DTC entries P0100-U2500), obd2_parameter_reference.csv (3,290 bytes, 37 parameters with Normal_Idle_Min/Max), fiat_vehicle_specs.csv (2,776 bytes, 30 vehicle variants). Headers and content validated by reading first lines from within the VM.",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "C:\\Users\\Docker\\Desktop\\MultiecuscanTasks\\qa_verification_report.txt",
+            "verified_value": "C:\\Users\\Docker\\Desktop\\MultiecuscanTasks\\qa_verification_report.txt",
+            "source": "Directory confirmed to exist with Docker user FullControl permissions during live VM testing. File write test succeeded. Path matches work order document, export_result.ps1, and verifier.py.",
+            "status": "verified"
+        },
+        {
+            "key": "qa_verdicts_accepted",
+            "metadata_value": ["PASSED", "CONDITIONAL PASS", "FAILED"],
+            "verified_value": ["PASSED", "CONDITIONAL PASS", "FAILED"],
+            "source": "export_result.ps1 checks for exactly these three verdict keywords in the report content. verifier.py awards 8 points for any of these verdicts. Work order instructs agent to use these exact terms.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task uses Multiecuscan simulation mode which provides fixed synthetic ECU data regardless of vehicle selected. Simulation mode DTCs are always B0110-15 ('Short to +V or open circuit', Intermittent) and P068A-68 ('Event information' / 'Battery detachment', Present) — these are the same for Engine ECU and Body Computer. CRITICAL: Neither B0110 nor P068A exists in dtc_database_full.csv, which only covers standard SAE codes P0100 through U2500 (3071 entries). The agent should attempt to search the CSV and document 'not found in standard database' as a valid outcome. Simulation mode ECU identification values are fixed: ECU ISO Code '7C 86 4F FF FF', FIAT Drawing Number '5188214', Hardware '281011421', Software '037367790', Operating Time '2,089,177,087 min'. Battery voltage shows 1.4V in Engine ECU simulation and 2.2V in Body Computer simulation — both critically below the normal range of 13.5-14.5V from obd2_parameter_reference.csv (PID 42, Control_Module_Voltage). Key normal idle ranges from obd2_parameter_reference.csv that the agent should cross-reference: Engine_RPM 650-900 rpm, Engine_Coolant_Temperature 80-100 C, MAF_Air_Flow_Rate 2-8 g/s, Throttle_Position 10-20%, Intake_Air_Temperature 10-50 C, Calculated_Engine_Load 15-30%, Commanded_EGR 0-30%. Vehicle specs from fiat_vehicle_specs.csv: Fiat Ducato F1AE3481D = 2286cc Diesel, 109kW/148HP (note: work order says 130HP which is the 250A1.000 variant — this is a minor discrepancy), Bosch ECU type EDC17C49, Euro 5 emission standard. The report output path is C:\\Users\\Docker\\Desktop\\MultiecuscanTasks\\qa_verification_report.txt and must have a file modification time after the task start timestamp for the anti-gaming gate to pass.",
+    "pi_confidence": "high"
+}

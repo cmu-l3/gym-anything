@@ -37,16 +37,16 @@ chown -R ga:ga /home/ga/librehealth
 echo "Starting MariaDB and Adminer containers..."
 docker compose -f /home/ga/librehealth/docker-compose.yml up -d db adminer
 
-# Wait for MariaDB to be healthy
+# Wait for MariaDB to be healthy -- verify with an actual SQL query, not just ping
 echo "Waiting for MariaDB to be ready..."
 for i in $(seq 1 60); do
-    if docker exec "${DB_CONTAINER}" mysqladmin ping -h localhost -uroot -p"${DB_ROOT_PASS}" --silent 2>/dev/null; then
-        echo "MariaDB is ready after ${i}s"
+    if docker exec "${DB_CONTAINER}" mysql -h 127.0.0.1 -uroot -p"${DB_ROOT_PASS}" -e "SELECT 1" >/dev/null 2>&1; then
+        echo "MariaDB is ready (SQL verified) after $((i*2))s"
         break
     fi
     sleep 2
     if [ $((i % 10)) -eq 0 ]; then
-        echo "  Waiting for MariaDB... ${i}s"
+        echo "  Waiting for MariaDB... $((i*2))s"
     fi
 done
 
@@ -65,14 +65,29 @@ wget -q --timeout=300 -O "$NHANES_FILE" "$NHANES_ALT" 2>/dev/null || true
 
 if [ -f "$NHANES_FILE" ] && [ -s "$NHANES_FILE" ]; then
     echo "Importing NHANES data into MariaDB..."
-    zcat "$NHANES_FILE" | docker exec -i "${DB_CONTAINER}" mysql -uroot -p"${DB_ROOT_PASS}" "${DB_NAME}" 2>&1 | tail -5
+    # Use -h 127.0.0.1 to force TCP connection (socket may not be ready even though mysqladmin ping works)
+    for attempt in 1 2 3; do
+        if zcat "$NHANES_FILE" | docker exec -i "${DB_CONTAINER}" mysql -h 127.0.0.1 -uroot -p"${DB_ROOT_PASS}" "${DB_NAME}" 2>&1; then
+            echo "NHANES import succeeded on attempt $attempt"
+            break
+        else
+            echo "NHANES import attempt $attempt failed, retrying in 5s..."
+            sleep 5
+        fi
+    done
     rm -f "$NHANES_FILE"
-    PATIENT_COUNT=$(docker exec "${DB_CONTAINER}" mysql -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -N -e \
+    PATIENT_COUNT=$(docker exec "${DB_CONTAINER}" mysql -h 127.0.0.1 -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -N -e \
         "SELECT COUNT(*) FROM patient_data" 2>/dev/null || echo "0")
     echo "NHANES import complete. Patients loaded: ${PATIENT_COUNT}"
 else
     echo "WARNING: NHANES data unavailable -- database will be empty"
 fi
+
+# Relax SQL strict mode so task setup INSERTs don't fail on missing column defaults
+# (e.g., users.picture_url has no default value but tasks omit it in INSERT statements)
+echo "Relaxing MariaDB SQL mode..."
+docker exec "${DB_CONTAINER}" mysql -h 127.0.0.1 -uroot -p"${DB_ROOT_PASS}" -e \
+    "SET GLOBAL sql_mode='NO_ENGINE_SUBSTITUTION'" 2>/dev/null || true
 
 # Start the LibreHealth EHR app container
 echo ""
@@ -151,25 +166,35 @@ $new_hash = password_hash($password, PASSWORD_BCRYPT, array("cost" => 10));
 $new_salt = substr($new_hash, 0, 29);
 $mysqli = new mysqli("librehealth-db", "libreehr", "s3cret", "libreehr");
 if ($mysqli->connect_error) { die("Connection failed: " . $mysqli->connect_error . "\n"); }
+// Check that users_secure table exists before proceeding
+$tbl = $mysqli->query("SHOW TABLES LIKE \"users_secure\"");
+if (!$tbl || $tbl->num_rows == 0) { die("ERROR: users_secure table not found -- NHANES import may have failed\n"); }
 $stmt = $mysqli->prepare("UPDATE users_secure SET password=?, salt=? WHERE username=\"admin\"");
+if (!$stmt) { die("Prepare failed: " . $mysqli->error . "\n"); }
 $stmt->bind_param("ss", $new_hash, $new_salt);
 $stmt->execute();
 $rows = $stmt->affected_rows;
 $stmt->close();
 if ($rows == 0) {
-    $id_row = $mysqli->query("SELECT id FROM users WHERE username=\"admin\"")->fetch_assoc();
-    if ($id_row) {
+    $id_row = $mysqli->query("SELECT id FROM users WHERE username=\"admin\"");
+    if ($id_row && $id_row->num_rows > 0) {
+        $row = $id_row->fetch_assoc();
         $stmt = $mysqli->prepare("INSERT INTO users_secure (id, username, password, salt) VALUES (?, \"admin\", ?, ?)");
-        $stmt->bind_param("iss", $id_row["id"], $new_hash, $new_salt);
-        $stmt->execute();
-        $stmt->close();
-        echo "Inserted admin password\n";
+        if ($stmt) {
+            $stmt->bind_param("iss", $row["id"], $new_hash, $new_salt);
+            $stmt->execute();
+            $stmt->close();
+            echo "Inserted admin password\n";
+        }
     }
 } else {
     echo "Updated admin password: $rows rows\n";
 }
-$row = $mysqli->query("SELECT password FROM users_secure WHERE username=\"admin\"")->fetch_assoc();
-echo "Verify: " . (password_verify($password, $row["password"]) ? "YES - login ready" : "NO - check failed") . "\n";
+$row = $mysqli->query("SELECT password FROM users_secure WHERE username=\"admin\"");
+if ($row && $row->num_rows > 0) {
+    $data = $row->fetch_assoc();
+    echo "Verify: " . (password_verify($password, $data["password"]) ? "YES - login ready" : "NO - check failed") . "\n";
+}
 $mysqli->close();
 ' 2>&1
 echo "Admin password reset complete"
@@ -177,16 +202,14 @@ echo "Admin password reset complete"
 # Create a utility script for DB queries (used by task scripts)
 cat > /usr/local/bin/librehealth-query << 'DBSCRIPT'
 #!/bin/bash
-docker exec librehealth-db mysql -u libreehr -ps3cret libreehr -N -e "$1" 2>/dev/null
+docker exec librehealth-db mysql -h 127.0.0.1 -u libreehr -ps3cret libreehr -N -e "$1" 2>/dev/null
 DBSCRIPT
 chmod +x /usr/local/bin/librehealth-query
 
-# Set up Firefox profile for user 'ga' (snap Firefox uses a different profile path)
+# Set up Firefox profile for user 'ga'
+# Write to both snap and non-snap profile paths to cover both Firefox installations
 echo "Setting up Firefox profile..."
-SNAP_PROFILE_DIR="/home/ga/snap/firefox/common/.mozilla/firefox/default-release"
-mkdir -p "$SNAP_PROFILE_DIR"
-cat > "$SNAP_PROFILE_DIR/user.js" << 'USERJS'
-user_pref("browser.startup.homepage_override.mstone", "ignore");
+FIREFOX_PREFS='user_pref("browser.startup.homepage_override.mstone", "ignore");
 user_pref("browser.aboutwelcome.enabled", false);
 user_pref("browser.rights.3.shown", true);
 user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
@@ -205,11 +228,22 @@ user_pref("browser.vpn_promo.enabled", false);
 user_pref("browser.messaging-system.whatsNewPanel.enabled", false);
 user_pref("browser.uitour.enabled", false);
 user_pref("extensions.pocket.enabled", false);
-user_pref("identity.fxaccounts.enabled", false);
-USERJS
-chown -R ga:ga "$SNAP_PROFILE_DIR"
+user_pref("identity.fxaccounts.enabled", false);'
 
-# Create desktop shortcut
+# Snap Firefox profile path
+SNAP_PROFILE_DIR="/home/ga/snap/firefox/common/.mozilla/firefox/default-release"
+mkdir -p "$SNAP_PROFILE_DIR"
+echo "$FIREFOX_PREFS" > "$SNAP_PROFILE_DIR/user.js"
+# Fix ownership on the entire snap tree -- /home/ga/snap/ is root-owned in base image
+chown -R ga:ga /home/ga/snap 2>/dev/null || true
+
+# Non-snap Firefox profile path (apt-native)
+APT_PROFILE_DIR="/home/ga/.mozilla/firefox/default-release"
+mkdir -p "$APT_PROFILE_DIR"
+echo "$FIREFOX_PREFS" > "$APT_PROFILE_DIR/user.js"
+chown -R ga:ga "/home/ga/.mozilla" 2>/dev/null || true
+
+# Create desktop shortcut and mark it as trusted for GNOME
 mkdir -p /home/ga/Desktop
 cat > /home/ga/Desktop/LibreHealth.desktop << 'DESKTOPEOF'
 [Desktop Entry]
@@ -224,14 +258,23 @@ Categories=Office;Medical;
 DESKTOPEOF
 chown ga:ga /home/ga/Desktop/LibreHealth.desktop
 chmod +x /home/ga/Desktop/LibreHealth.desktop
+# Mark desktop file as trusted to prevent GNOME "Untrusted Desktop File" dialog
+su - ga -c "DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority dbus-launch gio set /home/ga/Desktop/LibreHealth.desktop metadata::trusted true" 2>/dev/null || true
 
-# Launch Firefox at LibreHealth EHR login page (snap Firefox needs correct XAUTHORITY)
+# Launch Firefox at LibreHealth EHR login page
 echo "Launching Firefox with LibreHealth EHR..."
-XAUTHORITY=/run/user/1000/gdm/Xauthority su - ga -c "DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority firefox '$LIBREHEALTH_URL' > /tmp/firefox_librehealth.log 2>&1 &"
+# Kill any stale Firefox first
+pkill -f firefox 2>/dev/null || true
+sleep 2
+find /home/ga/snap/firefox -name ".parentlock" -delete 2>/dev/null || true
+find /home/ga/.mozilla -name ".parentlock" -delete 2>/dev/null || true
 
-# Wait for Firefox window
-sleep 6
-for i in $(seq 1 30); do
+su - ga -c "DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority firefox '$LIBREHEALTH_URL' > /tmp/firefox_librehealth.log 2>&1 &"
+
+# Wait for Firefox window (snap Firefox can take longer to start)
+echo "Waiting for Firefox window..."
+sleep 8
+for i in $(seq 1 45); do
     if DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla\|librehealth"; then
         echo "Firefox window detected after ${i}s"
         break
@@ -244,6 +287,17 @@ WID=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null 
 if [ -n "$WID" ]; then
     DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -ia "$WID" 2>/dev/null || true
     DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+    echo "Firefox maximized"
+else
+    echo "WARNING: Firefox window not found, retrying launch..."
+    su - ga -c "DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority firefox '$LIBREHEALTH_URL' > /tmp/firefox_librehealth2.log 2>&1 &"
+    sleep 10
+    WID=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null | grep -i "firefox\|mozilla" | head -1 | awk '{print $1}')
+    if [ -n "$WID" ]; then
+        DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -ia "$WID" 2>/dev/null || true
+        DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+        echo "Firefox maximized on retry"
+    fi
 fi
 
 echo ""

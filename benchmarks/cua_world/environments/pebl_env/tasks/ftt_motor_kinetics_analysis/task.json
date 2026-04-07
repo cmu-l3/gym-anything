@@ -1,0 +1,28 @@
+{
+  "id": "ftt_motor_kinetics_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "hard",
+  "description": "A clinical neuropsychologist needs a standardized automated report extracting clinical metrics from raw Finger Tapping Test (FTT) data located at ~/pebl/data/ftt_tap_data.csv. Filter out corrupted data showing hardware key-repeat artifacts (e.g., constant ITI ~33ms yielding >250 taps per 10s trial). For each valid participant, compute dominant_total_taps, nondominant_total_taps, dominant_mean_iti_ms, nondominant_mean_iti_ms, asymmetry_index_percent (((dominant_total_taps - nondominant_total_taps) / dominant_total_taps) * 100), and fatigue_index_percent (((dominant_trial_1_taps - dominant_trial_3_taps) / dominant_trial_1_taps) * 100). Generate a JSON report at ~/pebl/analysis/ftt_report.json containing a 'participants' array with metrics for valid entries and exclusion reasons for corrupted ones, along with 'group_mean_asymmetry_percent' and 'group_mean_fatigue_percent' across all valid participants.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ftt_motor_kinetics_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/ftt_motor_kinetics_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "P99",
+    "contamination_type": "hardware_key_repeat_artifact",
+    "output_file": "/home/ga/pebl/analysis/ftt_report.json",
+    "raw_data_file": "/home/ga/pebl/data/ftt_tap_data.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ftt_motor_kinetics_analysis"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "id": "audit_inactive_users@1",
+  "version": "1.0",
+  "env_id": "redmine_env@0.1",
+  "description": "You are an IT Security Administrator performing a compliance audit. Lock all user accounts that have not logged in since January 1, 2026. Do not lock the 'admin' account or any user who has logged in on or after January 1, 2026. Ensure the account status for these inactive users is updated to Locked.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 25,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_inactive_users/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_inactive_users/export_result.sh"
+  },
+  "metadata": {
+    "cutoff_date": "2026-01-01",
+    "targets": [
+      {
+        "login": "bwayne",
+        "expected_status": 3,
+        "description": "Inactive (2025)"
+      },
+      {
+        "login": "ckent",
+        "expected_status": 3,
+        "description": "Inactive (2025)"
+      }
+    ],
+    "safe_users": [
+      {
+        "login": "dprince",
+        "expected_status": 1,
+        "description": "Active (2026)"
+      },
+      {
+        "login": "ballen",
+        "expected_status": 1,
+        "description": "Active (2026)"
+      },
+      {
+        "login": "admin",
+        "expected_status": 1,
+        "description": "Admin"
+      }
+    ],
+    "status_codes": {
+      "active": 1,
+      "locked": 3
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_inactive_users"
+    }
+  }
+}

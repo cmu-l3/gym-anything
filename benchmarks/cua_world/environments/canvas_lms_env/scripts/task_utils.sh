@@ -405,6 +405,70 @@ ensure_canvas_ready_for_task() {
     return 1
 }
 
+# ── Ensure Canvas Docker container is running ────────────────────────────
+# Critical when loading from QEMU checkpoint — Docker containers that were
+# running during checkpoint creation are NOT running when restored.
+ensure_canvas_running() {
+    local canvas_url="http://localhost:3000/"
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 -L "$canvas_url" 2>/dev/null || echo "000")
+    if [ "$http_code" = "200" ] || [ "$http_code" = "302" ] || [ "$http_code" = "303" ]; then
+        echo "Canvas LMS already running (HTTP $http_code)"
+        return 0
+    fi
+
+    echo "Canvas LMS not responding (HTTP $http_code). Starting services..."
+
+    # Ensure swap is active (Canvas fat container is memory-hungry)
+    if [ -f /swapfile ]; then
+        swapon /swapfile 2>/dev/null || true
+    fi
+
+    # Ensure Docker daemon is running
+    systemctl is-active docker >/dev/null 2>&1 || {
+        echo "Starting Docker daemon..."
+        systemctl start docker
+        sleep 5
+    }
+
+    # Start Canvas container
+    local CANVAS_DIR="/home/ga/canvas"
+    if [ -f "$CANVAS_DIR/docker-compose.yml" ]; then
+        echo "Starting Canvas container..."
+        cd "$CANVAS_DIR"
+        docker-compose up -d 2>&1 || docker compose up -d 2>&1 || true
+        cd - >/dev/null
+    else
+        echo "ERROR: docker-compose.yml not found at $CANVAS_DIR"
+        return 1
+    fi
+
+    # Wait for Canvas (fat container takes time for Rails to boot)
+    echo "Waiting for Canvas LMS to start (Rails boot may take 1-3 min)..."
+    local timeout=300
+    local elapsed=0
+    while [ "$elapsed" -lt "$timeout" ]; do
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 -L "$canvas_url" 2>/dev/null || echo "000")
+        if [ "$http_code" = "200" ] || [ "$http_code" = "302" ] || [ "$http_code" = "303" ]; then
+            echo "Canvas LMS is ready after ${elapsed}s (HTTP $http_code)"
+            return 0
+        fi
+        sleep 10
+        elapsed=$((elapsed + 10))
+        if [ $((elapsed % 30)) -eq 0 ]; then
+            echo "  Still waiting for Canvas... ${elapsed}s (HTTP $http_code)"
+            docker ps --format "{{.Names}}: {{.Status}}" 2>/dev/null | grep -i canvas || true
+        fi
+    done
+
+    echo "WARNING: Canvas may not be ready after ${timeout}s"
+    return 0
+}
+
+# Auto-start services when task_utils.sh is sourced
+ensure_canvas_running
+
+export -f ensure_canvas_running
 export -f wait_for_canvas_ready
 export -f ensure_canvas_ready_for_task
 

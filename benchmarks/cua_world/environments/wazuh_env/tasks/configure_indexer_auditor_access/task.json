@@ -1,0 +1,38 @@
+{
+  "id": "configure_indexer_auditor_access@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create a restricted internal user and role in the Wazuh indexer (OpenSearch) for a compliance auditor using the REST API (https://localhost:9200). Configure the internal user 'compliance_auditor' with password 'AuditP@ss2024!', description 'PCI-DSS compliance auditor read-only account', and backend role 'auditors'. Define a role named 'compliance_read_alerts' with 'cluster_composite_ops_ro' cluster permissions and read/search permissions for index patterns 'wazuh-alerts-*' and 'wazuh-monitoring-*', then map the 'compliance_auditor' user to it. Save the API response for the user to '~/auditor_user_check.json', the role to '~/auditor_role_check.json', and a successful test query response (authenticated as the new user) to '~/auditor_access_test.json'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_indexer_auditor_access/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_indexer_auditor_access/export_result.sh"
+  },
+  "metadata": {
+    "indexer_url": "https://localhost:9200",
+    "admin_user": "admin",
+    "admin_pass": "SecretPassword",
+    "target_user": "compliance_auditor",
+    "target_role": "compliance_read_alerts",
+    "target_indices": [
+      "wazuh-alerts-*",
+      "wazuh-monitoring-*"
+    ],
+    "target_actions": [
+      "read",
+      "search"
+    ],
+    "forbidden_index": ".opendistro_security"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_indexer_auditor_access"
+    }
+  }
+}

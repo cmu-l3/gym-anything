@@ -16,7 +16,8 @@ IC_CHECK=$(librehealth_query "SELECT count(*) FROM insurance_companies WHERE nam
 
 if [ "$IC_CHECK" -eq "0" ]; then
     echo "Seeding 'Blue Cross Blue Shield'..."
-    librehealth_query "INSERT INTO insurance_companies (name, attn, cms_id, freeb_type) VALUES ('Blue Cross Blue Shield', 'Claims Dept', 'BCBS01', '1')"
+    NEXT_IC_ID=$(librehealth_query "SELECT COALESCE(MAX(id),0)+1 FROM insurance_companies")
+    librehealth_query "INSERT INTO insurance_companies (id, name, attn, cms_id, ins_type_code) VALUES ($NEXT_IC_ID, 'Blue Cross Blue Shield', 'Claims Dept', 'BCBS01', 1)"
 else
     echo "Carrier 'Blue Cross Blue Shield' already exists."
 fi

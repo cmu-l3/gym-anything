@@ -1,0 +1,46 @@
+{
+  "id": "rescue_broken_docket_module@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "A colleague started building a Talon Voice module for managing the firm's court docket but left it buggy and incomplete. The partial module is at %APPDATA%\\Talon\\user\\docket_module\\ with three files: docket_engine.py, docket.talon, and docket_fields.talon-list. The court docket CSV data is somewhere under C:\\workspace\\.\n\nFix the bugs: The module does not load or function correctly. The Python file has errors that prevent CSV loading and datetime parsing. The voice command file references an action name that does not exist in the Python module. The Talon list name used in the .talon and .talon-list files does not match the name declared in the Python module. The field mapping list is also missing entries for half of the CSV columns. Diagnose each issue by reading the files and the CSV data, then fix all problems in place.\n\nComplete missing functionality: The Python file has TODO comments marking three unimplemented actions. Add them to docket_engine.py:\n- docket_judge_workload(): Count cases per judge and display via app.notify().\n- docket_high_priority(): List all cases with status Active and priority High, showing case numbers and hearing dates.\n- docket_export_report(): Write a comprehensive report to C:\\Users\\Docker\\Desktop\\TalonTasks\\docket_report.txt containing the total case count, cases per judge, cases per case type, and all active high-priority cases with their case numbers and next hearing dates.\n\nAdd corresponding voice commands in docket.talon for all three new actions.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\rescue_broken_docket_module\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\rescue_broken_docket_module\\export_result.ps1"
+  },
+  "metadata": {
+    "target_dir": "C:\\Users\\Docker\\AppData\\Roaming\\Talon\\user\\docket_module",
+    "csv_source": "C:\\workspace\\data\\court_docket.csv",
+    "result_file": "C:\\Users\\Docker\\rescue_broken_docket_module_result.json",
+    "report_path": "C:\\Users\\Docker\\Desktop\\TalonTasks\\docket_report.txt",
+    "total_cases": 80,
+    "num_judges": 5,
+    "cases_per_judge": 16,
+    "num_case_types": 8,
+    "cases_per_type": 10,
+    "active_high_count": 15,
+    "correct_csv_path": "C:/workspace/data/court_docket.csv",
+    "correct_date_format": "%Y-%m-%d %H:%M",
+    "correct_list_name": "docket_field",
+    "all_csv_columns": ["case_number", "case_type", "defendant", "plaintiff", "attorney", "judge", "next_hearing", "courtroom", "status", "priority"],
+    "bugs": {
+      "docket_engine.py:path": "CSV path is C:/workspace/court_docket.csv — missing /data/ subdirectory",
+      "docket_engine.py:date_format": "datetime format is %m/%d/%Y but CSV uses YYYY-MM-DD HH:MM",
+      "docket.talon:action_name": "calls user.docket_find but Python defines docket_search",
+      "docket.talon:list_name": "uses {user.docket_fields} but Python declares mod.list(docket_field)",
+      "docket_fields.talon-list:header": "header says user.docket_fields but Python declares docket_field",
+      "docket_fields.talon-list:incomplete": "only 5 of 10 CSV columns mapped"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rescue_broken_docket_module"
+    }
+  }
+}

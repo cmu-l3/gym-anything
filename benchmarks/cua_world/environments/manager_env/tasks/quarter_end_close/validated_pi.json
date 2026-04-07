@@ -1,0 +1,115 @@
+{
+    "task_id": "quarter_end_close@1",
+    "dataset": "Northwind Traders (synthetic, based on classic Microsoft sample database)",
+    "case_id": "Q1 2025 quarter-end close",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_net_profit",
+            "metadata_value": 5115.0,
+            "verified_value": 5115.0,
+            "source": "Independent computation: Revenue = 8 sales invoices totaling $14,350.00 (3200+1800+1500+2200+950+1100+2400+1200). Expenses after all corrections = COGS $6,650 (2750+1800+2100) + Professional Services $1,500 (reclassified) + Bank charges $35 (new) + Depreciation $450 (new JE) + Insurance $600 (new JE) = $9,235. Net Profit = $14,350 - $9,235 = $5,115.00. Confirmed by tracing setup_task.sh invoice/payment creation lines.",
+            "status": "verified"
+        },
+        {
+            "key": "target_customer",
+            "metadata_value": "Alfreds Futterkiste",
+            "verified_value": "Alfreds Futterkiste",
+            "source": "Computed from setup_task.sh: Alfreds has INV-AF-001 ($3,200) + INV-AF-002 ($1,800) = $5,000 total outstanding. No receipts are created in setup, so all invoices remain unpaid. Next largest is Ernst Handel at $3,700. Alfreds is unambiguously the largest.",
+            "status": "verified"
+        },
+        {
+            "key": "miscoded_payee",
+            "metadata_value": "City Services",
+            "verified_value": "City Services",
+            "source": "setup_task.sh line 337: Contact='City Services' in the payment_data dict. Confirmed in Manager.io payments list during live testing.",
+            "status": "verified"
+        },
+        {
+            "key": "miscoded_amount",
+            "metadata_value": 1500.0,
+            "verified_value": 1500.0,
+            "source": "setup_task.sh line 341: Amount=1500.00 in the payment Lines array. Confirmed visible as '$1,500.00' in Manager.io payments page during live testing.",
+            "status": "verified"
+        },
+        {
+            "key": "old_account",
+            "metadata_value": "Office Supplies",
+            "verified_value": "Office Supplies",
+            "source": "setup_task.sh line 346-347: payment_data Lines[0] Account is set to office_supplies_uuid. The 'Office Supplies' account is created as a P&L expense account in Phase 1. Confirmed during live testing that the payment shows Office Supplies as the account.",
+            "status": "verified"
+        },
+        {
+            "key": "correct_account",
+            "metadata_value": "Professional Services",
+            "verified_value": "Professional Services",
+            "source": "Task description step 1 instructs agent to reclassify to 'Professional Services'. This account is created in setup_task.sh Phase 1 as a P&L expense account. Confirmed account exists in Chart of Accounts during live testing.",
+            "status": "verified"
+        },
+        {
+            "key": "bank_charge_amount",
+            "metadata_value": 35.0,
+            "verified_value": 35.0,
+            "source": "Task description step 2: '$35.00 bank service charge from First National Bank on 2025-02-28'. This is NOT pre-seeded — the agent must create this payment. Amount is consistent with the P&L computation ($5,115 net profit includes $35 bank charges expense).",
+            "status": "verified"
+        },
+        {
+            "key": "depreciation_amount",
+            "metadata_value": 450.0,
+            "verified_value": 450.0,
+            "source": "Task description step 3: 'debit Depreciation Expense $450.00, credit Accumulated Depreciation $450.00'. Both accounts are created in setup Phase 1. Amount is consistent with P&L computation.",
+            "status": "verified"
+        },
+        {
+            "key": "insurance_amount",
+            "metadata_value": 600.0,
+            "verified_value": 600.0,
+            "source": "Task description step 3: 'debit Insurance Expense $600.00, credit Prepaid Insurance $600.00'. Both accounts are created in setup Phase 1. Amount is consistent with P&L computation.",
+            "status": "verified"
+        },
+        {
+            "key": "lock_date",
+            "metadata_value": "2025-03-31",
+            "verified_value": "2025-03-31",
+            "source": "Task description step 5: 'Set the Lock Date to 2025-03-31'. Verifier checks lock-date-form for this value. Lock date form endpoint confirmed accessible during live testing.",
+            "status": "verified"
+        },
+        {
+            "key": "pnl_file",
+            "metadata_value": "/home/ga/Documents/q1_pnl.txt",
+            "verified_value": "/home/ga/Documents/q1_pnl.txt",
+            "source": "Task description step 6 and setup_task.sh line 17: 'rm -f /home/ga/Documents/q1_pnl.txt' confirms the path. Directory /home/ga/Documents/ is created in setup. File write permissions confirmed during live testing.",
+            "status": "verified"
+        },
+        {
+            "key": "pnl_period_start",
+            "metadata_value": "2025-01-01",
+            "verified_value": "2025-01-01",
+            "source": "Task description: 'January 1 to March 31, 2025'. All 8 sales invoices and 3 purchase invoices have dates within this range. The P&L report for this period should capture all seeded revenue and expenses.",
+            "status": "verified"
+        },
+        {
+            "key": "pnl_period_end",
+            "metadata_value": "2025-03-31",
+            "verified_value": "2025-03-31",
+            "source": "Task description: 'January 1 to March 31, 2025'. Matches the lock date, ensuring all corrections are within the reporting period. The adjusting JE is also dated 2025-03-31.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 65,
+            "verified_value": 65,
+            "source": "verifier.py line 200: 'passed = score >= 65'. Confirmed in the scoring logic. With 100 total points, agent needs 65+ to pass.",
+            "status": "verified"
+        },
+        {
+            "key": "manager_module",
+            "metadata_value": "summary",
+            "verified_value": "summary",
+            "source": "setup_task.sh line 443: 'open_manager_at summary'. Agent starts at the Summary page and must navigate to other modules. Confirmed during live testing — Firefox opens at the Northwind Traders summary view.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a quarter-end financial close task for a synthetic Northwind Traders business in Manager.io. The setup seeds 8 sales invoices totaling $14,350 in Q1 2025 revenue (Alfreds Futterkiste: $3,200 + $1,800 = $5,000; Ernst Handel: $1,500 + $2,200 = $3,700; Quick-Stop: $950 + $1,100 = $2,050; Save-a-Lot Markets: $2,400 + $1,200 = $3,600), 3 purchase invoices to Exotic Liquids totaling $6,650 in COGS, and 1 miscoded payment of $1,500 to City Services coded to 'Office Supplies' (should be 'Professional Services'). No receipts are created, so all invoices remain outstanding. Alfreds Futterkiste has the largest outstanding balance ($5,000) and should have credit limit set to $1,000. The agent must also record a $35 bank charge to 'Bank charges' account, a single 4-line adjusting journal entry (Depreciation Expense $450 debit / Accumulated Depreciation $450 credit, Insurance Expense $600 debit / Prepaid Insurance $600 credit) with narration 'Q1 2025 adjusting entries', set Lock Date to 2025-03-31, and write the Net Profit figure to /home/ga/Documents/q1_pnl.txt. The correct Net Profit after all corrections is $5,115.00 (Revenue $14,350 minus Expenses $9,235). The task description references 'Bank charges' with lowercase 'c', which is a default Manager.io account name. Manager.io v26 uses SQLite-based .manager database files at /home/ga/manager-data/Northwind Traders.manager.",
+    "pi_confidence": "high"
+}

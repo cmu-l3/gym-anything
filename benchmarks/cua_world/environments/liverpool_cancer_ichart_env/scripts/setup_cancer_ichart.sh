@@ -49,8 +49,10 @@ fi
 # First-run warmup: handle interaction data download dialog
 # ==========================================
 echo "Launching Cancer iChart for first-run warmup..."
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 8
+input keyevent KEYCODE_WAKEUP 2>/dev/null || true
+sleep 1
+monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null || true
+sleep 10
 
 # The first launch shows a "Get Interaction Data" dialog with OK/CANCEL buttons.
 # Tap OK to install the drug interaction database.

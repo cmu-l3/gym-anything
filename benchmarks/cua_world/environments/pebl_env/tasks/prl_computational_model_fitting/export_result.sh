@@ -1,0 +1,39 @@
+#!/bin/bash
+set -e
+echo "=== Exporting PRL Computational Model Fitting result ==="
+
+export DISPLAY=:1
+export XAUTHORITY=/home/ga/.Xauthority
+
+# Record task end time
+TASK_END=$(date +%s)
+TASK_START=$(cat /tmp/task_start_time.txt 2>/dev/null || echo "0")
+
+# Check if output file was created during the task
+OUTPUT_PATH="/home/ga/pebl/analysis/prl_model_report.json"
+FILE_CREATED_DURING_TASK="false"
+if [ -f "$OUTPUT_PATH" ]; then
+    OUTPUT_MTIME=$(stat -c %Y "$OUTPUT_PATH" 2>/dev/null || echo "0")
+    if [ "$OUTPUT_MTIME" -ge "$TASK_START" ]; then
+        FILE_CREATED_DURING_TASK="true"
+    fi
+fi
+
+# Create anti-gaming metadata export
+TEMP_JSON=$(mktemp /tmp/result.XXXXXX.json)
+cat > "$TEMP_JSON" << EOF
+{
+    "task_start": $TASK_START,
+    "task_end": $TASK_END,
+    "file_created_during_task": $FILE_CREATED_DURING_TASK
+}
+EOF
+
+cp "$TEMP_JSON" /tmp/task_result.json 2>/dev/null || true
+chmod 666 /tmp/task_result.json 2>/dev/null || true
+rm -f "$TEMP_JSON"
+
+# Take final screenshot for evidence
+DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority scrot /tmp/task_final.png 2>/dev/null || true
+
+echo "=== PRL export complete ==="

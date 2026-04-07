@@ -1,0 +1,53 @@
+{
+  "task_id": "add_postgis_attribute_reconfigure@1",
+  "task_completion": [
+    {
+      "id": "postgis_column_added",
+      "description": "Verify the 'pop_density' column was added to the 'ne_countries' table and populated with computed values.",
+      "points": 25,
+      "visual_evidence": "Terminal showing SQL commands (e.g., via 'docker exec' and 'psql') executing 'ALTER TABLE ne_countries ADD COLUMN pop_density...' and an 'UPDATE' statement calculating density using 'pop_est' and area, or a database client showing the new column."
+    },
+    {
+      "id": "geoserver_layer_updated",
+      "description": "Verify the 'ne_countries' feature type in GeoServer was updated to recognize the new attribute.",
+      "points": 30,
+      "visual_evidence": "GeoServer web administration interface showing the 'Edit Layer' page for 'ne_countries', specifically showing the 'Reload feature type' action or the 'Attributes' list displaying the newly added 'pop_density' property."
+    },
+    {
+      "id": "wfs_request_made",
+      "description": "Verify a WFS GetFeature request was executed to retrieve the updated layer data in JSON format.",
+      "points": 15,
+      "visual_evidence": "Terminal showing a tool like 'curl' or 'wget' making a request to the GeoServer WFS endpoint for 'typeName=ne:ne_countries' with 'outputFormat=application/json'."
+    },
+    {
+      "id": "output_file_created",
+      "description": "Verify the WFS response was saved to the correct output path.",
+      "points": 10,
+      "visual_evidence": "Terminal showing the file '/home/ga/output/wfs_countries_with_density.json' being created, or an 'ls' command confirming its existence in the directory."
+    },
+    {
+      "id": "output_file_content_valid",
+      "description": "Verify the saved JSON file contains at least 3 features and includes the 'pop_density' attribute.",
+      "points": 20,
+      "visual_evidence": "Terminal showing the contents of '/home/ga/output/wfs_countries_with_density.json' (e.g., via 'cat', 'head', 'less', or 'jq') displaying GeoJSON structure with multiple features and the 'pop_density' key inside the 'properties' object."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_database_interaction",
+      "description": "Ensure the agent actually interacted with the PostGIS database to alter the table.",
+      "visual_evidence": "Look for genuine psql prompts, docker exec commands, or database GUI interactions rather than just creating a standalone JSON file."
+    },
+    {
+      "id": "genuine_geoserver_interaction",
+      "description": "Ensure the agent interacted with GeoServer to reload the feature type.",
+      "visual_evidence": "Look for the GeoServer web interface or valid REST API curl commands being used to update the layer configuration."
+    },
+    {
+      "id": "no_hardcoded_json",
+      "description": "Ensure the output JSON file was generated from a real WFS request and not manually typed or copy-pasted.",
+      "visual_evidence": "The output file should be the direct result of a curl/wget command or script querying GeoServer, not a manually edited file in a text editor with hardcoded mock data."
+    }
+  ],
+  "privileged_info_for_vlm": "The expected column name is 'pop_density'. The layer being modified is 'ne:ne_countries' in the 'ne' workspace. The output file must be exactly at '/home/ga/output/wfs_countries_with_density.json'. The population density values should be realistic (between 0 and 50,000 people/km\u00b2). The full dataset contains 177 features, but the task only requires the output JSON to contain at least 3 features."
+}

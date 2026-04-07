@@ -1,0 +1,69 @@
+{
+  "id": "configure_fim_syscheck@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure the Wazuh File Integrity Monitoring (syscheck) module in the 'wazuh-wazuh.manager-1' container (/var/ossec/etc/ossec.conf) to meet PCI-DSS requirements. The configuration must include a scan frequency of 3600 seconds, enabled 'alert_new_files', and a file_limit of 100000 entries. The following directories must be monitored: /etc (realtime='yes', check_all='yes'), /usr/bin (realtime='yes'), /usr/sbin (realtime='yes'), /var/www (whodata='yes'), and /boot (check_sha256sum='yes'). Additionally, include ignore entries for /etc/mtab, /etc/hosts.deny, and /etc/mail/statistics. The Wazuh manager must be restarted to apply the new configuration.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_fim_syscheck/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_fim_syscheck/export_result.sh"
+  },
+  "metadata": {
+    "container_name": "wazuh-wazuh.manager-1",
+    "config_path": "/var/ossec/etc/ossec.conf",
+    "expected_settings": {
+      "frequency": "3600",
+      "alert_new_files": "yes",
+      "file_limit": "100000",
+      "directories": [
+        {
+          "path": "/etc",
+          "attrs": {
+            "realtime": "yes",
+            "check_all": "yes"
+          }
+        },
+        {
+          "path": "/usr/bin",
+          "attrs": {
+            "realtime": "yes"
+          }
+        },
+        {
+          "path": "/usr/sbin",
+          "attrs": {
+            "realtime": "yes"
+          }
+        },
+        {
+          "path": "/var/www",
+          "attrs": {
+            "whodata": "yes"
+          }
+        },
+        {
+          "path": "/boot",
+          "attrs": {
+            "check_sha256sum": "yes"
+          }
+        }
+      ],
+      "ignores": [
+        "/etc/mtab",
+        "/etc/hosts.deny",
+        "/etc/mail/statistics"
+      ]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_fim_syscheck"
+    }
+  }
+}

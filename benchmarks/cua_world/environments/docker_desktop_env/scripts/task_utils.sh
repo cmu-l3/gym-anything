@@ -1,6 +1,14 @@
 #!/bin/bash
 # Shared utilities for Docker Desktop tasks
 
+# Auto-detect Docker Desktop socket and use it if available.
+# This ensures root and ga user both talk to the same Docker daemon
+# (Docker Desktop's daemon), so that containers/images created via the GUI
+# are visible to scripts and verifiers running as root.
+if [ -S /home/ga/.docker/desktop/docker.sock ]; then
+    export DOCKER_HOST="unix:///home/ga/.docker/desktop/docker.sock"
+fi
+
 # Take a screenshot
 take_screenshot() {
     local path="${1:-/tmp/screenshot.png}"
@@ -12,45 +20,45 @@ take_screenshot() {
 get_container_count() {
     local running="${1:-all}"  # "running" or "all"
     if [ "$running" = "running" ]; then
-        docker ps -q 2>/dev/null | wc -l
+        timeout 5 docker ps -q 2>/dev/null | wc -l
     else
-        docker ps -aq 2>/dev/null | wc -l
+        timeout 5 docker ps -aq 2>/dev/null | wc -l
     fi
 }
 
 # Get image count
 get_image_count() {
-    docker images -q 2>/dev/null | wc -l
+    timeout 5 docker images -q 2>/dev/null | wc -l
 }
 
 # Check if a specific container exists
 container_exists() {
     local name="$1"
-    docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx "$name"
+    timeout 5 docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx "$name"
 }
 
 # Check if a specific container is running
 container_running() {
     local name="$1"
-    docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$name"
+    timeout 5 docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$name"
 }
 
 # Check if a specific image exists
 image_exists() {
     local image="$1"
-    docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -qE "^${image}(:latest)?$"
+    timeout 5 docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -qE "^${image}(:latest)?$"
 }
 
 # Get container details as JSON
 get_container_json() {
     local name="$1"
-    docker inspect "$name" 2>/dev/null || echo "{}"
+    timeout 5 docker inspect "$name" 2>/dev/null || echo "{}"
 }
 
 # Get container status
 get_container_status() {
     local name="$1"
-    docker ps -a --filter "name=^${name}$" --format '{{.Status}}' 2>/dev/null
+    timeout 5 docker ps -a --filter "name=^${name}$" --format '{{.Status}}' 2>/dev/null
 }
 
 # Check if Docker Desktop is running
@@ -61,27 +69,26 @@ docker_desktop_running() {
 
 # Check if Docker daemon is ready
 docker_daemon_ready() {
-    docker info > /dev/null 2>&1
+    timeout 5 docker info > /dev/null 2>&1
 }
 
 # Wait for Docker daemon to be ready (with timeout)
 wait_for_docker_daemon() {
-    local timeout="${1:-60}"
+    local timeout_sec="${1:-60}"
     local elapsed=0
-    echo "Waiting for Docker daemon (timeout: ${timeout}s)..."
-    while [ $elapsed -lt $timeout ]; do
-        # Use timeout 5 to cap each docker info call. Without this, docker info
-        # can block for 30+ seconds when using the desktop-linux context in a
-        # login shell, causing the elapsed counter to wildly undercount real time.
+    echo "Waiting for Docker daemon (timeout: ${timeout_sec}s)..." >&2
+    while [ $elapsed -lt $timeout_sec ]; do
         if timeout 5 docker info > /dev/null 2>&1; then
-            echo "Docker daemon is ready"
+            echo "Docker daemon is ready" >&2
             return 0
         fi
         sleep 2
         elapsed=$((elapsed + 2))
-        echo "  Waiting... (${elapsed}s)"
+        if [ $((elapsed % 10)) -eq 0 ]; then
+            echo "  Waiting... (${elapsed}s)" >&2
+        fi
     done
-    echo "Timeout waiting for Docker daemon"
+    echo "Timeout waiting for Docker daemon" >&2
     return 1
 }
 

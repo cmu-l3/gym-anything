@@ -1,0 +1,30 @@
+{
+  "id": "bart_rl_learning_model@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are a computational psychiatrist fitting reinforcement learning models to Balloon Analogue Risk Task (BART) data from the CNP study. The raw trial-by-trial BART data is at ~/pebl/data/bart/bart_data.csv (columns: participant_id, trial, pumps, exploded). Your task: (1) Identify and exclude the contaminated participant whose data is implausible (hint: look for a participant with zero adjusted mean pumps — impossible balloon-pumping pattern suggesting non-participation). (2) For each remaining valid participant, fit a delta-learning reinforcement learning model (see specifications below). (3) Write a JSON report to ~/pebl/analysis/bart_rl_report.json.\n\nRL Model Specification (Wallsten et al., 2005, Psychol Sci):\n  - At each pump decision, the participant has a belief p_t about the probability the balloon explodes on the next pump\n  - The model updates p_t after each balloon outcome:\n    * If the balloon EXPLODED: p_new = p_old + alpha * (1 - p_old)\n    * If the balloon did NOT explode (participant cashed out or pumped again safely): p_new = p_old * (1 - alpha)\n  - The predicted optimal number of pumps for a given p is: n_pumps = floor(1/p) - 1\n  - Find the learning rate alpha in [0.001, 0.999] that minimizes the mean squared error between predicted pumps and actual pumps across all balloon trials for that participant\n  - Use the INTEGRATION method: initialize p_0 = 0.10 (prior belief) for each participant\n\nJSON report format: {'participants': [{'id': '...', 'alpha': float, 'mse': float, 'n_balloons': int} or {'id': '...', 'excluded': true, 'reason': '...'}], 'group_statistics': {'mean_alpha': float, 'sd_alpha': float, 'n_valid': int}}",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/bart_rl_learning_model/setup_task.sh",
+    "post_task": "/workspace/tasks/bart_rl_learning_model/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "sub-99999",
+    "contamination_type": "zero_pumps_on_all_non_exploded_trials",
+    "model": "delta_learning_rl",
+    "reference": "Wallsten, T.S. et al. (2005). Modeling behavior in a clinically diagnostic sequential risk-taking task. Psychol Sci, 16(3):167-172.",
+    "output_file": "/home/ga/pebl/analysis/bart_rl_report.json",
+    "data_file": "/home/ga/pebl/data/bart/bart_data.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bart_rl_learning_model"
+    }
+  }
+}

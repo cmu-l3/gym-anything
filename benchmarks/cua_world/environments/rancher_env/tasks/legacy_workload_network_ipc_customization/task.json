@@ -1,0 +1,55 @@
+{
+  "id": "legacy_workload_network_ipc_customization@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "A legacy trading monolith is being migrated to Kubernetes. Modify the 'trading-monolith' deployment in the 'legacy-migration' namespace to implement its strict infrastructure requirements. Configure static hostAliases for 198.51.100.15 (clearinghouse.local) and 198.51.100.16 (audit.local). Set the dnsPolicy to 'None' and provide a custom dnsConfig with nameservers 1.1.1.1 and 1.0.0.1, search domains 'trading.internal' and 'finance.internal', and the 'ndots' option set to 2. Update the 'fast-cache' volume to use a RAM disk by setting its emptyDir medium to 'Memory' with a sizeLimit of 512Mi. The full specification is available at /home/ga/Desktop/migration_spec.md. Ensure the deployment successfully rolls out and pods return to a Running state.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/legacy_workload_network_ipc_customization/setup_task.sh",
+    "post_task": "/workspace/tasks/legacy_workload_network_ipc_customization/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Cloud Systems Architect",
+    "target_namespace": "legacy-migration",
+    "target_deployment": "trading-monolith",
+    "expected_host_aliases": [
+      {
+        "ip": "198.51.100.15",
+        "hostname": "clearinghouse.local"
+      },
+      {
+        "ip": "198.51.100.16",
+        "hostname": "audit.local"
+      }
+    ],
+    "expected_dns": {
+      "policy": "None",
+      "nameservers": [
+        "1.1.1.1",
+        "1.0.0.1"
+      ],
+      "searches": [
+        "trading.internal",
+        "finance.internal"
+      ],
+      "ndots": "2"
+    },
+    "expected_volume": {
+      "name": "fast-cache",
+      "medium": "Memory",
+      "sizeLimit": "512Mi"
+    },
+    "pass_threshold": 75
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_legacy_workload_network_ipc_customization"
+    }
+  }
+}

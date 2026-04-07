@@ -1,0 +1,34 @@
+{
+  "id": "xml_to_hl7_lab_transformation@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a NextGen Connect channel named 'XML_to_HL7_Lab' to transform XML lab results from /opt/mirthdata/xml_in/ into HL7 v2.x ORU^R01 messages. The transformation must map Patient and Order data to PID and OBR segments and generate a repeating OBX segment for every <Analyte> element, including Name, Value, Units, Range, and Flag. Export the resulting HL7 messages to /opt/mirthdata/hl7_out/ using the naming convention ${message.messageId}.hl7.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/xml_to_hl7_lab_transformation/setup_task.sh",
+    "post_task": "/workspace/tasks/xml_to_hl7_lab_transformation/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "XML_to_HL7_Lab",
+    "input_dir": "/opt/mirthdata/xml_in",
+    "output_dir": "/opt/mirthdata/hl7_out",
+    "sample_file_name": "sample_cbc.xml",
+    "expected_analyte_count": 5,
+    "expected_patient_name": "SMITH^JENNIFER",
+    "analyte_check": {
+      "name": "WBC",
+      "value": "7.2"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_xml_to_hl7_lab_transformation"
+    }
+  }
+}

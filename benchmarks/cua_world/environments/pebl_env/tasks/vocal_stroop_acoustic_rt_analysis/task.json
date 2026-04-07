@@ -1,0 +1,28 @@
+{
+  "id": "vocal_stroop_acoustic_rt_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "very_hard",
+  "description": "A psycholinguistics laboratory ran a Vocal Stroop paradigm. Because of issues with the real-time voice key, they recorded a .wav audio file for every single trial. The condition log is at ~/pebl/data/vocal_stroop_log.csv (columns: participant, trial, condition, correct_word, audio_file). The raw trial audio recordings are in ~/pebl/data/audio/ organized by participant (p01-p06). Your task is to process these unstructured audio files to detect Voice Onset Time (VOT), merge it with the log, exclude corrupted data, and compute the Stroop effect.\n\nVOT Detection Algorithm:\nFor each .wav file, compute the absolute amplitude of the waveform. Extract the first 100 ms to establish a baseline noise profile. Calculate the mean and population standard deviation (ddof=0) of the absolute amplitude in this 100 ms baseline. Define the onset threshold as: Mean_Baseline_Abs + (5 * SD_Baseline). The VOT is the exact timestamp in milliseconds (rounded to 1 decimal place) of the FIRST sample that strictly exceeds this threshold.\n\nExclusion:\nParticipant p06 had a broken microphone resulting in pure static/noise. Their audio will not contain a valid speech onset (threshold is never reliably crossed). You must exclude p06 from the analysis.\n\nAnalysis & Output:\nFor each valid participant, compute the mean VOT for 'congruent' trials and 'incongruent' trials. Compute the Stroop Effect (mean_incongruent - mean_congruent). Write the results to ~/pebl/analysis/vocal_rt_report.json with the exact following schema:\n{\n  \"participants\": [\n    {\n      \"id\": \"p01\",\n      \"mean_rt_congruent_ms\": 582.4,\n      \"mean_rt_incongruent_ms": 715.1,\n      \"stroop_effect_ms\": 132.7\n    },\n    {\n      \"id\": \"p06\",\n      \"excluded\": true,\n      \"reason\": \"Corrupted audio\"\n    }\n  ],\n  \"group_mean_stroop_effect_ms\": 128.5\n}\n\nNote: 'group_mean_stroop_effect_ms' is the average of the individual Stroop effects for valid participants.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/vocal_stroop_acoustic_rt_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/vocal_stroop_acoustic_rt_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "p06",
+    "n_real_participants": 5,
+    "output_file": "/home/ga/pebl/analysis/vocal_rt_report.json",
+    "ground_truth_file": "/var/lib/app/ground_truth/vocal_rts.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vocal_stroop"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+    "task_id": "production_slo_monitoring_pipeline@1",
+    "dataset": "Synthetically generated payment service telemetry (via generate_payment_data.py with random.seed(42)). Background infrastructure metrics from Numenta Anomaly Benchmark (NAB).",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_dashboard_name",
+            "metadata_value": "Payment Service SLO",
+            "verified_value": "Payment Service SLO",
+            "source": "Task description explicitly states: 'create and save a Graphite dashboard named exactly Payment Service SLO'. Verifier.py line 27 hardcodes DASHBOARD_NAME = 'Payment Service SLO'. setup_task.sh line 20 deletes any existing dashboard with this exact name. export_result.sh reads all dashboards from SQLite. All three files are consistent.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_graphs",
+            "metadata_value": ["Request Rate", "Error Budget Burn", "Latency SLI", "Service Health Correlation", "Incident Detection"],
+            "verified_value": ["Request Rate", "Error Budget Burn", "Latency SLI", "Service Health Correlation", "Incident Detection"],
+            "source": "Task description lists exactly 5 graphs with these titles. Verifier.py checks for each via _find_graph() at lines 126, 142, 156, 174, 190. All graph names match between description, metadata, and verifier.",
+            "status": "verified"
+        },
+        {
+            "key": "custom_metrics",
+            "metadata_value": ["apps.payment.requests_per_sec", "apps.payment.error_rate", "apps.payment.latency_p99_ms"],
+            "verified_value": ["apps.payment.requests_per_sec", "apps.payment.error_rate", "apps.payment.latency_p99_ms"],
+            "source": "Independently verified by running generate_payment_data.py and inspecting the output file. The script generates exactly these 3 metric paths (lines 87-89). Live environment testing confirmed all 3 metrics are receivable by Carbon on port 2003 and appear in the Graphite metric index after feeding. Verifier.py checks for 'requests_per_sec', 'error_rate', and 'latency_p99_ms' substrings in Render API data (lines 94-99).",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Site Reliability Engineer",
+            "verified_value": "Site Reliability Engineer",
+            "source": "First sentence of task description: 'You are a Site Reliability Engineer bootstrapping SLO monitoring'.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Cloud Infrastructure",
+            "verified_value": "Cloud Infrastructure",
+            "source": "The task involves monitoring a payment processing microservice using Graphite, a standard cloud infrastructure monitoring tool. SLO/SRE methodology is a cloud infrastructure practice. Consistent with other graphite_env tasks using this industry label.",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/production_slo_monitoring_pipeline_result.json",
+            "verified_value": "/tmp/production_slo_monitoring_pipeline_result.json",
+            "source": "export_result.sh line 74 writes to this exact path. verifier.py line 28 reads from this exact path (RESULT_PATH constant). Live environment testing confirmed the export script produces valid JSON at this path containing 'task_start', 'dashboards', and 'metrics_data' keys.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires the agent to (1) feed a pre-generated data file at /opt/graphite_real_data/payment_service_metrics.txt into Carbon port 2003 inside the 'graphite' Docker container, then (2) create and save a Graphite dashboard named exactly 'Payment Service SLO' with 5 graphs. The data file contains 2592 lines (864 timestamps at 5-minute intervals over 3 days, times 3 metrics). The three metric paths are apps.payment.requests_per_sec, apps.payment.error_rate, and apps.payment.latency_p99_ms. Port 2003 is exposed from the Docker container to the host, so the agent can feed data via 'nc localhost 2003 < /path/to/file' from the host without entering the container. The data contains two incidents: a flash sale on Day 2 at 11:30 AM (RPS spikes to 2000-2500, errors to 6-8%, latency to 800-2000ms) and a DB blip on Day 3 at 3:00 AM (errors to 3.5-4.5%, latency to 400-600ms). The 5 graphs must have exact titles: 'Request Rate', 'Error Budget Burn', 'Latency SLI', 'Service Health Correlation', 'Incident Detection'. Each graph requires specific Graphite function compositions. Key functions used across graphs: summarize (with '1h','avg' args), threshold (at 800, 100, and 500), integral, removeBelowValue, scale, dashed, movingAverage (window 12 and 30), color (red, blue, orange, green), secondYAxis, divideSeries, diffSeries, drawAsInfinite, stdev (window 12), and alias for labeling. The function 'stdev' (not 'movingStdDev' or 'stddevSeries') was verified working in live Graphite environment testing, returning 3942 data points. Graph 2 ('Error Budget Burn') has the deepest function nesting at depth 4: alias(integral(removeBelowValue(scale(...)))). Graph 5 ('Incident Detection') uses depth-5 nesting: alias(color(drawAsInfinite(removeBelowValue(scale(...))))). The dashboard must be saved (not just named) for the verifier to detect it in the SQLite database. The export_result.sh queries the Render API with 'from=-4d' to capture the 3-day data window. The verifier checks dashboard existence, graph titles (with case-insensitive fallback), and function names in target strings (all lowercased).",
+    "pi_confidence": "high"
+}

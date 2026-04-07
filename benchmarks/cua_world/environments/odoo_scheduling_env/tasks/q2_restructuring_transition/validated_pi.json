@@ -1,0 +1,59 @@
+{
+    "task_id": "q2_restructuring_transition@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "new_contact_name",
+            "metadata_value": "Rachel Torres",
+            "verified_value": "Rachel Torres",
+            "source": "task.json description specifies creating contact 'Rachel Torres'. setup_task.sh lines 49-52 delete any pre-existing Rachel Torres contact (clean slate). verifier.py lines 68-82 check for her existence via res.partner search. Confirmed she does NOT exist in setup_data.py contacts list (lines 39-52) — the agent must create her from scratch.",
+            "status": "verified"
+        },
+        {
+            "key": "new_contact_email",
+            "metadata_value": "rachel.torres@northbridge.org",
+            "verified_value": "rachel.torres@northbridge.org",
+            "source": "task.json description specifies this exact email. verifier.py line 75 checks for 'rachel', 'torres', and 'northbridge' substrings in the email. Email follows the established Northbridge pattern: all 12 existing contacts in setup_data.py use firstname.lastname@northbridge.org format.",
+            "status": "verified"
+        },
+        {
+            "key": "departing_person",
+            "metadata_value": "Henry Kim",
+            "verified_value": "Henry Kim",
+            "source": "setup_data.py line 47 creates Henry Kim as a contact with email henry.kim@northbridge.org, function 'VP Operations'. He appears in 7 events: Operations Daily Sync (line 117), Finance Planning Session (line 130), Q2 Financial Review (line 138), Investor Update Preparation (line 191), Budget Committee Meeting (line 212), Quarterly Business Review (line 228), All-Hands Meeting (line 251). setup_task.sh ensures he is in the recurring Ops Daily Sync attendees (line 95) and QBR attendees (lines 132-137). verifier.py checks he is removed from Ops Daily Sync (line 90) and QBR (line 148).",
+            "status": "verified"
+        },
+        {
+            "key": "recurring_event_to_modify",
+            "metadata_value": "Operations Daily Sync",
+            "verified_value": "Operations Daily Sync",
+            "source": "setup_data.py line 115 creates a single event named 'Operations Daily Sync' with attendees Grace Patel, Henry Kim, Bob Williams at 'Operations Hub'. setup_task.sh lines 76-113 delete this single event and recreate it as a recurring weekday event (rrule_type='weekly', mon/tue/wed/thu/fri=True, end_type='forever') at 14:00-14:30. Live testing confirmed the recurring event appears in the Odoo Calendar with multiple weekday occurrences visible. The agent must modify ALL occurrences to swap Henry Kim for Rachel Torres and change location to 'Virtual (Zoom)'. verifier.py lines 87-111 check these changes.",
+            "status": "verified"
+        },
+        {
+            "key": "event_to_reschedule",
+            "metadata_value": "Quarterly Business Review",
+            "verified_value": "Quarterly Business Review",
+            "source": "setup_data.py lines 224-231 create the QBR event: start=ev(14,9) (next_monday+14 days at 09:00), stop=ev(14,12) (same day at 12:00, 3-hour meeting), location='Board Room', description='Full Q2 business review: financials, product, sales, and HR.', attendees: Alice Johnson, Bob Williams, Carol Martinez, Grace Patel, Henry Kim, James O'Brien (6 total). setup_task.sh lines 120-157 save the original start date to /tmp/qbr_original_date.txt for the verifier, restore Henry Kim if removed, reset description. verifier.py lines 116-175 check: date moved 5-9 days (15 pts), Henry removed (5 pts), Rachel added (5 pts), description contains 'restructuring' or 'reporting' or 'kpi' (7 pts). Live testing confirmed QBR was at 2026-04-06 09:00:00 with 7 attendees including Henry Kim.",
+            "status": "verified"
+        },
+        {
+            "key": "new_recurring_event",
+            "metadata_value": "Operations Transition Check-in",
+            "verified_value": "Operations Transition Check-in",
+            "source": "This event does NOT exist in setup_data.py (confirmed by reviewing all 20 events in lines 104-255). setup_task.sh lines 55-60 delete any pre-existing 'Operations Transition Check-in' events. The agent must create it fresh as a recurring event with: rrule_type='weekly', days=Monday+Thursday, 4 weeks (8 occurrences), time=9:00-9:30 AM, location='Operations Hub', attendees=Rachel Torres+Grace Patel, description about transition handover, and a 30-minute email reminder. verifier.py lines 180-245 check: exists (5 pts), recurring (8 pts), mon+thu flags (7 pts), start ~9AM (3 pts), >=2 attendees (4 pts), alarm configured (5 pts), description >=15 chars (3 pts) = 35 total possible.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 70,
+            "verified_value": 70,
+            "source": "verifier.py line 247: 'passed = score >= 70'. Total possible score is 100 points across 15 criteria: contact(8) + sync_henry_out(10) + sync_rachel_in(10) + sync_location(5) + qbr_date(15) + qbr_henry_out(5) + qbr_rachel_in(5) + qbr_desc(7) + checkin_exists(5) + checkin_recurring(8) + checkin_mon_thu(7) + checkin_time(3) + checkin_attendees(4) + checkin_reminder(5) + checkin_desc(3) = 100. Verified sum matches.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task operates on a synthetic Odoo 17 Calendar environment (database 'odoo_scheduling', login admin/admin at http://localhost:8069). The task requires 4 distinct operations for a VP Operations departure transition. (1) CREATE CONTACT: Rachel Torres must be created in the Contacts module with email rachel.torres@northbridge.org, job title 'VP Operations', phone +1-555-0275, company 'Northbridge Consulting'. She does not exist at task start. (2) MODIFY RECURRING EVENT: 'Operations Daily Sync' is set up as a recurring weekday event (Mon-Fri, 14:00-14:30) with attendees Grace Patel, Henry Kim, and Bob Williams at location 'Operations Hub'. The agent must open any occurrence, select 'All Events' in the Odoo recurrence dialog, replace Henry Kim with Rachel Torres in attendees, and change location to 'Virtual (Zoom)'. This is the hardest operation — agents historically scored 15/100 on recurring event modification. (3) RESCHEDULE QBR: 'Quarterly Business Review' exists approximately 3 weeks in the future (next_monday + 14 days), 09:00-12:00, in 'Board Room', with 6 attendees including Henry Kim. The agent must move it exactly 7 days later (verifier accepts 5-9 day window), remove Henry Kim, add Rachel Torres, and update the description to mention restructuring/reporting lines/KPIs. (4) CREATE RECURRING CHECK-IN: 'Operations Transition Check-in' must be created as a new recurring event with weekly recurrence on Monday AND Thursday (dual-day selection), for 4 weeks (8 occurrences), 9:00-9:30 AM, at 'Operations Hub', with Rachel Torres and Grace Patel as attendees, a description about transition handover responsibilities, and a 30-minute email reminder. Cross-module navigation is required (Contacts and Calendar are separate Odoo modules). Grace Patel is the CFO (grace.patel@northbridge.org). The pass threshold is 70/100 points.",
+    "pi_confidence": "high"
+}

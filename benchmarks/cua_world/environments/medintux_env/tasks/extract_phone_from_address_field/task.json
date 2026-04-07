@@ -1,0 +1,55 @@
+{
+  "id": "extract_phone_from_address_field@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Clean up patient records in the 'DrTuxTest' database (user: root, no password) where 10-digit phone numbers were incorrectly merged into the 'FchPat_Adresse' field of the 'fchpat' table. For records containing a phone number in the address, extract the number into the 'FchPat_Tel1' field, normalized to 10 digits. Remove the phone number and any associated labels (such as 'Tel:', brackets, or separators) from the 'FchPat_Adresse' field while keeping the rest of the address intact. Do not modify records that do not contain a phone number in the address field.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/extract_phone_from_address_field/setup_task.sh",
+    "post_task": "/workspace/tasks/extract_phone_from_address_field/export_result.sh"
+  },
+  "metadata": {
+    "target_patients": [
+      {
+        "guid": "TEST-DIRTY-001",
+        "name": "TEST_A",
+        "initial_addr": "10 Rue de la Paix 01.45.67.89.00",
+        "expected_phone": "0145678900",
+        "expected_addr_clean": "10 Rue de la Paix"
+      },
+      {
+        "guid": "TEST-DIRTY-002",
+        "name": "TEST_B",
+        "initial_addr": "5 Ave Foch (Tel: 06 12 34 56 78)",
+        "expected_phone": "0612345678",
+        "expected_addr_clean": "5 Ave Foch"
+      },
+      {
+        "guid": "TEST-DIRTY-003",
+        "name": "TEST_C",
+        "initial_addr": "Route 66 - 0987654321",
+        "expected_phone": "0987654321",
+        "expected_addr_clean": "Route 66"
+      }
+    ],
+    "control_patients": [
+      {
+        "guid": "TEST-CLEAN-001",
+        "name": "TEST_D",
+        "initial_addr": "88 Blvd Saint Germain",
+        "initial_phone": "0199887766"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_extract_phone"
+    }
+  }
+}

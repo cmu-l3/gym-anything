@@ -102,33 +102,9 @@ def verify_protractor_geometry(traj, env_info, task_info):
     
     vlm_result = {}
     if vlm_response and "result" in vlm_response:
-        vlm_result = vlm_response.get("parsed", {})
-
-    if vlm_result.get("activity_found"):
-        score += 25
-        feedback_parts.append("GCompris protractor activity detected.")
-    else:
-        feedback_parts.append("Could not confirm the protractor activity.")
-
-    if vlm_result.get("tool_interaction"):
-        score += 25
-        feedback_parts.append("Protractor interaction detected.")
-    else:
-        feedback_parts.append("Could not confirm protractor movement.")
-
-    if vlm_result.get("success_feedback"):
-        score += 20
-        feedback_parts.append("Success feedback detected.")
-
-    if vlm_result.get("multiple_problems"):
-        score += 15
-        feedback_parts.append("Multiple problems appear to have been attempted.")
-
-    passed = score >= 60 and vlm_result.get("activity_found") and (
-        vlm_result.get("tool_interaction") or vlm_result.get("success_feedback")
-    )
-    return {
-        "passed": passed,
-        "score": min(score, 100),
-        "feedback": " ".join(feedback_parts),
-    }
+        # Parse the string result from the VLM tool if needed, 
+        # but the tool signature suggests it returns a dict with 'result' containing text.
+        # We'll assume the helper handles parsing or we try to parse the JSON string.
+        try:
+            # Clean up potential markdown code blocks
+            json_str = vlm_response["result"].replace("

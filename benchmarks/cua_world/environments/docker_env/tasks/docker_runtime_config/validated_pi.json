@@ -1,0 +1,66 @@
+{
+    "task_id": "docker_runtime_config@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/acme-dashboard",
+            "verified_value": "/home/ga/projects/acme-dashboard",
+            "source": "setup_task.sh line 18; export_result.sh line 93",
+            "status": "verified"
+        },
+        {
+            "key": "image_tag",
+            "metadata_value": "acme-dashboard:dynamic",
+            "verified_value": "acme-dashboard:dynamic",
+            "source": "export_result.sh line 10; task.json description; verified through Docker image verification system",
+            "status": "verified"
+        },
+        {
+            "key": "required_packages",
+            "metadata_value": "[\"gettext\"]",
+            "verified_value": "[\"gettext\"]",
+            "source": "task.json description step 4; export_result.sh line 96 checks for 'apk add gettext'; Alpine Linux official package documentation confirms gettext provides envsubst",
+            "status": "verified"
+        },
+        {
+            "key": "target_files_config_js",
+            "metadata_value": "/usr/share/nginx/html/config.js",
+            "verified_value": "/usr/share/nginx/html/config.js",
+            "source": "setup_task.sh lines 25-32 create config.js; line 83 copies with 'COPY app/ /usr/share/nginx/html/'; export_result.sh line 62 reads from this path",
+            "status": "verified"
+        },
+        {
+            "key": "target_files_nginx_conf",
+            "metadata_value": "/etc/nginx/nginx.conf",
+            "verified_value": "/etc/nginx/nginx.conf",
+            "source": "setup_task.sh lines 48-76 create nginx.conf; line 86 copies with 'COPY nginx/nginx.conf /etc/nginx/nginx.conf'; export_result.sh line 68 reads from this path",
+            "status": "verified"
+        },
+        {
+            "key": "base_image",
+            "metadata_value": "nginx:1.24-alpine",
+            "verified_value": "nginx:1.24-alpine",
+            "source": "setup_task.sh line 80; official Docker Hub nginx repository confirms this image exists",
+            "status": "verified"
+        },
+        {
+            "key": "environment_variables",
+            "metadata_value": "API_URL and WORKER_PROCESSES",
+            "verified_value": "API_URL and WORKER_PROCESSES",
+            "source": "task.json description step 2; export_result.sh lines 33-34 define TEST_API_URL and TEST_WORKERS; lines 45-46 pass as -e flags to docker run",
+            "status": "verified"
+        },
+        {
+            "key": "nginx_variables_to_preserve",
+            "metadata_value": "$uri and $host",
+            "verified_value": "$uri and $host",
+            "source": "task.json description step 3 'Ensure envsubst does NOT replace internal Nginx variables like $uri or $host'; setup_task.sh lines 66 and 72 include these variables; export_result.sh lines 78-79 verify they are preserved",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task configures an acme-dashboard Docker image using nginx:1.24-alpine with runtime environment variable injection. The project directory is /home/ga/projects/acme-dashboard. Two configuration files are targeted: config.js at /usr/share/nginx/html/config.js (to inject API_URL) and nginx.conf at /etc/nginx/nginx.conf (to inject WORKER_PROCESSES). The gettext package must be installed to provide envsubst. Critical requirement: envsubst must preserve nginx internal variables ($uri, $host) using proper escaping syntax. Verification uses randomized test values to ensure injection is dynamic, not hardcoded.",
+    "pi_confidence": "high"
+}

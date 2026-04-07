@@ -1,0 +1,48 @@
+services:
+  cmdbuild_db:
+    image: postgres:16-alpine
+    container_name: cmdbuild_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - cmdbuild_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  cmdbuild_app:
+    image: itmicus/cmdbuild:4.1.0
+    container_name: cmdbuild_app
+    restart: unless-stopped
+    depends_on:
+      cmdbuild_db:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_HOST: cmdbuild_db
+      POSTGRES_DB: cmdbuild_db4
+      CMDBUILD_DUMP: demo.dump.xz
+      JAVA_OPTS: -Xmx3072m -Xms1536m
+    ports:
+      - "8090:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-L", "http://localhost:8080/cmdbuild/ui/"]
+      interval: 20s
+      timeout: 10s
+      retries: 18
+      start_period: 120s
+    volumes:
+      - cmdbuild_tomcat:/usr/local/tomcat
+
+volumes:
+  cmdbuild_db_data:
+  cmdbuild_tomcat:

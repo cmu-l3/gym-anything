@@ -1,0 +1,64 @@
+{
+  "id": "create_audience_segments@1",
+  "version": "1.0",
+  "env_id": "matomo_env@0.1",
+  "description": "A Market Research Analyst needs two new visitor segments configured in Matomo for an upcoming quarterly review. Logged in as 'admin', create the following segments and ensure they are visible to all users:\n\n1. Segment Name: 'High-Value Desktop Users'\n   - Condition 1: Device type is 'Desktop'\n   - Condition 2: Number of actions is greater than 3\n   - Logic: Both conditions must match (AND)\n\n2. Segment Name: 'Bounced Mobile Visitors'\n   - Condition 1: Device type is 'Smartphone'\n   - Condition 2: Number of actions equals 1\n   - Logic: Both conditions must match (AND)",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_audience_segments/setup_task.sh",
+    "post_task": "/workspace/tasks/create_audience_segments/export_result.sh"
+  },
+  "metadata": {
+    "segment_1": {
+      "name": "High-Value Desktop Users",
+      "conditions": [
+        {
+          "field": "deviceType",
+          "operator": "==",
+          "value": "Desktop"
+        },
+        {
+          "field": "visitTotalActions",
+          "operator": ">",
+          "value": "3"
+        }
+      ],
+      "visibility": "all_users"
+    },
+    "segment_2": {
+      "name": "Bounced Mobile Visitors",
+      "conditions": [
+        {
+          "field": "deviceType",
+          "operator": "==",
+          "value": "smartphone"
+        },
+        {
+          "field": "visitTotalActions",
+          "operator": "==",
+          "value": "1"
+        }
+      ],
+      "visibility": "all_users"
+    },
+    "scoring_weights": {
+      "count_increased": 10,
+      "segment1_exists": 10,
+      "segment1_conditions": 30,
+      "segment2_exists": 10,
+      "segment2_conditions": 30,
+      "visibility_correct": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_audience_segments"
+    }
+  }
+}

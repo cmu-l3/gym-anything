@@ -21,7 +21,7 @@ This environment provides a fully functional Jenkins server running in Docker-in
 from gym_anything.api import from_config
 
 # Start Jenkins environment with a specific task
-env = from_config("benchmarks/cua_world/environments/jenkins_env", task_id="create_freestyle_job")
+env = from_config("examples/jenkins_env", task_id="create_freestyle_job")
 obs = env.reset(seed=42, use_cache=False)
 
 # Environment is now ready with Jenkins running at http://localhost:8080
@@ -137,7 +137,7 @@ jenkins_env/
 │   │   └── verifier.py
 │   ├── create_pipeline_job/    # Task 2
 │   └── trigger_build/          # Task 3
-└── evidence/
+└── evidence_docs/
     └── README.md               # Documentation of real data sources
 ```
 

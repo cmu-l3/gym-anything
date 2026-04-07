@@ -1,0 +1,29 @@
+{
+  "id": "iat_dscore_bias_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "description": "A social psychology lab has collected Implicit Association Test (IAT) data stored at ~/pebl/data/iat_data.csv, containing columns for participant, block, trial, rt_ms, and correct. Your task is to compute the standard Greenwald et al. (2003) D-score for each participant and identify automated/bot responders. Using data from blocks 3, 4, 6, and 7, exclude participants if more than 10% of their trials across those blocks have an rt_ms below 300 ms. For valid participants, calculate the D-score by averaging the quotients of the mean differences (Block 6 minus Block 3; Block 7 minus Block 4) divided by the pooled sample standard deviations of the corresponding blocks (3 and 6; 4 and 7). Save the results to ~/pebl/analysis/iat_report.json as a JSON object containing a 'participants' list with 'id' and 'd_score' (or 'excluded': true with a 'reason' string) and a 'group_mean_d_score' field for the overall mean of valid participants.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/iat_dscore_bias_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/iat_dscore_bias_analysis/export_result.sh"
+  },
+  "metadata": {
+    "data_path": "/home/ga/pebl/data/iat_data.csv",
+    "output_path": "/home/ga/pebl/analysis/iat_report.json",
+    "contaminated_participant": "sub-99",
+    "contamination_rule": ">10% trials under 300ms",
+    "d_score_tolerance": 0.015
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_iat_dscore"
+    }
+  }
+}

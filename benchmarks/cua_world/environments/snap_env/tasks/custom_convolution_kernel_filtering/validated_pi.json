@@ -1,0 +1,45 @@
+{
+    "task_id": "custom_convolution_kernel_filtering@1",
+    "dataset": "opengeos landsat.tif",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "data_file",
+            "metadata_value": "/home/ga/snap_data/landsat_multispectral.tif",
+            "verified_value": "/home/ga/snap_data/landsat_multispectral.tif",
+            "source": "The setup_task.sh script explicitly downloads the opengeos Landsat data and saves it to this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "target_band",
+            "metadata_value": "band_2",
+            "verified_value": "band 4 (B4)",
+            "source": "Python rasterio analysis of the downloaded Landsat 4-band GeoTIFF reveals that the fourth band (B4) has the highest mean reflectance (58.8), which is characteristic of the NIR band over vegetation. This explicitly contradicts the prompt and metadata claim that 'band_2' is the NIR band.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_dim_path",
+            "metadata_value": "/home/ga/snap_exports/custom_filtered.dim",
+            "verified_value": "/home/ga/snap_exports/custom_filtered.dim",
+            "source": "The task description explicitly instructs the agent to save the BEAM-DIMAP file to this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_tif_path",
+            "metadata_value": "/home/ga/snap_exports/custom_filtered.tif",
+            "verified_value": "/home/ga/snap_exports/custom_filtered.tif",
+            "source": "The task description explicitly instructs the agent to export the GeoTIFF to this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "target_kernel_weights",
+            "metadata_value": [-1.0, -2.0, -1.0, -2.0, 12.0, -2.0, -1.0, -2.0, -1.0],
+            "verified_value": [-1.0, -2.0, -1.0, -2.0, 12.0, -2.0, -1.0, -2.0, -1.0],
+            "source": "The 1D flattened array exactly matches the row-major 3x3 matrix (-1 -2 -1 / -2 12 -2 / -1 -2 -1) explicitly defined in the task instructions and verified by the export_result.sh parsing logic.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Landsat TIFF downloaded from the opengeos dataset is real data covering a region in California (EPSG:3857 bounds equivalent to roughly 36.6 to 38.6 latitude). Analysis of the image shows that the fourth band (B4) exhibits the characteristically high reflectance of a Near Infrared (NIR) band over vegetation, which explicitly contradicts the prompt and metadata claim that 'band_2' is the NIR band. The expected output file paths and 3x3 kernel weights exactly match the explicit task instructions and the values parsed by export_result.sh. Additionally, a critical defect was discovered: `verifier.py` is entirely missing from the environment, making the task programmatically unscorable.",
+    "pi_confidence": "high"
+}

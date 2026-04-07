@@ -1,0 +1,65 @@
+{
+  "id": "weekend_incident_log_entry@1",
+  "version": "1.0",
+  "env_id": "openmaint_env@0.1",
+  "description": "A weekend security log has been left on the desktop (/home/ga/Desktop/weekend_security_log.txt). Process the reported incidents by entering them into OpenMaint (login: admin/admin) as corrective maintenance tickets. Identify and exclude any incidents that are already present in the system to avoid creating duplicate tickets. For each unique new incident, create a ticket using the code sequence starting with SEC-MON-001 and assign it to the correct building. Set ticket priorities based on the log description: Water and Safety issues must be set to Critical/High, while all other incidents should be set to Medium/Low.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/weekend_incident_log_entry/setup_task.sh",
+    "post_task": "/workspace/tasks/weekend_incident_log_entry/export_result.sh"
+  },
+  "metadata": {
+    "log_file": "/home/ga/Desktop/weekend_security_log.txt",
+    "expected_tickets": {
+      "SEC-MON-001": {
+        "priority": "critical",
+        "building": "A",
+        "keywords": [
+          "water",
+          "pool",
+          "server"
+        ]
+      },
+      "SEC-MON-002": {
+        "priority": "high",
+        "building": "B",
+        "keywords": [
+          "window",
+          "latch"
+        ]
+      },
+      "SEC-MON-003": {
+        "priority": "medium",
+        "building": "C",
+        "keywords": [
+          "emergency",
+          "light"
+        ]
+      },
+      "SEC-MON-004": {
+        "priority": "medium",
+        "building": "A",
+        "keywords": [
+          "ceiling",
+          "tile",
+          "sagging"
+        ]
+      }
+    },
+    "duplicate_traps": [
+      "lights buzzing",
+      "faucet dripping"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_weekend_incident_log_entry"
+    }
+  }
+}

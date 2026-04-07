@@ -1,0 +1,34 @@
+{
+  "id": "logistics_timezone_normalization@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A logistics system records flight departure and arrival times in local 'wall-clock' time (DATE format) without timezone offsets. This causes negative durations for flights crossing the International Date Line and errors during Daylight Saving Time 'gap weeks'. Connect to the HR database (localhost:1521/XEPDB1, user: hr, pass: hr123) and create a view named V_FLIGHT_ANALYSIS that joins FLIGHT_LOGS with AIRPORT_REF (for both source and destination) to calculate the true flight duration in minutes. The view must contain columns FLIGHT_ID, DEPART_UTC (TIMESTAMP), ARRIVE_UTC (TIMESTAMP), and DURATION_MINUTES (NUMBER), using Oracle's FROM_TZ and AT TIME ZONE 'UTC' to handle the specific IANA timezones provided in AIRPORT_REF. Export a CSV report with headers of all 'Slow Flights' (Duration > 800 minutes) to /home/ga/Desktop/long_haul_report.csv.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/logistics_timezone_normalization/setup_task.sh",
+    "post_task": "/workspace/tasks/logistics_timezone_normalization/export_result.sh"
+  },
+  "metadata": {
+    "view_name": "V_FLIGHT_ANALYSIS",
+    "output_file": "/home/ga/Desktop/long_haul_report.csv",
+    "test_flight_ids": [
+      100,
+      900,
+      200,
+      800
+    ],
+    "gap_week_flight_id": 900,
+    "date_line_flight_id": 100
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_logistics_timezone_normalization"
+    }
+  }
+}

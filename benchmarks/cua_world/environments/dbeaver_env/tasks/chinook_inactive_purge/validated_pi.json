@@ -1,0 +1,108 @@
+{
+    "task_id": "chinook_inactive_purge@1",
+    "dataset": "Chinook",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "db_path",
+            "metadata_value": "/home/ga/Documents/databases/chinook.db",
+            "verified_value": "/home/ga/Documents/databases/chinook.db",
+            "source": "task.json metadata field and verified against setup_task.sh which copies from /workspace/data/chinook.db",
+            "status": "verified"
+        },
+        {
+            "key": "export_path",
+            "metadata_value": "/home/ga/Documents/exports/inactive_customers.csv",
+            "verified_value": "/home/ga/Documents/exports/inactive_customers.csv",
+            "source": "task.json metadata field and verified in export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "script_path",
+            "metadata_value": "/home/ga/Documents/scripts/purge_process.sql",
+            "verified_value": "/home/ga/Documents/scripts/purge_process.sql",
+            "source": "task.json metadata field and verified in export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "year_criteria",
+            "metadata_value": "2013",
+            "verified_value": "2013",
+            "source": "Verified via direct SQL query on Chinook database. Invoice dates range from 2009-01-01 to 2013-12-22. The year 2013 exists in the data.",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": "[\"CustomerId\", \"FirstName\", \"LastName\", \"Email\", \"TotalSpent\"]",
+            "verified_value": "[\"CustomerId\", \"FirstName\", \"LastName\", \"Email\", \"TotalSpent\"]",
+            "source": "Verified via SQL schema inspection. customers table contains CustomerId, FirstName, LastName, Email. TotalSpent calculated from invoices.Total column. All columns verified to exist.",
+            "status": "verified"
+        },
+        {
+            "key": "inactive_customer_count",
+            "metadata_value": null,
+            "verified_value": "13",
+            "source": "SQL query: SELECT COUNT(*) FROM customers WHERE CustomerId NOT IN (SELECT DISTINCT CustomerId FROM invoices WHERE InvoiceDate LIKE '2013-%'). Result: 13 customers with no invoices in 2013.",
+            "status": "verified"
+        },
+        {
+            "key": "active_customer_count",
+            "metadata_value": null,
+            "verified_value": "46",
+            "source": "SQL query: SELECT COUNT(DISTINCT CustomerId) FROM invoices WHERE InvoiceDate LIKE '2013-%'. Result: 46 customers have invoices in 2013.",
+            "status": "verified"
+        },
+        {
+            "key": "total_customer_count",
+            "metadata_value": null,
+            "verified_value": "59",
+            "source": "SQL query: SELECT COUNT(*) FROM customers. Result: 59 total customers in database.",
+            "status": "verified"
+        },
+        {
+            "key": "invoices_to_delete",
+            "metadata_value": null,
+            "verified_value": "90",
+            "source": "SQL query: SELECT COUNT(*) FROM invoices WHERE CustomerId IN (SELECT CustomerId FROM customers WHERE CustomerId NOT IN (SELECT DISTINCT CustomerId FROM invoices WHERE InvoiceDate LIKE '2013-%')). Result: 90 invoices belong to inactive customers.",
+            "status": "verified"
+        },
+        {
+            "key": "invoice_items_to_delete",
+            "metadata_value": null,
+            "verified_value": "492",
+            "source": "SQL query: SELECT COUNT(*) FROM invoice_items WHERE InvoiceId IN (SELECT InvoiceId FROM invoices WHERE CustomerId IN (SELECT CustomerId FROM customers WHERE CustomerId NOT IN (SELECT DISTINCT CustomerId FROM invoices WHERE InvoiceDate LIKE '2013-%'))). Result: 492 invoice line items must be deleted.",
+            "status": "verified"
+        },
+        {
+            "key": "database_source",
+            "metadata_value": null,
+            "verified_value": "Public Chinook database from sqlitetutorial.net (https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip)",
+            "source": "MD5 checksum verification: f2dd976ac500525eb862a008ba21609c matches sqlitetutorial.net version exactly. Database schema and all customer/invoice data identical to public Chinook sample database.",
+            "status": "verified"
+        },
+        {
+            "key": "invoice_date_range",
+            "metadata_value": null,
+            "verified_value": "2009-01-01 to 2013-12-22",
+            "source": "SQL query: SELECT MIN(InvoiceDate), MAX(InvoiceDate) FROM invoices. Result spans from 2009-01-01 to 2013-12-22.",
+            "status": "verified"
+        },
+        {
+            "key": "sample_inactive_customer_id",
+            "metadata_value": null,
+            "verified_value": "2",
+            "source": "SQL query verified that CustomerId 2 (Leonie Köhler) has no invoices with InvoiceDate LIKE '2013-%' but has historical invoices totaling 37.62. Confirmed as first inactive customer ID.",
+            "status": "verified"
+        },
+        {
+            "key": "sample_active_customer_id",
+            "metadata_value": null,
+            "verified_value": "1",
+            "source": "SQL query verified that CustomerId 1 (Luís Gonçalves) has at least one invoice with InvoiceDate LIKE '2013-%'. Confirmed as active customer.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the public Chinook database from sqlitetutorial.net (verified via MD5 checksum f2dd976ac500525eb862a008ba21609c), which contains 59 customers and 412 invoices spanning 2009-2013. Exactly 13 customers have no invoices in 2013 and must be purged. Deleting these customers will also cascade-delete 90 invoices and 492 invoice line items. The required CSV columns (CustomerId, FirstName, LastName, Email, TotalSpent) all exist in the database. The database is not synthetic—it is the public sample database based on real iTunes library data.",
+    "pi_confidence": "high"
+}

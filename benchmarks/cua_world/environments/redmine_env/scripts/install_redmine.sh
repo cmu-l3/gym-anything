@@ -39,6 +39,17 @@ apt-get install -y python3 python3-pip
 
 pip3 install --no-cache-dir requests >/dev/null 2>&1 || true
 
+# Wait for Docker to be fully ready
+sleep 5
+
+# Authenticate with Docker Hub to avoid rate limits
+echo "dckr_pat_YISK01jQAaGVVmzkVoZnkOH3Q3g" | docker login -u "hackear2041" --password-stdin 2>/dev/null || true
+
+# Pre-pull Docker images for Redmine
+echo "Pre-pulling Docker images..."
+docker pull redmine:6.0-bookworm || true
+docker pull postgres:16 || true
+
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 

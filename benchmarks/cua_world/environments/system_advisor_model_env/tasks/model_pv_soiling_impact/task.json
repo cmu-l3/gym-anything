@@ -1,0 +1,50 @@
+{
+  "id": "model_pv_soiling_impact@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "description": "You are a Solar Energy Installation Manager evaluating dust accumulation impacts on a commercial PV system in the desert Southwest. Using PySAM's Pvwattsv8 module, model a 2000 kW DC PV system (Module type 0, Array type 0, Tilt 30°, Azimuth 180°, DC-to-AC ratio 1.2) to quantify the annual energy loss due to panel soiling. Compare a clean baseline (0% monthly soiling) against a soiled scenario with the following monthly percentage losses: [2, 3, 4, 5, 5, 5, 2, 2, 3, 4, 3, 2]. Use a weather file from the SAM installation's solar_resource directory (check /home/ga/.SAM/solar_resource_dir.txt or search /opt/SAM for an Arizona .csv). Save the results to /home/ga/Documents/SAM_Projects/soiling_analysis.json with the following fields: system_capacity_kw (2000), tilt_deg (30), azimuth_deg (180), weather_file, annual_energy_clean_kwh, annual_energy_soiled_kwh, soiling_loss_kwh, soiling_loss_percent, monthly_soiling_profile ([2,3,4,5,5,5,2,2,3,4,3,2]), capacity_factor_clean_pct, and capacity_factor_soiled_pct. Calculate capacity factor using the formula: (annual_energy_kwh / (system_capacity_kw * 8760)) * 100.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/model_pv_soiling_impact/setup_task.sh",
+    "post_task": "/workspace/tasks/model_pv_soiling_impact/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/SAM_Projects/soiling_analysis.json",
+    "expected_capacity": 2000,
+    "expected_tilt": 30,
+    "expected_azimuth": 180,
+    "expected_profile": [
+      2,
+      3,
+      4,
+      5,
+      5,
+      5,
+      2,
+      2,
+      3,
+      4,
+      3,
+      2
+    ],
+    "clean_energy_min_kwh": 2500000,
+    "clean_energy_max_kwh": 6000000,
+    "soiled_energy_min_kwh": 2400000,
+    "soiled_energy_max_kwh": 5900000,
+    "soiling_loss_pct_min": 1.5,
+    "soiling_loss_pct_max": 6.0,
+    "cf_min": 15,
+    "cf_max": 30
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_model_pv_soiling_impact"
+    }
+  }
+}

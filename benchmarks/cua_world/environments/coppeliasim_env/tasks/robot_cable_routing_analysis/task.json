@@ -1,0 +1,29 @@
+{
+  "id": "robot_cable_routing_analysis@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Robot Cable Routing Length Estimation",
+  "description": "Robotics hardware engineers must often design external cable harnesses for industrial robot arms. Determine the required external harness length for a robot arm in CoppeliaSim by simulating it across its range of motion using the ZMQ Remote API (port 23000). The harness path is defined by four cable tie points (Dummy objects) located at local position offsets of [0.0, -0.15, 0.05] relative to Joint 1 (Tie 0), Joint 3 (Tie 1), Joint 5 (Tie 2), and Joint 6 or the tip (Tie 3). Calculate the total cable length as the sum of the Euclidean distances between consecutive ties (Tie 0 to Tie 1, Tie 1 to Tie 2, and Tie 2 to Tie 3). Record measurements from at least 50 diverse joint configurations to /home/ga/Documents/CoppeliaSim/exports/cable_measurements.csv using the following columns: config_id, j1_rad, j2_rad, j3_rad, j4_rad, j5_rad, j6_rad, t0_x, t0_y, t0_z, t1_x, t1_y, t1_z, t2_x, t2_y, t2_z, t3_x, t3_y, t3_z, segment1_m, segment2_m, segment3_m, and total_length_m. Generate a summary report at /home/ga/Documents/CoppeliaSim/exports/cable_report.json with the fields: total_configs, min_length_m, max_length_m, variance_m (max_length_m - min_length_m), and recommended_length_m (max_length_m * 1.15). Ensure that the exported coordinates and distances align mathematically.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/robot_cable_routing_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/robot_cable_routing_analysis/export_result.sh"
+  },
+  "metadata": {
+    "min_configs": 50,
+    "min_variance_m": 0.05,
+    "output_csv": "/home/ga/Documents/CoppeliaSim/exports/cable_measurements.csv",
+    "output_json": "/home/ga/Documents/CoppeliaSim/exports/cable_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cable_routing"
+    }
+  }
+}

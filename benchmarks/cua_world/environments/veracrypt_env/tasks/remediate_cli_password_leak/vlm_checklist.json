@@ -1,0 +1,59 @@
+{
+  "task_id": "remediate_cli_password_leak@1",
+  "task_completion": [
+    {
+      "id": "open_bash_history",
+      "description": "Check if the agent opens or reads the .bash_history file to locate the leaked password.",
+      "points": 10,
+      "visual_evidence": "Terminal showing a command like 'cat ~/.bash_history', 'grep', or a text editor open with the contents of the '/home/ga/.bash_history' file."
+    },
+    {
+      "id": "select_veracrypt_volume",
+      "description": "Check if the agent selects the correct VeraCrypt volume for modification.",
+      "points": 10,
+      "visual_evidence": "VeraCrypt GUI showing '/home/ga/Volumes/internal_ops.hc' in the volume path field, or a CLI command explicitly targeting this exact path."
+    },
+    {
+      "id": "initiate_password_change",
+      "description": "Check if the agent opens the password change interface for the volume.",
+      "points": 20,
+      "visual_evidence": "VeraCrypt 'Volume Password Change' dialog box visible in the GUI, or a CLI prompt asking for the current and new password for the volume."
+    },
+    {
+      "id": "confirm_password_change",
+      "description": "Check if the password change operation completes successfully.",
+      "points": 30,
+      "visual_evidence": "A VeraCrypt GUI popup stating 'Password successfully changed' (or similar success message), or a CLI return prompt indicating successful execution of the password change command without errors."
+    },
+    {
+      "id": "edit_bash_history",
+      "description": "Check if the agent edits the .bash_history file to remove the leaked password.",
+      "points": 20,
+      "visual_evidence": "A text editor (like nano, vim, gedit) open with the .bash_history file, showing the deletion of the specific line containing the leak, or a terminal command like 'sed -i' targeting the file."
+    },
+    {
+      "id": "verify_history_sanitized",
+      "description": "Check if the agent saves the sanitized history file.",
+      "points": 10,
+      "visual_evidence": "Text editor showing a 'saved' or 'wrote lines' message for .bash_history, or a subsequent 'cat .bash_history' command showing the file contents without the leaked password."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_veracrypt_interaction",
+      "description": "Verify the agent interacted with the actual VeraCrypt application.",
+      "visual_evidence": "Presence of authentic VeraCrypt GUI windows or valid 'veracrypt' CLI commands being executed, not just a text file or mock script."
+    },
+    {
+      "id": "actual_history_modification",
+      "description": "Verify the agent modified the actual history file.",
+      "visual_evidence": "Commands or editor actions explicitly target '/home/ga/.bash_history' (or '~/.bash_history'), rather than a copy or a different file."
+    },
+    {
+      "id": "history_file_not_deleted",
+      "description": "Verify the agent removed only the leaked line, rather than deleting or clearing the entire history file.",
+      "visual_evidence": "The .bash_history file still contains other commands; commands like 'rm .bash_history', 'cat /dev/null > .bash_history', or 'history -c' were NOT used as a shortcut."
+    }
+  ],
+  "privileged_info_for_vlm": "The volume path is exactly '/home/ga/Volumes/internal_ops.hc'. The history file containing the leak is '/home/ga/.bash_history'. The new target password that must be set is 'SecuredCredential2025!'."
+}

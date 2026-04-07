@@ -1,0 +1,112 @@
+{
+  "id": "remediate_analytics_audit@1",
+  "version": "1.0",
+  "env_id": "matomo_env@0.1",
+  "description": "You have been hired to fix the Matomo analytics setup for 'FreshCart Online Grocery.' The previous analyst left the configuration in a broken state. A remediation report at /home/ga/Documents/remediation_report.txt documents every issue that must be resolved. Read the report and resolve all issues it describes — it covers misconfigured conversion goals, a broken visitor segment, a missing segment, incorrect dashboard widgets, and a missing custom dimension. All fixes must be made through the Matomo web interface. Login credentials: admin / Admin12345. Do not modify 'Initial Site' or any configuration not mentioned in the report.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/remediate_analytics_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/remediate_analytics_audit/export_result.sh"
+  },
+  "metadata": {
+    "target_site": "FreshCart Online Grocery",
+    "goals": {
+      "product_page_view": {
+        "idgoal": 1,
+        "name": "Product Page View",
+        "expected_pattern": "/products/",
+        "expected_pattern_type": "contains",
+        "should_change": false
+      },
+      "add_to_cart": {
+        "idgoal": 2,
+        "name": "Add to Cart",
+        "expected_pattern": "/cart/add",
+        "expected_pattern_type": "contains",
+        "initial_pattern": "/cart",
+        "initial_pattern_type": "contains",
+        "should_change": true
+      },
+      "begin_checkout": {
+        "idgoal": 3,
+        "name": "Begin Checkout",
+        "expected_pattern": "/checkout",
+        "expected_pattern_type": "contains",
+        "initial_pattern": "/checkout",
+        "initial_pattern_type": "exact",
+        "should_change": true
+      },
+      "purchase_complete": {
+        "idgoal": 4,
+        "name": "Purchase Complete",
+        "expected_pattern": "/order/thank-you",
+        "expected_pattern_type": "exact",
+        "should_change": false
+      }
+    },
+    "segments": {
+      "returning_customers": {
+        "name": "Returning Customers",
+        "expected_definition": "visitorType==returning",
+        "initial_definition": "visitCount>5",
+        "should_fix": true
+      },
+      "mobile_shoppers": {
+        "name": "Mobile Shoppers",
+        "expected_definition": "deviceType==Smartphone",
+        "should_create": true,
+        "expected_visibility": 1
+      }
+    },
+    "dashboard": {
+      "name": "Weekly Performance",
+      "expected_modules": ["VisitsSummary", "Referrers", "Goals", "DevicesDetection"],
+      "initial_wrong_modules": ["Actions", "Resolution"],
+      "keep_modules": ["VisitsSummary", "Referrers"],
+      "replace_map": {
+        "Actions": "Goals",
+        "Resolution": "DevicesDetection"
+      }
+    },
+    "custom_dimension": {
+      "name": "Customer Tier",
+      "expected_scope": "visit",
+      "expected_active": true
+    },
+    "scoring_weights": {
+      "goal_add_to_cart_pattern": 12,
+      "goal_begin_checkout_type": 12,
+      "goals_not_recreated": 6,
+      "correct_goals_unchanged": 5,
+      "segment_returning_fixed": 15,
+      "segment_mobile_created": 15,
+      "segment_mobile_visibility": 5,
+      "dashboard_goals_widget": 10,
+      "dashboard_devices_widget": 10,
+      "dashboard_correct_preserved": 5,
+      "custom_dimension_created": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_remediate_analytics_audit"
+    }
+  },
+  "tags": [
+    "matomo",
+    "goals",
+    "segments",
+    "dashboard",
+    "custom-dimensions",
+    "audit",
+    "remediation",
+    "long-horizon",
+    "editing"
+  ]
+}

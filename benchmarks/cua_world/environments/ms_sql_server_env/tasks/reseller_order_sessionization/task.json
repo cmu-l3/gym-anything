@@ -1,0 +1,38 @@
+{
+  "id": "reseller_order_sessionization@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are a Supply Chain Analyst at Adventure Works analyzing reseller buying patterns by grouping sequential orders into 'restocking sessions' within the AdventureWorks2022 database. Create a schema named 'Logistics' and a table 'Logistics.ResellerRestockingSessions' with columns SessionID (INT, Primary Key/Identity), CustomerID (INT), SessionStartDate (DATETIME), SessionEndDate (DATETIME), OrderCount (INT), TotalSessionValue (MONEY), and GapUsed (INT). Develop a stored procedure 'Logistics.usp_GenerateRestockingSessions' that accepts a @MaxGapDays INT parameter (default 14), truncates the table, and identifies sessions for resellers (OnlineOrderFlag = 0 in Sales.SalesOrderHeader). A new session starts if the time between the current order and the previous order for the same customer is greater than @MaxGapDays; otherwise, orders belong to the same session. The procedure should insert the aggregated session data into the table. Create a non-clustered index 'IX_ResellerSessions_CustomerID' on the new table covering CustomerID, SessionStartDate, and TotalSessionValue, and execute the procedure with a 7-day gap threshold.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/reseller_order_sessionization/setup_task.sh",
+    "post_task": "/workspace/tasks/reseller_order_sessionization/export_result.sh"
+  },
+  "metadata": {
+    "target_schema": "Logistics",
+    "target_table": "ResellerRestockingSessions",
+    "target_proc": "usp_GenerateRestockingSessions",
+    "required_columns": [
+      "SessionID",
+      "CustomerID",
+      "SessionStartDate",
+      "SessionEndDate",
+      "OrderCount",
+      "TotalSessionValue",
+      "GapUsed"
+    ],
+    "test_gap_days": 7,
+    "validation_gap_days": 21
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_reseller_order_sessionization"
+    }
+  }
+}

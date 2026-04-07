@@ -1,0 +1,35 @@
+{
+  "id": "performance_review_mail_merge@1",
+  "version": "1.0",
+  "env_id": "libreoffice_writer_env@0.1",
+  "description": "Open /home/ga/Documents/review_letter_template.odt in LibreOffice Writer. This template contains a year-end performance review letter with bracketed placeholders ([FIRST_NAME], [LAST_NAME], [DEPARTMENT], [GOALS_COMPLETED], [GOALS_TARGET], [ATTENDANCE_RATE], [SALARY_ADJUSTMENT], [MANAGER_NAME]). The employee data is in /home/ga/Documents/employee_data.csv (15 records with columns: FirstName, LastName, Department, Rating, GoalsCompleted, GoalsTarget, AttendanceRate, SalaryAdjustment, ManagerName).\n\nRegister the CSV as a data source and set up a mail merge that replaces each bracketed placeholder with the corresponding merge field. The three performance review paragraphs must be conditional: \"Your performance this year has been exceptional...\" appears only when Rating equals \"Exceeds Expectations\", \"You have met the expectations...\" only when Rating equals \"Meets Expectations\", and \"Your performance this year has fallen below...\" only when Rating equals \"Needs Improvement\". The salary adjustment paragraph (\"Based on your performance, a salary adjustment...\") should appear only when SalaryAdjustment is not \"0\".\n\nExecute the merge to produce a single document with all 15 personalized letters separated by page breaks. Save the merged output as /home/ga/Documents/performance_reviews_final.odt.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/performance_review_mail_merge/setup_task.sh",
+    "post_task": "/workspace/tasks/performance_review_mail_merge/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/performance_reviews_final.odt",
+    "template_path": "/home/ga/Documents/review_letter_template.odt",
+    "csv_path": "/home/ga/Documents/employee_data.csv",
+    "total_employees": 15,
+    "placeholder_fields": ["FIRST_NAME", "LAST_NAME", "DEPARTMENT", "GOALS_COMPLETED", "GOALS_TARGET", "ATTENDANCE_RATE", "SALARY_ADJUSTMENT", "MANAGER_NAME"],
+    "rating_categories": {
+      "Exceeds Expectations": ["Sarah Chen", "Priya Sharma", "Olivia Jackson", "Nathan Williams", "Rebecca O'Brien"],
+      "Meets Expectations": ["Michael Thompson", "James Kowalski", "Daniel Mueller", "Carlos Rivera", "Elena Petrova", "Marcus Brown", "Thomas Andersen"],
+      "Needs Improvement": ["Amara Okafor", "Yuki Tanaka", "Aisha Hassan"]
+    },
+    "zero_salary_employees": ["Amara Okafor", "Daniel Mueller", "Yuki Tanaka", "Elena Petrova", "Aisha Hassan"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_performance_review_mail_merge"
+    }
+  }
+}

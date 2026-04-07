@@ -1,0 +1,38 @@
+{
+  "id": "hl7_adt_csv_export@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a NextGen Connect channel named 'ADT_CSV_Export' that converts HL7 admission messages to a CSV flat file. The source must be a TCP Listener on port 6661 (MLLP mode). The destination is a File Writer to '/home/ga/output/patient_demographics.csv' in append mode. Extract patient demographics from the PID segment to produce a CSV with the header: 'PatientID,LastName,FirstName,DOB,Gender,Street,City,State,Zip,Phone,SSN'. Access the system via the terminal or Firefox (http://localhost:8080 or https://localhost:8443) using credentials admin/admin.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_adt_csv_export/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_adt_csv_export/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "ADT_CSV_Export",
+    "port": 6661,
+    "output_file": "/home/ga/output/patient_demographics.csv",
+    "expected_header": "PatientID,LastName,FirstName,DOB,Gender,Street,City,State,Zip,Phone,SSN",
+    "test_messages": [
+      {
+        "hl7": "MSH|^~\\&|EPIC|HOSPITAL1|BILLING|LEGACY|20240115120000||ADT^A01|MSG001|P|2.3\rEVN|A01|20240115120000\rPID|1||MRN10045^^^HOSPITAL1^MR||JOHNSON^ROBERT^A||19650312|M||W|456 OAK AVE^^SPRINGFIELD^IL^62704||2175551234|||S|123456789\rPV1|1|I|ICU^101^A|E|||1234^SMITH^JAMES|||MED||||7|||1234^SMITH^JAMES|I|||||||||||||||||||HOSPITAL1|||20240115120000\r",
+        "expected_csv": "MRN10045,JOHNSON,ROBERT,19650312,M,456 OAK AVE,SPRINGFIELD,IL,62704,2175551234,123456789"
+      },
+      {
+        "hl7": "MSH|^~\\&|EPIC|HOSPITAL1|BILLING|LEGACY|20240115130000||ADT^A01|MSG002|P|2.3\rEVN|A01|20240115130000\rPID|1||MRN20078^^^HOSPITAL1^MR||MARTINEZ^MARIA^L||19780925|F||H|789 PINE ST^^CHICAGO^IL^60601||3125559876|||M|987654321\rPV1|1|I|MED^205^B|U|||5678^DOE^JANE|||SUR||||7|||5678^DOE^JANE|I|||||||||||||||||||HOSPITAL1|||20240115130000\r",
+        "expected_csv": "MRN20078,MARTINEZ,MARIA,19780925,F,789 PINE ST,CHICAGO,IL,60601,3125559876,987654321"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_adt_csv_export"
+    }
+  }
+}

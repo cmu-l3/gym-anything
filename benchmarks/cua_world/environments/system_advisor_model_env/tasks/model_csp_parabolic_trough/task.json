@@ -1,0 +1,31 @@
+{
+  "id": "model_csp_parabolic_trough@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "You are a solar energy systems engineer conducting a preliminary feasibility study for a concentrating solar power (CSP) parabolic trough plant near Daggett, California.\n\nUsing PySAM's TroughPhysical module, configure and simulate a parabolic trough plant with the following specifications:\n\n- Technology: Parabolic trough (physical model)\n- Location: Daggett, CA (use SAM's bundled weather data — find it in the directory listed in /home/ga/.SAM/solar_resource_dir.txt, look for a file containing 'daggett')\n- Design-point net output: 100 MWe\n- Solar multiple: 2.0\n- Thermal energy storage (TES): 6 full-load hours\n- Heat transfer fluid: VP-1 (Therminol VP-1) — typically the default\n- Design-point DNI: 950 W/m²\n\nLoad SAM's default parabolic trough configuration as a starting point (e.g., TroughPhysical.default('PhysicalTroughSingleOwner') or similar), then modify the parameters listed above.\n\nAfter running the annual simulation, save:\n\n1. The Python simulation script to: /home/ga/Documents/SAM_Projects/csp_trough_simulation.py\n\n2. A JSON report to: /home/ga/Documents/SAM_Projects/csp_trough_report.json with exactly this structure:\n{\n    \"annual_energy_kwh\": <total annual net electrical energy in kWh>,\n    \"capacity_factor_percent\": <net capacity factor as percentage 0-100>,\n    \"solar_multiple\": 2.0,\n    \"tes_hours\": 6.0,\n    \"design_net_output_mw\": 100,\n    \"location\": \"Daggett, CA\",\n    \"system_description\": \"100 MW parabolic trough with 6h TES\"\n}\n\nHints:\n- PySAM modules needed: PySAM.TroughPhysical (or the combined singleowner model)\n- The solar resource directory path: cat /home/ga/.SAM/solar_resource_dir.txt\n- If no Daggett file is found, use any southern California desert TMY file\n- Key outputs usually found in: model.Outputs.annual_energy, model.Outputs.capacity_factor",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/model_csp_parabolic_trough/setup_task.sh",
+    "post_task": "/workspace/tasks/model_csp_parabolic_trough/export_result.sh"
+  },
+  "metadata": {
+    "expected_report": "/home/ga/Documents/SAM_Projects/csp_trough_report.json",
+    "expected_script": "/home/ga/Documents/SAM_Projects/csp_trough_simulation.py",
+    "annual_energy_min": 260000000,
+    "annual_energy_max": 490000000,
+    "capacity_factor_min": 30,
+    "capacity_factor_max": 55,
+    "expected_location": "daggett"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_model_csp_parabolic_trough"
+    }
+  }
+}

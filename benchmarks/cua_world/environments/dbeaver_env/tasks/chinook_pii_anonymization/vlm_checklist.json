@@ -1,0 +1,53 @@
+{
+  "task_id": "chinook_pii_anonymization@1",
+  "task_completion": [
+    {
+      "id": "dbeaver_connection_opened",
+      "description": "Verify DBeaver is open and connected to the 'ChinookVendor' database.",
+      "points": 10,
+      "visual_evidence": "Look for the DBeaver application window with 'ChinookVendor' visible and active in the Database Navigator pane."
+    },
+    {
+      "id": "sql_update_logic_names_email",
+      "description": "Verify the SQL script contains the correct UPDATE logic for names and email.",
+      "points": 20,
+      "visual_evidence": "Look at the SQL editor in DBeaver. It should contain an UPDATE statement for the 'customers' table setting FirstName to 'Customer', LastName to 'C' concatenated with a 3-digit zero-padded CustomerId (e.g., using printf or substr), and Email to 'customer' + CustomerId + '@example.com'."
+    },
+    {
+      "id": "sql_update_logic_company_address_phone",
+      "description": "Verify the SQL script contains the correct UPDATE logic for company, address, phone, and fax.",
+      "points": 20,
+      "visual_evidence": "Look at the SQL editor in DBeaver. The UPDATE statement must set Address to 'REDACTED', Phone to NULL, Fax to NULL, and Company to 'REDACTED' only if it is currently not NULL (e.g., using a CASE statement or COALESCE)."
+    },
+    {
+      "id": "sql_script_executed",
+      "description": "Verify the SQL script was successfully executed to anonymize the data.",
+      "points": 30,
+      "visual_evidence": "Look for a success message in DBeaver's execution log/statistics indicating rows were updated (expected 59 rows), or a data grid showing a SELECT query with the successfully anonymized customer data."
+    },
+    {
+      "id": "sql_script_saved",
+      "description": "Verify the SQL script was saved to the specified scripts directory.",
+      "points": 20,
+      "visual_evidence": "Look for the SQL editor tab in DBeaver showing the file path '/home/ga/Documents/scripts/anonymize_customers.sql', or a 'Save As' dialog/terminal window confirming the file was saved to the '/home/ga/Documents/scripts/' directory."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "used_dbeaver_gui",
+      "description": "Verify the agent used the DBeaver GUI as requested.",
+      "visual_evidence": "The SQL writing and execution should happen within the DBeaver application window, not via a terminal sqlite3 command or a Python script."
+    },
+    {
+      "id": "genuine_execution",
+      "description": "Verify the agent actually executed the SQL script.",
+      "visual_evidence": "Look for DBeaver execution logs, updated row counts, or a results grid showing the modified data. Just typing the SQL into the editor without running it is insufficient."
+    },
+    {
+      "id": "no_manual_data_entry",
+      "description": "Verify the agent used a programmatic SQL UPDATE statement rather than manual edits.",
+      "visual_evidence": "The agent must use an SQL script with expressions (like CASE, printf, concatenation) rather than manually typing 'Customer' and 'C001' into the DBeaver data grid cell by cell."
+    }
+  ],
+  "privileged_info_for_vlm": "Target Database: /home/ga/Documents/databases/chinook_vendor.db. Connection Name: ChinookVendor. Expected Script Path: /home/ga/Documents/scripts/anonymize_customers.sql. The database contains 59 customers. Exactly 10 customers have non-null Company values. Example expected output for CustomerId 1: FirstName='Customer', LastName='C001', Company='REDACTED' (since they originally had a company), Address='REDACTED', Phone=NULL, Fax=NULL, Email='customer1@example.com'."
+}

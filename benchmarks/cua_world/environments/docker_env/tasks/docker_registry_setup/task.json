@@ -1,0 +1,43 @@
+{
+  "id": "docker_registry_setup@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are a DevOps engineer at AcmeCorp tasked with deploying a secure private Docker registry and migrating application images. Deploy a registry container named 'acme-registry' using the 'registry:2' image on port 5443 (mapped to 443) with TLS and Basic Auth enabled. The setup requires a 365-day self-signed TLS certificate for 'registry.acme.local' in '~/projects/registry-setup/certs/' and an htpasswd file in '~/projects/registry-setup/auth/' containing users 'admin' (password: 'RegistryAdmin2024') and 'ci-bot' (password: 'PipelineToken99'). Use a volume named 'registry-data' for persistent storage at '/var/lib/registry' and ensure the local Docker daemon trusts 'registry.acme.local:5443'. Migrate 'acme-api:latest', 'acme-frontend:latest', and 'acme-proxy:latest' to the new registry as 'registry.acme.local:5443/acme/api-service:v1.2.0', 'registry.acme.local:5443/acme/web-frontend:v3.0.1', and 'registry.acme.local:5443/acme/reverse-proxy:v1.0.0' respectively. Additionally, provide a script at '~/projects/registry-setup/catalog.sh' that authenticates as 'admin' to query the registry API and list all repositories and tags. Verify the deployment by successfully pulling 'registry.acme.local:5443/acme/api-service:v1.2.0' to a clean local environment. Note: 'registry.acme.local' is already mapped to 127.0.0.1 in /etc/hosts.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_registry_setup/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_registry_setup/export_result.sh"
+  },
+  "metadata": {
+    "registry_domain": "registry.acme.local",
+    "registry_port": "5443",
+    "admin_user": "admin",
+    "admin_pass": "RegistryAdmin2024",
+    "project_dir": "/home/ga/projects/registry-setup",
+    "required_images": [
+      {
+        "source": "acme-api:latest",
+        "target": "registry.acme.local:5443/acme/api-service:v1.2.0"
+      },
+      {
+        "source": "acme-frontend:latest",
+        "target": "registry.acme.local:5443/acme/web-frontend:v3.0.1"
+      },
+      {
+        "source": "acme-proxy:latest",
+        "target": "registry.acme.local:5443/acme/reverse-proxy:v1.0.0"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_registry_setup"
+    }
+  }
+}

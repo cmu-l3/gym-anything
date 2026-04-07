@@ -1,0 +1,34 @@
+{
+  "id": "fitts_throughput_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "very_hard",
+  "description": "An HCI researcher has collected reciprocal pointing task data from 16 students using a Fitts' Law evaluation protocol. The dataset is at ~/pebl/data/fitts_data.csv with columns: participant, block, amplitude, width, trial, mt_ms (movement time), and dx (endpoint deviation). Calculate Fitts' Law parameters (intercept in ms, slope in ms/bit, and R-squared) and ISO 9241-411 throughput (in bits/s) for each participant, aggregating data across the 16 unique amplitude and width conditions. Identify and exclude any participants whose performance metrics indicate automated or non-human behavior, such as impossibly high precision or speed.\n\nWrite the results to ~/pebl/analysis/fitts_report.json. The output must contain a 'participants' list including 'id', 'intercept_ms', 'slope_ms_per_bit', 'r_squared', and 'throughput_bps' for valid participants. For any excluded participants, include 'id', 'excluded': true, and a 'reason' string. Additionally, provide group means across valid participants for 'group_mean_throughput_bps', 'group_mean_slope_ms_per_bit', and 'group_mean_r_squared'.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 85,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fitts_throughput_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/fitts_throughput_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "P99",
+    "expected_valid_participants": 15,
+    "tolerances": {
+      "throughput_bps": 0.5,
+      "r_squared": 0.1,
+      "slope_ms_per_bit": 20.0,
+      "group_throughput_bps": 0.35,
+      "group_slope": 20.0,
+      "group_r_squared": 0.06
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fitts_throughput_analysis"
+    }
+  }
+}

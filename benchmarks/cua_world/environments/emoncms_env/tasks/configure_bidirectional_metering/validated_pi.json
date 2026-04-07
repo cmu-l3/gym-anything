@@ -1,0 +1,129 @@
+{
+    "task_id": "configure_bidirectional_metering@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "node",
+            "metadata_value": "building",
+            "verified_value": "building",
+            "source": "setup_task.sh line 39: curl POST with node=building in URL; line 22: UPDATE input WHERE nodeid='building'; export_result.sh lines 72-73: get_pl('building', 'grid_meter') and get_pl('building', 'solar_pv')",
+            "status": "verified"
+        },
+        {
+            "key": "inputs[0]",
+            "metadata_value": "grid_meter",
+            "verified_value": "grid_meter",
+            "source": "setup_task.sh lines 39,43,47: three curl POSTs all include 'grid_meter' in the fulljson payload (decoded: {\"grid_meter\":4500,...}, {\"grid_meter\":-1200,...}, {\"grid_meter\":3800,...}); export_result.sh line 72: get_pl('building', 'grid_meter')",
+            "status": "verified"
+        },
+        {
+            "key": "inputs[1]",
+            "metadata_value": "solar_pv",
+            "verified_value": "solar_pv",
+            "source": "setup_task.sh lines 39,43,47: three curl POSTs all include 'solar_pv' in the fulljson payload (decoded: {\"solar_pv\":1400}, {\"solar_pv\":2100}, {\"solar_pv\":1850}); export_result.sh line 73: get_pl('building', 'solar_pv')",
+            "status": "verified"
+        },
+        {
+            "key": "expected_feeds",
+            "metadata_value": ["solar_power", "solar_energy_kwh", "grid_import_power", "grid_import_kwh", "grid_export_power", "grid_export_kwh"],
+            "verified_value": ["solar_power", "solar_energy_kwh", "grid_import_power", "grid_import_kwh", "grid_export_power", "grid_export_kwh"],
+            "source": "task.json description explicitly names all 6 feeds; export_result.sh lines 101-106 check for these exact names via feed_exists(); setup_task.sh lines 13-15 clean up these exact feed names before task starts",
+            "status": "verified"
+        },
+        {
+            "key": "dashboard_name",
+            "metadata_value": "Net Zero Tracker",
+            "verified_value": "Net Zero Tracker",
+            "source": "task.json description: 'Create a dashboard named Net Zero Tracker'; export_result.sh lines 122-127 search for '%Net Zero%' and '%Tracker%' patterns; setup_task.sh line 25 deletes any pre-existing dashboard matching these patterns",
+            "status": "verified"
+        },
+        {
+            "key": "solar_ct_correction",
+            "metadata_value": 2.0,
+            "verified_value": 2.0,
+            "source": "task.json description: 'the installed CT clamp has a known 2x under-reading error — all solar readings must be scaled by a factor of 2.0'; setup_task.sh posts half-values (1400, 2100, 1850) representing true values of (2800, 4200, 3700); export_result.sh line 80 checks solar_scale_value via get_process_arg(solar_pl, 2) which extracts arg from process ID 2 (Scale/Multiply)",
+            "status": "verified"
+        },
+        {
+            "key": "grid_meter_data_values",
+            "metadata_value": "signed power: positive=import, negative=export",
+            "verified_value": "Values posted: 4500 (import), -1200 (export), 3800 (import)",
+            "source": "setup_task.sh lines 39,43,47: URL-decoded payloads are {\"grid_meter\":4500}, {\"grid_meter\":-1200}, {\"grid_meter\":3800}; line 33 comment: 'grid_meter: signed power (positive=import, negative=export)'",
+            "status": "verified"
+        },
+        {
+            "key": "solar_pv_data_values",
+            "metadata_value": "CT clamp reads half of true power",
+            "verified_value": "Values posted: 1400, 2100, 1850 (half of true 2800, 4200, 3700)",
+            "source": "setup_task.sh lines 39,43,47: URL-decoded payloads; line 34 comment: 'solar_pv: CT clamp under-reads by 2x, so values are half of true'",
+            "status": "verified"
+        },
+        {
+            "key": "process_id_1_log_to_feed",
+            "metadata_value": "Process ID 1 = Log to Feed",
+            "verified_value": "Correct: ID 1 = Log to Feed",
+            "source": "GitHub emoncms/emoncms process_processlist.php: id_num=1, name='Log to feed', function='log_to_feed', group='Main'; also confirmed by correct_reversed_polarity/validated_pi.json and grid_tied_cost_monitoring export scripts",
+            "status": "verified"
+        },
+        {
+            "key": "process_id_2_scale",
+            "metadata_value": "Process ID 2 = Scale/Multiply",
+            "verified_value": "Correct: ID 2 = x (multiply/scale)",
+            "source": "GitHub emoncms/emoncms process_processlist.php: id_num=2, name='x', function='scale', group='Calibration', args=[VALUE with default 1]; confirmed by correct_reversed_polarity/validated_pi.json: 'process 2 is multiply operation'; monitor_carbon_footprint/setup_task.sh uses processList='2:0.001,2:0.475,1:<feed_id>'",
+            "status": "verified"
+        },
+        {
+            "key": "process_id_4_power_to_kwh",
+            "metadata_value": "Process ID 4 = Power to kWh",
+            "verified_value": "Correct: ID 4 = Power to kWh",
+            "source": "GitHub emoncms/emoncms process_processlist.php: id_num=4, name='Power to kWh', function='power_to_kwh', unit='kWh', group='Main'; confirmed by configure_inverter_clipping_monitor/validated_pi.json: 'ID 4 is power_to_kwh'; solar_storage_monitoring_pipeline/verifier.py checks for process ID 4",
+            "status": "verified"
+        },
+        {
+            "key": "process_id_24_allow_positive",
+            "metadata_value": "Process ID 24 = Allow Positive",
+            "verified_value": "Correct: ID 24 = Allow positive",
+            "source": "GitHub emoncms/emoncms process_processlist.php: id_num=24, name='Allow positive', short='> 0', function='allowpositive', group='Limits', description='Negative values are zeroed for further processing'; confirmed by configure_inverter_clipping_monitor/validated_pi.json: 'ID 24 is Allow positive'",
+            "status": "verified"
+        },
+        {
+            "key": "process_id_25_allow_negative",
+            "metadata_value": "Process ID 25 = Allow Negative",
+            "verified_value": "Correct: ID 25 = Allow negative",
+            "source": "GitHub emoncms/emoncms process_processlist.php: id_num=25, name='Allow negative', short='< 0', function='allownegative', group='Limits', description='Positive values are zeroed for further processing'; confirmed by configure_inverter_clipping_monitor/validated_pi.json: 'ID 25 is allow_negative'",
+            "status": "verified"
+        },
+        {
+            "key": "process_id_37_reset_to_original",
+            "metadata_value": "Process ID 37 = Reset to Original",
+            "verified_value": "Correct: ID 37 = Reset to Original",
+            "source": "GitHub emoncms/emoncms process_processlist.php: id_num=37, name='Reset to Original', short='ori', function='reset2original', group='Misc', description='The value is set to the original value at the start of the process list'; confirmed by configure_daily_minmax/validated_pi.json: 'Emoncms GitHub shows id_num 37 => Reset to Original'",
+            "status": "verified"
+        },
+        {
+            "key": "branching_pipeline_pattern",
+            "metadata_value": "One input can feed two output feeds using Reset to Original between branches",
+            "verified_value": "Confirmed: this is a documented community pattern for splitting bidirectional meter readings",
+            "source": "OpenEnergyMonitor community forum (community.openenergymonitor.org/t/setting-up-emonpi-with-mulitple-solar-inverters-how-best-to-create-feeds/2043): 'You can use reset to zero in between the import and the export calcs to create multiple feed outputs from a single input'; process_processlist.php Reset to Original restores proc_initialvalue stored at start of process list execution",
+            "status": "verified"
+        },
+        {
+            "key": "process_ordering_flexibility",
+            "metadata_value": "Either import-first or export-first ordering is valid",
+            "verified_value": "Confirmed: export_result.sh records grid_process_order as a neutral list (line 92) but does not enforce any specific ordering. Both orderings are functionally equivalent as long as Reset to Original separates the two branches.",
+            "source": "export_result.sh line 92: grid_process_order = get_process_order(grid_pl) — recorded but not validated; no order-checking logic exists in the export script. The verifier is a stub. Community examples show export-first ordering (Allow Negative first), but import-first is equally valid.",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_is_stub",
+            "metadata_value": "Stub verifier returns passed=True, score=100",
+            "verified_value": "Confirmed: verifier.py contains only a stub function",
+            "source": "verifier.py lines 7-9: def verify_configure_bidirectional_metering returns {\"passed\": True, \"score\": 100, \"feedback\": \"Stub verifier — VLM evaluation is external\"}",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task requires configuring a bidirectional grid metering pipeline in Emoncms at http://localhost (admin/admin). Two inputs exist under node 'building': grid_meter (signed power: 4500W import, -1200W export, 3800W import) and solar_pv (CT under-reads by 2x: values 1400, 2100, 1850 are half of true power). The correct solution requires: (A) On solar_pv: add Scale process (ID 2, arg 2.0) to correct CT ratio, then Log to Feed (ID 1) to 'solar_power' feed, then Power to kWh (ID 4) to 'solar_energy_kwh' feed — 3 processes total. (B) On grid_meter: build a branching pipeline using Reset to Original (ID 37) to split signed power into import and export paths. One valid ordering: Allow Positive (ID 24, no arg) to zero out negative values, Log to Feed (ID 1) to 'grid_import_power', Power to kWh (ID 4) to 'grid_import_kwh', Reset to Original (ID 37, no arg) to restore the original signed value, Allow Negative (ID 25, no arg) to zero out positive values, Scale (ID 2, arg -1) to make export values positive, Log to Feed (ID 1) to 'grid_export_power', Power to kWh (ID 4) to 'grid_export_kwh' — 8 processes total. The alternative ordering (export-first then import-first) is equally valid. The key insight is that Reset to Original (ID 37) must separate the two branches. All feeds should use PHPFina engine (ID 5) with 10-second interval. A dashboard named 'Net Zero Tracker' must be created with at least 5 widgets: solar power dial (0-20kW range), grid import power dial (0-50kW range), grid export power value display, cumulative solar energy kWh value, and cumulative grid import kWh value. Process IDs verified against official Emoncms GitHub source (emoncms/emoncms/Modules/process/process_processlist.php). The branching pipeline pattern is documented on OpenEnergyMonitor community forums as the standard approach for splitting bidirectional meter readings.",
+    "pi_confidence": "high"
+}

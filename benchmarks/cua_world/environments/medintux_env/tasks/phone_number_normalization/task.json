@@ -1,0 +1,35 @@
+{
+  "id": "phone_number_normalization@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Standardize patient phone numbers in the MedinTux database (table `fchpat`, column `FchPat_Tel1`) to a 10-digit format by removing spaces, dots, dashes, and slashes. Generate a CSV report of any phone numbers that are not exactly 10 digits long after cleaning and save it to `/home/ga/invalid_phones.csv` with headers `guid,nom,telephone`. You have root access to the MySQL database `DrTuxTest`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/phone_number_normalization/setup_task.sh",
+    "post_task": "/workspace/tasks/phone_number_normalization/export_result.sh"
+  },
+  "metadata": {
+    "database": "DrTuxTest",
+    "table": "fchpat",
+    "column": "FchPat_Tel1",
+    "report_path": "/home/ga/invalid_phones.csv",
+    "test_cases": {
+      "space_separated": "06 12 34 56 78",
+      "dot_separated": "04.91.23.45.67",
+      "dash_separated": "01-45-67-89-01",
+      "short_invalid": "061234",
+      "text_invalid": "Pas de telephone"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_phone_number_normalization"
+    }
+  }
+}

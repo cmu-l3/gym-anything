@@ -1,0 +1,28 @@
+{
+  "id": "cross_channel_token_cache@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Implement a 'Shared State' integration pattern using the Global Map. Create a channel named 'Token_Manager' that listens on TCP port 6661 for JSON data (e.g., {\"access_token\": \"xyz\"}), extracts the 'access_token' value, and stores it in the Global Map under the key 'current_bearer_token'. Create a channel named 'Data_Sender' that listens on TCP port 6662 for HL7 v2.x messages, retrieves 'current_bearer_token' from the Global Map, and writes the message to /tmp/authenticated_output/msg_${message.messageId}.txt. The output file must start with a header line 'Authorization: Bearer <TOKEN_VALUE>', followed by the raw HL7 message on a new line. If the token is missing, use 'NO_TOKEN'. Use the provided terminal and REST API (admin/admin, header 'X-Requested-With: OpenAPI' required) for implementation.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cross_channel_token_cache/setup_task.sh",
+    "post_task": "/workspace/tasks/cross_channel_token_cache/export_result.sh"
+  },
+  "metadata": {
+    "token_port": 6661,
+    "data_port": 6662,
+    "global_map_key": "current_bearer_token",
+    "output_dir": "/tmp/authenticated_output"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cross_channel_token_cache"
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "task_id": "brightness_adjust@1",
+  "dataset": null,
+  "case_id": null,
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "primary_image_url",
+      "metadata_value": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=50&brightness=-50",
+      "verified_value": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=50&brightness=-50",
+      "source": "HTTP 200 response, actual download and inspection shows valid JPEG, 800x1199, 87948 bytes",
+      "status": "verified"
+    },
+    {
+      "key": "fallback_image_url",
+      "metadata_value": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=40",
+      "verified_value": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=40",
+      "source": "HTTP 200 response, actual download shows valid JPEG, 800x1200, 44798 bytes",
+      "status": "verified"
+    },
+    {
+      "key": "primary_image_darkness",
+      "metadata_value": "Underexposed image",
+      "verified_value": "First image has 43.4% pixels with brightness < 50, mean luminance 84.96 (scale 0-255)",
+      "source": "PIL Image analysis of downloaded Unsplash photo-1544005313-94ddf0286df2",
+      "status": "verified"
+    },
+    {
+      "key": "fallback_image_darkness",
+      "metadata_value": "Darker/underexposed image",
+      "verified_value": "Second image has only 6.9% dark pixels, mean luminance 140.56 (much brighter than primary)",
+      "source": "PIL Image analysis of downloaded Unsplash photo-1507003211169-0a1dd7228f2d",
+      "status": "verified"
+    },
+    {
+      "key": "luminance_formula_standard",
+      "metadata_value": "ITU-R BT.709 standard formula",
+      "verified_value": "Code implements ITU-R BT.601 formula with coefficients (0.299, 0.587, 0.114)",
+      "source": "verifier.py lines 21-36; Web search confirms BT.709 uses (0.2126, 0.7152, 0.0722) not (0.299, 0.587, 0.114)",
+      "status": "contradicted"
+    },
+    {
+      "key": "brightness_increase_threshold",
+      "metadata_value": "At least 10% brightness increase required",
+      "verified_value": "brightness_increase_percent >= 10.0",
+      "source": "verifier.py line 190",
+      "status": "verified"
+    },
+    {
+      "key": "highlight_clipping_threshold",
+      "metadata_value": "Quality preserved with less than 5% highlight clipping",
+      "verified_value": "highlight_clipping_percent < 5.0",
+      "source": "verifier.py line 196, detect_highlight_clipping function uses threshold=250",
+      "status": "verified"
+    },
+    {
+      "key": "meaningful_change_threshold",
+      "metadata_value": "At least 10% of pixels changed meaningfully",
+      "verified_value": "change_percentage > 10.0 (pixels with >20 intensity change)",
+      "source": "verifier.py lines 109, 116",
+      "status": "verified"
+    },
+    {
+      "key": "natural_brightness_range",
+      "metadata_value": "Brightness increase should be natural and reasonable",
+      "verified_value": "10.0 <= brightness_increase_percent <= 100.0",
+      "source": "verifier.py line 207",
+      "status": "verified"
+    },
+    {
+      "key": "pass_criteria",
+      "metadata_value": "Need at least 3 out of 4 criteria met (75% score)",
+      "verified_value": "score >= 75 and passed = score >= 75",
+      "source": "verifier.py lines 213-214",
+      "status": "verified"
+    },
+    {
+      "key": "metadata_field_present",
+      "metadata_value": "task.json has metadata field",
+      "verified_value": "No metadata field present in task.json",
+      "source": "Direct inspection of /compute/babel-u5-24/pranjala/gym_anything_clean/Gym-Anything_for_cmu_super_clean/examples/gimp_env_all_fast/tasks/brightness_adjust/task.json",
+      "status": "contradicted"
+    }
+  ],
+  "privileged_info_summary": "The brightness_adjust task uses a real Unsplash underexposed portrait image (photo-1544005313-94ddf0286df2, 800x1199px, 43.4% dark pixels) with a brighter fallback image (photo-1507003211169-0a1dd7228f2d, 800x1200px). The verifier checks brightness adjustment by requiring >= 10% luminance increase with < 5% highlight clipping and >= 10% meaningful pixel changes. However, the verifier incorrectly claims to implement ITU-R BT.709 luminance formula but actually uses ITU-R BT.601 coefficients (0.299, 0.587, 0.114 instead of the correct 0.2126, 0.7152, 0.0722). The task.json file contains no metadata field contrary to what might be expected.",
+  "pi_confidence": "high"
+}

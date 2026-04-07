@@ -1,0 +1,59 @@
+{
+  "task_id": "docker_volume_recovery@1",
+  "task_completion": [
+    {
+      "id": "stack_running",
+      "description": "Verify the application stack is running.",
+      "points": 10,
+      "visual_evidence": "Terminal showing 'docker ps' or 'docker compose ps' with the application containers (e.g., postgres, redis, app) in an 'Up' state."
+    },
+    {
+      "id": "postgres_restored",
+      "description": "Verify the PostgreSQL database was restored using the chinook_db.sql backup.",
+      "points": 20,
+      "visual_evidence": "Terminal showing the execution of a command to import the SQL file (e.g., 'docker exec -i <container> psql ... < chinook_db.sql') or logs indicating successful database restoration."
+    },
+    {
+      "id": "redis_restored",
+      "description": "Verify the Redis data was restored using the redis_restore.txt backup.",
+      "points": 20,
+      "visual_evidence": "Terminal showing the execution of a command to import the Redis text file (e.g., 'cat redis_restore.txt | docker exec -i <container> redis-cli') or logs indicating successful Redis data restoration."
+    },
+    {
+      "id": "api_stats_verified",
+      "description": "Verify the restoration by checking the /api/stats endpoint.",
+      "points": 20,
+      "visual_evidence": "Terminal showing a 'curl http://localhost:5000/api/stats' command or a browser window displaying the JSON response with the restored statistics (artists, albums, tracks, sessions)."
+    },
+    {
+      "id": "backup_script_created",
+      "description": "Verify an executable backup script was created at ~/projects/acme-musicstore/backup.sh.",
+      "points": 15,
+      "visual_evidence": "Terminal showing the contents of 'backup.sh' (containing database and Redis dump commands targeting backups/latest/) and an 'ls -l' command showing it has executable permissions (+x)."
+    },
+    {
+      "id": "backup_script_executed",
+      "description": "Verify the backup script was run and successfully created new backups in backups/latest/.",
+      "points": 15,
+      "visual_evidence": "Terminal showing the execution of './backup.sh' and an 'ls' or 'tree' command showing newly generated backup files inside the 'backups/latest/' directory."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_docker_interaction",
+      "description": "The agent actually interacted with Docker to restore the volumes, rather than just mocking the output.",
+      "visual_evidence": "Real Docker command outputs, valid container IDs, and standard Docker logs/formatting instead of manually typed text files."
+    },
+    {
+      "id": "genuine_api_response",
+      "description": "The agent queried the actual running API endpoint rather than echoing a hardcoded JSON string.",
+      "visual_evidence": "Use of 'curl' or a web browser to hit 'http://localhost:5000/api/stats', showing standard HTTP response headers or realistic network formatting."
+    },
+    {
+      "id": "genuine_backup_execution",
+      "description": "The backup script was actually executed and generated real files, not just empty mock files.",
+      "visual_evidence": "The backup script execution shows realistic output, and the resulting files in 'backups/latest/' have non-zero sizes (e.g., shown via 'ls -lh')."
+    }
+  ],
+  "privileged_info_for_vlm": "Project directory is /home/ga/projects/acme-musicstore. Backups are in /home/ga/projects/acme-musicstore/backups. API endpoint is http://localhost:5000/api/stats. The correct API stats should show 275 artists, 347 albums, 14955 tracks (CRITICAL: 14955 is the correct track count, ignoring any metadata claiming 3503), and at least 50 sessions (typically 55). The PostgreSQL password is 'acmepass123'."
+}

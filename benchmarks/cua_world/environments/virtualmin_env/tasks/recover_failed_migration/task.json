@@ -1,0 +1,33 @@
+{
+    "id": "recover_failed_migration@1",
+    "version": "1.0",
+    "env_id": "virtualmin_env@0.1",
+    "name": "Recover Production Domain After Failed Server Migration",
+    "description": "A backup of the acmecorp.test virtual server was restored from a different Virtualmin server. The restore process completed without errors, but the domain is now non-functional.\n\nReported symptoms:\n1. The website at http://acmecorp.test/ returns a 503 Service Unavailable error.\n2. The application health-check page at http://acmecorp.test/status.php is also unreachable.\n3. Email sent between domain users (e.g. from admin@acmecorp.test to info@acmecorp.test) bounces immediately instead of being delivered.\n\nAdditionally, the previous hosting provider never configured email authentication for the domain. As part of completing this migration, set up proper email authentication.\n\nRestore the domain to full production status. When finished, all of the following must hold true:\n- http://acmecorp.test/ loads the website content without errors\n- http://acmecorp.test/status.php displays the text 'System Operational'\n- A test email from admin@acmecorp.test is successfully delivered to info@acmecorp.test's local mailbox\n- DKIM signing is enabled for acmecorp.test with its DNS key record published\n- An SPF TXT record is published in DNS that authorizes this server to send mail for the domain\n- A DMARC TXT record is published at _dmarc.acmecorp.test with a policy of 'reject'\n\nVirtualmin is accessible at https://localhost:10000 with username 'root' and password 'GymAnything123!'. You may use command-line tools as well.",
+    "difficulty": "hard",
+    "tags": ["diagnosis", "multi-service", "migration", "email-auth", "long-horizon"],
+    "init": {
+        "timeout_sec": 1800,
+        "max_steps": 150,
+        "reward_type": "sparse"
+    },
+    "hooks": {
+        "pre_task": "/workspace/tasks/recover_failed_migration/setup_task.sh",
+        "post_task": "/workspace/tasks/recover_failed_migration/export_result.sh"
+    },
+    "metadata": {
+        "target_domain": "acmecorp.test",
+        "status_url_path": "/status.php",
+        "expected_status_string": "System Operational",
+        "expected_dmarc_policy": "reject",
+        "db_password_after_migration": "MigratedPwd999!",
+        "php_fpm_broken_listen": "127.0.0.1:9099",
+        "postfix_dead_relay": "smtp:[127.0.0.1]:12345"
+    },
+    "success": {
+        "mode": "program",
+        "spec": {
+            "program": "verifier.py::verify_recover_failed_migration"
+        }
+    }
+}

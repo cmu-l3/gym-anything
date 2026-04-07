@@ -1,0 +1,38 @@
+{
+    "task_id": "ccd_gain_readnoise_characterization@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_gain_min",
+            "metadata_value": 0.1,
+            "verified_value": null,
+            "source": "Source code analysis of the INDI ccd_simulator.cpp reveals that all required flat frames (1s, 5s, 15s) are mathematically guaranteed to be completely saturated at 65,000 ADU due to high simulated skyflux. Additionally, the simulator lacks Poisson shot noise. Consequently, the variance between any flat pair is precisely 0, causing the required Gain calculation (signal / variance) to yield infinity or division by zero, contradicting the 0.1 lower bound.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_gain_max",
+            "metadata_value": 100.0,
+            "verified_value": null,
+            "source": "Source code analysis of the INDI ccd_simulator.cpp confirms zero variance for the 1s, 5s, and 15s flats, alongside no Poisson shot noise simulation. Calculating gain via the required photon transfer curve method yields infinity, mathematically contradicting the 100.0 upper bound.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_readnoise_min",
+            "metadata_value": 0.1,
+            "verified_value": null,
+            "source": "Since the calculated Gain is infinity (due to 0 flat variance), the calculated Read Noise (Read Noise ADU * Gain) is also infinity, contradicting the bounds. Even if an agent cheats by reading the 'GAIN=90' FITS header, the read noise calculations fail to reflect any genuine physical property intended by these typical real-world bounds.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_readnoise_max",
+            "metadata_value": 200.0,
+            "verified_value": null,
+            "source": "Since the calculated Gain is infinity (due to 0 flat variance), the calculated Read Noise (Read Noise ADU * Gain) is also infinity, contradicting the bounds. The underlying simulator generates noise via a uniform random discrete distribution [0, 9] (stddev ~2.87 ADU) which does not correspond to a realistic photon transfer curve experiment.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "Extensive source code analysis of the INDI CCD Simulator (ccd_simulator.cpp) reveals that the task is fundamentally defective and mathematically impossible to solve as instructed. The simulator does not model photon shot noise (Poisson noise), which is the basis of the photon transfer curve method. Furthermore, the mandatory 1s, 5s, and 15s flat-field exposures are mathematically guaranteed to completely saturate the simulated 16-bit sensor uniformly at 65,000 ADU. As a result, the variance between any pair of flats is strictly 0, causing the required Gain (signal/variance) calculation to yield infinity or trigger a division by zero. Because the calculated Gain is infinite, the calculated Read Noise in electrons is also infinite, permanently violating the metadata's real-world expectation bounds.",
+    "pi_confidence": "high"
+}

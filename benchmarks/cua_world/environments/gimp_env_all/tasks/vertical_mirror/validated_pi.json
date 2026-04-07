@@ -1,0 +1,94 @@
+{
+    "task_id": "vertical_mirror@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "primary_image_source_url",
+            "metadata_value": "https://images.unsplash.com/photo-1490750967868-88aa4486c946 (from setup_vertical_task.sh line 13)",
+            "verified_value": "URL downloads successfully as valid JPEG image (83930 bytes), dimensions 800x534 pixels, confirmed flower image",
+            "source": "Direct download and PIL image analysis",
+            "status": "verified"
+        },
+        {
+            "key": "fallback_image_source_url",
+            "metadata_value": "https://images.unsplash.com/photo-1592194996308-7b43878e84a6 (from setup_vertical_task.sh line 15)",
+            "verified_value": "URL downloads successfully as valid JPEG image (73644 bytes), dimensions 800x1199 pixels, confirmed flower image",
+            "source": "Direct download and PIL image analysis",
+            "status": "verified"
+        },
+        {
+            "key": "synthetic_fallback_capability",
+            "metadata_value": "ImageMagick convert command used to create synthetic test image if both download sources fail (setup_vertical_task.sh lines 17-18)",
+            "verified_value": "ImageMagick command syntax is correct: creates 600x800 light blue image with red rectangle (200,100 to 400,200), green rectangle (150,600 to 450,700), and text annotations 'TOP' and 'BOTTOM'",
+            "source": "Code analysis of setup_vertical_task.sh",
+            "status": "verified"
+        },
+        {
+            "key": "flip_type_is_vertical",
+            "metadata_value": "Task requires vertical flip (top-to-bottom mirror), not horizontal flip. Verifier uses Image.FLIP_TOP_BOTTOM (verifier.py line 96)",
+            "verified_value": "Image.FLIP_TOP_BOTTOM correctly transposes image vertically. Tested: perfect vertical flip achieves SSIM=1.0 vs reference, horizontal flip achieves only SSIM=0.161",
+            "source": "PIL Image API verification and SSIM comparison testing",
+            "status": "verified"
+        },
+        {
+            "key": "ssim_threshold_for_valid_flip",
+            "metadata_value": "Verifier requires SSIM >= 0.95 when comparing result to reference vertical flip (verifier.py line 111)",
+            "verified_value": "Threshold is correct and achievable: perfect vertical flip achieves SSIM=1.0, JPEG quality=85 degradation achieves SSIM=0.962. Horizontal flip (wrong direction) achieves SSIM=0.161, correctly fails threshold",
+            "source": "SSIM calculation using scikit-image with test images",
+            "status": "verified"
+        },
+        {
+            "key": "original_similarity_threshold",
+            "metadata_value": "Verifier requires result SSIM < 0.9 compared to original to confirm image was modified (verifier.py line 112)",
+            "verified_value": "Threshold correctly identifies modified images: image with small noise (~5 std gaussian) achieves SSIM=0.8345, below 0.9 threshold",
+            "source": "SSIM calculation on noise-modified test image",
+            "status": "verified"
+        },
+        {
+            "key": "dimensions_preserved_check",
+            "metadata_value": "Verifier checks that result image has same dimensions as original (verifier.py line 105)",
+            "verified_value": "Dimension check correctly compares original_img.size == result_img.size. Image dimensions preserved after vertical flip operation",
+            "source": "Code analysis and PIL Image API verification",
+            "status": "verified"
+        },
+        {
+            "key": "success_criteria_count",
+            "metadata_value": "Verifier requires >= 3 out of 4 criteria met for success (verifier.py lines 181-199): properly_flipped, dimensions_preserved, is_different_from_original, plus optional bonus for SSIM>=0.98",
+            "verified_value": "Success score = int((criteria_met / 4) * 100), needs >= 75 to pass. Properly flipped contributes 1 point, dimensions preserved contributes 1 point, image different contributes 1 point, high SSIM (>=0.98) contributes 1 point, medium SSIM (>=0.95) contributes 0.5 points",
+            "source": "Verifier logic analysis (verifier.py lines 181-199)",
+            "status": "verified"
+        },
+        {
+            "key": "environment_software_gimp",
+            "metadata_value": "Environment is GIMP-based image editor (env.json tags include 'gimp', base image 'ubuntu-gnome-systemd_highres_gimp')",
+            "verified_value": "Environment explicitly configured for GIMP with proper display server (DISPLAY=:1 in env.json user_accounts), X11 graphics support via GNOME",
+            "source": "env.json configuration file analysis",
+            "status": "verified"
+        },
+        {
+            "key": "export_filename_expected",
+            "metadata_value": "Verifier expects output file named 'flower_vertical_mirror' with supported extensions (.png, .jpg, .jpeg) on /home/ga/Desktop (verifier.py lines 137-144)",
+            "verified_value": "Verifier checks for files: flower_vertical_mirror.png, flower_vertical_mirror.jpg, flower_vertical_mirror.jpeg, vertical_mirror.png, flower_image_vertical.png, flower_flipped.png at /home/ga/Desktop",
+            "source": "Verifier code analysis (verifier.py lines 137-144)",
+            "status": "verified"
+        },
+        {
+            "key": "verification_feedback_messages",
+            "metadata_value": "Verifier provides feedback including SSIM scores, dimension info, and diagnostic messages about flip direction and image modification",
+            "verified_value": "Verifier outputs: original size, result size, vertical flip SSIM score, original SSIM score, checkmarks for successful criteria, and diagnostic warnings for incorrect transformations (horizontal flip detection, unchanged image detection)",
+            "source": "Verifier code analysis (verifier.py lines 170-220)",
+            "status": "verified"
+        },
+        {
+            "key": "no_explicit_metadata_field",
+            "metadata_value": "task.json contains no explicit 'metadata' field",
+            "verified_value": "task.json structure contains only: id, version, env_id, description, init, hooks, success. No metadata field present",
+            "source": "Direct JSON parsing of task.json",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The vertical_mirror task uses real flower images from Unsplash (verified: photo-1490750967868-88aa4486c946 and photo-1592194996308-7b43878e84a6) with fallback to ImageMagick-generated synthetic images. The verifier uses SSIM >= 0.95 threshold to detect vertical flip (Image.FLIP_TOP_BOTTOM), correctly rejects horizontal flips (SSIM=0.161), and validates that results have SSIM < 0.9 compared to original to confirm modification. Success requires 3/4 criteria: proper vertical flip, preserved dimensions, image modification, and optionally high SSIM quality. The environment is GIMP-based with X11 display support.",
+    "pi_confidence": "high"
+}

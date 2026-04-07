@@ -39,8 +39,12 @@ if [ "$APP_DATA_SIZE" -lt 50 ]; then
     # The agent might have to handle the download dialog if it appears.
 fi
 
-# 5. Capture initial state screenshot
+# 5. Launch the app using robust helper
+echo "Launching Cancer iChart..."
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
+
+# 6. Capture initial state screenshot
 screencap -p /sdcard/tasks/initial_state.png 2>/dev/null
 
 echo "=== Task setup complete ==="
-echo "State: App closed, Home screen visible."

@@ -1,0 +1,32 @@
+{
+  "id": "generate_mitre_coverage_report@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Generate a MITRE ATT&CK technique coverage report by querying the Wazuh API (https://localhost:55000) using credentials wazuh-wui / MyS3cr37P450r.*-. Identify all detection rules with MITRE technique mappings and create a structured JSON report at '~/reports/mitre_coverage_report.json'. The report must follow this structure:\n\n{\n  \"report_metadata\": {\n    \"generated_by\": \"wazuh_mitre_coverage_audit\",\n    \"total_techniques_covered\": <integer>,\n    \"total_rules_with_mitre\": <integer>\n  },\n  \"techniques\": [\n    {\n      \"technique_id\": \"Txxxx\",\n      \"technique_name\": \"Technique Name\",\n      \"tactics\": [\"Tactic1\", ...],\n      \"rule_count\": <integer>\n    }\n  ]\n}\n\nThe 'techniques' array must be sorted by technique_id in ascending order.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/generate_mitre_coverage_report/setup_task.sh",
+    "post_task": "/workspace/tasks/generate_mitre_coverage_report/export_result.sh"
+  },
+  "metadata": {
+    "output_path": "/home/ga/reports/mitre_coverage_report.json",
+    "required_techniques": [
+      "T1110",
+      "T1053",
+      "T1059"
+    ],
+    "min_techniques_count": 50,
+    "max_techniques_count": 500
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mitre_report"
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+    "task_id": "metric_audit_clean_dashboard@1",
+    "dataset": "Numenta Anomaly Benchmark (NAB) realAWSCloudwatch",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_dashboard_name",
+            "metadata_value": "Validated Production Metrics",
+            "verified_value": "Validated Production Metrics",
+            "source": "verifier.py DASHBOARD_NAME and setup_task.sh dashboard deletion checks",
+            "status": "verified"
+        },
+        {
+            "key": "valid_metrics",
+            "metadata_value": [
+                "servers.ec2_instance_1.cpu.utilization",
+                "servers.ec2_instance_2.cpu.utilization",
+                "servers.ec2_instance_3.cpu.cloudwatch_utilization"
+            ],
+            "verified_value": [
+                "servers.ec2_instance_1.cpu.utilization",
+                "servers.ec2_instance_2.cpu.utilization",
+                "servers.ec2_instance_3.cpu.cloudwatch_utilization"
+            ],
+            "source": "scripts/feed_real_data.py metric mappings and verifier.py VALID_METRICS substring checks",
+            "status": "verified"
+        },
+        {
+            "key": "contamination_metrics",
+            "metadata_value": [
+                "servers.UNKNOWN_HOST.cpu.utilization",
+                "servers.ec2_instance_99.cpu.utilization",
+                "servers.test_node.machine_temperature"
+            ],
+            "verified_value": [
+                "servers.UNKNOWN_HOST.cpu.utilization",
+                "servers.ec2_instance_99.cpu.utilization",
+                "servers.test_node.machine_temperature"
+            ],
+            "source": "setup_task.sh python injection script and verifier.py CONTAMINATION_PATTERNS",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Infrastructure Security Auditor",
+            "verified_value": "Infrastructure Security Auditor",
+            "source": "task.json description explicitly defines the agent's role",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Cloud Infrastructure",
+            "verified_value": "Cloud Infrastructure",
+            "source": "Context inferred from AWS EC2, CloudWatch metrics, and the NAB dataset usage",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/metric_audit_clean_dashboard_result.json",
+            "verified_value": "/tmp/metric_audit_clean_dashboard_result.json",
+            "source": "export_result.sh output path and verifier.py RESULT_PATH",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires filtering a contaminated Graphite metrics pipeline. The environment is populated with real AWS Cloudwatch metrics downloaded from the Numenta Anomaly Benchmark (NAB) dataset via feed_real_data.py, which map exactly to the three legitimate metrics: 'servers.ec2_instance_1.cpu.utilization', 'servers.ec2_instance_2.cpu.utilization', and 'servers.ec2_instance_3.cpu.cloudwatch_utilization'. The three contamination metrics ('servers.UNKNOWN_HOST.cpu.utilization', 'servers.ec2_instance_99.cpu.utilization', 'servers.test_node.machine_temperature') are synthetically generated and injected into Carbon via setup_task.sh. The expected output is a dashboard named 'Validated Production Metrics' exported to '/tmp/metric_audit_clean_dashboard_result.json', which explicitly includes the legitimate metrics and excludes all contaminated ones.",
+    "pi_confidence": "high"
+}

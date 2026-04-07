@@ -1,0 +1,27 @@
+{
+  "id": "coi_investigation@1",
+  "version": "1.0",
+  "env_id": "arkcase_env@0.1",
+  "description": "A conflict-of-interest investigation has been ordered. Read the regulatory directive at ~/Documents/coi_directive.txt to identify the target organization and directive number. Log in to ArkCase as arkcase-admin@dev.arkcase.com (password: ArkCase1234!) and search complaints for all cases mentioning this organization in their title. For each matching case, open it and read the description to identify the Assigned Analyst name. Then, for each unique analyst found, search ArkCase again to check whether that analyst is the subject of any separate internal investigation (cases with 'Investigation' in the title naming that analyst). If an analyst is assigned to cases involving the target organization AND is also the subject of a separate investigation, this constitutes a conflict of interest. For each confirmed conflict, create a new complaint in ArkCase with title 'Ethics Review: [Analyst Name] - COI Directive 2026-03', category 'Government', priority 'High', and a description citing the analyst's assigned case number(s) and the investigation case number. After completing the review, write ~/Documents/coi_report.json containing: organization_name, analysts_reviewed (array with name, assigned_case_numbers, conflict_found, investigation_case_number), total_conflicts_found, ethics_complaints_created.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/coi_investigation/setup_task.sh",
+    "post_task": "/workspace/tasks/coi_investigation/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "output_path": "/home/ga/Documents/coi_report.json",
+    "ground_truth_path": "/root/validation/coi_ground_truth.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_coi_investigation"
+    }
+  }
+}

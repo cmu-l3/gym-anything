@@ -1,0 +1,87 @@
+{
+    "task_id": "claims_pipeline_reconciliation@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "overpayment_claim_ids",
+            "metadata_value": "[397, 398, 399, 401, 402]",
+            "verified_value": "[397, 398, 399, 401, 402]",
+            "source": "Traced setup_task.sh Python code: overpayment_ids = [397, 398, 399, 401, 402], then UPDATE claims_adjudicated SET approved_amount = approved_amount * 2. Live DB query confirmed exactly 5 overpayments: claim 397 (approved=760.0 vs allowed=380.0, code 99284/CLINIC), claim 398 (1176.0 vs 588.0, 99285/SPECIALIST), claim 399 (56.0 vs 28.0, 93000/LAB), claim 401 (338.0 vs 169.0, 99213/HOSPITAL), claim 402 (390.0 vs 195.0, 99214/CLINIC). Independent computation using fee_lookup[(proc,ptype)] = base_amounts[proc] * multipliers[ptype] matches all values exactly. Total overpayments in DB query returns exactly 5 — no false positives.",
+            "status": "verified"
+        },
+        {
+            "key": "orphaned_adjudication_claim_ids",
+            "metadata_value": "[9901, 9902, 9903, 9904]",
+            "verified_value": "[9901, 9902, 9903, 9904]",
+            "source": "Setup code inserts 4 adjudication records (adjudication_ids 447-450) with claim_ids 9901-9904 that have no corresponding rows in claims_raw (which only has claim_ids 1-500). Live DB NOT EXISTS query confirmed exactly 4 orphaned records with these IDs.",
+            "status": "verified"
+        },
+        {
+            "key": "duplicate_payment_claim_ids",
+            "metadata_value": "[200, 250, 300, 350]",
+            "verified_value": "[200, 250, 300, 350]",
+            "source": "Setup code reads existing payment_amount for each claim, then inserts a second row with payment_ids 397-400 and check_numbers CHK-DUP-1 through CHK-DUP-4. Live DB GROUP BY HAVING COUNT(*)>1 confirmed exactly 4 duplicated claim_ids. For each: claim 200 has payment_ids 200+397 (amount 30.8), claim 250 has 250+398 (27.5), claim 300 has 300+399 (30.8), claim 350 has 350+400 (27.5).",
+            "status": "verified"
+        },
+        {
+            "key": "terminated_provider_claim_ids",
+            "metadata_value": "[101, 102, 103, 104]",
+            "verified_value": "[101, 102, 103, 104]",
+            "source": "Setup code: term_provider_claims = {101: 46, 102: 47, 103: 48, 104: 49}. UPDATEs claims_raw.provider_id to point to terminated providers. Live DB JOIN confirmed: claim 101 -> provider 46 (Southern General Hospital, terminated 2024-06-30, svc_date 2024-07-21), claim 102 -> provider 47 (Southern Family Clinic, svc_date 2024-08-27), claim 103 -> provider 48 (Southern Specialty Group, svc_date 2024-10-03), claim 104 -> provider 49 (Southern Diagnostics Lab, svc_date 2024-11-09). All have status ADJUDICATED (should be REJECTED).",
+            "status": "verified"
+        },
+        {
+            "key": "lapsed_member_claim_ids",
+            "metadata_value": "[106, 206, 406]",
+            "verified_value": "[106, 206, 406]",
+            "source": "Setup code: lapsed_member_claims = {106: 191, 206: 192, 406: 193}. UPDATEs claims_raw.member_id. Live DB JOIN confirmed: claim 106 -> member 191 (William Martinez, coverage_end 2024-06-30, svc_date 2024-07-22), claim 206 -> member 192 (Barbara Martinez, svc_date 2024-08-11), claim 406 -> member 193 (Richard Martinez, svc_date 2024-09-20). All have status ADJUDICATED.",
+            "status": "verified"
+        },
+        {
+            "key": "payment_mismatch_claim_ids",
+            "metadata_value": "[150, 175, 225, 275, 325]",
+            "verified_value": "[150, 175, 225, 275, 325]",
+            "source": "Setup code applies UPDATE payment_authorizations SET payment_amount = ROUND(payment_amount * 0.7, 2) for these claim_ids, creating a 30% underpayment. Live DB confirmed: claim 150 (payment=19.25, approved=27.5, diff=-8.25), claim 175 (119.35 vs 170.5, diff=-51.15), claim 225 (88.55 vs 126.5, diff=-37.95), claim 275 (119.35 vs 170.5, diff=-51.15), claim 325 (88.55 vs 126.5, diff=-37.95). Independent computation verified all values match: payment = approved * 0.7. Total mismatches query returns exactly 5.",
+            "status": "verified"
+        },
+        {
+            "key": "total_discrepancies",
+            "metadata_value": "25",
+            "verified_value": "25",
+            "source": "Sum of all categories: 5 overpayments + 4 orphans + 4 duplicates + 4 terminated_provider + 3 lapsed_member + 5 mismatches = 25. Verified against live DB: each category query returns the exact planted count with zero false positives. No overlaps between any category (all claim_id sets are disjoint, verified computationally).",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Desktop/reconciliation_report.txt",
+            "verified_value": "/home/ga/Desktop/reconciliation_report.txt",
+            "source": "Path used in export_result.sh line 304 and verifier.py line 192. Setup clears this file (rm -f). Live test confirmed ga user can write to ~/Desktop/. Export script checks this path for report existence.",
+            "status": "verified"
+        },
+        {
+            "key": "db_config.user",
+            "metadata_value": "claims_admin",
+            "verified_value": "claims_admin",
+            "source": "Setup creates user via oracle_query as SYSTEM: CREATE USER claims_admin IDENTIFIED BY Claims2024secure. Live DB connection succeeded with these credentials. Export_result.sh connects with same credentials.",
+            "status": "verified"
+        },
+        {
+            "key": "db_config.password",
+            "metadata_value": "Claims2024secure",
+            "verified_value": "Claims2024secure",
+            "source": "Used in setup_task.sh Python block (line 82), export_result.sh (line 25), and matches the task description. Live oracledb.connect() succeeded with this password.",
+            "status": "verified"
+        },
+        {
+            "key": "db_config.dsn",
+            "metadata_value": "localhost:1521/XEPDB1",
+            "verified_value": "localhost:1521/XEPDB1",
+            "source": "Oracle XE container maps port 1521. XEPDB1 is the pluggable database name (standard for gvenzl/oracle-xe:21-slim). Confirmed by successful connection during live testing and docker ps showing port mapping.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The CLAIMS_ADMIN schema contains 6 tables with synthetic healthcare claims data: PROVIDERS (50 rows, IDs 46-50 are terminated with termination_date 2024-06-30), MEMBERS (200 rows, IDs 191-200 have lapsed coverage_end 2024-06-30), FEE_SCHEDULE (100 rows, 20 CPT codes x 5 provider types with amounts = base_amount * type_multiplier), CLAIMS_RAW (500 rows), CLAIMS_ADJUDICATED (450 rows), PAYMENT_AUTHORIZATIONS (400 rows). There are exactly 25 planted discrepancies across 5 non-overlapping categories: (1) OVERPAYMENTS: claim_ids 397, 398, 399, 401, 402 have approved_amount = 2x the fee_schedule allowed_amount — specifically 760.0 vs 380.0, 1176.0 vs 588.0, 56.0 vs 28.0, 338.0 vs 169.0, 390.0 vs 195.0 respectively. The correct fix is to UPDATE approved_amount to the allowed_amount from fee_schedule matching on procedure_code and provider_type. (2) ORPHANED ADJUDICATIONS: adjudication_ids 447-450 have claim_ids 9901-9904 which do not exist in claims_raw. Delete these 4 rows. (3) DUPLICATE PAYMENTS: claim_ids 200, 250, 300, 350 each appear twice in payment_authorizations. The duplicate rows have payment_ids 397-400 with check_numbers CHK-DUP-1 through CHK-DUP-4; keep the lower payment_id and delete the duplicate. (4) ELIGIBILITY VIOLATIONS: claim_ids 101, 102, 103, 104 reference terminated providers 46-49 (service_dates 2024-07-21 through 2024-11-09 are after termination_date 2024-06-30); claim_ids 106, 206, 406 reference lapsed members 191-193 (service_dates after coverage_end 2024-06-30). All 7 currently have claim_status='ADJUDICATED' and should be set to 'REJECTED'. (5) PAYMENT CASCADE MISMATCHES: claim_ids 150, 175, 225, 275, 325 have payment_amount = 70% of approved_amount (30% underpayment). Correct values: claim 150 should be 27.5 not 19.25, claim 175 should be 170.5 not 119.35, claim 225 should be 126.5 not 88.55, claim 275 should be 170.5 not 119.35, claim 325 should be 126.5 not 88.55. After all fixes, the agent must create: PL/SQL package CLAIMS_RECONCILIATION with function COUNT_DISCREPANCIES (should return 0), a BEFORE INSERT trigger on PAYMENT_AUTHORIZATIONS preventing duplicate claim_ids, a materialized view RECONCILIATION_DASHBOARD, and a report file at ~/Desktop/reconciliation_report.txt. Database credentials: user claims_admin, password Claims2024secure, service XEPDB1 on localhost:1521.",
+    "pi_confidence": "high"
+}

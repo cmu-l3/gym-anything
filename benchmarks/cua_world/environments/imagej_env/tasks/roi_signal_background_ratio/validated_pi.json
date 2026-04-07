@@ -1,0 +1,52 @@
+{
+    "task_id": "roi_signal_background_ratio@1",
+    "dataset": "Fiji sample image - Fluorescent Cells",
+    "case_id": "Fluorescent Cells (400K)",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/ImageJ_Data/results/roi_measurements.csv",
+            "verified_value": "/home/ga/ImageJ_Data/results/roi_measurements.csv",
+            "source": "Confirmed in setup_task.sh lines 8-9, export_result.sh lines 12, and verifier.py line 36. Path is consistently used throughout task scripts.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_zip_path",
+            "metadata_value": "/home/ga/ImageJ_Data/results/roi_set.zip",
+            "verified_value": "/home/ga/ImageJ_Data/results/roi_set.zip",
+            "source": "Confirmed in setup_task.sh lines 8-9, export_result.sh line 13, and verifier.py line 36. Path is consistently used throughout task scripts.",
+            "status": "verified"
+        },
+        {
+            "key": "min_rois",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "Task description specifies: 'at least 2 ROIs over bright cell structures' + 'at least 1 ROI over a dim cytoplasmic region' + 'at least 1 ROI over the dark background' = minimum 4 total ROIs. Export script checks row_count >= 4 at line 60.",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": ["Label", "Mean", "Area"],
+            "verified_value": ["Label", "Mean", "Area"],
+            "source": "Verified in export_result.sh lines 71-74 which checks for label, mean, and area columns. Verifier.py checks these same columns at lines 73-74.",
+            "status": "verified"
+        },
+        {
+            "key": "sbr_min",
+            "metadata_value": 1.5,
+            "verified_value": 1.0,
+            "source": "CONTRADICTION FOUND: Task metadata claims sbr_min=1.5, but verifier.py line 91 uses condition '1.0 < sbr < 1000' which accepts SBR values down to 1.0 (technically >1.0). Web search confirms 1.5 is cited in scientific literature as minimum for fluorescent lesion discrimination (https://pubmed.ncbi.nlm.nih.gov/35711014/), aligning with metadata claim. However, verifier implements lower threshold of 1.0.",
+            "status": "contradicted"
+        },
+        {
+            "key": "sbr_max",
+            "metadata_value": 100.0,
+            "verified_value": 1000.0,
+            "source": "CONTRADICTION FOUND: Task metadata claims sbr_max=100.0, but verifier.py line 91 implements condition '1.0 < sbr < 1000' allowing SBR values up to 1000 (technically <1000). The metadata upper bound of 100 is more restrictive than what the verifier actually checks.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task uses Fiji's built-in 'Fluorescent Cells (400K)' sample image, which is real microscopy data available from the Fiji samples repository. The task requires users to define ROIs (regions of interest) in fluorescence microscopy image, measure intensities, and calculate signal-to-background ratio (SBR). Expected outputs are saved to CSV and ZIP files in /home/ga/ImageJ_Data/results/. Minimum 4 ROIs required; minimum columns are Label, Mean, Area. CRITICAL DISCREPANCY: Metadata claims SBR bounds of 1.5-100.0, but verifier.py accepts 1.0-1000, creating a 2x wider acceptance window than documented.",
+    "pi_confidence": "high"
+}

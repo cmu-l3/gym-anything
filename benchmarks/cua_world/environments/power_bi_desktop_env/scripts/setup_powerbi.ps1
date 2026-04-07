@@ -76,19 +76,42 @@ try {
     }
     Set-ItemProperty -Path $backupPath -Name "DisableWindowsConsumerFeatures" -Value 1 -Type DWord -Force
 
+    # Kill Azure Data Studio if it auto-started (wrong app should not be open)
+    Write-Host "Killing Azure Data Studio if present..."
+    Get-Process "azuredatastudio", "AzureDataStudio" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    # Remove Azure Data Studio from auto-start registry
+    $runKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+    Remove-ItemProperty -Path $runKey -Name "AzureDataStudio" -ErrorAction SilentlyContinue
+    Remove-ItemProperty -Path $runKey -Name "Azure Data Studio" -ErrorAction SilentlyContinue
+
+    # Load shared helpers
+    $utils = "C:\workspace\scripts\task_utils.ps1"
+    if (Test-Path $utils) { . $utils; Write-Host "Loaded task_utils.ps1" }
+
     # Warm up Power BI Desktop: launch and close to complete first-run cycle.
     Write-Host "Warming up Power BI Desktop (first-run cycle)..."
     $pbiExe = $null
-    $pbiPaths = @(
-        "C:\Program Files\Microsoft Power BI Desktop\bin\PBIDesktop.exe",
-        "C:\Program Files (x86)\Microsoft Power BI Desktop\bin\PBIDesktop.exe"
-    )
-    foreach ($p in $pbiPaths) {
-        if (Test-Path $p) {
-            $pbiExe = $p
-            break
+    # Try the helper function first, then fallback to hardcoded paths
+    try { $pbiExe = Find-PowerBIExe } catch { }
+    if (-not $pbiExe) {
+        $pbiPaths = @(
+            "C:\Program Files\Microsoft Power BI Desktop\bin\PBIDesktop.exe",
+            "C:\Program Files (x86)\Microsoft Power BI Desktop\bin\PBIDesktop.exe"
+        )
+        foreach ($p in $pbiPaths) {
+            if (Test-Path $p) {
+                $pbiExe = $p
+                break
+            }
         }
     }
+    if (-not $pbiExe) {
+        # Broader recursive search
+        $found = Get-ChildItem "C:\Program Files" -Recurse -Filter "PBIDesktop.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $found) { $found = Get-ChildItem "C:\Program Files (x86)" -Recurse -Filter "PBIDesktop.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 }
+        if ($found) { $pbiExe = $found.FullName }
+    }
+    if ($pbiExe) { Write-Host "Power BI Desktop found at: $pbiExe" }
 
     if ($pbiExe) {
         $warmupScript = "C:\Windows\Temp\warmup_powerbi.cmd"
@@ -112,20 +135,27 @@ try {
         Write-Host "WARNING: Power BI Desktop executable not found for warm-up."
     }
 
-    # Minimize any open terminal/command windows
-    Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class Win32 {
-    [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-    [DllImport("user32.dll")]
-    public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-}
-"@
-    Get-Process cmd -ErrorAction SilentlyContinue | ForEach-Object {
-        [Win32]::ShowWindow($_.MainWindowHandle, 6) | Out-Null
-    }
+    # Kill Azure Data Studio again in case it re-appeared during warm-up
+    Get-Process "azuredatastudio", "AzureDataStudio" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
+    # Clean up desktop in Session 1 (minimize terminals, close Start menu)
+    $cleanupScript = "C:\Windows\Temp\cleanup_desktop.ps1"
+    @'
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+(New-Object -ComObject Shell.Application).MinimizeAll()
+'@ | Set-Content $cleanupScript -Encoding UTF8
+    $prevEAP2 = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    schtasks /Create /TN "CleanupDesktop_GA" /TR "powershell -ExecutionPolicy Bypass -File $cleanupScript" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
+    schtasks /Run /TN "CleanupDesktop_GA" 2>$null
+    Start-Sleep -Seconds 5
+    schtasks /Delete /TN "CleanupDesktop_GA" /F 2>$null
+    Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
+    $ErrorActionPreference = $prevEAP2
 
     # List available data files
     Write-Host "Available data files in $TasksDir :"

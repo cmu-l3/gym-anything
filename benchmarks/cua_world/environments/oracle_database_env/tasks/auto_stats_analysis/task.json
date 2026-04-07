@@ -1,0 +1,30 @@
+{
+  "id": "auto_stats_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Analyze the relationship between vehicle weight and fuel economy using Oracle's native statistical functions in the HR database (localhost:1521/XEPDB1, user: hr, pass: hr123). Using the 2024 model year data in the VEHICLE_TESTS table, create a view named STATS_MODEL that calculates linear regression statistics for COMBINED_MPG (dependent variable Y) vs CURB_WEIGHT_LBS (independent variable X). The view must return a single row with the columns: WEIGHT_MPG_CORR, SLOPE, INTERCEPT, and MPG_STDDEV. Additionally, create a table named EFFICIENT_OUTLIERS containing vehicles where the actual MPG is greater than the predicted MPG + 1.5 standard deviations. The table must include columns for MAKE, MODEL, CURB_WEIGHT_LBS, COMBINED_MPG, PREDICTED_MPG, and DIFF_FROM_MODEL, ordered by DIFF_FROM_MODEL descending.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/auto_stats_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/auto_stats_analysis/export_result.sh"
+  },
+  "metadata": {
+    "data_source": "Derived from EPA 2024 Fuel Economy Data",
+    "required_view": "STATS_MODEL",
+    "required_table": "EFFICIENT_OUTLIERS",
+    "tolerance_corr": 0.001,
+    "tolerance_slope": 0.0001,
+    "outlier_threshold_sigma": 1.5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_auto_stats_analysis"
+    }
+  }
+}

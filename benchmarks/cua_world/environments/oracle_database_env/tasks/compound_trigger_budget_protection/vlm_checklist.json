@@ -1,0 +1,59 @@
+{
+  "task_id": "compound_trigger_budget_protection@1",
+  "task_completion": [
+    {
+      "id": "connect_database",
+      "description": "Connect to the Oracle database using the provided credentials.",
+      "points": 10,
+      "visual_evidence": "Terminal showing a successful connection to the database (e.g., using sqlplus hr/hr123@localhost:1521/XEPDB1) or a GUI database client connected to the hr schema."
+    },
+    {
+      "id": "create_table",
+      "description": "Create the DEPT_SPENDING_CAPS table with the required columns.",
+      "points": 10,
+      "visual_evidence": "SQL command starting with 'CREATE TABLE DEPT_SPENDING_CAPS' containing DEPARTMENT_ID and CAP_AMOUNT, followed by a 'Table created.' success message."
+    },
+    {
+      "id": "populate_table",
+      "description": "Populate the DEPT_SPENDING_CAPS table with calculated caps (120% of current salary or 10,000 for empty departments).",
+      "points": 20,
+      "visual_evidence": "An INSERT statement or PL/SQL block that calculates the caps using a 1.2 multiplier and a default of 10000, followed by a message indicating rows were created or a SELECT query showing the populated data."
+    },
+    {
+      "id": "create_trigger",
+      "description": "Create the TRG_ENFORCE_SPENDING_CAP trigger on the EMPLOYEES table.",
+      "points": 20,
+      "visual_evidence": "SQL command 'CREATE OR REPLACE TRIGGER TRG_ENFORCE_SPENDING_CAP' on the EMPLOYEES table for INSERT or UPDATE, followed by a 'Trigger created.' or 'Trigger compiled.' message."
+    },
+    {
+      "id": "handle_mutating_table",
+      "description": "Implement logic to handle the 'Mutating Table' constraint (ORA-04091).",
+      "points": 20,
+      "visual_evidence": "The trigger code visible in the screenshot explicitly uses 'FOR INSERT OR UPDATE... COMPOUND TRIGGER' with statement-level and row-level blocks, or uses an autonomous transaction/package workaround to avoid mutating table errors."
+    },
+    {
+      "id": "trigger_error_logic",
+      "description": "Implement the logic to block transactions exceeding the cap by raising ORA-20001.",
+      "points": 20,
+      "visual_evidence": "The trigger code contains 'RAISE_APPLICATION_ERROR(-20001, ...)' with a message containing 'Budget Exceeded' when the new salary sum exceeds the department's CAP_AMOUNT."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_db_interaction",
+      "description": "The agent interacted with the actual Oracle database rather than just writing code in a text editor.",
+      "visual_evidence": "Presence of SQL*Plus prompts (SQL>), execution times, or a database client query result grid showing actual execution."
+    },
+    {
+      "id": "no_mocked_responses",
+      "description": "Database success messages and errors are genuine Oracle outputs.",
+      "visual_evidence": "Standard Oracle output formatting (e.g., 'Table created.', 'Trigger compiled.', or standard ORA- error stacks) rather than manually typed text."
+    },
+    {
+      "id": "code_execution_verified",
+      "description": "The agent actually executed the SQL scripts to create the table and trigger.",
+      "visual_evidence": "The screenshots must show the commands being run and accepted by the database engine, not just a completed .sql file."
+    }
+  ],
+  "privileged_info_for_vlm": "Table to create: DEPT_SPENDING_CAPS. Trigger to create: TRG_ENFORCE_SPENDING_CAP. The trigger must raise error code ORA-20001 with a message containing 'Budget'. The budget cap is 120% of the current total salary (or 10,000 for empty departments). The trigger must handle the mutating table error (ORA-04091), typically by using an Oracle COMPOUND TRIGGER."
+}

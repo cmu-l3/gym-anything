@@ -4,15 +4,19 @@
 
 AC_URL="https://localhost:9443"
 AC_USER="admin"
-AC_PASS="2n"
+AC_PASS="Admin2n1!"
 XAUTH="/run/user/1000/gdm/Xauthority"
 COOKIE_JAR="/tmp/ac_cookies.txt"
 
 # Firefox profile location: snap firefox uses a different base path on Ubuntu 22.04
-if [ -d "/home/ga/snap/firefox/common/.mozilla/firefox" ]; then
-    PROFILE_DIR="/home/ga/snap/firefox/common/.mozilla/firefox/accommander.profile"
+# Always prefer the snap path since Ubuntu 22.04 uses snap Firefox by default.
+# The non-snap path may also exist but AppArmor blocks snap Firefox from accessing it.
+SNAP_FF_PROFILE="/home/ga/snap/firefox/common/.mozilla/firefox/accommander.profile"
+SYS_FF_PROFILE="/home/ga/.mozilla/firefox/accommander.profile"
+if snap list firefox > /dev/null 2>&1 || [ -d "/home/ga/snap/firefox" ]; then
+    PROFILE_DIR="$SNAP_FF_PROFILE"
 else
-    PROFILE_DIR="/home/ga/.mozilla/firefox/accommander.profile"
+    PROFILE_DIR="$SYS_FF_PROFILE"
 fi
 
 # -------------------------------------------------------
@@ -56,7 +60,7 @@ ac_login() {
         -X PUT \
         -H "Content-Type: application/json" \
         -d "{\"login\":\"${AC_USER}\",\"password\":\"${AC_PASS}\"}" \
-        "${AC_URL}/api/v3/auth")
+        "${AC_URL}/api/v3/login")
     if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
         echo "API login successful (HTTP $http_code)"
         return 0
@@ -95,19 +99,29 @@ launch_firefox_to() {
     local url="$1"
     local wait_sec="${2:-6}"
 
-    # Kill existing Firefox instances
+    # Stop any previous systemd transient unit and kill stale Firefox
+    systemctl --user --machine=ga@ stop firefox-ac.service 2>/dev/null || true
     pkill -9 -f "firefox" 2>/dev/null || true
     sleep 2
 
     # Remove stale lock
     rm -f "$PROFILE_DIR/.parentlock" "$PROFILE_DIR/lock" 2>/dev/null || true
 
+    # Launch Firefox using the raw binary (bypasses snap confinement which
+    # causes "Profile Missing" errors). Use nohup so Firefox survives SSH close.
+    local FF_BIN
+    FF_BIN=$(find /snap/firefox/current/usr/lib/firefox/firefox -maxdepth 0 2>/dev/null || \
+             find /snap/firefox/*/usr/lib/firefox/firefox -maxdepth 0 2>/dev/null | head -1)
+    if [ -z "$FF_BIN" ]; then
+        FF_BIN="firefox"  # fallback to snap wrapper
+    fi
+
     su - ga -c "DISPLAY=:1 XAUTHORITY=$XAUTH \
         DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
-        setsid firefox \
+        nohup $FF_BIN \
         --new-instance \
         -profile '$PROFILE_DIR' \
-        '$url' &"
+        '$url' > /dev/null 2>&1 &"
 
     sleep "$wait_sec"
 
@@ -128,13 +142,14 @@ launch_firefox_to() {
 ac_delete_user_by_name() {
     local first="$1"
     local last="$2"
+    local fullname="$first $last"
     ac_login > /dev/null 2>&1
     local users
     users=$(ac_api GET "/users" | jq -r \
-        ".[] | select(.firstName==\"$first\" and .lastName==\"$last\") | .id" 2>/dev/null)
+        ".items[]? | select(.Name==\"$fullname\") | .Id" 2>/dev/null)
     for uid in $users; do
         ac_api DELETE "/users/$uid" > /dev/null 2>&1 && \
-            echo "Deleted user $first $last (id=$uid)" || true
+            echo "Deleted user $fullname (id=$uid)" || true
     done
 }
 
@@ -146,7 +161,7 @@ ac_delete_group_by_name() {
     ac_login > /dev/null 2>&1
     local groups
     groups=$(ac_api GET "/groups" | jq -r \
-        ".[] | select(.name==\"$name\") | .id" 2>/dev/null)
+        ".items[]? | select(.Name==\"$name\") | .Id" 2>/dev/null)
     for gid in $groups; do
         ac_api DELETE "/groups/$gid" > /dev/null 2>&1 && \
             echo "Deleted group '$name' (id=$gid)" || true

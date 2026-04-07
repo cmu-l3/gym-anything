@@ -1,0 +1,30 @@
+{
+  "id": "targeted_ingest_filtering_workflow@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "A search warrant restricts your forensic analysis to specific user documents and images. You must strictly limit Autopsy's processing engine to avoid extracting metadata from out-of-scope files (e.g., system files, binaries). Create a forensic case named 'Targeted_Ingest_2024' (case number 'INV-TGT-001') using the disk image data source at /home/ga/evidence/ntfs_undel.dd. Configure and apply a File Ingest Filter named 'Warrant_Scope' that allows only txt, pdf, doc, jpg, and jpeg extensions. For this ingest job, enable only the 'Hash Lookup' and 'File Type Identification' modules. Upon completion, write an audit report to /home/ga/Reports/filter_audit.txt containing these exact sections: 'WARRANT_SCOPE_EXTENSIONS: txt, pdf, doc, jpg, jpeg', 'TOTAL_FILES_ON_DISK: <N>', 'IN_SCOPE_FILES_PROCESSED: <N>', 'OUT_OF_SCOPE_FILES_IGNORED: <N>', and 'VERIFICATION_STATEMENT: I verify that Hash and MIME type metadata was only generated for in-scope files.'",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/targeted_ingest_filtering_workflow/setup_task.sh",
+    "post_task": "/workspace/tasks/targeted_ingest_filtering_workflow/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Targeted_Ingest_2024",
+    "case_number": "INV-TGT-001",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "filter_name": "Warrant_Scope",
+    "audit_report": "/home/ga/Reports/filter_audit.txt",
+    "result_file": "/tmp/targeted_ingest_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_targeted_ingest_filtering_workflow"
+    }
+  }
+}

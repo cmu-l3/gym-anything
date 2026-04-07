@@ -1,0 +1,43 @@
+{
+    "task_id": "review_outpatient_visits@1",
+    "dataset": "VEHU VistA",
+    "case_id": "worldvista/vehu:latest",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "interface",
+            "metadata_value": "ydbgui",
+            "verified_value": "ydbgui",
+            "source": "setup_task.sh and setup_vista.sh launching YDBGui via yottadb",
+            "status": "verified"
+        },
+        {
+            "key": "target_global",
+            "metadata_value": "^AUPNVSIT",
+            "verified_value": "^AUPNVSIT",
+            "source": "Web search confirmed ^AUPNVSIT is VistA File #9000010 (VISIT). setup_task.sh also queries it.",
+            "status": "verified"
+        },
+        {
+            "key": "min_entries_visible",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Matches the explicit requirement in task.json instructions: 'Expand at least 3 different visit entries'. Note that the VLM prompt does not strictly enforce the numeric count.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights",
+            "metadata_value": {
+                "vista_running": 10,
+                "ydbgui_accessible": 10,
+                "global_navigated": 40,
+                "entries_visible": 40
+            },
+            "verified_value": null,
+            "source": "Code analysis of verifier.py revealed it is truncated at line 117 (vlm_resp.replace('...), causing a SyntaxError. The file crashes before evaluating or awarding the 40-point VLM components.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "I verified that the task operates on the synthetic VEHU VistA dataset from 'worldvista/vehu:latest'. The target global '^AUPNVSIT' correctly corresponds to the VistA File #9000010 for outpatient visit records. However, I discovered a critical defect: the 'verifier.py' script is severely truncated at line 117 resulting in a 'SyntaxError: unterminated string literal'. This corruption makes the task unscorable as it completely prevents the VLM logic from executing, directly contradicting the claimed scoring weights of 40 points for 'global_navigated' and 'entries_visible'.",
+    "pi_confidence": "high"
+}

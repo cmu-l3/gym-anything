@@ -1,0 +1,59 @@
+{
+    "task_id": "poes_downlink_schedule_setup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "wallops_correct_lat",
+            "metadata_value": 37.9402,
+            "verified_value": 37.9402,
+            "source": "GPS coordinates from latitude.to/articles-by-country/us/united-states/17021/wallops-flight-facility confirm Wallops Flight Facility latitude as 37.9402°N. Wikipedia and NASA sources corroborate ~37.94°N. The NOAA WCDA station is co-located at the Wallops Island complex.",
+            "status": "verified"
+        },
+        {
+            "key": "wallops_correct_lon",
+            "metadata_value": -75.4576,
+            "verified_value": -75.4576,
+            "source": "Wallops Flight Facility longitude is approximately -75.46°W per multiple sources. GPS coordinate databases show -75.4664 for the main WFF facility; -75.4576 corresponds to the NOAA CDA antenna farm area, ~770m east. Both are within the facility footprint and the difference is negligible for satellite pass prediction (<0.05s timing difference). ICAO KWAL airport reference point is at similar longitude.",
+            "status": "verified"
+        },
+        {
+            "key": "wallops_correct_alt",
+            "metadata_value": 15,
+            "verified_value": 15,
+            "source": "AirNav KWAL reports field elevation of 40 feet (12.2m). NDACC Wallops station lists 13m. The CDA facility antennas sit on slightly higher ground within the complex. 15m is a reasonable approximation; the difference from 12-13m is negligible for satellite tracking (changes elevation angles by <0.001 degrees). The actual .qth file in the setup uses ALT=15.",
+            "status": "verified"
+        },
+        {
+            "key": "wallops_correct_wx",
+            "metadata_value": "KWAL",
+            "verified_value": "KWAL",
+            "source": "ICAO code KWAL confirmed by: AirNav (airnav.com/airport/KWAL), METAR services (metar-taf.com/metar/KWAL), Weather Underground (wunderground.com/weather/KWAL), FlightAware, NOAA forecast.weather.gov, and AOPA. KWAL is the Wallops Flight Facility airport weather station, the closest meteorological reporting station to the NOAA CDA facility.",
+            "status": "verified"
+        },
+        {
+            "key": "correct_satellites",
+            "metadata_value": [25338, 28654, 33591, 38771, 43689, 37849],
+            "verified_value": [25338, 28654, 33591, 38771, 43689, 37849],
+            "source": "All six NORAD catalog numbers independently verified via n2yo.com, SatNOGS DB, and CelesTrak: NOAA-15=25338 (launched 1998, sun-synchronous 807km), NOAA-18=28654 (launched 2005, 854km), NOAA-19=33591 (launched 2009), METOP-B=38771 (launched 2012, ESA/EUMETSAT), METOP-C=43689 (launched 2018-087A, ESA/EUMETSAT), SUOMI NPP=37849 (launched 2011, NASA/NOAA joint). All are confirmed operational polar-orbiting weather/environmental satellites in the POES/EPS/JPSS constellations. All six .sat files exist in the GPredict satdata directory with valid TLE data (verified in live environment).",
+            "status": "verified"
+        },
+        {
+            "key": "wrong_satellites",
+            "metadata_value": [25544, 20580, 28474],
+            "verified_value": [25544, 20580, 28474],
+            "source": "ISS (ZARYA)=25544 confirmed via SatNOGS DB and n2yo.com (International Space Station, 1998-067A). HST=20580 confirmed via n2yo.com (Hubble Space Telescope). NORAD 28474 confirmed as GPS BIIR-13 (PRN 02) via in-the-sky.org and CelesTrak GPS operational group — note: GPredict displays this as 'GPS BIIR-13 (PRN 02)', not 'GPS BIIR-2' as stated in the task description; however the NORAD ID is correct and it is clearly a GPS navigation satellite, not a POES weather satellite. All three .sat files confirmed present in the live environment satdata directory.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_export_file",
+            "metadata_value": "/home/ga/Documents/METOP_C_passes.txt",
+            "verified_value": "/home/ga/Documents/METOP_C_passes.txt",
+            "source": "GPredict v2.2 source code (save-pass.c, pass-to-txt.c) confirms the 'Upcoming passes' dialog has a '_Save' button (RESPONSE_SAVE=11) that calls save_passes() to write a text file with pass prediction table. Default filename pattern is '<satname>-passes.txt'. The save dialog allows choosing folder and filename. ~/Documents/ directory confirmed to exist with correct ownership (ga:ga) in the live environment. The agent can navigate the file chooser to this path.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Wallops_CDA ground station should have latitude 37.9402°N, longitude 75.4576°W (stored as -75.4576 in GPredict, negative means West), altitude 15m, and ICAO weather station code KWAL. The initial setup has three deliberate errors: latitude is 73.9402 (digits 3 and 7 swapped), longitude is stored as positive 75.4576 (meaning East instead of West), and weather code is KWFF instead of KWAL. The default ground station should be changed from Pittsburgh.qth to Wallops_CDA.qth. The POES_Tracking module initially contains ISS/ZARYA (NORAD 25544), HST/Hubble (NORAD 20580), and GPS BIIR-13/PRN 02 (NORAD 28474) — all wrong. The correct POES fleet satellites are: NOAA 15 (25338), NOAA 18 (28654), NOAA 19 (33591), METOP-B (38771), METOP-C (43689), and SUOMI NPP (37849). All six have .sat data files pre-installed in the GPredict satdata directory. The module should use Wallops_CDA.qth as its ground station binding. GPredict's preferences should be set to Metric units (USE_IMPERIAL=false) and UTC time (USE_LOCAL_TIME=false). The module layout should be 'Map and Table' (also called 'World map and table') with the topographical map background (nasa-topo files available at /usr/share/gpredict/data/maps/) and solar terminator line enabled. The satellite table should show Azimuth, Elevation, Range, and Range Rate columns. GPredict's pass prediction save feature (accessible via right-click on satellite → Future Passes → Save button) writes a text file containing pass data with AOS/TCA/LOS times. The pass prediction file for METOP-C should be saved to /home/ga/Documents/METOP_C_passes.txt. Note: GPredict uses [QTH] section header for .qth files and [GLOBAL] section header for .mod files. The config keys for preferences are USE_IMPERIAL (not unit=) and USE_LOCAL_TIME (not TFORMAT=) under [GLOBAL] in gpredict.cfg.",
+    "pi_confidence": "high"
+}

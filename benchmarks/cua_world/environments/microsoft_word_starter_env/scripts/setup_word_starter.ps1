@@ -83,6 +83,10 @@ try {
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\14.0\Word\Options" -Name "DisableBootToOfficeStart" -Value 1 -Type DWord -Force
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\14.0\Registration" -Name "AcceptAllEulas" -Value 1 -Type DWord -Force
 
+    # Suppress "Help Protect and Improve Microsoft Office" dialog (QMEnable/ShownOptIn)
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\14.0\Common" -Name "QMEnable" -Value 0 -Type DWord -Force
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\14.0\Common\General" -Name "ShownOptIn" -Value 1 -Type DWord -Force
+
     # Machine-wide policies
     $policyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Office\14.0\Common\General"
     if (-not (Test-Path $policyPath)) {
@@ -90,6 +94,7 @@ try {
     }
     Set-ItemProperty -Path $policyPath -Name "ShownFirstRunOptin" -Value 1 -Type DWord -Force
     Set-ItemProperty -Path $policyPath -Name "DisableBootToOfficeStart" -Value 1 -Type DWord -Force
+    Set-ItemProperty -Path $policyPath -Name "ShownOptIn" -Value 1 -Type DWord -Force
 
     # Disable Office 2010 automatic updates
     $updatePath = "HKCU:\Software\Microsoft\Office\14.0\Common"
@@ -98,76 +103,7 @@ try {
     }
     Set-ItemProperty -Path $updatePath -Name "UpdatesEnabled" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
 
-    # Warm up Word: launch, dismiss dialogs, and close to complete first-run cycle
-    Write-Host "Warming up Word 2010 (first-run cycle)..."
 
-    # Load task_utils for Find-WordExe and Launch-WordDocumentInteractive
-    $utils = "C:\workspace\scripts\task_utils.ps1"
-    if (Test-Path $utils) {
-        . $utils
-    } else {
-        Write-Host "WARNING: task_utils.ps1 not found. Skipping warm-up."
-        return
-    }
-
-    $wordExe = $null
-    try {
-        $wordExe = Find-WordExe
-        Write-Host "Word executable: $wordExe"
-    } catch {
-        Write-Host "WARNING: Could not find Word executable. Skipping warm-up."
-        Write-Host "Error: $($_.Exception.Message)"
-    }
-
-    if ($wordExe) {
-        # Launch Word via schtasks (interactive session)
-        $warmupScript = "C:\Windows\Temp\warmup_word.cmd"
-        $warmupContent = "@echo off`r`nstart `"`" `"$wordExe`""
-        [System.IO.File]::WriteAllText($warmupScript, $warmupContent)
-
-        $prevEAP = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        schtasks /Create /TN "WarmupWord" /TR "cmd /c $warmupScript" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
-        schtasks /Run /TN "WarmupWord" 2>$null
-        Start-Sleep -Seconds 15
-
-        # Try to dismiss any first-run dialogs via PyAutoGUI
-        try {
-            Dismiss-WordDialogsBestEffort -Retries 2 -InitialWaitSeconds 2 -BetweenRetriesSeconds 1
-            Write-Host "First-run dialog dismissal attempted."
-        } catch {
-            Write-Host "WARNING: Dialog dismissal failed: $($_.Exception.Message)"
-        }
-
-        # Kill Word
-        Get-Process WINWORD -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Seconds 3
-        schtasks /Delete /TN "WarmupWord" /F 2>$null
-        Remove-Item $warmupScript -Force -ErrorAction SilentlyContinue
-        $ErrorActionPreference = $prevEAP
-        Write-Host "Word warm-up complete."
-    }
-
-    # Minimize any open terminal/command windows
-    Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class Win32 {
-    [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-    [DllImport("user32.dll")]
-    public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-}
-"@
-    Get-Process cmd -ErrorAction SilentlyContinue | ForEach-Object {
-        [Win32]::ShowWindow($_.MainWindowHandle, 6) | Out-Null
-    }
-
-    # List available data files
-    Write-Host "Available data files in ${TasksDir}:"
-    Get-ChildItem $TasksDir -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  - $($_.Name)" }
-
-    Write-Host "=== Word 2010 environment setup complete ==="
-} finally {
-    try { Stop-Transcript | Out-Null } catch { }
-}
+<system-reminder>
+Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.
+</system-reminder>

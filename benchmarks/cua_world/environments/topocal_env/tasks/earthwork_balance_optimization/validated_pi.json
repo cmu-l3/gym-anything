@@ -1,0 +1,101 @@
+{
+  "task_id": "earthwork_balance_optimization@1",
+  "dataset": "USGS NED 10m (National Elevation Dataset) via OpenTopoData API",
+  "case_id": "El Paso County, Colorado Springs foothills (38.855-38.878N, 104.855-104.878W)",
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "occupation",
+      "metadata_value": "Civil Engineer",
+      "verified_value": "Civil Engineer",
+      "source": "Task description says 'You are a civil engineer analyzing a potential residential development site.' Earthwork balance optimization is a standard civil engineering task performed during site grading design.",
+      "status": "verified"
+    },
+    {
+      "key": "industry",
+      "metadata_value": "Residential Development / Civil Engineering",
+      "verified_value": "Residential Development / Civil Engineering",
+      "source": "Task description references 'residential development site' and the ProjectSpec.txt written by setup_task.ps1 names the client as 'Pikes Peak Development Group' for a 'Colorado Springs Residential Grading Study.'",
+      "status": "verified"
+    },
+    {
+      "key": "location",
+      "metadata_value": "Colorado Springs, El Paso County, Colorado",
+      "verified_value": "Colorado Springs, El Paso County, Colorado",
+      "source": "Independently verified: setup_task.ps1 uses lat/lon grids at 38.855-38.878N, 104.855-104.878W. Colorado Springs city center is 38.8339N, 104.8214W. El Paso County spans ~38.5-39.1N, ~104.4-105.1W. The grid coordinates fall NW of Colorado Springs in the foothills near Cascade/Chipita Park, within El Paso County. Live testing confirmed UTM Eastings ~510k-512k and Northings ~4300k-4303k, consistent with this location.",
+      "status": "verified"
+    },
+    {
+      "key": "data_source",
+      "metadata_value": "USGS NED 10m via OpenTopoData API",
+      "verified_value": "USGS NED 10m via OpenTopoData API",
+      "source": "setup_task.ps1 line 85 uses URL 'https://api.opentopodata.org/v1/ned10m?locations=...'. NED (National Elevation Dataset) is a USGS product. OpenTopoData serves NED 10m from USGS source data. Live testing confirmed API returned HTTP 200 with real elevation data. Note: a synthetic fallback exists if API fails, but primary data is real USGS.",
+      "status": "verified"
+    },
+    {
+      "key": "coordinate_system",
+      "metadata_value": "UTM Zone 13N (EPSG:26913)",
+      "verified_value": "UTM Zone 13N (EPSG:26913)",
+      "source": "Independently verified from live CSV data: Point 1 has E=512581.394, N=4300695.965. UTM Zone 13N central meridian is -105 degrees, covering -108 to -102 degrees longitude. The Easting range 510k-512k and Northing range 4300k-4303k are correct for lat ~38.86N, lon ~-104.86W in Zone 13N. The setup script uses a latlon_to_utm13n() conversion function with central meridian l0=radians(-105), confirming Zone 13. ProjectSpec.txt also states 'UTM Zone 13N (EPSG:26913)'.",
+      "status": "verified"
+    },
+    {
+      "key": "survey_point_count",
+      "metadata_value": 300,
+      "verified_value": 300,
+      "source": "Live testing: CSV tail shows point 300 as last row. setup_task.ps1 generates 3 grids of 10x10=100 points each = 300 total. Metadata JSON from live env confirms point_count=300. CSV file size is 11,682 bytes with 301 lines (1 header + 300 data rows).",
+      "status": "verified"
+    },
+    {
+      "key": "primary_deliverable",
+      "metadata_value": "grading_report.txt",
+      "verified_value": "grading_report.txt",
+      "source": "Task description lists grading_report.txt as the first deliverable. ProjectSpec.txt written by setup script says 'File: grading_report.txt'. export_result.ps1 checks for this file as the primary report path.",
+      "status": "verified"
+    },
+    {
+      "key": "deliverable_path",
+      "metadata_value": "C:\\Users\\Docker\\Desktop\\GradingStudy\\grading_report.txt",
+      "verified_value": "C:\\Users\\Docker\\Desktop\\GradingStudy\\grading_report.txt",
+      "source": "Live testing confirmed: (1) GradingStudy folder exists at C:\\Users\\Docker\\Desktop\\GradingStudy\\ with 2 files (site_survey.csv + ProjectSpec.txt), (2) export_result.ps1 sets $reportPath to this exact path, (3) ProjectSpec.txt instructs saving to this path, (4) write permissions confirmed in live test.",
+      "status": "verified"
+    },
+    {
+      "key": "features_used",
+      "metadata_value": ["ascii_import", "dtm_creation", "volume_computation_iterative", "contour_generation", "dxf_export", "text_report_creation"],
+      "verified_value": ["ascii_import", "dtm_creation", "volume_computation_iterative", "contour_generation", "dxf_export", "text_report_creation"],
+      "source": "Cross-referenced against existing TopoCal tasks: (1) ascii_import — import_survey_points task exists, (2) dtm_creation — multiple tasks reference MDT/TIN generation, (3) volume_computation_iterative — calculate_stockpile_volume task uses 'Volumen con plano' dialog with 'cota' field; this task requires iterating that tool at 5+ elevations, (4) contour_generation — generate_contour_lines task exists, (5) dxf_export — export_to_dxf task exists, (6) text_report_creation — agent writes report in Notepad. Live testing confirmed TopoCal 2025.exe running (PID 8248).",
+      "status": "verified"
+    },
+    {
+      "key": "pass_threshold",
+      "metadata_value": 60,
+      "verified_value": "N/A (verifier is a stub)",
+      "source": "The verifier.py is a stub that always returns passed=True, score=100. The pass_threshold of 60 describes aspirational programmatic scoring logic that is NOT implemented. Actual scoring is via VLM checklist (100 pts across 7 completion items). The pass_threshold metadata value is misleading since no programmatic threshold is enforced.",
+      "status": "contradicted"
+    },
+    {
+      "key": "scoring_breakdown",
+      "metadata_value": "report_exists_new=15, report_has_5_elevation_tests=25, final_ratio_balanced=25, dxf_with_contours=20, top_project_saved=15",
+      "verified_value": "N/A (verifier is a stub; VLM checklist allocates: import=10, TIN=10, volume_iterative=30, report=20, contours=10, dxf_export=10, save_project=10)",
+      "source": "The verifier.py is a stub — the scoring_breakdown describes unimplemented programmatic logic. The actual scoring mechanism is the VLM checklist (vlm_checklist.json) which allocates 100 points differently: volume_computation_iterative gets 30 pts (highest), record_results_in_report gets 20 pts, and the remaining 5 items get 10 pts each. The scoring_breakdown metadata does NOT match the VLM checklist allocation.",
+      "status": "contradicted"
+    },
+    {
+      "key": "anti_gaming_note",
+      "metadata_value": "Max partial credit without full marks on any criterion = 6+15+15+10+6 = 52, below pass threshold 60",
+      "verified_value": "N/A (verifier is a stub; anti-gaming math is correct IF the described scoring were implemented, but it is not)",
+      "source": "The arithmetic is correct (6+15+15+10+6 = 52 < 60), but since the verifier is a stub that always returns 100, this anti-gaming design is not enforced. The VLM checklist does not have explicit partial credit tiers. The anti_gaming_note describes a hypothetical that is not implemented.",
+      "status": "contradicted"
+    },
+    {
+      "key": "result_file",
+      "metadata_value": "C:\\Users\\Docker\\earthwork_balance_optimization_result.json",
+      "verified_value": "C:\\Users\\Docker\\earthwork_balance_optimization_result.json",
+      "source": "Live testing confirmed: export_result.ps1 writes to this exact path ($resultPath on line 20). The result JSON was successfully generated during live testing with 20 fields including task_id, start_time, metadata, report/dxf/top existence and metrics. The file was valid JSON when read back.",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The survey data contains 300 real USGS NED 10m elevation points for the Colorado Springs foothills in El Paso County, Colorado (38.855-38.878N, 104.855-104.878W), converted to UTM Zone 13N coordinates. The CSV file (site_survey.csv, 11,682 bytes) has columns PointNumber,Easting,Northing,Elevation,Code with Eastings ~510,000-512,600m, Northings ~4,300,700-4,303,200m, and elevations ranging from 1884.0m to 2070.4m (mean 1973.88m). The ProjectSpec.txt suggests a starting elevation of 1970m (mean rounded to nearest 10m) for the iterative volume optimization, but this is NOT the balanced elevation — the agent must find the true balance point where cut-to-fill ratio falls between 0.9 and 1.1. The agent must use TopoCal's 'Volumen con plano' tool (accessible via MDT or Cálculos menu) with the 'cota' field to test at least 5 different elevation values and record each result. TopoCal's UI is entirely in Spanish: Archivo (File), MDT (terrain model), Curvas de nivel (contour lines), Cálculos (calculations), Volumen (volume), Corte (cut), Relleno (fill), Cota (elevation/level), Generar (generate), Exportar (export), Guardar como (save as). The three deliverables must be saved to C:\\Users\\Docker\\Desktop\\GradingStudy\\: grading_report.txt (with at least 5 elevation tests and their cut/fill volumes), site_grading.dxf (terrain contour map at 2m intervals), and site_grading.top (TopoCal project file). The verifier is a stub — actual scoring is via VLM checklist with the iterative volume computation weighted at 30/100 points and the report at 20/100 points.",
+  "pi_confidence": "high"
+}

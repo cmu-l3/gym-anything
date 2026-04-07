@@ -4,6 +4,9 @@ echo "=== Setting up Legal Contributor Dossier Task ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 MAILDIR="/home/ga/Maildir"
 ASSETS_HAM="/workspace/assets/emails/ham"
 
@@ -46,8 +49,8 @@ for eml_file in "${ASSETS_HAM}"/ham_*.eml; do
 done
 echo "Loaded ${IDX} emails into inbox"
 
-# 3. Force Re-indexing
-doveadm index -u ga INBOX 2>/dev/null || true
+# 3. Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # 4. Record Start Time
 date +%s > /tmp/task_start_timestamp

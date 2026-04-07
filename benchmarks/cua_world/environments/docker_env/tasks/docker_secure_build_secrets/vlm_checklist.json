@@ -1,0 +1,53 @@
+{
+  "task_id": "docker_secure_build_secrets@1",
+  "task_completion": [
+    {
+      "id": "dockerfile_implementation",
+      "description": "Dockerfile is updated to use Docker BuildKit secrets",
+      "points": 15,
+      "visual_evidence": "Look for the Dockerfile open in an editor or displayed in the terminal. It should show a RUN command modified to use BuildKit secrets, such as `RUN --mount=type=secret,id=artifactory_token ./install_deps.sh`. It should no longer use `ARG ARTIFACTORY_TOKEN`."
+    },
+    {
+      "id": "script_implementation",
+      "description": "install_deps.sh is updated to read the token from the mounted secret",
+      "points": 15,
+      "visual_evidence": "Look for `install_deps.sh` open in an editor or displayed in the terminal. It should show the script reading the token from the mounted secret file, e.g., `cat /run/secrets/artifactory_token`, instead of using an environment variable."
+    },
+    {
+      "id": "build_script_usage",
+      "description": "build.sh is updated to pass the secret and tag the image securely",
+      "points": 10,
+      "visual_evidence": "Look for `build.sh` open in an editor or displayed in the terminal. The `docker build` command should be updated to include `--secret id=artifactory_token,src=secrets/artifactory_token.txt` and `-t acme-trading-bot:secure`."
+    },
+    {
+      "id": "build_success",
+      "description": "The Docker build executes successfully and produces the correct image tag",
+      "points": 20,
+      "visual_evidence": "Look for terminal output showing the execution of `./build.sh` or a `docker build` command that successfully completes and tags the image as `acme-trading-bot:secure`."
+    },
+    {
+      "id": "secure_history",
+      "description": "The sensitive token does not appear in the Docker image history",
+      "points": 40,
+      "visual_evidence": "Look for terminal output of `docker history acme-trading-bot:secure` showing no sensitive token in the layers, OR verify that the executed build command in the terminal uses `--secret` and does not pass the token via `--build-arg`."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_file_edits",
+      "description": "Agent actually modified the required files",
+      "visual_evidence": "Verify that the agent modified the files (Dockerfile, install_deps.sh, build.sh) using a text editor (like nano, vim, VS Code) or valid terminal commands, rather than just echoing the final state."
+    },
+    {
+      "id": "genuine_build_execution",
+      "description": "Agent executed a genuine Docker build",
+      "visual_evidence": "Verify that the Docker build was actually executed in the terminal, showing typical BuildKit output (e.g., step numbers, layer hashes, or progress bars), not just mocked text."
+    },
+    {
+      "id": "no_hardcoded_secrets",
+      "description": "Agent did not hardcode the token value",
+      "visual_evidence": "Ensure the agent did not hardcode the actual token value into any of the scripts or the Dockerfile, but properly referenced the secret file path."
+    }
+  ],
+  "privileged_info_for_vlm": "Project directory: /home/ga/projects/acme-trading-bot. Image tag: acme-trading-bot:secure. Token file: secrets/artifactory_token.txt. Secret ID: artifactory_token. The agent must update Dockerfile to use --mount=type=secret,id=artifactory_token, install_deps.sh to read from /run/secrets/artifactory_token, and build.sh to pass --secret id=artifactory_token,src=secrets/artifactory_token.txt. The final docker history must not leak the token."
+}

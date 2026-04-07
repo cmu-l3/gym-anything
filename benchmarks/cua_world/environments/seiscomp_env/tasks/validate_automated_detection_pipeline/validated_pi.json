@@ -1,0 +1,87 @@
+{
+    "task_id": "validate_automated_detection_pipeline@1",
+    "dataset": "GEOFON",
+    "case_id": "2024 Noto Peninsula M7.5 earthquake",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "stations_with_waveforms",
+            "metadata_value": ["GE.GSI", "GE.BKB", "GE.SANI"],
+            "verified_value": ["GE.GSI", "GE.BKB", "GE.SANI"],
+            "source": "Verified by listing the SDS archive at /home/ga/seiscomp/var/lib/archive/2024/GE/. Only BKB, GSI, and SANI directories exist with BHZ.D waveform files. TOLI and KWP have inventory entries but NO waveform data in the archive.",
+            "status": "verified"
+        },
+        {
+            "key": "modules",
+            "metadata_value": ["scautopick"],
+            "verified_value": ["scautopick"],
+            "source": "Verified by running scautopick --playback in the live environment. The binary exists at /home/ga/seiscomp/bin/scautopick and successfully generates P-phase picks when bindings are configured. The setup_task.sh and verifier.py both explicitly check for scautopick bindings.",
+            "status": "verified"
+        },
+        {
+            "key": "playback_day",
+            "metadata_value": "2024-001",
+            "verified_value": "2024-001",
+            "source": "Verified by inspecting the miniSEED file headers in the SDS archive. All three waveform files (GE.BKB..BHZ.D.2024.001, GE.GSI..BHZ.D.2024.001, GE.SANI..BHZ.D.2024.001) contain data for year=2024, day-of-year=001 (January 1, 2024), with start times around 07:09:40-07:09:54 UTC.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_origin_lat",
+            "metadata_value": 37.5,
+            "verified_value": 37.4874,
+            "source": "Verified by querying the SeisComP database: SELECT latitude_value FROM Origin. The USGS-imported manual origin has latitude_value=37.4874. The metadata value 37.5 is a rounded approximation (within 0.013 degrees). Cross-referenced with USGS event us6000m0xl.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_origin_lon",
+            "metadata_value": 137.2,
+            "verified_value": 137.271,
+            "source": "Verified by querying the SeisComP database: SELECT longitude_value FROM Origin. The USGS-imported manual origin has longitude_value=137.271. The metadata value 137.2 is a rounded approximation (within 0.071 degrees). Cross-referenced with USGS event us6000m0xl.",
+            "status": "verified"
+        },
+        {
+            "key": "origin_tolerance_deg",
+            "metadata_value": 15.0,
+            "verified_value": 15.0,
+            "source": "This is a design parameter for the verifier, not a data claim. The verifier stub does not currently use this value. Given the poor station geometry (3 stations in Indonesia spanning ~29 degrees of longitude, all at teleseismic distance ~4500-5700 km), a 15-degree tolerance is a reasonable design choice for automatically located origins.",
+            "status": "unverified"
+        },
+        {
+            "key": "script_path",
+            "metadata_value": "/home/ga/validate_pipeline.py",
+            "verified_value": "/home/ga/validate_pipeline.py",
+            "source": "Verified consistent across task.json description, setup_task.sh (which deletes it), export_result.sh (which checks existence, validity, mtime), and verifier.py (which scores it). Path is writable by user ga in the live environment.",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/pipeline_report.json",
+            "verified_value": "/home/ga/pipeline_report.json",
+            "source": "Verified consistent across task.json description, setup_task.sh (which deletes it), export_result.sh (which validates JSON structure and extracts fields), and verifier.py (which scores field presence). Path is writable by user ga in the live environment.",
+            "status": "verified"
+        },
+        {
+            "key": "seiscomp_cli_tools",
+            "metadata_value": ["seiscomp", "scautopick", "scautoloc", "scdb"],
+            "verified_value": ["seiscomp", "scautopick", "scautoloc", "scdb"],
+            "source": "Verified by checking binary existence in the live environment: all four tools exist at /home/ga/seiscomp/bin/ and are executable. seiscomp (main control), scautopick (phase picker), scautoloc (automatic locator), scdb (database import tool) are all part of SeisComP 7.1.2.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Geoscientists (SOC 19-2042.00)",
+            "verified_value": "Geoscientists (SOC 19-2042.00)",
+            "source": "Verified via O*NET database. SOC code 19-2042.00 corresponds to 'Geoscientists, Except Hydrologists and Geographers', which covers seismologists who configure earthquake monitoring systems.",
+            "status": "verified"
+        },
+        {
+            "key": "task_type",
+            "metadata_value": "pipeline_commissioning_and_validation",
+            "verified_value": "pipeline_commissioning_and_validation",
+            "source": "Verified by reading the task description and all task scripts. The task requires commissioning (setting up scautopick bindings and config) and validation (writing a Python script that queries the DB and produces a verification report).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses real GEOFON network seismic data from the 2024 Noto Peninsula M7.5 earthquake (USGS id us6000m0xl, origin time 2024-01-01 07:10:09 UTC, lat 37.4874, lon 137.271, depth 10 km, magnitude 7.5 Mww). Only 3 of 5 GE-network stations have waveform data in the SDS archive: GE.BKB (Balikpapan, lat -1.1073, lon 116.9048, distance 4776 km), GE.GSI (Gunungsitoli, lat 1.3039, lon 97.5755, distance 5713 km), and GE.SANI (Sanana, lat -2.0496, lon 125.9881, distance 4548 km). Stations GE.TOLI and GE.KWP have inventory entries but NO waveform files. All waveform data is BHZ channel only at 20 sps, covering a window starting around 07:09:40-07:09:54 UTC on 2024-01-01. The SDS archive path is /home/ga/seiscomp/var/lib/archive/ with files named GE.{STA}..BHZ.D.2024.001. Station bindings go in key files at /home/ga/seiscomp/etc/key/station_GE_{STA} as lines containing 'scautopick'. When scautopick is properly configured with bindings and a Butterworth filter (e.g. BW(3,0.3,3)), playback of the archived data produces 10 automatic P-phase picks: 3 on BKB (07:11:27, 07:14:04, 07:18:08), 4 on GSI (07:10:39, 07:15:09, 07:19:12, 07:27:12), and 3 on SANI (07:10:59, 07:13:44, 07:17:47). The database connection is mysql://sysop:sysop@localhost/seiscomp. The validation script must be saved to /home/ga/validate_pipeline.py and the JSON report to /home/ga/pipeline_report.json with required fields: pick_count, origin_count, origin_lat, origin_lon, origin_depth_km, origin_time, and a station_picks array with code, pick_time, and distance_km per entry.",
+    "pi_confidence": "high"
+}

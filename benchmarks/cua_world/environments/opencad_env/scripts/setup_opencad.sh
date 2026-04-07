@@ -64,6 +64,25 @@ cat /tmp/oc_gtav_data.sql | docker exec -i opencad-db mysql -u root -prootpass o
 echo "=== Importing seed data ==="
 cat /workspace/data/seed_data.sql | docker exec -i opencad-db mysql -u root -prootpass opencad
 
+# ------------------------------------------------------------------
+# 2c. Add extended columns/tables needed by tasks
+# ------------------------------------------------------------------
+echo "=== Adding extended schema for task support ==="
+docker exec opencad-db mysql -u root -prootpass opencad -e "
+ALTER TABLE ncic_arrests ADD COLUMN narrative TEXT DEFAULT NULL;
+ALTER TABLE ncic_warnings ADD COLUMN remarks TEXT DEFAULT NULL;
+CREATE TABLE IF NOT EXISTS reports (
+  id INT(11) NOT NULL AUTO_INCREMENT,
+  title VARCHAR(255) DEFAULT NULL,
+  narrative TEXT DEFAULT NULL,
+  date DATE DEFAULT NULL,
+  type VARCHAR(100) DEFAULT NULL,
+  created_by VARCHAR(255) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
+" 2>/dev/null || true
+
 # Verify import
 TABLE_COUNT=$(docker exec opencad-db mysql -u root -prootpass opencad -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='opencad';" 2>/dev/null)
 echo "Tables created: $TABLE_COUNT"

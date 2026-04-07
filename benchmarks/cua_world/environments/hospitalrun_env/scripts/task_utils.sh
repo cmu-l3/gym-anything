@@ -387,4 +387,80 @@ xdotype() {
     DISPLAY=:1 xdotool type --delay 50 --clearmodifiers "$1"
 }
 
+# ─── Ensure HospitalRun Docker services are running ──────────────────────
+# Critical when loading from QEMU checkpoint — Docker containers that were
+# running during checkpoint creation are NOT running when restored.
+# Also re-applies the PouchDB JS bundle patch (Fix 2/3) since container
+# restarts lose the in-memory filesystem patches.
+ensure_hospitalrun_running() {
+    # Quick check: is HospitalRun already responding?
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$HR_URL" 2>/dev/null || echo "000")
+    if [ "$http_code" = "200" ] || [ "$http_code" = "301" ] || [ "$http_code" = "302" ]; then
+        echo "HospitalRun already running (HTTP $http_code)"
+        return 0
+    fi
+
+    echo "HospitalRun not responding (HTTP $http_code). Starting services..."
+
+    # Ensure Docker daemon is running
+    systemctl is-active docker >/dev/null 2>&1 || {
+        echo "Starting Docker daemon..."
+        systemctl start docker
+        sleep 5
+    }
+
+    # Ensure vm.max_map_count for Elasticsearch
+    sysctl -w vm.max_map_count=262144 2>/dev/null || true
+
+    # Start containers
+    local HR_DIR="/home/ga/hospitalrun"
+    if [ -f "$HR_DIR/docker-compose.yml" ]; then
+        echo "Starting HospitalRun containers..."
+        cd "$HR_DIR"
+        docker compose up -d 2>&1 || docker-compose up -d 2>&1 || true
+        cd - >/dev/null
+    else
+        echo "ERROR: docker-compose.yml not found at $HR_DIR"
+        return 1
+    fi
+
+    # Wait for CouchDB first (port 5984)
+    echo "Waiting for CouchDB..."
+    local elapsed=0
+    while [ "$elapsed" -lt 60 ]; do
+        if curl -s "http://localhost:5984/" >/dev/null 2>&1; then
+            echo "CouchDB ready after ${elapsed}s"
+            break
+        fi
+        sleep 3
+        elapsed=$((elapsed + 3))
+    done
+
+    # Wait for HospitalRun app (port 3000)
+    echo "Waiting for HospitalRun app..."
+    elapsed=0
+    while [ "$elapsed" -lt 120 ]; do
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$HR_URL" 2>/dev/null || echo "000")
+        if [ "$http_code" = "200" ] || [ "$http_code" = "301" ] || [ "$http_code" = "302" ]; then
+            echo "HospitalRun is ready after ${elapsed}s (HTTP $http_code)"
+            break
+        fi
+        sleep 5
+        elapsed=$((elapsed + 5))
+        if [ $((elapsed % 30)) -eq 0 ]; then
+            echo "  Still waiting for HospitalRun... ${elapsed}s (HTTP $http_code)"
+        fi
+    done
+
+    # Re-apply PouchDB patches (lost on container restart)
+    echo "Re-applying PouchDB offline sync fix..."
+    fix_offline_sync
+
+    return 0
+}
+
+# Auto-start services when task_utils.sh is sourced
+ensure_hospitalrun_running
+
 echo "HospitalRun task utilities loaded"

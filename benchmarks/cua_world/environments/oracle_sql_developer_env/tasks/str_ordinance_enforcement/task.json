@@ -1,0 +1,34 @@
+{
+  "id": "str_ordinance_enforcement@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Urban Planner at a municipal housing department identifying short-term rental violations within the HOUSING_ADMIN schema (housing_admin/Housing2024@localhost:1521/XEPDB1). Using scraped data from STR_LISTINGS and the official registry in CITY_LICENSES, you must identify listings that evade ordinances and generate a target list for code enforcement.\n\nCreate a view called VW_CLEANED_LISTINGS that extracts licenses into a column named 'extracted_license' from either the 'license' or 'description' fields using the official 'STR-YYYY-NNNN' format. Identify listings meeting any of the following violation criteria:\n- UNLICENSED: The extracted license is null or does not exist in CITY_LICENSES.\n- EXPIRED_LICENSE: The license exists in CITY_LICENSES but has a status of 'EXPIRED' or 'REVOKED'.\n- DUPLICATE_LICENSE: The same license is used by more than one distinct listing_id.\n- COMMERCIAL_OPERATOR: A host has 3 or more listings where the room_type is 'Entire home/apt'.\n- OVER_LIMIT: An 'Entire home/apt' listing has an estimated annual nights rented > 90 (calculated as: (reviews_per_month * 12) * 2 * minimum_nights).\n\nGenerate a materialized view named MV_STR_VIOLATIONS containing only the listings with at least one violation. The view must include the listing_id, host_id, host_name, extracted_license, room_type, estimated_annual_nights, and a 'violation_reasons' column concatenating all applicable violation flags. Export the contents of this materialized view to /home/ga/Documents/exports/illegal_str_targets.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/str_ordinance_enforcement/setup_task.sh",
+    "post_task": "/workspace/tasks/str_ordinance_enforcement/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/str_result.json",
+    "occupation": "Urban and Regional Planners",
+    "industry": "Local Government / Housing",
+    "gdp_contribution": "$1.2B",
+    "oracle_features": [
+      "REGEXP_SUBSTR",
+      "Window Functions",
+      "Materialized Views",
+      "COALESCE/CASE"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_str_ordinance_enforcement"
+    }
+  }
+}

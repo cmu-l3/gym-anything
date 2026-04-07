@@ -1,0 +1,32 @@
+{
+  "id": "world_regional_analysis_schema@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "You are a Database Architect normalizing the 'world' database into a new 'world_regions' schema for regional analysis. Create the 'world_regions' database with tables 'continents' (continent_id INT PK Auto Inc, name VARCHAR(50) Unique), 'regions' (region_id INT PK Auto Inc, name VARCHAR(100), continent_id INT FK), and 'country_stats' (country_code CHAR(3) PK, country_name VARCHAR(100), region_id INT FK, population BIGINT, surface_area DECIMAL(10,2), gnp DECIMAL(10,2), life_expectancy DECIMAL(3,1), independence_year INT) populated from 'world.country' data, extracting the seven distinct continents and linking regions accordingly. Establish an audit system with a 'country_audit' table (audit_id PK, country_code, field_changed, old_value, new_value, changed_at TIMESTAMP) and a trigger 'trg_country_population_audit' to log population updates. Create a deterministic stored function 'fn_continent_avg_life_expectancy(continent_name)' returning the average life expectancy (DECIMAL(4,1)). Verify the trigger by increasing the population of 'USA' by 1,000,000 and export the top 20 countries by population to /home/ga/Documents/exports/top20_countries.csv. Login: user=ga, password=password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/world_regional_analysis_schema/setup_task.sh",
+    "post_task": "/workspace/tasks/world_regional_analysis_schema/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "world_regions",
+    "source_database": "world",
+    "expected_continents": 7,
+    "min_regions": 20,
+    "min_countries": 230,
+    "expected_csv_path": "/home/ga/Documents/exports/top20_countries.csv",
+    "audit_check_country": "USA",
+    "function_test_continent": "Europe"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_world_regional_analysis"
+    }
+  }
+}

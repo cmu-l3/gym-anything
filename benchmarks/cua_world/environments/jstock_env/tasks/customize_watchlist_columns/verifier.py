@@ -91,53 +91,14 @@ def verify_customize_watchlist_columns(traj, env_info, task_info):
     }}
     """
     
-    parsed = {}
-    hidden_visibility = []
     try:
-        vlm_resp = query_vlm(images=all_images, prompt=prompt)
-        parsed = vlm_resp.get("parsed", {}) if isinstance(vlm_resp, dict) else {}
-
-        hidden_visibility = [
-            parsed.get("buy_column_visible"),
-            parsed.get("b_qty_column_visible"),
-            parsed.get("sell_column_visible"),
-            parsed.get("s_qty_column_visible"),
-        ]
-        hidden_correct = sum(value is False for value in hidden_visibility)
-        score += hidden_correct * 10
-        if hidden_correct == 4:
-            feedback_parts.append("Hidden columns are all absent from the header.")
-        else:
-            feedback_parts.append(f"Only {hidden_correct}/4 hidden-column checks passed.")
-
-        visible_correct = 0
-        if parsed.get("high_column_visible"):
-            visible_correct += 1
-        if parsed.get("low_column_visible"):
-            visible_correct += 1
-        score += visible_correct * 10
-        if visible_correct == 2:
-            feedback_parts.append("Required High and Low columns are visible.")
-        else:
-            feedback_parts.append(f"Only {visible_correct}/2 required visible columns were confirmed.")
-
-        if parsed.get("menu_interaction_observed"):
-            score += 20
-            feedback_parts.append("VLM observed a header/context-menu customization workflow.")
-        else:
-            feedback_parts.append("VLM did not clearly observe the customization workflow.")
-    except Exception as e:
-        logger.error(f"VLM verification failed: {e}")
-        feedback_parts.append("VLM verification failed.")
-
-    passed = (
-        score >= 70
-        and parsed.get("high_column_visible")
-        and parsed.get("low_column_visible")
-        and all(value is False for value in hidden_visibility)
-    )
-    return {
-        "passed": passed,
-        "score": min(score, 100),
-        "feedback": " | ".join(feedback_parts),
-    }
+        vlm_resp = query_vlm(
+            images=all_images,
+            prompt=prompt,
+            response_model=dict  # Request dict output if supported, or parse JSON from string
+        )
+        
+        # If response is string, try to parse it (assuming helper does this, but being safe)
+        if isinstance(vlm_resp, str):
+            # Strip markdown code blocks if present
+            clean_resp = vlm_resp.strip().replace('

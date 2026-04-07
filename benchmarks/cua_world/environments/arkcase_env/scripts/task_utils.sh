@@ -2,6 +2,56 @@
 # Shared utilities for ArkCase tasks
 
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+# ── Ensure K3s and ArkCase services are running ──────────────────────────────
+# Critical when loading from QEMU checkpoint — K3s and pods may not be running.
+ensure_arkcase_running() {
+    # Restore iptables FORWARD policy (K3s/flannel sets it to DROP,
+    # which breaks QEMU's SSH port forwarding on checkpoint restore)
+    iptables -P FORWARD ACCEPT 2>/dev/null || sudo iptables -P FORWARD ACCEPT 2>/dev/null || true
+
+    # Ensure swap is active
+    swapon /swapfile 2>/dev/null || sudo swapon /swapfile 2>/dev/null || true
+
+    # Check if K3s is running
+    if ! systemctl is-active k3s >/dev/null 2>&1; then
+        echo "Starting K3s..."
+        sudo systemctl start k3s
+        sleep 10
+        # Restore FORWARD after K3s restarts
+        sudo iptables -P FORWARD ACCEPT 2>/dev/null || true
+    fi
+
+    # Wait for K3s node to be ready
+    local elapsed=0
+    while [ "$elapsed" -lt 120 ]; do
+        if k3s kubectl get nodes --no-headers 2>/dev/null | grep -q "Ready"; then
+            echo "K3s node ready after ${elapsed}s"
+            break
+        fi
+        sleep 5
+        elapsed=$((elapsed + 5))
+    done
+
+    # Wait for arkcase-core pod to be running
+    elapsed=0
+    while [ "$elapsed" -lt 300 ]; do
+        local pod_status
+        pod_status=$(k3s kubectl get pod arkcase-core-0 -n "$ARKCASE_NS" --no-headers 2>/dev/null | awk '{print $3}')
+        if [ "$pod_status" = "Running" ]; then
+            echo "arkcase-core-0 is Running after ${elapsed}s"
+            break
+        fi
+        sleep 10
+        elapsed=$((elapsed + 10))
+        if [ $((elapsed % 60)) -eq 0 ]; then
+            echo "  Still waiting for arkcase-core-0... ${elapsed}s (status: $pod_status)"
+        fi
+    done
+}
+
+# Auto-start services when task_utils.sh is sourced
+ensure_arkcase_running
 # IMPORTANT: Port 9443 is used (not 8443) because kubectl port-forward to svc/core
 # returns 503 due to haproxy. We use pod/arkcase-core-0 direct on port 9443 via tmux.
 ARKCASE_URL="https://localhost:9443/arkcase"
@@ -14,8 +64,8 @@ ARKCASE_NS="arkcase"
 # ── Screenshot ────────────────────────────────────────────────────────────────
 take_screenshot() {
     local path="${1:-/tmp/screenshot.png}"
-    DISPLAY=:1 import -window root "$path" 2>/dev/null || \
-    DISPLAY=:1 scrot "$path" 2>/dev/null || true
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority import -window root "$path" 2>/dev/null || \
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority scrot "$path" 2>/dev/null || true
 }
 
 # ── Ensure Firefox is open on ArkCase ─────────────────────────────────────────
@@ -29,19 +79,19 @@ ensure_firefox_on_arkcase() {
     if ! pgrep -f firefox > /dev/null 2>&1; then
         echo "Starting Firefox..."
         if [ -n "$SNAP_PROFILE" ]; then
-            su - ga -c "DISPLAY=:1 firefox -profile '$SNAP_PROFILE' '$url' &" &
+            su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority firefox -profile '$SNAP_PROFILE' '$url' &" &
         else
-            su - ga -c "DISPLAY=:1 firefox '$url' &" &
+            su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority firefox '$url' &" &
         fi
         sleep 15
     else
         # Navigate to URL
-        DISPLAY=:1 xdotool search --name "Mozilla Firefox" windowactivate --sync 2>/dev/null || true
+        DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool search --name "Mozilla Firefox" windowactivate --sync 2>/dev/null || true
         sleep 0.5
-        DISPLAY=:1 xdotool key ctrl+l
+        DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool key ctrl+l
         sleep 0.5
-        DISPLAY=:1 xdotool type --clearmodifiers "$url"
-        DISPLAY=:1 xdotool key Return
+        DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool type --clearmodifiers "$url"
+        DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool key Return
         sleep 8
     fi
 }
@@ -50,13 +100,36 @@ ensure_firefox_on_arkcase() {
 handle_ssl_warning() {
     sleep 3
     take_screenshot /tmp/ssl_check.png
-    # Click "Advanced..." then "Accept the Risk and Continue"
-    su - ga -c "DISPLAY=:1 xdotool key Tab Tab Tab Return" 2>/dev/null || true
-    sleep 1
-    # If we see the cert error page, accept it
-    if DISPLAY=:1 xdotool search --name "Warning: Potential" 2>/dev/null | grep -q .; then
-        su - ga -c "DISPLAY=:1 xdotool key Tab Tab Tab Return"
-        sleep 2
+
+    # Check for SSL warning by window title
+    local HAS_WARNING=false
+    if DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool search --name "Warning: Potential" 2>/dev/null | grep -q .; then
+        HAS_WARNING=true
+    fi
+    if DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool search --name "Did Not Connect" 2>/dev/null | grep -q .; then
+        HAS_WARNING=true
+    fi
+    if DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool search --name "Secure Connection Failed" 2>/dev/null | grep -q .; then
+        HAS_WARNING=true
+    fi
+
+    if [ "$HAS_WARNING" = true ]; then
+        echo "SSL warning detected, accepting risk..."
+        for _attempt in 1 2 3; do
+            # Click "Advanced..." button (Tab to reach it, then Enter)
+            su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool key Tab Tab Tab Return" 2>/dev/null || true
+            sleep 2
+            # Click "Accept the Risk and Continue" button
+            su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool key Tab Return" 2>/dev/null || true
+            sleep 3
+            # Check if we're past the warning
+            if ! DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool search --name "Warning: Potential" 2>/dev/null | grep -q .; then
+                echo "SSL warning accepted (attempt $_attempt)"
+                break
+            fi
+        done
+    else
+        echo "No SSL warning detected"
     fi
 }
 
@@ -153,24 +226,24 @@ auto_login_arkcase() {
 
     # Log in using coordinate-based clicks (1920x1080 resolution)
     # Username field: (994, 312), Password: (994, 368), Log In: (994, 438)
-    DISPLAY=:1 xdotool mousemove 994 312 click 1
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool mousemove 994 312 click 1
     sleep 0.5
-    DISPLAY=:1 xdotool type --clearmodifiers --delay 50 "${ARKCASE_ADMIN}"
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool type --clearmodifiers --delay 50 "${ARKCASE_ADMIN}"
     sleep 0.3
-    DISPLAY=:1 xdotool mousemove 994 368 click 1
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool mousemove 994 368 click 1
     sleep 0.5
-    DISPLAY=:1 xdotool type --clearmodifiers --delay 50 "${ARKCASE_PASS}"
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool type --clearmodifiers --delay 50 "${ARKCASE_PASS}"
     sleep 0.3
-    DISPLAY=:1 xdotool mousemove 994 438 click 1
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool mousemove 994 438 click 1
     sleep 12
 
     # Navigate to destination module
     if [ -n "$dest" ] && [ "$dest" != "${ARKCASE_URL}/home.html" ]; then
         echo "Navigating to: $dest"
-        DISPLAY=:1 xdotool key ctrl+l
+        DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool key ctrl+l
         sleep 0.5
-        DISPLAY=:1 xdotool type --clearmodifiers "$dest"
-        DISPLAY=:1 xdotool key Return
+        DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool type --clearmodifiers "$dest"
+        DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool key Return
         sleep 6
     fi
 
@@ -180,23 +253,23 @@ auto_login_arkcase() {
 # ── Navigate Firefox to a URL ──────────────────────────────────────────────────
 navigate_to() {
     local url="$1"
-    su - ga -c "DISPLAY=:1 xdotool key ctrl+l"
+    su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool key ctrl+l"
     sleep 0.3
-    su - ga -c "DISPLAY=:1 xdotool type --clearmodifiers '$url'"
-    su - ga -c "DISPLAY=:1 xdotool key Return"
+    su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool type --clearmodifiers '$url'"
+    su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority xdotool key Return"
     sleep 3
 }
 
 # ── Focus Firefox window ───────────────────────────────────────────────────────
 focus_firefox() {
-    DISPLAY=:1 wmctrl -a "Mozilla Firefox" 2>/dev/null || \
-    DISPLAY=:1 wmctrl -a "ArkCase" 2>/dev/null || true
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority wmctrl -a "Mozilla Firefox" 2>/dev/null || \
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority wmctrl -a "ArkCase" 2>/dev/null || true
     sleep 0.5
 }
 
 # ── Maximize Firefox window ────────────────────────────────────────────────────
 maximize_firefox() {
-    DISPLAY=:1 wmctrl -r "Mozilla Firefox" -b add,maximized_vert,maximized_horz 2>/dev/null || \
-    DISPLAY=:1 wmctrl -r ":ACTIVE:" -b add,maximized_vert,maximized_horz 2>/dev/null || true
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority wmctrl -r "Mozilla Firefox" -b add,maximized_vert,maximized_horz 2>/dev/null || \
+    DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority wmctrl -r ":ACTIVE:" -b add,maximized_vert,maximized_horz 2>/dev/null || true
     sleep 0.5
 }

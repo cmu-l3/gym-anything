@@ -209,7 +209,9 @@ PROFILE_NAME="artifactory.profile"
 
 # Create snap profile directory (required for snap Firefox)
 mkdir -p "${SNAP_PROFILE_BASE}/${PROFILE_NAME}"
-chown -R ga:ga "${SNAP_PROFILE_BASE}" 2>/dev/null || true
+# Snap Firefox needs to create /home/ga/snap/firefox/<revision>/ at runtime.
+# chown the entire /home/ga/snap/ tree so the ga user can write there.
+chown -R ga:ga /home/ga/snap 2>/dev/null || true
 
 # Create deb profile directory (required for deb Firefox)
 mkdir -p "${DEB_PROFILE_BASE}/${PROFILE_NAME}"
@@ -318,6 +320,8 @@ Categories=Development;
 DESKTOPEOF
 chown ga:ga /home/ga/Desktop/Artifactory.desktop
 chmod +x /home/ga/Desktop/Artifactory.desktop
+# Mark desktop file as trusted (GNOME requirement)
+su - ga -c "dbus-launch gio set /home/ga/Desktop/Artifactory.desktop metadata::trusted true" 2>/dev/null || true
 
 # ============================================================
 # 6. Create REST API utility script
@@ -347,19 +351,20 @@ chmod +x /usr/local/bin/art-api
 # 7. Launch Firefox with Artifactory
 # ============================================================
 echo "Launching Firefox with JFrog Artifactory..."
-# Remove any stale Firefox lock files so it starts cleanly
-rm -f "${FIREFOX_PROFILE}/.parentlock" "${FIREFOX_PROFILE}/lock" 2>/dev/null || true
-# Use --new-instance and -profile so our user.js prefs (password dialogs disabled) are applied.
-# snap Firefox requires --new-instance (not --no-remote); XAUTHORITY must be set for GNOME.
-XAUTH_PATH="/run/user/1000/gdm/Xauthority"
-[ -f "$XAUTH_PATH" ] || XAUTH_PATH="/home/ga/.Xauthority"
-su - ga -c "DISPLAY=:1 XAUTHORITY='${XAUTH_PATH}' MOZ_ENABLE_WAYLAND=0 GDK_BACKEND=x11 \
-    setsid firefox --new-instance \
-    -profile '${FIREFOX_PROFILE}' 'http://localhost:8082' \
-    > /tmp/firefox_artifactory.log 2>&1 &"
+# Kill any stale Firefox processes and clean lock files
+pkill -9 -f firefox 2>/dev/null || true
+killall -9 firefox 2>/dev/null || true
+sleep 3
+# Clean lock files from all possible locations
+find /home/ga/.mozilla/firefox/ -name ".parentlock" -delete 2>/dev/null || true
+find /home/ga/.mozilla/firefox/ -name "lock" -delete 2>/dev/null || true
+find /home/ga/snap/firefox/ -name ".parentlock" -delete 2>/dev/null || true
+find /home/ga/snap/firefox/ -name "lock" -delete 2>/dev/null || true
+# Use simple launch command (matching proven rancher_env pattern)
+su - ga -c "DISPLAY=:1 setsid firefox 'http://localhost:8082' > /tmp/firefox_artifactory.log 2>&1 &"
 
-# Wait for Firefox window
-sleep 8
+# Wait for Firefox window (snap Firefox takes longer to initialize)
+sleep 15
 FIREFOX_STARTED=false
 for i in $(seq 1 30); do
     if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla\|artifactory"; then

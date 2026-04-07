@@ -1,0 +1,29 @@
+{
+  "id": "vendor_fraud_detection_benfords_law@1",
+  "version": "1.0",
+  "env_id": "microsoft_excel_2010_env@0.1",
+  "description": "The agent receives a dataset of real-world municipal vendor payments (`vendor_payments.xlsx`) containing check dates, vendor names, and payment amounts. The agent must perform a forensic audit using Benford's Law by extracting the leading digit of each valid payment (Amount >= $10, no negative/zero), calculating the actual frequency distribution, comparing it against the theoretical Benford distribution ($P(d) = \log_{10}(1 + 1/d)$), and visualizing the results with a Combo Chart (Bar for Actual, Line for Expected). Finally, the agent must identify the digit with the highest positive deviation and extract the top 5 vendors (by total payment sum) associated with that anomalous digit on a new sheet named 'Suspicious_Activity'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\vendor_fraud_detection_benfords_law\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\vendor_fraud_detection_benfords_law\\export_result.ps1",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "input_file": "C:\\workspace\\data\\vendor_payments.xlsx",
+    "expected_output_file": "C:\\workspace\\data\\fraud_analysis_complete.xlsx",
+    "data_source_url": "https://data.cityofchicago.org/api/views/s4vu-giwb/rows.csv?accessType=DOWNLOAD",
+    "min_valid_rows": 500
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vendor_fraud_detection"
+    }
+  }
+}

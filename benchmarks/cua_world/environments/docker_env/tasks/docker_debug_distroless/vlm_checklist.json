@@ -1,0 +1,59 @@
+{
+  "task_id": "docker_debug_distroless@1",
+  "task_completion": [
+    {
+      "id": "report_file_created",
+      "description": "The report file is created at the correct path.",
+      "points": 10,
+      "visual_evidence": "A text editor, file manager, or terminal output (e.g., using 'ls' or 'cat') shows that the file /home/ga/Desktop/blackbox_report.json has been created."
+    },
+    {
+      "id": "report_format_correct",
+      "description": "The report is formatted as valid JSON with the required keys.",
+      "points": 10,
+      "visual_evidence": "The contents of blackbox_report.json show a valid JSON object containing the keys 'port' and 'auth_token'."
+    },
+    {
+      "id": "port_discovered",
+      "description": "The agent successfully discovers the listening TCP port of the container.",
+      "points": 20,
+      "visual_evidence": "Terminal output shows the agent finding the port (e.g., using 'nsenter', inspecting '/proc/[pid]/net/tcp', or checking host network mapping). The discovered port should be an integer between 8000 and 9000."
+    },
+    {
+      "id": "port_recorded",
+      "description": "The discovered port is accurately recorded in the JSON report.",
+      "points": 20,
+      "visual_evidence": "The integer value assigned to the 'port' key in the JSON report exactly matches the port number discovered in the terminal output."
+    },
+    {
+      "id": "token_discovered",
+      "description": "The agent successfully extracts the AUTH_TOKEN environment variable from the running process.",
+      "points": 20,
+      "visual_evidence": "Terminal output shows the agent reading the environment variables of the container's process (e.g., via 'cat /proc/[pid]/environ' or 'strings /proc/[pid]/environ') and revealing the AUTH_TOKEN (a SHA256 hash)."
+    },
+    {
+      "id": "token_recorded",
+      "description": "The extracted AUTH_TOKEN is accurately recorded in the JSON report.",
+      "points": 20,
+      "visual_evidence": "The string value assigned to the 'auth_token' key in the JSON report exactly matches the SHA256 hash discovered in the terminal output."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_discovery",
+      "description": "The agent genuinely discovered the port and token from the system rather than hallucinating or hardcoding values.",
+      "visual_evidence": "The agent runs valid Linux/Docker commands to inspect the container's processes or network namespaces before writing the JSON file. It does not just write random values without prior terminal discovery."
+    },
+    {
+      "id": "no_container_rebuild",
+      "description": "The agent debugged the existing running container rather than modifying and rebuilding it.",
+      "visual_evidence": "There is no evidence of the agent stopping the 'acme-blackbox' container, modifying its image/Dockerfile to add a shell, and restarting it to bypass the distroless constraint."
+    },
+    {
+      "id": "no_docker_exec_cheat",
+      "description": "The agent respected the constraint that 'docker exec' is unavailable/unusable.",
+      "visual_evidence": "The agent uses host-level debugging techniques (like inspecting the /proc filesystem or using nsenter) rather than relying on a successful 'docker exec' command to get a shell."
+    }
+  ],
+  "privileged_info_for_vlm": "The report must be saved to /home/ga/Desktop/blackbox_report.json. The target container is 'acme-blackbox'. The port is a randomly generated integer between 8000-9000. The AUTH_TOKEN is a randomly generated SHA256 hash. Because these values are dynamic and generated at runtime, you must verify that the values written in the JSON report exactly match the values discovered by the agent in the terminal during the debugging process (e.g., via /proc/[pid]/environ for the token and /proc/[pid]/net/tcp or nsenter for the port). Pass threshold is 100 points."
+}

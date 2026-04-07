@@ -1,0 +1,31 @@
+{
+  "id": "kinematic_swept_volume_voxelization@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Kinematic Swept Volume Voxelization",
+  "description": "A robotics safety engineer needs to determine the swept volume of a robot arm for workcell design. Using a 6-DOF or 7-DOF robot model (such as a UR5) in CoppeliaSim and the ZMQ Remote API, calculate the unique voxels occupied during a trajectory spanning at least 60 degrees across two joints. The analysis must include 50 waypoints with 5 interpolated points between joint handles to represent physical links. Use a voxel resolution of 0.05 meters (index = round(coordinate / 0.05)) and ensure at least 100 unique voxels are recorded. Export the data to ~/Documents/CoppeliaSim/exports/swept_voxels.csv with columns: voxel_i, voxel_j, voxel_k, center_x, center_y, center_z (where center coordinates equal index * 0.05). Additionally, generate ~/Documents/CoppeliaSim/exports/volume_report.json with fields: voxel_resolution_m, total_occupied_voxels, estimated_volume_m3 (total_occupied_voxels * 0.05^3), bounding_box_min_m, bounding_box_max_m, and max_joint_ranges_swept_deg (a dictionary of joint names to their total swept ranges in degrees).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/kinematic_swept_volume_voxelization/setup_task.sh",
+    "post_task": "/workspace/tasks/kinematic_swept_volume_voxelization/export_result.sh"
+  },
+  "metadata": {
+    "min_voxels": 100,
+    "voxel_resolution": 0.05,
+    "min_sweeping_joints": 2,
+    "min_joint_sweep_deg": 60.0,
+    "output_csv": "/home/ga/Documents/CoppeliaSim/exports/swept_voxels.csv",
+    "output_json": "/home/ga/Documents/CoppeliaSim/exports/volume_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_kinematic_swept_volume_voxelization"
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "task_id": "debug_runtime_crash@1",
+  "dataset": "NotepadApp",
+  "case_id": null,
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "project_dir",
+      "metadata_value": "/home/ga/AndroidStudioProjects/NotepadApp",
+      "verified_value": "/home/ga/AndroidStudioProjects/NotepadApp",
+      "source": "Confirmed in setup_task.sh line 12, verified against env.json user 'ga' home directory configuration",
+      "status": "verified"
+    },
+    {
+      "key": "data_source",
+      "metadata_value": "/workspace/data/NotepadApp",
+      "verified_value": "/workspace/data/NotepadApp",
+      "source": "Confirmed in env.json mounts section: examples/android_studio_env/data mounted to /workspace/data in read-only mode",
+      "status": "verified"
+    },
+    {
+      "key": "package_path",
+      "metadata_value": "com/example/notepad",
+      "verified_value": "com/example/notepad",
+      "source": "Verified by reading actual source files: NotepadActivity.kt, NoteFormatter.kt, NoteValidator.kt, Note.kt located at com/example/notepad package",
+      "status": "verified"
+    },
+    {
+      "key": "num_bugs",
+      "metadata_value": 4,
+      "verified_value": 4,
+      "source": "Verified in verifier.py lines 5-12 documenting 4 planted bugs, and setup_task.sh lines 39-129 showing injection of all 4 bugs via string replacement",
+      "status": "verified"
+    },
+    {
+      "key": "bug_1_type",
+      "metadata_value": "UninitializedPropertyAccessException in NotepadActivity.kt",
+      "verified_value": "NotepadActivity.kt: formatter and validator declared as lateinit var but never initialized",
+      "source": "setup_task.sh lines 40-41 change initialization from 'val formatter = NoteFormatter()' to 'lateinit var formatter: NoteFormatter', verifier.py lines 108-143 checks for initialization patterns",
+      "status": "verified"
+    },
+    {
+      "key": "bug_2_type",
+      "metadata_value": "StringIndexOutOfBoundsException in NoteFormatter.kt formatPreview",
+      "verified_value": "NoteFormatter.kt: unsafe substring(0, maxLength) call added before length check causing crash on short content",
+      "source": "setup_task.sh lines 48-75 injects unsafe substring call via Python script that replaces safe take() with unsafe substring(), verifier.py lines 145-169 checks substring pattern",
+      "status": "verified"
+    },
+    {
+      "key": "bug_3_type",
+      "metadata_value": "StackOverflowError in NoteValidator.kt isNoteComplete",
+      "verified_value": "NoteValidator.kt: isNoteComplete() method calls itself recursively instead of returning true",
+      "source": "setup_task.sh lines 78-102 replaces final 'return true' with 'return isNoteComplete(note)', verifier.py lines 171-201 extracts method body and checks for recursive calls",
+      "status": "verified"
+    },
+    {
+      "key": "bug_4_type",
+      "metadata_value": "NumberFormatException in Note.kt charCount",
+      "verified_value": "Note.kt: charCount() method attempts Integer.parseInt() on concatenation of content length and color value",
+      "source": "setup_task.sh lines 109-129 replaces charCount implementation with version using Integer.parseInt(cleaned.length.toString() + color.toString()), verifier.py lines 203-233 checks for parseInt pattern",
+      "status": "verified"
+    },
+    {
+      "key": "clean_source_validation",
+      "metadata_value": "Original data contains bugs",
+      "verified_value": "Original data in /workspace/data/NotepadApp contains CLEAN source code - NO bugs present",
+      "source": "Directly read NotepadActivity.kt (lines 14-15 show initialized val), NoteFormatter.kt (lines 56-60 safe take()), NoteValidator.kt (line 62 returns true), Note.kt (lines 39-41 uses .length directly)",
+      "status": "contradicted"
+    },
+    {
+      "key": "login_credentials_user",
+      "metadata_value": "user 'ga'",
+      "verified_value": "user 'ga'",
+      "source": "Confirmed in env.json user_accounts section",
+      "status": "verified"
+    },
+    {
+      "key": "login_credentials_password",
+      "metadata_value": "password 'password123'",
+      "verified_value": "password 'password123'",
+      "source": "Confirmed in env.json user_accounts[0].password field",
+      "status": "verified"
+    },
+    {
+      "key": "data_injection_method",
+      "metadata_value": "Static code with bugs",
+      "verified_value": "Bugs are dynamically injected during setup via setup_task.sh using sed and Python string replacements",
+      "source": "setup_task.sh lines 39-129 show four distinct injection phases using sed -i and Python scripts to modify source files",
+      "status": "verified"
+    },
+    {
+      "key": "verification_threshold",
+      "metadata_value": null,
+      "verified_value": "70 points out of 100 required to pass",
+      "source": "verifier.py line 21: 'Pass threshold: 70/100'",
+      "status": "verified"
+    },
+    {
+      "key": "max_compilation_score",
+      "metadata_value": null,
+      "verified_value": "25 points",
+      "source": "verifier.py lines 235-251: compilation check worth 25 points",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The NotepadApp task is a synthetic debugging challenge with 4 intentionally injected runtime bugs in Kotlin source files. The original data contains clean, correct implementations of NoteFormatter.formatPreview(), NoteValidator.isNoteComplete(), NotepadActivity initialization, and Note.charCount(). During task setup, four bugs are dynamically injected via string replacement: (1) NotepadActivity formatter/validator changed to uninitialized lateinit declarations, (2) NoteFormatter.formatPreview() unsafe substring(0, maxLength) added, (3) NoteValidator.isNoteComplete() recursive call injected, and (4) Note.charCount() uses unsafe Integer.parseInt() with color concatenation. Task runs with user 'ga' (password 'password123'), project directory at /home/ga/AndroidStudioProjects/NotepadApp, package path com/example/notepad, and requires 70+ out of 100 points to pass (including 25 points for compilation).",
+  "pi_confidence": "high"
+}

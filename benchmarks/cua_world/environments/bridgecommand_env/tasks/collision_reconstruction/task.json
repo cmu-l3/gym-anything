@@ -1,0 +1,66 @@
+{
+  "id": "collision_reconstruction@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "You are a maritime safety inspector reconstructing a collision incident for an official investigation. Create a Bridge Command simulation scenario in the 'Solent' world at /opt/bridgecommand/Scenarios/n) Solent Collision Reconstruction/ matching the provided incident data.\n\n**Incident Data:**\n- **Date/Time:** January 15, 0630 local time\n- **Conditions:** Visibility 1.5 nm (fog), Weather Force 4 (value 4.0), Rain 0.3\n- **Vessel A (Own Ship):** 'MV Pacific Venture' (Container Feeder), Heading 280, Speed 12.0 kts, Position: ~50.783N, 1.195W\n- **Vessel B (Collision):** 'FV Morning Star' (Fishing), Heading 045, Speed 6.0 kts, crossing from Cowes\n- **Vessel C (Witness):** 'MV Solent Guardian' (Tanker), Heading 100, Speed 8.0 kts, eastbound\n- **Vessel D (Witness):** 'SY Dorado' (Yacht), Heading 190, Speed 5.0 kts, southbound\n\nConfigure environment.ini, ownship.ini, and othership.ini within the scenario directory to match the incident data, ensuring all traffic vessels have at least 2 waypoint legs. Set bc5.ini radar parameters for fog navigation: ARPA enabled (arpa_on=1), Full Radar enabled (full_radar=1), and Range at 24nm (max_radar_range=24). Write a formal 'Incident Analysis Report' to /home/ga/Documents/incident_analysis_report.txt that includes the word 'RECONSTRUCTION', lists all 4 vessel names, and analyzes the incident citing at least 3 relevant COLREGS rules (e.g., Rule 5, 6, 7, 8, 19).\n\nLogin: ga / password123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/collision_reconstruction/setup_task.sh",
+    "post_task": "/workspace/tasks/collision_reconstruction/export_result.sh"
+  },
+  "metadata": {
+    "scenario_dir": "/opt/bridgecommand/Scenarios/n) Solent Collision Reconstruction",
+    "report_path": "/home/ga/Documents/incident_analysis_report.txt",
+    "incident_data": {
+      "month": 1,
+      "day": 15,
+      "time_start": 6.5,
+      "visibility": 1.5,
+      "weather": 4.0,
+      "rain": 0.3,
+      "own_ship": {
+        "name": "MV Pacific Venture",
+        "heading": 280,
+        "speed": 12.0,
+        "lat": 50.783,
+        "long": -1.195
+      },
+      "others": [
+        {
+          "name": "FV Morning Star",
+          "type": "Fishing"
+        },
+        {
+          "name": "MV Solent Guardian",
+          "type": "Tanker"
+        },
+        {
+          "name": "SY Dorado",
+          "type": "Yacht"
+        }
+      ]
+    },
+    "radar_config": {
+      "arpa_on": 1,
+      "full_radar": 1,
+      "max_radar_range": 24
+    },
+    "report_keywords": [
+      "RECONSTRUCTION",
+      "Rule",
+      "visibility",
+      "recommendation"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_collision_reconstruction"
+    }
+  }
+}

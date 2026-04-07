@@ -85,4 +85,8 @@ PYEOF
 # Ensure proper ownership
 chown ga:ga "$SALES_FILE" 2>/dev/null || true
 
+# Launch WPS Spreadsheet with the sales data file
+source /workspace/scripts/launch_wps_for_task.sh
+launch_wps_with_file "$SALES_FILE"
+
 echo "=== Task setup complete ==="

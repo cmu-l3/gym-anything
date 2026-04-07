@@ -1,0 +1,59 @@
+{
+    "task_id": "holiday_pay_audit_correction@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_recurring_holidays",
+            "metadata_value": [
+                {"name": "New Year's Day", "month_int": 1, "day_of_month": 1},
+                {"name": "MLK Day", "month_int": 1, "day_of_month": 19},
+                {"name": "Presidents' Day", "month_int": 2, "day_of_month": 16}
+            ],
+            "verified_value": [
+                {"name": "New Year's Day", "month_int": 1, "day_of_month": 1},
+                {"name": "MLK Day", "month_int": 1, "day_of_month": 19},
+                {"name": "Presidents' Day", "month_int": 2, "day_of_month": 16}
+            ],
+            "source": "New Year's Day is universally January 1. MLK Day 2026 falls on January 19 (3rd Monday of January, verified via Python calendar.monthcalendar(2026, 1)). Presidents' Day 2026 falls on February 16 (3rd Monday of February, verified via Python calendar.monthcalendar(2026, 2)). The task uses TimeTrex 'Fixed' recurring type with these specific day values. The DB column name is 'month_int' (not 'month'), confirmed by live testing of the TimeTrex recurring_holiday table schema.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_policy_name",
+            "metadata_value": "Standard Q1 Holidays",
+            "verified_value": "Standard Q1 Holidays",
+            "source": "Task description explicit requirement. The agent must create a Holiday Policy with this exact name under Policy > Holiday Policies. Verified the holiday_policy table exists and accepts this name field via live DB query.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_pay_codes",
+            "metadata_value": [
+                {"name": "Shift Differential"},
+                {"name": "Holiday Premium"}
+            ],
+            "verified_value": [
+                {"name": "Shift Differential"},
+                {"name": "Holiday Premium"}
+            ],
+            "source": "Task description explicit requirement. Both are standard payroll terminology: 'Shift Differential' is a common premium for non-standard shifts, 'Holiday Premium' is extra pay for holiday work. The pay_code table was confirmed to exist and accept these names via live DB queries. The task description specifies Type: Paid for both, which in TimeTrex corresponds to a paid pay code type.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_station_source",
+            "metadata_value": "10.0.75.10",
+            "verified_value": "10.0.75.10",
+            "source": "Task description explicit requirement. Verified as a valid RFC 1918 private IPv4 address in the 10.0.0.0/8 range using Python ipaddress module. The station table 'source' column accepts this value, confirmed by the existing configure_ip_punch_restriction task which uses the same column for IP-based station identification.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_station_description",
+            "metadata_value": "Warehouse Entry Kiosk",
+            "verified_value": "Warehouse Entry Kiosk",
+            "source": "Task description explicit requirement. The station table 'description' column accepts free-text values. The export_result.sh queries this column and the verifier checks for exact match. Confirmed via live DB query that the station table has a description column.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires creating records across 4 TimeTrex modules. (1) Three recurring holidays under Policy > Recurring Holidays: 'New Year's Day' (Fixed, January 1), 'MLK Day' (Fixed, January 19), and 'Presidents' Day' (Fixed, February 16). The DB column for month is 'month_int', not 'month'. MLK Day on Jan 19 and Presidents' Day on Feb 16 are the correct 2026 dates (3rd Mondays of January and February respectively, verified via Python calendar). (2) A Holiday Policy named exactly 'Standard Q1 Holidays' (Type: Standard) under Policy > Holiday Policies, with all three recurring holidays linked to it via the holiday_policy_recurring_holiday join table. (3) Two pay codes under Policy > Pay Codes: 'Shift Differential' (Type: Paid) and 'Holiday Premium' (Type: Paid). (4) A station under Company > Stations with Description 'Warehouse Entry Kiosk', Type: PC (type_id=10), Source: 10.0.75.10 (valid RFC 1918 private IP), Station ID: ANY. Login credentials are Username: demoadmin, Password: demo. The setup script fixes the password hash using TimeTrex v3 algorithm (sha512 of salt+company_id+user_id+password).",
+    "pi_confidence": "high"
+}

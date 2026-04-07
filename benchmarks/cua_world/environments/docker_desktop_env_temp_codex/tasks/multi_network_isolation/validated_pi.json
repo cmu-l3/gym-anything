@@ -1,0 +1,101 @@
+{
+    "task_id": "multi_network_isolation@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "networks",
+            "metadata_value": ["frontend", "backend"],
+            "verified_value": ["frontend", "backend"],
+            "source": "verifier.py:61 (network checks expect 'frontend' and 'backend' bridge networks in the result JSON)",
+            "status": "verified"
+        },
+        {
+            "key": "containers[0].name",
+            "metadata_value": "web-proxy",
+            "verified_value": "web-proxy",
+            "source": "verifier.py:154 (web-proxy is passed to check_container and referenced again for the isolation bonus)",
+            "status": "verified"
+        },
+        {
+            "key": "containers[0].image",
+            "metadata_value": "nginx",
+            "verified_value": "nginx",
+            "source": "verifier.py:154 (web-proxy check_container call ensures the image string contains 'nginx')",
+            "status": "verified"
+        },
+        {
+            "key": "containers[0].expected_networks",
+            "metadata_value": ["frontend"],
+            "verified_value": ["frontend"],
+            "source": "verifier.py:154 (check_container is invoked for web-proxy with ['frontend'] as the expected networks)",
+            "status": "verified"
+        },
+        {
+            "key": "containers[0].forbidden_networks",
+            "metadata_value": ["backend", "bridge"],
+            "verified_value": ["backend"],
+            "source": "verifier.py:154 (web-proxy check_container call only flags ['backend'] as forbidden, so 'bridge' is not enforced)",
+            "status": "contradicted"
+        },
+        {
+            "key": "containers[1].name",
+            "metadata_value": "app-server",
+            "verified_value": "app-server",
+            "source": "verifier.py:160 (app-server is the name given to the second check_container invocation)",
+            "status": "verified"
+        },
+        {
+            "key": "containers[1].image",
+            "metadata_value": "httpd",
+            "verified_value": "httpd",
+            "source": "verifier.py:160 (app-server check_container call validates the running image string contains 'httpd')",
+            "status": "verified"
+        },
+        {
+            "key": "containers[1].expected_networks",
+            "metadata_value": ["frontend", "backend"],
+            "verified_value": ["frontend", "backend"],
+            "source": "verifier.py:160 (app-server check_container call lists ['frontend', 'backend'] as expected)",
+            "status": "verified"
+        },
+        {
+            "key": "containers[1].forbidden_networks",
+            "metadata_value": ["bridge"],
+            "verified_value": [],
+            "source": "verifier.py:160 (app-server check_container call passes an empty forbidden list, so 'bridge' is not enforced)",
+            "status": "contradicted"
+        },
+        {
+            "key": "containers[2].name",
+            "metadata_value": "data-store",
+            "verified_value": "data-store",
+            "source": "verifier.py:166 (data-store is the name used for the third check_container invocation)",
+            "status": "verified"
+        },
+        {
+            "key": "containers[2].image",
+            "metadata_value": "redis",
+            "verified_value": "redis",
+            "source": "verifier.py:166 (data-store check_container call confirms the running image string contains 'redis')",
+            "status": "verified"
+        },
+        {
+            "key": "containers[2].expected_networks",
+            "metadata_value": ["backend"],
+            "verified_value": ["backend"],
+            "source": "verifier.py:166 (data-store check_container invocation sets ['backend'] as the expected networks)",
+            "status": "verified"
+        },
+        {
+            "key": "containers[2].forbidden_networks",
+            "metadata_value": ["frontend", "bridge"],
+            "verified_value": ["frontend"],
+            "source": "verifier.py:166 (data-store check_container uses ['frontend'] as the only forbidden network, so 'bridge' is not enforced)",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The verifier requires two bridge networks named 'frontend' and 'backend' and checks that web-proxy (nginx), app-server (httpd), and data-store (redis) are connected to the specified networks with web-proxy isolated from backend and data-store isolated from frontend; Docker Desktop setup pulls nginx:alpine, httpd:alpine, and redis:alpine ahead of time.",
+    "pi_confidence": "medium"
+}

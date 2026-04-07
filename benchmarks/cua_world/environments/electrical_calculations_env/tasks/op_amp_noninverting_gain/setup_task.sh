@@ -25,20 +25,8 @@ sleep 1
 
 # Launch the app to its main screen
 echo "Launching Electrical Calculations..."
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 5
-
-# Dismiss any initial ad/promo overlay that might appear on cold boot
-# Press Back once
-input keyevent KEYCODE_BACK
-sleep 2
-
-# If we accidentally exited the app, relaunch
-CURRENT=$(dumpsys window | grep mCurrentFocus)
-if echo "$CURRENT" | grep -q "Launcher"; then
-    monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-    sleep 3
-fi
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
 
 # Capture initial state screenshot
 screencap -p /sdcard/tasks/task_initial_state.png 2>/dev/null || true

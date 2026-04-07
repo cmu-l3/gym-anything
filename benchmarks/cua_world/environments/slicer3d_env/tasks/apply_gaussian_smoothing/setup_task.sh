@@ -18,42 +18,85 @@ chmod 777 "$RESULT_DIR"
 chmod 777 "$EXPORT_DIR"
 
 # ============================================================
-# Ensure MRHead sample data exists
+# Ensure MRHead sample data exists (with robust retry logic)
 # ============================================================
-if [ ! -f "$SAMPLE_DATA_DIR/MRHead.nrrd" ]; then
-    echo "MRHead sample data not found. Attempting to download..."
-    
+MRHEAD_OK=false
+if [ -f "$SAMPLE_DATA_DIR/MRHead.nrrd" ] && [ $(stat -c%s "$SAMPLE_DATA_DIR/MRHead.nrrd" 2>/dev/null || echo 0) -gt 1000000 ]; then
+    MRHEAD_OK=true
+fi
+
+if [ "$MRHEAD_OK" = "false" ]; then
+    echo "MRHead sample data not found or invalid. Attempting to download..."
     mkdir -p "$SAMPLE_DATA_DIR"
     cd "$SAMPLE_DATA_DIR"
-    
-    # Try primary URL
-    curl -L -o MRHead.nrrd --connect-timeout 30 --max-time 120 \
-        "https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/cc211f0dfd9a05ca3841ce1141b292898b2dd2d3f08286c4b0c71defe6e4f5f8" 2>/dev/null
-    
-    # Check if download succeeded
-    if [ ! -f MRHead.nrrd ] || [ $(stat -c%s MRHead.nrrd 2>/dev/null || echo 0) -lt 1000000 ]; then
-        echo "Primary download failed, trying alternative URL..."
+    rm -f MRHead.nrrd 2>/dev/null
+
+    # Try multiple URLs with retries
+    for attempt in 1 2 3; do
+        echo "Download attempt $attempt..."
+
+        # Try primary URL (GitHub)
+        curl -L -o MRHead.nrrd --connect-timeout 30 --max-time 180 --retry 2 \
+            "https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/cc211f0dfd9a05ca3841ce1141b292898b2dd2d3f08286c4b0c71defe6e4f5f8" 2>/dev/null
+
+        if [ -f MRHead.nrrd ] && [ $(stat -c%s MRHead.nrrd 2>/dev/null || echo 0) -gt 1000000 ]; then
+            echo "Download successful on attempt $attempt"
+            MRHEAD_OK=true
+            break
+        fi
         rm -f MRHead.nrrd 2>/dev/null
-        wget --timeout=120 -O MRHead.nrrd \
-            "https://data.kitware.com/api/v1/file/5c4d2eac8d777f072bf6cdba/download" 2>/dev/null || {
-            echo "ERROR: Could not download MRHead sample data"
-            exit 1
-        }
-    fi
-    
-    chown -R ga:ga "$SAMPLE_DATA_DIR"
+
+        # Try alternative URL (Kitware)
+        wget --timeout=180 --tries=2 -O MRHead.nrrd \
+            "https://data.kitware.com/api/v1/file/5c4d2eac8d777f072bf6cdba/download" 2>/dev/null
+
+        if [ -f MRHead.nrrd ] && [ $(stat -c%s MRHead.nrrd 2>/dev/null || echo 0) -gt 1000000 ]; then
+            echo "Download successful on attempt $attempt (alt URL)"
+            MRHEAD_OK=true
+            break
+        fi
+        rm -f MRHead.nrrd 2>/dev/null
+
+        sleep 3
+    done
+
+    chown -R ga:ga "$SAMPLE_DATA_DIR" 2>/dev/null || true
 fi
 
-# Verify file exists and has reasonable size
-if [ ! -f "$SAMPLE_DATA_DIR/MRHead.nrrd" ]; then
-    echo "ERROR: MRHead.nrrd not found after download attempt"
-    exit 1
+if [ "$MRHEAD_OK" = "false" ]; then
+    echo "WARNING: MRHead.nrrd could not be downloaded. Generating synthetic data..."
+    python3 << 'SYNTHEOF'
+import numpy as np
+import os
+
+shape = (64, 64, 64)
+data = np.zeros(shape, dtype=np.int16)
+center = np.array(shape) / 2
+for x in range(shape[0]):
+    for y in range(shape[1]):
+        for z in range(shape[2]):
+            dist = np.sqrt((x - center[0])**2 + (y - center[1])**2 + (z - center[2])**2)
+            if dist < 25:
+                data[x, y, z] = 800 + int(200 * np.sin(dist / 3))
+            elif dist < 28:
+                data[x, y, z] = 1200
+
+out_path = "/home/ga/Documents/SlicerData/SampleData/MRHead.nrrd"
+with open(out_path, 'wb') as f:
+    header = "NRRD0004\ntype: int16\ndimension: 3\nspace: left-posterior-superior\nsizes: 64 64 64\nspace directions: (2,0,0) (0,2,0) (0,0,2)\nkinds: domain domain domain\nendian: little\nencoding: raw\nspace origin: (-64,-64,-64)\n\n"
+    f.write(header.encode('ascii'))
+    f.write(data.tobytes())
+print("Created synthetic MRHead.nrrd")
+SYNTHEOF
+    chown ga:ga "$SAMPLE_DATA_DIR/MRHead.nrrd" 2>/dev/null || true
 fi
 
+# Verify file exists (don't exit on failure - Slicer can still launch without data)
 FILE_SIZE=$(stat -c%s "$SAMPLE_DATA_DIR/MRHead.nrrd" 2>/dev/null || echo 0)
-if [ "$FILE_SIZE" -lt 1000000 ]; then
-    echo "ERROR: MRHead.nrrd is too small (${FILE_SIZE} bytes) - download may have failed"
-    exit 1
+if [ "$FILE_SIZE" -lt 1000 ]; then
+    echo "WARNING: MRHead.nrrd is missing or too small (${FILE_SIZE} bytes)"
+else
+    echo "MRHead sample data verified: ${FILE_SIZE} bytes"
 fi
 
 echo "MRHead sample data verified: $(du -h "$SAMPLE_DATA_DIR/MRHead.nrrd")"
@@ -75,7 +118,7 @@ try:
     import nrrd
 except ImportError:
     import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "pynrrd"])
+    subprocess.call([sys.executable, "-m", "pip", "install", "-q", "pynrrd"], timeout=60)
     import nrrd
 
 # Ensure scipy is available
@@ -83,7 +126,7 @@ try:
     from scipy.ndimage import laplace
 except ImportError:
     import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "scipy"])
+    subprocess.call([sys.executable, "-m", "pip", "install", "-q", "scipy"], timeout=120)
     from scipy.ndimage import laplace
 
 sample_dir = "/home/ga/Documents/SlicerData/SampleData"

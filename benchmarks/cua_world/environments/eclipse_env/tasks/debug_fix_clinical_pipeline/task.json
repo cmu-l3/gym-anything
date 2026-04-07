@@ -1,0 +1,35 @@
+{
+  "id": "debug_fix_clinical_pipeline@1",
+  "version": "1.0",
+  "env_id": "eclipse_env@0.1",
+  "description": "Import the clinical-trial-analytics multi-module Maven project from /home/ga/clinical-trial-analytics into Eclipse. This project, written by a former colleague, has build configuration errors preventing compilation and runtime bugs in the dose-response computation pipeline. Diagnose and fix all issues until 'mvn clean test' succeeds with all 15 tests passing (BUILD SUCCESS). Use Eclipse's debugger to trace through test failures — the runtime bugs are subtle and not obvious from code inspection alone.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 5400,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/debug_fix_clinical_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/debug_fix_clinical_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "project_name": "clinical-trial-analytics",
+    "project_path": "/home/ga/clinical-trial-analytics",
+    "total_tests": 15,
+    "modules": ["trial-model", "trial-engine", "trial-report"],
+    "build_issue": "trial-report/pom.xml has maven.compiler.source/target set to 11 instead of 17",
+    "bug_1_file": "trial-engine/src/main/java/com/clinicaltrial/engine/PatientFilter.java",
+    "bug_1_description": "Off-by-one: >= should be > for getWeeksEnrolled comparison with minWeeks",
+    "bug_2_file": "trial-engine/src/main/java/com/clinicaltrial/engine/StatisticalAnalyzer.java",
+    "bug_2_description": "Wrong method: computeGroupBaseline(groups.get(0)) should be computePopulationBaseline(groups)",
+    "bug_3_file": "trial-model/src/main/java/com/clinicaltrial/model/TrialSummary.java",
+    "bug_3_description": "Missing field copy in Builder.build(): s.sampleSize = this.sampleSize is absent"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_debug_fix_clinical_pipeline"
+    }
+  }
+}

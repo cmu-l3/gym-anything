@@ -98,7 +98,7 @@ Separate multiple stains in a histology image using Fiji's Color Deconvolution p
 from gym_anything.api import from_config
 
 # Start environment with a specific task
-env = from_config("benchmarks/cua_world/environments/fiji_env", task_id="z_stack_projection")
+env = from_config("examples/fiji_env", task_id="z_stack_projection")
 obs = env.reset(seed=42)
 ```
 

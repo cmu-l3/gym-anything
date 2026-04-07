@@ -494,8 +494,17 @@ DBQUERYEOF
 chmod +x /usr/local/bin/moodle-db-query
 
 # ============================================================
-# 6. Launch Firefox
+# 6. Re-verify Moodle and launch Firefox
 # ============================================================
+echo "Re-verifying Moodle is responsive before launching Firefox..."
+for i in $(seq 1 60); do
+    if curl -s -o /dev/null -w "%{http_code}" "$MOODLE_URL" 2>/dev/null | grep -qE "200|302|303"; then
+        echo "Moodle web service ready"
+        break
+    fi
+    sleep 2
+done
+
 echo "Launching Firefox with Moodle..."
 su - ga -c "DISPLAY=:1 firefox 'http://localhost/' > /tmp/firefox_moodle.log 2>&1 &"
 

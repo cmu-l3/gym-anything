@@ -1,0 +1,30 @@
+{
+  "id": "detect_dns_tunneling@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure the Wazuh manager to ingest and analyze custom DNS logs from /var/log/custom_dns.log based on the format found in /home/ga/dns_sample_data.log. Create a custom decoder named 'custom-dns' in local_decoder.xml to extract 'srcip' and 'domain' fields. Implement a detection rule (ID 100050, level 12) in local_rules.xml that triggers when the 'domain' field exceeds 60 characters. Ensure the configuration is active and verified.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/detect_dns_tunneling/setup_task.sh",
+    "post_task": "/workspace/tasks/detect_dns_tunneling/export_result.sh"
+  },
+  "metadata": {
+    "target_log_file": "/var/log/custom_dns.log",
+    "sample_data_file": "/home/ga/dns_sample_data.log",
+    "required_rule_id": 100050,
+    "required_decoder_name": "custom-dns",
+    "malicious_domain_sample": "very-long-encoded-string-that-looks-like-base64-exfiltration-data.attacker-site.com",
+    "benign_domain_sample": "google.com"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_detect_dns_tunneling"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "storage_hwm_optimization@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "The 'SHIPMENT_LOGS' table in the HR schema has undergone a massive archival deletion where 90% of old records were removed, but the table's physical storage footprint remains excessively large (~200MB) due to the High Water Mark (HWM) not resetting, causing poor performance for full table scans. Reclaim the unused space to reduce the table size to below 30MB while ensuring the 'IDX_SHIP_LOG_DATE' index remains in a VALID state and all 5,000 remaining records are intact and accessible. Connect to the database using: Host=localhost, Port=1521, Database=XEPDB1, Username=hr, Password=hr123.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/storage_hwm_optimization/setup_task.sh",
+    "post_task": "/workspace/tasks/storage_hwm_optimization/export_result.sh"
+  },
+  "metadata": {
+    "target_table": "SHIPMENT_LOGS",
+    "target_index": "IDX_SHIP_LOG_DATE",
+    "expected_row_count": 5000,
+    "max_acceptable_size_mb": 30,
+    "connection_user": "hr",
+    "connection_password": "hr123",
+    "connection_string": "localhost:1521/XEPDB1"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_storage_hwm_optimization"
+    }
+  }
+}

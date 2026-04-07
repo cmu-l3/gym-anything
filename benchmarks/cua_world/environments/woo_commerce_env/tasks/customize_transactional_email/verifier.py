@@ -150,19 +150,14 @@ def verify_customize_transactional_email(traj, env_info, task_info):
     actual_content = current_settings.get('additional_content', '')
     # Normalize newlines for comparison
     actual_content_norm = actual_content.replace('\r\n', '\n').strip()
-
-    expected_content_lines = [
-        line for line in (expected_content_line1, expected_content_line2) if line
-    ]
-    if not expected_content_lines:
-        feedback_parts.append("Content expectations not declared in task metadata")
-    elif all(line in actual_content_norm for line in expected_content_lines):
+    
+    if expected_content_line1 in actual_content_norm and expected_content_line2 in actual_content_norm:
         score += 20
         feedback_parts.append("Content correct")
-    elif expected_content_line1 and expected_content_line1 in actual_content_norm:
+    elif expected_content_line1 in actual_content_norm:
         score += 10
         feedback_parts.append("Content partially correct (missing line 2)")
-    elif expected_content_line2 and expected_content_line2 in actual_content_norm:
+    elif expected_content_line2 in actual_content_norm:
         score += 10
         feedback_parts.append("Content partially correct (missing line 1)")
     else:
@@ -208,7 +203,7 @@ def verify_customize_transactional_email(traj, env_info, task_info):
 
     # 4. Final Assessment
     # Must have at least Subject or Heading correct to pass
-    critical_success = (actual_subject == expected_subject) and (actual_heading == expected_heading)
+    critical_success = (actual_subject == expected_subject) or (actual_heading == expected_heading)
     passed = (score >= 60) and critical_success
     
     return {

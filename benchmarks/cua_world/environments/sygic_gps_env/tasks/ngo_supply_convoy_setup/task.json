@@ -1,0 +1,63 @@
+{
+  "id": "ngo_supply_convoy_setup@1",
+  "version": "1.0",
+  "env_id": "example.sygic_gps_env@0.1",
+  "description": "You are preparing a GPS unit for an NGO supply vehicle deployment in Afghanistan. The GPS was last used by someone for personal driving and has the wrong configuration.\n\nCreate a new vehicle profile named \"Supply Vehicle\" with fuel type Diesel, production year 2020, emission standard Euro6, and maximum speed 80 km/h. Set it as the active vehicle profile.\n\nFix the routing preferences: set route calculation to Shortest, allow unpaved roads (needed for field access to delivery sites), avoid ferries, and enable Arrive in driving direction.\n\nPlan a multi-stop supply delivery route from Kabul, with an intermediate stop in Jalalabad, and final destination Kandahar. Add a gas station as a waypoint along the route using the \"On Route\" filter.",
+  "difficulty": "very_hard",
+  "tags": [
+    "navigation",
+    "vehicle-profile",
+    "route-planning",
+    "multi-stop",
+    "poi-search",
+    "error-injection",
+    "long-horizon"
+  ],
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "sh /sdcard/tasks/ngo_supply_convoy_setup/setup_task.sh",
+    "post_task": "sh /sdcard/tasks/ngo_supply_convoy_setup/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Logistics Coordinator (SOC 13-1081)",
+    "pattern": "error_injection_plus_workflow",
+    "injected_errors": {
+      "vehicle_fuel": "GAS instead of DIESEL",
+      "vehicle_name": "Personal Sedan instead of Supply Vehicle",
+      "vehicle_speed": "180 km/h instead of 80 km/h",
+      "route_compute": "Fastest (1) instead of Shortest (0)",
+      "avoid_unpaved": "true instead of false",
+      "avoid_ferries": "false instead of true",
+      "arrive_in_direction": "false instead of true"
+    },
+    "expected_vehicle": {
+      "name_keywords": ["supply", "vehicle"],
+      "type": "CAR",
+      "fuel": "DIESEL",
+      "year": 2020,
+      "emission": "EURO6",
+      "speed_kmh": 80,
+      "speed_tolerance_kmh": 10
+    },
+    "expected_route_settings": {
+      "route_compute": "0",
+      "avoid_unpaved": "false",
+      "avoid_ferries": "true",
+      "arrive_in_direction": "true"
+    },
+    "route_cities": ["Kabul", "Jalalabad", "Kandahar"],
+    "poi_type": "gas_station",
+    "poi_filter": "on_route",
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ngo_supply_convoy_setup"
+    }
+  }
+}

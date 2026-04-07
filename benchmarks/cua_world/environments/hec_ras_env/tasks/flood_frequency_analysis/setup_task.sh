@@ -70,7 +70,7 @@ echo "Baseline peak flow detected: ~${BASELINE_PEAK} cfs"
 python3 << 'PYEOF'
 import json
 
-# From evidence: Muncie model with 21000 cfs peak gives:
+# From evidence_docs: Muncie model with 21000 cfs peak gives:
 #   Overall peak WSE ~953.84 ft, Mean peak WSE ~946.10 ft
 # Scaling relationships (approximate linear for small perturbations):
 #   Q_10 = 16200 cfs  => ratio 0.771 => WSE slightly lower

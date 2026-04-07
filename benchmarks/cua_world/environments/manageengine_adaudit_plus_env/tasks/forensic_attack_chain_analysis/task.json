@@ -1,0 +1,43 @@
+{
+  "id": "forensic_attack_chain_analysis@1",
+  "version": "1.0",
+  "env_id": "manageengine_adaudit_plus_env@0.1",
+  "description": "ADAudit Plus is running at http://localhost:8081/ (login: admin/Admin@2024). Your security operations center has flagged anomalous authentication activity suggesting a coordinated multi-stage attack. Conduct a forensic investigation using ADAudit Plus. First, examine Failed Logon Activity reports to identify the user account targeted by a brute-force campaign \u2014 the one with a disproportionately high number of failed attempts compared to baseline activity. Then, check Recent Logon Activity or Successful Logon reports to determine whether the attacker ultimately compromised that account. Finally, examine Group Membership Changes to determine if post-compromise privilege escalation occurred \u2014 specifically whether the compromised account was added to any administrative groups. Based on your findings, configure an alert profile named 'APT Campaign Detection' with Critical severity, monitoring for excessive failed logon attempts (threshold: 5 failures within 10 minutes), with email notifications to soc-lead@corp.local. Create a technician account 'forensic_lead' (Full Name: 'Lead Forensic Analyst', Email: forensic.lead@corp.local, Password: Forensic@2025, Role: Auditor). Document your complete forensic findings in C:\\Users\\Docker\\Desktop\\attack_campaign_report.txt including: the targeted username, approximate failed attempt count, whether the account was compromised, privilege escalation details, and remediation recommendations.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\forensic_attack_chain_analysis\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\forensic_attack_chain_analysis\\export_result.ps1",
+    "pre_task_timeout": 900
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_forensic_attack_chain_analysis"
+    }
+  },
+  "metadata": {
+    "target_account": "svc_backup",
+    "failed_logon_count": 50,
+    "compromise_occurred": true,
+    "privilege_escalation_group": "Administrators",
+    "noise_accounts": {
+      "jsmith": 5,
+      "mjohnson": 3,
+      "rwilliams": 8,
+      "abrown": 4,
+      "dlee": 6
+    },
+    "expected_tech_username": "forensic_lead",
+    "expected_tech_role": "Auditor",
+    "expected_alert_name": "APT Campaign Detection",
+    "expected_alert_severity": "Critical",
+    "expected_notification_email": "soc-lead@corp.local",
+    "expected_report_path": "C:\\Users\\Docker\\Desktop\\attack_campaign_report.txt",
+    "result_file": "C:\\Users\\Docker\\forensic_attack_chain_analysis_result.json"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "task_id": "docker_signal_handling@1",
+  "task_completion": [
+    {
+      "id": "fixes_applied",
+      "description": "Verify that the agent modified the configuration files (Dockerfiles or entrypoint scripts) for the three services to fix signal handling.",
+      "points": 20,
+      "visual_evidence": "Look for terminal commands (like nano, vim, sed, or echo) editing files in ~/projects/signal-fix/. Evidence should show changing CMD to exec-form `CMD [\"python3\", ...]` for the webserver, adding `exec` to entrypoint.sh for the scheduler, and adding `tini` to the Dockerfile for the processor."
+    },
+    {
+      "id": "images_rebuilt",
+      "description": "Verify that the agent rebuilt the Docker images with their original tags.",
+      "points": 15,
+      "visual_evidence": "Look for terminal output showing `docker build -t acme-webserver .`, `docker build -t acme-scheduler .`, and `docker build -t acme-processor .` being executed in their respective directories."
+    },
+    {
+      "id": "original_containers_stopped",
+      "description": "Verify that the original broken containers were stopped.",
+      "points": 15,
+      "visual_evidence": "Look for terminal commands like `docker stop acme-webserver acme-scheduler acme-processor` or a `docker ps` output where the original containers without the '-fixed' suffix are no longer listed."
+    },
+    {
+      "id": "fixed_containers_running",
+      "description": "Verify that new containers with the '-fixed' suffix were started.",
+      "points": 20,
+      "visual_evidence": "Look for `docker run` commands including `--name acme-webserver-fixed`, `--name acme-scheduler-fixed`, and `--name acme-processor-fixed` (the processor might also include the `--init` flag here if not fixed in the Dockerfile), or a `docker ps` output showing these three specific container names running."
+    },
+    {
+      "id": "fast_shutdown_verified",
+      "description": "Verify that the agent tested the shutdown time of the fixed containers to ensure they stop in under 5 seconds.",
+      "points": 10,
+      "visual_evidence": "Look for terminal commands like `time docker stop acme-webserver-fixed` or similar timing utilities showing an execution time of less than 5 seconds."
+    },
+    {
+      "id": "report_written",
+      "description": "Verify that a report explaining the specific fixes was written to ~/Desktop/signal_handling_report.txt.",
+      "points": 20,
+      "visual_evidence": "Look for a text editor (like nano, gedit) or terminal output (like cat or echo) showing the contents of ~/Desktop/signal_handling_report.txt. The text must contain explanations for the fixes applied to the webserver, scheduler, and processor."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_docker_interaction",
+      "description": "Ensure the agent actually executed Docker commands and did not just mock the output.",
+      "visual_evidence": "Look for standard Docker CLI output formats, build steps, and container hashes in the terminal rather than simple echo statements."
+    },
+    {
+      "id": "genuine_file_modification",
+      "description": "Ensure the agent actually edited the configuration files.",
+      "visual_evidence": "Look for the use of real text editors (nano, vim) or valid shell redirection/stream editors (sed, awk, >) to modify the Dockerfiles and entrypoint.sh scripts."
+    },
+    {
+      "id": "authentic_report_content",
+      "description": "Ensure the report contains actual technical explanations of the fixes rather than just copying the prompt.",
+      "visual_evidence": "The report should mention specific technical details like 'exec-form CMD', 'exec in entrypoint', and 'tini/init system' rather than just stating 'fixed signal handling'."
+    }
+  ],
+  "privileged_info_for_vlm": "Project directory is /home/ga/projects/signal-fix. The report must be saved to /home/ga/Desktop/signal_handling_report.txt. The specific root causes and fixes are: 1) acme-webserver: The Dockerfile uses shell-form CMD which wraps the process in /bin/sh. Fix: Change to exec-form CMD (e.g., CMD [\"python3\", \"/app/server.py\"]). 2) acme-scheduler: The entrypoint.sh script is missing 'exec', leaving bash as PID 1. Fix: Add 'exec' before the python command. 3) acme-processor: Lacks an init system to reap zombies and forward signals. Fix: Add 'tini' in the Dockerfile OR use the '--init' flag in the docker run command."
+}

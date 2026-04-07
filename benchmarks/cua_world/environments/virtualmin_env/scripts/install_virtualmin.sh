@@ -1,118 +1,157 @@
 #!/bin/bash
-# NOTE: Do NOT use set -e here - we run installer in background and need careful exit control
+# NOTE: Do NOT use set -e here - we need careful exit control
+# PRE_START HOOK: Pre-install packages and download installer.
+# The actual Virtualmin installer runs in post_start (foreground).
 
-echo "=== Installing Virtualmin GPL ==="
+echo "=== install_virtualmin.sh (pre_start) ==="
 
 export DEBIAN_FRONTEND=noninteractive
 
 # ---------------------------------------------------------------
-# IDEMPOTENCY CHECK: Skip installer if Virtualmin already installed.
-# This handles the case where the gym_anything framework loads a
-# savevm checkpoint (which already has Virtualmin) and re-runs hooks.
+# Helper: retry a command up to N times with backoff
+# ---------------------------------------------------------------
+retry() {
+    local max_attempts="$1"
+    shift
+    local attempt=1
+    while [ $attempt -le $max_attempts ]; do
+        if "$@"; then
+            return 0
+        fi
+        echo "  Attempt $attempt/$max_attempts failed"
+        if [ $attempt -lt $max_attempts ]; then
+            local wait=$((attempt * 10))
+            echo "  Retrying in ${wait}s..."
+            sleep $wait
+        fi
+        attempt=$((attempt + 1))
+    done
+    return 1
+}
+
+# ---------------------------------------------------------------
+# Helper: wait for apt/dpkg locks, fix broken state
+# ---------------------------------------------------------------
+wait_for_apt_lock() {
+    local timeout=120
+    local elapsed=0
+    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || \
+          fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || \
+          fuser /var/cache/apt/archives/lock >/dev/null 2>&1; do
+        if [ $elapsed -ge $timeout ]; then
+            echo "WARNING: apt lock held for ${timeout}s, forcing release"
+            rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock \
+                  /var/lib/apt/lists/lock /var/cache/apt/archives/lock 2>/dev/null
+            dpkg --configure -a 2>/dev/null || true
+            break
+        fi
+        sleep 5
+        elapsed=$((elapsed + 5))
+    done
+    dpkg --configure -a 2>/dev/null || true
+}
+
+# ---------------------------------------------------------------
+# IDEMPOTENCY CHECK
 # ---------------------------------------------------------------
 if which virtualmin > /dev/null 2>&1 && [ -f /home/ga/virtualmin-install-done ]; then
-    echo "=== Virtualmin already installed (idempotency check). Skipping installer. ==="
-    # Still ensure root password and hostname are set correctly
+    echo "=== Virtualmin already installed. Skipping. ==="
     echo "root:GymAnything123!" | chpasswd
     hostnamectl set-hostname virtualmin.gym-anything.local 2>/dev/null || true
-    # Install GUI tools if not present
     which xdotool > /dev/null 2>&1 || apt-get install -y xdotool wmctrl scrot imagemagick x11-utils xclip python3-pip 2>/dev/null
-    echo "=== install_virtualmin.sh (idempotent skip) complete ==="
     exit 0
 fi
 
 # ---------------------------------------------------------------
-# 1. Set root password (Virtualmin admin uses the root Unix account)
+# 1. Set root password and hostname
 # ---------------------------------------------------------------
 echo "root:GymAnything123!" | chpasswd
-echo "--- Root password set ---"
-
-# ---------------------------------------------------------------
-# 2. Set FQDN hostname (REQUIRED by Virtualmin installer)
-# ---------------------------------------------------------------
 hostnamectl set-hostname virtualmin.gym-anything.local
-
-if ! grep -q "virtualmin.gym-anything.local" /etc/hosts; then
+grep -q "virtualmin.gym-anything.local" /etc/hosts || \
     echo "127.0.1.1 virtualmin.gym-anything.local virtualmin" >> /etc/hosts
-fi
-
-FQDN=$(hostname -f 2>/dev/null || echo "unknown")
-echo "--- Hostname set to: $FQDN ---"
+echo "--- Hostname: $(hostname -f 2>/dev/null || echo unknown) ---"
 
 # ---------------------------------------------------------------
-# 3. Update packages and install prerequisites
+# 2. Install prerequisites and GUI tools (foreground, with retry)
 # ---------------------------------------------------------------
-apt-get update
-apt-get install -y curl wget ca-certificates perl
+echo "--- Installing prerequisites and GUI tools ---"
+wait_for_apt_lock
+retry 3 apt-get update
+
+wait_for_apt_lock
+retry 3 apt-get install -y \
+    curl wget ca-certificates perl gnupg \
+    xdotool wmctrl scrot imagemagick x11-utils xclip python3-pip
 
 # ---------------------------------------------------------------
-# 4. Download Virtualmin installer
-#    Primary: software.virtualmin.com
-#    Fallback: download.virtualmin.com
+# 3. Pre-install heavy LAMP stack packages (foreground, with retry)
+#    This dramatically reduces the Virtualmin installer time from
+#    30-60 minutes to 5-15 minutes by having packages already present.
 # ---------------------------------------------------------------
-echo "=== Downloading Virtualmin installer ==="
+echo "--- Pre-installing LAMP stack packages ---"
 
-if ! curl -fsSL https://software.virtualmin.com/gpl/scripts/virtualmin-install.sh \
-        -o /tmp/virtualmin-install.sh 2>/dev/null; then
-    echo "Primary URL failed, trying fallback..."
-    curl -fsSL https://download.virtualmin.com/virtualmin-install.sh \
-        -o /tmp/virtualmin-install.sh
-fi
+wait_for_apt_lock
+retry 3 apt-get install -y \
+    apache2 libapache2-mod-fcgid \
+    || echo "WARNING: Some Apache packages failed"
 
-chmod +x /tmp/virtualmin-install.sh
-echo "--- Installer downloaded, size: $(wc -c < /tmp/virtualmin-install.sh) bytes ---"
+wait_for_apt_lock
+retry 3 apt-get install -y \
+    mariadb-server mariadb-client \
+    || echo "WARNING: MariaDB packages failed"
+
+wait_for_apt_lock
+retry 3 apt-get install -y \
+    php php-fpm php-mysql php-gd php-curl php-xml php-mbstring php-zip php-intl php-common \
+    || echo "WARNING: Some PHP packages failed"
+
+wait_for_apt_lock
+retry 3 apt-get install -y \
+    bind9 bind9-utils \
+    postfix \
+    dovecot-core dovecot-imapd dovecot-pop3d \
+    || echo "WARNING: Some mail/DNS packages failed"
+
+wait_for_apt_lock
+apt-get install -y \
+    proftpd-basic spamassassin spamc procmail quota quotatool libapache2-mod-php \
+    2>/dev/null || echo "WARNING: Some optional packages failed (non-critical)"
+
+echo "--- Heavy packages pre-installed ---"
 
 # ---------------------------------------------------------------
-# 5. Run Virtualmin installer in BACKGROUND to avoid SSH timeout
-#    The installer asks "Continue? (y/n)" — we answer via printf.
-#    Running with nohup & detaches from the SSH session so the
-#    installation continues even after this SSH command returns.
-#    NOTE: Cold installation takes 30-60 minutes. The post_start
-#    hook polls for completion. Use savevm caching for fast boots.
+# 4. Download the Virtualmin installer (with retry + multiple mirrors)
+#    Saved to /tmp/virtualmin-install.sh for post_start to run.
 # ---------------------------------------------------------------
-echo "=== Starting Virtualmin installation in background ==="
-
-# Mark start time
+echo "--- Downloading Virtualmin installer ---"
 date > /home/ga/virtualmin-install-start
 chmod 644 /home/ga/virtualmin-install-start
 
-# Run installer in background with "y" piped to answer the prompt
-nohup bash -c '
-    printf "y\n" | bash /tmp/virtualmin-install.sh \
-        --bundle LAMP \
-        --hostname virtualmin.gym-anything.local \
-        > /home/ga/virtualmin-install.log 2>&1
-    echo "Virtualmin installer exit code: $?" >> /home/ga/virtualmin-install.log
-    touch /home/ga/virtualmin-install-done
-' &
+INSTALLER_DOWNLOADED=false
+for url in \
+    "https://software.virtualmin.com/gpl/scripts/virtualmin-install.sh" \
+    "https://raw.githubusercontent.com/virtualmin/virtualmin-install/master/virtualmin-install.sh" \
+    "https://download.virtualmin.com/virtualmin-install.sh"; do
+    echo "  Trying: $url"
+    for attempt in 1 2 3; do
+        if curl -fsSL --connect-timeout 30 --max-time 120 "$url" \
+                -o /tmp/virtualmin-install.sh 2>/dev/null; then
+            FSIZE=$(wc -c < /tmp/virtualmin-install.sh 2>/dev/null || echo 0)
+            if [ "$FSIZE" -gt 10000 ]; then
+                echo "--- Downloaded installer ($FSIZE bytes) ---"
+                chmod +x /tmp/virtualmin-install.sh
+                INSTALLER_DOWNLOADED=true
+                break 2
+            fi
+        fi
+        sleep 5
+    done
+done
 
-INSTALL_PID=$!
-echo "--- Virtualmin installation started in background (PID: $INSTALL_PID) ---"
-echo "$INSTALL_PID" > /home/ga/virtualmin-install.pid
-chmod 644 /home/ga/virtualmin-install.pid
-
-# Wait briefly to check installer started OK
-sleep 15
-if kill -0 "$INSTALL_PID" 2>/dev/null; then
-    echo "--- Installer is running ---"
+if $INSTALLER_DOWNLOADED; then
+    echo "--- Installer ready at /tmp/virtualmin-install.sh ---"
 else
-    echo "--- WARNING: Installer may have exited early, check /home/ga/virtualmin-install.log ---"
-    # Even if it exited, it might have completed quickly
+    echo "WARNING: Could not download installer from any mirror"
 fi
 
-# ---------------------------------------------------------------
-# 6. Install GUI automation tools while installer runs in background
-# ---------------------------------------------------------------
-echo "--- Installing GUI automation tools ---"
-apt-get install -y \
-    xdotool \
-    wmctrl \
-    scrot \
-    imagemagick \
-    x11-utils \
-    xclip \
-    python3-pip
-
 echo "=== install_virtualmin.sh complete ==="
-echo "NOTE: Virtualmin installer is running in background at /home/ga/virtualmin-install.log"
-echo "      setup_virtualmin.sh (post_start) will wait for installation to complete."

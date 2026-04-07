@@ -1,0 +1,29 @@
+{
+  "id": "coastal_bathymetry_log_ratio@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "Process the Sentinel-2 RGB GeoTIFF at ~/snap_data/sentinel2_b432.tif (band_1: Red, band_2: Green, band_3: Blue) in ESA SNAP. Create a virtual band named 'water_mask' using the expression 'band_1 < 50 ? 1 : 0' and a virtual band named 'relative_depth' using the expression 'if water_mask == 1 then (log(band_3 + 1.0) / log(band_2 + 1.0)) else NaN'. Save the enriched product in BEAM-DIMAP format to ~/snap_exports/sdb_bathymetry.dim and export it as a GeoTIFF to ~/snap_exports/sdb_bathymetry.tif.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/coastal_bathymetry_log_ratio/setup_task.sh",
+    "post_task": "/workspace/tasks/coastal_bathymetry_log_ratio/export_result.sh"
+  },
+  "metadata": {
+    "data_file": "/home/ga/snap_data/sentinel2_b432.tif",
+    "expected_dim_output": "/home/ga/snap_exports/sdb_bathymetry.dim",
+    "expected_tif_output": "/home/ga/snap_exports/sdb_bathymetry.tif",
+    "water_mask_expr": "band_1 < 50 ? 1 : 0",
+    "log_ratio_expr": "if water_mask == 1 then (log(band_3 + 1.0) / log(band_2 + 1.0)) else NaN"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_coastal_bathymetry_log_ratio"
+    }
+  }
+}

@@ -1,0 +1,129 @@
+{
+    "task_id": "debug_and_complete_spreadsheet_engine@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/PycharmProjects/spreadsheet_engine",
+            "verified_value": "/home/ga/PycharmProjects/spreadsheet_engine",
+            "source": "Confirmed from PROJECT_DIR variable in setup_task.sh line 7. Verified in live VM: directory exists, owned by ga:ga, contains engine/, tests/, data/, .idea/, requirements.txt (25 files total).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_tests_total",
+            "metadata_value": 35,
+            "verified_value": 35,
+            "source": "Counted 35 'def test_' functions in setup_task.sh. Independently verified by running 'python3 -m pytest tests/ -v' in live VM and local extraction, both report 'collected 35 items'. Per-file breakdown: test_cell(4) + test_parser(4) + test_evaluator(4) + test_functions(7) + test_dependency(3) + test_formatter(3) + test_csv_io(3) + test_integration(7) = 35.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 30,
+            "verified_value": 30,
+            "source": "Confirmed in verifier.py line 70: 'passed = tests_passed >= 30'. Also confirmed in export_result.sh which collects tests_passed count and verifier.py which reads it.",
+            "status": "verified"
+        },
+        {
+            "key": "initially_passing_tests",
+            "metadata_value": 19,
+            "verified_value": 19,
+            "source": "Verified by running pytest in live VM (evidence file: 05_pytest_output.txt) and independently via local extraction (evidence file: pytest_initial_output.txt). Both show '16 failed, 19 passed in 0.11s'. Per-file: test_cell(3/4), test_parser(3/4), test_evaluator(2/4), test_functions(3/7), test_dependency(2/3), test_formatter(3/3), test_csv_io(2/3), test_integration(1/7).",
+            "status": "verified"
+        },
+        {
+            "key": "bug_B1_parser_precedence",
+            "metadata_value": "parser.py parse_expression handles +,-,*,/ at same precedence level",
+            "verified_value": "Confirmed: parse_expression() (setup_task.sh line ~320) has a single while loop handling all four operators. '=2+3*4' evaluates to 20.0 (left-to-right: (2+3)*4) instead of 14.0 (correct: 2+(3*4)). '=10-2*3' evaluates to 24.0 instead of 4.0. The fix is to split into parse_expression (+/-) and parse_term (*/) methods.",
+            "source": "Verified by importing engine.evaluator.Evaluator in live VM and calling evaluate('=2+3*4'), getting 20.0. Evidence: 08a_bug_B1_precedence.txt, bug_verification_output.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "bug_B2_csv_whitespace",
+            "metadata_value": "csv_io.py _infer_type only tries float when value has '.', so whitespace-padded integers stay as strings",
+            "verified_value": "Confirmed: _infer_type(' 85') returns ' 85' (string type). isdigit() fails because of the leading space, and the float path is gated by '.' in value. _infer_type('42') correctly returns int 42, _infer_type('3.14') correctly returns float 3.14. The fix is to add value = value.strip() before type checking, or call float() unconditionally.",
+            "source": "Verified by importing engine.csv_io._infer_type and testing. Evidence: 08b_bug_B2_whitespace.txt. Sales data has ' 85' at row 2 col 3 and ' 95' at row 11 col 3.",
+            "status": "verified"
+        },
+        {
+            "key": "bug_B3_empty_cell_returns_zero",
+            "metadata_value": "cell.py get_numeric_value returns 0 for empty/blank cells instead of None",
+            "verified_value": "Confirmed: Cell().get_numeric_value() returns 0, Cell(raw_value='').get_numeric_value() returns 0. Both should return None so aggregate functions like AVERAGE can skip empty cells in their denominator. The bug is on setup_task.sh line 124: 'return 0' in the None/empty branch.",
+            "source": "Verified by importing engine.cell.Cell and testing. Evidence: 08c_bug_B3_empty_cell.txt. Employees data has empty Salary for Eva Patel (row 5, col 2). Sales data has empty Quantity (last row, col 3).",
+            "status": "verified"
+        },
+        {
+            "key": "bug_B4_false_circular_detection",
+            "metadata_value": "dependency.py get_evaluation_order uses single visited set, causing false circular reference errors when two formulas share a dependency",
+            "verified_value": "Confirmed: With formula cells A1=C1*2, B1=C1+10, C1=10, the function raises FormulaError('Circular reference detected involving C1'). There is no actual cycle — C1 is simply depended upon by both A1 and B1. The bug uses one 'visited' set for both 'permanently done' and 'currently in progress' tracking. Fix: use separate permanent and temporary visited sets (standard DFS topological sort).",
+            "source": "Verified by importing engine.dependency.get_evaluation_order and testing with shared-dependency cells. Evidence: 08d_bug_B4_false_circular.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "stub_S1_2d_range_eval",
+            "metadata_value": "evaluator.py eval_range raises NotImplementedError for multi-column, multi-row ranges",
+            "verified_value": "Confirmed: eval_range() handles single-column ranges (A1:A5) and single-row ranges (A1:C1) correctly, but raises NotImplementedError('2D range evaluation not yet implemented...') for 2D blocks like A1:B2 or A1:C3. SUM(A1:A5) returns 150.0 (works), SUM(A1:B2) raises the error.",
+            "source": "Verified in live VM by evaluating '=A1:B2' and '=SUM(A1:B2)'. Evidence: 09a_stub_S1_2d_range.txt, 21_range_1d_vs_2d.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "stub_S2_vlookup",
+            "metadata_value": "functions.py func_vlookup raises NotImplementedError",
+            "verified_value": "Confirmed: func_vlookup() raises NotImplementedError. The docstring describes expected behavior: search first column of table_range for lookup_value, return value from col_index (1-based). match_type=0 for exact, match_type=1 for approximate. Note: VLOOKUP also depends on S1 (2D range eval) being implemented first, since the table_range argument is a 2D range.",
+            "source": "Verified by calling fn.func_vlookup([1, [1,2,3], 1, 0]). Evidence: 09b_stub_S2_vlookup.txt, 19_cascade_verification.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "stub_S3_countif",
+            "metadata_value": "functions.py func_countif raises NotImplementedError",
+            "verified_value": "Confirmed: func_countif() raises NotImplementedError. Must parse criteria strings like '>100', '<=50', '<>0' for comparison, plain numbers for equality, plain strings for case-insensitive match. Skip None values. test_countif_numeric expects COUNTIF([10,25,30,5,50,15], '>20') = 3 (values 25, 30, 50).",
+            "source": "Verified by calling fn.func_countif(). Evidence: 09c_stub_S3_countif.txt. Expected test values verified from test_functions.py::test_countif_numeric.",
+            "status": "verified"
+        },
+        {
+            "key": "stub_S4_average",
+            "metadata_value": "functions.py func_average raises NotImplementedError",
+            "verified_value": "Confirmed: func_average() raises NotImplementedError. Must compute arithmetic mean of numeric values only, skipping None and non-numeric. test_average_with_blanks expects AVERAGE([10, None, 30, 40]) = 26.667 (80/3, NOT 80/4). This interacts with Bug B3 — if empty cells return 0 instead of None, AVERAGE would include them as zeros giving wrong denominator.",
+            "source": "Verified by calling fn.func_average(). Evidence: 09d_stub_S4_average.txt. Expected value 26.667 from test source code.",
+            "status": "verified"
+        },
+        {
+            "key": "data_sales_csv",
+            "metadata_value": "sales_data.csv with 20 data rows",
+            "verified_value": "Confirmed: 21 lines total (1 header + 20 data rows). Columns: Date, Product, Region, Quantity, UnitPrice, Discount. Products: Widget A, Gadget Pro, Sensor X, Widget B, Module Z. Regions: North, South, East, West. Key data quirks: row 2 has ' 85' (whitespace-padded), row 11 has ' 95' (whitespace-padded), row 20 has empty Quantity field.",
+            "source": "Inspected via CSV reader in live VM and locally. Evidence: 03a_sales_data.txt, sales_data.csv.",
+            "status": "verified"
+        },
+        {
+            "key": "data_employees_csv",
+            "metadata_value": "employees.csv with 12 data rows",
+            "verified_value": "Confirmed: 13 lines total (1 header + 12 data rows). Columns: Name, Department, Salary, HireDate, Rating. Departments: Engineering(5), Marketing(3), Sales(4). Key data quirk: Eva Patel (row 5) has empty Salary field. Salary range: 68000-112000 for non-empty values.",
+            "source": "Inspected via CSV reader in live VM and locally. Evidence: 03b_employees_data.txt, employees.csv.",
+            "status": "verified"
+        },
+        {
+            "key": "working_functions",
+            "metadata_value": "SUM, MIN, MAX, IF, ROUND, ABS are implemented and working",
+            "verified_value": "Confirmed: SUM(A1:A5) with [10,20,30,40,50] returns 150.0. MIN returns 10.0. MAX returns 50.0. IF(A1>10,'high','low') returns 'high' when A1=15. ABS(-42) returns 42.0. ROUND(3.14159,2) returns 3.14. All work correctly with 1D ranges.",
+            "source": "Verified by live evaluation in VM. Evidence: 10_working_functions.txt, bug_verification_output.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "test_file_distribution",
+            "metadata_value": "8 test files",
+            "verified_value": "Confirmed 8 test files: test_cell.py(4 tests), test_parser.py(4), test_evaluator.py(4), test_functions.py(7), test_dependency.py(3), test_formatter.py(3), test_csv_io.py(3), test_integration.py(7). Plus conftest.py with fixtures (empty_sheet, simple_sheet).",
+            "source": "Counted 'cat >' lines for tests/ in setup_task.sh and verified by pytest collection.",
+            "status": "verified"
+        },
+        {
+            "key": "cascade_dependency_s1_blocks_s2",
+            "metadata_value": "VLOOKUP depends on 2D range evaluation being implemented",
+            "verified_value": "Confirmed: test_vlookup_exact calls VLOOKUP('Gadget Pro', A1:C3, 2, 0) which requires evaluating 2D range A1:C3. Since eval_range raises NotImplementedError for 2D ranges, VLOOKUP tests fail with '2D range evaluation not yet implemented' error, not the VLOOKUP NotImplementedError. The agent must implement S1 before S2 can be tested.",
+            "source": "Verified by examining the actual error messages in pytest output. Evidence: 19_cascade_verification.txt.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The spreadsheet engine project at /home/ga/PycharmProjects/spreadsheet_engine has 35 tests across 8 files. Initially 19 pass and 16 fail. The agent must reach 30+ passing to succeed. There are 4 bugs: (B1) parser.py parse_expression() handles +,-,*,/ at same precedence — '=2+3*4' gives 20 instead of 14, fix by splitting into parse_expression for +/- and parse_term for */; (B2) csv_io.py _infer_type() only tries float() when '.' present, so ' 85' stays as string instead of becoming int 85, fix by stripping whitespace first; (B3) cell.py get_numeric_value() returns 0 for empty cells instead of None, breaking AVERAGE denominator counts; (B4) dependency.py uses single visited set causing false circular errors when two formulas share a dependency like A1=C1*2 and B1=C1+10, fix by using separate permanent/temporary sets. There are 4 stubs: (S1) evaluator.py eval_range() needs 2D range support for blocks like A1:C3 in row-major order; (S2) functions.py VLOOKUP needs exact match (type=0) and approximate match (type=1); (S3) functions.py COUNTIF needs criteria parsing for '>100','<=50' etc; (S4) functions.py AVERAGE needs numeric-only mean skipping None. Pipeline dependency: S1 must work before S2/S3/S4 can use 2D ranges. VLOOKUP test expects Gadget Pro price = 42.50. COUNTIF '>20' on [10,25,30,5,50,15] expects 3. AVERAGE of [10,None,30,40] expects 26.667. The data files have whitespace-padded values (' 85',' 95') and empty cells (Eva Patel salary, last sales row quantity) that test B2 and B3.",
+    "pi_confidence": "high"
+}

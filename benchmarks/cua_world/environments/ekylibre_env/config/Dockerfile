@@ -65,6 +65,14 @@ RUN if grep -q 'postgis lexicon\]' /app/config/initializers/apartment.rb 2>/dev/
         echo "apartment.rb: pattern not found (may be different version, check manually)"; \
     fi
 
+# --- Compatibility patch 1b: apartment.rb adapter ---
+# Switch Apartment from postgresql_adapter to postgis_adapter so that
+# ActiveRecord uses PostGIS::TableDefinition (which has st_point, st_polygon, etc.)
+# instead of the standard PostgreSQL::TableDefinition.
+RUN sed -i "s|require 'apartment/adapters/postgresql_adapter'|require 'apartment/adapters/postgis_adapter'|" \
+        /app/config/initializers/apartment.rb && \
+    echo "Patched apartment.rb: switched to postgis adapter"
+
 # --- Compatibility patch 2: shape_corrector.rb ---
 # Add nil guard after }[geometry_type] hash lookup in postgis_geometries_extraction.
 # Without it, ST_CollectionExtract(geom, ) with empty int_type causes a SQL syntax error
@@ -148,29 +156,8 @@ RUN RAILS_ENV=production \
 # Create first_runs directory (will be volume-mounted with demo data)
 RUN mkdir -p /app/db/first_runs
 
-# Create entrypoint script
-RUN cat > /usr/local/bin/docker-entrypoint.sh << 'ENTRYEOF'
-#!/bin/bash
-set -e
-
-# Load .env file if present
-if [ -f /app/.env ]; then
-    set -a
-    source /app/.env
-    set +a
-fi
-
-export RAILS_ENV="${RAILS_ENV:-production}"
-
-echo "Starting Ekylibre (RAILS_ENV=$RAILS_ENV)..."
-cd /app
-
-# Remove stale PID file
-rm -f /app/tmp/pids/server.pid
-
-exec "$@"
-ENTRYEOF
-
+# Copy entrypoint script (COPY is more reliable than heredoc in RUN)
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000

@@ -1,0 +1,64 @@
+{
+  "id": "quarterly_portfolio_rebalance@1",
+  "version": "1.0",
+  "env_id": "jstock_env@0.1",
+  "description": "Read the quarterly rebalancing memo at /home/ga/Documents/q1_rebalance_memo.txt. Your existing portfolio contains AAPL (150 shares), MSFT (80 shares), NVDA (35 shares), and JNJ (40 shares). Following the memo, execute these Q1 adjustments: record a $25,000 deposit dated March 1, 2024 with comment 'Q1 capital contribution'; record an AAPL dividend of $111.00 received March 10, 2024 with comment 'Q1 2024 dividend'; sell 50 AAPL shares at $215.00 and 15 NVDA shares at $750.00, both on March 15, 2024; buy three new positions by computing the maximum whole shares (rounded down) from the dollar allocations and prices in the memo, all on March 15, 2024. Apply $4.95 broker commission to every trade. Create a watchlist 'Q1 Rebalance Watch' with all six current holdings, setting Fall Below alerts at 5% below and Rise Above alerts at 10% above each stock's earliest purchase price. Export the buy portfolio to /home/ga/Documents/portfolio_q1_export.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/quarterly_portfolio_rebalance/setup_task.sh",
+    "post_task": "/workspace/tasks/quarterly_portfolio_rebalance/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "occupation": "Portfolio Manager (11-3031.01)",
+    "industry": "Asset Management / Financial Advisory",
+    "data_source": "Approximate Yahoo Finance prices, early 2024",
+    "existing_portfolio": {
+      "AAPL": {"units": 150, "price": 185.50, "date": "Jan 02, 2024"},
+      "MSFT": {"units": 80, "price": 420.00, "date": "Jan 02, 2024"},
+      "NVDA": {"units": 35, "price": 615.00, "date": "Jan 15, 2024"},
+      "JNJ": {"units": 40, "price": 160.00, "date": "Jan 15, 2024"}
+    },
+    "deposit": {
+      "amount": 25000.0,
+      "date": "Mar 01, 2024",
+      "comment_keyword": "capital"
+    },
+    "dividend": {
+      "code": "AAPL",
+      "amount": 111.0,
+      "date": "Mar 10, 2024",
+      "comment_keyword": "dividend"
+    },
+    "sells": {
+      "AAPL": {"units": 50, "price": 215.00, "date": "Mar 15, 2024"},
+      "NVDA": {"units": 15, "price": 750.00, "date": "Mar 15, 2024"}
+    },
+    "buys": {
+      "XOM": {"allocation": 25000, "price": 105.00, "expected_units": 238, "date": "Mar 15, 2024"},
+      "KO":  {"allocation": 20000, "price": 58.00,  "expected_units": 344, "date": "Mar 15, 2024"},
+      "JNJ": {"allocation": 12000, "price": 162.50, "expected_units": 73,  "date": "Mar 15, 2024"}
+    },
+    "watchlist_name": "Q1 Rebalance Watch",
+    "alerts": {
+      "AAPL": {"purchase_price": 185.50, "fall_below": 176.23, "rise_above": 204.05},
+      "MSFT": {"purchase_price": 420.00, "fall_below": 399.00, "rise_above": 462.00},
+      "NVDA": {"purchase_price": 615.00, "fall_below": 584.25, "rise_above": 676.50},
+      "JNJ":  {"purchase_price": 160.00, "fall_below": 152.00, "rise_above": 176.00},
+      "XOM":  {"purchase_price": 105.00, "fall_below": 99.75,  "rise_above": 115.50},
+      "KO":   {"purchase_price": 58.00,  "fall_below": 55.10,  "rise_above": 63.80}
+    },
+    "export_path": "/home/ga/Documents/portfolio_q1_export.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_quarterly_portfolio_rebalance"
+    }
+  }
+}

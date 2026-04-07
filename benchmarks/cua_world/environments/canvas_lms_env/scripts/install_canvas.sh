@@ -24,6 +24,18 @@ apt-get install -y \
     gnupg \
     lsb-release
 
+# Configure Docker to NOT modify iptables rules.
+# CRITICAL: Docker's iptables setup breaks QEMU's SSH port forwarding
+# when Docker daemon restarts on checkpoint restore. With iptables disabled,
+# we use host network mode in docker-compose instead.
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json << 'DEOF'
+{
+  "iptables": false,
+  "ip6tables": false
+}
+DEOF
+
 systemctl enable docker
 systemctl start docker
 usermod -aG docker ga
@@ -59,6 +71,36 @@ mkdir -p /home/ga/canvas/data/redis
 mkdir -p /home/ga/canvas/data/canvas_files
 chown -R ga:ga /home/ga/canvas
 
+# ============================================================
+# 5. Create swap space (Canvas fat container is memory-hungry)
+# ============================================================
+echo "Creating 4GB swap file..."
+fallocate -l 4G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=4096
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo "/swapfile none swap sw 0 0" >> /etc/fstab
+echo "Swap enabled"
+
+# ============================================================
+# 6. Pre-pull Canvas Docker image (saves it in pre_start cache)
+# ============================================================
+echo "Setting up docker-compose for Canvas..."
+cp /workspace/config/docker-compose.yml /home/ga/canvas/
+chown -R ga:ga /home/ga/canvas
+
+echo "Pre-pulling Canvas Docker image (this takes 3-5 minutes)..."
+cd /home/ga/canvas
+docker-compose pull 2>&1 || {
+    echo "First pull attempt failed, retrying..."
+    sleep 10
+    docker-compose pull 2>&1 || echo "WARNING: Docker pull failed"
+}
+cd /
+
+echo "Docker images:"
+docker images | grep -i canvas || echo "(none)"
+
 # Clean up
 apt-get clean
 rm -rf /var/lib/apt/lists/*
@@ -69,4 +111,4 @@ echo "Docker version: $(docker --version)"
 echo "Docker Compose version: $(docker-compose --version)"
 echo "Firefox: $(which firefox)"
 echo ""
-echo "Canvas LMS will be configured in post_start hook"
+echo "Canvas Docker image pre-pulled. Post_start hook will start the container."

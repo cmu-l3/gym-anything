@@ -1,0 +1,55 @@
+{
+  "id": "rfid_json_analytics@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "An RFID Device Specialist at a logistics warehouse has bulk-loaded 500+ RFID tag-read events (in JSON format) from middleware into the Oracle table 'RFID_EVENTS' in the HR schema. The operations team needs structured views and a repeatable reporting pipeline. Create a relational view named 'RFID_EVENTS_FLAT' that extracts key fields (EVENT_ID, TAG_ID, EPC_URI, READER_ID, FACILITY, ZONE, READ_TIME, RSSI_DBM, SKU, ITEM_DESCRIPTION, ITEM_CATEGORY, UNIT_VALUE_USD, and EVENT_TYPE) from the JSON 'EVENT_DATA' column. Create an analytical view named 'ZONE_TRAFFIC_SUMMARY' that aggregates data by FACILITY and ZONE, showing TOTAL_READS, UNIQUE_TAGS, UNIQUE_SKUS, ARRIVAL_COUNT, DEPARTURE_COUNT, and AVG_SIGNAL_STRENGTH (rounded to 1 decimal). Develop a PL/SQL function 'GET_TAG_HISTORY(p_tag_id IN VARCHAR2) RETURN VARCHAR2' that returns a pipe-delimited string of events for a tag (format: 'ZONE:EVENT_TYPE:READ_TIME|...'), ordered by time, or 'NO_EVENTS_FOUND' if the tag doesn't exist. Export a report of the zone traffic summary with headers to /home/ga/Desktop/warehouse_report.txt. Connection: Host=localhost, Port=1521, Database=XEPDB1, User=hr, Password=hr123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rfid_json_analytics/setup_task.sh",
+    "post_task": "/workspace/tasks/rfid_json_analytics/export_result.sh"
+  },
+  "metadata": {
+    "required_views": [
+      "RFID_EVENTS_FLAT",
+      "ZONE_TRAFFIC_SUMMARY"
+    ],
+    "required_function": "GET_TAG_HISTORY",
+    "flat_view_columns": [
+      "EVENT_ID",
+      "TAG_ID",
+      "EPC_URI",
+      "READER_ID",
+      "FACILITY",
+      "ZONE",
+      "READ_TIME",
+      "RSSI_DBM",
+      "SKU",
+      "ITEM_DESCRIPTION",
+      "ITEM_CATEGORY",
+      "UNIT_VALUE_USD",
+      "EVENT_TYPE"
+    ],
+    "summary_view_columns": [
+      "FACILITY",
+      "ZONE",
+      "TOTAL_READS",
+      "UNIQUE_TAGS",
+      "UNIQUE_SKUS",
+      "ARRIVAL_COUNT",
+      "DEPARTURE_COUNT",
+      "AVG_SIGNAL_STRENGTH"
+    ],
+    "output_file": "/home/ga/Desktop/warehouse_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rfid_json_analytics"
+    }
+  }
+}

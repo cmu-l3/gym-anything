@@ -1,0 +1,66 @@
+{
+    "task_id": "nationality_normalization@1",
+    "dataset": "demodb",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/nationality_audit.txt",
+            "verified_value": "/home/ga/nationality_audit.txt",
+            "source": "Confirmed in setup_task.sh line 63, export_result.sh lines 16-23, and task.json hook definitions",
+            "status": "verified"
+        },
+        {
+            "key": "required_edge_class",
+            "metadata_value": "IsCitizenOf",
+            "verified_value": "IsCitizenOf",
+            "source": "Confirmed in setup_task.sh line 19, export_result.sh line 34, and verifier.py line 42",
+            "status": "verified"
+        },
+        {
+            "key": "mappings_to_verify[0]",
+            "metadata_value": {"nationality": "American", "country": "United States"},
+            "verified_value": {"nationality": "American", "country": "United States"},
+            "source": "Verified via seed_demodb.py: John Smith has American nationality (line 195), United States exists as country (line 178). Setup_task.sh ensures this profile (line 40)",
+            "status": "verified"
+        },
+        {
+            "key": "mappings_to_verify[1]",
+            "metadata_value": {"nationality": "British", "country": "United Kingdom"},
+            "verified_value": {"nationality": "British", "country": "United Kingdom"},
+            "source": "Verified via seed_demodb.py: David Jones has British nationality (line 197), United Kingdom exists as country (line 177). Setup_task.sh ensures this profile (line 43)",
+            "status": "verified"
+        },
+        {
+            "key": "mappings_to_verify[2]",
+            "metadata_value": {"nationality": "Dutch", "country": "Netherlands"},
+            "verified_value": {"nationality": "Dutch", "country": "Netherlands"},
+            "source": "Verified via seed_demodb.py: Piet Vanderberg has Dutch nationality (line 205), Netherlands exists as country (line 185). Setup_task.sh ensures this profile (lines 46-52)",
+            "status": "verified"
+        },
+        {
+            "key": "mappings_to_verify[3]",
+            "metadata_value": {"nationality": "Spanish", "country": "Spain"},
+            "verified_value": {"nationality": "Spanish", "country": "Spain"},
+            "source": "Verified via seed_demodb.py: Maria Garcia has Spanish nationality (line 196), Spain exists as country (line 183). However, setup_task.sh does NOT explicitly ensure this profile exists (no grep for 'Spanish'). More critically, verifier.py lines 62-66 only checks 3 mappings (American, British, Dutch), NOT Spanish. This mapping is listed in metadata but NOT verified by the verifier.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_orphans[0].nationality",
+            "metadata_value": "Mexican",
+            "verified_value": "Mexican",
+            "source": "Verified via seed_demodb.py line 204: Carlos Lopez has Mexican nationality. Setup_task.sh lines 54-60 explicitly ensure this profile with Mexican nationality. Mexico does NOT exist in the countries list (seed_demodb.py lines 173-186), making this an orphan.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_orphans[0].email",
+            "metadata_value": "carlos.lopez@example.com",
+            "verified_value": "carlos.lopez@example.com",
+            "source": "Confirmed in seed_demodb.py line 204 and setup_task.sh line 57",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the OrientDB demodb database with real-world data: profiles have nationalities (American, British, Dutch, Spanish, Mexican) and countries exist with proper names (United States, United Kingdom, Netherlands, Spain). Four nationality-to-country mappings are listed in metadata, but only three are actually verified by the verifier code (American→United States, British→United Kingdom, Dutch→Netherlands; Spanish→Spain is NOT checked). The Mexican profile (carlos.lopez@example.com) is correctly identified as an orphan since Mexico does not exist in the countries table. The report path is /home/ga/nationality_audit.txt and the required edge class is 'IsCitizenOf'.",
+    "pi_confidence": "high"
+}

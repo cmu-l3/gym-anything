@@ -1,0 +1,138 @@
+{
+  "task_id": "bio201_outcomes_assessment_migration@1",
+  "dataset": "Canvas LMS (lbjay/canvas-docker) with custom Rails-seeded course data",
+  "case_id": "BIO201 course_id=34",
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "course_code",
+      "metadata_value": "BIO201",
+      "verified_value": "BIO201",
+      "source": "Live DB query: SELECT id, course_code FROM courses WHERE course_code='BIO201' returned id=34, course_code=BIO201. Confirmed in evidence file 16_complete_db_state.txt line 5: '34|Advanced Biology|BIO201|available|percent'",
+      "status": "verified"
+    },
+    {
+      "key": "target_assignments",
+      "metadata_value": ["Final Research Paper", "Midterm Essay"],
+      "verified_value": ["Final Research Paper", "Midterm Essay"],
+      "source": "Live DB query confirmed both assignments exist as published in BIO201 (course_id=34). Evidence 16_complete_db_state.txt lines 21-22: 'Final Research Paper|150|Written Assignments' and 'Midterm Essay|100|Written Assignments'. Both are in the migration plan page Step 3 which says 'Attach this rubric for grading to both Final Research Paper and Midterm Essay'. No rubrics are currently attached (rubric_count=0 confirmed in export JSON).",
+      "status": "verified"
+    },
+    {
+      "key": "required_outcomes",
+      "metadata_value": ["Scientific Inquiry", "Experimental Design", "Scientific Communication"],
+      "verified_value": ["Scientific Inquiry", "Experimental Design", "Scientific Communication"],
+      "source": "Live DB query confirmed 2 outcomes exist: 'Experimental Design' (mastery=2.0, calculation=highest) and 'Scientific Communication' (mastery=3.0, calculation=decaying_average). 'Scientific Inquiry' does NOT exist (outcome_count=2, inquiry_exists=false in export JSON). Migration plan page Step 2 specifies all three are required. The agent must create Scientific Inquiry and fix Experimental Design mastery from 2 to 3.",
+      "status": "verified"
+    },
+    {
+      "key": "required_feature_flags",
+      "metadata_value": ["outcome_gradebook", "student_outcome_gradebook"],
+      "verified_value": ["outcome_gradebook", "student_outcome_gradebook"],
+      "source": "Live DB query: SELECT feature, state FROM feature_flags WHERE context_id=34 returned 0 rows. Evidence 16_complete_db_state.txt lines 74-76 confirm '(0 rows)'. Export JSON shows feature_outcome_gradebook='' and feature_student_gradebook=''. Migration plan Step 1 says to enable both. These are real Canvas feature flag names verified against the phys201_setup_outcomes_grading task which uses the same flags.",
+      "status": "verified"
+    },
+    {
+      "key": "rubric_title",
+      "metadata_value": "BIO201 Research Assessment Rubric",
+      "verified_value": "BIO201 Research Assessment Rubric",
+      "source": "Migration plan wiki page Step 3 (confirmed in evidence 11_migration_plan_content.txt line 30) says: 'Create a rubric titled \"BIO201 Research Assessment Rubric\"'. Currently no rubrics exist (rubric_count=0 in DB). This is the title the agent should use when creating the rubric.",
+      "status": "verified"
+    },
+    {
+      "key": "rubric_criteria",
+      "metadata_value": {"Research Question": 25, "Methodology": 30, "Analysis & Evidence": 25, "Written Communication": 20},
+      "verified_value": {"Research Question": 25, "Methodology": 30, "Analysis & Evidence": 25, "Written Communication": 20},
+      "source": "Migration plan wiki page Step 3 table (evidence 11_migration_plan_content.txt lines 41-60) specifies exactly: Research Question=25 (aligned to Scientific Inquiry), Methodology=30 (aligned to Experimental Design), Analysis & Evidence=25 (aligned to Scientific Inquiry), Written Communication=20 (aligned to Scientific Communication). Total=100 points. Currently 0 rubrics exist in the course.",
+      "status": "verified"
+    },
+    {
+      "key": "target_weights",
+      "metadata_value": {"Written Assignments": 25, "Laboratory Reports": 30, "Quizzes & Exams": 25, "Participation": 20},
+      "verified_value": {"Written Assignments": 25, "Laboratory Reports": 30, "Quizzes & Exams": 25, "Participation": 20},
+      "source": "Migration plan wiki page Step 4 (evidence 11_migration_plan_content.txt lines 70-77) specifies: Written Assignments=25%, Laboratory Reports=30%, Quizzes & Exams=25%, Participation=20%. Current WRONG values confirmed in DB (evidence 16_complete_db_state.txt lines 10-13): Written=35, Lab=15, Quiz=25, Participation=25. Export JSON confirms weight_written=35, weight_lab=15, weight_quiz=25, weight_part=25. Agent must change Written from 35 to 25, Lab from 15 to 30, and Participation from 25 to 20. Quizzes & Exams at 25% is already correct (false positive trap).",
+      "status": "verified"
+    },
+    {
+      "key": "target_late_policy",
+      "metadata_value": {"deduction_per_day": 10, "minimum_percent": 40},
+      "verified_value": {"deduction_per_day": 10, "minimum_percent": 40},
+      "source": "Migration plan wiki page Step 4 (evidence 11_migration_plan_content.txt lines 80-81) says: '10% deduction per day, minimum score floor of 40%'. Current WRONG values confirmed in DB (evidence 16_complete_db_state.txt line 69): late_submission_deduction=5.00, late_submission_minimum_percent=50.00, enabled=t. Export JSON confirms late_deduction=5.00, late_minimum=50.00. Agent must change deduction from 5 to 10 and floor from 50 to 40.",
+      "status": "verified"
+    },
+    {
+      "key": "target_outcome_mastery",
+      "metadata_value": 3,
+      "verified_value": 3,
+      "source": "Migration plan wiki page Step 2 (evidence 11_migration_plan_content.txt lines 19-26) specifies all three outcomes require 'mastery at 3 out of 5'. Current DB state (evidence 16_complete_db_state.txt lines 61-62): Experimental Design has mastery=2.0 (WRONG), Scientific Communication has mastery=3.0 (CORRECT). Export JSON confirms outcome_design_mastery=2.0 and outcome_comm_mastery=3.0. Agent must fix Experimental Design from 2 to 3 and create Scientific Inquiry with mastery=3.",
+      "status": "verified"
+    }
+  ],
+  "ground_truth_initial_state": {
+    "course": {
+      "id": 34,
+      "name": "Advanced Biology",
+      "code": "BIO201",
+      "workflow_state": "available",
+      "group_weighting_scheme": "percent"
+    },
+    "assignment_groups_WRONG": {
+      "Written Assignments": {"current_weight": 35, "target_weight": 25},
+      "Laboratory Reports": {"current_weight": 15, "target_weight": 30},
+      "Quizzes & Exams": {"current_weight": 25, "target_weight": 25, "note": "ALREADY CORRECT"},
+      "Participation": {"current_weight": 25, "target_weight": 20}
+    },
+    "assignments": [
+      {"title": "Course Introduction Post", "points": 10, "group": "Participation", "correct_group": "Participation"},
+      {"title": "Cell Biology Lab Report", "points": 50, "group": "Laboratory Reports", "correct_group": "Laboratory Reports"},
+      {"title": "Molecular Biology Analysis Paper", "points": 80, "group": "Written Assignments", "correct_group": "Written Assignments"},
+      {"title": "Ecology Field Report", "points": 50, "group": "Written Assignments", "correct_group": "Laboratory Reports", "note": "WRONG GROUP"},
+      {"title": "Final Research Paper", "points": 150, "group": "Written Assignments", "correct_group": "Written Assignments"},
+      {"title": "Midterm Essay", "points": 100, "group": "Written Assignments", "correct_group": "Written Assignments"},
+      {"title": "Genetics Checkpoint", "points": 30, "group": "Quizzes & Exams", "correct_group": "Quizzes & Exams"}
+    ],
+    "modules": [
+      {"position": 1, "name": "Week 1: Introduction to Advanced Biology", "prerequisite": "none", "correct": true},
+      {"position": 2, "name": "Week 2: Cell Biology Fundamentals", "prerequisite": "Week 1", "correct": true},
+      {"position": 3, "name": "Week 3: Genetics and Heredity", "prerequisite": "Week 2", "correct": true},
+      {"position": 4, "name": "Week 4: Molecular Biology", "prerequisite": "Week 2", "correct_prerequisite": "Week 3", "note": "WRONG PREREQUISITE"},
+      {"position": 5, "name": "Week 5: Ecology and Ecosystems", "prerequisite": "Week 4", "correct": true}
+    ],
+    "learning_outcomes": [
+      {"name": "Scientific Communication", "mastery_points": 3.0, "calculation_method": "decaying_average", "calculation_int": 65, "status": "CORRECT"},
+      {"name": "Experimental Design", "mastery_points": 2.0, "calculation_method": "highest", "status": "WRONG_MASTERY_SHOULD_BE_3"},
+      {"name": "Scientific Inquiry", "status": "MISSING_AGENT_MUST_CREATE", "target_mastery": 3.0, "target_calculation": "latest"}
+    ],
+    "late_policy_WRONG": {
+      "deduction": 5.0, "target_deduction": 10.0,
+      "minimum_percent": 50.0, "target_minimum": 40.0,
+      "enabled": true
+    },
+    "feature_flags_OFF": ["outcome_gradebook", "student_outcome_gradebook"],
+    "rubrics": {"count": 0, "note": "NONE EXIST - agent must create and attach to both Final Research Paper and Midterm Essay"},
+    "enrollments": {
+      "teacher": "Professor Anderson (teacher1)",
+      "students": ["Jane Smith", "Michael Jones", "Alice Wilson", "Bob Brown", "Carlos Garcia", "Diana Lee", "Emily Patel", "Frank Kim"]
+    }
+  },
+  "errors_to_fix": [
+    "1. Enable feature flags: outcome_gradebook and student_outcome_gradebook (currently OFF/missing)",
+    "2. Create missing outcome: Scientific Inquiry (mastery=3, calculation=latest)",
+    "3. Fix outcome: Experimental Design mastery from 2 to 3",
+    "4. Create rubric 'BIO201 Research Assessment Rubric' with 4 criteria (25+30+25+20=100 pts)",
+    "5. Attach rubric for grading to both Final Research Paper AND Midterm Essay",
+    "6. Fix assignment group weights: Written 35→25, Lab 15→30, Participation 25→20",
+    "7. Move Ecology Field Report from Written Assignments to Laboratory Reports",
+    "8. Fix late policy: deduction 5→10, floor 50→40",
+    "9. Fix Week 4 prerequisite from Week 2 to Week 3"
+  ],
+  "false_positive_traps": [
+    "Module order is correct (Weeks 1-5 in sequential positions)",
+    "Module prerequisites for Weeks 2, 3, and 5 are already correct",
+    "Scientific Communication outcome (mastery=3, decaying_average) is already correct",
+    "Quizzes & Exams weight (25%) is already correct",
+    "All assignment categorizations except Ecology Field Report are correct"
+  ],
+  "privileged_info_summary": "BIO201 (course_id=34, 'Advanced Biology') requires a full outcomes-based assessment migration. The migration plan wiki page titled 'Outcomes-Based Assessment Migration Plan' is in the course Pages section and specifies all target values. INITIAL BROKEN STATE: (1) Feature flags outcome_gradebook and student_outcome_gradebook are OFF (0 rows in feature_flags table). (2) Only 2 of 3 required learning outcomes exist: 'Experimental Design' has WRONG mastery_points=2.0 (should be 3.0, calculation_method=highest), 'Scientific Communication' is correct at mastery=3.0 (decaying_average, calc_int=65). 'Scientific Inquiry' is MISSING and must be created with mastery=3.0 and calculation_method=latest. (3) Zero rubrics exist. Agent must create 'BIO201 Research Assessment Rubric' with 4 criteria: Research Question (25pts, aligned to Scientific Inquiry), Methodology (30pts, aligned to Experimental Design), Analysis & Evidence (25pts, aligned to Scientific Inquiry), Written Communication (20pts, aligned to Scientific Communication), totaling 100 points. This rubric must be attached for grading (purpose='grading' in rubric_associations) to both 'Final Research Paper' (150pts) and 'Midterm Essay' (100pts). (4) Assignment group weights are WRONG: Written Assignments=35% (should be 25%), Laboratory Reports=15% (should be 30%), Participation=25% (should be 20%). Quizzes & Exams=25% is already correct. (5) 'Ecology Field Report' (50pts) is in 'Written Assignments' group but should be in 'Laboratory Reports'. (6) Late policy is WRONG: late_submission_deduction=5.00 (should be 10.0), late_submission_minimum_percent=50.00 (should be 40.0), deduction is enabled. (7) Module 'Week 4: Molecular Biology' has prerequisite pointing to 'Week 2: Cell Biology Fundamentals' (id=7) but should point to 'Week 3: Genetics and Heredity' (id=8). All other module prerequisites and the module ordering (positions 1-5) are correct. 9 users enrolled: 1 teacher (Professor Anderson) and 8 students.",
+  "pi_confidence": "high"
+}

@@ -1,0 +1,235 @@
+{
+  "task_id": "annual_wellness_specialist_followup@1",
+  "dataset": "NOSH ChartingSystem (nosh2) with hand-seeded clinical data",
+  "case_id": "pid=900 (Margaret Thompson)",
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "patient_pid",
+      "metadata_value": 900,
+      "verified_value": 900,
+      "source": "Live DB query: SELECT pid FROM demographics WHERE pid=900 returned 1 row. Evidence: 03_patient_demographics.txt",
+      "status": "verified"
+    },
+    {
+      "key": "patient_name",
+      "metadata_value": "Margaret Thompson",
+      "verified_value": "Margaret Thompson",
+      "source": "Live DB query: demographics shows lastname='Thompson', firstname='Margaret'. Evidence: 03_patient_demographics.txt",
+      "status": "verified"
+    },
+    {
+      "key": "patient_dob",
+      "metadata_value": "1958-04-22",
+      "verified_value": "1958-04-22",
+      "source": "Live DB query: demographics.DOB = '1958-04-22 00:00:00'. Evidence: 03_patient_demographics.txt",
+      "status": "verified"
+    },
+    {
+      "key": "patient_sex",
+      "metadata_value": "f",
+      "verified_value": "f (fixed from Female \u2014 NOSH requires single-char f/m, not full words)",
+      "source": "Live DB query: demographics.sex = 'Female' (stored as full word, not 'f'). Evidence: 03_patient_demographics.txt CRITICAL BUG FIX: Synthea-generated patients have sex=Female/Male but NOSH set_patient controller expects single-char f/m. Full word causes Undefined index error at Controller.php:17845, returning 500 SERVER ERROR when opening patient chart. Fixed in setup_task.sh: UPDATE demographics SET sex=f WHERE pid=900 AND sex NOT IN (f,m).",
+      "status": "verified"
+    },
+    {
+      "key": "seeded_state.medications.Metformin_500mg",
+      "metadata_value": "active (agent should increase to 1000mg per consultation letter)",
+      "verified_value": "active: rxl_medication='Metformin', rxl_dosage='500', rxl_dosage_unit='mg', rxl_sig='Take one tablet twice daily with meals', rxl_date_inactive=NULL",
+      "source": "Live DB query of rx_list WHERE pid=900. Evidence: 04_medications.txt",
+      "status": "verified"
+    },
+    {
+      "key": "seeded_state.medications.Lisinopril_10mg",
+      "metadata_value": "active (should be retained \u2014 no interaction)",
+      "verified_value": "active: rxl_medication='Lisinopril', rxl_dosage='10', rxl_dosage_unit='mg', rxl_date_inactive=NULL",
+      "source": "Live DB query of rx_list WHERE pid=900. Evidence: 04_medications.txt",
+      "status": "verified"
+    },
+    {
+      "key": "seeded_state.medications.Atorvastatin_20mg",
+      "metadata_value": "active (should be retained \u2014 no interaction)",
+      "verified_value": "active: rxl_medication='Atorvastatin', rxl_dosage='20', rxl_dosage_unit='mg', rxl_date_inactive=NULL",
+      "source": "Live DB query of rx_list WHERE pid=900. Evidence: 04_medications.txt",
+      "status": "verified"
+    },
+    {
+      "key": "seeded_state.medications.Naproxen_500mg",
+      "metadata_value": "active (NSAID \u2014 agent must discover interaction with Clopidogrel and discontinue)",
+      "verified_value": "active: rxl_medication='Naproxen', rxl_dosage='500', rxl_sig='Take one tablet twice daily with food for knee pain', rxl_date_inactive=NULL. Interaction with Clopidogrel confirmed.",
+      "source": "Live DB query: 04_medications.txt. Drug interaction verified via drugs.com (https://www.drugs.com/drug-interactions/clopidogrel-with-naproxen-705-0-1690-0.html): 'Taking clopidogrel and naproxen together significantly increases risk of serious bleeding.' PMC5851628: Naproxen+clopidogrel HR=1.47 for GI bleeding/ICH. ACCF/ACG/AHA 2008 consensus: OR=7.4 for serious upper GI bleeding with NSAID+antiplatelet.",
+      "status": "verified"
+    },
+    {
+      "key": "seeded_state.medications.Omeprazole_20mg",
+      "metadata_value": "active (gastroprotective \u2014 should be retained; anti-gaming trap)",
+      "verified_value": "active: rxl_medication='Omeprazole', rxl_dosage='20', rxl_date_inactive=NULL. NUANCE: Omeprazole specifically inhibits CYP2C19, reducing clopidogrel activation (NEJM COGENT trial, EMA/MHRA advisory). Pantoprazole would be clinically preferred PPI. However, COGENT trial found no significant increase in CV events. For task purposes, retention is the expected action (anti-gaming design).",
+      "source": "Live DB query: 04_medications.txt. PPI interaction: NEJM DOI 10.1056/NEJMoa1007964 (COGENT trial). PMC10523195: PPIs reduce GI events with antiplatelets. EMA/MHRA advise against omeprazole specifically with clopidogrel, prefer pantoprazole.",
+      "status": "verified"
+    },
+    {
+      "key": "seeded_state.problem_list.Type_1_Diabetes",
+      "metadata_value": "INCORRECT \u2014 agent must correct to Type 2 Diabetes Mellitus E11.9",
+      "verified_value": "Seeded as: issue='Type 1 Diabetes Mellitus (E10.9)', issue_date_active='2020-03-15', type='Problem List'. ICD code is embedded in the issue text (no separate icd column). Agent must change to Type 2 / E11.9.",
+      "source": "Live DB query: 05_problem_list.txt. Schema confirmed: 12c_issues_schema.txt shows 'issue' column (varchar 255) with no separate 'icd' column.",
+      "status": "verified"
+    },
+    {
+      "key": "seeded_state.problem_list.Essential_Hypertension",
+      "metadata_value": "correct \u2014 should be retained",
+      "verified_value": "Seeded as: issue='Essential Hypertension (I10)', issue_date_active='2019-06-10', type='Problem List'",
+      "source": "Live DB query: 05_problem_list.txt",
+      "status": "verified"
+    },
+    {
+      "key": "seeded_state.problem_list.Hyperlipidemia",
+      "metadata_value": "correct \u2014 should be retained",
+      "verified_value": "Seeded as: issue='Hyperlipidemia (E78.5)', issue_date_active='2020-01-20', type='Problem List'",
+      "source": "Live DB query: 05_problem_list.txt",
+      "status": "verified"
+    },
+    {
+      "key": "consultation_letter_recommendations.increase_metformin",
+      "metadata_value": "500mg to 1000mg BID",
+      "verified_value": "Letter states: 'Increase Metformin from 500mg to 1000mg twice daily'",
+      "source": "consultation_letter.txt content verified in live env. Evidence: 02_consultation_letter.txt line 15",
+      "status": "verified"
+    },
+    {
+      "key": "consultation_letter_recommendations.start_clopidogrel",
+      "metadata_value": "75mg daily for cardiovascular risk reduction",
+      "verified_value": "Letter states: 'Start Clopidogrel 75mg daily for cardiovascular risk reduction'",
+      "source": "consultation_letter.txt content verified in live env. Evidence: 02_consultation_letter.txt line 16",
+      "status": "verified"
+    },
+    {
+      "key": "consultation_letter_recommendations.order_labs",
+      "metadata_value": [
+        "HbA1c",
+        "Comprehensive Metabolic Panel",
+        "Lipid Panel"
+      ],
+      "verified_value": [
+        "Hemoglobin A1c (HbA1c)",
+        "Comprehensive Metabolic Panel (CMP)",
+        "Lipid Panel"
+      ],
+      "source": "consultation_letter.txt MONITORING section verified. Evidence: 02_consultation_letter.txt lines 19-21",
+      "status": "verified"
+    },
+    {
+      "key": "hidden_interaction.drug_pair",
+      "metadata_value": "Naproxen (NSAID) + Clopidogrel (antiplatelet)",
+      "verified_value": "Confirmed major drug interaction: Naproxen (NSAID) + Clopidogrel (antiplatelet) = significantly increased GI bleeding risk. HR=1.47 (PMC5851628), OR=7.4 for serious upper GI bleeding (ACCF/ACG/AHA 2008).",
+      "source": "drugs.com: https://www.drugs.com/drug-interactions/clopidogrel-with-naproxen-705-0-1690-0.html; PMC5851628 (retrospective cohort); patient.info: https://patient.info/medication-interactions/clopidogrel-and-naproxen-interaction",
+      "status": "verified"
+    },
+    {
+      "key": "hidden_interaction.risk",
+      "metadata_value": "significantly increased GI bleeding risk",
+      "verified_value": "Confirmed: significantly increased GI bleeding risk. Mechanism: both Naproxen (NSAID reducing platelet activity + irritating stomach lining) and Clopidogrel (antiplatelet inhibiting platelet aggregation) impair hemostasis, and their effects are additive.",
+      "source": "drugs.com interaction page; ACCF/ACG/AHA 2008 Expert Consensus (Circulation 2008); Clinical Advisor: https://www.clinicaladvisor.com/clinicalchallenges/mixing-nsaids-with-antiplatelet-therapy/",
+      "status": "verified"
+    },
+    {
+      "key": "hidden_interaction.expected_action",
+      "metadata_value": "discontinue Naproxen",
+      "verified_value": "Discontinue Naproxen is the correct clinical action. Guidelines state: 'if pain relief is needed while taking clopidogrel, paracetamol/acetaminophen is usually a safer choice.' Alternatively, if NSAID is necessary, use lowest dose for shortest duration with PPI gastroprotection.",
+      "source": "patient.info clopidogrel-naproxen interaction page; ACCF/ACG/AHA 2008 consensus document",
+      "status": "verified"
+    },
+    {
+      "key": "scoring.total",
+      "metadata_value": 100,
+      "verified_value": 100,
+      "source": "Manual sum: 5+15+10+10+10+15+10+10+5+5+5 = 100. Confirmed via Python validation script.",
+      "status": "verified"
+    },
+    {
+      "key": "scoring.pass_threshold",
+      "metadata_value": 70,
+      "verified_value": 70,
+      "source": "task.json metadata. Anti-gaming analysis: agent following only letter instructions (no chart review) scores max 65 (encounter 5 + ROS 15 + PE 10 + metformin 10 + clopidogrel 10 + OA 5 + labs 5 + referral 5 = 65), below 70 threshold. Chart review IS required to pass.",
+      "status": "verified"
+    },
+    {
+      "key": "anti_gaming_notes.naproxen_discovery",
+      "metadata_value": "Naproxen interaction not mentioned in consultation letter; agent must independently identify the NSAID-antiplatelet risk",
+      "verified_value": "Confirmed: consultation_letter.txt does NOT mention Naproxen anywhere. The letter only recommends: (1) increase Metformin, (2) start Clopidogrel. Agent must independently review the medication list and identify the Naproxen-Clopidogrel interaction.",
+      "source": "Full text of consultation_letter.txt verified. Grep for 'Naproxen' returns 0 matches. Evidence: 02_consultation_letter.txt",
+      "status": "verified"
+    },
+    {
+      "key": "db_schema.issues_table_icd_column",
+      "metadata_value": "expected_db_state references ICD codes like E11.9, E10.9, M19.90 as if in separate column",
+      "verified_value": "NOSH2 issues table has NO separate 'icd' column. ICD codes are embedded in the 'issue' text field (varchar 255), e.g., 'Type 1 Diabetes Mellitus (E10.9)'. The export_result.sh correctly searches within UPPER(issue) using LIKE patterns.",
+      "source": "Live DB schema query: DESCRIBE issues. Evidence: 12c_issues_schema.txt. Also confirmed by actual data: 05_problem_list.txt shows issue='Type 1 Diabetes Mellitus (E10.9)'",
+      "status": "verified"
+    },
+    {
+      "key": "db_schema.ros_date_column",
+      "metadata_value": "implicit: export queries ros with date column",
+      "verified_value": "ROS table date column is 'ros_date' (timestamp, NOT NULL, defaults to current_timestamp). Primary key is 'eid' (encounter ID), not 'ros_id'. No auto_increment \u2014 eid links ROS to encounters.",
+      "source": "Live DB schema query: DESCRIBE ros. Evidence: 12_ros_schema.txt",
+      "status": "verified"
+    },
+    {
+      "key": "db_schema.pe_date_column",
+      "metadata_value": "implicit: export queries pe with date column",
+      "verified_value": "PE table date column is 'pe_date' (timestamp, NOT NULL). Primary key is 'eid'. Has pe_gen1, pe_eye1, pe_ent1, pe_cv1, pe_resp1 (lungs), pe_gi1 (abdomen), plus a catch-all 'pe' longtext column. No pe_lung1 or pe_abd1 columns \u2014 those are pe_resp1 and pe_gi1 respectively.",
+      "source": "Live DB schema query: DESCRIBE pe. Evidence: 12b_pe_schema.txt",
+      "status": "verified"
+    },
+    {
+      "key": "db_schema.orders_date_column",
+      "metadata_value": "implicit: export queries orders",
+      "verified_value": "Orders table date column is 'orders_date' (timestamp, NOT NULL). Has orders_labs (longtext), orders_referrals (longtext), orders_radiology (longtext). Primary key is orders_id (auto_increment).",
+      "source": "Live DB schema query: DESCRIBE orders. Evidence: 12e_orders_schema.txt",
+      "status": "verified"
+    },
+    {
+      "key": "baseline_state.clean_before_task",
+      "metadata_value": "setup cleans encounters, ROS, PE, orders, schedule, rx_list, issues for pid=900",
+      "verified_value": "Confirmed all counts are 0 after setup: encounters=0, ros=0, pe=0, orders=0, schedule_future=0. rx_list=5 (the 5 newly seeded medications). issues=3 (the 3 newly seeded problems).",
+      "source": "Live DB queries post-setup. Evidence: 06_baseline_counts.txt, 07_clean_state.txt",
+      "status": "verified"
+    },
+    {
+      "key": "environment.login_credentials",
+      "metadata_value": "demo_provider / Provider1234!",
+      "verified_value": "User 'demo_provider' exists: id=2, displayname='Dr. James Carter', group_id=2 (provider), active=1. Password verified by successful login in previous agent evaluation (send_message task passed in 18 steps using these credentials).",
+      "source": "Live DB query: 09_users.txt. Historical evidence: send_message/run_0 scored 100/100 using demo_provider login.",
+      "status": "verified"
+    },
+    {
+      "key": "environment.consultation_letter_file",
+      "metadata_value": "consultation_letter.txt on Desktop",
+      "verified_value": "File exists at /home/ga/Desktop/consultation_letter.txt, 2099 bytes, permissions 644, owned by ga:ga. Content matches expected consultation letter text exactly.",
+      "source": "Live env check. Evidence: 10_desktop_file_perms.txt, 02_consultation_letter.txt",
+      "status": "verified"
+    },
+    {
+      "key": "environment.nosh_application_running",
+      "metadata_value": "NOSH2 accessible at http://localhost/login",
+      "verified_value": "HTTP 200 returned from http://localhost. Three Docker containers running: nosh-db (MariaDB), nosh-app (PHP-FPM), nosh-nginx (reverse proxy). Firefox open and maximized showing NOSH login page.",
+      "source": "Live env checks. Evidence: 15_http_status.txt (200), 11_docker_containers.txt, 16_firefox_process.txt, 17_window_list.txt, 01_login_page.png",
+      "status": "verified"
+    },
+    {
+      "key": "environment.export_result_script",
+      "metadata_value": "export_result.sh produces valid JSON at /tmp/annual_wellness_specialist_followup_result.json",
+      "verified_value": "export_result.sh runs successfully and produces valid JSON. Pre-task state correctly shows: all counts at baseline (0 encounters, 0 ROS, 0 PE, 0 orders, 5 rx_list), Naproxen still active (1), Omeprazole still active (1), Type 1 diabetes still active (1), no Type 2 diabetes (0), no osteoarthritis (0), no labs ordered (0), no referrals (0).",
+      "source": "Live env execution of export_result.sh. Evidence: 13_export_result_output.txt, 14_export_result_json.txt",
+      "status": "verified"
+    },
+    {
+      "key": "environment.sex_field_bug_fix",
+      "metadata_value": "not documented (discovered during live testing)",
+      "verified_value": "NOSH2 Controller.php:17845 uses demographics.sex as array index into a map with keys f and m only. Synthea patients have sex=Female which causes Undefined index: Female error, returning HTTP 500 on /set_patient/900. Fixed by adding UPDATE demographics SET sex=f WHERE pid=900 to setup_task.sh.",
+      "source": "Live environment testing: 500 error reproduced at http://localhost/set_patient/900. Laravel log: ErrorException Undefined index: Female at Controller.php:17845. Fix verified: after UPDATE sex=f, patient chart opens successfully.",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "Patient Margaret Thompson (pid=900, DOB 1958-04-22) is in the NOSH ChartingSystem EHR. Login credentials are demo_provider / Provider1234! (user id=2, Dr. James Carter, provider role). A cardiology consultation letter is on the Desktop at /home/ga/Desktop/consultation_letter.txt. The patient has 5 active medications: Metformin 500mg BID, Lisinopril 10mg daily, Atorvastatin 20mg daily, Naproxen 500mg BID, and Omeprazole 20mg daily. The problem list has 3 entries: 'Type 1 Diabetes Mellitus (E10.9)' (DELIBERATELY INCORRECT \u2014 should be Type 2 / E11.9), 'Essential Hypertension (I10)', and 'Hyperlipidemia (E78.5)'. The consultation letter recommends: (1) increase Metformin to 1000mg BID, and (2) start Clopidogrel 75mg daily. The letter does NOT mention Naproxen. The critical hidden challenge is that Naproxen (NSAID) combined with Clopidogrel (antiplatelet) creates a major GI bleeding risk (HR=1.47 per PMC5851628, OR=7.4 per ACCF/ACG/AHA 2008 consensus). The agent must independently discover this interaction and discontinue Naproxen. Omeprazole is gastroprotective and should be retained (anti-gaming: mass-discontinuation of unmentioned medications is penalized). The NOSH issues table stores ICD codes inline within the issue text field (e.g., 'Type 1 Diabetes Mellitus (E10.9)'), not in a separate column. The ROS table uses ros_date (timestamp) and eid (primary key linking to encounters), with individual longtext columns per organ system (ros_gen, ros_eye, ros_ent, ros_cv, ros_resp, ros_gi, ros_gu, ros_mus, ros_neuro, ros_psych). The PE table uses pe_date and eid, with pe_gen1, pe_eye1+pe_ent1 (HEENT), pe_cv1, pe_resp1 (lungs), pe_gi1 (abdomen), and a catch-all 'pe' longtext column. Orders use orders_labs and orders_referrals longtext columns searched with keyword LIKE patterns. Successful task completion requires: new encounter, ROS with 8+ of 10 systems filled, PE with 5+ of 6 systems filled, Metformin 500mg discontinued + 1000mg added, Clopidogrel 75mg added, Naproxen discontinued, Omeprazole retained, Type 1 diabetes removed/corrected to Type 2 (E11.9), Osteoarthritis (M19.90) added, HbA1c + CMP + Lipid Panel ordered, and Ophthalmology referral placed. An agent that only follows the consultation letter instructions without reviewing the chart scores at most 65/100, which fails the 70-point threshold. CRITICAL SETUP NOTE: NOSH requires demographics.sex to be single-char f or m (not Female/Male). The setup_task.sh includes a fix: UPDATE demographics SET sex=f WHERE pid=900. Without this fix, opening the patient chart returns a 500 Server Error.",
+  "pi_confidence": "high"
+}

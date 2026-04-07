@@ -1,0 +1,80 @@
+{
+    "task_id": "concurrent_inventory_bugfix@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_name",
+            "metadata_value": "inventory-service",
+            "verified_value": "inventory-service",
+            "source": "Verified in pom.xml (groupId:artifactId and file structure) and Eclipse environment data directory",
+            "status": "verified"
+        },
+        {
+            "key": "workspace_path",
+            "metadata_value": "/home/ga/inventory-service",
+            "verified_value": "/home/ga/inventory-service",
+            "source": "Verified in setup_task.sh which copies from /workspace/data/inventory-service to /home/ga/inventory-service and export_result.sh which inspects PROJECT_DIR=/home/ga/inventory-service",
+            "status": "verified"
+        },
+        {
+            "key": "bug_1",
+            "metadata_value": "StockCounter — plain int fields need AtomicInteger",
+            "verified_value": "StockCounter.java contains three plain int fields (totalProcessed, totalReceived, totalSold) used in non-atomic increment operations recordSale() and recordReceipt()",
+            "source": "Source code inspection of /workspace/data/inventory-service/src/main/java/com/example/inventory/StockCounter.java lines 13-24. Code comments explicitly note: 'BUG: plain int is not thread-safe — use AtomicInteger'",
+            "status": "verified"
+        },
+        {
+            "key": "bug_2",
+            "metadata_value": "ProductCatalog — HashMap needs ConcurrentHashMap",
+            "verified_value": "ProductCatalog.java uses HashMap for both productsBySku and productsById maps (lines 22-23) which are accessed without synchronization in addProduct, findBySku, findById, getAllProducts, size, and remove methods",
+            "source": "Source code inspection of /workspace/data/inventory-service/src/main/java/com/example/inventory/ProductCatalog.java. Code comment (line 14-17) states: 'BUG: Uses HashMap which is not thread-safe. Concurrent reads and writes can cause HashMap internal state corruption'",
+            "status": "verified"
+        },
+        {
+            "key": "bug_3",
+            "metadata_value": "InventoryManager — HashMap + non-atomic check-then-act in removeStock()",
+            "verified_value": "InventoryManager.java uses HashMap for stockLevels (line 22) AND removeStock() method (lines 37-45) contains classic check-then-act race condition: reads with getOrDefault (line 38), checks condition (line 39), then writes with put (line 43) as separate non-atomic operations",
+            "source": "Source code inspection of /workspace/data/inventory-service/src/main/java/com/example/inventory/InventoryManager.java. Code comments explicitly identify both issues: 'BUG: HashMap is not thread-safe' (line 21) and 'BUG: check-then-act is not atomic — race condition allows overdraft' (lines 35-36). The removeStock implementation demonstrates the vulnerability at lines 38-43",
+            "status": "verified"
+        },
+        {
+            "key": "bug_4",
+            "metadata_value": "ReservationService — unsynchronized compound operations on two maps",
+            "verified_value": "ReservationService.java contains two HashMaps (reservedQuantities and activeReservationIds, lines 22-23) with unsynchronized compound operations. createReservation() (lines 34-46) performs multiple non-atomic steps across two maps. cancelReservation() (lines 52-63) has check-then-remove race condition on activeReservationIds at lines 53 and 58",
+            "source": "Source code inspection of /workspace/data/inventory-service/src/main/java/com/example/inventory/ReservationService.java. Code comments state: 'BUG: Multiple compound operations on shared state are not synchronized' (lines 12-17). Both methods demonstrate the vulnerability: createReservation has concurrent double-booking risk (line 38 comment notes another thread can pass hasStock check simultaneously), cancelReservation has concurrent cancellation risk (line 56 comment)",
+            "status": "verified"
+        },
+        {
+            "key": "java_version_required",
+            "metadata_value": "17",
+            "verified_value": "17",
+            "source": "Verified in pom.xml properties: maven.compiler.source and maven.compiler.target both set to 17. Also confirmed in install_eclipse.sh which installs openjdk-17-jdk and openjdk-17-jre",
+            "status": "verified"
+        },
+        {
+            "key": "junit_version",
+            "metadata_value": "5.10.0",
+            "verified_value": "5.10.0",
+            "source": "Verified in pom.xml property junit.version=5.10.0 and dependency org.junit.jupiter:junit-jupiter with version ${junit.version}",
+            "status": "verified"
+        },
+        {
+            "key": "build_tool",
+            "metadata_value": "Maven",
+            "verified_value": "Maven",
+            "source": "Verified through pom.xml presence, export_result.sh which runs 'mvn clean test', setup_task.sh references task_utils.sh which contains run_maven function, and install_eclipse.sh installs maven package",
+            "status": "verified"
+        },
+        {
+            "key": "initial_test_file_count",
+            "metadata_value": null,
+            "verified_value": "1",
+            "source": "Verified by reading /workspace/data/inventory-service/src/test/java/ which contains one test file: InventoryManagerTest.java",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The inventory-service project is a synthetic educational Java application demonstrating concurrent programming bugs. The project uses Java 17 and JUnit 5.10.0 with Maven for building. The codebase contains exactly four documented thread-safety violations: (1) StockCounter uses plain int fields instead of AtomicInteger, causing lost updates under concurrent increment; (2) ProductCatalog uses non-thread-safe HashMap for product lookups; (3) InventoryManager combines non-thread-safe HashMap usage with a check-then-act race condition in removeStock() that allows stock to go negative; (4) ReservationService performs unsynchronized compound operations across two maps (reservedQuantities and activeReservationIds), enabling double-booking and cancellation races. The project contains one existing JUnit 5 test file (InventoryManagerTest.java) with single-threaded tests. All metadata claims in task.json accurately describe the bugs present in the source code.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,59 @@
+{
+  "task_id": "anonymize_patient_export@1",
+  "task_completion": [
+    {
+      "id": "database_connection",
+      "description": "Verify the agent connects to the DrTuxTest MySQL database.",
+      "points": 10,
+      "visual_evidence": "Look for a terminal command (e.g., `mysql -u root DrTuxTest`) or a script (e.g., Python `mysql.connector` or `pymysql`) establishing a connection to the `DrTuxTest` database."
+    },
+    {
+      "id": "sql_query_formulation",
+      "description": "Verify the agent formulates a SQL query to extract the correct patient records.",
+      "points": 15,
+      "visual_evidence": "Look for a SQL query in a script or terminal that joins the `IndexNomPrenom` and `fchpat` tables and includes the filter condition `FchGnrl_Type = 'Dossier'`."
+    },
+    {
+      "id": "csv_file_header",
+      "description": "Verify the creation of the CSV file with the exact required header.",
+      "points": 15,
+      "visual_evidence": "Look for the file `~/research_export/anonymized_patients.csv` being created or viewed, with the first row exactly matching: `pseudo_id,sex,age_band,department_code,title`."
+    },
+    {
+      "id": "csv_data_pseudonymization",
+      "description": "Verify the CSV data rows follow the anonymization formatting rules.",
+      "points": 20,
+      "visual_evidence": "Look at the data rows in the CSV file. They should show pseudonymized IDs (e.g., `PATIENT_001`), sex, age bands (e.g., `45-49` or `UNKNOWN`), generalized department codes (e.g., `75000` or `00000`), and titles."
+    },
+    {
+      "id": "csv_no_pii_leakage",
+      "description": "Verify that the CSV file contains absolutely no Personally Identifiable Information (PII).",
+      "points": 20,
+      "visual_evidence": "Examine the visible contents of the CSV file to ensure there are NO real names, full addresses, phone numbers, Social Security Numbers, or original database GUIDs."
+    },
+    {
+      "id": "audit_report_creation",
+      "description": "Verify the creation of the anonymization audit report with all required sections.",
+      "points": 20,
+      "visual_evidence": "Look for the file `~/research_export/anonymization_audit.txt` being created or viewed. It must contain the total records processed, lists of suppressed/generalized/preserved fields, a confirmation of no PII, and an export timestamp."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "dynamic_data_extraction",
+      "description": "Verify the agent extracted and processed data programmatically rather than hardcoding the output.",
+      "visual_evidence": "Look for a script (Python, Bash, etc.) or a sequence of SQL commands used to process the data. The agent should not be manually typing the CSV contents."
+    },
+    {
+      "id": "authentic_file_creation",
+      "description": "Verify the output files were actually saved to the correct directory.",
+      "visual_evidence": "Look for terminal commands like `ls ~/research_export/` or `cat` showing the files exist on disk at the specified paths, not just printed to the console."
+    },
+    {
+      "id": "no_hardcoded_pii",
+      "description": "Verify the agent's scripts do not contain hardcoded patient data.",
+      "visual_evidence": "Check the agent's scripts to ensure they do not contain hardcoded patient names, addresses, or other PII, proving the data was genuinely read from the database."
+    }
+  ],
+  "privileged_info_for_vlm": "The task requires extracting 12 synthetic patient records from the DrTuxTest MySQL database. Output CSV path: /home/ga/research_export/anonymized_patients.csv. Output audit path: /home/ga/research_export/anonymization_audit.txt. The CSV must contain exactly the header 'pseudo_id,sex,age_band,department_code,title' and the anonymized data. Any PII leakage (names, addresses, phone numbers, SSNs, original GUIDs) in the outputs is a critical failure."
+}

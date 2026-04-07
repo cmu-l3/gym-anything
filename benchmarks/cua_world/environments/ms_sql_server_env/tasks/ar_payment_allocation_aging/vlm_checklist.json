@@ -1,0 +1,59 @@
+{
+  "task_id": "ar_payment_allocation_aging@1",
+  "task_completion": [
+    {
+      "id": "create_payment_allocation_table",
+      "description": "Create the AR.PaymentAllocation table with the correct schema.",
+      "points": 10,
+      "visual_evidence": "Look for a SQL query window in Azure Data Studio executing a CREATE TABLE statement for AR.PaymentAllocation with columns AllocationID (PK), PaymentID, SalesOrderID, AllocatedAmount, and AllocatedAt."
+    },
+    {
+      "id": "create_allocate_payments_procedure",
+      "description": "Create the AR.usp_AllocatePayments stored procedure with FIFO logic.",
+      "points": 25,
+      "visual_evidence": "Look for a SQL script creating AR.usp_AllocatePayments. It should contain logic (like cursors, loops, or complex window functions) to match payments to invoices by CustomerID, order by OrderDate ASC, handle partial/full allocations, and insert surplus as SalesOrderID = -1."
+    },
+    {
+      "id": "create_invoice_open_balance_view",
+      "description": "Create the AR.vw_InvoiceOpenBalance view.",
+      "points": 15,
+      "visual_evidence": "Look for a SQL script creating AR.vw_InvoiceOpenBalance. It should select from Sales.SalesOrderHeader, join with the allocation table, and calculate TotalAllocated and OpenBalance (TotalDue - TotalAllocated)."
+    },
+    {
+      "id": "create_aging_buckets_function",
+      "description": "Create the AR.fn_AgingBuckets inline table-valued function.",
+      "points": 20,
+      "visual_evidence": "Look for a SQL script creating AR.fn_AgingBuckets with an @AsOfDate DATE parameter. It should contain conditional aggregation (e.g., SUM(CASE WHEN...)) using DATEDIFF to calculate buckets: Current_0_30, Days31_60, Days61_90, Days91_120, and Days121Plus."
+    },
+    {
+      "id": "execute_allocation_and_query_aging",
+      "description": "Execute the allocation procedure and query the aging buckets function.",
+      "points": 15,
+      "visual_evidence": "Look for the execution of 'EXEC AR.usp_AllocatePayments' followed by a SELECT statement querying AR.fn_AgingBuckets('2014-06-30') ordered by TotalOpenAR DESC. The results grid should show customer aging data."
+    },
+    {
+      "id": "export_aging_report_csv",
+      "description": "Export the aging report query results to a CSV file.",
+      "points": 15,
+      "visual_evidence": "Look for the Azure Data Studio 'Save As CSV' dialog or a file explorer/terminal confirming the file 'ar_aging_report.csv' is saved in the '/home/ga/Documents/exports/' directory."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "used_azure_data_studio",
+      "description": "The agent used Azure Data Studio to interact with the database.",
+      "visual_evidence": "Screenshots should show the Azure Data Studio interface being used to write and execute SQL queries, rather than just echoing commands into a terminal."
+    },
+    {
+      "id": "genuine_sql_logic",
+      "description": "The SQL scripts contain genuine logic rather than hardcoded mock data.",
+      "visual_evidence": "The stored procedure, view, and function definitions should contain actual SQL logic (JOINs, DATEDIFFs, cursors/loops) and not just hardcoded SELECT statements designed to fake the output."
+    },
+    {
+      "id": "genuine_csv_export",
+      "description": "The CSV export was generated from the actual query results.",
+      "visual_evidence": "The agent should use the export functionality of Azure Data Studio or a genuine SQL export command (like sqlcmd or bcp) rather than manually creating a text file and typing in fake results."
+    }
+  ],
+  "privileged_info_for_vlm": "The database is AdventureWorks2022. Total payment amount in AR.PaymentLedger is $111,954,748.41, which must match the SUM(AllocatedAmount) in AR.PaymentAllocation. There are 5 customers with overpayments (e.g., CustomerID 11698, 12308, 29498, 12094, 16316) that must result in SalesOrderID = -1 credit balance records. The aging function must be called with @AsOfDate='2014-06-30'. The final CSV export must be saved to /home/ga/Documents/exports/ar_aging_report.csv."
+}

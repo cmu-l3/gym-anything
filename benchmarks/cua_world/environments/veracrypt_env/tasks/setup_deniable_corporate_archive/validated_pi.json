@@ -1,0 +1,101 @@
+{
+    "task_id": "setup_deniable_corporate_archive@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "volume_path",
+            "metadata_value": "/home/ga/Volumes/corporate_archive.hc",
+            "verified_value": "/home/ga/Volumes/corporate_archive.hc",
+            "source": "setup_task.sh line 12 deletes this path (rm -f); export_result.sh line 7 checks this exact path. Verified in live environment: /home/ga/Volumes/ directory exists with ga:ga ownership.",
+            "status": "verified"
+        },
+        {
+            "key": "outer_password",
+            "metadata_value": "AuditReady2024!",
+            "verified_value": "AuditReady2024!",
+            "source": "export_result.sh line 8 sets OUTER_PASS='AuditReady2024!' and uses it on line 89 to mount the outer volume for verification. The password is stated in the task description (not hidden from agent).",
+            "status": "verified"
+        },
+        {
+            "key": "hidden_password",
+            "metadata_value": "InvestigationX!99",
+            "verified_value": "InvestigationX!99",
+            "source": "export_result.sh line 9 sets HIDDEN_PASS='InvestigationX!99' and uses it on line 131 to mount the hidden volume. Also used on line 175 for the password-only rejection test.",
+            "status": "verified"
+        },
+        {
+            "key": "keyfile_path",
+            "metadata_value": "/home/ga/Keyfiles/investigation.key",
+            "verified_value": "/home/ga/Keyfiles/investigation.key",
+            "source": "export_result.sh line 10 sets KEYFILE_PATH to this value and checks existence on line 70. setup_task.sh line 13 deletes it. Live test confirmed /home/ga/Keyfiles/ directory exists with ga:ga ownership.",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Documents/archive_setup_report.txt",
+            "verified_value": "/home/ga/Documents/archive_setup_report.txt",
+            "source": "export_result.sh line 11 sets REPORT_PATH to this value and checks existence on line 192. setup_task.sh line 14 deletes it beforehand.",
+            "status": "verified"
+        },
+        {
+            "key": "decoy_source",
+            "metadata_value": "/home/ga/Documents/decoy_files/",
+            "verified_value": "/home/ga/Documents/decoy_files/",
+            "source": "setup_task.sh line 25 creates this directory and populates it with 3 files via heredocs. Live test confirmed: directory created with ga:ga ownership, 3 files present (Q3_2024_Financial_Summary.txt 834 bytes, Employee_Directory_2024.csv 903 bytes, IT_Procurement_Policy_v3.txt 1168 bytes).",
+            "status": "verified"
+        },
+        {
+            "key": "sensitive_source",
+            "metadata_value": "/home/ga/Documents/sensitive_files/",
+            "verified_value": "/home/ga/Documents/sensitive_files/",
+            "source": "setup_task.sh line 109 creates this directory and populates it with 4 files via heredocs. Live test confirmed: directory created with ga:ga ownership, 4 files present (Internal_Investigation_Report_2024.txt 1598 bytes, Whistleblower_Testimony_Sealed.txt 1438 bytes, Evidence_Chain_of_Custody.csv 1371 bytes, Legal_Hold_Notice_Privileged.txt 1415 bytes).",
+            "status": "verified"
+        },
+        {
+            "key": "outer_encryption",
+            "metadata_value": "AES(Twofish(Serpent))",
+            "verified_value": "AES-Twofish-Serpent",
+            "source": "Live test of veracrypt --text --volume-properties on a cascade-encrypted volume shows 'Encryption Algorithm: AES-Twofish-Serpent' (hyphenated format), NOT 'AES(Twofish(Serpent))' (parenthesized format). The verifier uses substring matching ('aes' in algo and 'twofish' in algo and 'serpent' in algo) which works with both formats. Evidence: hard_tasks_evidence_logs/veracrypt_env/setup_deniable_corporate_archive/14_cascade_sha512_test.txt line 9.",
+            "status": "contradicted"
+        },
+        {
+            "key": "outer_hash",
+            "metadata_value": "SHA-512",
+            "verified_value": "SHA-512",
+            "source": "Live test shows veracrypt --text --volume-properties reports 'PKCS-5 PRF: HMAC-SHA-512'. export_result.sh extracts via grep 'PKCS-5 PRF' and strips 'HMAC-' prefix to yield 'SHA-512'. Evidence: hard_tasks_evidence_logs/veracrypt_env/setup_deniable_corporate_archive/14_cascade_sha512_test.txt line 14.",
+            "status": "verified"
+        },
+        {
+            "key": "hidden_encryption",
+            "metadata_value": "Serpent",
+            "verified_value": "Serpent",
+            "source": "Live test shows veracrypt --text --volume-properties reports 'Encryption Algorithm: Serpent' exactly. Evidence: hard_tasks_evidence_logs/veracrypt_env/setup_deniable_corporate_archive/13_serpent_whirlpool_test.txt line 9.",
+            "status": "verified"
+        },
+        {
+            "key": "hidden_hash",
+            "metadata_value": "Whirlpool",
+            "verified_value": "Whirlpool",
+            "source": "Live test shows veracrypt --text --volume-properties reports 'PKCS-5 PRF: HMAC-Whirlpool'. export_result.sh strips 'HMAC-' prefix to yield 'Whirlpool'. Evidence: hard_tasks_evidence_logs/veracrypt_env/setup_deniable_corporate_archive/13_serpent_whirlpool_test.txt line 14.",
+            "status": "verified"
+        },
+        {
+            "key": "total_size_mb",
+            "metadata_value": 100,
+            "verified_value": null,
+            "source": "This is a task parameter (instruction to the agent), not a verifiable ground truth. The verifier does not check volume size. A 100MB VeraCrypt container would be 104857600 bytes. VeraCrypt hidden volume wizard allows specifying outer volume size during creation.",
+            "status": "unverified"
+        },
+        {
+            "key": "hidden_size_mb",
+            "metadata_value": 40,
+            "verified_value": null,
+            "source": "This is a task parameter (instruction to the agent), not a verifiable ground truth. The verifier does not check hidden volume size. Maximum hidden volume size depends on outer volume size and filesystem overhead. For a 100MB FAT outer volume, the maximum hidden volume size is typically around 90-95MB, so 40MB is well within limits.",
+            "status": "unverified"
+        }
+    ],
+    "privileged_info_summary": "This task requires the agent to create a VeraCrypt hidden volume container at /home/ga/Volumes/corporate_archive.hc (100 MB total, 40 MB hidden). All data is synthetic, created by the setup script via heredocs. The outer (decoy) volume must use AES-Twofish-Serpent cascade encryption (reported by VeraCrypt as 'AES-Twofish-Serpent', not parenthesized) with SHA-512 hash (reported as 'PKCS-5 PRF: HMAC-SHA-512'), password 'AuditReady2024!', FAT filesystem. It must contain 3 decoy files: Q3_2024_Financial_Summary.txt (834 bytes, SHA256 99ed91b8), Employee_Directory_2024.csv (903 bytes, SHA256 d3dc5496), IT_Procurement_Policy_v3.txt (1168 bytes, SHA256 3499c39d). The hidden volume must use Serpent encryption (reported as 'Serpent') with Whirlpool hash (reported as 'PKCS-5 PRF: HMAC-Whirlpool'), password 'InvestigationX!99' PLUS a keyfile at /home/ga/Keyfiles/investigation.key (must be >= 64 bytes, generated via VeraCrypt's random keyfile generator). The hidden volume must contain 4 sensitive files: Internal_Investigation_Report_2024.txt (1598 bytes, SHA256 9d1aee13), Whistleblower_Testimony_Sealed.txt (1438 bytes, SHA256 c3950edd), Evidence_Chain_of_Custody.csv (1371 bytes, SHA256 4fb2d1f7), Legal_Hold_Notice_Privileged.txt (1415 bytes, SHA256 1e0774fd). The agent must also write a verification report at /home/ga/Documents/archive_setup_report.txt listing file names and SHA-256 hashes for both compartments. All volumes must be dismounted at task end. The hidden volume creation wizard in VeraCrypt GUI is the only way to create this (CLI does not support hidden volume creation). The wizard has approximately 16 dialog pages including two entropy collection screens. The agent should select 'Hidden VeraCrypt volume' on the Volume Type page, then 'Normal mode'. VeraCrypt's GUI dropdown for cascade encryption lists it as 'AES-Twofish-Serpent'. Source files are in /home/ga/Documents/decoy_files/ and /home/ga/Documents/sensitive_files/. Ground truth checksums are stored in /var/lib/veracrypt_task/ (inaccessible to agent).",
+    "pi_confidence": "high"
+}

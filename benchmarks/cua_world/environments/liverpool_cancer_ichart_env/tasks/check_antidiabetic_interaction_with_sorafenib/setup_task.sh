@@ -30,4 +30,9 @@ sleep 1
 # 5. Clear clipboard (optional, to prevent data leakage)
 service call clipboard 2 s16 "" 2>/dev/null || true
 
+# 6. Launch the app using robust helper
+echo "Launching Cancer iChart..."
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
+
 echo "=== Setup Complete ==="

@@ -1,0 +1,33 @@
+{
+  "id": "ndvi_zscore_anomaly_mapping@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "You are an Agricultural Analyst assessing crop health using a Landsat multi-spectral image (band_1=SWIR1, band_2=NIR, band_3=Red, band_4=Green) in ESA SNAP. Your goal is to identify severely underperforming fields by computing a Standardized NDVI Anomaly (Z-score) map and a binary mask. \n\nCreate a band named 'NDVI' using the formula (band_2 - band_3) / (band_2 + band_3). Calculate the image-wide Mean and Standard Deviation of this NDVI band to create a new band named 'NDVI_Z_Score' using the formula (NDVI - Mean) / StdDev. Generate a final binary mask named 'Stressed_Mask' where a pixel is flagged (1) if NDVI_Z_Score < -1.5 and NDVI > 0.2, otherwise (0). Save the enriched product containing all bands to /home/ga/snap_exports/vegetation_anomaly.dim and export the 'Stressed_Mask' band as a GeoTIFF to /home/ga/snap_exports/stressed_mask.tif.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ndvi_zscore_anomaly_mapping/setup_task.sh",
+    "post_task": "/workspace/tasks/ndvi_zscore_anomaly_mapping/export_result.sh"
+  },
+  "metadata": {
+    "expected_dimap": "/home/ga/snap_exports/vegetation_anomaly.dim",
+    "expected_tif": "/home/ga/snap_exports/stressed_mask.tif",
+    "required_bands": [
+      "NDVI",
+      "NDVI_Z_Score",
+      "Stressed_Mask"
+    ],
+    "z_score_mean_tolerance": 0.15,
+    "z_score_std_tolerance": 0.15
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ndvi_zscore_anomaly_mapping"
+    }
+  }
+}

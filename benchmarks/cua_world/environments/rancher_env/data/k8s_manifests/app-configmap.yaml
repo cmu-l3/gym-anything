@@ -1,0 +1,93 @@
+# Application configuration ConfigMaps for realistic cluster state
+# These represent real application configurations commonly found in production clusters
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-settings
+  namespace: staging
+  labels:
+    app: platform
+    component: configuration
+data:
+  APP_ENV: "staging"
+  APP_DEBUG: "true"
+  LOG_LEVEL: "info"
+  CACHE_DRIVER: "redis"
+  REDIS_HOST: "redis-primary.staging.svc.cluster.local"
+  REDIS_PORT: "6379"
+  DB_CONNECTION: "postgresql"
+  DB_HOST: "postgres-primary.staging.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "appdb"
+  SESSION_LIFETIME: "120"
+  QUEUE_CONNECTION: "redis"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-config
+  namespace: monitoring
+  labels:
+    app: monitoring
+    component: configuration
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 3h
+      receiver: 'default'
+    receivers:
+      - name: 'default'
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dev-tools-config
+  namespace: development
+  labels:
+    app: dev-tools
+    component: configuration
+data:
+  .editorconfig: |
+    root = true
+
+    [*]
+    indent_style = space
+    indent_size = 2
+    end_of_line = lf
+    charset = utf-8
+    trim_trailing_whitespace = true
+    insert_final_newline = true
+  settings.json: |
+    {
+      "log_level": "debug",
+      "hot_reload": true,
+      "mock_services": false,
+      "api_base_url": "http://api-gateway.staging.svc.cluster.local:8080",
+      "feature_flags": {
+        "new_dashboard": true,
+        "dark_mode": true,
+        "export_csv": false
+      }
+    }

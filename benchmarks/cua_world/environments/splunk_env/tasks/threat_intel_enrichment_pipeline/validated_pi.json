@@ -1,0 +1,101 @@
+{
+    "task_id": "threat_intel_enrichment_pipeline@1",
+    "dataset": "Loghub SSH.log (SSH brute force dataset from Zenodo/Loghub)",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "lookup_filename",
+            "metadata_value": "threat_intel.csv",
+            "verified_value": "threat_intel.csv",
+            "source": "Task description specifies outputlookup threat_intel.csv. Live testing confirmed outputlookup creates CSV at /opt/splunk/etc/apps/search/lookups/threat_intel.csv with correct header (src_ip, attempt_count, threat_level) and 1008 rows.",
+            "status": "verified"
+        },
+        {
+            "key": "lookup_definition_name",
+            "metadata_value": "threat_intel_lookup",
+            "verified_value": "threat_intel_lookup",
+            "source": "Task description and verifier.py both reference 'threat_intel_lookup'. export_result.sh searches for this exact name (normalized) in /servicesNS/-/-/data/transforms/lookups.",
+            "status": "verified"
+        },
+        {
+            "key": "auto_lookup_name",
+            "metadata_value": "threat_auto_enrich",
+            "verified_value": "threat_auto_enrich",
+            "source": "Task description and export_result.sh both search for 'threat_auto_enrich' in props/lookups API endpoint and btool output.",
+            "status": "verified"
+        },
+        {
+            "key": "dashboard_name",
+            "metadata_value": "Threat_Intelligence_Monitor",
+            "verified_value": "Threat_Intelligence_Monitor",
+            "source": "Task description specifies this exact name. verifier.py normalizes to 'threat_intelligence_monitor' for matching. export_result.sh searches for this name in /servicesNS/-/-/data/ui/views.",
+            "status": "verified"
+        },
+        {
+            "key": "alert_name",
+            "metadata_value": "Critical_Threat_Activity",
+            "verified_value": "Critical_Threat_Activity",
+            "source": "Task description specifies this exact name. verifier.py normalizes to 'critical_threat_activity'. export_result.sh searches for this in /servicesNS/-/-/saved/searches.",
+            "status": "verified"
+        },
+        {
+            "key": "target_index",
+            "metadata_value": "security_logs",
+            "verified_value": "security_logs",
+            "source": "Live testing confirmed: index 'security_logs' exists with 655,721 events. SSH brute force data from Loghub SSH.log (655,147 events) + live /var/log/auth.log monitor (~585 events). Created by setup_splunk.sh post_start hook.",
+            "status": "verified"
+        },
+        {
+            "key": "target_sourcetype",
+            "metadata_value": "linux_secure",
+            "verified_value": "linux_secure",
+            "source": "Live testing confirmed: SSH.log data ingested as sourcetype 'linux_secure'. Verified via REST API: search index=security_logs | stats count by sourcetype shows all 655,147 SSH.log events as linux_secure.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_cron",
+            "metadata_value": "*/15 * * * *",
+            "verified_value": "*/15 * * * *",
+            "source": "Task description specifies 'every 15 minutes (cron: */15 * * * *)'. verifier.py checks for '*/15' substring in cron_schedule field.",
+            "status": "verified"
+        },
+        {
+            "key": "min_panels",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Task description specifies 'at least three panels'. verifier.py awards full 15 pts for panel_count >= 3, partial for 2 or 1.",
+            "status": "verified"
+        },
+        {
+            "key": "threat_levels",
+            "metadata_value": ["critical", "high", "medium", "low"],
+            "verified_value": ["critical", "high", "medium", "low"],
+            "source": "Task description specifies exact threat levels. Live testing confirmed classification produces: 35 critical, 47 high, 110 medium, 816 low IPs out of 1,008 unique attacking IPs.",
+            "status": "verified"
+        },
+        {
+            "key": "threat_thresholds",
+            "metadata_value": {"critical": 500, "high": 100, "medium": 20},
+            "verified_value": {"critical": 500, "high": 100, "medium": 20},
+            "source": "Task description specifies: critical (>500), high (>100), medium (>20), low (otherwise). Live testing confirmed these thresholds produce meaningful distribution. Top IP 59.63.188.30 has 28,766 attempts (critical). Threshold of 500 yields 35 critical IPs.",
+            "status": "verified"
+        },
+        {
+            "key": "splunk_user",
+            "metadata_value": "admin",
+            "verified_value": "admin",
+            "source": "install_splunk.sh user-seed.conf sets USERNAME=admin. All REST API calls verified with admin credentials. Task description states admin/SplunkAdmin1!.",
+            "status": "verified"
+        },
+        {
+            "key": "splunk_pass",
+            "metadata_value": "SplunkAdmin1!",
+            "verified_value": "SplunkAdmin1!",
+            "source": "install_splunk.sh user-seed.conf sets PASSWORD=SplunkAdmin1!. All REST API calls verified with these credentials. task_utils.sh defines SPLUNK_PASS=SplunkAdmin1!.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires building a threat intelligence enrichment pipeline in Splunk Enterprise 9.4.0. The security_logs index contains 655,721 events from the Loghub SSH.log dataset (real SSH brute force attacks against host LabSZ) ingested as sourcetype linux_secure. Field extractions for src_ip and user are pre-configured in props.conf (setup_task.sh creates them). The SPL query 'index=security_logs sourcetype=linux_secure \"Failed password\" | stats count as attempt_count by src_ip | eval threat_level=case(attempt_count>500,\"critical\",attempt_count>100,\"high\",attempt_count>20,\"medium\",1==1,\"low\")' produces 1,008 unique IPs: 35 critical, 47 high, 110 medium, 816 low. The top attacking IP is 59.63.188.30 (28,766 attempts). The outputlookup command writes to /opt/splunk/etc/apps/search/lookups/threat_intel.csv. The lookup definition and automatic lookup must be created via Settings > Lookups UI. The dashboard must be named Threat_Intelligence_Monitor with 3+ panels referencing threat_level and using timechart/stats. The alert must be named Critical_Threat_Activity with cron */15 * * * *. Splunk credentials: admin / SplunkAdmin1!. All verification is done via REST API at https://localhost:8089.",
+    "pi_confidence": "high"
+}

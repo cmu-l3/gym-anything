@@ -27,7 +27,8 @@ echo "$PID" > /tmp/target_pid.txt
 INS_CO_ID=$(librehealth_query "SELECT id FROM insurance_companies WHERE name='Blue Cross' LIMIT 1")
 if [ -z "$INS_CO_ID" ]; then
     echo "Creating Blue Cross insurance company..."
-    librehealth_query "INSERT INTO insurance_companies (name, attention, street, city, state, zip, phone) VALUES ('Blue Cross', 'Claims Dept', '100 Health Way', 'Boston', 'MA', '02110', '555-0199')"
+    NEXT_IC_ID=$(librehealth_query "SELECT COALESCE(MAX(id),0)+1 FROM insurance_companies")
+    librehealth_query "INSERT INTO insurance_companies (id, name, attn, cms_id) VALUES ($NEXT_IC_ID, 'Blue Cross', 'Claims Dept', 'BC001')"
     INS_CO_ID=$(librehealth_query "SELECT id FROM insurance_companies WHERE name='Blue Cross' LIMIT 1")
 fi
 

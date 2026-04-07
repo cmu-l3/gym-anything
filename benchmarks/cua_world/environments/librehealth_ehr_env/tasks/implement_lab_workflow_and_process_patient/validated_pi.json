@@ -1,0 +1,146 @@
+{
+    "task_id": "implement_lab_workflow_and_process_patient@1",
+    "dataset": "NHANES 2011-2012 (9,375 real patients from CDC National Health and Nutrition Examination Survey)",
+    "case_id": "varies (selected via OFFSET 500 from patient_data table ORDER BY pid)",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "Clinician-Administrator at a small family practice",
+            "verified_value": "A clinician-administrator is a real dual role common in small medical practices where one person handles both clinical care and EHR system administration. This is well-documented in healthcare management literature.",
+            "source": "Domain knowledge verified via healthcare workforce descriptions; common in practices with fewer than 5 physicians per AAFP and MGMA reports",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Healthcare / Family Practice",
+            "verified_value": "Family Practice (Family Medicine) is a recognized medical specialty and practice setting. LibreHealth EHR is designed for exactly this type of clinical practice.",
+            "source": "AAFP (American Academy of Family Physicians) defines Family Medicine as a primary care specialty; LibreHealth EHR is a fork of OpenEMR designed for small practices",
+            "status": "verified"
+        },
+        {
+            "key": "companion_doc",
+            "metadata_value": "/home/ga/Desktop/lab_order_request.txt",
+            "verified_value": "/home/ga/Desktop/lab_order_request.txt — file is created by setup_task.sh (lines 52-140) with patient-specific data interpolated from the NHANES database query. File contains 3 sections: Procedure Configuration, Lab Order Processing, and Clinical Follow-Up instructions.",
+            "source": "Code analysis of setup_task.sh; verified during live environment testing that file was created with correct content and owned by ga:ga",
+            "status": "verified"
+        },
+        {
+            "key": "gt_file",
+            "metadata_value": "/tmp/lh_lab_workflow_gt.json",
+            "verified_value": "/tmp/lh_lab_workflow_gt.json — ground truth JSON is created by embedded Python in setup_task.sh (lines 146-185). Contains patient info, baseline counts for 5 DB tables, and expected values for verification.",
+            "source": "Code analysis of setup_task.sh; verified during live environment testing that file was created with valid JSON structure",
+            "status": "verified"
+        },
+        {
+            "key": "expected_group_name",
+            "metadata_value": "Endocrine Panel",
+            "verified_value": "Endocrine Panel — this is the name the agent must enter when creating the Order Group in LibreHealth EHR's Procedure Configuration admin interface. The name is consistent between the companion document, the ground truth JSON, and the export_result.sh query (WHERE name LIKE '%Endocrine%'). It is a task-defined value representing a realistic clinical lab grouping for hormone and metabolic tests.",
+            "source": "Cross-referenced task.json metadata, setup_task.sh companion doc template, and export_result.sh query logic; Endocrine panels are standard clinical lab groupings",
+            "status": "verified"
+        },
+        {
+            "key": "expected_order_name",
+            "metadata_value": "Hemoglobin A1c",
+            "verified_value": "Hemoglobin A1c — the standard clinical name for the glycated hemoglobin test. Consistent across companion document, ground truth JSON, and export_result.sh query (WHERE name LIKE '%A1c%' OR name LIKE '%Hemoglobin%'). Also known as HbA1c or A1C.",
+            "source": "Cross-referenced all task files; verified as standard clinical terminology via ADA, NGSP, and clinical laboratory references",
+            "status": "verified"
+        },
+        {
+            "key": "expected_cpt_code",
+            "metadata_value": "83036",
+            "verified_value": "CPT 83036 is the correct Current Procedural Terminology code for 'Hemoglobin; glycated (A1c)'. This is the universally used code for laboratory HbA1c testing, confirmed by AAPC, Labcorp (test 001453), Quest Diagnostics, and CMS national coverage determinations.",
+            "source": "Web search: AAPC Codify (aapc.com/codes/cpt-codes/83036), Labcorp (labcorp.com/tests/001453), CMS Medicare Coverage Database",
+            "status": "verified"
+        },
+        {
+            "key": "expected_standard_code",
+            "metadata_value": "CPT4:83036",
+            "verified_value": "CPT4:83036 follows LibreHealth EHR's standard code format for procedure types. The format 'CPT4:XXXXX' is used consistently in the existing configure_lab_procedure task (CPT4:80053 for Comprehensive Metabolic Panel). CPT-4 is the 4th edition of the Current Procedural Terminology maintained by the AMA.",
+            "source": "Code analysis of configure_lab_procedure task (metadata.standard_code = 'CPT4:80053'); LibreHealth EHR codebase uses this format in the procedure_type.standard_code column",
+            "status": "verified"
+        },
+        {
+            "key": "expected_result_types",
+            "metadata_value": [
+                {"name": "HbA1c Percentage", "units": "%", "range": "4.0-6.0"},
+                {"name": "Estimated Average Glucose", "units": "mg/dL"}
+            ],
+            "verified_value": "Two discrete result types are defined: (1) HbA1c Percentage in % with range 4.0-6.0, and (2) Estimated Average Glucose in mg/dL with no range specified. The range 4.0-6.0% is a common clinical laboratory reference interval for non-diabetic HbA1c values, though it differs from the ADA diagnostic threshold of <5.7% for normal. Many labs report 4.0-6.0% as the analytical reference range. The eAG unit of mg/dL is the standard US unit for blood glucose. Both result types are consistent with what a real HbA1c analyzer would report.",
+            "source": "Web search: ADA defines normal HbA1c as <5.7% (diabetes.org/about-diabetes/a1c), but clinical labs commonly use 4.0-6.0% as the reference interval (Quest, Labcorp). eAG in mg/dL is the US standard per NGSP (ngsp.org/A1ceAG.asp).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_hba1c_value",
+            "metadata_value": 7.8,
+            "verified_value": "7.8% is the HbA1c value the agent must enter as a lab result. This is a task-defined value representing an elevated/uncontrolled diabetes result (ADA target is <7.0%, diagnosis threshold is >=6.5%). The value is clinically plausible and consistent with the follow-up actions specified (diabetes diagnosis, Metformin initiation).",
+            "source": "Task-defined value; verified as clinically plausible per ADA Standards of Care — HbA1c 7.8% indicates suboptimal glycemic control requiring pharmacotherapy",
+            "status": "verified"
+        },
+        {
+            "key": "expected_hba1c_tolerance",
+            "metadata_value": 0.5,
+            "verified_value": "0.5 percentage point tolerance for HbA1c verification. This means values between 7.3% and 8.3% would be accepted. This is a generous tolerance to account for minor data entry variations by the agent.",
+            "source": "Task-defined verification parameter in metadata; consistent with the record_lab_results task which uses similar tolerances (e.g., WBC tolerance 0.5, Hematocrit tolerance 1.0)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_eag_value",
+            "metadata_value": 177,
+            "verified_value": "177 mg/dL is the correct Estimated Average Glucose for HbA1c of 7.8%. Computed using the DCCT/ADAG formula: eAG = 28.7 × HbA1c - 46.7 = 28.7 × 7.8 - 46.7 = 223.86 - 46.7 = 177.16 ≈ 177 mg/dL. Formula derived from Nathan et al. 2008 (Diabetes Care, PMID 18540046) and endorsed by ADA, EASD, and IDF.",
+            "source": "Computed: 28.7 × 7.8 - 46.7 = 177.16; Formula verified via NGSP (ngsp.org/A1ceAG.asp), ADA eAG Calculator (professional.diabetes.org/glucose_calc), Nathan et al. 2008 (pubmed.ncbi.nlm.nih.gov/18540046)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_eag_tolerance",
+            "metadata_value": 10,
+            "verified_value": "10 mg/dL tolerance for eAG verification. Values between 167-187 mg/dL would be accepted. This is a task-defined verification parameter.",
+            "source": "Task-defined verification parameter in metadata",
+            "status": "verified"
+        },
+        {
+            "key": "expected_diagnosis_keyword",
+            "metadata_value": "diabetes",
+            "verified_value": "The keyword 'diabetes' is used to match the problem list entry. The companion document instructs the agent to add 'Uncontrolled Type 2 Diabetes' which contains this keyword. The export_result.sh checks problem titles via SQL query and the VLM verifier would look for this keyword in the problem list.",
+            "source": "Cross-referenced companion doc template ('Uncontrolled Type 2 Diabetes') with export_result.sh query logic",
+            "status": "verified"
+        },
+        {
+            "key": "expected_icd_code",
+            "metadata_value": "E11.65",
+            "verified_value": "E11.65 is the correct ICD-10-CM code for 'Type 2 diabetes mellitus with hyperglycemia'. This is the appropriate code when T2DM is described as 'uncontrolled', 'poorly controlled', or with documented hyperglycemia. Valid and billable in 2025-2026 ICD-10-CM code sets.",
+            "source": "Web search: ICD10Data.com (icd10data.com/ICD10CM/Codes/E00-E89/E08-E13/E11-/E11.65), AAPC Codify (aapc.com/codes/icd-10-codes/E11.65)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_drug_keyword",
+            "metadata_value": "metformin",
+            "verified_value": "Metformin is the correct first-line pharmacotherapy for newly diagnosed Type 2 Diabetes per ADA Standards of Medical Care (2025-2026 editions, Section 9). The companion document specifies 'Metformin 500mg tablets' which is the standard starting formulation.",
+            "source": "Web search: ADA Pharmacologic Approaches (Section 9), StatPearls Metformin (ncbi.nlm.nih.gov/books/NBK518983/)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_drug_dosage",
+            "metadata_value": "500",
+            "verified_value": "500mg is the standard starting dose for Metformin in Type 2 Diabetes. Per ADA and StatPearls, the recommended starting dose is 500mg once or twice daily, titrated weekly. The companion document specifies 500mg tablets twice daily with meals (standard BID dosing), quantity 60 (30-day supply at BID), with 3 refills.",
+            "source": "Web search: StatPearls Metformin (ncbi.nlm.nih.gov/books/NBK518983/) confirms 500mg as starting dose; ADA Section 9 confirms BID dosing",
+            "status": "verified"
+        },
+        {
+            "key": "patient_data_source",
+            "metadata_value": "Not in metadata but referenced in setup_task.sh",
+            "verified_value": "Patients are drawn from NHANES (National Health and Nutrition Examination Survey) 2011-2012 cycle, loaded from the official LibreHealthIO NHANES SQL dump at https://github.com/LibreHealthIO/lh-ehr/raw/master/sql/nhanes/libreehr_nhanes.sql.gz. The dataset contains 9,375 real patients with demographics (name, DOB, sex, ethnicity, address). Patient selection uses OFFSET 500 from patient_data ORDER BY pid, which does not collide with any other task in the environment (other tasks use OFFSET 15, 20, 350, 420).",
+            "source": "Code analysis of setup_librehealth.sh (NHANES download), setup_task.sh (OFFSET 500); grep of all other tasks confirmed no OFFSET collision",
+            "status": "verified"
+        },
+        {
+            "key": "db_table_names",
+            "metadata_value": "Not in metadata but used in setup_task.sh and export_result.sh",
+            "verified_value": "The following DB tables are used: procedure_type (procedure hierarchy config), procedure_order (lab orders), procedure_report (lab reports), procedure_result (lab result values), lists (medical problems), prescriptions (medications), libreehr_postcalendar_events (appointments). Note: the appointment table is libreehr_postcalendar_events, NOT openemr_postcalendar_events — this was corrected during live testing when the original table name failed to query.",
+            "source": "Live environment testing via SSH; verified all tables exist and are queryable via docker exec librehealth-db mysql",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task uses real NHANES 2011-2012 patient data (9,375 CDC patients). A specific patient is selected at OFFSET 500 from patient_data ORDER BY pid — the patient name, DOB, and PID are written to /home/ga/Desktop/lab_order_request.txt which the agent must read. The task has 3 phases: (1) Configure procedure hierarchy in Administration > Procedure Configuration: Order Group 'Endocrine Panel' containing Procedure Order 'Hemoglobin A1c' (Procedure Code 83036, Standard Code CPT4:83036) with two discrete results — 'HbA1c Percentage' (units %, range 4.0-6.0) and 'Estimated Average Glucose' (units mg/dL). (2) Open the patient's chart, create a new encounter, place a lab order for the HbA1c test, and enter results: HbA1c = 7.8%, eAG = 177 mg/dL (this eAG is mathematically correct per the DCCT/ADAG formula: 28.7 × 7.8 - 46.7 = 177.16), status Final. (3) Clinical follow-up: add diagnosis 'Uncontrolled Type 2 Diabetes' with ICD-10 code E11.65 (Type 2 DM with hyperglycemia) to the problem list, prescribe Metformin 500mg twice daily with meals (qty 60, 3 refills — standard first-line therapy per ADA), and schedule a follow-up Office Visit appointment 3 months from the task date at 2:00 PM with provider admin. All medical codes are verified: CPT 83036 is the standard HbA1c code, E11.65 is the correct ICD-10 for uncontrolled T2DM, and Metformin 500mg BID is the ADA-recommended starting dose. The EHR uses the table libreehr_postcalendar_events (not openemr_postcalendar_events) for appointments. The Procedure Configuration UI is a tree-view split-pane interface accessed via Administration menu. Login credentials are admin / password.",
+    "pi_confidence": "high"
+}

@@ -25,20 +25,8 @@ sleep 2
 
 # 4. Launch app
 echo "Launching Electrical Calculations..."
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 8
-
-# 5. Dismiss potential ads/overlays
-input keyevent KEYCODE_BACK
-sleep 2
-
-# 6. Ensure we are on the main menu
-# If we backed out too far, relaunch
-CURRENT=$(dumpsys window | grep mCurrentFocus)
-if echo "$CURRENT" | grep -q "Launcher"; then
-    monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-    sleep 5
-fi
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
 
 # 7. Take initial screenshot for evidence
 screencap -p /sdcard/pt_initial_screenshot.png

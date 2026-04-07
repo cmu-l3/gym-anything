@@ -1,0 +1,33 @@
+{
+  "id": "configure_bidirectional_metering@1",
+  "version": "1.0",
+  "env_id": "emoncms_env@0.1",
+  "description": "You are a building energy manager commissioning a net-zero energy tracking system at http://localhost (admin/admin). The building has rooftop solar panels and a bi-directional grid connection meter. The grid_meter input (node building) reports signed power in Watts: positive values mean grid import, negative values mean grid export. The solar_pv input reports inverter output, but the installed CT clamp has a known 2x under-reading error — all solar readings must be scaled by a factor of 2.0. On solar_pv, apply the 2.0 correction factor, log corrected power to a new feed solar_power (PHPFina, 10s interval), and add Power-to-kWh accumulation logging to a new feed solar_energy_kwh. On grid_meter, build a branching pipeline that splits the signed power into two separate paths — log only the positive values (import) to grid_import_power and only the absolute value of negative readings (export) to grid_export_power (both PHPFina, 10s). Add Power-to-kWh accumulation for each, logging to grid_import_kwh and grid_export_kwh. Create a dashboard named Net Zero Tracker with at least 5 widgets: solar power dial (0-20kW), grid import power dial (0-50kW), grid export power value display, cumulative solar energy kWh, and cumulative grid import kWh.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_bidirectional_metering/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_bidirectional_metering/export_result.sh"
+  },
+  "metadata": {
+    "node": "building",
+    "inputs": ["grid_meter", "solar_pv"],
+    "expected_feeds": [
+      "solar_power", "solar_energy_kwh",
+      "grid_import_power", "grid_import_kwh",
+      "grid_export_power", "grid_export_kwh"
+    ],
+    "dashboard_name": "Net Zero Tracker",
+    "solar_ct_correction": 2.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_bidirectional_metering"
+    }
+  }
+}

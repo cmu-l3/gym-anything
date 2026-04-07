@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 echo "=== Setting up Batch Tagging Task ==="
 
 source /workspace/scripts/task_utils.sh
@@ -60,7 +59,7 @@ for case_info in "${CASES[@]}"; do
         "${ARKCASE_URL}/api/v1/plugin/complaint")
     
     # Extract ID using python for reliability
-    CASE_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('complaintId', json.load(sys.stdin).get('id', '')))" 2>/dev/null || true)
+    CASE_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('complaintId', d.get('id', '')))" 2>/dev/null || true)
     
     if [ -n "$CASE_ID" ]; then
         echo "Created ID: $CASE_ID"

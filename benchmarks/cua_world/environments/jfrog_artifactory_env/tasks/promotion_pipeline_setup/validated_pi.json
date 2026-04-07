@@ -1,0 +1,192 @@
+{
+    "task_id": "promotion_pipeline_setup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "admin_user",
+            "metadata_value": "admin",
+            "verified_value": "admin",
+            "source": "Confirmed via curl -u admin:password in setup_task.sh, export_result.sh, and task_utils.sh. Live test: curl -u admin:password /api/system/ping returned HTTP 200.",
+            "status": "verified"
+        },
+        {
+            "key": "admin_pass",
+            "metadata_value": "password",
+            "verified_value": "password",
+            "source": "Confirmed via curl authentication in all scripts (setup_task.sh, export_result.sh). Live test: HTTP 200 with admin:password. Note: onboarding wizard shows hasDefaultPassword=true, confirming the password is 'password'.",
+            "status": "verified"
+        },
+        {
+            "key": "artifactory_url",
+            "metadata_value": "http://localhost:8082",
+            "verified_value": "http://localhost:8082",
+            "source": "Confirmed via docker-compose.yml port mapping (8082:8082), ARTIFACTORY_URL in task_utils.sh, and live test: Firefox loaded login page at http://localhost:8082/ui/login.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "DevOps Lead",
+            "verified_value": "DevOps Lead",
+            "source": "Confirmed from task description: 'You are the DevOps lead at MedSecure'. Narrative metadata, not data-dependent.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Healthcare Technology",
+            "verified_value": "Healthcare Technology",
+            "source": "Confirmed from task description: 'MedSecure, a healthcare technology company'. Narrative metadata, not data-dependent.",
+            "status": "verified"
+        },
+        {
+            "key": "target_repos.local",
+            "metadata_value": ["medsecure-dev", "medsecure-staging", "medsecure-prod"],
+            "verified_value": ["medsecure-dev", "medsecure-staging", "medsecure-prod"],
+            "source": "Confirmed from: (1) setup_task.sh deletes these exact repos, (2) export_result.sh queries these exact keys, (3) verifier.py checks for slugs medsecure_dev/staging/prod with type LOCAL and packageType maven, (4) task description matches.",
+            "status": "verified"
+        },
+        {
+            "key": "target_repos.remote",
+            "metadata_value": ["maven-central-proxy"],
+            "verified_value": ["maven-central-proxy"],
+            "source": "Confirmed from: (1) setup_task.sh calls delete_repo_if_exists 'maven-central-proxy', (2) export_result.sh queries this key with art_get('/repositories/maven-central-proxy'), (3) verifier.py checks type REMOTE, (4) task description says proxying https://repo1.maven.org/maven2.",
+            "status": "verified"
+        },
+        {
+            "key": "target_repos.virtual",
+            "metadata_value": ["medsecure-maven-all"],
+            "verified_value": ["medsecure-maven-all"],
+            "source": "Confirmed from: (1) setup_task.sh deletes 'medsecure-maven-all' before local repos (correct dependency order), (2) export_result.sh queries this key and its repositories/defaultDeploymentRepo, (3) verifier.py checks type VIRTUAL.",
+            "status": "verified"
+        },
+        {
+            "key": "virtual_aggregation_order",
+            "metadata_value": ["medsecure-prod", "medsecure-staging", "medsecure-dev", "maven-central-proxy"],
+            "verified_value": ["medsecure-prod", "medsecure-staging", "medsecure-dev", "maven-central-proxy"],
+            "source": "Confirmed from: (1) task description states 'resolution order medsecure-prod, medsecure-staging, medsecure-dev, maven-central-proxy', (2) verifier.py expected_order matches exactly at line 98-99, (3) export_result.sh reads detail2.get('repositories', []) to capture actual order. Note: individual repo GET is Pro-only (HTTP 400 in OSS), so this field may not be fully verifiable programmatically.",
+            "status": "verified"
+        },
+        {
+            "key": "virtual_default_deploy",
+            "metadata_value": "medsecure-dev",
+            "verified_value": "medsecure-dev",
+            "source": "Confirmed from: (1) task description says 'default deployment target set to medsecure-dev', (2) verifier.py checks virt.get('defaultDeploymentRepo') == 'medsecure-dev' at line 105, (3) export_result.sh reads detail2.get('defaultDeploymentRepo').",
+            "status": "verified"
+        },
+        {
+            "key": "target_groups",
+            "metadata_value": ["platform-engineers", "qa-team"],
+            "verified_value": ["platform-engineers", "qa-team"],
+            "source": "Confirmed from: (1) setup_task.sh calls delete_group_if_exists for both, (2) export_result.sh checks http_code for both group names, (3) verifier.py checks platform_engineers_group and qa_team_group found status, (4) task description matches.",
+            "status": "verified"
+        },
+        {
+            "key": "target_users.eng-sarah.password",
+            "metadata_value": "SarahEng2024!",
+            "verified_value": "SarahEng2024!",
+            "source": "Confirmed from: (1) export_result.sh uses http_code('/system/ping', user='eng-sarah', passwd='SarahEng2024!') for auth-based verification, (2) task description states 'password: SarahEng2024!', (3) verifier.py checks eng_sarah_user.auth_works. Live test: auth with this password returns 401 (user not yet created, which is correct clean state).",
+            "status": "verified"
+        },
+        {
+            "key": "target_users.eng-sarah.email",
+            "metadata_value": "sarah@medsecure.example.com",
+            "verified_value": "sarah@medsecure.example.com",
+            "source": "Confirmed from task description: 'email: sarah@medsecure.example.com'. Not independently verified via API (user creation is UI-only in OSS), but consistent across description and metadata.",
+            "status": "verified"
+        },
+        {
+            "key": "target_users.eng-sarah.group",
+            "metadata_value": "platform-engineers",
+            "verified_value": "platform-engineers",
+            "source": "Confirmed from task description: 'in the platform-engineers group'. Consistent with target_groups metadata.",
+            "status": "verified"
+        },
+        {
+            "key": "target_permissions.deploy-perms.repos",
+            "metadata_value": ["medsecure-dev", "medsecure-staging"],
+            "verified_value": ["medsecure-dev", "medsecure-staging"],
+            "source": "Confirmed from: (1) task description: 'granting platform-engineers Deploy, Read, and Delete on medsecure-dev and medsecure-staging', (2) setup_task.sh deletes 'deploy-perms', (3) export_result.sh queries get_perm('deploy-perms') which reads repositories list.",
+            "status": "verified"
+        },
+        {
+            "key": "target_permissions.deploy-perms.privileges",
+            "metadata_value": ["Deploy", "Read", "Delete"],
+            "verified_value": ["Deploy", "Read", "Delete"],
+            "source": "Confirmed from: (1) task description: 'Deploy, Read, and Delete', (2) verifier.py checks 'd' in pe_privs and 'r' in pe_privs (d=Deploy, r=Read), (3) Artifactory OSS permission codes: d=deploy, r=read, w=delete. Note: verifier checks d and r but not w (Delete), so partial programmatic verification.",
+            "status": "verified"
+        },
+        {
+            "key": "target_permissions.qa-perms.repos",
+            "metadata_value": ["medsecure-staging", "medsecure-prod"],
+            "verified_value": ["medsecure-staging", "medsecure-prod"],
+            "source": "Confirmed from task description: 'granting qa-team Read on medsecure-staging and medsecure-prod'.",
+            "status": "verified"
+        },
+        {
+            "key": "target_permissions.qa-perms.privileges",
+            "metadata_value": ["Read"],
+            "verified_value": ["Read"],
+            "source": "Confirmed from: (1) task description: 'Read', (2) verifier.py checks 'r' in qt_privs.",
+            "status": "verified"
+        },
+        {
+            "key": "artifact_source",
+            "metadata_value": "/home/ga/Desktop/commons-io-2.15.1.jar",
+            "verified_value": "/home/ga/Desktop/commons-io-2.15.1.jar",
+            "source": "Confirmed from: (1) setup_task.sh ARTIFACT_DEST='/home/ga/Desktop/commons-io-2.15.1.jar', (2) live test: file exists at 501218 bytes, owner ga:ga, file type 'Zip archive data', (3) MD5: 84351f7991a0e6722f00e96a4ccc376f, SHA256: a58af12ee1b68cfd2ebb0c27caef164f084381a00ec81a48cc275fd7ea54e154.",
+            "status": "verified"
+        },
+        {
+            "key": "artifact_maven_path",
+            "metadata_value": "org/apache/commons/commons-io/2.15.1/commons-io-2.15.1.jar",
+            "verified_value": "org/apache/commons/commons-io/2.15.1/commons-io-2.15.1.jar",
+            "source": "Confirmed from: (1) export_result.sh ARTIFACT_PATH matches exactly, (2) live artifact upload test: PUT to example-repo-local/org/apache/commons/commons-io/2.15.1/commons-io-2.15.1.jar returned HTTP 201, (3) this is the correct Maven GAV path for Apache Commons IO 2.15.1 (groupId=commons-io, artifactId=commons-io, version=2.15.1).",
+            "status": "verified"
+        },
+        {
+            "key": "artifact_deploy_repos",
+            "metadata_value": ["medsecure-dev", "medsecure-staging", "medsecure-prod"],
+            "verified_value": ["medsecure-dev", "medsecure-staging", "medsecure-prod"],
+            "source": "Confirmed from: (1) task description: 'Deploy ... to medsecure-dev ... Copy it to medsecure-staging, then to medsecure-prod', (2) export_result.sh checks artifact presence in all 3 repos, (3) verifier.py awards 5 pts each for artifact_in_medsecure_dev/staging/prod. Note: artifact copy API is Pro-only (HTTP 400 in OSS), so agent must copy via UI.",
+            "status": "verified"
+        },
+        {
+            "key": "smtp_config.host",
+            "metadata_value": "smtp.medsecure.example.com",
+            "verified_value": "smtp.medsecure.example.com",
+            "source": "Confirmed from task description: 'host smtp.medsecure.example.com'. This is a synthetic/fictional SMTP host (example.com domain). Setup resets host to empty string. Export reads from system config XML mailServer/host element.",
+            "status": "verified"
+        },
+        {
+            "key": "smtp_config.port",
+            "metadata_value": 587,
+            "verified_value": 587,
+            "source": "Confirmed from: (1) task description: 'port 587', (2) verifier.py checks smtp.get('port') == 587, (3) setup_task.sh resets port to 25. Port 587 is the standard SMTP submission port with STARTTLS (RFC 6409).",
+            "status": "verified"
+        },
+        {
+            "key": "smtp_config.tls",
+            "metadata_value": true,
+            "verified_value": true,
+            "source": "Confirmed from: (1) task description: 'TLS enabled', (2) verifier.py checks smtp.get('tls'), (3) setup_task.sh resets tls to false. Export reads from system config XML mailServer/tls element.",
+            "status": "verified"
+        },
+        {
+            "key": "smtp_config.from",
+            "metadata_value": "artifactory@medsecure.example.com",
+            "verified_value": "artifactory@medsecure.example.com",
+            "source": "Confirmed from task description: 'from address artifactory@medsecure.example.com'. Setup resets from to empty. Export reads from system config XML mailServer/from element.",
+            "status": "verified"
+        },
+        {
+            "key": "smtp_config.subject_prefix",
+            "metadata_value": "[MedSecure-Artifacts]",
+            "verified_value": "[MedSecure-Artifacts]",
+            "source": "Confirmed from task description: 'subject prefix [MedSecure-Artifacts]'. Setup resets subjectPrefix to empty. Export reads from system config XML mailServer/subjectPrefix element.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a JFrog Artifactory OSS 7.77.3 environment at http://localhost:8082 with admin credentials admin/password. The task requires creating a three-stage Maven promotion pipeline. Five repositories must be created via the Web UI (not REST API, which is Pro-only): three local Maven repos (medsecure-dev with snapshots, medsecure-staging releases-only, medsecure-prod releases-only with overwrite prevention), one remote Maven repo (maven-central-proxy proxying https://repo1.maven.org/maven2), and one virtual Maven repo (medsecure-maven-all aggregating all four in order: medsecure-prod, medsecure-staging, medsecure-dev, maven-central-proxy, with default deployment target medsecure-dev). Two groups (platform-engineers, qa-team) and one user (eng-sarah, password SarahEng2024!, email sarah@medsecure.example.com, in platform-engineers group) must be created. Two permission targets: deploy-perms (platform-engineers: Deploy+Read+Delete on medsecure-dev and medsecure-staging) and qa-perms (qa-team: Read on medsecure-staging and medsecure-prod). The artifact commons-io-2.15.1.jar (501218 bytes, SHA256: a58af12ee1b68cfd2ebb0c27caef164f084381a00ec81a48cc275fd7ea54e154) is pre-staged at /home/ga/Desktop/ and must be deployed to medsecure-dev at Maven path org/apache/commons/commons-io/2.15.1/, then copied to medsecure-staging, then medsecure-prod. Artifact copy API is Pro-only, so copying must be done through the UI. SMTP must be configured: host smtp.medsecure.example.com, port 587, TLS enabled, from artifactory@medsecure.example.com, subject prefix [MedSecure-Artifacts]. Anonymous access must be disabled (starts enabled). An onboarding wizard appears at first login and must be dismissed. The environment starts with only example-repo-local (Generic, LOCAL) and no target entities present.",
+    "pi_confidence": "high"
+}

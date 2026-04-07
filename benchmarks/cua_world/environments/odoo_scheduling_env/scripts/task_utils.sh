@@ -7,6 +7,44 @@ ODOO_URL="http://localhost:8069"
 ODOO_DB="odoo_scheduling"
 ODOO_USER="admin"
 ODOO_PASSWORD="admin"
+ODOO_DIR="/opt/odoo"
+
+# ---------------------------------------------------------------------------
+# Ensure Docker and Odoo containers are running.
+# CRITICAL after VM checkpoint/restore — containers may not survive savevm/loadvm.
+# ---------------------------------------------------------------------------
+ensure_odoo_running() {
+    echo "ensure_odoo_running: checking Docker and Odoo services..."
+    if ! systemctl is-active --quiet docker 2>/dev/null; then
+        echo "  Docker not running — starting..."
+        systemctl start docker
+        sleep 5
+    fi
+    local web_running db_running
+    web_running=$(docker inspect -f '{{.State.Running}}' odoo-web 2>/dev/null || echo "false")
+    db_running=$(docker inspect -f '{{.State.Running}}' odoo-db 2>/dev/null || echo "false")
+    if [ "$db_running" != "true" ] || [ "$web_running" != "true" ]; then
+        echo "  Containers not running (db=$db_running, web=$web_running) — starting..."
+        cd "$ODOO_DIR"
+        docker compose up -d 2>&1 | tail -5
+        sleep 10
+    fi
+    local timeout=120 elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        local http_code
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" "$ODOO_URL/web/health" 2>/dev/null || echo "0")
+        if [ "$http_code" = "200" ]; then
+            echo "  Odoo web ready (HTTP 200) after ${elapsed}s"
+            return 0
+        fi
+        sleep 5
+        elapsed=$((elapsed + 5))
+    done
+    echo "  WARNING: Odoo not ready after ${timeout}s — restarting..."
+    cd "$ODOO_DIR" && docker compose restart 2>&1 | tail -5
+    sleep 15
+    return 0
+}
 
 # Take a screenshot of the current desktop
 take_screenshot() {
@@ -51,13 +89,22 @@ ensure_firefox() {
     local url="${1:-http://localhost:8069/web#action=calendar.action_calendar_event}"
     local SNAP_FF_MOZILLA="/home/ga/snap/firefox/common/.mozilla/firefox"
 
-    if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "firefox"; then
-        # Firefox already running — navigate to target URL
-        navigate_firefox "$url"
-        DISPLAY=:1 wmctrl -r "Firefox" -b add,maximized_vert,maximized_horz 2>/dev/null || true
-        DISPLAY=:1 wmctrl -r "Mozilla Firefox" -b add,maximized_vert,maximized_horz 2>/dev/null || true
-        sleep 1
-        return
+    # Kill stale Firefox from checkpoint restore (snap processes become zombies)
+    if pgrep -f firefox > /dev/null 2>&1; then
+        if ! DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "firefox\|odoo"; then
+            echo "ensure_firefox: killing stale Firefox process..."
+            pkill -f firefox 2>/dev/null || true
+            sleep 3
+            pkill -9 -f firefox 2>/dev/null || true
+            sleep 5
+        else
+            # Firefox running with a window — just navigate
+            navigate_firefox "$url"
+            DISPLAY=:1 wmctrl -r "Firefox" -b add,maximized_vert,maximized_horz 2>/dev/null || true
+            DISPLAY=:1 wmctrl -r "Mozilla Firefox" -b add,maximized_vert,maximized_horz 2>/dev/null || true
+            sleep 1
+            return
+        fi
     fi
 
     # Ensure snap Firefox profile directory is configured (handles both fresh
@@ -267,3 +314,9 @@ except Exception as e:
     print(f"Warning: Could not record baseline: {e}", file=sys.stderr)
 PYTHON_EOF
 }
+
+# ---------------------------------------------------------------------------
+# AUTO-RUN: Ensure Odoo is running when this file is sourced.
+# Must happen before any task setup script tries XML-RPC calls.
+# ---------------------------------------------------------------------------
+ensure_odoo_running

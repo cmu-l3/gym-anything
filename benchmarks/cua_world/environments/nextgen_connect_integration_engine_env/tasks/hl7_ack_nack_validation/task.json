@@ -1,0 +1,33 @@
+{
+  "id": "hl7_ack_nack_validation@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a new channel named 'ADT_Inbound_Validator' that listens on TCP port 6661 for HL7 v2.x messages using MLLP framing. The channel must validate incoming ADT messages: if PID.3 (Patient ID) AND PID.5 (Patient Name) are present, return an ACK with MSA-1='AA' (Application Accept). If either field is missing, return an ACK with MSA-1='AE' (Application Error). Valid messages must be written to a file writer destination at '/home/ga/hl7_outbound/'. The NextGen Connect API is available at https://localhost:8443/api (admin/admin).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_ack_nack_validation/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_ack_nack_validation/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "ADT_Inbound_Validator",
+    "port": 6661,
+    "output_dir": "/home/ga/hl7_outbound",
+    "required_fields": [
+      "PID.3",
+      "PID.5"
+    ],
+    "success_ack": "AA",
+    "failure_ack": "AE"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_ack_nack_validation"
+    }
+  }
+}

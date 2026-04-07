@@ -1,0 +1,30 @@
+{
+  "id": "ccda_allergy_extraction@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a NextGen Connect channel named 'CCDA_Allergy_Parser' that polls HL7 C-CDA XML files from '/home/ga/ccda_input' every 1000ms and auto-deletes processed files. The channel must extract the patient's name (Given and Family) from 'recordTarget/patientRole/patient/name' and allergy details (substance name, reaction, and status) from the section with templateId '2.16.840.1.113883.10.20.22.2.6.1'. Write the extracted data to '/home/ga/allergy_output' in the following JSON format: { \"patient\": \"First Last\", \"allergies\": [ { \"substance\": \"Name\", \"reaction\": \"Reaction\", \"status\": \"Active\" } ] }. A sample file is available at '/home/ga/Documents/sample_ccda.xml'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ccda_allergy_extraction/setup_task.sh",
+    "post_task": "/workspace/tasks/ccda_allergy_extraction/export_result.sh"
+  },
+  "metadata": {
+    "input_dir": "/home/ga/ccda_input",
+    "output_dir": "/home/ga/allergy_output",
+    "sample_file": "/home/ga/Documents/sample_ccda.xml",
+    "test_patient_name": "VerifyBot User",
+    "test_allergy_substance": "Kryptonite",
+    "test_allergy_reaction": "Weakness"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ccda_allergy_extraction"
+    }
+  }
+}

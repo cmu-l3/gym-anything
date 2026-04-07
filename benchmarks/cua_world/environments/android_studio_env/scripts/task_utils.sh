@@ -125,6 +125,13 @@ setup_android_studio_project() {
 
     echo "Opening project: $project_path"
 
+    # Ensure local.properties with sdk.dir exists so Gradle can find the SDK
+    if [ -d "$project_path" ]; then
+        echo "sdk.dir=/opt/android-sdk" > "$project_path/local.properties"
+        chown ga:ga "$project_path/local.properties" 2>/dev/null || true
+        echo "  Wrote local.properties with sdk.dir"
+    fi
+
     # Kill any existing Android Studio to avoid IPC race conditions
     # The "Cannot Execute Command" error occurs when studio.sh sends an IPC
     # command to an already-running instance and it fails

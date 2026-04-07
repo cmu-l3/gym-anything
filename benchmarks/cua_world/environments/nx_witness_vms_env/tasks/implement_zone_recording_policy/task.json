@@ -1,0 +1,50 @@
+{
+  "id": "implement_zone_recording_policy@1",
+  "version": "1.0",
+  "env_id": "nx_witness_vms_env@0.1",
+  "description": "The facility's recording system must be reconfigured to comply with a new zone-based operations schedule. The full policy specification is at /home/ga/Documents/recording_policy.json. Using the Nx Witness REST API at https://localhost:7001 (admin / Admin1234!), read the policy document and configure each camera's recording schedule and archive retention to match its assigned zone. The policy defines three zones with distinct business-hours (Mon-Fri 07:00-19:00) and off-hours recording parameters, plus per-zone retention periods. After applying all configurations, generate a JSON verification report at /home/ga/Documents/schedule_audit.json listing each camera's name, zone, applied schedule summary, and retention settings.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/implement_zone_recording_policy/setup_task.sh",
+    "post_task": "/workspace/tasks/implement_zone_recording_policy/export_result.sh"
+  },
+  "metadata": {
+    "api_base": "https://localhost:7001",
+    "credentials": "admin:Admin1234!",
+    "policy_path": "/home/ga/Documents/recording_policy.json",
+    "report_path": "/home/ga/Documents/schedule_audit.json",
+    "business_hours_start_sec": 25200,
+    "business_hours_end_sec": 68400,
+    "zones": {
+      "Perimeter": {
+        "cameras": ["Parking Lot Camera"],
+        "business": {"recordingType": "always", "fps": 15, "streamQuality": "high"},
+        "off_hours": {"recordingType": "always", "fps": 10, "streamQuality": "normal"},
+        "retention": {"minArchivePeriodS": 7776000, "maxArchivePeriodS": 15552000}
+      },
+      "Access Point": {
+        "cameras": ["Entrance Camera"],
+        "business": {"recordingType": "always", "fps": 15, "streamQuality": "high"},
+        "off_hours": {"recordingType": "always", "fps": 5, "streamQuality": "low"},
+        "retention": {"minArchivePeriodS": 5184000, "maxArchivePeriodS": 10368000}
+      },
+      "Restricted": {
+        "cameras": ["Server Room Camera"],
+        "business": {"recordingType": "always", "fps": 10, "streamQuality": "normal"},
+        "off_hours": {"recordingType": "always", "fps": 15, "streamQuality": "high"},
+        "retention": {"minArchivePeriodS": 15552000, "maxArchivePeriodS": 31536000}
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_zone_recording_policy"
+    }
+  }
+}

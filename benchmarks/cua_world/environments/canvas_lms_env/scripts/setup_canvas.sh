@@ -6,6 +6,20 @@
 
 echo "=== Setting up Canvas LMS ==="
 
+# Create swap space to prevent OOM with the fat Docker container
+# Canvas LMS bundles Rails + Postgres + Redis + Apache in one container
+if [ ! -f /swapfile ]; then
+    echo "Creating 4GB swap file..."
+    fallocate -l 4G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=4096 2>/dev/null
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo "Swap enabled: $(swapon --show)"
+else
+    swapon /swapfile 2>/dev/null || true
+    echo "Swap already exists: $(swapon --show)"
+fi
+
 # Configuration for fat container
 CANVAS_URL="http://localhost:3000/"
 ADMIN_EMAIL="canvas@example.edu"
@@ -88,13 +102,20 @@ chown -R ga:ga /home/ga/canvas
 
 cd /home/ga/canvas
 
-# Pull the fat container image
-DOCKER_PULL_RESULT=$(docker-compose pull 2>&1)
+# Ensure swap is active (may have been lost on checkpoint restore)
+swapon /swapfile 2>/dev/null || true
+
+# Image should already be pulled by install_canvas.sh (pre_start hook)
+echo "Docker images available:"
+docker images | grep -i canvas || echo "WARNING: Canvas image not found, docker-compose up will pull..."
+
+# Start the container (image already cached, so this is fast)
+docker-compose up -d 2>&1
 DOCKER_PULL_EXIT=$?
+DOCKER_PULL_RESULT="started"
 
 if [ $DOCKER_PULL_EXIT -eq 0 ]; then
-    echo "Docker image pulled successfully"
-    docker-compose up -d
+    echo "Docker container started successfully"
 
     # Wait for the fat container to start (it takes time for Rails to boot)
     echo "Waiting for Canvas LMS container to start..."

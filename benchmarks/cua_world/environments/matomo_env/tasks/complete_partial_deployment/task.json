@@ -1,0 +1,169 @@
+{
+  "id": "complete_partial_deployment@1",
+  "version": "1.0",
+  "env_id": "matomo_env@0.1",
+  "description": "A junior analyst started configuring analytics for the site 'GlobalRetail Corp' in Matomo but left the company mid-project. A deployment specification at /home/ga/Documents/deployment_spec.txt describes the complete target configuration. Audit the current Matomo setup, fix what is misconfigured, create what is missing, and ensure everything matches the specification exactly. The current setup is incomplete: some site settings are incorrect, some conversion goals have wrong URL patterns while others are missing entirely, custom dimensions are partially configured, and no audience segments, Tag Manager tracking, user accounts, or performance dashboard have been created yet. Read the deployment specification carefully — it contains all exact configuration values you need. Do not modify the 'Initial Site' (Site ID 1) or any of its existing configuration. Login credentials: admin / Admin12345.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/complete_partial_deployment/setup_task.sh",
+    "post_task": "/workspace/tasks/complete_partial_deployment/export_result.sh"
+  },
+  "metadata": {
+    "target_site": "GlobalRetail Corp",
+    "site_config": {
+      "expected_currency": "EUR",
+      "expected_timezone": "Europe/Berlin",
+      "expected_ecommerce": 1,
+      "expected_excluded_parameters": "fbclid,gclid,session_id",
+      "initial_currency": "USD",
+      "initial_timezone": "UTC",
+      "initial_ecommerce": 0
+    },
+    "goals": {
+      "product_page_view": {
+        "name": "Product Page View",
+        "expected_pattern": "/products/",
+        "expected_pattern_type": "contains",
+        "should_change": false
+      },
+      "add_to_cart": {
+        "name": "Add to Cart",
+        "expected_pattern": "/cart/add",
+        "expected_pattern_type": "contains",
+        "initial_pattern": "/cart",
+        "should_change": true
+      },
+      "checkout_started": {
+        "name": "Checkout Started",
+        "expected_pattern": "/checkout/start",
+        "expected_pattern_type": "contains",
+        "should_create": true
+      },
+      "purchase_complete": {
+        "name": "Purchase Complete",
+        "expected_pattern": "/order/confirmation",
+        "expected_pattern_type": "exact",
+        "should_create": true
+      }
+    },
+    "custom_dimensions": {
+      "customer_tier": {
+        "name": "Customer Tier",
+        "expected_scope": "visit",
+        "expected_active": true,
+        "should_change": false
+      },
+      "page_category": {
+        "name": "Page Category",
+        "expected_scope": "action",
+        "expected_active": true,
+        "should_create": true
+      }
+    },
+    "segments": {
+      "high_value_customers": {
+        "name": "High-Value Customers",
+        "expected_definition": "visitorType==returning;actions>5",
+        "expected_visibility": 1,
+        "should_create": true
+      },
+      "mobile_shoppers": {
+        "name": "Mobile Shoppers",
+        "expected_definition": "deviceType==Smartphone",
+        "expected_visibility": 1,
+        "should_create": true
+      }
+    },
+    "tag_manager": {
+      "container_name": "GlobalRetail Tracker",
+      "trigger_name": "AllPages",
+      "trigger_type": "Pageview",
+      "tags": {
+        "pageview_tracker": {
+          "name": "PageViewTracker",
+          "type": "Matomo",
+          "track_type": "Pageview"
+        },
+        "conversion_event": {
+          "name": "ConversionEvent",
+          "type": "CustomHtml",
+          "content": "<script>console.log(\"conversion-tracked\");</script>"
+        }
+      },
+      "publish_version_name": "v1-launch"
+    },
+    "users": {
+      "marketing_lead": {
+        "login": "marketing_lead",
+        "expected_access": "view",
+        "should_create": true
+      },
+      "data_analyst": {
+        "login": "data_analyst",
+        "expected_access": "admin",
+        "should_create": true
+      }
+    },
+    "dashboard": {
+      "expected_name": "Client Overview",
+      "expected_modules": ["VisitsSummary", "Referrers", "DevicesDetection", "Goals"]
+    },
+    "scoring_weights": {
+      "site_currency": 3,
+      "site_timezone": 3,
+      "site_ecommerce": 2,
+      "site_excluded_params": 4,
+      "goal_cart_pattern_fixed": 5,
+      "goal_checkout_created": 5,
+      "goal_purchase_created": 6,
+      "goal_product_preserved": 2,
+      "dim_page_category_created": 5,
+      "dim_customer_tier_preserved": 2,
+      "seg_high_value_created": 6,
+      "seg_mobile_created": 5,
+      "seg_visibility": 2,
+      "tm_trigger_exists": 5,
+      "tm_tag_pageview_exists": 5,
+      "tm_tag_conversion_exists": 5,
+      "tm_tag_conversion_content": 4,
+      "tm_tags_linked_to_trigger": 3,
+      "tm_container_published": 5,
+      "tm_container_notempty": 3,
+      "user_marketing_exists": 3,
+      "user_marketing_access": 4,
+      "user_analyst_exists": 3,
+      "user_analyst_access": 4,
+      "user_no_superuser": 2,
+      "dash_name_correct": 3,
+      "dash_referrers_widget": 2,
+      "dash_devices_widget": 2,
+      "dash_goals_widget": 2,
+      "initial_site_untouched": 2
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_complete_partial_deployment"
+    }
+  },
+  "tags": [
+    "matomo",
+    "analytics",
+    "goals",
+    "segments",
+    "custom-dimensions",
+    "tag-manager",
+    "user-management",
+    "dashboard",
+    "audit",
+    "remediation",
+    "long-horizon",
+    "multi-feature"
+  ]
+}

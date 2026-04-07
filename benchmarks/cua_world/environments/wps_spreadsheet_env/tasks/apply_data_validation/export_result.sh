@@ -10,33 +10,27 @@ import os
 result = {
     "file_exists": False,
     "has_data_validation": False,
-    "dv_count": 0,
-    "has_freeze_panes": False,
+    "dv_rules_count": 0,
     "sheets": [],
     "error": None
 }
 
-project_file = "/home/ga/Documents/project_tracker.xlsx"
+tracker_file = "/home/ga/Documents/project_tracker.xlsx"
 
-if os.path.exists(project_file):
+if os.path.exists(tracker_file):
     result["file_exists"] = True
 
     try:
         from openpyxl import load_workbook
-        wb = load_workbook(project_file)
+
+        wb = load_workbook(tracker_file)
         result["sheets"] = wb.sheetnames
 
         sheet = wb.active
-
-        # Check for data validation
-        if hasattr(sheet, 'data_validations'):
+        if hasattr(sheet, 'data_validations') and sheet.data_validations:
             dv = sheet.data_validations
-            result["dv_count"] = len(dv.dataValidation) if dv.dataValidation else 0
-            result["has_data_validation"] = result["dv_count"] > 0
-
-        # Check for freeze panes
-        if sheet.freeze_panes:
-            result["has_freeze_panes"] = True
+            result["dv_rules_count"] = len(dv.dataValidation) if dv.dataValidation else 0
+            result["has_data_validation"] = result["dv_rules_count"] > 0
 
     except Exception as e:
         result["error"] = str(e)

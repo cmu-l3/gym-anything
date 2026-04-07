@@ -1,0 +1,43 @@
+{
+  "id": "landfall_rising_range_setup@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "Calculate the dipping ranges (geographical visual ranges) for two Solent lighthouses and create a calibration scenario in Bridge Command at /opt/bridgecommand/Scenarios/Landfall_Calibration/. Use the formula Distance (nm) = 2.03 * (sqrt(H) + sqrt(h)), where H is object height (m) and h is observer eye height (m). For St. Catherine's Point Light (50° 34.55' N, 001° 17.60' W, H=41m), calculate the range for Own Ship (h=12m) and determine the position exactly 180° True (South) from the light at this distance. For The Needles Light (50° 39.73' N, 001° 35.50' W, H=24m), calculate the range for a Target Vessel (h=8m) and determine the position exactly 270° True (West) from the light at this distance. The scenario must include an environment.ini (Solent setting, 23:00, visibility >=25nm, calm weather), an ownship.ini (placed at the St. Catherine's calculated position, heading 000), and an othership.ini (one target vessel at the Needles calculated position, heading 090). Note that 1 nm equals 1 minute of Latitude, and for Longitude, use Departure = dLong * Cos(Lat) or estimate 1 minute Longitude as approximately 0.63 nm at this latitude.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/landfall_rising_range_setup/setup_task.sh",
+    "post_task": "/workspace/tasks/landfall_rising_range_setup/export_result.sh"
+  },
+  "metadata": {
+    "st_catherines": {
+      "lat_deg": 50,
+      "lat_min": 34.55,
+      "long_deg": 1,
+      "long_min": 17.6,
+      "height_m": 41,
+      "bearing_from_light": 180
+    },
+    "needles": {
+      "lat_deg": 50,
+      "lat_min": 39.73,
+      "long_deg": 1,
+      "long_min": 35.5,
+      "height_m": 24,
+      "bearing_from_light": 270
+    },
+    "ownship_eye_height_m": 12,
+    "target_eye_height_m": 8,
+    "scenario_path": "/opt/bridgecommand/Scenarios/Landfall_Calibration"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_landfall_rising_range_setup"
+    }
+  }
+}

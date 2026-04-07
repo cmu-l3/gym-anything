@@ -1,0 +1,28 @@
+{
+  "id": "composite_health_index_computation@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a mission control operator developing a custom telemetry monitoring script. Implement the 'Spacecraft Health Index' algorithm to distill telemetry from the live INST target into a single health score. Sample the target exactly 5 times with at least a 2-second interval between iterations and save the results to /home/ga/Desktop/health_index_report.json.\n\nAlgorithm Rules:\n- Base Score: 100.\n- Thermal Penalty: Evaluate INST HEALTH_STATUS TEMP1, TEMP2, TEMP3, and TEMP4. For each sensor independently: deduct 15 points if the value is strictly > 85.0; deduct 10 points if the value is strictly < 15.0.\n- Stale Data Penalty: Monitor the INST HEALTH_STATUS COLLECTS counter. Deduct 20 points if the value has not changed since the immediately preceding snapshot (0 penalty for the first snapshot).\n- Score Floor: Cumulative deductions are capped at a minimum score of 0.\n\nOutput Schema:\nSave the report to /home/ga/Desktop/health_index_report.json using the following structure:\n{\n  \"task_objective\": \"Composite Spacecraft Health Index Computation\",\n  \"snapshots\": [\n    {\n      \"snapshot_id\": 1,\n      \"telemetry\": {\n        \"TEMP1\": 45.2,\n        \"TEMP2\": 88.1,\n        \"TEMP3\": 12.0,\n        \"TEMP4\": 50.0,\n        \"COLLECTS\": 104\n      },\n      \"health_index\": 65\n    }\n  ]\n}\n\nOpenC3 password: Cosmos2024!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/composite_health_index_computation/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/composite_health_index_computation/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/health_index_result.json",
+    "output_file": "/home/ga/Desktop/health_index_report.json",
+    "target": "INST"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_health_index_computation"
+    }
+  }
+}

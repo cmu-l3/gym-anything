@@ -1,0 +1,39 @@
+{
+  "id": "ukc_passage_plan@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "Perform a detailed Under-Keel Clearance (UKC) calculation for the VLCC 'MT Pacific Voyager' entering Southampton using the tidal, vessel, and channel data provided in /home/ga/Documents/PassagePlanning/. Calculate the Net UKC for every half-hour interval [Net UKC = (Charted Depth + Tide) - (Draft + Squat + Swell Allowance); Squat(m) = Cb * V^2 / 100] to identify safe transit windows of at least 2 hours where Net UKC is at least 1.0m. Select the optimal window with the highest safety margin and document the results in a Passage Plan at /home/ga/Documents/PassagePlanning/ukc_passage_plan.txt, including the calculated Squat value, minimum required Tidal Height, a list of safe windows, and justification for the chosen window. Additionally, create a Bridge Command scenario in /opt/bridgecommand/Scenarios/p) Southampton Deep Draft Transit/ by configuring environment.ini (Setting='Solent', Month=11, StartTime 1 hour before the optimal window), ownship.ini (Name='MT Pacific Voyager', Speed=6.0, Latitude 50.75-50.85, Longitude -1.40 to -1.20), and othership.ini (minimum 2 traffic vessels). Update the bc5.ini configuration to enable Full Radar with a Max Range of 48 nm and Range Resolution of 128 cells.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ukc_passage_plan/setup_task.sh",
+    "post_task": "/workspace/tasks/ukc_passage_plan/export_result.sh"
+  },
+  "metadata": {
+    "ground_truth": {
+      "squat_m": 0.2952,
+      "required_tide_m": 2.9,
+      "safe_window_morning_start": 6.0,
+      "safe_window_morning_end": 13.0,
+      "optimal_start_hour_range": [
+        6.0,
+        9.0
+      ],
+      "min_net_ukc": 1.0
+    },
+    "paths": {
+      "scenario": "/opt/bridgecommand/Scenarios/p) Southampton Deep Draft Transit",
+      "plan": "/home/ga/Documents/PassagePlanning/ukc_passage_plan.txt"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ukc_passage_plan"
+    }
+  }
+}

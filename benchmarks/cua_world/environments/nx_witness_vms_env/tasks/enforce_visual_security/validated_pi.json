@@ -1,0 +1,66 @@
+{
+    "task_id": "enforce_visual_security@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "api_endpoint",
+            "metadata_value": "/rest/v1/system/settings",
+            "verified_value": "/rest/v1/system/settings",
+            "source": "Confirmed in setup_task.sh line 34 and export_result.sh line 19 using curl to this endpoint with Bearer token",
+            "status": "verified"
+        },
+        {
+            "key": "expected_watermark_user",
+            "metadata_value": true,
+            "verified_value": true,
+            "source": "Verified in verifier.py line 62 checks watermarkSettings.useUserName field; setup_task.sh shows useUserName field in reset payload",
+            "status": "verified"
+        },
+        {
+            "key": "expected_opacity_min",
+            "metadata_value": 0.25,
+            "verified_value": 0.3,
+            "source": "Task description (line 5 of task.json) explicitly states opacity should be 'between 30% and 40%', which is 0.30-0.40 in decimal format. Metadata claims 0.25-0.45 (25-45%), which contradicts the stated requirement.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_opacity_max",
+            "metadata_value": 0.45,
+            "verified_value": 0.4,
+            "source": "Task description (line 5 of task.json) explicitly states opacity should be 'between 30% and 40%', which is 0.30-0.40 in decimal format. Metadata claims 0.25-0.45 (25-45%), which contradicts the stated requirement.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_timeout_seconds",
+            "metadata_value": 900,
+            "verified_value": 900,
+            "source": "900 seconds = 15 minutes (900/60 = 15). Task description line 5 states 'Limit session duration to 15 minutes'. Verified in verifier.py line 33 and export_result.sh line 28 which sets sessionTimeoutS field.",
+            "status": "verified"
+        },
+        {
+            "key": "timeout_tolerance",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "Verified in verifier.py lines 34 and 86-87 where diff = abs(timeout_s - expected_timeout) is checked against timeout_tolerance (60 seconds)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_https_forced",
+            "metadata_value": true,
+            "verified_value": true,
+            "source": "Verified in verifier.py line 97 checks trafficEncryptionForced OR forceSecureConnection fields. Web search confirms trafficEncryptionForced is a real Nx Witness API setting documented in official help pages (s3.amazonaws.com/resources.vmsproxy.com/nx_4.1_help/configuring_secure_connection.htm)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_audit_trail",
+            "metadata_value": true,
+            "verified_value": true,
+            "source": "Verified in verifier.py line 108 checks auditTrailEnabled field. Setup_task.sh line 30 shows auditTrailEnabled in the reset payload.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task configures Nx Witness VMS (real software from NetworkOptix, version 5.1.5.39242 or 6.0.1.39873) with security settings via REST API endpoint /rest/v1/system/settings. The metadata defines six verified configuration requirements: watermark username enabled, timeout set to 900 seconds (15 minutes), HTTPS forced, and audit trail enabled. However, there is a contradiction regarding watermark opacity: the task description requires opacity between 30-40%, but the metadata verification thresholds accept 25-45%, allowing an unspecified wider tolerance range.",
+    "pi_confidence": "high"
+}

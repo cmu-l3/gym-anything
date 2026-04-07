@@ -1,0 +1,122 @@
+{
+    "task_id": "chinook_reporting_db@1",
+    "dataset": "Chinook Database",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "report_db_path",
+            "metadata_value": "/home/ga/Documents/databases/chinook_reports.db",
+            "verified_value": "/home/ga/Documents/databases/chinook_reports.db",
+            "source": "Task description specifies this as the target database path",
+            "status": "verified"
+        },
+        {
+            "key": "source_db_path",
+            "metadata_value": "/home/ga/Documents/databases/chinook.db",
+            "verified_value": "/home/ga/Documents/databases/chinook.db",
+            "source": "Located at workspace /examples/dbeaver_env/data/chinook.db; verified as publicly available Chinook sample database",
+            "status": "verified"
+        },
+        {
+            "key": "script_path",
+            "metadata_value": "/home/ga/Documents/scripts/create_reports_db.sql",
+            "verified_value": "/home/ga/Documents/scripts/create_reports_db.sql",
+            "source": "Task description specifies this as the output path for SQL script",
+            "status": "verified"
+        },
+        {
+            "key": "connection_name",
+            "metadata_value": "ChinookReports",
+            "verified_value": "ChinookReports",
+            "source": "Task description specifies DBeaver connection name",
+            "status": "verified"
+        },
+        {
+            "key": "artist_summary_columns",
+            "metadata_value": "[\"ArtistId\", \"ArtistName\", \"AlbumCount\", \"TrackCount\", \"TotalDurationMinutes\", \"AvgTrackDurationSeconds\"]",
+            "verified_value": "[\"ArtistId\", \"ArtistName\", \"AlbumCount\", \"TrackCount\", \"TotalDurationMinutes\", \"AvgTrackDurationSeconds\"]",
+            "source": "Source database schema verified; columns match requirement",
+            "status": "verified"
+        },
+        {
+            "key": "genre_revenue_columns",
+            "metadata_value": "[\"GenreId\", \"GenreName\", \"TrackCount\", \"TotalRevenue\", \"AvgTrackPrice\", \"UniqueCustomers\"]",
+            "verified_value": "[\"GenreId\", \"GenreName\", \"TrackCount\", \"TotalRevenue\", \"AvgTrackPrice\", \"UniqueCustomers\"]",
+            "source": "Source database schema verified; columns derivable from genre, track, and invoice_items tables",
+            "status": "verified"
+        },
+        {
+            "key": "monthly_sales_columns",
+            "metadata_value": "[\"YearMonth\", \"InvoiceCount\", \"TotalRevenue\", \"UniqueCustomers\", \"AvgInvoiceTotal\"]",
+            "verified_value": "[\"YearMonth\", \"InvoiceCount\", \"TotalRevenue\", \"UniqueCustomers\", \"AvgInvoiceTotal\"]",
+            "source": "Source database schema verified; columns derivable from invoices and invoice_items tables",
+            "status": "verified"
+        },
+        {
+            "key": "artist_count_ground_truth",
+            "metadata_value": null,
+            "verified_value": "275",
+            "source": "SELECT COUNT(*) FROM artists; executed on source Chinook database",
+            "status": "verified"
+        },
+        {
+            "key": "iron_maiden_albumcount",
+            "metadata_value": null,
+            "verified_value": "21",
+            "source": "SELECT COUNT(DISTINCT AlbumId) FROM albums WHERE ArtistId=90; (Iron Maiden)",
+            "status": "verified"
+        },
+        {
+            "key": "iron_maiden_trackcount",
+            "metadata_value": null,
+            "verified_value": "213",
+            "source": "SELECT COUNT(TrackId) FROM tracks WHERE AlbumId IN (SELECT AlbumId FROM albums WHERE ArtistId=90);",
+            "status": "verified"
+        },
+        {
+            "key": "iron_maiden_duration_minutes",
+            "metadata_value": null,
+            "verified_value": "1197.41",
+            "source": "SELECT SUM(Milliseconds)/60000.0 FROM tracks WHERE AlbumId IN (SELECT AlbumId FROM albums WHERE ArtistId=90);",
+            "status": "verified"
+        },
+        {
+            "key": "top_genre_name",
+            "metadata_value": null,
+            "verified_value": "Rock",
+            "source": "SELECT g.Name FROM genres g JOIN tracks t ON g.GenreId=t.GenreId JOIN invoice_items ii ON t.TrackId=ii.TrackId GROUP BY g.GenreId ORDER BY SUM(ii.UnitPrice*ii.Quantity) DESC LIMIT 1;",
+            "status": "verified"
+        },
+        {
+            "key": "top_genre_revenue",
+            "metadata_value": null,
+            "verified_value": "826.65",
+            "source": "Top genre (Rock) revenue calculated from invoice_items; SUM(UnitPrice*Quantity)",
+            "status": "verified"
+        },
+        {
+            "key": "total_revenue_all_invoices",
+            "metadata_value": null,
+            "verified_value": "2328.60",
+            "source": "SELECT SUM(Total) FROM invoices;",
+            "status": "verified"
+        },
+        {
+            "key": "distinct_months_count",
+            "metadata_value": null,
+            "verified_value": "60",
+            "source": "SELECT COUNT(DISTINCT strftime('%Y-%m', InvoiceDate)) FROM invoices;",
+            "status": "verified"
+        },
+        {
+            "key": "database_source_type",
+            "metadata_value": null,
+            "verified_value": "Public sample database from lerocha/chinook-database",
+            "source": "https://github.com/lerocha/chinook-database - Well-known sample database for SQL education and ORM testing",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Chinook database is a real, publicly available sample database containing digitized music store data (artists, albums, tracks from iTunes) plus fictitious customer and randomly-generated sales data. Database contains 275 artists, 60 distinct months of sales data, and $2,328.60 total revenue. Rock is the top genre by revenue ($826.65). Iron Maiden has 21 albums and 213 tracks totaling 1,197.41 minutes. The task requires creating three reporting tables (artist_summary, genre_revenue, monthly_sales) in a new SQLite database (chinook_reports.db) derived from the source Chinook database.",
+    "pi_confidence": "high"
+}

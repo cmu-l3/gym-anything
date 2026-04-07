@@ -1,0 +1,66 @@
+{
+    "task_id": "ifr_valley_routing@1",
+    "dataset": "FAA NASR (National Airspace System Resources) database bundled in Avare",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "plan_name",
+            "metadata_value": "IFR_VALLEY",
+            "verified_value": "IFR_VALLEY",
+            "source": "Live testing: saved a test plan via Save sub-tab; plan stored in user.db SQLite table 'plans' with the exact name typed by the user. Confirmed via: su root sqlite3 /data/data/com.ds.avare/files/user.db 'SELECT * FROM plans;' which returned 'TEST_PLAN|[...]'. Plan names are case-sensitive strings.",
+            "status": "verified"
+        },
+        {
+            "key": "waypoints",
+            "metadata_value": ["SJC", "SJC", "MOD", "SAC", "SAC"],
+            "verified_value": ["SJC", "SJC", "MOD", "SAC", "SAC"],
+            "source": "Live testing: Avare uses 3-letter FAA LID codes, NOT 4-letter ICAO. Confirmed via SQLite queries: airports table has LocationID='SJC' (Norman Y Mineta San Jose Intl), 'SAC' (Sacramento Exec), 'MOD' (Modesto City-County). KSJC/KSAC/KMOD do NOT exist in the database. Both airports and VOR navaids share the same 3-letter ID (SJC, SAC, MOD) — distinguished by type, not code.",
+            "status": "verified"
+        },
+        {
+            "key": "waypoint_types",
+            "metadata_value": ["Airport", "Navaid", "Navaid", "Navaid", "Airport"],
+            "verified_value": ["Airport (Base)", "Navaid", "Navaid", "Navaid", "Airport (Base)"],
+            "source": "Live testing: Created plan via 'New' tab with 'SJC SAC MOD'. Plan stored as JSON array with type annotations. VOR entries use 'Navaid' type (e.g., 'SJC::Navaid;VOR/DME;SAN JOSE 114.10'). Airport entries use 'Base' type (e.g., 'SAC::Base;Airport;SACRAMENTO EXEC'). Verified from db_saved_plans.txt evidence file. The export_result.sh checks for '::Navaid' vs '::Base' patterns.",
+            "status": "verified"
+        },
+        {
+            "key": "vor_identifiers",
+            "metadata_value": ["SJC", "MOD", "SAC"],
+            "verified_value": ["SJC", "MOD", "SAC"],
+            "source": "Independently verified via FAA NASR data through AirNav.com web searches and live database queries. SJC VOR/DME: 114.10 MHz, San Jose (airnav.com/cgi-bin/navaid-info?id=SJC). MOD VOR/DME: 114.60 MHz, Modesto (airnav.com/cgi-bin/navaid-info?id=MOD). SAC VORTAC: 115.20 MHz, Sacramento (airnav.com/cgi-bin/navaid-info?id=SAC). All three confirmed present in Avare's main.db nav table with matching frequencies.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_waypoint_count",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Route is SJC(airport) -> SJC(VOR) -> MOD(VOR) -> SAC(VOR) -> SAC(airport) = 5 waypoints. Live testing confirmed the plan creation UI and database support arbitrary waypoint counts. The export_result.sh counts waypoints by counting '::' separators in the plan path JSON string.",
+            "status": "verified"
+        },
+        {
+            "key": "required_chart",
+            "metadata_value": "IFR Low",
+            "verified_value": "IFR Low",
+            "source": "Live testing: Opened chart type selector from Menu overlay -> 'Sectional' button. Confirmed 'IFR Low' is a valid radio button option (screenshot 07_chart_type_selector.png). Avare documentation and Google Play listing both confirm IFR Low Enroute chart support. The ChartType preference is stored as a <string> element in SharedPreferences XML. When absent, defaults to 'Sectional'. After agent changes chart, key appears as '<string name=\"ChartType\">IFR Low</string>'.",
+            "status": "verified"
+        },
+        {
+            "key": "csup_airport",
+            "metadata_value": "SAC",
+            "verified_value": "SAC",
+            "source": "Live testing: CSup (Chart Supplement / A/FD) tab confirmed functional (screenshot 09_csup_tab_airport_data.png shows UKI airport data with Location ID, Facility Name, Fuel Types, frequencies, runway data, coordinates, elevation). SAC (Sacramento Executive) confirmed in airports table with elevation 23.4 ft, lat 38.5128, lon -121.4933. AirNav.com confirms KSAC (FAA LID: SAC) elevation 24 ft MSL. The slight discrepancy (23.4 vs 24) is due to rounding in different databases.",
+            "status": "verified"
+        },
+        {
+            "key": "plan_storage",
+            "metadata_value": "user.db SQLite table 'plans'",
+            "verified_value": "user.db SQLite table 'plans' at /data/data/com.ds.avare/files/user.db",
+            "source": "Live testing: Confirmed via 'su root sqlite3 /data/data/com.ds.avare/files/user.db .tables' which shows 'plans' table. Schema is 'CREATE TABLE plans (name TEXT PRIMARY KEY UNIQUE ON CONFLICT REPLACE, path TEXT NOT NULL)'. Plans are NOT stored as CSV files in /sdcard/avare/Plans/ (that directory exists but remains empty after saving). The 'path' column contains a JSON array of waypoint strings with type annotations.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Avare uses 3-letter FAA LID codes (SJC, SAC, MOD), not 4-letter ICAO codes (KSJC, KSAC, KMOD). When searching any of these identifiers, both a VOR navaid and an airport appear as results — VORs show an orange directional icon with the frequency (e.g., 'SAN JOSE 114.10'), while airports show a gray runway icon with the full name (e.g., 'NORMAN Y MINETA SAN JOSE INTL'). The correct plan should contain 5 waypoints: SJC as Airport (type 'Base'), SJC as VOR/DME 114.10 MHz (type 'Navaid'), MOD as VOR/DME 114.60 MHz (type 'Navaid'), SAC as VORTAC 115.20 MHz (type 'Navaid'), and SAC as Airport (type 'Base'). Plans are stored in the SQLite database at /data/data/com.ds.avare/files/user.db in the 'plans' table, where each waypoint is encoded as 'ID::Type;SubType;Name' — VOR entries contain '::Navaid' and airport entries contain '::Base'. The plan must be saved with the exact name 'IFR_VALLEY'. The chart type must be changed from the default 'Sectional' to 'IFR Low' via Menu overlay -> Sectional button -> IFR Low radio button. The ChartType preference is stored in SharedPreferences XML; when absent, defaults to Sectional. The CSup (Chart Supplement / A/FD) tab for SAC should display Sacramento Executive Airport data including elevation approximately 23-24 ft MSL, runway 2/20 (5503 ft x 150 ft), and facility information. There are no TAS or fuel burn settings in this version of Avare's Preferences UI. The SAC identifier also maps to a VOT (VOR test facility, 111.40 MHz) in addition to the VORTAC — the agent should select the VORTAC (115.20 MHz), not the VOT.",
+    "pi_confidence": "high"
+}

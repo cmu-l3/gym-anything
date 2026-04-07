@@ -1,0 +1,53 @@
+{
+  "task_id": "deployment_rollback_recovery@1",
+  "task_completion": [
+    {
+      "id": "frontend_web_rolled_back",
+      "description": "Verify that the 'frontend-web' deployment has been rolled back to use the 'nginx:1.26-alpine' image.",
+      "points": 25,
+      "visual_evidence": "Look for the 'frontend-web' deployment details in the Rancher UI or terminal output (e.g., `kubectl describe deploy frontend-web -n release-management`) showing the container image is exactly 'nginx:1.26-alpine'."
+    },
+    {
+      "id": "api_backend_strategy_updated",
+      "description": "Verify that the 'api-backend' deployment strategy is updated to RollingUpdate with maxUnavailable: 0 and maxSurge: 1.",
+      "points": 25,
+      "visual_evidence": "Look for the 'api-backend' deployment configuration in Rancher or terminal output showing 'Strategy: RollingUpdate', 'Max Unavailable: 0' (or 0%), and 'Max Surge: 1' (or 1%)."
+    },
+    {
+      "id": "data_processor_resumed",
+      "description": "Verify that the 'data-processor' rollout has been resumed from its paused state.",
+      "points": 20,
+      "visual_evidence": "Look for the 'data-processor' deployment status in Rancher or terminal showing it is active/running and no longer marked as 'Paused'. Terminal output might show `kubectl rollout resume` success or a successful rollout status."
+    },
+    {
+      "id": "notification_service_rolled_back",
+      "description": "Verify that the 'notification-service' has been rolled back to a previous working revision.",
+      "points": 15,
+      "visual_evidence": "Look for evidence of a rollback for 'notification-service', such as a `kubectl rollout undo` command execution, a revision history showing a rollback, or the deployment returning to an active/healthy state from a broken one."
+    },
+    {
+      "id": "all_services_healthy",
+      "description": "Verify that all services in the 'release-management' namespace have at least one pod in a healthy Running state.",
+      "points": 15,
+      "visual_evidence": "Look at the Rancher Workloads page for the 'release-management' namespace or the output of `kubectl get pods -n release-management`. All deployments ('frontend-web', 'api-backend', 'data-processor', 'notification-service') must show at least one pod in the 'Running' state (typically indicated by green status icons or '1/1' ready)."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_tool_usage",
+      "description": "Ensure the agent used the Rancher GUI or a real terminal to interact with the Kubernetes cluster.",
+      "visual_evidence": "Screenshots should show the actual Rancher web interface in a browser or a terminal window executing `kubectl` commands, not a text editor or mock environment."
+    },
+    {
+      "id": "actual_execution",
+      "description": "Ensure the agent actually executed the changes rather than just typing the commands without running them.",
+      "visual_evidence": "Look for command execution outputs in the terminal (e.g., 'deployment.apps/frontend-web rolled back') or confirmation banners/updated UI states in the Rancher dashboard."
+    },
+    {
+      "id": "no_text_spoofing",
+      "description": "Ensure the agent did not simply echo or print the expected success states to bypass verification.",
+      "visual_evidence": "Check that terminal outputs are genuine responses from the `kubectl` binary (formatting, headers) and not manually typed `echo` statements or text files."
+    }
+  ],
+  "privileged_info_for_vlm": "The target namespace is 'release-management'. The expected image for the 'frontend-web' rollback must exactly match 'nginx:1.26-alpine'."
+}

@@ -1,0 +1,34 @@
+{
+  "id": "sakila_film_audit_triggers@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "Create a database audit logging system for the Sakila database (user: ga, password: password123). The system must include a table named `film_audit_log` in the `sakila` database with columns for `audit_id` (INT, AUTO_INCREMENT, PRIMARY KEY), `action_type` (VARCHAR(10)), `film_id` (INT), `title` (VARCHAR(255)), `old_rental_rate` (DECIMAL(4,2)), `new_rental_rate` (DECIMAL(4,2)), `changed_by` (VARCHAR(100)), and `changed_at` (TIMESTAMP). Implement three AFTER triggers on the `sakila.film` table: `trg_film_after_insert`, `trg_film_after_update`, and `trg_film_after_delete` to capture relevant changes. Validate the logging system by inserting a new film ('AUDIT TEST FILM', language_id=1, rental_duration=3, rental_rate=4.99, replacement_cost=19.99), updating the rental_rate of film_id 1 ('ACADEMY DINOSAUR') to 1.99, and deleting the 'AUDIT TEST FILM'. Export the final `film_audit_log` table to /home/ga/Documents/exports/film_audit_log.csv.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_film_audit_triggers/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_film_audit_triggers/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "audit_table": "film_audit_log",
+    "triggers": [
+      "trg_film_after_insert",
+      "trg_film_after_update",
+      "trg_film_after_delete"
+    ],
+    "test_film_title": "AUDIT TEST FILM",
+    "update_film_id": 1,
+    "expected_output_file": "/home/ga/Documents/exports/film_audit_log.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_film_audit_triggers"
+    }
+  }
+}

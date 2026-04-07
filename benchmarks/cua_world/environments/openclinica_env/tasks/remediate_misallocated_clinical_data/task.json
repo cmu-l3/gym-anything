@@ -1,0 +1,36 @@
+{
+  "id": "remediate_misallocated_clinical_data@1",
+  "version": "1.0",
+  "env_id": "openclinica_env@0.1",
+  "description": "During a routine monitoring visit, a critical data entry error was discovered: the Week 4 Follow-up Vital Signs data for Subject DM-102 was accidentally entered into Subject DM-103's electronic casebook in the Phase II Diabetes Trial (DM-TRIAL-2024). DM-103 has not yet reached Week 4. As the Clinical Data Manager, remediate this in OpenClinica (login: root / Admin123!) by removing the incorrectly scheduled Week 4 Follow-up event and data from Subject DM-103 using the reason 'Entered on wrong subject'. Schedule a new Week 4 Follow-up event for Subject DM-102 with the start date 2024-03-10 and enter the recovered Vital Signs data: Systolic BP 142, Diastolic BP 88, Heart Rate 76, Body Temp 37.1, and Weight 84.5. Mark the CRF as complete. If the Vital Signs CRF is missing from the system, a template is available at /home/ga/vital_signs_crf.xls for upload.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/remediate_misallocated_clinical_data/setup_task.sh",
+    "post_task": "/workspace/tasks/remediate_misallocated_clinical_data/export_result.sh"
+  },
+  "metadata": {
+    "study_identifier": "DM-TRIAL-2024",
+    "source_subject": "DM-103",
+    "target_subject": "DM-102",
+    "target_event": "Week 4 Follow-up",
+    "target_date": "2024-03-10",
+    "expected_values": [
+      142.0,
+      88.0,
+      76.0,
+      37.1,
+      84.5
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_remediation"
+    }
+  }
+}

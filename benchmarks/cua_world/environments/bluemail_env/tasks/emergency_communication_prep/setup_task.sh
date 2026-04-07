@@ -3,6 +3,9 @@ echo "=== Setting up emergency_communication_prep task ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 # ============================================================
 # 1. Reset Maildir to known clean state
 # ============================================================
@@ -73,9 +76,8 @@ chown -R ga:ga "${MAILDIR}"
 # ============================================================
 # 3. Force Re-indexing
 # ============================================================
-# Dovecot needs to know about the changes
-doveadm index -u ga INBOX 2>/dev/null || true
-doveadm index -u ga Junk 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # ============================================================
 # 4. Record Initial State & Timestamps

@@ -1,0 +1,101 @@
+{
+    "task_id": "recursive_forecast_loop@1",
+    "dataset": "usa.gdt",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "dataset",
+            "metadata_value": "usa.gdt",
+            "verified_value": "usa.gdt",
+            "source": "Verified by parsing XML metadata from install_gretl.sh; dataset name is 'usa' with frequency=4 (quarterly), startobs='1984:1', endobs='2009:3'",
+            "status": "verified"
+        },
+        {
+            "key": "target_var",
+            "metadata_value": "inf",
+            "verified_value": "inf",
+            "source": "Verified by parsing usa.gdt XML structure; contains two variables: 'gdp' and 'inf' (CPI inflation rate, annualized %)",
+            "status": "verified"
+        },
+        {
+            "key": "start_obs",
+            "metadata_value": 40,
+            "verified_value": 40,
+            "source": "Specification in task.json matched against recursive forecasting requirements; 40 observations minimum needed for AR(1) estimation before starting forecast loop",
+            "status": "verified"
+        },
+        {
+            "key": "expected_rmsfe_min",
+            "metadata_value": 0.55,
+            "verified_value": 1.4265,
+            "source": "Calculated via simulation of recursive AR(1) forecasting: expanding window from obs 1-40 through obs 1-102, forecasting obs 41-103. OLS regression for each window: inf_t = const + beta*inf_(t-1). Mean squared forecast error = 2.0348, RMSFE = sqrt(2.0348) = 1.4265",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_rmsfe_max",
+            "metadata_value": 0.75,
+            "verified_value": 1.4265,
+            "source": "Same calculation as expected_rmsfe_min. The computed RMSFE of 1.4265 is 0.6765 units above the expected maximum of 0.75, indicating the metadata bound is significantly incorrect",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_forecast_count",
+            "metadata_value": 60,
+            "verified_value": 63,
+            "source": "Calculated from data: Total observations (103) minus starting observation (40) equals 63 forecast iterations (obs 41 through 103). Actual forecast count exceeds minimum requirement",
+            "status": "verified"
+        },
+        {
+            "key": "output_script",
+            "metadata_value": "/home/ga/Documents/gretl_output/recursive_forecast.inp",
+            "verified_value": "/home/ga/Documents/gretl_output/recursive_forecast.inp",
+            "source": "Specified in task.json; verified in setup_task.sh and export_result.sh which reference /home/ga/Documents/gretl_output directory",
+            "status": "verified"
+        },
+        {
+            "key": "output_result",
+            "metadata_value": "/home/ga/Documents/gretl_output/rmsfe_results.txt",
+            "verified_value": "/home/ga/Documents/gretl_output/rmsfe_results.txt",
+            "source": "Specified in task.json; used by verifier.py to validate RMSFE output",
+            "status": "verified"
+        },
+        {
+            "key": "output_csv",
+            "metadata_value": "/home/ga/Documents/gretl_output/forecast_errors.csv",
+            "verified_value": "/home/ga/Documents/gretl_output/forecast_errors.csv",
+            "source": "Specified in task.json; verified in export_result.sh and verifier.py which checks for 50-80 lines of forecast error data",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "Principles of Econometrics (POE5) from learneconometrics.com / FRED database",
+            "verified_value": "Federal Reserve Bank of St. Louis FRED database via POE5 (Hill, Griffiths, Lim) Principles of Econometrics, 5th Edition",
+            "source": "Verified by XML metadata in usa.gdt: 'US quarterly macroeconomic data, 1984:1 to 2009:3. Source: Federal Reserve Bank of St. Louis FRED database. gdp = FRED: GDPC96, inf = FRED: CPIAUCSL'. This is real, published economic data, not synthetic",
+            "status": "verified"
+        },
+        {
+            "key": "observations_count",
+            "metadata_value": null,
+            "verified_value": 103,
+            "source": "XML observations element count='103'; confirmed by parsing all <obs> elements in usa.gdt data embedded in install_gretl.sh",
+            "status": "verified"
+        },
+        {
+            "key": "time_period",
+            "metadata_value": null,
+            "verified_value": "1984:1 to 2009:3",
+            "source": "XML gretldata element specifies startobs='1984:1' endobs='2009:3' with frequency='4' (quarterly). Spans 103 quarters = ~25.75 years",
+            "status": "verified"
+        },
+        {
+            "key": "inflation_range",
+            "metadata_value": null,
+            "verified_value": "Min: -6.3%, Max: 5.6%, Mean: 2.81%",
+            "source": "Analyzed all 103 inflation values from usa.gdt; includes volatile period 2008-2009 financial crisis (negative inflation)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the usa.gdt dataset, which contains real quarterly US macroeconomic data from the Federal Reserve (FRED database) covering 1984Q1-2009Q3 (103 observations). The inflation variable ranges from -6.3% to 5.6% with a mean of 2.81%. The task requires recursive AR(1) forecasting starting from observation 40, generating 63 forecast errors. The actual RMSFE for this recursive forecasting exercise, calculated via standard OLS AR(1) estimation on expanding windows, is 1.4265, which significantly exceeds the metadata's claimed range of 0.55-0.75. This represents a clear contradiction: the actual RMSFE is approximately 1.9x larger than the maximum expected value. All other metadata claims (dataset name, target variable, start observation, forecast count, output paths, and data being real/non-synthetic) are verified as correct.",
+    "pi_confidence": "high"
+}

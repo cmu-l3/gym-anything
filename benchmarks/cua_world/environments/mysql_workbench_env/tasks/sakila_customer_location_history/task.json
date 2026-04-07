@@ -1,0 +1,30 @@
+{
+  "id": "sakila_customer_location_history@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "The 'Sales by Region' report in Sakila is historically inaccurate because it attributes all past rentals to a customer's current address. Implement a Slowly Changing Dimension (Type 2) history tracking system for customer addresses in the sakila schema (user: ga, password: password123). Create a table named customer_address_history with columns history_id (INT AUTO_INCREMENT PRIMARY KEY), customer_id (SMALLINT UNSIGNED NOT NULL), address_id (SMALLINT UNSIGNED NOT NULL), valid_from (DATETIME NOT NULL), and valid_to (DATETIME NULL). Initialize this table with current data from the customer table, setting valid_from to customer.create_date and valid_to to NULL. Create an AFTER UPDATE trigger named trg_track_address_changes on the customer table that, upon an address_id change, expires the old history record by setting valid_to to the current timestamp and inserts a new record with the updated address_id. Verify the system by updating customer 'MARY SMITH' (ID 1) to Address ID 20 and exporting her history records to /home/ga/Documents/exports/mary_smith_history.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_customer_location_history/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_customer_location_history/export_result.sh"
+  },
+  "metadata": {
+    "database": "sakila",
+    "history_table": "customer_address_history",
+    "trigger_name": "trg_track_address_changes",
+    "test_customer_id": 1,
+    "test_new_address_id": 20,
+    "expected_output_file": "/home/ga/Documents/exports/mary_smith_history.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_customer_location_history"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "temporal_binning_grouped_zproject@1",
+  "version": "1.0",
+  "env_id": "astroimagej_env@0.1",
+  "name": "Temporal Binning via Grouped Z-Projection",
+  "description": "Time-domain astronomy often involves high-cadence imaging where individual frames suffer from low signal-to-noise ratios (SNR). Your task is to perform temporal binning on a WASP-12 exoplanet transit time-series (186 calibrated FITS frames in `~/AstroImages/time_series/raw/`) to create a time-binned data cube and mathematically verify the noise reduction. \n\nPerform a temporal binning by grouping every 10 frames using a Median projection. Save the resulting binned stack to `~/AstroImages/time_series/binned/wasp12_binned_10x.tif`. To verify the noise reduction, measure the Standard Deviation of the pixel values within a specific background Region of Interest (ROI) at X=200, Y=200, Width=400, Height=400 for Slice 1 of the original unbinned stack and Slice 1 of the new binned stack. \n\nCreate a noise report at `~/AstroImages/time_series/binned/noise_report.txt` containing the two standard deviation values and the computed reduction factor (Raw / Binned) using exactly this format:\n\nRaw_StdDev: <value>\nBinned_StdDev: <value>\nReduction_Factor: <value>",
+  "difficulty": "hard",
+  "tags": [
+    "astronomy",
+    "image-processing",
+    "stack-manipulation",
+    "statistics",
+    "real-data"
+  ],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/temporal_binning_grouped_zproject/setup_task.sh",
+    "post_task": "/workspace/tasks/temporal_binning_grouped_zproject/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "raw_dir": "/home/ga/AstroImages/time_series/raw",
+    "binned_dir": "/home/ga/AstroImages/time_series/binned",
+    "expected_binned_filename_base": "wasp12_binned_10x",
+    "roi_x": 200,
+    "roi_y": 200,
+    "roi_w": 400,
+    "roi_h": 400,
+    "group_size": 10,
+    "projection_type": "Median"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_temporal_binning"
+    }
+  }
+}

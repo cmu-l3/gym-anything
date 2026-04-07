@@ -1,0 +1,31 @@
+{
+  "id": "transit_network_bunching_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Computer Systems Analyst for a regional transit authority managing GTFS schedule data in the TRANSIT_ADMIN schema (Host=localhost, Port=1521, Service=XEPDB1, User=transit_admin, Password=Transit2024). Because GTFS service days extend past midnight (e.g., '25:15:30'), create a PL/SQL function `PARSE_GTFS_TIME(p_time VARCHAR2) RETURN INTERVAL DAY TO SECOND` that converts 'HH24:MI:SS' strings into Oracle intervals, correctly handling times greater than 24 hours. Using this parser, implement a view `SEGMENT_RUN_TIMES_VW` that calculates `segment_minutes` between consecutive stops using the `LEAD` function, including `trip_id`, `stop_sequence`, `stop_id`, and `departure_time`. Additionally, create a view `BUNCHING_RISK_VW` to detect trips arriving at the same stop, route, and direction within 5 minutes (but greater than 0) of the previous trip using the `LAG` function; include `route_id`, `direction_id`, `stop_id`, `trip_id`, `prev_trip_id`, and `scheduled_gap_minutes`. Summarize this performance data in a materialized view `ROUTE_PERFORMANCE_MV` containing `route_id`, `route_short_name`, `total_trips`, and `bunching_risk_count`. Export the resulting route performance report to /home/ga/Documents/exports/route_performance.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/transit_network_bunching_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/transit_network_bunching_analysis/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/exports/route_performance.csv",
+    "oracle_features": [
+      "PL/SQL Functions",
+      "INTERVAL DAY TO SECOND",
+      "Window Functions (LEAD/LAG)",
+      "Materialized Views"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_transit_bunching"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "file_attribute_concealment_triage@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "A suspect claims their USB drive only contains standard software backups, but investigators believe they intentionally concealed contraband files by modifying filesystem attributes. Create a forensic case named 'Concealed_Evidence_2024' (case number 'INV-HDF-009') using the disk image /home/ga/evidence/hidden_files.dd as a data source with the 'Hash Lookup' ingest module enabled. Identify all regular files with the DOS 'Hidden' attribute set. Extract these hidden files to /home/ga/Reports/hidden_exports/. Generate a pipe-delimited CSV report at /home/ga/Reports/concealed_files.csv with the header FILENAME|SIZE_BYTES|HAS_HIDDEN_ATTR|MD5_HASH for each hidden file (HAS_HIDDEN_ATTR should be YES). Additionally, provide a summary at /home/ga/Reports/concealment_summary.txt including 'TOTAL_HIDDEN_FILES: <N>', 'TOTAL_NORMAL_FILES: <N>' (count of all other regular files), and an 'ASSESSMENT' of 1-2 sentences regarding the intent to conceal.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/file_attribute_concealment_triage/setup_task.sh",
+    "post_task": "/workspace/tasks/file_attribute_concealment_triage/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Concealed_Evidence_2024",
+    "case_number": "INV-HDF-009",
+    "disk_image": "/home/ga/evidence/hidden_files.dd",
+    "export_dir": "/home/ga/Reports/hidden_exports",
+    "csv_report": "/home/ga/Reports/concealed_files.csv",
+    "summary_report": "/home/ga/Reports/concealment_summary.txt",
+    "result_file": "/tmp/concealment_result.json",
+    "gt_file": "/tmp/concealment_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_file_attribute_concealment_triage"
+    }
+  }
+}

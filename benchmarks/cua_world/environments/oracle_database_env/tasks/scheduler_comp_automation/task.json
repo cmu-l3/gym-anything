@@ -1,0 +1,40 @@
+{
+  "id": "scheduler_comp_automation@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A Compensation Specialist needs to automate the monthly compensation snapshot and daily salary anomaly detection processes. Connect to the Oracle HR database (host=localhost, port=1521, service=XEPDB1, user=hr, password=hr123) and implement an automation pipeline. Create a table COMPENSATION_SNAPSHOTS (cols: snapshot_id, snapshot_date, employee_id, full_name, job_title, salary, department_name, commission_pct) and a table SALARY_ANOMALIES (cols: anomaly_id, detected_date, employee_id, employee_name, department_name, salary, dept_avg_salary, deviation_pct, anomaly_type). Develop a stored procedure CAPTURE_COMP_SNAPSHOT to populate the snapshot table and a procedure DETECT_SALARY_ANOMALIES to identify employees with salaries >150% ('ABOVE_RANGE') or <50% ('BELOW_RANGE') of their department average. Schedule these using DBMS_SCHEDULER: MONTHLY_COMP_SNAPSHOT (monthly on the 1st at 2 AM) and DAILY_ANOMALY_CHECK (daily at 6 AM). Execute both jobs immediately and export the resulting table contents to /home/ga/Desktop/compensation_snapshots.csv and /home/ga/Desktop/salary_anomalies.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/scheduler_comp_automation/setup_task.sh",
+    "post_task": "/workspace/tasks/scheduler_comp_automation/export_result.sh"
+  },
+  "metadata": {
+    "min_snapshot_rows": 100,
+    "min_anomaly_rows": 1,
+    "required_tables": [
+      "COMPENSATION_SNAPSHOTS",
+      "SALARY_ANOMALIES"
+    ],
+    "required_procedures": [
+      "CAPTURE_COMP_SNAPSHOT",
+      "DETECT_SALARY_ANOMALIES"
+    ],
+    "required_jobs": [
+      "MONTHLY_COMP_SNAPSHOT",
+      "DAILY_ANOMALY_CHECK"
+    ],
+    "connection_user": "hr",
+    "connection_password": "hr123"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_scheduler_comp_automation"
+    }
+  }
+}

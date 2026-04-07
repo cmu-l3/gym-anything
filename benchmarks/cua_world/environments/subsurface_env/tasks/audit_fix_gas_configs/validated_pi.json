@@ -1,0 +1,94 @@
+{
+    "task_id": "audit_fix_gas_configs@1",
+    "dataset": "SampleDivesV2.ssrf",
+    "case_id": "SampleDivesV2.ssrf",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "injected_errors.dive_85.field",
+            "metadata_value": "cylinder o2",
+            "verified_value": "cylinder o2",
+            "source": "Verified by reading setup_task.sh, which sets 'o2' on cylinder tags for dive 85.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_errors.dive_85.wrong_value",
+            "metadata_value": "50.0%",
+            "verified_value": "50.0%",
+            "source": "Verified by reading setup_task.sh, which injects '50.0%' into dive 85's cylinders.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_errors.dive_85.reason",
+            "metadata_value": "50% O2 has MOD of ~18m at 1.4 ppO2, but dive max depth is ~27m - unsafe",
+            "verified_value": "Dive 85 has a max depth of 13.31 m, so 50% O2 is actually safe for this profile.",
+            "source": "Contradicted by parsing the actual SampleDivesV2.ssrf file. Dive 85's divecomputer tag records a max depth of 13.31 m, not ~27m. (Dive 87 is the one with max depth 26.07 m).",
+            "status": "contradicted"
+        },
+        {
+            "key": "injected_errors.dive_86.field",
+            "metadata_value": "cylinder size",
+            "verified_value": "cylinder size",
+            "source": "Verified by reading setup_task.sh, which sets 'size' on cylinder tags for dive 86.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_errors.dive_86.wrong_value",
+            "metadata_value": "3.0 l",
+            "verified_value": "3.0 l",
+            "source": "Verified by reading setup_task.sh, which injects '3.0 l' into dive 86's cylinders.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_errors.dive_86.reason",
+            "metadata_value": "3L cylinder cannot sustain a 40+ minute dive at depth",
+            "verified_value": "Dive 86 has a duration of 22:00 minutes.",
+            "source": "Contradicted by parsing SampleDivesV2.ssrf. Dive 86 actually has a duration of 22:00 minutes, not 40+ minutes. (Dive 87 is the one with a 40+ minute duration).",
+            "status": "contradicted"
+        },
+        {
+            "key": "injected_errors.dive_87.field",
+            "metadata_value": "cylinder workpressure",
+            "verified_value": "cylinder workpressure",
+            "source": "Verified by reading setup_task.sh, which sets 'workpressure' on cylinder tags for dive 87.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_errors.dive_87.wrong_value",
+            "metadata_value": "50.0 bar",
+            "verified_value": "50.0 bar",
+            "source": "Verified by reading setup_task.sh, which injects '50.0 bar' into dive 87's cylinders.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_errors.dive_87.reason",
+            "metadata_value": "50 bar working pressure is far too low for any scuba cylinder",
+            "verified_value": "50 bar working pressure is far too low for any scuba cylinder",
+            "source": "General scuba diving knowledge. Standard scuba cylinder working pressures are 200-300 bar.",
+            "status": "verified"
+        },
+        {
+            "key": "valid_ranges.dive_85_o2_max",
+            "metadata_value": 32,
+            "verified_value": 32,
+            "source": "Verified by reading verifier.py, which checks if the corrected O2 value is <= 32%.",
+            "status": "verified"
+        },
+        {
+            "key": "valid_ranges.dive_86_size_min_l",
+            "metadata_value": 7.0,
+            "verified_value": 7.0,
+            "source": "Verified by reading verifier.py, which checks if the corrected size is >= 7.0 L.",
+            "status": "verified"
+        },
+        {
+            "key": "valid_ranges.dive_87_wp_min_bar",
+            "metadata_value": 150,
+            "verified_value": 150,
+            "source": "Verified by reading verifier.py, which checks if the corrected working pressure is >= 150 bar.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task modifies three real dives (85, 86, 87) from Subsurface's SampleDivesV2.ssrf file. However, the task creator's metadata descriptions mix up the dive profiles. While the script injects 50% O2 into Dive 85 and claims it's unsafe for its ~27m depth, Dive 85 is actually only 13.31m deep (it's Dive 87 that is ~27m deep). Similarly, Dive 86 is given a 3.0L cylinder with the claim it cannot sustain a '40+ minute dive', but Dive 86's duration is only 22 minutes (again, Dive 87 is the 40+ minute dive). The required final values for passing the task are dictated strictly by verifier.py: Dive 85 O2 <= 32%, Dive 86 cylinder size >= 7.0L, and Dive 87 working pressure >= 150 bar.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,110 @@
+{
+  "id": "annual_wellness_specialist_followup@1",
+  "version": "1.0",
+  "env_id": "nosh_charting_system_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are Dr. James Carter. Log in as demo_provider (password: Provider1234!).\n\nA cardiology consultation letter for Margaret Thompson (DOB: April 22, 1958) is on the Desktop (consultation_letter.txt). Read it before proceeding.\n\nOpen Margaret Thompson's chart and create a new encounter. Document the HPI, Review of Systems (10 systems), and Physical Exam (6 systems) using the clinical findings provided in the consultation letter.\n\nImplement all medication recommendations from the letter. Additionally, review the patient's complete active medication list for any unsafe drug interactions created by the newly prescribed medications, and resolve them by discontinuing the unsafe medication. Do not discontinue medications that are safe or beneficial to keep.\n\nUpdate the problem list: the patient's chart currently lists an incorrect diabetes type — correct it to Type 2 Diabetes Mellitus (ICD-10: E11.9). Also add Osteoarthritis (ICD-10: M19.90), onset January 2026, as a new active problem.\n\nOrder the follow-up labs recommended in the consultation letter.\n\nPlace an Ophthalmology referral for diabetic retinopathy screening (indication: Type 2 Diabetes, last eye exam over 6 months ago).",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/annual_wellness_specialist_followup/setup_task.sh",
+    "post_task": "/workspace/tasks/annual_wellness_specialist_followup/export_result.sh"
+  },
+  "metadata": {
+    "patient_pid": 900,
+    "patient_name": "Margaret Thompson",
+    "patient_dob": "1958-04-22",
+    "patient_sex": "f",
+    "occupation_context": "Family Medicine Physician — annual wellness visit with specialist consultation follow-up",
+    "seeded_state": {
+      "medications": {
+        "Metformin_500mg": "active (agent should increase to 1000mg per consultation letter)",
+        "Lisinopril_10mg": "active (should be retained — no interaction)",
+        "Atorvastatin_20mg": "active (should be retained — no interaction)",
+        "Naproxen_500mg": "active (NSAID — agent must discover interaction with Clopidogrel and discontinue)",
+        "Omeprazole_20mg": "active (gastroprotective — should be retained; anti-gaming trap)"
+      },
+      "problem_list": {
+        "Type_1_Diabetes": "INCORRECT — agent must correct to Type 2 Diabetes Mellitus E11.9",
+        "Essential_Hypertension": "correct — should be retained",
+        "Hyperlipidemia": "correct — should be retained"
+      }
+    },
+    "consultation_letter_recommendations": {
+      "increase_metformin": "500mg to 1000mg BID",
+      "start_clopidogrel": "75mg daily for cardiovascular risk reduction",
+      "order_labs": ["HbA1c", "Comprehensive Metabolic Panel", "Lipid Panel"]
+    },
+    "hidden_interaction": {
+      "drug_pair": "Naproxen (NSAID) + Clopidogrel (antiplatelet)",
+      "risk": "significantly increased GI bleeding risk",
+      "expected_action": "discontinue Naproxen"
+    },
+    "features_used": [
+      "encounters",
+      "ros",
+      "pe",
+      "medications_add",
+      "medications_discontinue",
+      "medications_dose_change",
+      "problem_list_correct",
+      "problem_list_add",
+      "lab_orders",
+      "referrals",
+      "desktop_file_reading"
+    ],
+    "required_actions": [
+      "Read consultation letter from Desktop",
+      "Create new encounter for Margaret Thompson",
+      "Document HPI from consultation letter",
+      "Document ROS for 10 organ systems from consultation letter",
+      "Document Physical Exam for 6 body systems from consultation letter",
+      "Increase Metformin from 500mg to 1000mg (discontinue old, add new)",
+      "Add Clopidogrel 75mg as new active medication",
+      "Discover and discontinue Naproxen (NSAID-antiplatelet interaction with Clopidogrel)",
+      "Retain Omeprazole 20mg (gastroprotective — beneficial with antiplatelet therapy)",
+      "Correct Type 1 Diabetes to Type 2 Diabetes Mellitus (E11.9) on problem list",
+      "Add Osteoarthritis (M19.90) to problem list",
+      "Order HbA1c, CMP, and Lipid Panel labs",
+      "Place Ophthalmology referral for diabetic retinopathy screening"
+    ],
+    "expected_db_state": {
+      "encounters": "1+ new encounter for pid=900",
+      "ros": "1+ new ROS record with >=8 of 10 system columns non-empty",
+      "pe": "1+ new PE record with >=5 of 6 system columns non-empty",
+      "rx_list": "Metformin 500mg discontinued + Metformin 1000mg active; Clopidogrel 75mg active; Naproxen discontinued; Omeprazole still active",
+      "issues": "Type 2 Diabetes (E11.9) active, Type 1 Diabetes (E10.9) removed/inactive; Osteoarthritis (M19.90) added",
+      "orders_labs": "HbA1c + CMP + Lipid Panel for pid=900",
+      "orders_referrals": "Ophthalmology referral for pid=900"
+    },
+    "anti_gaming_notes": {
+      "omeprazole_retention": "Omeprazole retention worth 10pts; mass-discontinuation of unmentioned meds penalized",
+      "naproxen_discovery": "Naproxen interaction not mentioned in consultation letter; agent must independently identify the NSAID-antiplatelet risk",
+      "diabetes_correction": "Agent must correct existing wrong entry, not just add a new one"
+    },
+    "scoring": {
+      "encounter_created": 5,
+      "ros_documented": 15,
+      "pe_documented": 10,
+      "metformin_increased": 10,
+      "clopidogrel_added": 10,
+      "naproxen_discontinued": 15,
+      "omeprazole_retained": 10,
+      "diabetes_corrected": 10,
+      "osteoarthritis_added": 5,
+      "labs_ordered": 5,
+      "ophthalmology_referral": 5,
+      "total": 100,
+      "pass_threshold": 70
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_annual_wellness_specialist_followup"
+    }
+  }
+}

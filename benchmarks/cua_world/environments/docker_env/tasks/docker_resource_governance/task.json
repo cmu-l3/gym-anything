@@ -1,0 +1,43 @@
+{
+  "id": "docker_resource_governance@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are a platform engineer responsible for enforcing resource governance on production containers. Apply the following resource limits and restart policies to the running containers: 'acme-api' (256MB memory, 0.5 CPUs, restart 'unless-stopped'), 'acme-worker' (512MB memory, 1.0 CPUs, restart 'on-failure' with max 3 retries), and 'acme-cache' (128MB memory, 0.25 CPUs, restart 'always'). Verify the 'acme-worker' restart policy by performing a stress test to trigger an Out-Of-Memory (OOM) kill. Document the applied limits for all three containers and the results of the stress test in a markdown file at ~/Desktop/resource_governance.md.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_resource_governance/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_resource_governance/export_result.sh"
+  },
+  "metadata": {
+    "containers": {
+      "acme-api": {
+        "memory_bytes": 268435456,
+        "nano_cpus": 500000000,
+        "restart_policy": "unless-stopped"
+      },
+      "acme-worker": {
+        "memory_bytes": 536870912,
+        "nano_cpus": 1000000000,
+        "restart_policy": "on-failure",
+        "restart_retries": 3
+      },
+      "acme-cache": {
+        "memory_bytes": 134217728,
+        "nano_cpus": 250000000,
+        "restart_policy": "always"
+      }
+    },
+    "doc_path": "/home/ga/Desktop/resource_governance.md"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_resource_governance"
+    }
+  }
+}

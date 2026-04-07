@@ -1,0 +1,35 @@
+{
+  "id": "kv_store_blocklist@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Implement a KV Store-backed dynamic IP blocklist system in Splunk. Create a KV Store collection named 'ip_blocklist' with fields 'ip_address', 'threat_level', 'reason', and 'date_added', and a corresponding lookup definition named 'ip_blocklist_lookup'. Identify at least 3 source IPs in the 'security_logs' index exhibiting suspicious brute-force behavior and populate the 'ip_blocklist' collection with these entries. Create a saved search named 'Blocklist_Alert' that queries 'security_logs' and uses the 'ip_blocklist_lookup' to flag matching events. Log in to Splunk at http://localhost:8000 using 'admin' / 'SplunkAdmin1!'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/kv_store_blocklist/setup_task.sh",
+    "post_task": "/workspace/tasks/kv_store_blocklist/export_result.sh"
+  },
+  "metadata": {
+    "collection_name": "ip_blocklist",
+    "lookup_name": "ip_blocklist_lookup",
+    "saved_search_name": "Blocklist_Alert",
+    "required_fields": [
+      "ip_address",
+      "threat_level",
+      "reason",
+      "date_added"
+    ],
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_kv_store_blocklist"
+    }
+  }
+}

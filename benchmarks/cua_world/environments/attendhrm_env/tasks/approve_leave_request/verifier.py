@@ -33,7 +33,7 @@ def verify_approve_leave_request(traj: Dict[str, Any], env_info: Dict[str, Any],
     # 1. Retrieve Result JSON
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.json')
     try:
-        copy_from_env("/tmp/task_result.json", temp_file.name)
+        copy_from_env("C:/temp/task_result.json", temp_file.name)
         with open(temp_file.name, 'r') as f:
             result = json.load(f)
     except Exception as e:

@@ -1,0 +1,36 @@
+{
+  "id": "soc_rbac_inheritance@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Your Splunk SIEM is suffering performance degradation because junior SOC analysts are running untargeted, 'All Time' queries across all indexes. Restructure the SOC's access model using Role-Based Access Control (RBAC) in the Splunk web interface (http://localhost:8000, credentials: admin / SplunkAdmin1!). Create a base role named 'soc_tier1' that inherits from the 'user' role, restricts index access to only 'security_logs' and 'web_logs', limits concurrent search jobs to 2, and sets a maximum search time window of 7 days (604800 seconds). Additionally, create an elevated role named 'soc_tier2' that inherits from 'soc_tier1', increases the concurrent search limit to 6, and sets an infinite (0) search time window.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/soc_rbac_inheritance/setup_task.sh",
+    "post_task": "/workspace/tasks/soc_rbac_inheritance/export_result.sh"
+  },
+  "metadata": {
+    "role_1_name": "soc_tier1",
+    "role_1_parent": "user",
+    "role_1_indexes": [
+      "security_logs",
+      "web_logs"
+    ],
+    "role_1_jobs_quota": 2,
+    "role_1_time_win": 604800,
+    "role_2_name": "soc_tier2",
+    "role_2_parent": "soc_tier1",
+    "role_2_jobs_quota": 6,
+    "role_2_time_win": 0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_soc_rbac_inheritance"
+    }
+  }
+}

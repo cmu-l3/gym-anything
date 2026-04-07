@@ -1,0 +1,27 @@
+{
+  "id": "restrict_pdf417_code128@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "title": "Restrict Barcode Scanning to PDF417 and Code 128 Only",
+  "description": "Configure bcWebCam so that ONLY two barcode types are enabled for scanning: PDF417 and Code 128. All other barcode types must be disabled.\n\nSpecifically:\n- Enable Code 128 (a 1D/linear barcode symbology)\n- Enable PDF417 (a 2D stacked barcode symbology)\n- Disable ALL other barcode types including: QR Code, DataMatrix, Aztec, EAN-13, EAN-8, UPC-A, UPC-E, Code 39, Codabar, ITF/Interleaved 2 of 5, and any others\n\nOpen the bcWebCam barcode type settings, systematically uncheck every barcode type except Code 128 and PDF417, then save/apply the settings.\n\nContext: This configuration is needed for a logistics receiving station where only shipping labels (Code 128) and driver's license barcodes (PDF417) should be scanned during delivery verification.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 30,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\restrict_pdf417_code128\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\restrict_pdf417_code128\\export_result.ps1"
+  },
+  "metadata": {
+    "required_enabled": ["Code 128", "PDF417"],
+    "required_disabled": ["QR Code", "DataMatrix", "Aztec", "EAN-13", "EAN-8", "UPC-A", "UPC-E", "Code 39", "Codabar", "ITF"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_restrict_barcode_types"
+    }
+  }
+}

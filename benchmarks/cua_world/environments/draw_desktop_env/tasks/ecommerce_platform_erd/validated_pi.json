@@ -1,0 +1,66 @@
+{
+    "task_id": "ecommerce_platform_erd@1",
+    "dataset": "ShopSphere E-Commerce Platform SQL Schema (synthetic, realistic PostgreSQL DDL)",
+    "case_id": "shopsphere_schema.sql",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "schema_file",
+            "metadata_value": "/home/ga/Desktop/shopsphere_schema.sql",
+            "verified_value": "/home/ga/Desktop/shopsphere_schema.sql",
+            "source": "setup_task.sh line 28 writes via heredoc to this exact path; chown ga:ga on line 174",
+            "status": "verified"
+        },
+        {
+            "key": "output_drawio",
+            "metadata_value": "/home/ga/Desktop/shopsphere_erd.drawio",
+            "verified_value": "/home/ga/Desktop/shopsphere_erd.drawio",
+            "source": "export_result.sh line 8 checks DRAWIO_FILE at this path; setup_task.sh line 22 cleans up this path; task description says 'Save as ~/Desktop/shopsphere_erd.drawio'",
+            "status": "verified"
+        },
+        {
+            "key": "output_png",
+            "metadata_value": "/home/ga/Desktop/shopsphere_erd.png",
+            "verified_value": "/home/ga/Desktop/shopsphere_erd.png",
+            "source": "export_result.sh line 9 checks PNG_FILE at this path; setup_task.sh line 23 cleans up this path; task description says 'export Page 1 as ~/Desktop/shopsphere_erd.png'",
+            "status": "verified"
+        },
+        {
+            "key": "required_tables",
+            "metadata_value": "[\"customer\", \"address\", \"customer_address\", \"category\", \"product\", \"product_category\", \"product_image\", \"product_review\", \"cart\", \"cart_item\", \"order\", \"order_item\", \"payment\", \"shipment\"]",
+            "verified_value": "[\"customer\", \"address\", \"customer_address\", \"category\", \"product\", \"product_category\", \"product_image\", \"product_review\", \"cart\", \"cart_item\", \"order\", \"order_item\", \"payment\", \"shipment\"]",
+            "source": "Independently parsed all 14 CREATE TABLE statements from the SQL DDL heredoc in setup_task.sh. All 14 table names match exactly. Regex: CREATE TABLE \"?(\\w+)\"? extracted: customer, address, customer_address, category, product, product_category, product_image, product_review, cart, cart_item, order, order_item, payment, shipment.",
+            "status": "verified"
+        },
+        {
+            "key": "fk_relationships",
+            "metadata_value": "17 unique table pairs",
+            "verified_value": "17 unique table pairs (from 18 actual REFERENCES clauses). order->address appears as 2 FKs (shipping_address_id and billing_address_id) but as 1 unique pair.",
+            "source": "Independently parsed all REFERENCES clauses from SQL DDL. Found exactly 18 FK constraints across 17 unique (source_table, target_table) pairs. The 18 FKs are: customer_address.customer_id->customer, customer_address.address_id->address, category.parent_category_id->category (self-ref), product_category.product_id->product, product_category.category_id->category, product_image.product_id->product, product_review.product_id->product, product_review.customer_id->customer, cart.customer_id->customer, cart_item.cart_id->cart, cart_item.product_id->product, order.customer_id->customer, order.shipping_address_id->address, order.billing_address_id->address, order_item.order_id->order, order_item.product_id->product, payment.order_id->order, shipment.order_id->order. All 17 metadata pairs match.",
+            "status": "verified"
+        },
+        {
+            "key": "min_tables",
+            "metadata_value": 12,
+            "verified_value": 12,
+            "source": "Threshold is 12 out of 14 total tables (86%). This is used by verifier.py for full score on table criterion (25 pts). Partial credit at 8+ (15 pts) and 5+ (8 pts). Verified consistent between task.json metadata and verifier.py default.",
+            "status": "verified"
+        },
+        {
+            "key": "min_edges",
+            "metadata_value": 15,
+            "verified_value": 15,
+            "source": "Threshold is 15 out of 18 actual FK edges (83%). This is used by verifier.py for full score on edges criterion (25 pts). Partial credit at 8+ (12 pts) and 3+ (5 pts). Verified consistent between task.json metadata and verifier.py default.",
+            "status": "verified"
+        },
+        {
+            "key": "min_pages",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "Task description requires Page 1 'Physical ERD' and Page 2 'Relationship Summary'. Verifier awards 10 pts for num_pages >= 2.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The ShopSphere e-commerce SQL schema contains exactly 14 tables organized into 3 domains. CUSTOMER domain (Blue #dae8fc): customer (8 cols), address (7 cols), customer_address (4 cols, junction table with composite PK on customer_id+address_id). PRODUCT domain (Green #d5e8d4): category (5 cols, has self-referencing FK parent_category_id->category_id), product (9 cols), product_category (2 cols, junction table with composite PK on product_id+category_id), product_image (5 cols), product_review (7 cols, cross-domain FK to customer). ORDER domain (Orange #ffe6cc): cart (4 cols), cart_item (4 cols), order (10 cols, has TWO separate FKs to address: shipping_address_id and billing_address_id), order_item (5 cols), payment (8 cols), shipment (7 cols). Total columns: 85 across all tables. There are exactly 18 foreign key constraints forming 17 unique table-pair relationships. Key structural features: (1) category table has a self-referencing FK (parent_category_id -> category_id), (2) order table has two FKs to the address table (shipping and billing), (3) customer_address and product_category are junction/bridge tables with composite primary keys representing M:N relationships, (4) product_review bridges the Product and Customer domains via product_id and customer_id FKs. The agent must save as shopsphere_erd.drawio and export PNG as shopsphere_erd.png, both on ~/Desktop. The diagram must have at least 2 pages (ERD + Relationship Summary).",
+    "pi_confidence": "high"
+}

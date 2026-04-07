@@ -1,0 +1,30 @@
+{
+  "id": "constellation_isolation_audit@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a ground systems engineer validating a shared baseband router for a dense satellite constellation. Perform a formal 'Isolation Verification' between the INST and INST2 simulated satellites using OpenC3 COSMOS (Password: Cosmos2024!) to ensure commands to one do not affect the other. Conduct a bidirectional test by sending COLLECT commands (TYPE NORMAL, DURATION 1) to each satellite and monitoring the HEALTH_STATUS COLLECTS telemetry counters for both. Document the initial and final telemetry states, the commands sent, and the isolation results for both test phases in a JSON report saved to /home/ga/Desktop/isolation_audit.json. The report must follow this schema:\n\n{\n  \"operator\": \"ga\",\n  \"test_timestamp\": \"<ISO 8601 datetime string>\",\n  \"phase1_command_inst\": {\n     \"inst_initial_collects\": <int>,\n     \"inst2_initial_collects\": <int>,\n     \"command_sent\": \"<string>\",\n     \"inst_final_collects\": <int>,\n     \"inst2_final_collects\": <int>,\n     \"inst_incremented\": <bool>,\n     \"inst2_isolated\": <bool>\n  },\n  \"phase2_command_inst2\": {\n     \"inst_initial_collects\": <int>,\n     \"inst2_initial_collects\": <int>,\n     \"command_sent\": \"<string>\",\n     \"inst_final_collects\": <int>,\n     \"inst2_final_collects\": <int>,\n     \"inst2_incremented\": <bool>,\n     \"inst_isolated\": <bool>\n  },\n  \"system_isolated\": <bool>\n}",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/constellation_isolation_audit/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/constellation_isolation_audit/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/constellation_isolation_audit_result.json",
+    "output_file": "/home/ga/Desktop/isolation_audit.json",
+    "target_1": "INST",
+    "target_2": "INST2",
+    "occupation": "Ground Systems Engineer"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_constellation_isolation_audit"
+    }
+  }
+}

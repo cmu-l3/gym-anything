@@ -1,0 +1,62 @@
+{
+  "id": "utility_meter_reading_log_and_anomaly_response@1",
+  "version": "1.0",
+  "env_id": "openmaint_env@0.1",
+  "description": "You are a Stationary Engineer responsible for utility tracking. Your goal is to update the OpenMaint system (admin/admin at http://localhost:8090/cmdbuild/ui/) with the March 2026 readings from the meter_readings_mar2026.csv file on your desktop. For every active meter, the asset's description field must be updated by appending the reading in the format 2026-03-15: [CurrentValue] while preserving existing content. Additionally, you must flag usage anomalies—defined as usage (Current - Previous) exceeding 1.5 times the Avg_Monthly value—by creating a High or Critical priority Corrective Maintenance work order linked to the asset. These work orders must include the description: 'High usage alert: [Usage] units detected (Threshold: [1.5*Avg]). Check for leaks/faults.' Meters marked as 'Inactive' should not be updated or have work orders created.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/utility_meter_reading_log_and_anomaly_response/setup_task.sh",
+    "post_task": "/workspace/tasks/utility_meter_reading_log_and_anomaly_response/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Stationary Engineers and Boiler Operators",
+    "soc_code": "51-8021.00",
+    "industry": "Facilities Management",
+    "meters": [
+      {
+        "code": "UTIL-E-101",
+        "status": "Active",
+        "usage": 600,
+        "threshold": 1200,
+        "action": "update_only"
+      },
+      {
+        "code": "UTIL-E-102",
+        "status": "Active",
+        "usage": 2500,
+        "threshold": 1500,
+        "action": "update_and_wo"
+      },
+      {
+        "code": "UTIL-W-201",
+        "status": "Active",
+        "usage": 100,
+        "threshold": 180,
+        "action": "update_only"
+      },
+      {
+        "code": "UTIL-W-202",
+        "status": "Active",
+        "usage": 500,
+        "threshold": 300,
+        "action": "update_and_wo"
+      },
+      {
+        "code": "UTIL-G-005",
+        "status": "Inactive",
+        "action": "skip"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_utility_meter_reading_log_and_anomaly_response"
+    }
+  }
+}

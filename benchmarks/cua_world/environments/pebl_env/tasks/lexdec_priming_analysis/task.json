@@ -1,0 +1,35 @@
+{
+  "id": "lexdec_priming_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "description": "Analyze a primed lexical decision dataset at ~/pebl/data/lexdec_priming_data.csv. The dataset contains 120 trials per participant across 4 conditions (related_word, unrelated_word, related_nonword, unrelated_nonword). Compute semantic priming effects (unrelated-word RT - related-word RT for correct trials), lexicality effects (correct nonword RT - correct word RT), and d-prime (Z(hit rate) - Z(false alarm rate)) per participant. Hit is defined as responding 'word' to a word target, and False Alarm (FA) as responding 'word' to a nonword target. Use standard corrections for perfect scores (replace 0 with 0.5/N and 1 with (N-0.5)/N). Exclude participant sub-99 from group analysis. Produce a JSON report at ~/pebl/analysis/priming_report.json containing 'participants' (with id, priming_effect_ms, lexicality_effect_ms, d_prime, or excluded: true) and 'group_means' for valid participants.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/lexdec_priming_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/lexdec_priming_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "sub-99",
+    "contamination_type": "random_responder",
+    "contamination_description": "chance accuracy (~50%), no priming effect (~0ms), no lexicality effect (~0ms), d' near 0",
+    "n_real_participants": 20,
+    "output_file": "/home/ga/pebl/analysis/priming_report.json",
+    "passing_thresholds": {
+      "priming_tolerance_ms": 15,
+      "dprime_tolerance": 0.5,
+      "group_priming_tolerance_ms": 10,
+      "group_dprime_tolerance": 0.3
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_lexdec_priming_analysis"
+    }
+  }
+}

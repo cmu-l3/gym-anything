@@ -1,0 +1,59 @@
+{
+  "task_id": "docker_compose_wait_strategy@1",
+  "task_completion": [
+    {
+      "id": "open_compose_file",
+      "description": "Open the docker-compose.yml file for editing",
+      "points": 10,
+      "visual_evidence": "A text editor (like nano, vim, or VS Code) or terminal output showing the contents of 'docker-compose.yml' located in '~/projects/ci-pipeline/'."
+    },
+    {
+      "id": "db_healthcheck_added",
+      "description": "Add a HEALTHCHECK to the 'db' service using pg_isready",
+      "points": 20,
+      "visual_evidence": "In the docker-compose.yml file, under the 'db' service, there should be a 'healthcheck:' block containing a test command with 'pg_isready -U postgres'."
+    },
+    {
+      "id": "seeder_depends_on_db",
+      "description": "Configure 'seeder' service to depend on 'db' being healthy",
+      "points": 20,
+      "visual_evidence": "In the docker-compose.yml file, under the 'seeder' service, there should be a 'depends_on:' block specifying 'db' with 'condition: service_healthy'."
+    },
+    {
+      "id": "backend_depends_on_seeder",
+      "description": "Configure 'backend' service to depend on 'seeder' completing successfully",
+      "points": 20,
+      "visual_evidence": "In the docker-compose.yml file, under the 'backend' service, there should be a 'depends_on:' block specifying 'seeder' with 'condition: service_completed_successfully'."
+    },
+    {
+      "id": "sleep_scripts_removed",
+      "description": "Remove existing sleep or wait scripts from the configuration",
+      "points": 10,
+      "visual_evidence": "The docker-compose.yml file should no longer contain 'sleep' commands in the 'command' or 'entrypoint' sections of the services, or terminal output should show the deletion of wait scripts."
+    },
+    {
+      "id": "api_health_check_success",
+      "description": "Verify the stack starts cleanly and the API health endpoint returns a 200 status",
+      "points": 20,
+      "visual_evidence": "Terminal output showing 'docker compose up' running successfully without race conditions, followed by a 'curl http://localhost:5000/health' command returning a successful HTTP 200 response or a success JSON payload."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_file_modification",
+      "description": "Verify the agent actually edited the docker-compose.yml file",
+      "visual_evidence": "Screenshots should show an interactive editor (vim, nano, etc.) or valid sed/awk/echo commands modifying the file, rather than just printing a pre-written solution."
+    },
+    {
+      "id": "genuine_docker_execution",
+      "description": "Verify Docker Compose was actually executed to test the changes",
+      "visual_evidence": "Terminal output showing genuine Docker Compose build/start logs (e.g., 'Container ci-pipeline-db-1', 'Container ci-pipeline-seeder-1') rather than just a mocked success message."
+    },
+    {
+      "id": "genuine_curl_request",
+      "description": "Verify the health check was performed against the actual running service",
+      "visual_evidence": "The curl command or browser should explicitly target 'http://localhost:5000/health' and show a real HTTP response, not a simulated or echoed text."
+    }
+  ],
+  "privileged_info_for_vlm": "Project directory is /home/ga/projects/ci-pipeline. The compose file is docker-compose.yml. The three expected services are 'db', 'seeder', and 'backend'. The healthcheck command must contain 'pg_isready'. The final API test URL is http://localhost:5000/health."
+}

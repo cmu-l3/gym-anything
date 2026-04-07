@@ -1,0 +1,108 @@
+{
+    "task_id": "docker_drift_detection@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "drift_report_path",
+            "metadata_value": "/home/ga/Desktop/drift_report.txt",
+            "verified_value": "/home/ga/Desktop/drift_report.txt",
+            "source": "setup_task.sh confirms path creation and export_result.sh checks this path",
+            "status": "verified"
+        },
+        {
+            "key": "config_extract_base",
+            "metadata_value": "/home/ga/projects/container-configs",
+            "verified_value": "/home/ga/projects/container-configs",
+            "source": "setup_task.sh confirms directory creation at this path",
+            "status": "verified"
+        },
+        {
+            "key": "containers.webserver.original",
+            "metadata_value": "acme-webserver",
+            "verified_value": "acme-webserver",
+            "source": "setup_task.sh line 37: docker run -d --name acme-webserver",
+            "status": "verified"
+        },
+        {
+            "key": "containers.webserver.clean",
+            "metadata_value": "acme-webserver-clean",
+            "verified_value": "acme-webserver-clean",
+            "source": "export_result.sh line 62: check_status 'acme-webserver-clean'",
+            "status": "verified"
+        },
+        {
+            "key": "containers.webserver.image",
+            "metadata_value": "nginx:1.24-alpine",
+            "verified_value": "nginx:1.24-alpine",
+            "source": "setup_task.sh line 37 and Docker Hub official nginx repository confirm this tag exists at https://hub.docker.com/_/nginx/",
+            "status": "verified"
+        },
+        {
+            "key": "containers.webserver.forbidden_file",
+            "metadata_value": "/usr/bin/curl",
+            "verified_value": "/usr/bin/curl",
+            "source": "setup_task.sh line 43 installs curl into webserver as unauthorized drift; nginx:1.24-alpine is Alpine-based minimal image without curl by default per https://www.shellhacks.com/alpine-install-curl/",
+            "status": "verified"
+        },
+        {
+            "key": "containers.appserver.original",
+            "metadata_value": "acme-appserver",
+            "verified_value": "acme-appserver",
+            "source": "setup_task.sh line 55: docker run -d --name acme-appserver",
+            "status": "verified"
+        },
+        {
+            "key": "containers.appserver.clean",
+            "metadata_value": "acme-appserver-clean",
+            "verified_value": "acme-appserver-clean",
+            "source": "export_result.sh line 64: check_status 'acme-appserver-clean'",
+            "status": "verified"
+        },
+        {
+            "key": "containers.appserver.image",
+            "metadata_value": "python:3.11-slim",
+            "verified_value": "python:3.11-slim",
+            "source": "setup_task.sh line 55 and Docker Hub official python repository confirm this tag exists at https://hub.docker.com/_/python",
+            "status": "verified"
+        },
+        {
+            "key": "containers.appserver.forbidden_package",
+            "metadata_value": "debugpy",
+            "verified_value": "debugpy",
+            "source": "setup_task.sh line 60 installs debugpy via pip; python:3.11-slim is Debian bookworm-slim based and does not include debugpy by default per https://pypi.org/project/debugpy/",
+            "status": "verified"
+        },
+        {
+            "key": "containers.taskrunner.original",
+            "metadata_value": "acme-taskrunner",
+            "verified_value": "acme-taskrunner",
+            "source": "setup_task.sh line 71: docker run -d --name acme-taskrunner",
+            "status": "verified"
+        },
+        {
+            "key": "containers.taskrunner.clean",
+            "metadata_value": "acme-taskrunner-clean",
+            "verified_value": "acme-taskrunner-clean",
+            "source": "export_result.sh line 65: check_status 'acme-taskrunner-clean'",
+            "status": "verified"
+        },
+        {
+            "key": "containers.taskrunner.image",
+            "metadata_value": "alpine:3.19",
+            "verified_value": "alpine:3.19",
+            "source": "setup_task.sh line 71 and Docker Hub alpine repository confirm this tag exists at https://hub.docker.com/_/alpine (Alpine 3.19 released December 2023)",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "verifier.py line 119 retrieves pass_threshold from metadata and verifier uses >= comparison; scoring is out of 100 points total (25 report + 15 configs + 15 originals + 45 clean)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses three official Docker images: nginx:1.24-alpine (Alpine-based minimal image without curl by default), python:3.11-slim (Debian bookworm-slim without debugpy by default), and alpine:3.19 (minimal Alpine Linux from December 2023 release). The task verifies agent performance with a scoring rubric out of 100 points (report existence and content: 25 points, config extraction: 15 points, stopping original containers: 15 points, deploying clean replacement containers: 45 points) with a pass threshold of 60 points. Agents must identify unauthorized drift (curl in webserver, debugpy in appserver) and legitimate configuration changes, extract preserved configs to /home/ga/projects/container-configs/, document findings in /home/ga/Desktop/drift_report.txt, and redeploy containers from clean base images.",
+    "pi_confidence": "high"
+}

@@ -128,10 +128,11 @@ export PATH="/opt/ardupilot/Tools/autotest:$HOME/.local/bin:$PATH"
 cd /opt/ardupilot/ArduCopter
 
 # Start SITL with MAVLink output to UDP 14550 (QGC auto-discovery port)
+# and a TCP server on port 5762 for pymavlink scripting connections
 setsid python3 /opt/ardupilot/Tools/autotest/sim_vehicle.py \
     --no-mavproxy \
     --vehicle ArduCopter \
-    -A "--serial0=udpclient:127.0.0.1:14550" \
+    -A "--serial0=udpclient:127.0.0.1:14550 --serial1=tcp:5762" \
     > /tmp/ardupilot_sitl.log 2>&1 &
 
 echo $! > /tmp/sitl_launcher.pid

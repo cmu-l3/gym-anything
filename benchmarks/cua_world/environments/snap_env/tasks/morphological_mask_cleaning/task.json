@@ -1,0 +1,32 @@
+{
+  "id": "morphological_mask_cleaning@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "You are a geospatial analyst cleaning up a vegetation mask affected by 'salt and pepper' noise. Using the Landsat multi-spectral image at '/home/ga/snap_data/landsat_multispectral.tif', create a binary mask band named 'initial_mask' using the expression `if band_2 > band_4 then 1 else 0`. Ensure the band is physically stored in the product. Apply a Minimum 3x3 spatial filter to 'initial_mask' to produce a band named 'eroded_mask', then apply a Maximum 3x3 spatial filter to 'eroded_mask' to produce a band named 'cleaned_mask'. Save the resulting product, including the original bands and the three new masks, in BEAM-DIMAP format to '/home/ga/snap_exports/morphological_mask.dim' and export it as a GeoTIFF to '/home/ga/snap_exports/morphological_mask.tif'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/morphological_mask_cleaning/setup_task.sh",
+    "post_task": "/workspace/tasks/morphological_mask_cleaning/export_result.sh"
+  },
+  "metadata": {
+    "data_file": "/home/ga/snap_data/landsat_multispectral.tif",
+    "expected_bands": [
+      "initial_mask",
+      "eroded_mask",
+      "cleaned_mask"
+    ],
+    "dimap_output": "/home/ga/snap_exports/morphological_mask.dim",
+    "geotiff_output": "/home/ga/snap_exports/morphological_mask.tif"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_morphological_mask_cleaning"
+    }
+  }
+}

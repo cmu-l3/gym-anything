@@ -1,0 +1,35 @@
+{
+  "id": "sakila_payment_partitioning@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "In MySQL Workbench, archive the Sakila database `payment` table into a new partitioned table named `payment_archive` to optimize date-based queries. Use the following credentials: host: localhost, user: ga, password: password123. The `payment_archive` table must contain the data from `payment` and use RANGE partitioning on the `payment_date` year with partitions `p2005` (values less than 2006), `p2006` (values less than 2007), and `p_future` (values less than MAXVALUE). Create a stored procedure named `sp_partition_stats` in the `sakila` database that returns the partition name and row count for each partition in `payment_archive` by querying INFORMATION_SCHEMA.PARTITIONS. Export the results of calling this procedure to /home/ga/Documents/exports/partition_stats.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_payment_partitioning/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_payment_partitioning/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "target_table": "payment_archive",
+    "source_table": "payment",
+    "expected_partitions": [
+      "p2005",
+      "p2006",
+      "p_future"
+    ],
+    "partition_method": "RANGE",
+    "expected_procedure": "sp_partition_stats",
+    "expected_output_file": "/home/ga/Documents/exports/partition_stats.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_payment_partitioning"
+    }
+  }
+}

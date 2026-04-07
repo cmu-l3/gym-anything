@@ -1,0 +1,26 @@
+{
+  "id": "create_dispatch_logger@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "A 911 police dispatcher needs a Talon voice command system that translates spoken incident codes into a standardized JSON log entry. Create a Talon module in C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\dispatch_system\\ consisting of three files: dispatch_lists.py, dispatch_logger.py, and dispatch.talon.\n\nIn dispatch_lists.py, define a Module and Context with the following list mappings: user.call_priority (\"code one\" through \"code four\" mapping to \"1\" through \"4\"), user.incident_type (\"burglary\" -> \"459\", \"robbery\" -> \"211\", \"homicide\" -> \"187\", \"assault\" -> \"240\", \"grand theft\" -> \"487\"), and user.unit_designator (\"adam\" -> \"A\", \"boy\" -> \"B\", \"david\" -> \"D\", \"lincoln\" -> \"L\", \"zebra\" -> \"Z\").\n\nIn dispatch_logger.py, implement a user.log_dispatch(priority: str, incident: str, unit: str, zone: int) action. This action must generate a current ISO-8601 timestamp, format the unit and zone into a unit_id string with a zero-padded two-digit zone (e.g., unit \"A\" and zone 5 becomes \"A-05\"), and append a JSON dictionary containing the timestamp, priority, incident_code, and unit_id as a new line to C:\\Users\\Docker\\Documents\\dispatch_log.json.\n\nIn dispatch.talon, define the voice command \"dispatch {user.call_priority} {user.incident_type} to unit {user.unit_designator} zone <number>\" which calls the user.log_dispatch action using the captured variables in the correct order.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_dispatch_logger\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_dispatch_logger\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_log_path": "C:\\Users\\Docker\\Documents\\dispatch_log.json",
+    "module_path": "C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\dispatch_system\\"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_dispatch_logger"
+    }
+  }
+}

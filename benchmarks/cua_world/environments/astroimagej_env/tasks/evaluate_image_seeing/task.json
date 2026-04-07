@@ -1,0 +1,34 @@
+{
+  "id": "evaluate_image_seeing@1",
+  "version": "1.0",
+  "env_id": "astroimagej_env@0.1",
+  "description": "Evaluate the image seeing of the Messier 12 V-band image. \n\n1. Open AstroImageJ and load the FITS image located at `~/AstroImages/raw/Vcomb.fits`.\n2. Open the Aperture Settings and configure the aperture photometry tool with the following exact radii:\n   - Radius of object aperture: 10\n   - Inner radius of background annulus: 15\n   - Outer radius of background annulus: 25\n3. Using the single-step aperture photometry tool (Left-Click or Alt-Left-Click), select and measure exactly 5 bright, isolated, unsaturated stars in the image.\n4. Save the resulting Measurements table as a CSV or tab-separated file to `~/AstroImages/measurements/seeing_data.csv`.\n5. Calculate the average of the FWHM column (often labeled `FWHM_Mean`, `FWHM_Pixels`, or `Width`) for your 5 measured stars.\n6. Create a text file at `~/AstroImages/measurements/seeing_report.txt` containing a single line exactly formatted as: `Average FWHM: <value>` (replace <value> with the calculated average to 2 decimal places).\n7. Leave the image open with the aperture overlays visible on the stars.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_image_seeing/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_image_seeing/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/AstroImages/measurements/seeing_data.csv",
+    "expected_txt_path": "/home/ga/AstroImages/measurements/seeing_report.txt",
+    "fits_path": "/home/ga/AstroImages/raw/Vcomb.fits",
+    "expected_stars_count": 5,
+    "aperture_radius": 10,
+    "inner_annulus": 15,
+    "outer_annulus": 25,
+    "fwhm_tolerance_percent": 25,
+    "avg_calc_tolerance": 0.05
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_image_seeing"
+    }
+  }
+}

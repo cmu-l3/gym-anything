@@ -1,0 +1,37 @@
+{
+  "id": "calc_medicare_readmission_penalties@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Calculate estimated financial penalties for hospitals in /home/ga/Documents/cms_readmissions.xlsx based on the CMS Hospital Readmission Reduction Program (HRRP) data. In the main sheet, categorize each hospital's 'Readmission_Status' in column G: 'Excessive' if the ratio (Column F) is > 1.0000, 'Acceptable' if <= 1.0000, and 'No Data' if the ratio is non-numeric or missing. Calculate the 'Estimated_Penalty' in column H as Currency: for 'Excessive' status, the penalty is Number_of_Discharges (Column E) * (Excess_Readmission_Ratio (Column F) - 1) * 1000; otherwise, the penalty is 0.\n\nCreate a new sheet named 'Measure_Summary' with a table (headers: Measure_Name, Evaluated_Hospitals, Penalized_Hospitals, Total_Penalty_Amount) summarizing the following measures: READM-30-AMI-HRRP, READM-30-CABG-HRRP, READM-30-COPD-HRRP, READM-30-HF-HRRP, READM-30-HIP-KNEE-HRRP, and READM-30-PN-HRRP. Evaluated_Hospitals must count records with 'Excessive' or 'Acceptable' status, while Penalized_Hospitals counts only 'Excessive' status. Total_Penalty_Amount should sum the penalties per measure and include Data Bar conditional formatting. Save the changes to /home/ga/Documents/cms_readmissions.xlsx.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 65,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/calc_medicare_readmission_penalties/setup_task.sh",
+    "post_task": "/workspace/tasks/calc_medicare_readmission_penalties/export_result.sh"
+  },
+  "metadata": {
+    "data_source": "Realistic CMS Hospital Readmission Reduction Program data generator",
+    "expected_sheets": [
+      "Readmissions",
+      "Measure_Summary"
+    ],
+    "expected_measures": [
+      "READM-30-AMI-HRRP",
+      "READM-30-CABG-HRRP",
+      "READM-30-COPD-HRRP",
+      "READM-30-HF-HRRP",
+      "READM-30-HIP-KNEE-HRRP",
+      "READM-30-PN-HRRP"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_readmission_penalties"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "id": "docker_cleanup_selective@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "Perform a selective cleanup of the Docker environment where a development environment has accumulated clutter. Remove the stopped containers 'old-dev-server', 'test-runner-0412', 'failed-build-temp', and 'expired-worker', all dangling images, the unused volumes 'old-test-data', 'build-cache-vol', and 'tmp-upload-vol', and the unused networks 'deprecated-frontend' and 'old-backend-net'. Strictly preserve the running production containers 'prod-web', 'prod-cache', and 'prod-api', the stopped container 'staging-db-snapshot', and the volume 'persistent-config'. Save a summary report of the removals to /home/ga/cleanup-report.txt.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_cleanup_selective/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_cleanup_selective/export_result.sh"
+  },
+  "metadata": {
+    "keep_containers": [
+      "prod-web",
+      "prod-cache",
+      "prod-api",
+      "staging-db-snapshot"
+    ],
+    "remove_containers": [
+      "old-dev-server",
+      "test-runner-0412",
+      "failed-build-temp",
+      "expired-worker"
+    ],
+    "keep_volumes": [
+      "persistent-config"
+    ],
+    "remove_volumes": [
+      "old-test-data",
+      "build-cache-vol",
+      "tmp-upload-vol"
+    ],
+    "remove_networks": [
+      "deprecated-frontend",
+      "old-backend-net"
+    ],
+    "report_path": "/home/ga/cleanup-report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_cleanup_selective"
+    }
+  }
+}

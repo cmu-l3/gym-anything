@@ -1,0 +1,45 @@
+{
+    "task_id": "batch_tree_assessment@1",
+    "dataset": "iNaturalist",
+    "case_id": "world_survey.gpkg",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "gpkg_path",
+            "metadata_value": "/sdcard/Android/data/ch.opengis.qfield/files/Imported Datasets/world_survey.gpkg",
+            "verified_value": "/sdcard/Android/data/ch.opengis.qfield/files/Imported Datasets/world_survey.gpkg",
+            "source": "setup_task.sh confirms this is the destination path for the copy",
+            "status": "verified"
+        },
+        {
+            "key": "layer_name",
+            "metadata_value": "field_observations",
+            "verified_value": "field_observations",
+            "source": "world_survey.gpkg sqlite schema inspection",
+            "status": "verified"
+        },
+        {
+            "key": "initial_count",
+            "metadata_value": "8",
+            "verified_value": "8",
+            "source": "world_survey.gpkg field_observations table contains 8 rows (real iNaturalist observations)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_total_count",
+            "metadata_value": "11",
+            "verified_value": "11",
+            "source": "verifier.py checks for initial_count (8) + 3 = 11",
+            "status": "verified"
+        },
+        {
+            "key": "targets",
+            "metadata_value": "[{\"name\": \"Oak_Paris_01\", \"keywords\": [\"healthy\", \"canopy\", \"no damage\"], \"lat\": 48.86, \"lon\": 2.35, \"tolerance\": 4.0}, {\"name\": \"Pine_Berlin_02\", \"keywords\": [\"dieback\", \"loss\", \"crown\"], \"lat\": 52.52, \"lon\": 13.4, \"tolerance\": 4.0}, {\"name\": \"Birch_Rome_03\", \"keywords\": [\"rot\", \"leaning\", \"root\"], \"lat\": 41.9, \"lon\": 12.5, \"tolerance\": 4.0}]",
+            "verified_value": "[{\"name\": \"Oak_Paris_01\", \"keywords\": [\"healthy\", \"canopy\", \"no damage\"], \"lat\": 48.86, \"lon\": 2.35, \"tolerance\": 4.0}, {\"name\": \"Pine_Berlin_02\", \"keywords\": [\"dieback\", \"loss\", \"crown\"], \"lat\": 52.52, \"lon\": 13.4, \"tolerance\": 4.0}, {\"name\": \"Birch_Rome_03\", \"keywords\": [\"rot\", \"leaning\", \"root\"], \"lat\": 41.9, \"lon\": 12.5, \"tolerance\": 4.0}]",
+            "source": "verifier.py parameter matching",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The data is a real-world subset of iNaturalist observations combined with world capital locations inside world_survey.gpkg. The gpkg_path, initial_count (8), expected_total_count (11), and target layer 'field_observations' exactly match the task parameters. However, there is a fatal bug in the task design: the task instructions tell the agent to add features with 'name' and 'notes' fields, and verifier.py executes 'SELECT name, notes, ST_X(geom), ST_Y(geom) FROM field_observations'. The 'field_observations' table does not have 'name' or 'notes' columns (it only has observer_name, species, location, obs_date, quality_grade), and ST_X/ST_Y functions are not available without loading the Spatialite extension. Therefore, any attempt to complete or verify this task will result in an SQLite operational error.",
+    "pi_confidence": "high"
+}

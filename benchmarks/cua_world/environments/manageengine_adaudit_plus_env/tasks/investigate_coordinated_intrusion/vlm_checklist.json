@@ -1,0 +1,71 @@
+{
+  "task_id": "investigate_coordinated_intrusion@1",
+  "task_completion": [
+    {
+      "id": "investigate_failed_logons",
+      "description": "Navigate to ADAudit Plus reports and examine Failed Logon Activity to identify the brute-force target service account.",
+      "points": 12,
+      "visual_evidence": "Screenshots showing the ADAudit Plus web interface displaying Failed Logon reports or Local Logon Failure dashboards. The account 'svc_backup' should be visible with a disproportionately high count (~40) compared to other accounts. Multiple accounts are visible including svc_sql, svc_deploy, svc_monitoring, helpdesk_temp, and admin_jones with lower counts."
+    },
+    {
+      "id": "investigate_successful_logons",
+      "description": "Navigate to Successful Logon or Recent Logon Activity reports to verify the compromise of the targeted account.",
+      "points": 10,
+      "visual_evidence": "Screenshots showing the ADAudit Plus web interface displaying Recent Logon Activity or Successful Logon reports. Evidence that the agent searched for or identified 'svc_backup' in successful logon events, confirming the account was compromised."
+    },
+    {
+      "id": "investigate_group_changes",
+      "description": "Navigate to Group Membership Changes reports to identify privilege escalation of the compromised account.",
+      "points": 12,
+      "visual_evidence": "Screenshots showing the ADAudit Plus web interface displaying Group Management or Membership Changes reports. Evidence that the agent found 'svc_backup' was added to the 'Administrators' and 'Remote Desktop Users' groups. Also 'maint_svc' should appear as added to 'Administrators'."
+    },
+    {
+      "id": "investigate_account_management",
+      "description": "Navigate to Account Management reports to identify newly created accounts (potential backdoors).",
+      "points": 12,
+      "visual_evidence": "Screenshots showing the ADAudit Plus web interface displaying Account Management, User Creation, or recently created accounts reports. Evidence that the agent found 'maint_svc' (Maintenance Service) as a newly created account. The agent may also see 'helpdesk_temp' as newly created."
+    },
+    {
+      "id": "configure_smtp",
+      "description": "Configure SMTP email settings with mail.meridianfin.com server.",
+      "points": 10,
+      "visual_evidence": "Screenshots showing the ADAudit Plus Admin/Settings area with SMTP or Mail Server configuration. The server field should show 'mail.meridianfin.com', port 465, SSL enabled, sender 'adaudit@meridianfin.com'."
+    },
+    {
+      "id": "configure_alert_profile",
+      "description": "Configure an alert profile named 'Coordinated Intrusion Detection' with Critical severity and threshold-based detection.",
+      "points": 15,
+      "visual_evidence": "Screenshots of the ADAudit Plus Alert Profiles configuration showing a new alert named 'Coordinated Intrusion Detection' with Critical severity, configured for failed logon threshold (>20 in 5 minutes), with notification email 'soc@meridianfin.com' and subject containing 'Coordinated Attack'."
+    },
+    {
+      "id": "create_technician",
+      "description": "Create a technician account 'soc_lead' with the 'Auditor' role.",
+      "points": 10,
+      "visual_evidence": "Screenshots of the ADAudit Plus Admin/Delegation or Technicians page showing a newly created account with username 'soc_lead', full name 'SOC Lead Analyst', and role 'Auditor'."
+    },
+    {
+      "id": "document_incident_report",
+      "description": "Document complete forensic findings including backdoor discovery in C:\\Users\\Docker\\Desktop\\incident_report.txt.",
+      "points": 19,
+      "visual_evidence": "Screenshots of a text editor (e.g., Notepad) open with 'incident_report.txt' containing: the targeted username 'svc_backup', evidence of compromise (successful logon), privilege escalation to 'Administrators' and 'Remote Desktop Users', discovery of backdoor account 'maint_svc' with Administrators privilege, and remediation recommendations. The report should demonstrate that the agent cross-referenced Account Management with Group Membership Changes to identify the backdoor."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "gui_investigation",
+      "description": "Agent used the ADAudit Plus web GUI to investigate reports rather than using CLI or API shortcuts.",
+      "visual_evidence": "Screenshots show the agent navigating the ADAudit Plus web interface in a browser to view failed logon reports, successful logon reports, group change reports, and account management reports."
+    },
+    {
+      "id": "genuine_investigation",
+      "description": "Agent actually viewed report data in all four report sections before writing findings — did not hallucinate the target account or backdoor.",
+      "visual_evidence": "Screenshots show the agent viewing actual audit event data in at least four distinct ADAudit Plus report sections (failed logons, successful logons, group changes, account management) before opening a text editor to write the incident report. The usernames in the report match what was visible in the ADAudit Plus reports."
+    },
+    {
+      "id": "genuine_text_editor",
+      "description": "Agent used a GUI text editor to write the incident report.",
+      "visual_evidence": "Screenshots show the agent typing the report in a standard text editor like Notepad, rather than generating the file purely via command-line echo or redirection."
+    }
+  ],
+  "privileged_info_for_vlm": "The primary brute-force target is 'svc_backup' with exactly 40 failed logon attempts. Reconnaissance probes hit svc_sql(5), svc_deploy(5), svc_monitoring(5). A diversionary account 'helpdesk_temp' was created by the attacker with 12 failed logons but NO privilege escalation — it is a distraction. Legitimate noise: admin_jones has 8 failed logons followed by a successful recovery logon and password reset (legitimate lockout, not an attack). Post-compromise attack chain: svc_backup was added to Administrators AND Remote Desktop Users. A backdoor account 'maint_svc' was created and added to Administrators. svc_backup's password was reset for persistence. The key forensic insight is the CROSS-REFERENCING: the agent must check Account Management to discover maint_svc was created, then check Group Membership Changes to confirm maint_svc was also added to Administrators — linking these two facts identifies the backdoor. The technician must be 'soc_lead' with role 'Auditor'. SMTP must be mail.meridianfin.com port 465 SSL. The alert must be 'Coordinated Intrusion Detection' with Critical severity, threshold >20 in 5 min, email soc@meridianfin.com. The incident report at C:\\Users\\Docker\\Desktop\\incident_report.txt must mention both 'svc_backup' (primary target) and 'maint_svc' (backdoor) with their respective privilege escalations."
+}

@@ -1,0 +1,129 @@
+{
+    "task_id": "multilang_documentary_mastering_pipeline@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "ground_truth.video_flash_time_sec",
+            "metadata_value": 5.0,
+            "verified_value": 5.0,
+            "source": "Independent verification: (1) setup_task.sh line 29 sets VIDEO_FLASH_START=5.0, line 46 uses drawbox with enable='between(t,5.0,5.5)'. (2) Live analysis: extracted frames at 0.1s intervals from main_video.mov, measured avg_brightness=128.0/255 at t=4.8s (normal test pattern) and avg_brightness=255.0/255 at t=5.0s (full white). Flash persists at 255.0 from t=5.0-5.5s, drops back to 128.0 at t=5.6s. White flash starts at exactly 5.0s.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.en_beep_time_sec",
+            "metadata_value": 8.5,
+            "verified_value": 8.5,
+            "source": "Independent verification: (1) setup_task.sh line 31 sets EN_BEEP_TIME=8.5, line 58-62 generates narration_en.wav with anoisesrc for 8.5s then sine=1000Hz for 0.5s. (2) Live audio analysis: computed RMS amplitude in 0.1s windows. Background noise RMS~62-70 at t=8.3-8.4s, jumps to RMS=2895.7 at t=8.5s (1kHz sine at full amplitude), sustains through t=8.9s, drops back to RMS=68.3 at t=9.0s. Beep starts at exactly 8.5s, duration 0.5s.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.es_beep_time_sec",
+            "metadata_value": 6.8,
+            "verified_value": 6.8,
+            "source": "Independent verification: (1) setup_task.sh line 32 sets ES_BEEP_TIME=6.8, line 67-72 generates narration_es.wav with anoisesrc for 6.8s then sine=1000Hz for 0.5s. (2) Live audio analysis: RMS amplitude shows background noise ~66-69 at t=6.6-6.7s, jumps to RMS=2895.7 at t=6.8s, sustains through t=7.2s, drops back to RMS=63.6 at t=7.3s. Beep starts at exactly 6.8s, duration 0.5s.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.me_beep_time_sec",
+            "metadata_value": 5.0,
+            "verified_value": 5.0,
+            "source": "Independent verification: (1) setup_task.sh line 33 sets ME_BEEP_TIME=5.0, line 78-82 generates music_effects.wav with sine=261.63Hz for 5.0s then sine=1000Hz for 0.5s. (2) Live FFT analysis: dominant frequency is 260.0Hz from t=4.0-4.9s, switches to 1000.0Hz at t=5.0s, sustains through t=5.4s, returns to 260.0Hz at t=5.5s. 1kHz beep starts at exactly 5.0s, matching video flash. M&E is pre-aligned.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.en_offset_sec",
+            "metadata_value": 3.5,
+            "verified_value": 3.5,
+            "source": "Computed from verified values: en_beep_time(8.5) - video_flash_time(5.0) = 3.5s. The English narration beep is 3.5 seconds LATE relative to the video flash. Agent must apply -3.5s offset (use -itsoffset -3.5) to pull the EN narration earlier into alignment.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.es_offset_sec",
+            "metadata_value": 1.8,
+            "verified_value": 1.8,
+            "source": "Computed from verified values: es_beep_time(6.8) - video_flash_time(5.0) = 1.8s. The Spanish narration beep is 1.8 seconds LATE relative to the video flash. Agent must apply -1.8s offset (use -itsoffset -1.8) to pull the ES narration earlier into alignment.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.subtitle_en_shift_sec",
+            "metadata_value": 2.5,
+            "verified_value": 2.5,
+            "source": "Verified from: (1) setup_task.sh line 91 comment: 'English subtitles — all timestamps are 2.5 seconds TOO EARLY'. (2) sync_notes.txt states 'English subtitles: 2.5 seconds EARLY — shift all timestamps +2.5s'. (3) Actual SRT first cue starts at 00:00:10,000; setup_task.sh line 92 comment says correct start is 12.500s; 12.5 - 10.0 = 2.5s. All sources consistent.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth.subtitle_es_shift_sec",
+            "metadata_value": 4.0,
+            "verified_value": 4.0,
+            "source": "Verified from: (1) setup_task.sh line 125 comment: 'Spanish subtitles — all timestamps are 4.0 seconds TOO EARLY'. (2) sync_notes.txt states 'Spanish subtitles: 4.0 seconds EARLY — shift all timestamps +4.0s'. (3) Actual SRT first cue starts at 00:00:08,500; setup_task.sh line 126 comment says correct start is 12.500s; 12.5 - 8.5 = 4.0s. All sources consistent.",
+            "status": "verified"
+        },
+        {
+            "key": "output_directory",
+            "metadata_value": "/home/ga/Videos/mastered",
+            "verified_value": "/home/ga/Videos/mastered",
+            "source": "Confirmed: directory exists on live VM (ls -la shows it created by setup_task.sh line 11). Also confirmed in delivery_spec.json.",
+            "status": "verified"
+        },
+        {
+            "key": "deliverables.master_mkv",
+            "metadata_value": "/home/ga/Videos/mastered/documentary_master.mkv",
+            "verified_value": "/home/ga/Videos/mastered/documentary_master.mkv",
+            "source": "Confirmed in delivery_spec.json field deliverables.master.filename='documentary_master.mkv' and setup_task.sh line 15 cleanup path. Expected: MKV container, 1920x1080 H.264 30fps video, 3 audio tracks (eng/spa/und), 2 subtitle tracks (eng/spa).",
+            "status": "verified"
+        },
+        {
+            "key": "deliverables.dist_english",
+            "metadata_value": "/home/ga/Videos/mastered/dist_english.mp4",
+            "verified_value": "/home/ga/Videos/mastered/dist_english.mp4",
+            "source": "Confirmed in delivery_spec.json and setup_task.sh line 16. Expected: MP4, 1280x720, H.264, EN narration mixed with M&E as single stereo AAC track, EN subtitles hardburned (0 subtitle streams).",
+            "status": "verified"
+        },
+        {
+            "key": "deliverables.dist_spanish",
+            "metadata_value": "/home/ga/Videos/mastered/dist_spanish.mp4",
+            "verified_value": "/home/ga/Videos/mastered/dist_spanish.mp4",
+            "source": "Confirmed in delivery_spec.json and setup_task.sh line 17. Expected: MP4, 1280x720, H.264, ES narration mixed with M&E as single stereo AAC track, ES subtitles hardburned (0 subtitle streams).",
+            "status": "verified"
+        },
+        {
+            "key": "deliverables.dist_audio",
+            "metadata_value": "/home/ga/Videos/mastered/dist_audio.m4a",
+            "verified_value": "/home/ga/Videos/mastered/dist_audio.m4a",
+            "source": "Confirmed in delivery_spec.json and setup_task.sh line 18. Expected: M4A, AAC stereo 256kbps, EN narration mixed with M&E, no video stream.",
+            "status": "verified"
+        },
+        {
+            "key": "deliverables.proof_sheet",
+            "metadata_value": "/home/ga/Videos/mastered/qa_proof_sheet.png",
+            "verified_value": "/home/ga/Videos/mastered/qa_proof_sheet.png",
+            "source": "Confirmed in delivery_spec.json and setup_task.sh line 19. Expected: PNG image, 3x2 grid of 320x180 thumbnails at t=15,30,45,60,75,90s from master MKV, total dimensions approximately 960x360.",
+            "status": "verified"
+        },
+        {
+            "key": "deliverables.report",
+            "metadata_value": "/home/ga/Documents/mastering_report.json",
+            "verified_value": "/home/ga/Documents/mastering_report.json",
+            "source": "Confirmed in delivery_spec.json and setup_task.sh line 20 cleanup, and export_result.sh line 14. Must contain sync_analysis, subtitle_corrections, and deliverables sections.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Post-Production Engineer (SOC 27-4012)",
+            "verified_value": "Post-Production Engineer (SOC 27-4012)",
+            "source": "SOC 27-4012 corresponds to 'Broadcast Technicians' per BLS O*NET. While post-production mastering work could also fall under 27-4011 (Audio and Video Technicians) or 27-4032 (Film and Video Editors), 27-4012 is a reasonable classification for this multimedia mastering task. Accepted as-is since it is a descriptive label, not a testable ground truth.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Film / Television Post-Production",
+            "verified_value": "Film / Television Post-Production",
+            "source": "Descriptive label. Task involves documentary mastering with multi-language audio, subtitle correction, and distribution format creation — standard film/TV post-production workflow.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Ground truth: The video white flash is at t=5.0-5.5s (full-screen white, avg brightness 255/255). The English narration 1kHz beep is at t=8.5s (offset = 3.5s late vs video flash; agent must apply -3.5s itsoffset). The Spanish narration beep is at t=6.8s (offset = 1.8s late; agent must apply -1.8s itsoffset). The M&E beep is at t=5.0s (pre-aligned with video, no offset needed). English subtitles need +2.5s shift (first cue moves from 00:00:10,000 to 00:00:12,500). Spanish subtitles need +4.0s shift (first cue moves from 00:00:08,500 to 00:00:12,500). All data is synthetic, generated by ffmpeg lavfi filters (testsrc2 for video, anoisesrc+sine for audio). The master MKV should have: 1 video stream (H.264 1920x1080 30fps), 3 audio streams (eng narration, spa narration, und M&E), 2 subtitle streams (eng default, spa). Distribution copies should be 1280x720 MP4 with hardburned subtitles (0 subtitle streams) and mixed narration+M&E audio (1 stereo AAC audio stream). dist_audio.m4a should have 0 video streams and 1 stereo AAC audio stream at 256kbps. qa_proof_sheet.png should be approximately 960x360 pixels (3x2 grid of 320x180 thumbnails at t=15,30,45,60,75,90s). The scratch audio track in main_video.mov (AAC mono 64kbps pink noise) must be discarded — it is NOT used in any output.",
+    "pi_confidence": "high"
+}

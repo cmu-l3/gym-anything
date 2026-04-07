@@ -1,0 +1,33 @@
+{
+  "id": "readiness_probe_circular_deadlock@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "The 'checkout-service' and 'inventory-service' in the 'ecommerce-core' namespace are stuck in a startup deadlock (0/1 Ready) due to a circular dependency in their readiness probes. Refactor both deployments to use standard Kubernetes httpGet readiness probes that query their own local /health endpoint on port 8080. Ensure both pods reach a 1/1 Ready state. Login to Rancher at https://localhost with credentials admin / Admin12345678!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/readiness_probe_circular_deadlock/setup_task.sh",
+    "post_task": "/workspace/tasks/readiness_probe_circular_deadlock/export_result.sh"
+  },
+  "metadata": {
+    "target_namespace": "ecommerce-core",
+    "target_deployments": [
+      "checkout-service",
+      "inventory-service"
+    ],
+    "expected_probe_type": "httpGet",
+    "expected_probe_path": "/health",
+    "expected_probe_port": 8080,
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_readiness_probe_circular_deadlock"
+    }
+  }
+}

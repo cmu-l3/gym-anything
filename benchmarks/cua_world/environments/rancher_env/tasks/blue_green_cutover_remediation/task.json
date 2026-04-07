@@ -1,0 +1,32 @@
+{
+  "id": "blue_green_cutover_remediation@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "A release of the 'v2' frontend is currently blocked during a low-traffic deployment window. The CI/CD pipeline deployed the new 'frontend-green' workloads into the 'production' namespace, but the automated cutover was halted because the new pods never reached a Ready state. Diagnose and fix the readiness probe issue on the 'frontend-green' deployment so its pods become Ready. Manually cut over the production 'frontend-service' to route traffic to the green pods instead of the blue ones. Scale the legacy 'frontend-blue' deployment to 0 replicas to free up cluster capacity, ensuring the deployment is preserved for a potential rollback. Login to Rancher at https://localhost with credentials admin / Admin12345678!",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/blue_green_cutover_remediation/setup_task.sh",
+    "post_task": "/workspace/tasks/blue_green_cutover_remediation/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Platform Engineer / Site Reliability Engineer",
+    "target_namespace": "production",
+    "target_deployments": [
+      "frontend-blue",
+      "frontend-green"
+    ],
+    "target_service": "frontend-service",
+    "pass_threshold": 75
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_blue_green_cutover"
+    }
+  }
+}

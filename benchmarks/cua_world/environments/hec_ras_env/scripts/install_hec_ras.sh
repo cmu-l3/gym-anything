@@ -128,11 +128,11 @@ if [ -f "$HECRAS_ZIP" ] && [ -s "$HECRAS_ZIP" ]; then
 
     if [ -n "$MUNCIE_SRC" ]; then
         echo "--- Found Muncie example project at $MUNCIE_SRC ---"
-        mkdir -p "$HECRAS_DIR/benchmarks/cua_world/environments/Muncie"
-        cp -r "$MUNCIE_SRC"/* "$HECRAS_DIR/benchmarks/cua_world/environments/Muncie/"
+        mkdir -p "$HECRAS_DIR/examples/Muncie"
+        cp -r "$MUNCIE_SRC"/* "$HECRAS_DIR/examples/Muncie/"
         # Also copy the wrk_source files to the main directory for easier access
         if [ -d "$MUNCIE_SRC/wrk_source" ]; then
-            cp "$MUNCIE_SRC/wrk_source"/* "$HECRAS_DIR/benchmarks/cua_world/environments/Muncie/" 2>/dev/null || true
+            cp "$MUNCIE_SRC/wrk_source"/* "$HECRAS_DIR/examples/Muncie/" 2>/dev/null || true
         fi
     fi
 
@@ -159,7 +159,7 @@ ls -la "$HECRAS_DIR/bin/" 2>/dev/null || echo "  (bin directory not found)"
 echo "Libraries:"
 ls "$HECRAS_DIR/lib/" 2>/dev/null | head -20 || echo "  (lib directory not found)"
 echo "Muncie example:"
-ls "$HECRAS_DIR/benchmarks/cua_world/environments/Muncie/" 2>/dev/null || echo "  (Muncie not found)"
+ls "$HECRAS_DIR/examples/Muncie/" 2>/dev/null || echo "  (Muncie not found)"
 
 # Check if key executables exist
 for exe in RasUnsteady RasSteady RasGeomPreprocess; do

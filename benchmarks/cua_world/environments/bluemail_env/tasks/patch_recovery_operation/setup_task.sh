@@ -3,6 +3,9 @@ echo "=== Setting up patch_recovery_operation ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 # Record start time
 date +%s > /tmp/task_start_time.txt
 
@@ -39,8 +42,8 @@ if [ "$PATCH_COUNT" -lt 5 ]; then
             NEW_NAME="$(date +%s)_$i.injected.$(hostname):2,S"
             cp "$SOURCE_PATCH" "$INBOX_CUR/$NEW_NAME"
         done
-        # Update index
-        doveadm index -u ga INBOX 2>/dev/null || true
+        # Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+        reset_dovecot_indexes
     fi
 fi
 

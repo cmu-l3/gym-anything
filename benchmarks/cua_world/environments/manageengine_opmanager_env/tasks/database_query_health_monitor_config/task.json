@@ -1,0 +1,29 @@
+{
+  "id": "database_query_health_monitor_config@1",
+  "version": "1.0",
+  "env_id": "manageengine_opmanager_env@0.1",
+  "description": "A Database Administrator (DBA) has identified two critical blind spots in the company's infrastructure monitoring: PostgreSQL connection exhaustion and MySQL transaction queue build-ups. A specification document with custom SQL queries has been placed on your desktop at ~/Desktop/db_query_monitoring_spec.txt. Log in to OpManager at http://localhost:8060 (username: admin, password: Admin@123), navigate to the Database Query Monitors configuration section, and create two global Database Query Monitor templates matching the exact specifications (Monitor Name, Database Type, SQL Query, and Unit) provided in the document.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/database_query_health_monitor_config/setup_task.sh",
+    "post_task": "/workspace/tasks/database_query_health_monitor_config/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/db_query_monitor_result.json",
+    "postgres_name": "PostgreSQL-Connection-Count",
+    "postgres_query": "SELECT count(*) FROM pg_stat_activity;",
+    "mysql_name": "MySQL-Transaction-Queue",
+    "mysql_query": "SELECT count(*) FROM information_schema.innodb_trx;"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_database_query_health_monitor_config"
+    }
+  }
+}

@@ -18,16 +18,11 @@ echo "Force stopping app..."
 am force-stop $PACKAGE
 sleep 2
 
-# 4. Launch App to ensure it's running but needs navigation
+# 4. Launch App to ensure it's running
 echo "Launching Cancer iChart..."
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 5
-
-# 5. Ensure we are at the Home/Welcome screen (press Back a few times just in case, then Home, then launch)
-input keyevent KEYCODE_HOME
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
 sleep 1
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 2
 
 # 6. Take initial state screenshot
 screencap -p /sdcard/task_initial.png

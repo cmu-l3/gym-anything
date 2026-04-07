@@ -25,9 +25,8 @@ sleep 1
 
 # 5. Launch App (Warmup)
 echo "Launching Cancer iChart..."
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 5
-
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
 # 6. Ensure we are at the main menu (back out of any deep navigation if state persisted)
 # Press back a few times just in case, though force-stop usually resets it
 input keyevent KEYCODE_BACK
@@ -36,7 +35,6 @@ input keyevent KEYCODE_BACK
 sleep 0.5
 
 # Relaunch to be sure
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 3
+launch_cancer_ichart
 
 echo "=== Setup Complete ==="

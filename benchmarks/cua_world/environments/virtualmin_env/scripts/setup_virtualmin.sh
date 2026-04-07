@@ -313,7 +313,7 @@ echo "--- Installing real data into virtual servers ---"
 #     Source: Bootstrap 5 official example template (public domain / MIT)
 echo "--- Downloading Bootstrap Album template for acmecorp.test ---"
 ALBUM_HTML=$(curl -fsSL \
-    "https://raw.githubusercontent.com/twbs/bootstrap/main/site/content/docs/5.3/benchmarks/cua_world/environments/album/index.html" \
+    "https://raw.githubusercontent.com/twbs/bootstrap/main/site/content/docs/5.3/examples/album/index.html" \
     2>/dev/null || echo "")
 
 if [ -n "$ALBUM_HTML" ] && [ ${#ALBUM_HTML} -gt 5000 ]; then

@@ -1,0 +1,38 @@
+{
+    "task_id": "configure_default_gratuity@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_gratuity",
+            "metadata_value": 18.0,
+            "verified_value": 18.0,
+            "source": "Task description strictly mandates changing the rate to 18%, and verifier.py asserts 17.9 <= gratuity <= 18.1.",
+            "status": "verified"
+        },
+        {
+            "key": "tolerance",
+            "metadata_value": 0.1,
+            "verified_value": 0.1,
+            "source": "verifier.py enforces exactly a 0.1 tolerance with the bounds 17.9 <= gratuity <= 18.1.",
+            "status": "verified"
+        },
+        {
+            "key": "db_table",
+            "metadata_value": "RESTAURANT",
+            "verified_value": "RESTAURANT",
+            "source": "Execution of java.sql.DatabaseMetaData on the unzipped Floreant POS Derby database confirms the presence of the RESTAURANT table.",
+            "status": "verified"
+        },
+        {
+            "key": "db_column",
+            "metadata_value": "DEFAULT_GRATUITY",
+            "verified_value": "GRATUITY_PERCENTAGE",
+            "source": "Execution of java.sql.DatabaseMetaData on the unzipped Floreant POS Derby database confirms the correct column name is GRATUITY_PERCENTAGE, not DEFAULT_GRATUITY.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "Completed PI audit for floreant_pos_env configure_default_gratuity task. The task data uses the default open-source Derby database bundled with Floreant POS 1.4 build 1707b. The expected_gratuity of 18.0, tolerance of 0.1, and db_table of 'RESTAURANT' match the task and schema. However, the task is fundamentally defective. The metadata claim db_column 'DEFAULT_GRATUITY' is contradicted; the actual database column is 'GRATUITY_PERCENTAGE'. Additionally, the other queried column 'SERVICE_CHARGE_PERCENTAGE' is actually 'SC_PERCENTAGE'. This causes the export_result.sh SQL query to permanently fail. Furthermore, export_result.sh attempts to execute 'org.apache.derby.tools.ij', but derbytools.jar is absent from the Floreant lib directory and Java 11 does not bundle JavaDB, leading to a ClassNotFoundException. These fatal bugs render the task completely unscorable.",
+    "pi_confidence": "high"
+}

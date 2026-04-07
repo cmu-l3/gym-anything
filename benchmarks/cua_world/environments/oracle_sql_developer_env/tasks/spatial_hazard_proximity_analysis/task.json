@@ -1,0 +1,29 @@
+{
+  "id": "spatial_hazard_proximity_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Emergency Management Director for a coastal state. Using the EMERGENCY_MGR schema (emergency_mgr/RiskPlan2024, XEPDB1), identify all public schools in the INFRASTRUCTURE table located within a 2,000-meter radius of registered hazardous material (HAZMAT) storage facilities. Spatially enable the INFRASTRUCTURE table by adding and populating a SHAPE column (SDO_GEOMETRY, SRID 4326) using the existing LONGITUDE and LATITUDE data. Register the spatial metadata in USER_SDO_GEOM_METADATA with bounds of -180 to 180 (X), -90 to 90 (Y), and a 0.05-meter tolerance. Create a spatial index named INFRA_SHAPE_IDX on the SHAPE column. Generate a view named AT_RISK_SCHOOLS_VW containing school_id, school_name, hazmat_site_name, and the precise distance_meters (rounded to 2 decimal places) for all schools within 2,000 meters of a HAZMAT site. Export the results of this view to /home/ga/Documents/exports/evacuation_schools.csv. Connection details: Host=localhost, Port=1521, Service=XEPDB1, User=emergency_mgr, Password=RiskPlan2024.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/spatial_hazard_proximity_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/spatial_hazard_proximity_analysis/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/exports/evacuation_schools.csv",
+    "expected_srid": 4326,
+    "expected_index": "INFRA_SHAPE_IDX",
+    "expected_view": "AT_RISK_SCHOOLS_VW",
+    "expected_table": "INFRASTRUCTURE"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spatial_hazard"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "rpo_relative_motion_analysis@1",
+  "version": "1.0",
+  "env_id": "gmat_env@0.1",
+  "description": "You are a flight dynamics engineer verifying the passive safety of a co-orbital inspection trajectory. The servicer spacecraft (CS_SERVICER) must drift past the target (ENVISAT_TARGET) without colliding.\n\nA specification document is on your desktop at ~/Desktop/envisat_inspection_spec.txt. It contains the exact orbital elements for both spacecraft.\n\nYour task:\n1. Open GMAT and create both spacecraft using the parameters in the spec document.\n2. Create a custom Coordinate System named exactly 'TargetVNB'. Set its Origin to ENVISAT_TARGET and its Axes to VNB.\n3. Configure the Force Model to use strictly Point Mass gravity (Two-Body motion). Disable atmospheric drag, SRP, and set Earth gravity Degree/Order to 0 (or use default PointMasses).\n4. Propagate both spacecraft synchronously for exactly 24 hours with a 60-second step size.\n5. Calculate the relative distance (Range) between the two spacecraft over the 24-hour period. (You can generate a ReportFile with CS_SERVICER's position in TargetVNB, or use GMAT Math variables).\n6. Analyze your data to find the minimum and maximum range achieved during the 24 hours.\n7. Write the results to ~/GMAT_output/rpo_summary.txt using EXACTLY this format:\nmin_range_km: <value>\nmax_range_km: <value>\npassive_safety_violated: <true/false> (true if min_range < 0.5 km)\n8. Save your GMAT script to ~/GMAT_output/rpo_drift.script.\n\nLogin: username=ga, password=password123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rpo_relative_motion_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/rpo_relative_motion_analysis/export_result.sh"
+  },
+  "metadata": {
+    "script_path": "/home/ga/GMAT_output/rpo_drift.script",
+    "summary_path": "/home/ga/GMAT_output/rpo_summary.txt",
+    "expected_min_range_km": 0.77,
+    "min_range_tolerance_km": 2.0,
+    "expected_max_range_km": 71.4,
+    "max_range_tolerance_km": 10.0,
+    "expected_passive_safety": "false"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rpo_relative_motion_analysis"
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "create_index_template@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create a custom OpenSearch index template named 'wazuh-custom-alerts' in the Wazuh Indexer (https://localhost:9200) using credentials admin / SecretPassword. The template must use index patterns ['wazuh-alerts-custom-*'], priority 50, and settings for number_of_shards (1), number_of_replicas (0), and refresh_interval ('30s'). Include mappings in the properties for 'threat.enrichment.source' (keyword), 'threat.enrichment.score' (float), and 'threat.enrichment.timestamp' (date). Save the full JSON response from the API verifying the template's creation to /home/ga/index_template_result.json.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_index_template/setup_task.sh",
+    "post_task": "/workspace/tasks/create_index_template/export_result.sh"
+  },
+  "metadata": {
+    "template_name": "wazuh-custom-alerts",
+    "expected_index_patterns": [
+      "wazuh-alerts-custom-*"
+    ],
+    "expected_priority": 50,
+    "expected_settings": {
+      "index.number_of_shards": "1",
+      "index.number_of_replicas": "0",
+      "index.refresh_interval": "30s"
+    },
+    "expected_mappings": {
+      "threat.enrichment.source": "keyword",
+      "threat.enrichment.score": "float",
+      "threat.enrichment.timestamp": "date"
+    },
+    "output_file": "/home/ga/index_template_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_index_template"
+    }
+  }
+}

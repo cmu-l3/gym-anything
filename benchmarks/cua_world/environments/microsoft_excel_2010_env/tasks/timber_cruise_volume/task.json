@@ -1,0 +1,54 @@
+{
+  "id": "timber_cruise_volume@1",
+  "version": "1.0",
+  "env_id": "microsoft_excel_2010_env@0.1",
+  "description": "A timber cruise workbook (timber_cruise.xlsx) contains field data for 80 trees across 10 variable-radius plots. Calculate timber volumes and stand value by populating the 'Volume_Calculations' and 'Stand_Summary' sheets. Required metrics for the 'Volume_Calculations' sheet include Basal_Area_sqft (0.005454 * DBH^2), TPA (BAF / Basal_Area_sqft with BAF=20), Gross_BF_Volume (using b0/b1 coefficients from 'Coefficients'), Net_BF_Volume, Vol_Per_Acre_BF, Stumpage_Per_Acre (using Price_Per_MBF), and Size_Class ('Large' if DBH>=24, 'Medium' if DBH>=16, else 'Small'). The 'Stand_Summary' sheet must include species-specific MBF/Acre and Stumpage $/Acre (averaged over 10 plots), Stand Totals for the 40-acre stand, Quadratic Mean Diameter (QMD), and Harvest Eligibility. Save the updated workbook.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/timber_cruise_volume/setup_task.sh",
+    "post_task": "/workspace/tasks/timber_cruise_volume/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "C:\\Users\\Docker\\Documents\\timber_cruise.xlsx",
+    "baf": 20,
+    "stand_acres": 40,
+    "num_plots": 10,
+    "species_coefficients": {
+      "DF": {
+        "b0": -20.43,
+        "b1": 0.01838,
+        "price": 650
+      },
+      "WH": {
+        "b0": -18.25,
+        "b1": 0.01724,
+        "price": 450
+      },
+      "WRC": {
+        "b0": -24.87,
+        "b1": 0.01682,
+        "price": 900
+      },
+      "RA": {
+        "b0": -12.15,
+        "b1": 0.01543,
+        "price": 380
+      }
+    },
+    "tolerances": {
+      "volume_pct": 0.05,
+      "currency_pct": 0.05
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_timber_cruise"
+    }
+  }
+}

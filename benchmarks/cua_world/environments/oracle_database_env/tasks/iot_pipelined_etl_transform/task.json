@@ -1,0 +1,31 @@
+{
+  "id": "iot_pipelined_etl_transform@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Implement a high-performance ETL pipeline using Oracle Pipelined Table Functions for the HR database (localhost:1521/XEPDB1, user: hr, pass: hr123). Create an object type T_IOT_METRIC (attributes: SENSOR_ID, READING_TIME, TEMP_CELSIUS, BATTERY_PCT, IS_LOW_BATTERY, STATUS) and a collection type T_IOT_METRIC_TAB. Develop a package PKG_IOT_ETL containing a pipelined function STREAM_METRICS that accepts a SYS_REFCURSOR and returns T_IOT_METRIC_TAB. The function must process data from RAW_SENSOR_LOGS (LOG_ID, RAW_PAYLOAD) where the payload format is SENSOR_ID|ISO_TIME|TEMP_F|BATTERY|STATUS. Transformations require converting ISO time to DATE, converting Fahrenheit to Celsius ((F-32)*5/9 rounded to 2 decimals), and setting IS_LOW_BATTERY to 'Y' if battery is under 20. If parsing fails, insert the LOG_ID and error message into IOT_PARSE_ERRORS and continue processing without raising an exception. Export the results of the function for all data in RAW_SENSOR_LOGS to /home/ga/Desktop/parsed_metrics.csv with headers.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/iot_pipelined_etl_transform/setup_task.sh",
+    "post_task": "/workspace/tasks/iot_pipelined_etl_transform/export_result.sh"
+  },
+  "metadata": {
+    "source_table": "RAW_SENSOR_LOGS",
+    "error_table": "IOT_PARSE_ERRORS",
+    "package_name": "PKG_IOT_ETL",
+    "type_name": "T_IOT_METRIC",
+    "output_file": "/home/ga/Desktop/parsed_metrics.csv",
+    "expected_valid_rows": 480,
+    "expected_error_rows": 20
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_iot_etl"
+    }
+  }
+}

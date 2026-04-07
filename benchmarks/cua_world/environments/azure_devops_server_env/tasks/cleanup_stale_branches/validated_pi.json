@@ -1,0 +1,94 @@
+{
+    "task_id": "cleanup_stale_branches@1",
+    "dataset": "TailwindTraders (Azure DevOps Server)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "repo_name",
+            "metadata_value": "TailwindTraders",
+            "verified_value": "TailwindTraders",
+            "source": "setup_azure_devops.ps1 lines 136-143 creates project named 'TailwindTraders'; line 312 retrieves Git repository with name 'TailwindTraders' as default repo",
+            "status": "verified"
+        },
+        {
+            "key": "branches_to_keep_main",
+            "metadata_value": "main",
+            "verified_value": "main",
+            "source": "setup_azure_devops.ps1 line 365 explicitly creates 'refs/heads/main' in initial commit",
+            "status": "verified"
+        },
+        {
+            "key": "branches_to_keep_develop",
+            "metadata_value": "develop",
+            "verified_value": null,
+            "source": "setup_azure_devops.ps1 does not create a 'develop' branch. Only 'main' and 'feature/add-search-endpoint' are created (lines 365, 386)",
+            "status": "contradicted"
+        },
+        {
+            "key": "branches_to_keep_release_v1_0",
+            "metadata_value": "release/v1.0",
+            "verified_value": null,
+            "source": "setup_azure_devops.ps1 does not create a 'release/v1.0' branch. Only 'main' and 'feature/add-search-endpoint' are created",
+            "status": "contradicted"
+        },
+        {
+            "key": "branches_to_delete_feature_search_api",
+            "metadata_value": "feature/search-api",
+            "verified_value": null,
+            "source": "setup_azure_devops.ps1 does not create 'feature/search-api'. setup_task.ps1 (referenced in pre_task hook line 13) does not exist",
+            "status": "unverified"
+        },
+        {
+            "key": "branches_to_delete_feature_user_auth",
+            "metadata_value": "feature/user-auth",
+            "verified_value": null,
+            "source": "setup_azure_devops.ps1 does not create 'feature/user-auth'. setup_task.ps1 is missing",
+            "status": "unverified"
+        },
+        {
+            "key": "branches_to_delete_bugfix_price_calc",
+            "metadata_value": "bugfix/price-calc",
+            "verified_value": null,
+            "source": "setup_azure_devops.ps1 does not create 'bugfix/price-calc'. setup_task.ps1 is missing",
+            "status": "unverified"
+        },
+        {
+            "key": "branches_to_delete_feature_old_dashboard",
+            "metadata_value": "feature/old-dashboard",
+            "verified_value": null,
+            "source": "setup_azure_devops.ps1 does not create 'feature/old-dashboard'. setup_task.ps1 is missing",
+            "status": "unverified"
+        },
+        {
+            "key": "branches_to_delete_feature_experimental_cache",
+            "metadata_value": "feature/experimental-cache",
+            "verified_value": null,
+            "source": "setup_azure_devops.ps1 does not create 'feature/experimental-cache'. setup_task.ps1 is missing",
+            "status": "unverified"
+        },
+        {
+            "key": "total_branch_count",
+            "metadata_value": 8,
+            "verified_value": 2,
+            "source": "Task description claims 8 branches total (3 to keep + 5 to delete). setup_azure_devops.ps1 only creates 2 branches: 'main' (line 365) and 'feature/add-search-endpoint' (line 386). No setup_task.ps1 exists to create the additional 6 claimed branches",
+            "status": "contradicted"
+        },
+        {
+            "key": "setup_task_ps1_exists",
+            "metadata_value": "true",
+            "verified_value": false,
+            "source": "task.json line 13 references 'C:\\workspace\\tasks\\cleanup_stale_branches\\setup_task.ps1' in pre_task hook, but file does not exist in filesystem",
+            "status": "contradicted"
+        },
+        {
+            "key": "export_result_ps1_exists",
+            "metadata_value": "true",
+            "verified_value": false,
+            "source": "task.json line 14 references 'C:\\workspace\\tasks\\cleanup_stale_branches\\export_result.ps1' in post_task hook, but file does not exist in filesystem",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "Verified: TailwindTraders project and Git repository exist on Azure DevOps Server, initialized with 'main' branch by setup_azure_devops.ps1. Contradicted: Task metadata claims repository has 8 branches (3 to keep + 5 to delete), but environment setup only creates 2 branches: 'main' and 'feature/add-search-endpoint'. Task claims to keep 'develop' and 'release/v1.0' branches, but neither is created by setup_azure_devops.ps1. Critical failure: Task references pre_task hook setup_task.ps1 and post_task hook export_result.ps1 (task.json lines 13-14), but neither script exists in the repository. Without setup_task.ps1, the 6 claimed branches beyond 'main' and 'feature/add-search-endpoint' cannot be created, making the task impossible to initialize. Without export_result.ps1, the task result cannot be exported to the file expected by verifier.py (C:/Users/Docker/task_results/cleanup_stale_branches_result.json). All metadata claims about the 5 branches to delete are unverifiable due to missing setup script.",
+    "pi_confidence": "high"
+}

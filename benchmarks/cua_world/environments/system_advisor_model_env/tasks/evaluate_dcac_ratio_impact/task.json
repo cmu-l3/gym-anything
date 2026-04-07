@@ -1,0 +1,31 @@
+{
+  "id": "evaluate_dcac_ratio_impact@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "description": "You are a Solar Energy Systems Engineer evaluating the optimal DC/AC ratio for a proposed 100 MW DC photovoltaic plant near Phoenix, AZ. Using PySAM's Pvwattsv8 module, model two configurations of the same system and compare their annual energy production.\n\nSystem Specifications:\n- Location: Phoenix, AZ (use a TMY CSV file from the directory path specified in /home/ga/.SAM/solar_resource_dir.txt)\n- DC System Capacity: 100,000 kW\n- Module Type: 0\n- Array Type: 2\n- Tilt: 0 degrees\n- Azimuth: 180 degrees\n- System Losses: 14.08%\n- Ground Coverage Ratio (GCR): 0.4\n- Inverter Efficiency: 96%\n\nConfigurations:\n- Configuration A: DC/AC ratio = 1.2\n- Configuration B: DC/AC ratio = 1.4\n\nCompare the configurations and save the results to /home/ga/Documents/SAM_Projects/dcac_ratio_comparison.json with the following structure:\n{\n  \"config_a\": {\n    \"dc_ac_ratio\": 1.2,\n    \"annual_energy_kwh\": <float>,\n    \"capacity_factor_percent\": <float>\n  },\n  \"config_b\": {\n    \"dc_ac_ratio\": 1.4,\n    \"annual_energy_kwh\": <float>,\n    \"capacity_factor_percent\": <float>\n  },\n  \"energy_gain_percent\": <float>,\n  \"weather_file_used\": \"<filename>\"\n}\nWhere energy_gain_percent = ((config_b energy - config_a energy) / config_a energy) * 100.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_dcac_ratio_impact/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_dcac_ratio_impact/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_file": "/home/ga/Documents/SAM_Projects/dcac_ratio_comparison.json",
+    "min_energy_kwh": 150000000,
+    "max_energy_kwh": 300000000,
+    "min_cf_percent": 17.0,
+    "max_cf_percent": 35.0,
+    "min_gain_percent": 0.1,
+    "max_gain_percent": 15.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_evaluate_dcac_ratio_impact"
+    }
+  }
+}

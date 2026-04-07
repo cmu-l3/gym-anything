@@ -1,0 +1,59 @@
+{
+  "id": "fix_encoding_corruption@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "A database migration has caused character encoding corruption in the patient records within the 'DrTuxTest' database (tables 'IndexNomPrenom' and 'fchpat'). Several patient names and addresses containing French accents (é, è, ê, ç, â) are displaying as double-encoded characters (e.g., 'Ã©' instead of 'é'). Identify and fix all corrupted fields for these patients using SQL updates to restore the correct French accents. Create a report file at '/home/ga/Documents/encoding_fix_report.txt' listing the patients fixed. The MySQL user is 'root' with no password.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fix_encoding_corruption/setup_task.sh",
+    "post_task": "/workspace/tasks/fix_encoding_corruption/export_result.sh"
+  },
+  "metadata": {
+    "corrupted_patterns": [
+      "Ã©",
+      "Ã¨",
+      "Ãª",
+      "Ã§",
+      "Ã¢",
+      "Ã‰"
+    ],
+    "expected_fixes": {
+      "BERENGER": {
+        "prenom": "Léa",
+        "ville": "Châteauroux"
+      },
+      "LEFEVRE": {
+        "prenom": "Hélène",
+        "adresse": "14 rue des Pêcheurs"
+      },
+      "GONÇALVES": {
+        "nom": "GONÇALVES",
+        "prenom": "Maria"
+      },
+      "PREVOST": {
+        "prenom": "Renée"
+      },
+      "FORTIER": {
+        "prenom": "Françoise",
+        "ville": "Orléans"
+      },
+      "BEAUPRÉ": {
+        "nom": "BEAUPRÉ",
+        "prenom": "Thérèse",
+        "adresse": "3 rue François Rabelais"
+      }
+    },
+    "report_path": "/home/ga/Documents/encoding_fix_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fix_encoding"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "sequential_db_file_pipeline@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Configure a NextGen Connect channel named 'Registration_Pipeline' to act as a transactional guard for HL7 ADT messages received on TCP port 6665 (MLLP). The channel must insert the Visit Number (PV1.19) and Patient Name (PID.5) into the 'billing_log' table in the PostgreSQL database (jdbc:postgresql://nextgen-postgres:5432/mirthdb, credentials: postgres/postgres). The raw HL7 message must be written to /tmp/billing_out/ only upon a successful database insertion. If the database operation fails, no file should be created, ensuring no orphaned files are generated for failed database records.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sequential_db_file_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/sequential_db_file_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Registration_Pipeline",
+    "listen_port": 6665,
+    "db_table": "billing_log",
+    "output_dir": "/tmp/billing_out"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sequential_pipeline"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "robot_depth_scanning_reconstruction@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "End-Effector Depth Scanning & 3D Reconstruction",
+  "description": "As a robotics engineer simulating a 3D optical inspection process in CoppeliaSim (ZMQ Remote API port 23000), spawn a primitive shape at world coordinates (0.5, 0.0, 0.1). Attach a vision sensor with depth rendering to the robot arm's end-effector and capture depth buffers from at least 4 distinct joint configurations pointing at the target. Save raw normalized depth values to /home/ga/Documents/CoppeliaSim/exports/depth_view_<id>.csv. Back-project the depth pixels into 3D world coordinates, filtering background points (depth == 1.0), and save the aggregated 3D points to /home/ga/Documents/CoppeliaSim/exports/merged_pointcloud.csv with columns: view_id, px, py, world_x, world_y, world_z. Save a metadata report including sensor configurations, resolution, clipping planes, and pose matrices to /home/ga/Documents/CoppeliaSim/exports/scanning_report.json. Login: username=ga, password=password123.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/robot_depth_scanning_reconstruction/setup_task.sh",
+    "post_task": "/workspace/tasks/robot_depth_scanning_reconstruction/export_result.sh"
+  },
+  "metadata": {
+    "min_views": 4,
+    "min_pc_points": 500,
+    "target_zone": {
+      "x_min": 0.1,
+      "x_max": 0.9,
+      "y_min": -0.5,
+      "y_max": 0.5,
+      "z_min": -0.1
+    },
+    "output_dir": "/home/ga/Documents/CoppeliaSim/exports"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_robot_depth_scanning"
+    }
+  }
+}

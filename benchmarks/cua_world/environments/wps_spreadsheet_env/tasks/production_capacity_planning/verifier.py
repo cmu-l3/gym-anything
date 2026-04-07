@@ -3,11 +3,11 @@
 
 import sys
 import os
+import json
 import logging
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../', 'utils'))
 from wps_verification_utils import (
-    copy_json_from_env,
     copy_and_parse_spreadsheet,
     cleanup_verification_temp,
     get_spreadsheet_text,
@@ -35,9 +35,15 @@ def verify_production_capacity(traj, env_info, task_info):
         return {"passed": False, "score": 0, "feedback": "Copy function not available"}
 
     container_paths = ["/home/ga/Documents/production_capacity_plan.xlsx"]
-    result_data = copy_json_from_env(copy_from_env, '/tmp/production_capacity_result.json')
-    if result_data and result_data.get('found_path'):
-        container_paths.insert(0, result_data['found_path'])
+    try:
+        result_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'tmp_prod_result.json')
+        copy_from_env('/tmp/production_capacity_result.json', result_path)
+        with open(result_path) as f:
+            rd = json.load(f)
+        if rd.get('found_path'):
+            container_paths.insert(0, rd['found_path'])
+    except Exception:
+        pass
 
     success = False
     wb = None

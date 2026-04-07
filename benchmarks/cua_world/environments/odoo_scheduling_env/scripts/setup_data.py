@@ -37,18 +37,18 @@ models = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/object')
 
 # Create realistic contacts — Alice appears on 5 events for the filter task
 contacts_data = [
-    {'name': 'Alice Johnson',    'email': 'alice.johnson@northbridge.org',    'phone': '+1-555-0101', 'job_position': 'Senior Financial Analyst'},
-    {'name': 'Bob Williams',     'email': 'bob.williams@northbridge.org',     'phone': '+1-555-0102', 'job_position': 'Sales Director'},
-    {'name': 'Carol Martinez',   'email': 'carol.martinez@northbridge.org',   'phone': '+1-555-0103', 'job_position': 'Marketing Manager'},
-    {'name': 'David Chen',       'email': 'david.chen@northbridge.org',       'phone': '+1-555-0104', 'job_position': 'Lead Engineer'},
-    {'name': 'Emma Thompson',    'email': 'emma.thompson@northbridge.org',    'phone': '+1-555-0105', 'job_position': 'Product Manager'},
-    {'name': 'Frank Rivera',     'email': 'frank.rivera@northbridge.org',     'phone': '+1-555-0106', 'job_position': 'HR Business Partner'},
-    {'name': 'Grace Patel',      'email': 'grace.patel@northbridge.org',      'phone': '+1-555-0107', 'job_position': 'CFO'},
-    {'name': 'Henry Kim',        'email': 'henry.kim@northbridge.org',        'phone': '+1-555-0108', 'job_position': 'VP Operations'},
-    {'name': 'Isabel Santos',    'email': 'isabel.santos@northbridge.org',    'phone': '+1-555-0109', 'job_position': 'Customer Success Manager'},
-    {'name': 'James O\'Brien',   'email': 'james.obrien@northbridge.org',     'phone': '+1-555-0110', 'job_position': 'Business Analyst'},
-    {'name': 'Karen Lee',        'email': 'karen.lee@northbridge.org',        'phone': '+1-555-0111', 'job_position': 'Legal Counsel'},
-    {'name': 'Luis Fernandez',   'email': 'luis.fernandez@northbridge.org',   'phone': '+1-555-0112', 'job_position': 'DevOps Engineer'},
+    {'name': 'Alice Johnson',    'email': 'alice.johnson@northbridge.org',    'phone': '+1-555-0101', 'function': 'Senior Financial Analyst'},
+    {'name': 'Bob Williams',     'email': 'bob.williams@northbridge.org',     'phone': '+1-555-0102', 'function': 'Sales Director'},
+    {'name': 'Carol Martinez',   'email': 'carol.martinez@northbridge.org',   'phone': '+1-555-0103', 'function': 'Marketing Manager'},
+    {'name': 'David Chen',       'email': 'david.chen@northbridge.org',       'phone': '+1-555-0104', 'function': 'Lead Engineer'},
+    {'name': 'Emma Thompson',    'email': 'emma.thompson@northbridge.org',    'phone': '+1-555-0105', 'function': 'Product Manager'},
+    {'name': 'Frank Rivera',     'email': 'frank.rivera@northbridge.org',     'phone': '+1-555-0106', 'function': 'HR Business Partner'},
+    {'name': 'Grace Patel',      'email': 'grace.patel@northbridge.org',      'phone': '+1-555-0107', 'function': 'CFO'},
+    {'name': 'Henry Kim',        'email': 'henry.kim@northbridge.org',        'phone': '+1-555-0108', 'function': 'VP Operations'},
+    {'name': 'Isabel Santos',    'email': 'isabel.santos@northbridge.org',    'phone': '+1-555-0109', 'function': 'Customer Success Manager'},
+    {'name': 'James O\'Brien',   'email': 'james.obrien@northbridge.org',     'phone': '+1-555-0110', 'function': 'Business Analyst'},
+    {'name': 'Karen Lee',        'email': 'karen.lee@northbridge.org',        'phone': '+1-555-0111', 'function': 'Legal Counsel'},
+    {'name': 'Luis Fernandez',   'email': 'luis.fernandez@northbridge.org',   'phone': '+1-555-0112', 'function': 'DevOps Engineer'},
 ]
 
 partner_ids = {}

@@ -1,0 +1,53 @@
+{
+  "task_id": "docker_cron_observability@1",
+  "task_completion": [
+    {
+      "id": "inspect_project_files",
+      "description": "The agent navigates to the project directory and inspects the configuration files.",
+      "points": 10,
+      "visual_evidence": "Terminal showing the agent changing directory to ~/projects/db-backup/ and using commands like 'ls', 'cat', or a text editor to view the Dockerfile, entrypoint script, or crontab."
+    },
+    {
+      "id": "env_var_inheritance_configured",
+      "description": "The agent modifies the configuration to ensure the API_KEY environment variable is inherited by the cron job.",
+      "points": 25,
+      "visual_evidence": "A text editor or terminal showing modifications to the project files (e.g., entrypoint.sh, Dockerfile, or crontab) that export or pass the API_KEY environment variable to the cron environment."
+    },
+    {
+      "id": "log_redirection_configured",
+      "description": "The agent modifies the cron job to redirect its stdout and stderr to the container logs.",
+      "points": 25,
+      "visual_evidence": "A text editor or terminal showing the cron job command being updated to append redirection to the container's standard output/error (e.g., adding '> /proc/1/fd/1 2>&1' or similar)."
+    },
+    {
+      "id": "container_rebuilt_or_restarted",
+      "description": "The agent rebuilds or restarts the container to ensure the solution is persistent across service restarts.",
+      "points": 20,
+      "visual_evidence": "Terminal showing commands like 'docker-compose up -d --build', 'docker-compose restart', or 'docker build' being executed in the project directory."
+    },
+    {
+      "id": "verify_docker_logs",
+      "description": "The agent verifies the fix by checking the container logs for the success message.",
+      "points": 20,
+      "visual_evidence": "Terminal showing the execution of 'docker logs db-backup' (or similar log command) with the output clearly displaying the message 'Backup payload delivered successfully'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_file_modification",
+      "description": "The agent modifies the actual project files to make the changes persistent, rather than just running temporary commands inside the running container.",
+      "visual_evidence": "File edits should be visible in the host's ~/projects/db-backup/ directory (e.g., using nano/vim on the host) rather than only using 'docker exec'."
+    },
+    {
+      "id": "no_echo_spoofing",
+      "description": "The agent does not manually print the success message to fake completion.",
+      "visual_evidence": "The success message 'Backup payload delivered successfully' must come from the actual 'docker logs' output, not from an 'echo' command typed by the agent."
+    },
+    {
+      "id": "actual_docker_logs_used",
+      "description": "The agent checks the actual Docker container logs to verify the fix.",
+      "visual_evidence": "The agent must run 'docker logs db-backup' (or equivalent docker-compose logs command) rather than manually executing the backup script in the terminal to see the output."
+    }
+  ],
+  "privileged_info_for_vlm": "The project directory is '/home/ga/projects/db-backup'. The container is named 'db-backup'. The required environment variable to be inherited by cron is 'API_KEY'. A successful fix will result in 'docker logs db-backup' displaying the message 'Backup payload delivered successfully'."
+}

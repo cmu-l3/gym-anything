@@ -1,43 +1,43 @@
 {
-    "id": "hr_workforce_analytics@1",
-    "version": "1.0",
-    "env_id": "ms_sql_server_env@0.1",
-    "description": "You are an HR Analytics Manager at a manufacturing company. The CHRO needs a workforce analytics dashboard before the board meeting to present headcount, compensation benchmarks, gender representation, and tenure statistics by department. The underlying data is spread across multiple HumanResources tables and must be consolidated into a refreshable summary.\n\nUsing Azure Data Studio connected to the local SQL Server (AdventureWorks2022 database), build a workforce analytics system:\n\n- Create a department workforce summary table 'HumanResources.WorkforceSummary' with one row per department. The table must capture: department identity (DepartmentID, DepartmentName, GroupName), active headcount (employees whose current department assignment has no end date), compensation statistics from the most recent pay rate per employee (average, max, and min hourly rate), gender counts (FemaleCount and MaleCount that together sum to ActiveEmployeeCount), average tenure in days since hire date, count of employees with 10+ years tenure, and a report timestamp. Create a non-clustered index on DepartmentID.\n\n- Create a stored procedure 'HumanResources.usp_RefreshWorkforceSummary' that repopulates the table by joining HumanResources.Department, HumanResources.EmployeeDepartmentHistory, HumanResources.Employee, and HumanResources.EmployeePayHistory. The procedure must correctly identify current employees (EndDate IS NULL), use a window function to select only the most recent pay rate per employee (not the average or maximum of all historical rates), and use conditional aggregation for the gender breakdown.\n\n- Execute the stored procedure to populate the table.\n\nWhen complete: HumanResources.WorkforceSummary must exist with at least 8 populated department rows, FemaleCount + MaleCount must equal ActiveEmployeeCount for all rows, AvgHourlyRate must be > 0, the stored procedure must exist, and the non-clustered index must be present.",
-    "difficulty": "very_hard",
-    "init": {
-        "timeout_sec": 1800,
-        "max_steps": 150,
-        "reward_type": "sparse"
-    },
-    "hooks": {
-        "pre_task": "/workspace/tasks/hr_workforce_analytics/setup_task.sh",
-        "post_task": "/workspace/tasks/hr_workforce_analytics/export_result.sh"
-    },
-    "metadata": {
-        "domain": "Human Resources / Workforce Analytics",
-        "occupation": "HR Analytics Manager",
-        "soc_code": "11-3121.00",
-        "soc_major_group": "Management",
-        "application": "Azure Data Studio + Microsoft SQL Server 2022",
-        "database": "AdventureWorks2022",
-        "dataset": "AdventureWorks2022 HumanResources schema (Microsoft sample database with employee, department, payroll, and history data)",
-        "key_tables": [
-            "HumanResources.Department",
-            "HumanResources.Employee",
-            "HumanResources.EmployeeDepartmentHistory",
-            "HumanResources.EmployeePayHistory"
-        ],
-        "required_objects": [
-            "HumanResources.WorkforceSummary table (13 columns with index)",
-            "HumanResources.usp_RefreshWorkforceSummary stored procedure",
-            "HumanResources.WorkforceSummary populated with department data"
-        ],
-        "difficulty_rationale": "Requires ROW_NUMBER() window function to deduplicate pay history, multi-table joins across 4 HumanResources tables, conditional aggregation (CASE WHEN Gender = 'F') for gender counts, DATEDIFF tenure calculation, stored procedure with TRUNCATE+INSERT, and a non-clustered index."
-    },
-    "success": {
-        "mode": "program",
-        "spec": {
-            "program": "verifier.py::verify_hr_workforce_analytics"
-        }
+  "id": "hr_workforce_analytics@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are an HR Analytics Manager at a manufacturing company. The CHRO needs a workforce analytics dashboard for a board meeting to present headcount, compensation benchmarks, gender representation, and tenure statistics by department. Using Azure Data Studio connected to the AdventureWorks2022 database, develop a refreshable workforce analytics system.\n\nCreate a summary table named 'HumanResources.WorkforceSummary' with a non-clustered index on DepartmentID. The table must contain one row per department capturing: department identity (DepartmentID, DepartmentName, GroupName), active headcount (employees with no department assignment end date), compensation statistics based on the most recent pay rate per employee (average, max, and min hourly rate), gender counts (FemaleCount and MaleCount), average tenure in days since hire date, count of employees with 10+ years tenure, and a report timestamp.\n\nImplement a stored procedure named 'HumanResources.usp_RefreshWorkforceSummary' that repopulates the table by joining HumanResources.Department, HumanResources.EmployeeDepartmentHistory, HumanResources.Employee, and HumanResources.EmployeePayHistory. The procedure must identify current employees, calculate statistics using the most recent pay rate for each employee, and provide the gender breakdown. Execute the procedure to populate the table with the final workforce summary.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hr_workforce_analytics/setup_task.sh",
+    "post_task": "/workspace/tasks/hr_workforce_analytics/export_result.sh"
+  },
+  "metadata": {
+    "domain": "Human Resources / Workforce Analytics",
+    "occupation": "HR Analytics Manager",
+    "soc_code": "11-3121.00",
+    "soc_major_group": "Management",
+    "application": "Azure Data Studio + Microsoft SQL Server 2022",
+    "database": "AdventureWorks2022",
+    "dataset": "AdventureWorks2022 HumanResources schema (Microsoft sample database with employee, department, payroll, and history data)",
+    "key_tables": [
+      "HumanResources.Department",
+      "HumanResources.Employee",
+      "HumanResources.EmployeeDepartmentHistory",
+      "HumanResources.EmployeePayHistory"
+    ],
+    "required_objects": [
+      "HumanResources.WorkforceSummary table (13 columns with index)",
+      "HumanResources.usp_RefreshWorkforceSummary stored procedure",
+      "HumanResources.WorkforceSummary populated with department data"
+    ],
+    "difficulty_rationale": "Requires ROW_NUMBER() window function to deduplicate pay history, multi-table joins across 4 HumanResources tables, conditional aggregation (CASE WHEN Gender = 'F') for gender counts, DATEDIFF tenure calculation, stored procedure with TRUNCATE+INSERT, and a non-clustered index."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hr_workforce_analytics"
     }
+  }
 }

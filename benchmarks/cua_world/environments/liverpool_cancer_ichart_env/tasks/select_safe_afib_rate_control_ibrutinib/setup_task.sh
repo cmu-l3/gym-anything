@@ -15,5 +15,11 @@ am force-stop com.liverpooluni.ichartoncology
 input keyevent KEYCODE_HOME
 sleep 1
 input keyevent KEYCODE_HOME
+sleep 2
+
+# 5. Launch the app using robust helper
+echo "Launching Cancer iChart..."
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
 
 echo "=== Setup complete ==="

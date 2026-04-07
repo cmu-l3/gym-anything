@@ -1,0 +1,53 @@
+{
+  "task_id": "audit_waveform_continuity_gaps@1",
+  "task_completion": [
+    {
+      "id": "access_miniseed_files",
+      "description": "Navigate to or reference the target miniSEED archive directory.",
+      "points": 10,
+      "visual_evidence": "Terminal showing commands like `ls` or `cd` into `/home/ga/seiscomp/var/lib/archive/2024/GE/`, or a script explicitly defining this path to read the day 001 files."
+    },
+    {
+      "id": "analyze_waveform_data",
+      "description": "Use a script or tool to read and analyze the miniSEED waveform files.",
+      "points": 20,
+      "visual_evidence": "Terminal showing the execution of a Python script (likely using `obspy`) or a command-line tool (like `mseed2ascii`) that reads the `.mseed` files."
+    },
+    {
+      "id": "detect_gaps_over_threshold",
+      "description": "Implement logic to identify gaps larger than 3.0 seconds between consecutive records.",
+      "points": 20,
+      "visual_evidence": "Script contents showing a condition like `> 3.0` when comparing timestamps, or terminal output printing detected gaps that exceed 3 seconds."
+    },
+    {
+      "id": "create_csv_header",
+      "description": "Generate the CSV report at `~/gap_report.csv` with the required header.",
+      "points": 20,
+      "visual_evidence": "Terminal output (e.g., `cat ~/gap_report.csv`) or a text editor showing the file `/home/ga/gap_report.csv` starting with the exact header: `Network,Station,Channel,GapStart,GapDuration`."
+    },
+    {
+      "id": "write_correct_gap_data",
+      "description": "Populate the CSV report with the correct gap start timestamp and duration for the GE.GSI station.",
+      "points": 30,
+      "visual_evidence": "The contents of `gap_report.csv` show a data row for `GE,GSI` with a GapStart around `2024-01-01 07:12:04` and a GapDuration of approximately `20.6`."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_analysis_performed",
+      "description": "Verify the agent actually parsed the miniSEED files to find the gaps.",
+      "visual_evidence": "Presence of a script or command execution that processes the files, rather than the agent simply using `echo` or a text editor to write hardcoded values into the CSV without prior analysis."
+    },
+    {
+      "id": "no_hallucinated_toli_station",
+      "description": "Verify the agent did not hallucinate data for the missing GE.TOLI station.",
+      "visual_evidence": "The final `gap_report.csv` does NOT contain any rows for the `TOLI` station."
+    },
+    {
+      "id": "no_hardcoded_flawed_metadata",
+      "description": "Verify the agent found the true gap and didn't copy flawed expected values from a prompt or metadata.",
+      "visual_evidence": "The gap duration for GE.GSI in the report is approximately 20.6 seconds, NOT exactly 45.0 seconds, and the start time is NOT exactly 07:12:00."
+    }
+  ],
+  "privileged_info_for_vlm": "The expected output path is `/home/ga/gap_report.csv`. The actual gap injected into the GE.GSI station starts at approximately 2024-01-01 07:12:04 (specifically 07:12:04.571860) and lasts approximately 20.6 seconds. The GE.TOLI station data is completely absent from the environment, so it should not appear in the report. A correct agent will report the ~20.6s gap for GE.GSI and will not report a 45s gap, nor will it report any gap for GE.TOLI."
+}

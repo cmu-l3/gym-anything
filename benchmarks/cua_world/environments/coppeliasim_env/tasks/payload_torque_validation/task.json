@@ -1,0 +1,32 @@
+{
+  "id": "payload_torque_validation@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Payload Limit & Joint Torque Validation",
+  "description": "Determine the maximum safe payload for a UR5 robot arm in an outstretched horizontal pose. You must programmatically construct a payload attachment, perform a mass sweep, and analyze the resulting steady-state joint torques to validate hardware limits.\n\nInstructions:\n1. Connect to CoppeliaSim via the ZMQ Remote API (port 23000).\n2. Load the UR5 robot model from `/opt/CoppeliaSim/models/robots/non-mobile/UR5.ttm`.\n3. Create a primitive cuboid to act as a payload, and a Force Sensor. Parent the Force Sensor to the UR5's last joint (`/UR5/joint6`), and parent the payload to the Force Sensor.\n4. Execute a sweep testing payload masses from 1.0 kg to 15.0 kg in 1.0 kg increments (15 total tests). For each mass:\n   - Stop the simulation to flush physics.\n   - Set the payload cuboid's mass.\n   - Start the simulation in stepping mode.\n   - Command the shoulder joint (`/UR5/joint2`) to 90 degrees (1.57 rad) and all other joints to 0 rad (horizontal extension).\n   - Step for at least 1.5 simulated seconds to allow physics to stabilize.\n   - Read the absolute torque applied by `/UR5/joint2` using `sim.getJointForce()`.\n5. Export the data to two files:\n\nFile 1: `/home/ga/Documents/CoppeliaSim/exports/payload_torque_curve.csv`\nColumns: `mass_kg`, `j2_torque_nm` (absolute), `exceeds_limit` (boolean/integer flagging if torque > 150.0 N·m)\n\nFile 2: `/home/ga/Documents/CoppeliaSim/exports/payload_capacity_report.json`\nFields: `total_tests`, `max_safe_mass_kg`, `limit_nm` (must be 150.0), `peak_torque_nm`\n\nLogin: username=ga, password=password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/payload_torque_validation/setup_task.sh",
+    "post_task": "/workspace/tasks/payload_torque_validation/export_result.sh"
+  },
+  "metadata": {
+    "robot_model": "/opt/CoppeliaSim/models/robots/non-mobile/UR5.ttm",
+    "mass_min": 1.0,
+    "mass_max": 15.0,
+    "mass_step": 1.0,
+    "torque_limit_nm": 150.0,
+    "output_csv": "/home/ga/Documents/CoppeliaSim/exports/payload_torque_curve.csv",
+    "output_json": "/home/ga/Documents/CoppeliaSim/exports/payload_capacity_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_payload_torque_validation"
+    }
+  }
+}

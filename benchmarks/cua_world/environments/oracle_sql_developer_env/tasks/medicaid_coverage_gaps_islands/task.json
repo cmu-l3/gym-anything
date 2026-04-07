@@ -1,0 +1,29 @@
+{
+  "id": "medicaid_coverage_gaps_islands@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Healthcare Data Analyst for a state health department. Your goal is to generate a HEDIS 2023 continuous enrollment report from fragmented Medicaid data in the ENROLLMENT_SPANS table (Oracle connection: medicaid_analyst/Medicaid2024, XEPDB1). Create a view CONTINUOUS_COVERAGE_VW that collapses overlapping or contiguous spans (where start_date <= previous_end_date + 1) to show beneficiary_id, episode_start_date, episode_end_date, and total_episode_days. Create a view COVERAGE_GAPS_VW that identifies gaps between these episodes (where a gap starts the day after an episode ends and ends the day before the next starts), showing beneficiary_id, gap_start_date, gap_end_date, and gap_days. Using these views, populate a table HEDIS_METRICS_2023 identifying beneficiaries who met the 2023 criteria (at least 320 total days enrolled and no single gap exceeding 45 days), including columns for beneficiary_id, days_covered_2023, max_gap_days_2023, and meets_hedis_criteria ('Y'/'N'). Implement and execute a compiled PL/SQL procedure PROC_REFRESH_METRICS to refresh this table. Export the HEDIS_METRICS_2023 table to /home/ga/Documents/exports/hedis_2023_report.csv. Connection details: Host=localhost, Port=1521, Service=XEPDB1, User=medicaid_analyst, Password=Medicaid2024.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/medicaid_coverage_gaps_islands/setup_task.sh",
+    "post_task": "/workspace/tasks/medicaid_coverage_gaps_islands/export_result.sh"
+  },
+  "metadata": {
+    "expected_episodes_count": 10,
+    "expected_gaps_count": 5,
+    "expected_hedis_y": 3,
+    "expected_hedis_n": 2,
+    "export_path": "/home/ga/Documents/exports/hedis_2023_report.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_medicaid_coverage_gaps_islands"
+    }
+  }
+}

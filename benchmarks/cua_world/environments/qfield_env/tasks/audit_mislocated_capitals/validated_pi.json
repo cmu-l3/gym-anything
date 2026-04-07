@@ -1,0 +1,53 @@
+{
+    "task_id": "audit_mislocated_capitals@1",
+    "dataset": "world_survey.gpkg",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_file",
+            "metadata_value": "world_survey.gpkg",
+            "verified_value": "world_survey.gpkg",
+            "source": "Verified from setup_task.sh and export_result.sh targeting this file",
+            "status": "verified"
+        },
+        {
+            "key": "layer",
+            "metadata_value": "world_capitals",
+            "verified_value": "world_capitals",
+            "source": "Verified via sqlite3 .schema inspection of the GeoPackage",
+            "status": "verified"
+        },
+        {
+            "key": "expected_mislocated",
+            "metadata_value": [
+                "Tokyo",
+                "Ottawa",
+                "Cairo"
+            ],
+            "verified_value": null,
+            "source": "Contradicted via sqlite3 execution: setup_task.sh's UPDATE commands fail because 'latitude', 'longitude', and 'notes' columns do not exist in the world_capitals table",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_correct",
+            "metadata_value": [
+                "Canberra",
+                "Buenos Aires",
+                "London"
+            ],
+            "verified_value": null,
+            "source": "Contradicted via sqlite3 execution: 'London' is completely absent from the dataset, and the required attribute columns do not exist for the other cities",
+            "status": "contradicted"
+        },
+        {
+            "key": "flag_text",
+            "metadata_value": "MISLOCATED",
+            "verified_value": "MISLOCATED",
+            "source": "Verified from verifier.py logic that explicitly checks for this exact string",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task specifies auditing the 'world_capitals' layer in 'world_survey.gpkg' for mislocated coordinates using the 'latitude', 'longitude', and 'notes' attributes. However, inspection of the GeoPackage reveals these columns do not exist in the database schema. Consequently, the setup_task.sh script silently fails to alter any data, meaning Tokyo, Ottawa, and Cairo are not actually mislocated. Furthermore, 'London' does not exist in the dataset at all. The task's core attribute inspection and flagging mechanics are impossible due to the missing database columns.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,43 @@
+{
+  "id": "audit_waveform_continuity_gaps@1",
+  "version": "1.0",
+  "env_id": "seiscomp_env@0.1",
+  "description": "Analyze the SeisComP SDS waveform archive to detect data gaps. You suspect data transmission dropouts on January 1, 2024 (DOY 001). Identify all time gaps larger than 3.0 seconds between consecutive records in the miniSEED files located in `/home/ga/seiscomp/var/lib/archive/2024/GE/` for day 001. Generate a CSV report at `~/gap_report.csv` with the header `Network,Station,Channel,GapStart,GapDuration`. Each row must include the gap start timestamp (e.g., `2024-01-01 07:10:30`) and the duration in seconds as a float. Exclude stations with continuous data from the report.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_waveform_continuity_gaps/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_waveform_continuity_gaps/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/gap_report.csv",
+    "gaps": [
+      {
+        "network": "GE",
+        "station": "TOLI",
+        "channel": "BHZ",
+        "start_time": "2024-01-01T07:10:30",
+        "duration": 10.0
+      },
+      {
+        "network": "GE",
+        "station": "GSI",
+        "channel": "BHZ",
+        "start_time": "2024-01-01T07:12:00",
+        "duration": 45.0
+      }
+    ],
+    "time_tolerance_sec": 3.0,
+    "duration_tolerance_sec": 1.5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_waveform_gaps"
+    }
+  }
+}

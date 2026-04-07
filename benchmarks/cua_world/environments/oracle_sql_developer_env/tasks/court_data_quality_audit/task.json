@@ -1,0 +1,35 @@
+{
+  "id": "court_data_quality_audit@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Computer Systems Analyst for a state court administration office. The COURT_ADMIN schema (connected as court_admin/Court2024 to XEPDB1) contains a legacy case management database. Before migrating to a new system, you must audit the data, fix all integrity issues, and implement preventive controls.\n\nAudit and resolve the following data quality issues within the database:\n- Orphaned Records: Delete hearings referencing non-existent case_id values and set case_parties referencing non-existent attorney_id values to NULL.\n- Temporal Violations: Ensure hearings are not scheduled before their case's filing_date and that disposition_date is not earlier than filing_date.\n- Status Inconsistencies: Cancel future-dated hearings for 'CLOSED' cases and update cases with a recorded disposition and disposition_date to 'CLOSED' status.\n- Duplicates: Identify cases where the same lead party (PLAINTIFF) filed the same case_type within 30 days and mark the newer cases with status 'DUPLICATE'.\n- Fee Anomalies: Fix overpayments by setting paid_amount equal to amount and change fee status to 'WAIVED' for 'UNPAID' fees on cases closed more than 90 days ago.\n\nLog all discovered issues in a table named DATA_QUALITY_ISSUES (issue_id NUMBER PK, issue_category VARCHAR2, table_name VARCHAR2, record_id NUMBER, description VARCHAR2, severity VARCHAR2, detected_date DATE, resolved VARCHAR2). Apply DML fixes to the source tables and create a view named CASE_INTEGRITY_VW that validates these rules in real-time (returning zero rows when fixes are complete). Implement at least two preventive triggers to maintain these integrity rules. Export a summary report containing issue categories and counts to /home/ga/court_audit_report.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/court_data_quality_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/court_data_quality_audit/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/court_audit_result.json",
+    "occupation": "Computer Systems Analysts",
+    "industry": "Government / Judicial Administration",
+    "gdp_contribution": "$2.2B",
+    "design_pattern": "Data Quality Audit",
+    "oracle_features": [
+      "Data Auditing",
+      "Triggers",
+      "Referential Integrity",
+      "Temporal Logic"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_court_data_quality_audit"
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "task_id": "implement_zone_recording_policy@1",
+  "task_completion": [
+    {
+      "id": "read_policy_document",
+      "description": "Agent reads the zone policy document",
+      "points": 5,
+      "visual_evidence": "Terminal shows the agent reading /home/ga/Documents/recording_policy.json using cat, python, or similar. The JSON content with zone definitions (Perimeter, Access Point, Restricted) is visible on screen."
+    },
+    {
+      "id": "api_authentication",
+      "description": "Agent authenticates to the Nx Witness REST API",
+      "points": 5,
+      "visual_evidence": "Terminal shows a POST request to /rest/v1/login/sessions with admin credentials, and a bearer token or session token is returned in the response."
+    },
+    {
+      "id": "query_cameras",
+      "description": "Agent queries current camera configuration",
+      "points": 5,
+      "visual_evidence": "Terminal shows a GET request to /rest/v1/devices and the response lists camera names and IDs. The agent identifies camera UUIDs for use in subsequent PATCH calls."
+    },
+    {
+      "id": "perimeter_schedule_config",
+      "description": "Parking Lot Camera configured with split business/off-hours schedule",
+      "points": 20,
+      "visual_evidence": "Terminal shows PATCH request to /rest/v1/devices/{id} for Parking Lot Camera with schedule tasks containing: business hours (startTime:25200, endTime:68400) at 15fps/high AND off-hours segments (0-25200 and 68400-86400) at 10fps/normal. All 7 days covered with 3 entries per weekday and 1 entry per weekend day."
+    },
+    {
+      "id": "access_point_schedule_config",
+      "description": "Entrance Camera configured with high-quality daytime and economy nighttime",
+      "points": 20,
+      "visual_evidence": "Terminal shows PATCH request for Entrance Camera with schedule tasks containing: business hours (25200-68400) at 15fps/high AND off-hours (0-25200, 68400-86400) at 5fps/low. Weekends all-day at 5fps/low."
+    },
+    {
+      "id": "restricted_schedule_config",
+      "description": "Server Room Camera configured with inverted quality schedule (higher after hours)",
+      "points": 20,
+      "visual_evidence": "Terminal shows PATCH request for Server Room Camera with schedule tasks containing: business hours (25200-68400) at 10fps/normal AND off-hours (0-25200, 68400-86400) at 15fps/high. Note the INVERSION: higher quality/fps during off-hours. Weekends all-day at 15fps/high."
+    },
+    {
+      "id": "retention_configured",
+      "description": "Archive retention periods set per zone",
+      "points": 10,
+      "visual_evidence": "Terminal shows PATCH requests setting minArchivePeriodS and maxArchivePeriodS for cameras. Perimeter: ~7776000/15552000 (90/180 days). Access Point: ~5184000/10368000 (60/120 days). Restricted: ~15552000/31536000 (180/365 days)."
+    },
+    {
+      "id": "report_generated",
+      "description": "Verification report generated at correct path",
+      "points": 15,
+      "visual_evidence": "Terminal shows creation or writing of /home/ga/Documents/schedule_audit.json. The file content is visible and contains JSON with camera names, zone assignments, schedule summaries, and retention values."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_api_calls",
+      "description": "Agent made real API calls with actual HTTP responses",
+      "visual_evidence": "Look for actual curl/python HTTP responses with status codes, JSON bodies, or error messages from the Nx Witness server. Not just echo commands or text file manipulation."
+    },
+    {
+      "id": "correct_schedule_structure",
+      "description": "Schedule payloads use the correct Nx Witness API structure",
+      "visual_evidence": "PATCH payloads must use the 'schedule' field with 'isEnabled' and 'tasks' array containing objects with dayOfWeek, startTime, endTime, recordingType, fps, streamQuality. Not fake field names like 'recording' or 'enabled'."
+    },
+    {
+      "id": "no_fabricated_output",
+      "description": "Report reflects actual API state, not fabricated data",
+      "visual_evidence": "The verification report should be generated from actual API query results or the agent's knowledge of what it configured, not hardcoded text that was never verified against the system."
+    }
+  ],
+  "privileged_info_for_vlm": "Nx Witness REST API v1 at https://localhost:7001. Auth: POST /rest/v1/login/sessions with {\"username\":\"admin\",\"password\":\"Admin1234!\"}. Schedule PATCH: /rest/v1/devices/{id} with {\"schedule\":{\"isEnabled\":true,\"tasks\":[...]}}. Each task needs: dayOfWeek (1=Mon..7=Sun), startTime/endTime (seconds from midnight), recordingType (always), fps, streamQuality (high|normal|low). Business hours: 07:00=25200s to 19:00=68400s. Off-hours wraps midnight: 19:00-24:00 (68400-86400) + 00:00-07:00 (0-25200). Perimeter (Parking Lot): business=15fps/high, off=10fps/normal, retention 90-180d (7776000-15552000s). Access Point (Entrance): business=15fps/high, off=5fps/low, retention 60-120d (5184000-10368000s). Restricted (Server Room): business=10fps/normal, off=15fps/high (INVERTED), retention 180-365d (15552000-31536000s). Retention: minArchivePeriodS and maxArchivePeriodS set via PATCH on same device endpoint. All recording types use 'always' with varying fps and quality."
+}

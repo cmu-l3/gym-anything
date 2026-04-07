@@ -1,0 +1,47 @@
+{
+  "id": "investigate_coordinated_intrusion@1",
+  "version": "1.0",
+  "env_id": "manageengine_adaudit_plus_env@0.1",
+  "description": "ADAudit Plus is running at http://localhost:8081/ (login: admin/Admin@2024). A SIEM correlation rule flagged this server for anomalous service-account activity suggesting a multi-phase intrusion. Investigate the incident and configure targeted detection.\n\nUsing ADAudit Plus, reconstruct the full attack chain. Determine which service account was the primary brute-force target \u2014 several accounts show failed logons from routine probing, so distinguish the real attack from background noise. Determine whether the attacker achieved a successful compromise of that account. Identify all privilege escalations that occurred for the compromised account and the specific groups involved. Check for any newly created accounts that may be attacker-planted backdoors, and determine whether those accounts were also given administrative privileges.\n\nConfigure detection infrastructure:\n- SMTP: server mail.meridianfin.com, port 465, SSL enabled, sender adaudit@meridianfin.com, admin email ciso@meridianfin.com\n- Alert \"Coordinated Intrusion Detection\": Critical severity, Failed Logon category, threshold >20 events in 5 minutes, email soc@meridianfin.com, subject \"CRITICAL: Coordinated Attack Detected\"\n- Technician \"soc_lead\": Full Name \"SOC Lead Analyst\", soc.lead@meridianfin.com, SOCLead@2025, Auditor role\n\nDocument complete findings in C:\\Users\\Docker\\Desktop\\incident_report.txt: the targeted service account, evidence of compromise, all privilege escalations, any backdoor accounts with their privilege levels, and remediation actions.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\investigate_coordinated_intrusion\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\investigate_coordinated_intrusion\\export_result.ps1",
+    "pre_task_timeout": 900
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_investigate_coordinated_intrusion"
+    }
+  },
+  "metadata": {
+    "target_account": "svc_backup",
+    "failed_logon_count": 40,
+    "compromise_occurred": true,
+    "privilege_escalation_groups": ["Administrators", "Remote Desktop Users"],
+    "backdoor_account": "maint_svc",
+    "backdoor_escalation_group": "Administrators",
+    "diversionary_account": "helpdesk_temp",
+    "diversionary_failed_logons": 12,
+    "noise_accounts": {
+      "svc_sql": 5,
+      "svc_deploy": 5,
+      "svc_monitoring": 5,
+      "admin_jones": 8
+    },
+    "expected_tech_username": "soc_lead",
+    "expected_tech_role": "Auditor",
+    "expected_alert_name": "Coordinated Intrusion Detection",
+    "expected_alert_severity": "Critical",
+    "expected_smtp_server": "mail.meridianfin.com",
+    "expected_notification_email": "soc@meridianfin.com",
+    "expected_report_path": "C:\\Users\\Docker\\Desktop\\incident_report.txt",
+    "result_file": "C:\\Users\\Docker\\investigate_coordinated_intrusion_result.json"
+  }
+}

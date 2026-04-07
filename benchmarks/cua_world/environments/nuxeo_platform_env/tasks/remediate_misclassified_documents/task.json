@@ -1,0 +1,32 @@
+{
+  "id": "remediate_misclassified_documents@1",
+  "version": "1.0",
+  "env_id": "nuxeo_platform_env@0.1",
+  "description": "A batch of scanned mail was processed by OCR and several contracts were incorrectly tagged as 'Invoices'. In the 'Incoming Scans' workspace, identify documents that are actually contracts or agreements (such as 'Vendor Contract' or 'Service Level Agreement') and update their 'Nature' metadata field to 'Contract'. Ensure 'Office Supplies Invoice #9921' remains unchanged as it is correctly classified.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 20,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/remediate_misclassified_documents/setup_task.sh",
+    "post_task": "/workspace/tasks/remediate_misclassified_documents/export_result.sh"
+  },
+  "metadata": {
+    "workspace_path": "/default-domain/workspaces/Incoming-Scans",
+    "target_nature": "contract",
+    "control_nature": "invoice",
+    "docs_to_fix": [
+      "Vendor-Contract-Alpha",
+      "Service-Level-Agreement-2023"
+    ],
+    "control_doc": "Office-Supplies-Invoice-9921"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_remediate_misclassified_documents"
+    }
+  }
+}

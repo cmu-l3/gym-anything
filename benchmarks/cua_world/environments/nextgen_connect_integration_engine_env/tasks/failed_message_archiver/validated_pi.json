@@ -1,0 +1,52 @@
+{
+    "task_id": "failed_message_archiver@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "channel_name",
+            "metadata_value": "Fail_Safe_Archiver",
+            "verified_value": "Fail_Safe_Archiver",
+            "source": "Code analysis: task.json description (line 5), setup_task.sh (line 45), export_result.sh (line 25), verifier.py (line 47) all reference this exact channel name",
+            "status": "verified"
+        },
+        {
+            "key": "source_port",
+            "metadata_value": 6661,
+            "verified_value": 6661,
+            "source": "Code analysis: task.json description states 'listen on TCP port 6661 (MLLP)', setup_task.sh line 46 confirms 'TCP Listener @ 6661', setup_nextgen_connect.sh line 84 shows Docker port mapping '-p 6661:6661'",
+            "status": "verified"
+        },
+        {
+            "key": "dest_port",
+            "metadata_value": 9999,
+            "verified_value": 9999,
+            "source": "Code analysis: task.json description states 'send messages to a closed TCP port (localhost:9999)', setup_task.sh line 47 confirms 'TCP Sender @ localhost:9999 (Must FAIL)'",
+            "status": "verified"
+        },
+        {
+            "key": "archive_dir",
+            "metadata_value": "/tmp/failed_messages",
+            "verified_value": "/tmp/failed_messages",
+            "source": "Code analysis: task.json description specifies archive directory as '/tmp/failed_messages/', setup_task.sh line 24 creates directory 'docker exec nextgen-connect mkdir -p /tmp/failed_messages', export_result.sh line 71 retrieves archived files from this directory",
+            "status": "verified"
+        },
+        {
+            "key": "expected_queue_setting",
+            "metadata_value": "NO_QUEUE",
+            "verified_value": "NO_QUEUE",
+            "source": "Code analysis: task.json description specifies 'Queue Messages: Never', setup_task.sh line 48 shows 'Queue: Never', export_result.sh line 39-40 checks for '<queueConnector>false</queueConnector>' which corresponds to NO_QUEUE setting in NextGen Connect UI",
+            "status": "verified"
+        },
+        {
+            "key": "sample_file",
+            "metadata_value": "/home/ga/sample.hl7",
+            "verified_value": "/home/ga/sample.hl7",
+            "source": "Code analysis: task.json description references '/home/ga/sample.hl7', setup_task.sh lines 13-18 explicitly create this file with HL7 v2.5 ADT^A01 message containing MSH, EVN, PID, and PV1 segments",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "All metadata claims verified as accurate. The task configures a NextGen Connect healthcare integration channel named 'Fail_Safe_Archiver' that listens on TCP port 6661 (MLLP protocol) and attempts to send messages to a deliberately inaccessible destination (localhost:9999). The channel uses a 'Fail Fast' configuration with queue messaging disabled and retry count set to 0. A JavaScript Post-Processor script archives failed messages to /tmp/failed_messages/ directory. The sample HL7 message used is synthetic test data (HL7 v2.5 format) created within the task setup, not from a real patient database.",
+    "pi_confidence": "high"
+}

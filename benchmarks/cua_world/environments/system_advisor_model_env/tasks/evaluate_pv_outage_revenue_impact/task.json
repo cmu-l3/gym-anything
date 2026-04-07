@@ -1,0 +1,30 @@
+{
+  "id": "evaluate_pv_outage_revenue_impact@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "Solar Operations and Maintenance (O&M) needs to schedule a 14-day planned maintenance outage for a 50 MW PV plant. Compare a summer outage (July 1-14, hour indices 4344-4679) and a winter outage (December 1-14, hour indices 8016-8351) to minimize lost PPA revenue. Using PySAM, model a 50 MW DC single-axis tracking PV plant (DC-to-AC ratio 1.2, system losses 14.08%, inverter efficiency 96%, tilt 0, azimuth 180) using a US TMY weather file from the directory path in /home/ga/.SAM/solar_resource_dir.txt. Calculate energy production and lost revenue (at a PPA price of $0.04/kWh) for a baseline year, the summer outage scenario, and the winter outage scenario. Model the outages using the PySAM AdjustmentFactors hourly array. Save the script to /home/ga/Documents/SAM_Projects/outage_analysis.py and the results to /home/ga/Documents/SAM_Projects/outage_results.json using the following schema:\n{\n  \"baseline_energy_kwh\": <float>,\n  \"summer_outage_energy_kwh\": <float>,\n  \"winter_outage_energy_kwh\": <float>,\n  \"summer_lost_revenue_dollars\": <float>,\n  \"winter_lost_revenue_dollars\": <float>,\n  \"recommended_outage_season\": \"<summer or winter>\"\n}",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_pv_outage_revenue_impact/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_pv_outage_revenue_impact/export_result.sh"
+  },
+  "metadata": {
+    "expected_json": "/home/ga/Documents/SAM_Projects/outage_results.json",
+    "expected_script": "/home/ga/Documents/SAM_Projects/outage_analysis.py",
+    "ppa_price_per_kwh": 0.04,
+    "baseline_min_kwh": 80000000,
+    "baseline_max_kwh": 140000000,
+    "expected_recommendation": "winter"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pv_outage_impact"
+    }
+  }
+}

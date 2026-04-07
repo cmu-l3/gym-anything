@@ -1,0 +1,33 @@
+{
+  "id": "sakila_pareto_revenue_analysis@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "Perform a 'Whale Analysis' (80/20 rule) on the Sakila database to identify VIP customers generating the top 80% of revenue. Using the local server (host: localhost, user: ga, password: password123), create a view named 'v_customer_ltv' in the sakila database aggregating total revenue per customer (customer_id, first_name, last_name, total_revenue) ordered by revenue descending. Create a second analytical view named 'v_pareto_revenue' that uses window functions to calculate a running total of revenue and a cumulative percentage (cumulative_pct = running_total / global_total * 100). This view must include: customer_id, first_name, last_name, total_revenue, running_total, and cumulative_pct. Export the customers where cumulative_pct is 80.00 or less to /home/ga/Documents/exports/vip_whales.csv, including headers and sorted by total_revenue descending.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_pareto_revenue_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_pareto_revenue_analysis/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "expected_views": [
+      "v_customer_ltv",
+      "v_pareto_revenue"
+    ],
+    "expected_output_file": "/home/ga/Documents/exports/vip_whales.csv",
+    "cutoff_percentage": 80.0,
+    "min_expected_rows": 100,
+    "max_expected_rows": 160
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_pareto_revenue_analysis"
+    }
+  }
+}

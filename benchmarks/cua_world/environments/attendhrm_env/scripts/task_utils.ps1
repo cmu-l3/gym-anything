@@ -56,8 +56,14 @@ $PYAUTOGUI_HOST         = "127.0.0.1"
 function Find-AttendHRMExe {
     # Check saved path from install script
     if (Test-Path $ATTENDHRM_PATH_FILE) {
-        $path = (Get-Content $ATTENDHRM_PATH_FILE -Raw).Trim()
-        if (Test-Path $path) { return $path }
+        try {
+            $path = (Get-Content $ATTENDHRM_PATH_FILE -Raw).Trim([char]0, ' ', "`r", "`n")
+            if ($path -and $path.Length -gt 3 -and (Test-Path $path)) {
+                return $path
+            }
+        } catch {
+            Write-Host "Warning: Could not read saved path file: $_"
+        }
     }
 
     # Known install locations (Bin\Attend.exe verified as actual install path)
@@ -172,7 +178,7 @@ function Stop-EdgeKillerTask {
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     if ($KillerInfo -and $KillerInfo.TaskName) {
-        schtasks /End    /TN $KillerInfo.TaskName /F 2>$null | Out-Null
+        schtasks /End    /TN $KillerInfo.TaskName 2>$null | Out-Null
         schtasks /Delete /TN $KillerInfo.TaskName /F 2>$null | Out-Null
     }
     # Kill any lingering hidden cmd.exe running the Edge killer batch
@@ -275,7 +281,27 @@ function PyAG-Hotkey {
 # visible even when the terminal window is open (terminal starts at x≈52).
 # --------------------------------------------------------------------------
 function Launch-AttendHRMInteractive {
-    param([int]$WaitSeconds = 15)
+    param([int]$WaitSeconds = 30)
+
+    # Wait for Firebird service (critical after cold boot from checkpoint)
+    Write-Host "Waiting for Firebird service..."
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $fbElapsed = 0
+    while ($fbElapsed -lt 120) {
+        $fbSvc = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*Firebird*" -and $_.Status -eq "Running" }
+        if ($fbSvc) {
+            Write-Host "Firebird running after ${fbElapsed}s"
+            break
+        }
+        $stoppedFb = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*Firebird*" }
+        if ($stoppedFb) { Start-Service $stoppedFb.Name -ErrorAction SilentlyContinue }
+        Start-Sleep -Seconds 5
+        $fbElapsed += 5
+    }
+    $ErrorActionPreference = $prevEAP
+    # Give Firebird extra time to fully initialize after service reports Running
+    Start-Sleep -Seconds 10
 
     Write-Host "Double-clicking AttendHRM desktop icon to launch in foreground..."
 
@@ -365,10 +391,14 @@ function Login-AttendHRM {
 
     # Dismiss Windows Firewall dialog for AttendHRMAPI.exe (first launch only).
     # The dialog asks "Do you want to allow AttendHRMAPI on all networks?"
-    # Allow button is at (538, 579). If no dialog present, this click is harmless.
+    # Allow button position varies by dialog layout:
+    #   - Compact (no checkboxes): (538, 502)
+    #   - Expanded (with checkboxes): (538, 579)
+    # Click both to handle either layout. Harmless if dialog not present.
     Write-Host "Handling Windows Firewall dialog for AttendHRMAPI (if present)..."
     Start-Sleep -Seconds 3                   # Wait for firewall dialog to appear
-    PyAG-Click -x 538 -y 579 -DelayMs 500   # Click Allow button
+    PyAG-Click -x 538 -y 502 -DelayMs 500   # Click Allow (compact layout)
+    PyAG-Click -x 538 -y 579 -DelayMs 500   # Click Allow (expanded layout)
 
     Write-Host "Login submitted, waiting ${WaitAfterLoginSec}s for main window..."
     Start-Sleep -Seconds $WaitAfterLoginSec
@@ -378,7 +408,22 @@ function Login-AttendHRM {
     # Press Enter first then click OK explicitly.
     PyAG-Press -key "return" -DelayMs 500
     PyAG-Click -x 639 -y 371 -DelayMs 500   # Click OK on Demo warning dialog
-    Start-Sleep -Seconds 1
+    Start-Sleep -Seconds 2
+
+    # Handle Employer Details dialog (first-run only).
+    # Fill and save. If dialog isn't present, clicks land harmlessly on dashboard.
+    Write-Host "Handling Employer Details dialog (if present)..."
+    PyAG-Click -x 700 -y 303 -DelayMs 300
+    PyAG-Type -text "Demo Company" -DelayMs 300
+    PyAG-Click -x 700 -y 330 -DelayMs 300
+    PyAG-Type -text "New York" -DelayMs 300
+    PyAG-Click -x 700 -y 357 -DelayMs 300
+    PyAG-Type -text "USA" -DelayMs 300
+    PyAG-Click -x 767 -y 393 -DelayMs 1000
+    Start-Sleep -Seconds 2
+    PyAG-Click -x 639 -y 371 -DelayMs 500
+    PyAG-Click -x 767 -y 393 -DelayMs 1000
+    Start-Sleep -Seconds 2
 
     Write-Host "Login complete"
 }

@@ -1,0 +1,41 @@
+{
+  "id": "multi_tenant_data_isolation@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Senior Software Developer responsible for the data isolation layer of a multi-tenant SaaS platform. A security audit has revealed critical data isolation failures in the SAAS_PLATFORM schema (saas_admin/SaaS2024, XEPDB1, localhost:1521). Tenants (tenant1_user, tenant2_user, tenant3_user) are currently able to access unauthorized data.\n\nResolve the security vulnerabilities within the Virtual Private Database (VPD) implementation. Ensure the TENANT_ISOLATION_POLICY function on the CUSTOMER_DATA table correctly enforces isolation based on the application context. Implement a VPD policy on the FINANCIAL_RECORDS table using DBMS_RLS.ADD_POLICY. Configure the TENANT_CTX application context package to default to a non-existent tenant (tenant_id = -1) when no context is set.\n\nCreate a security audit framework consisting of a table named SECURITY_AUDIT_LOG, a view named CROSS_TENANT_VIOLATION_VW for detecting isolation violations, and a stored procedure named PROC_SECURITY_AUDIT_REPORT that performs cross-tenant query tests and logs results. Verify that data isolation is fully restored across all protected tables for all tenants.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multi_tenant_data_isolation/setup_task.sh",
+    "post_task": "/workspace/tasks/multi_tenant_data_isolation/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/multi_tenant_result.json",
+    "occupation": "Software Developers",
+    "industry": "Technology / SaaS",
+    "gdp_contribution": "$4.5B",
+    "design_pattern": "Error Injection",
+    "oracle_features": [
+      "DBMS_RLS (VPD)",
+      "Application Contexts",
+      "Policy Functions",
+      "DBMS_SESSION",
+      "Security Audit"
+    ],
+    "injected_flaws": {
+      "broken_policy_function": "Returns NULL predicate instead of tenant_id filter",
+      "missing_policy": "FINANCIAL_RECORDS table has no VPD policy",
+      "context_default_superuser": "TENANT_CTX defaults to tenant_id=0 (superuser access)"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multi_tenant_data_isolation"
+    }
+  }
+}

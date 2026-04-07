@@ -1,0 +1,101 @@
+{
+    "task_id": "shadows_highlights@1",
+    "dataset": "Unsplash",
+    "case_id": "photo-1506905925346-21bda4d32df4",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "task_description_claims_underexposed_image",
+            "metadata_value": "Use GIMP's Shadows-Highlights tool to brighten shadows and improve tonal balance in an underexposed image",
+            "verified_value": "PRIMARY IMAGE: Mean luminance 103.2 (NOT underexposed); FALLBACK IMAGE: Mean luminance 87.3 (IS underexposed)",
+            "source": "Downloaded and analyzed both Unsplash images using PIL/numpy. Calculated luminance via ITU-R BT.601 (0.299*R + 0.587*G + 0.114*B). Mean luminance >= 100 indicates not underexposed.",
+            "status": "contradicted"
+        },
+        {
+            "key": "data_source_unsplash",
+            "metadata_value": "Image downloaded from Unsplash URLs in setup_shadows_task.sh",
+            "verified_value": "Primary: https://images.unsplash.com/photo-1506905925346-21bda4d32df4 (800x533, JPEG); Fallback: https://images.unsplash.com/photo-1469474968028-56623f02e42e (800x531, JPEG)",
+            "source": "Downloaded both images successfully from the URLs specified in setup_shadows_task.sh lines 13-15",
+            "status": "verified"
+        },
+        {
+            "key": "primary_image_mean_luminance",
+            "metadata_value": "Image suitable for shadow recovery (claimed underexposed)",
+            "verified_value": "103.2 (perceptual luminance, 0-255 scale)",
+            "source": "PIL Image analysis of downloaded photo-1506905925346-21bda4d32df4, converted to RGB, calculated luminance using ITU-R BT.601 weights",
+            "status": "verified"
+        },
+        {
+            "key": "primary_image_has_shadow_detail",
+            "metadata_value": "Image has dark shadows needing recovery",
+            "verified_value": "2.72% very dark pixels (luminance < 20), 20.93% dark pixels (luminance < 50)",
+            "source": "Luminance histogram analysis of primary image shows approximately 11,617 pixels below luminance 20 out of 426,400 total pixels (800x533)",
+            "status": "verified"
+        },
+        {
+            "key": "fallback_image_mean_luminance",
+            "metadata_value": "Fallback image available if primary fails",
+            "verified_value": "87.3 (perceptual luminance, 0-255 scale) - IS underexposed",
+            "source": "PIL Image analysis of fallback photo-1469474968028-56623f02e42e",
+            "status": "verified"
+        },
+        {
+            "key": "gimp_shadows_highlights_tool_exists",
+            "metadata_value": "GIMP 2.10 has Shadows-Highlights tool at Colors > Shadows-Highlights",
+            "verified_value": "True - Tool introduced in GIMP 2.4, available in all GIMP 2.10 installations",
+            "source": "GIMP documentation: Shadows-Highlights is standard color adjustment tool in GIMP 2.4+",
+            "status": "verified"
+        },
+        {
+            "key": "task_timeout_seconds",
+            "metadata_value": "90 seconds from task.json init.timeout_sec",
+            "verified_value": "90",
+            "source": "task.json line 7: 'timeout_sec': 90",
+            "status": "verified"
+        },
+        {
+            "key": "task_max_steps",
+            "metadata_value": "7 steps from task.json init.max_steps",
+            "verified_value": "7",
+            "source": "task.json line 8: 'max_steps': 7",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_shadow_brightness_threshold",
+            "metadata_value": "Shadow brightness must increase by at least 10%",
+            "verified_value": "10.0% (verifier.py line 190)",
+            "source": "verifier.py line 190: 'shadow_analysis['shadow_brightness_increase'] >= 10.0'",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_dark_pixel_reduction_threshold",
+            "metadata_value": "Very dark pixels must reduce by at least 25%",
+            "verified_value": "25.0% (verifier.py line 196)",
+            "source": "verifier.py line 196: 'shadow_analysis['very_dark_reduction'] >= 25.0'",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_meaningful_change_threshold",
+            "metadata_value": "At least 10% of pixels must show significant tonal change (>5 luminance points)",
+            "verified_value": "10.0% and >5 luminance point change (verifier.py lines 109-116)",
+            "source": "verifier.py: line 109 checks 'diff > 5', line 116 checks 'change_percentage > 10'",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_pass_score_threshold",
+            "metadata_value": "Task passes if at least 3 of 4 criteria met (75% score)",
+            "verified_value": "Score >= 75 with minimum 3/4 criteria (verifier.py line 215)",
+            "source": "verifier.py line 215: 'passed = score >= 75'",
+            "status": "verified"
+        },
+        {
+            "key": "task_env_id",
+            "metadata_value": "example.gimp_env@0.1 from task.json env_id field",
+            "verified_value": "example.gimp_env@0.1",
+            "source": "task.json line 4: 'env_id': 'example.gimp_env@0.1'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task aims to adjust shadows and highlights in an image using GIMP 2.10's Shadows-Highlights tool. The PRIMARY source image (Unsplash photo-1506905925346-21bda4d32df4, 800x533 JPEG) has mean luminance 103.2 and is NOT underexposed, contradicting the task description claim of an 'underexposed image'. However, a FALLBACK image (photo-1469474968028-56623f02e42e, 800x531 JPEG) with mean luminance 87.3 IS underexposed and better matches the task description. Both images contain significant shadow areas (2.72-6.84% very dark pixels). The verifier checks four criteria: shadow brightness increase ≥10%, very dark pixel reduction ≥25%, histogram improvement (10th/25th percentile increase), and ≥10% pixels with >5 luminance change. Passing requires ≥75% score (3 of 4 criteria). Task timeout is 90 seconds with max 7 steps.",
+    "pi_confidence": "high"
+}

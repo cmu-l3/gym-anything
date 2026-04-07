@@ -1,0 +1,108 @@
+{
+    "task_id": "armed_carjacking_investigation@1",
+    "dataset": "OpenCAD 0.3.2 (PHP CAD system with GTA V game data) + custom task-seeded NCIC records",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_call_type",
+            "metadata_value": "10-31",
+            "verified_value": "10-31",
+            "source": "Standard police 10-code: 10-31 = Crime in Progress. Confirmed in OpenCAD seed_data.sql call_history id=2 (type '10-31', primary 'Armed Robbery in Progress'). Task description explicitly states '10-31 dispatch call (Crime in Progress)'. export_result.sh searches for call_type LIKE '%10-31%'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_street1",
+            "metadata_value": "Vinewood Boulevard",
+            "verified_value": "Vinewood Boulevard",
+            "source": "Canonical GTA V street name. Present in seed_data.sql call_history id=1 as call_street1='Vinewood Boulevard'. Task description says 'intersection of Vinewood Boulevard and Hawick Avenue'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_street2",
+            "metadata_value": "Hawick Avenue",
+            "verified_value": "Hawick Avenue",
+            "source": "Canonical GTA V street name. Present in seed_data.sql call_history id=1 as call_street2='Hawick Avenue'. Task description says 'Vinewood Boulevard and Hawick Avenue'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_suspect1_name",
+            "metadata_value": "Derek Lawson",
+            "verified_value": "Derek Lawson",
+            "source": "setup_task.sh seeds 3 suspects: Marcus Vance (DL Expired, NO warrants), Derek Lawson (DL Expired, warrant 'Aggravated Assault' = violent), Anton Reeves (DL Valid, warrant 'Petty Theft' = non-violent). Task requires matching BOTH 'expired driver's license' AND 'prior record for a violent offense'. Only Derek Lawson satisfies both criteria. Marcus Vance is a decoy (expired DL but no warrants). Anton Reeves is a decoy (has warrant but Valid DL). Verified via live DB query: Derek Lawson inserted with dl_status='Expired' and linked to 'Aggravated Assault' warrant.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_suspect1_dl_status",
+            "metadata_value": "Expired",
+            "verified_value": "Expired",
+            "source": "setup_task.sh line 22 inserts Derek Lawson with dl_status='Expired'. OpenCAD's dl_status is a SET column with valid values including Valid, Suspended, Expired, Revoked, None. Seed data uses 'Valid' and 'Suspended'. Live DB test confirmed 'Expired' is accepted and displayed correctly on NCIC Name Search results page.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_suspect1_warrant_charge",
+            "metadata_value": "Armed Carjacking",
+            "verified_value": "Armed Carjacking",
+            "source": "This is the charge the agent must enter when creating a new warrant for the identified suspect (Derek Lawson). Task description says: \"issue a warrant for 'Armed Carjacking' (Los Santos Police Department)\". This is an agent-created record, not pre-existing data. The export_result.sh captures warrant_name from ncic_warrants linked to Derek's name_id.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_suspect1_citation_name",
+            "metadata_value": "Driving with Expired License",
+            "verified_value": "Driving with Expired License",
+            "source": "This is the citation the agent must create for the identified suspect. Task description says: \"a citation for 'Driving with Expired License' ($350 fine)\". Agent-created record. export_result.sh captures citation_name from ncic_citations linked to Derek's name_id.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_suspect1_citation_fine",
+            "metadata_value": 350.0,
+            "verified_value": 350.0,
+            "source": "Task description says '$350 fine'. The ncic_citations.citation_fine column stores values as strings (e.g., '250.00' in seed data for Trevor's Speeding citation). Agent should enter 350 or 350.00. export_result.sh captures citation_fine for verification.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_vehicle_plate",
+            "metadata_value": "VIN-4477",
+            "verified_value": "VIN-4477",
+            "source": "Task description says 'plate VIN-4477' for the stolen vehicle BOLO. This is for the bolos_vehicles table (not ncic_plates). export_result.sh searches REPLACE(vehicle_plate,'-','') LIKE '%VIN4477%' to handle dash-normalized matching. Plate format consistent with existing task plates (RPZ-7851, BLC-4491, LAM-8844).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_suspect2_name",
+            "metadata_value": "Ricky Alvarez",
+            "verified_value": "Ricky Alvarez",
+            "source": "Task description says 'Ricky Alvarez, DOB 1984-11-09, Male, Hispanic, 842 Jamestown Street Apt 6, Rancho, Los Santos. DL: None.' This person does NOT exist in seed data or task-seeded data — the agent must register them as a new civilian. export_result.sh searches ncic_names WHERE LOWER(name) LIKE '%ricky%' AND LOWER(name) LIKE '%alvarez%' AND id > baseline.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_suspect2_dob",
+            "metadata_value": "1984-11-09",
+            "verified_value": "1984-11-09",
+            "source": "Task description specifies 'DOB 1984-11-09'. DATE format YYYY-MM-DD matches OpenCAD schema (seed data DOBs: '1965-08-09', '1988-06-11', etc.). export_result.sh captures dob from ncic_names for the new civilian.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_suspect2_warrant_charge",
+            "metadata_value": "Armed Carjacking - Accessory",
+            "verified_value": "Armed Carjacking - Accessory",
+            "source": "Task description says: \"issue a warrant for 'Armed Carjacking - Accessory' (Los Santos Police Department)\". Agent-created record for Ricky Alvarez. export_result.sh searches ncic_warrants linked to Ricky's newly created civilian name_id.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_warrant_agency",
+            "metadata_value": "Los Santos Police Department",
+            "verified_value": "Los Santos Police Department",
+            "source": "Task description specifies '(Los Santos Police Department)' as the issuing agency for both warrants. setup_task.sh also uses 'Los Santos Police Department' as the agency for Anton Reeves' Petty Theft warrant. Canonical GTA V agency. Seed data includes 'Blaine County Sheriff Office' and 'San Andreas Highway Patrol' as other valid agencies.",
+            "status": "verified"
+        },
+        {
+            "key": "profession",
+            "metadata_value": "Senior Police Dispatcher",
+            "verified_value": "Senior Police Dispatcher",
+            "source": "Task description opens with 'You are the on-duty Senior Dispatcher at the Los Santos Emergency Communications Center.' Consistent with existing task professions ('Police Dispatcher', 'NCIC Records Technician', 'Communications Center Supervisor').",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "GROUND TRUTH: Derek Lawson is Suspect 1. The setup_task.sh seeds three suspects into the NCIC database with deliberately designed profiles for cross-referencing: Marcus Vance has an Expired driver's license but NO warrants (decoy matching only the DL criterion); Derek Lawson has an Expired driver's license AND an active 'Aggravated Assault' warrant from Blaine County Sheriff Office (the ONLY person matching BOTH criteria); Anton Reeves has a Valid driver's license and a 'Petty Theft' warrant from LSPD (decoy matching neither criterion cleanly). The agent must search all three names in NCIC, read both the DL Status field (in the personal info section) and the Warrants section (requires scrolling down) for each person, and correctly identify Derek Lawson as the one with both an expired license and a violent offense record. All records created for Suspect 1 (warrant for 'Armed Carjacking' and citation for 'Driving with Expired License' at $350) must be linked to Derek Lawson's NCIC name_id. The vehicle BOLO should be for a black Ubermacht Oracle with plate VIN-4477. Ricky Alvarez (DOB 1984-11-09, Male, Hispanic, 842 Jamestown Street Apt 6, Rancho, Los Santos, DL: None) must be registered as a new civilian BEFORE creating his person BOLO and warrant for 'Armed Carjacking - Accessory'. Both warrants should list Los Santos Police Department as the issuing agency. The dispatch call should be type 10-31 at Vinewood Boulevard / Hawick Avenue. Login credentials are admin@opencad.local / Admin123!.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,45 @@
+{
+    "task_id": "export_feed_csv@1",
+    "dataset": "solar_pv",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_file",
+            "metadata_value": "/home/ga/exports/solar_data.csv",
+            "verified_value": "/home/ga/exports/solar_data.csv",
+            "source": "task.json metadata; setup_task.sh creates /home/ga/exports directory; export_result.sh (line 10) checks same path",
+            "status": "verified"
+        },
+        {
+            "key": "min_rows",
+            "metadata_value": 50,
+            "verified_value": 290,
+            "source": "setup_task.sh lines 92-139: 48 hours * 3600s/hr ÷ 600s/interval = 288 data points + 1 header row = 289 rows total. grep -cve counts non-blank lines, so 290 rows including header.",
+            "status": "verified"
+        },
+        {
+            "key": "min_value",
+            "metadata_value": 0,
+            "verified_value": 0,
+            "source": "setup_task.sh lines 115-118: solar data generation uses val = max(0, val) to clamp below at 0; nighttime hours (not 6.0 <= hour <= 20.0) set val = 0.0",
+            "status": "verified"
+        },
+        {
+            "key": "max_value_threshold",
+            "metadata_value": 10000,
+            "verified_value": 3000,
+            "source": "setup_task.sh lines 107-110: peak solar formula is 3000 * sin(π * (hour - 6) / 14) where max is at hour 13 (1pm) = 3000W; includes ±20W noise and cloud cover multipliers (0.2-0.8) but clamped to [0, ~3000]",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": ["timestamp", "value"],
+            "verified_value": ["timestamp", "value"],
+            "source": "OpenEnergyMonitor documentation (https://docs.openenergymonitor.org/emoncms/export-csv.html) states CSV format is timestamp + value; setup_task.sh creates feed 'solar_pv' (line 24); export_result.sh (line 80) expects value in final column; Emoncms standard CSV format is 'unix timestamp, value'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires exporting data from a synthetically-generated Emoncms feed named 'solar_pv' to a CSV file at ~/exports/solar_data.csv. The feed contains 289 data points (48 hours of solar generation data at 10-minute intervals) with values ranging from 0W to approximately 3000W (peak). The CSV export will contain a header row plus 289 data rows (290 total), far exceeding the minimum of 50 rows. The standard Emoncms CSV format contains two columns: unix timestamp and value (solar generation in watts).",
+    "pi_confidence": "high"
+}

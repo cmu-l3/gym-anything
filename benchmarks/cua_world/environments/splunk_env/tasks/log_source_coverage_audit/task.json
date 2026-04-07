@@ -1,0 +1,33 @@
+{
+  "id": "log_source_coverage_audit@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Prepare for an upcoming compliance audit by creating a log source coverage report in Splunk (http://localhost:8000, credentials: admin/SplunkAdmin1!). Identify active hosts present in the 'system_logs' index but missing from the 'security_logs' index and save them to a CSV lookup file named 'non_compliant_hosts.csv'. Save this search as a weekly scheduled report (cron '0 0 * * 0') named 'Audit_Log_Coverage_Gaps'. Ensure the lookup file is populated and create a dashboard named 'Compliance_Audit_Dashboard' with a panel displaying the results from the lookup table.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/log_source_coverage_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/log_source_coverage_audit/export_result.sh"
+  },
+  "metadata": {
+    "expected_search_name": "Audit_Log_Coverage_Gaps",
+    "expected_dashboard_name": "Compliance_Audit_Dashboard",
+    "expected_lookup_file": "non_compliant_hosts.csv",
+    "required_indexes": [
+      "system_logs",
+      "security_logs"
+    ],
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_log_source_coverage_audit"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "id": "spatial_hierarchy_remediation@1",
+  "version": "1.0",
+  "env_id": "blenderbim_env@0.1",
+  "description": "A junior engineer exported the FZK-Haus IFC model, but the export settings were misconfigured, resulting in a 'flat' spatial structure where all walls, slabs, doors, and windows are located in the IfcBuilding root and all IfcBuildingStorey entities are missing. Reconstruct the spatial hierarchy by creating two IfcBuildingStorey entities: 'Ground Floor' (Elevation: 0.0m) and 'First Floor' (Elevation: 2.8m). Reassign all elements belonging to the lower level (Z < 2.5m) to the Ground Floor and all elements belonging to the upper level (Z >= 2.5m) to the First Floor. Ensure the IfcBuilding root contains no direct elements and all components are correctly assigned to their respective storeys. Save the repaired model to /home/ga/BIMProjects/fzk_repaired.ifc.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/spatial_hierarchy_remediation/setup_task.sh",
+    "post_task": "/workspace/tasks/spatial_hierarchy_remediation/export_result.sh"
+  },
+  "metadata": {
+    "skills": [
+      "bim_auditing",
+      "ifc_spatial_hierarchy",
+      "spatial_containment",
+      "bonsai_spatial_manager"
+    ],
+    "tags": [
+      "ifc",
+      "bim",
+      "remediation",
+      "spatial_structure",
+      "storey",
+      "aec"
+    ],
+    "occupation": "bim_coordinator",
+    "industry": "architecture",
+    "result_file": "/tmp/remediation_result.json",
+    "corrupted_model": "/home/ga/IFCModels/fzk_flat.ifc",
+    "output_file": "/home/ga/BIMProjects/fzk_repaired.ifc",
+    "expected_storeys": [
+      "Ground",
+      "First"
+    ],
+    "pass_score_note": "threshold=80. Anti-gaming: dumping all elements into one storey yields max 75 pts."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spatial_hierarchy_remediation"
+    }
+  }
+}

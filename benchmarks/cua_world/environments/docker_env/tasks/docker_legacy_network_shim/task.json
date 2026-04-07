@@ -1,0 +1,33 @@
+{
+  "id": "docker_legacy_network_shim@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are migrating a legacy fraud detection application ('FinCore') to Docker Compose. The application is a 'black box' (simulated by a locked Python script) that attempts to connect to hardcoded hostnames: 'db-primary.corp.local' and 'auth-gateway.partner.net'. Fix the 'docker-compose.yml' in '~/projects/fincore-migration/' so the application starts successfully without modifying the application code. Use Docker Network Aliases to satisfy the hostname requirements, set the environment variable 'MODE' to 'PRODUCTION', and mount the host directory '~/projects/fincore-migration/logs' to '/var/log/fincore/' to persist logs. The application will write 'SYSTEM_READY' to 'startup_success.log' in the log directory upon successful startup.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_legacy_network_shim/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_legacy_network_shim/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/fincore-migration",
+    "app_script": "app/main.py",
+    "log_file": "startup_success.log",
+    "required_aliases": {
+      "db": "db-primary.corp.local",
+      "auth-mock": "auth-gateway.partner.net"
+    },
+    "required_env": "MODE=PRODUCTION",
+    "host_log_dir": "/home/ga/projects/fincore-migration/logs"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_legacy_network_shim"
+    }
+  }
+}

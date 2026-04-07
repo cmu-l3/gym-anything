@@ -1,0 +1,30 @@
+{
+  "id": "light_curtain_safety_validation@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Light Curtain Safety Validation",
+  "description": "A robotics safety engineer must evaluate a virtual light curtain in a workcell to ensure human operator safety. Write a Python script using the ZMQ Remote API (port 23000) that connects to CoppeliaSim to programmatically generate a 15-beam virtual light curtain, execute a robot motion that breaches it, and log the events. \n\nThe light curtain must consist of 15 ray-type proximity sensors (sensorType=0, subType=16) positioned at X=0.4m, Y=-0.5m, with Z-heights from 0.1m to 0.8m inclusive in 0.05m increments. Orient the sensors to point along the +Y axis (Euler angles: [math.pi/2, 0, 0]) with a sensing range of at least 1.0m. The script should operate the simulation in synchronous mode, command the robot arm to sweep forward and breach the X=0.4m plane, and continuously monitor all sensors for breach events. \n\nSave the results to the following files in /home/ga/Documents/CoppeliaSim/exports/:\n- light_curtain_breaches.csv: Columns must be event_id, sim_time_s, sensor_index (0-14), sensor_z_m, and detected_distance_m.\n- safety_report.json: Must contain total_sensors (15), sensors_triggered_count, first_breach_time_s, first_breach_sensor_index, lowest_breach_z_m, highest_breach_z_m, and max_intrusion_distance_m.\n\nLogin: username=ga, password=password123.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/light_curtain_safety_validation/setup_task.sh",
+    "post_task": "/workspace/tasks/light_curtain_safety_validation/export_result.sh"
+  },
+  "metadata": {
+    "output_csv": "/home/ga/Documents/CoppeliaSim/exports/light_curtain_breaches.csv",
+    "output_json": "/home/ga/Documents/CoppeliaSim/exports/safety_report.json",
+    "expected_total_sensors": 15,
+    "min_z": 0.1,
+    "max_z": 0.8
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_light_curtain_safety"
+    }
+  }
+}

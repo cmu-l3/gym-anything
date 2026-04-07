@@ -1,0 +1,29 @@
+{
+  "id": "compare_pv_tou_revenue@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "A Solar Energy Systems Engineer needs to evaluate a Time-of-Delivery (TOD) PPA for a 5 MW commercial rooftop PV system in Phoenix, AZ. Perform an 8760 hourly analysis to determine if a West-facing array generates more annual revenue than a South-facing array. Create a Python script at /home/ga/Documents/SAM_Projects/tou_analysis.py using PySAM (PySAM.Pvwattsv8) to model two systems using a Phoenix area TMY weather file from SAM's bundled solar_resource directory.\n\nSystem A (South): 5000 kW DC, Azimuth = 180°, Tilt = 20°, DC/AC ratio = 1.2, Losses = 14.08%, Inverter Eff = 96%, Array Type = 1 (Fixed Roof).\nSystem B (West): Identical to System A, but with Azimuth = 270°.\n\nApply the following TOD pricing schedule to the hourly AC output:\n- Peak Hours: 4:00 PM to 8:00 PM local time (indices 16, 17, 18, and 19 of each 24-hour period).\n- Off-Peak Hours: All other hours.\n- Peak Price: $0.15 per kWh.\n- Off-Peak Price: $0.05 per kWh.\n\nSave the results, including annual energy, peak/off-peak energy, annual revenue, and the recommended azimuth (180 or 270), to /home/ga/Documents/SAM_Projects/tou_results.json using the following structure:\n{\n  \"south_system\": {\n    \"annual_energy_kwh\": <float>,\n    \"peak_energy_kwh\": <float>,\n    \"off_peak_energy_kwh\": <float>,\n    \"annual_revenue_dollars\": <float>\n  },\n  \"west_system\": {\n    \"annual_energy_kwh\": <float>,\n    \"peak_energy_kwh\": <float>,\n    \"off_peak_energy_kwh\": <float>,\n    \"annual_revenue_dollars\": <float>\n  },\n  \"recommended_azimuth\": <180 or 270>\n}",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compare_pv_tou_revenue/setup_task.sh",
+    "post_task": "/workspace/tasks/compare_pv_tou_revenue/export_result.sh"
+  },
+  "metadata": {
+    "expected_script_path": "/home/ga/Documents/SAM_Projects/tou_analysis.py",
+    "expected_json_path": "/home/ga/Documents/SAM_Projects/tou_results.json",
+    "peak_price": 0.15,
+    "off_peak_price": 0.05,
+    "tolerance_dollars": 5.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compare_pv_tou_revenue"
+    }
+  }
+}

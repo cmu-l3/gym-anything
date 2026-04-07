@@ -1,0 +1,115 @@
+{
+    "task_id": "hl7_latency_monitoring_router@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "channel_name",
+            "metadata_value": "Latency_Monitor",
+            "verified_value": "Latency_Monitor",
+            "source": "task.json metadata field, setup_task.sh line 30, export_result.sh line 63, verifier.py lines 36,38",
+            "status": "verified"
+        },
+        {
+            "key": "high_latency_dir",
+            "metadata_value": "/home/ga/latency_high",
+            "verified_value": "/home/ga/latency_high",
+            "source": "task.json metadata, setup_task.sh lines 11,13, export_result.sh lines 37,47,51,55",
+            "status": "verified"
+        },
+        {
+            "key": "normal_latency_dir",
+            "metadata_value": "/home/ga/latency_normal",
+            "verified_value": "/home/ga/latency_normal",
+            "source": "task.json metadata, setup_task.sh lines 12,14, export_result.sh lines 38,48,52,56",
+            "status": "verified"
+        },
+        {
+            "key": "port",
+            "metadata_value": "6661",
+            "verified_value": "6661",
+            "source": "task.json metadata, setup_task.sh line 30, export_result.sh line 27, task description line 5",
+            "status": "verified"
+        },
+        {
+            "key": "threshold_minutes",
+            "metadata_value": 10,
+            "verified_value": 10,
+            "source": "task.json metadata, task description lines 5,18-19, setup_task.sh lines 34-35, export_result.sh latency logic",
+            "status": "verified"
+        },
+        {
+            "key": "hl7_message_type",
+            "metadata_value": null,
+            "verified_value": "ADT^A01",
+            "source": "export_result.sh line 21: MSH segment contains ADT^A01, HL7 standard - ADT A01 is Patient Admit message",
+            "status": "verified"
+        },
+        {
+            "key": "msh_field_7_meaning",
+            "metadata_value": null,
+            "verified_value": "Date/Time of Message",
+            "source": "HL7 standard (https://hl7-definition.caristix.com/v2/HL7v2.6/Fields/MSH.7), task description line 5",
+            "status": "verified"
+        },
+        {
+            "key": "evn_field_2_meaning",
+            "metadata_value": null,
+            "verified_value": "Recorded Date/Time (event occurrence time)",
+            "source": "HL7 standard, task description line 5 - EVN-2 represents when the actual event occurred at the original facility",
+            "status": "verified"
+        },
+        {
+            "key": "timestamp_format",
+            "metadata_value": null,
+            "verified_value": "yyyyMMddHHmmss",
+            "source": "task.json description states 'yyyyMMddHHmmss' format, export_result.sh lines 13-17 use date command with format '+%Y%m%d%H%M%S'",
+            "status": "verified"
+        },
+        {
+            "key": "latency_calculation",
+            "metadata_value": null,
+            "verified_value": "Latency = MSH-7 minus EVN-2, in minutes",
+            "source": "task.json description: 'Calculate latency in minutes by comparing the Message Date/Time (MSH-7) and the Recorded Date/Time (EVN-2). Latency = (MSH-7) - (EVN-2).'",
+            "status": "verified"
+        },
+        {
+            "key": "test_high_latency_scenario",
+            "metadata_value": null,
+            "verified_value": "MSH-7 at current time, EVN-2 at 20 minutes ago, latency = 20 minutes > 10 threshold",
+            "source": "export_result.sh lines 14-15,21 define NOW_TS and HIGH_LATENCY_TS (20 minutes ago)",
+            "status": "verified"
+        },
+        {
+            "key": "test_normal_latency_scenario",
+            "metadata_value": null,
+            "verified_value": "MSH-7 at current time, EVN-2 at 2 minutes ago, latency = 2 minutes ≤ 10 threshold",
+            "source": "export_result.sh lines 16-17,24 define NOW_TS and NORMAL_LATENCY_TS (2 minutes ago)",
+            "status": "verified"
+        },
+        {
+            "key": "rest_api_endpoint",
+            "metadata_value": null,
+            "verified_value": "https://localhost:8443/api",
+            "source": "task.json description line 5, task_utils.sh lines 64,74,97,105,122,130",
+            "status": "verified"
+        },
+        {
+            "key": "rest_api_auth",
+            "metadata_value": null,
+            "verified_value": "admin:admin (HTTP Basic Authentication)",
+            "source": "task.json description, task_utils.sh lines 61,92,117 use '-u admin:admin'",
+            "status": "verified"
+        },
+        {
+            "key": "rest_api_https_port",
+            "metadata_value": null,
+            "verified_value": "8443",
+            "source": "task.json description, task_utils.sh, NextGen Connect documentation",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The HL7 Latency Monitoring Router task is a synthetic benchmark requiring creation of a NextGen Connect channel named 'Latency_Monitor' listening on TCP port 6661. The channel routes ADT^A01 HL7 messages based on latency calculated as the difference between MSH-7 (Message Date/Time) and EVN-2 (Recorded Date/Time). Messages with latency > 10 minutes route to /home/ga/latency_high/, and messages with latency ≤ 10 minutes route to /home/ga/latency_normal/. Timestamps are in yyyyMMddHHmmss format. Test data consists of synthetic messages with fabricated patient identifiers generated at task execution time (current time for MSH-7, 20 minutes ago and 2 minutes ago for EVN-2 in high and normal latency test cases respectively). Configuration and verification are performed via REST API at https://localhost:8443/api using HTTP Basic Authentication (admin:admin).",
+    "pi_confidence": "high"
+}

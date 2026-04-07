@@ -1,0 +1,39 @@
+{
+  "id": "implement_directory_monitor_service@1",
+  "version": "1.0",
+  "env_id": "visual_studio_2022_env@0.1",
+  "description": "Create a .NET 8 Worker Service named 'LogMonitorService' in 'C:\\Users\\Docker\\source\\repos\\' configured to run as a Windows Service. The service must monitor 'C:\\Users\\Docker\\Documents\\LogMonitor\\drop\\' for new '.log' files. For each file, parse the Apache combined log format to count HTTP '404' and '500' status codes. Append a summary line to 'C:\\Users\\Docker\\Documents\\LogMonitor\\archive\\error_summary.txt' in the format '[FileName]: 404=[Count], 500=[Count]' and move the processed log file to 'C:\\Users\\Docker\\Documents\\LogMonitor\\archive\\'. Ensure the solution is built in the Release configuration and handles File I/O safely to avoid lock exceptions.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\implement_directory_monitor_service\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\implement_directory_monitor_service\\export_result.ps1"
+  },
+  "metadata": {
+    "drop_folder": "C:\\Users\\Docker\\Documents\\LogMonitor\\drop",
+    "archive_folder": "C:\\Users\\Docker\\Documents\\LogMonitor\\archive",
+    "summary_file": "C:\\Users\\Docker\\Documents\\LogMonitor\\archive\\error_summary.txt",
+    "test_files": [
+      "test_access_alpha.log",
+      "test_access_beta.log"
+    ],
+    "expected_alpha_counts": {
+      "404": 2,
+      "500": 1
+    },
+    "expected_beta_counts": {
+      "404": 0,
+      "500": 2
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_monitor_service"
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "id": "contractor_access_request_screening@1",
+  "version": "1.0",
+  "env_id": "openmaint_env@0.1",
+  "description": "You are a Facility Coordinator responsible for site security. Process the contractor access requests for tomorrow located in 'contractor_requests_2026-03-10.txt' on the Desktop using OpenMaint (http://localhost:8090/cmdbuild/ui/, login: admin/admin). For each request in the file, verify if the vendor is 'Active' in the system. For authorized 'Active' vendors, create a 'Planned Maintenance' ticket with the description 'ACCESS: [Vendor Name] - [Task Summary]', the specified building, and the 'Security Instructions' from the request file. Do not create tickets for 'Suspended' or missing vendors.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/contractor_access_request_screening/setup_task.sh",
+    "post_task": "/workspace/tasks/contractor_access_request_screening/export_result.sh"
+  },
+  "metadata": {
+    "request_file": "/home/ga/Desktop/contractor_requests_2026-03-10.txt",
+    "vendors": {
+      "Apex Elevators": "Active",
+      "Flow Plumbing": "Suspended",
+      "Spark Electrical": "Active",
+      "Bright Cleaners": "Active",
+      "Unknown Inc": "Missing"
+    },
+    "expected_wos": [
+      {
+        "vendor": "Apex Elevators",
+        "task": "Quarterly Hydraulic Check",
+        "building_code": "BLD-A",
+        "security": "Issue Key K-01"
+      },
+      {
+        "vendor": "Spark Electrical",
+        "task": "UPS Battery Replacement",
+        "building_code": "BLD-C",
+        "security": "Escort Required"
+      },
+      {
+        "vendor": "Bright Cleaners",
+        "task": "Carpet Steam Clean",
+        "building_code": "BLD-B",
+        "security": "After-hours Sign-in"
+      }
+    ],
+    "traps": [
+      "Flow Plumbing",
+      "Unknown Inc"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_contractor_access_request_screening"
+    }
+  }
+}

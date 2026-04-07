@@ -1,0 +1,101 @@
+{
+    "task_id": "nyc_311_chronic_noise@1",
+    "dataset": "NYC 311 Service Requests from 2020 to Present (Socrata dataset erm2-nwe9)",
+    "case_id": "Noise - Residential complaints, October 1 - November 1, 2023",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "data_path",
+            "metadata_value": "/home/ga/Documents/data/nyc_noise.csv",
+            "verified_value": "/home/ga/Documents/data/nyc_noise.csv",
+            "source": "setup_task.sh hardcoded path for data download destination",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/Documents/exports/chronic_addresses.csv",
+            "verified_value": "/home/ga/Documents/exports/chronic_addresses.csv",
+            "source": "export_result.sh hardcoded output path validation",
+            "status": "verified"
+        },
+        {
+            "key": "expected_script_path",
+            "metadata_value": "/home/ga/Documents/scripts/noise_analysis.sql",
+            "verified_value": "/home/ga/Documents/scripts/noise_analysis.sql",
+            "source": "export_result.sh hardcoded script path validation",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": "[\"Incident Address\"]",
+            "verified_value": "[\"Incident Address\" or \"incident_address\"] - Column names differ between real (lowercase) and synthetic data, but verifier is case-insensitive",
+            "source": "verifier.py lines 150-151 performs flexible column search with case-insensitive 'address' match",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_real",
+            "metadata_value": "NYC Open Data Socrata API (implied from setup script)",
+            "verified_value": "https://data.cityofnewyork.us/resource/erm2-nwe9.csv - Real NYC 311 data, successfully accessible and returns valid data",
+            "source": "Verified via: (1) Socrata API metadata endpoint returns dataset erm2-nwe9 exists; (2) API query successfully returns Noise - Residential complaints; (3) Downloaded data contains valid records from Oct 2023",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_columns_real",
+            "metadata_value": "Expected columns: Complaint Type, Created Date, Incident Address",
+            "verified_value": "Real data has: complaint_type, created_date, incident_address (all lowercase with underscores); Column display name for complaint_type is 'Problem (formerly Complaint Type)'",
+            "source": "Verified via API metadata endpoint and actual CSV export inspection",
+            "status": "verified"
+        },
+        {
+            "key": "data_date_format_real",
+            "metadata_value": "Task description states 'MM/DD/YYYY HH:MM:SS AM/PM' format",
+            "verified_value": "Real data uses ISO 8601 format (e.g., '2023-10-01T00:00:04.000'); MM/DD/YYYY format only appears in synthetic fallback data",
+            "source": "Downloaded actual CSV from Socrata API shows ISO 8601 dates; setup_task.sh fallback data uses MM/DD/YYYY format",
+            "status": "contradicted"
+        },
+        {
+            "key": "data_synthetic_fallback",
+            "metadata_value": "Not documented in metadata field",
+            "verified_value": "Fallback synthetic data exists with 9 rows if real download fails; dataset: 123 MAIN ST (chronic), 456 BROADWAY (not chronic), 789 5TH AVE (not chronic)",
+            "source": "setup_task.sh lines 31-48 implement fallback synthetic data generation",
+            "status": "verified"
+        },
+        {
+            "key": "chronic_offender_definition",
+            "metadata_value": "3 or more 'Noise - Residential' complaints within any 7-day rolling window",
+            "verified_value": "Definition verified: For any address, check if any 3 consecutive complaints occur within 7 days (date[i+2] - date[i] <= 7 days)",
+            "source": "verifier.py lines 64-76 implement correct rolling window calculation using numpy timedelta64",
+            "status": "verified"
+        },
+        {
+            "key": "chronic_logic_correctness",
+            "metadata_value": "Not in metadata but task-critical",
+            "verified_value": "Verified correct with test cases: (1) 123 MAIN ST Oct 1-3 = CHRONIC (2.04 day span); (2) 456 BROADWAY Oct 1,5,10 = NOT chronic (9 day span); (3) 789 5TH AVE Oct 1,1,15 = NOT chronic (14 day span)",
+            "source": "Code execution test of verifier logic with synthetic data from setup_task.sh",
+            "status": "verified"
+        },
+        {
+            "key": "data_period",
+            "metadata_value": "Not in metadata",
+            "verified_value": "October 1, 2023 00:00:00 to November 1, 2023 23:59:59 UTC",
+            "source": "setup_task.sh line 26 hardcoded date range in SODA API query",
+            "status": "verified"
+        },
+        {
+            "key": "data_complaint_type_filter",
+            "metadata_value": "Not in metadata",
+            "verified_value": "complaint_type = 'Noise - Residential'",
+            "source": "setup_task.sh line 26 SODA API WHERE clause; confirmed working via API test",
+            "status": "verified"
+        },
+        {
+            "key": "expected_data_volume",
+            "metadata_value": "Not in metadata",
+            "verified_value": "LIMIT 3000 in API query; ~2000-3000 rows expected based on comment in setup_task.sh line 24",
+            "source": "setup_task.sh line 26 API LIMIT parameter",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses real NYC 311 Service Requests data from the official Socrata dataset erm2-nwe9, filtered for Noise - Residential complaints from October 1 to November 1, 2023. The real data is successfully downloadable from the NYC Open Data API and contains required columns: complaint_type (displayed as 'Problem (formerly Complaint Type)'), created_date (in ISO 8601 format, not MM/DD/YYYY as task description suggests for real data), and incident_address. The 'chronic offender' definition is correctly implemented as 3+ complaints within a 7-day rolling window. If the real data download fails, the system falls back to synthetic test data with 9 rows that correctly implement the chronic offender logic. The task requires creating a SQLite connection named 'CityData', importing data to a 'complaints' table, and identifying chronic addresses via SQL.",
+    "pi_confidence": "high"
+}

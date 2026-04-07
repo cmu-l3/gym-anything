@@ -20,6 +20,11 @@ if ! pm list packages | grep -q "$PACKAGE"; then
     exit 1
 fi
 
+# Launch the app using robust helper
+echo "Launching Cancer iChart..."
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
+
 # Take initial screenshot
 screencap -p /sdcard/task_initial_state.png 2>/dev/null
 

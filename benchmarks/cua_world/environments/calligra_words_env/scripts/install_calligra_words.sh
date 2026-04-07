@@ -9,21 +9,18 @@ export DEBIAN_FRONTEND=noninteractive
 # Update package lists
 apt-get update
 
-# Install Calligra Words and its dependencies
+# Install Calligra Words, document libraries, and automation tools
 apt-get install -y \
     calligrawords \
-    kde-runtime \
     breeze \
-    breeze-icon-theme
+    breeze-icon-theme \
+    dbus-x11
 
-# Install python-docx and odfpy for document generation and verification
 apt-get install -y \
-    python3-pip \
-    python3-lxml
+    python3-docx \
+    python3-lxml \
+    python3-odf
 
-pip3 install python-docx odfpy
-
-# Install GUI automation tools
 apt-get install -y \
     xdotool \
     wmctrl \
@@ -37,5 +34,7 @@ apt-get install -y \
     fonts-dejavu-core \
     fonts-noto-core \
     fonts-freefont-ttf
+
+command -v calligrawords >/dev/null
 
 echo "=== Calligra Words installation complete ==="

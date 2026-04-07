@@ -1,0 +1,87 @@
+{
+    "task_id": "sourdough_starter_calculator@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "number_of_data_rows",
+            "metadata_value": "8 feeding entries",
+            "verified_value": "8 data rows plus 1 header row",
+            "source": "setup_task.sh CSV content (lines 13-23) - hard-coded data with 8 feeding log entries dated 2024-01-15 to 2024-01-18",
+            "status": "verified"
+        },
+        {
+            "key": "hydration_formula",
+            "metadata_value": "=(E2/D2)*100",
+            "verified_value": "=(E2/D2)*100 where E=Water_Added_g, D=Flour_Added_g",
+            "source": "README.md line 41 specifies formula; verified to calculate (water/flour)*100 correctly for all test rows yielding 100% hydration",
+            "status": "verified"
+        },
+        {
+            "key": "total_weight_formula",
+            "metadata_value": "=C2+D2+E2",
+            "verified_value": "=C2+D2+E2 where C=Starter_Weight_g, D=Flour_Added_g, E=Water_Added_g",
+            "source": "README.md line 38; verified to correctly sum three weight components. Test row: 50+50+50=150g",
+            "status": "verified"
+        },
+        {
+            "key": "temperature_hours_to_peak_mapping",
+            "metadata_value": "If temp >= 24°C: ~5 hours; If temp >= 20°C: ~7 hours; If temp < 20°C: ~10 hours",
+            "verified_value": "Temperature thresholds: 24°C→5hrs, 20-23°C→7hrs, <20°C→10hrs. Data contains temps 21-24°C",
+            "source": "README.md lines 46-50 with conditional formula =IF(F2>=24, 5, IF(F2>=20, 7, 10)). Setup data includes temperatures 21, 22, 23, 24°C",
+            "status": "verified"
+        },
+        {
+            "key": "ready_to_bake_criteria",
+            "metadata_value": "Hours since feed between 3-8 AND total weight >= 150g",
+            "verified_value": "Criteria: (3 <= Hours_Since_Feed <= 8) AND (Total_Weight >= 150g) returns YES or NO",
+            "source": "README.md line 53-54 specifies exact criteria. Verifier.py lines 149-157 implements identical logic. Test data all has hours >=11, so all return NO",
+            "status": "verified"
+        },
+        {
+            "key": "hydration_percentage_range_pass",
+            "metadata_value": "70-150% for pass criteria",
+            "verified_value": "70 <= hydration_percent <= 150 is the acceptance range for criterion 5",
+            "source": "README.md line 74; verifier.py lines 363-371 enforces this exact range check",
+            "status": "verified"
+        },
+        {
+            "key": "hydration_percentage_typical_range",
+            "metadata_value": "80-120% typical for normal starters",
+            "verified_value": "All 8 test rows calculate to exactly 100% hydration (50g water / 50g flour * 100)",
+            "source": "README.md line 97 states '80-120% for normal starters'; test data has 100% due to equal water:flour ratio",
+            "status": "verified"
+        },
+        {
+            "key": "pass_score_threshold",
+            "metadata_value": "75% threshold (requires at least 5 out of 6 criteria)",
+            "verified_value": "score >= 75 where score = (criteria_passed / 6) * 100, requiring >=4.5 criteria = 5 criteria minimum",
+            "source": "README.md line 77; verifier.py lines 383-384 enforce: total_criteria=6, passed = score >= 75",
+            "status": "verified"
+        },
+        {
+            "key": "total_verification_criteria_count",
+            "metadata_value": "6 verification criteria",
+            "verified_value": "6 criteria: (1) Hydration formula, (2) Total weight formula, (3) Readiness logic, (4) Total flour SUM, (5) Values in range, (6) Average hydration",
+            "source": "README.md lines 70-75 lists 6 criteria; verifier.py line 290: total_criteria = 6",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_type",
+            "metadata_value": "Synthetic data generated for testing",
+            "verified_value": "Data is entirely synthetic, hard-coded in setup_task.sh with realistic feeding log structure",
+            "source": "setup_task.sh lines 13-23 contain the entire dataset as a heredoc string, not loaded from external file or API",
+            "status": "verified"
+        },
+        {
+            "key": "csv_column_structure",
+            "metadata_value": "7 columns: Date, Time, Starter_Weight_g, Flour_Added_g, Water_Added_g, Room_Temp_C, Hours_Since_Feed",
+            "verified_value": "CSV header and 8 data rows with columns in specified order matching column indices C-G for calculations",
+            "source": "setup_task.sh line 14 defines header; setup creates file at /home/ga/Documents/feeding_log.csv",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The sourdough starter calculator task uses 8 rows of synthetic feeding log data with columns for date, time, starter weight (g), flour added (g), water added (g), room temperature (°C), and hours since last feed. The task requires students to implement 6 spreadsheet formulas and checks: (1) hydration percentage formula =(E/D)*100, (2) total weight formula =C+D+E summing to 150-180g, (3) readiness logic using IF/AND for hours 3-8 and weight ≥150g, (4) total flour SUM formula, (5) hydration values within 70-150% range (all test data = 100%), and (6) average hydration AVERAGE formula. Pass threshold is 75% (≥5 of 6 criteria). All temperature-based hours mappings (temp ≥24°C→5hr, ≥20°C→7hr, <20°C→10hr) and readiness criteria are correctly specified and verifiable. The data contains temps from 21-24°C and hours from 11-13 (all outside the 3-8 hour readiness window).",
+    "pi_confidence": "high"
+}

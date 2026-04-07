@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Shared CMDBuild REST API helpers for OpenMaint task scripts."""
 
+import base64
 import json
 import os
 import re
@@ -10,12 +11,15 @@ import urllib.error
 
 BASE = "http://localhost:8090/cmdbuild/services/rest/v3"
 
+_BASIC_AUTH = base64.b64encode(b"admin:admin").decode()
+
 
 def api(method, path, token, data=None):
     url = f"{BASE}/{path}"
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["CMDBuild-Authorization"] = token
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Basic {_BASIC_AUTH}",
+    }
     body = json.dumps(data).encode() if data else None
     req = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
@@ -34,10 +38,8 @@ def api(method, path, token, data=None):
 
 
 def get_token():
-    resp = api("POST", "sessions", "", {"username": "admin", "password": "admin"})
-    if resp and "data" in resp:
-        return resp["data"]["_id"]
-    return None
+    """Return a sentinel token.  Auth is handled via HTTP Basic in api()."""
+    return "basic"
 
 
 def create_card(cls, attrs, token):

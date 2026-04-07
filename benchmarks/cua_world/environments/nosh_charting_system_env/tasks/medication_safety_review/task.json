@@ -1,0 +1,52 @@
+{
+  "id": "medication_safety_review@1",
+  "version": "1.0",
+  "env_id": "nosh_charting_system_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are a clinical pharmacist conducting a medication safety review at Hillside Family Medicine. Log in as demo_provider (password: Provider1234!). For patient Cordie King (DOB: March 11, 1995), resolve the safety flag regarding a dangerous medication combination involving Warfarin. Discontinue any NSAIDs or antiplatelet agents present in the medication list while ensuring the Warfarin therapy remains active. Document the review by creating an encounter and ordering an INR (International Normalized Ratio / Prothrombin Time) laboratory test.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/medication_safety_review/setup_task.sh",
+    "post_task": "/workspace/tasks/medication_safety_review/export_result.sh"
+  },
+  "metadata": {
+    "patient_pid": 13,
+    "patient_name": "Cordie King",
+    "patient_dob": "1995-03-11",
+    "patient_sex": "f",
+    "occupation_context": "Clinical Pharmacist — medication safety review and drug interaction remediation",
+    "seeded_state": {
+      "Warfarin_5mg": "active (anticoagulant — must NOT be discontinued)",
+      "Aspirin_325mg": "active (antiplatelet — must be discontinued due to Warfarin interaction)",
+      "Ibuprofen_600mg": "active (NSAID — must be discontinued due to Warfarin interaction)"
+    },
+    "features_used": [
+      "medications_discontinue",
+      "lab_orders",
+      "encounters"
+    ],
+    "required_actions": [
+      "Discontinue Aspirin 325mg (antiplatelet contraindicated with Warfarin)",
+      "Discontinue Ibuprofen 600mg (NSAID contraindicated with Warfarin)",
+      "Retain Warfarin 5mg as active (do NOT discontinue)",
+      "Order INR/Prothrombin Time lab test",
+      "Create encounter documenting medication safety review"
+    ],
+    "expected_db_state": {
+      "rx_list": "Aspirin and Ibuprofen discontinued; Warfarin remains active",
+      "orders_labs": "INR or Prothrombin Time order for pid=13",
+      "encounters": "1+ new encounter for pid=13"
+    },
+    "anti_gaming_note": "Warfarin retention worth 30pts; mass-discontinuation scores max 70 (below 75 threshold)"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_medication_safety_review"
+    }
+  }
+}

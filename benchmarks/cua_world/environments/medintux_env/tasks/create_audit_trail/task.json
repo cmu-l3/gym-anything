@@ -1,0 +1,37 @@
+{
+  "id": "create_audit_trail@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Create an audit logging system in the MedinTux 'DrTuxTest' MySQL database. Establish a table named 'patient_audit_log' with columns: audit_id (INT PK AUTO_INCREMENT), operation_type (VARCHAR 10), table_name (VARCHAR 50), record_id (VARCHAR 128), old_values (TEXT), new_values (TEXT), and changed_at (DATETIME DEFAULT CURRENT_TIMESTAMP). Implement six triggers to log changes: 'trg_index_after_insert', 'trg_index_after_update', and 'trg_index_after_delete' on the 'IndexNomPrenom' table, and 'trg_fchpat_after_insert', 'trg_fchpat_after_update', and 'trg_fchpat_after_delete' on the 'fchpat' table. Each trigger must record operation details into 'patient_audit_log'. Verify the system by inserting a new patient (GUID='AUDIT-TEST-001', NomDos='AUDITTEST', Prenom='Veronique', Type='Dossier') into IndexNomPrenom and corresponding data into fchpat, then update the first name to 'Véronique'. Export a verification report containing the output of 'SHOW TRIGGERS FROM DrTuxTest' and 'SELECT * FROM patient_audit_log' to /home/ga/audit_trail_report.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_audit_trail/setup_task.sh",
+    "post_task": "/workspace/tasks/create_audit_trail/export_result.sh"
+  },
+  "metadata": {
+    "database": "DrTuxTest",
+    "audit_table": "patient_audit_log",
+    "test_guid": "AUDIT-TEST-001",
+    "verify_guid": "AUDIT-VERIFY-001",
+    "required_triggers": [
+      "trg_index_after_insert",
+      "trg_index_after_update",
+      "trg_index_after_delete",
+      "trg_fchpat_after_insert",
+      "trg_fchpat_after_update",
+      "trg_fchpat_after_delete"
+    ],
+    "report_path": "/home/ga/audit_trail_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_audit_trail"
+    }
+  }
+}

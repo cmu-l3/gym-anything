@@ -72,5 +72,5 @@ Step count: ~35–50 UI interactions (navigation to cancer drug, three co-med se
 
 ## Evidence
 
-Evidence files are stored in `benchmarks/cua_world/environments/liverpool_cancer_ichart_env/evidence/`:
+Evidence files are stored in `examples/liverpool_cancer_ichart_env/evidence_docs/`:
 - `ibrutinib_comedication_contraindication_screen_evidence.json`

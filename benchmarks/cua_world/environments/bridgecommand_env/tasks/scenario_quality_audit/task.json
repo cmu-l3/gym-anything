@@ -1,0 +1,79 @@
+{
+  "id": "scenario_quality_audit@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "Perform a quality assurance audit on the pre-installed scenario 'h) Humber Approach Training' located at '/opt/bridgecommand/Scenarios/h) Humber Approach Training/'. This scenario, intended to be an afternoon transit in the Humber Estuary (~53.6°N, ~0.1°E), contains 8 deliberate errors across its configuration files (environment.ini, ownship.ini, othership.ini) ranging from impossible timestamps and weather values to vessel collisions and unrealistic speeds. Identify and correct all errors to make the scenario physically plausible and valid for training. Document each fault found, including the file name, the original invalid value, and your correction in a QA audit report at '/home/ga/Documents/scenario_audit_report.txt'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/scenario_quality_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/scenario_quality_audit/export_result.sh"
+  },
+  "metadata": {
+    "scenario_dir": "/opt/bridgecommand/Scenarios/h) Humber Approach Training",
+    "report_path": "/home/ga/Documents/scenario_audit_report.txt",
+    "faults": {
+      "StartTime": {
+        "file": "environment.ini",
+        "bad": "25.5",
+        "type": "range",
+        "min": 0,
+        "max": 24
+      },
+      "StartMonth": {
+        "file": "environment.ini",
+        "bad": "15",
+        "type": "range",
+        "min": 1,
+        "max": 12
+      },
+      "Weather": {
+        "file": "environment.ini",
+        "bad": "200.0",
+        "type": "range",
+        "min": 0,
+        "max": 12
+      },
+      "OwnLat": {
+        "file": "ownship.ini",
+        "bad": "42.3601",
+        "type": "range",
+        "min": 53.0,
+        "max": 54.0
+      },
+      "OwnSpeed": {
+        "file": "ownship.ini",
+        "bad": "85.0",
+        "type": "range",
+        "min": 0,
+        "max": 25
+      },
+      "Collision": {
+        "file": "othership.ini",
+        "desc": "Vessel 2 same pos as Vessel 1"
+      },
+      "NoLegs": {
+        "file": "othership.ini",
+        "bad": "0",
+        "key": "Legs(2)",
+        "min": 1
+      },
+      "VLCCSpeed": {
+        "file": "othership.ini",
+        "bad": "45.0",
+        "key": "InitialSpeed(3)",
+        "max": 20
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_scenario_quality_audit"
+    }
+  }
+}

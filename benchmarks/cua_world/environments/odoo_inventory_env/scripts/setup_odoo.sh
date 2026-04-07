@@ -153,7 +153,7 @@ if [ "$DB_EXISTS" != "1" ]; then
         echo "Database created. Initializing Odoo modules with demo data..."
         # Initialize Odoo with base modules and demo data
         # The -i flag installs modules, --load-language ensures translations
-        docker exec odoo-web odoo -d "$DB_NAME" -i base,stock,sale_management,purchase --load-language=en_US --without-demo=False --stop-after-init 2>&1 | tail -30 || {
+        docker exec odoo-web odoo -c /etc/odoo/odoo.conf -d "$DB_NAME" -i base,stock,sale_management,purchase --load-language=en_US --without-demo=False --stop-after-init 2>&1 | tail -30 || {
             echo "First init attempt completed (may have warnings)"
         }
 
@@ -172,7 +172,7 @@ if [ "$DB_EXISTS" != "1" ]; then
 
             # Load demo data for stock module specifically
             echo "Loading demo data for inventory..."
-            docker exec odoo-web odoo -d "$DB_NAME" -u stock --stop-after-init 2>&1 | tail -10 || true
+            docker exec odoo-web odoo -c /etc/odoo/odoo.conf -d "$DB_NAME" -u stock --stop-after-init 2>&1 | tail -10 || true
 
             echo "Restarting Odoo web server..."
             docker-compose restart web
@@ -220,7 +220,7 @@ else
         sleep 2
 
         echo "Initializing Odoo modules with demo data..."
-        docker exec odoo-web odoo -d "$DB_NAME" -i base,stock,sale_management,purchase --load-language=en_US --without-demo=False --stop-after-init 2>&1 | tail -30 || {
+        docker exec odoo-web odoo -c /etc/odoo/odoo.conf -d "$DB_NAME" -i base,stock,sale_management,purchase --load-language=en_US --without-demo=False --stop-after-init 2>&1 | tail -30 || {
             echo "Module initialization completed (may have warnings)"
         }
 
@@ -241,7 +241,7 @@ else
     if [ "$BASE_INSTALLED" != "1" ]; then
         echo "Database exists but has no modules installed. Initializing Odoo..."
         # The database is empty - need full initialization
-        docker exec odoo-web odoo -d "$DB_NAME" -i base,stock,sale_management,purchase --load-language=en_US --without-demo=False --stop-after-init 2>&1 | tail -30 || {
+        docker exec odoo-web odoo -c /etc/odoo/odoo.conf -d "$DB_NAME" -i base,stock,sale_management,purchase --load-language=en_US --without-demo=False --stop-after-init 2>&1 | tail -30 || {
             echo "Module initialization completed (may have warnings)"
         }
 
@@ -260,7 +260,7 @@ else
 
         if [ "$STOCK_INSTALLED" != "1" ]; then
             echo "Installing Inventory module..."
-            docker exec odoo-web odoo -d $DB_NAME -i stock --stop-after-init 2>&1 | tail -10 || true
+            docker exec odoo-web odoo -c /etc/odoo/odoo.conf -d $DB_NAME -i stock --stop-after-init 2>&1 | tail -10 || true
             echo "Restarting Odoo..."
             docker-compose restart web
             sleep 15
@@ -418,3 +418,14 @@ echo "Docker commands:"
 echo "  docker-compose -f /home/ga/odoo/docker-compose.yml logs -f"
 echo "  docker-compose -f /home/ga/odoo/docker-compose.yml ps"
 echo ""
+
+# Flush all data to disk — critical for QEMU checkpoint consistency
+echo "Flushing data to disk for checkpoint consistency..."
+# Force PostgreSQL to checkpoint (flush WAL to disk)
+PG_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E 'odoo.*(db|postgres)' | head -1)
+if [ -n "$PG_CONTAINER" ]; then
+    docker exec "$PG_CONTAINER" psql -U odoo -d postgres -c "CHECKPOINT" 2>/dev/null || true
+    echo "PostgreSQL checkpoint issued on $PG_CONTAINER"
+fi
+sync
+echo "Disk sync complete."

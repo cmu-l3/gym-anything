@@ -1,0 +1,51 @@
+{
+  "id": "location_scout_workspace@1",
+  "version": "1.0",
+  "env_id": "example.chrome_env_all@0.1",
+  "description": "A Location Scout is preparing a shared workstation (a 'Production Binder' terminal) for the logistics team of a new independent film, Desert Mirage, shooting in New Mexico. Configure the Chrome browser per the Desert Mirage Production Browser Spec. Organize New Mexico scouting bookmarks into folders, remove irrelevant bookmarks from the previous Georgia shoot and personal sites, and enable global location access. Add custom search engines for maps and weather, and configure the startup pages and automated downloads to the production folder.",
+  "difficulty": "hard",
+  "instruction": "The complete specification is located at ~/Desktop/desert_mirage_browser_spec.txt. Follow it strictly. You must:\n1. Delete all irrelevant bookmarks (Georgia-related and personal entertainment).\n2. Organize the remaining bookmarks into 4 exact folders: 'Permitting', 'Locations', 'Weather & Maps', and 'Equipment & Crew'.\n3. In Chrome Settings, explicitly change global Geolocation to 'Allow' (Sites can ask for your location is NOT enough; you must explicitly allow it globally if possible, or ensure it's fully enabled without asking if the UI restricts it. Note: Chrome's default is 'Ask', change it to 'Allow' or add a wildcard if necessary - practically, go to Site Settings -> Location -> Sites can ask for your location, but wait, Chrome's global 'Allow' was removed in recent versions. Actually, you should go to Site Settings -> Location and ensure 'Sites can ask for your location' is enabled, OR just use the exact spec. Let's follow the spec: Go to Settings > Privacy and Security > Site Settings > Location, and set default behavior to 'Sites can ask for your location' if it was blocked, or explicitly allow the required sites. Wait, the prompt says 'explicitly ALLOW sites to see user's location (Global Geolocation = Allow)'. In Chrome, the setting is 'Sites can ask for your location'. Let's ensure the setting `profile.default_content_setting_values.geolocation` is set to 1 (Allow) which can be done via policy or UI if available, otherwise 2 (Ask) is default. If UI only allows 'Ask' (2) or 'Block' (3), the task requires adding a specific wildcard or setting it to 1 via direct preference editing or UI if possible. Actually, we will just expect the agent to find the Location setting and ensure it's not blocked, or manually add `[*.]` to allowed. Let's just specify: Set Location to 'Sites can ask for your location' AND add `https://earthengine.google.com:443` to the Allowed list.)\nWait, I will adjust the instruction to be achievable in the UI: In Chrome settings, go to Privacy and security > Site Settings > Location. Ensure it is set to 'Sites can ask for your location'. Then, add `https://earthengine.google.com:443` and `https://www.suncalc.org:443` to the Allowed to see your location list.\n4. Add custom search engines: keyword `map` for `https://www.google.com/maps/search/%s` and `wx` for `https://weather.com/weather/today/l/%s`.\n5. Set startup pages to `https://nmfilm.com` and `https://www.suncalc.org`.\n6. Set download directory to `/home/ga/Documents/Desert_Mirage_Production` and disable 'Ask where to save each file before downloading'.",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/location_scout_workspace/setup_task.sh",
+    "post_task": "/workspace/tasks/location_scout_workspace/export_result.sh"
+  },
+  "metadata": {
+    "banned_domains": [
+      "georgia.org",
+      "atlantaga.gov",
+      "netflix.com",
+      "espn.com",
+      "reddit.com",
+      "twitter.com"
+    ],
+    "expected_folders": [
+      "Permitting",
+      "Locations",
+      "Weather & Maps",
+      "Equipment & Crew"
+    ],
+    "startup_urls": [
+      "https://nmfilm.com/",
+      "https://www.suncalc.org/"
+    ],
+    "download_dir": "Desert_Mirage_Production",
+    "search_engines": {
+      "map": "https://www.google.com/maps/search/%s",
+      "wx": "https://weather.com/weather/today/l/%s"
+    },
+    "allowed_location_sites": [
+      "https://earthengine.google.com:443",
+      "https://www.suncalc.org:443"
+    ]
+  },
+  "success": {
+    "spec": {
+      "program": "verifier.py::verify_task"
+    }
+  }
+}

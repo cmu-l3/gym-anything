@@ -1,0 +1,94 @@
+{
+    "task_id": "brain_parenchymal_fraction@1",
+    "dataset": "MRHead (3D Slicer built-in sample data)",
+    "case_id": "MRHead.nrrd (SHA256: cc211f0dfd9a05ca3841ce1141b292898b2dd2d3f08286affadf823a7e58df93)",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "data_source",
+            "metadata_value": "MRHead sample data (built-in)",
+            "verified_value": "MRHead is a real human brain T1-weighted MRI donated to the 3D Slicer project. Downloaded from Slicer's SlicerTestingData GitHub releases. File size 6,607,313 bytes (6.3 MB, gzip-compressed NRRD). Dimensions: 256x256x130 voxels. Voxel spacing: 1.0 x 1.0 x 1.3 mm. Coordinate space: LPS (Left-Posterior-Superior). Data type: int16 (short). Intensity range: 0-279.",
+            "source": "Live testing: downloaded and parsed NRRD header in running VM. Verified against Slicer's official SampleData.py on GitHub (https://github.com/Slicer/Slicer/blob/main/Modules/Scripted/SampleData/SampleData.py) which states: 'MRHead data sets were donated to 3D Slicer project by the persons visible in the images, to be used without any restrictions.'",
+            "status": "verified"
+        },
+        {
+            "key": "output_dir",
+            "metadata_value": "/home/ga/Documents/SlicerData/BrainAssessment",
+            "verified_value": "/home/ga/Documents/SlicerData/BrainAssessment — exists, owned by ga:ga, permissions 755, write-verified",
+            "source": "Live testing: ran setup_task.sh, then confirmed directory exists with correct ownership. Wrote and read back a test file as ga user. Evidence: 03_output_dir_permissions.txt, 06_write_permissions.txt",
+            "status": "verified"
+        },
+        {
+            "key": "output_segmentation",
+            "metadata_value": "brain_bpf.seg.nrrd",
+            "verified_value": "brain_bpf.seg.nrrd — export_result.sh searches this exact filename first at /home/ga/Documents/SlicerData/BrainAssessment/brain_bpf.seg.nrrd, with fallback search for alternative names and any .seg.nrrd created during task",
+            "source": "Live testing: created simulated segmentation with this name, export_result.sh found and parsed it correctly. .seg.nrrd is Slicer's standard segmentation format with embedded segment names/colors in NRRD header fields (Segment0_Name, Segment1_Name, etc.). Evidence: 12_export_with_agent_outputs.txt",
+            "status": "verified"
+        },
+        {
+            "key": "output_report",
+            "metadata_value": "bpf_report.json",
+            "verified_value": "bpf_report.json — export_result.sh searches this filename first, with fallback search for morphometry_report.json, report.json, brain_report.json, and any *report*.json or *bpf*.json created during task",
+            "source": "Live testing: created simulated report JSON, export_result.sh found it and extracted bpf, classification, cerebrum_volume_ml, ventricle_volume_ml fields with flexible key-name matching. Evidence: 12_export_with_agent_outputs.txt",
+            "status": "verified"
+        },
+        {
+            "key": "output_screenshot",
+            "metadata_value": "brain_3d.png",
+            "verified_value": "brain_3d.png — export_result.sh searches this filename first at output_dir, with fallback for 3d_rendering.png, screenshot.png, any PNG in output_dir created during task, and Slicer's Screenshots directory",
+            "source": "Live testing: created simulated PNG, export_result.sh found it. 3D rendering confirmed possible via Slicer's 'Show 3D' button in Segment Editor. Evidence: 12_export_with_agent_outputs.txt, 20_segment_editor_with_buttons.png",
+            "status": "verified"
+        },
+        {
+            "key": "expected_segments.cerebrum.keywords",
+            "metadata_value": ["cerebrum", "Cerebrum", "CEREBRUM", "brain", "Brain", "BRAIN", "parenchyma", "Parenchyma"],
+            "verified_value": "These keywords are used by export_result.sh's Python analysis to match segment names against cerebrum. The export script also falls back to a heuristic (largest segment = cerebrum) if no name matches. Verified that name matching works with 'Cerebrum' label in simulated test.",
+            "source": "Live testing: created segmentation with 'Cerebrum' label, export correctly identified it. Code inspection of export_result.sh Python analysis section.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_segments.cerebrum.expected_voxel_range",
+            "metadata_value": [300000, 1500000],
+            "verified_value": "Range [300000, 1500000] voxels corresponds to [390, 1950] mL at MRHead's voxel volume of 1.3 mm^3. Normal adult cerebral parenchyma is approximately 1000-1220 mL (PMC7976241), which corresponds to ~770,000-940,000 voxels. The range is generous to accommodate partial segmentations (lower bound) and over-segmentations (upper bound). Raw MRHead intensity analysis shows 3,316,192 voxels above intensity 40 (includes skull/scalp), so a properly skull-stripped cerebrum segmentation should fall well within this range.",
+            "source": "Live testing: computed intensity histogram of MRHead (02_mrhead_data_analysis.txt). Literature: normal brain parenchyma ~1000-1220 mL (PMC7976241). Calculation: expected_voxels = volume_ml * 1000 / 1.3 = ~770K-940K voxels, within claimed range.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_segments.ventricles.keywords",
+            "metadata_value": ["ventricle", "Ventricle", "VENTRICLE", "ventricles", "Ventricles", "CSF", "csf"],
+            "verified_value": "These keywords are used by export_result.sh to match segment names. Verified 'Ventricles' label was correctly identified in simulated test. Heuristic fallback (smallest segment = ventricles) also works.",
+            "source": "Live testing: created segmentation with 'Ventricles' label, export correctly identified it. Evidence: 12_export_with_agent_outputs.txt",
+            "status": "verified"
+        },
+        {
+            "key": "expected_segments.ventricles.expected_voxel_range",
+            "metadata_value": [1000, 100000],
+            "verified_value": "Range [1000, 100000] voxels corresponds to [1.3, 130] mL. Normal adult lateral ventricle volume is approximately 10-42 mL (PMC11241572, Radiopaedia), corresponding to ~7,700-32,300 voxels. The range is generous to accommodate both under-segmentation and mild over-segmentation (including some sulcal CSF). MRHead shows a normal adult brain with non-enlarged ventricles.",
+            "source": "Literature: normal lateral ventricle volume ~10-42 mL total (PMC11241572). Visual inspection of MRHead in Slicer showed normal-sized ventricles (01_slicer_startup_state.png). Calculation: expected_voxels = volume_ml * 1000 / 1.3.",
+            "status": "verified"
+        },
+        {
+            "key": "report_required_fields",
+            "metadata_value": ["cerebrum_volume_ml", "ventricle_volume_ml", "bpf", "classification"],
+            "verified_value": "These 4 fields match what the task description asks the agent to include in bpf_report.json. The export_result.sh parser searches for these keys (plus common variants like 'BPF', 'brain_parenchymal_fraction', 'cerebral_volume_ml', etc.) and extracts their values. Verified that all 4 fields were correctly extracted from a simulated report.",
+            "source": "Code inspection of export_result.sh report parsing section. Live test: created report with these exact fields, all were extracted correctly. Evidence: 12_export_with_agent_outputs.txt",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights",
+            "metadata_value": {"segmentation_file_exists": 10, "two_segments_present": 15, "cerebrum_volume_plausible": 15, "ventricle_volume_plausible": 15, "bpf_calculated": 15, "classification_present": 5, "three_d_screenshot": 10, "report_complete": 10, "values_self_consistent": 5},
+            "verified_value": "Weights sum to exactly 100 (10+15+15+15+15+5+10+10+5=100). Note: verifier.py is a stub that always returns score=100. Actual verification is done externally via VLM evaluators. These weights are metadata for reference only.",
+            "source": "Arithmetic verification. Code inspection of verifier.py (stub). Evidence: 21_task_json_validation.txt",
+            "status": "verified"
+        },
+        {
+            "key": "passing_thresholds",
+            "metadata_value": {"min_score": 60, "required": ["segmentation_file_exists", "two_segments_present"]},
+            "verified_value": "Configuration values for the scoring system. Since verifier.py is a stub, these are not enforced programmatically but serve as reference for the VLM evaluation rubric.",
+            "source": "Code inspection of verifier.py (stub). These are design parameters, not empirical claims requiring verification.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "MRHead is a real human T1-weighted brain MRI (NOT synthetic), donated to the 3D Slicer project. File: 6,607,313 bytes, dimensions 256x256x130, voxel spacing 1.0x1.0x1.3 mm (voxel volume 1.3 mm^3), int16 data type, intensity range 0-279, LPS coordinate space. The MRI shows a normal adult brain with no pathology. For a correct BPF assessment: the cerebrum (brain parenchyma excluding skull, CSF, and cerebellum) should have a volume of approximately 1000-1220 mL (~770,000-940,000 voxels); the lateral ventricles (intraventricular CSF only) should have a volume of approximately 10-40 mL (~7,700-30,700 voxels); the resulting BPF = cerebrum/(cerebrum+ventricles) should be approximately 0.96-0.99 for this normal brain; and the correct classification is 'normal' (not atrophy). Standard BPF thresholds: normal >0.95, mild atrophy 0.90-0.95, moderate 0.85-0.90, severe <0.85 (note: no universally standardized clinical cutoffs exist per PMC5240949 systematic review). Brain tissue on T1-weighted MRI appears bright (high intensity ~40-100 on this scan), while CSF in ventricles appears dark (low intensity ~5-25). The cerebellum occupies the inferior-posterior portion of the brain below the tentorium cerebelli. The Segment Editor tools required (Threshold, Islands, Scissors, Logical Operators) are all confirmed available in the running 3D Slicer 5.10.0 environment. The Segment Statistics module is available for volume computation. The Python console (Ctrl+3) is accessible for writing report files. Output directory /home/ga/Documents/SlicerData/BrainAssessment/ exists with correct write permissions for user ga.",
+    "pi_confidence": "high"
+}

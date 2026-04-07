@@ -1,0 +1,36 @@
+{
+  "id": "hypertension_followup_audit@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Perform a clinical audit of hypertensive patients. Connect to the MedinTux 'DrTuxTest' MySQL database. Identify patients who have the terms 'Hypertension', 'HTA', or 'Hypertonie' in their medical notes (table 'Rubriques'). For these patients, calculate the average time interval (in days) between their medical visits (dates in 'Rubriques'). Exclude patients with fewer than 2 distinct visit dates. Export the results to a CSV file at '/home/ga/Documents/hta_audit_report.csv' with columns: 'PatientName', 'VisitCount', 'AvgDaysBetweenVisits', sorted by average interval descending.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hypertension_followup_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/hypertension_followup_audit/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/hta_audit_report.csv",
+    "ground_truth": {
+      "DUBOIS Paul": {
+        "visit_count": 3,
+        "avg_interval": 45.0
+      },
+      "ROUX Julie": {
+        "visit_count": 2,
+        "avg_interval": 10.0
+      }
+    },
+    "excluded_patients": ["PETIT Sophie", "BLANC Jean", "LEGRAND Marc"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hypertension_audit"
+    }
+  }
+}

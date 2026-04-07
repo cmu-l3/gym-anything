@@ -4,6 +4,9 @@ echo "=== Setting up mailing_list_triage ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 # DO NOT kill BlueMail -- killing it loses the account config stored in LevelDB.
 # DO NOT stop Dovecot -- it may disrupt ongoing IMAP wizard setup.
 # Maildir is manipulated directly; doveadm will re-index after changes.
@@ -63,16 +66,8 @@ echo "0" > /tmp/initial_custom_folder_count
 # Record task start timestamp
 date +%s > /tmp/task_start_timestamp
 
-# Force Dovecot to re-index the Maildir so new emails are immediately visible
-doveadm index -u ga INBOX 2>/dev/null || true
-# Also re-index custom folders if any were created
-for dir in "${MAILDIR}"/.*/; do
-    fname=$(basename "$dir" | sed 's/^\.//')
-    case "$fname" in
-        Drafts|Sent|Junk|Trash|INBOX) ;;
-        *) doveadm index -u ga "$fname" 2>/dev/null || true ;;
-    esac
-done
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # Ensure BlueMail is running (DO NOT kill -- preserves account config)
 if ! is_bluemail_running; then

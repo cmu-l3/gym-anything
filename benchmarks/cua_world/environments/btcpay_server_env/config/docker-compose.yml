@@ -1,0 +1,98 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: btcpay-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bitcoind:
+    image: btcpayserver/bitcoin:29.1
+    container_name: btcpay-bitcoind
+    restart: unless-stopped
+    environment:
+      BITCOIN_NETWORK: regtest
+      BITCOIN_WALLETDIR: "/walletdata"
+      BITCOIN_EXTRA_ARGS: |-
+        rpcuser=btcrpc
+        rpcpassword=btcrpcpass
+        rpcport=43782
+        rpcbind=0.0.0.0:43782
+        rpcallowip=0.0.0.0/0
+        port=39388
+        whitelist=0.0.0.0/0
+        zmqpubrawblock=tcp://0.0.0.0:28332
+        zmqpubrawtx=tcp://0.0.0.0:28333
+        txindex=1
+        server=1
+        fallbackfee=0.00001
+    volumes:
+      - bitcoin_datadir:/data
+      - wallet_datadir:/walletdata
+    healthcheck:
+      test: ["CMD-SHELL", "bitcoin-cli -regtest -rpcuser=btcrpc -rpcpassword=btcrpcpass -rpcport=43782 getblockchaininfo || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  nbxplorer:
+    image: nicolasdorier/nbxplorer:2.5.30
+    container_name: btcpay-nbxplorer
+    restart: unless-stopped
+    ports:
+      - "32838:32838"
+    environment:
+      NBXPLORER_NETWORK: regtest
+      NBXPLORER_BIND: 0.0.0.0:32838
+      NBXPLORER_CHAINS: btc
+      NBXPLORER_SIGNALFILESDIR: /datadir
+      NBXPLORER_POSTGRES: "Host=postgres;Port=5432;Database=nbxplorer;User ID=postgres"
+      NBXPLORER_AUTOMIGRATE: "1"
+      NBXPLORER_NOMIGRATEALIASES: "1"
+      NBXPLORER_BTCRPCURL: "http://bitcoind:43782/"
+      NBXPLORER_BTCNODEENDPOINT: "bitcoind:39388"
+      NBXPLORER_BTCRPCUSER: btcrpc
+      NBXPLORER_BTCRPCPASSWORD: btcrpcpass
+      NBXPLORER_NOAUTH: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      bitcoind:
+        condition: service_healthy
+    volumes:
+      - nbxplorer_datadir:/datadir
+
+  btcpayserver:
+    image: btcpayserver/btcpayserver:2.3.7
+    container_name: btcpay-server
+    restart: unless-stopped
+    environment:
+      BTCPAY_NETWORK: regtest
+      BTCPAY_BIND: "0.0.0.0:49392"
+      BTCPAY_POSTGRES: "Host=postgres;Port=5432;Database=btcpayserver;User ID=postgres"
+      BTCPAY_BTCEXPLORERURL: "http://nbxplorer:32838/"
+      BTCPAY_CHAINS: btc
+      BTCPAY_EXPLORERPOSTGRES: "Host=postgres;Port=5432;Database=nbxplorer;User ID=postgres"
+      BTCPAY_CHEATMODE: "true"
+    ports:
+      - "80:49392"
+    depends_on:
+      - nbxplorer
+      - postgres
+    volumes:
+      - btcpay_datadir:/datadir
+
+volumes:
+  pgdata:
+  bitcoin_datadir:
+  wallet_datadir:
+  nbxplorer_datadir:
+  btcpay_datadir:

@@ -1,0 +1,87 @@
+{
+    "task_id": "find_peak_demand@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "report_file_path",
+            "metadata_value": "/home/ga/peak_demand_report.txt",
+            "verified_value": "/home/ga/peak_demand_report.txt",
+            "source": "export_result.sh:8 and setup_task.sh:131 - file path is used to read and verify agent output",
+            "status": "verified"
+        },
+        {
+            "key": "feed_name",
+            "metadata_value": "main_panel_power",
+            "verified_value": "main_panel_power",
+            "source": "setup_task.sh:30 (FEED_NAME = 'main_panel_power') - feed created in Emoncms with this name",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_path",
+            "metadata_value": "/tmp/ground_truth_peak.json",
+            "verified_value": "/tmp/ground_truth_peak.json",
+            "source": "setup_task.sh:122-123 creates file, export_result.sh:30 reads it, verifier.py uses it for comparison",
+            "status": "verified"
+        },
+        {
+            "key": "data_duration_hours",
+            "metadata_value": "24",
+            "verified_value": "24",
+            "source": "setup_task.sh: POINTS=144, INTERVAL=600; 144 * 600 = 86,400 seconds = 24 hours",
+            "status": "verified"
+        },
+        {
+            "key": "data_point_count",
+            "metadata_value": "144",
+            "verified_value": "144",
+            "source": "setup_task.sh:32 POINTS = 144 (24 hours * 60 min/hour / 10 min/interval)",
+            "status": "verified"
+        },
+        {
+            "key": "data_interval_minutes",
+            "metadata_value": "10",
+            "verified_value": "10",
+            "source": "setup_task.sh:31 INTERVAL = 600 seconds (10 minutes)",
+            "status": "verified"
+        },
+        {
+            "key": "peak_watts_range_minimum",
+            "metadata_value": "4800.0",
+            "verified_value": "4800.0",
+            "source": "setup_task.sh:97 injected peak value = 4800.0 + random.uniform(0, 100)",
+            "status": "verified"
+        },
+        {
+            "key": "peak_watts_range_maximum",
+            "metadata_value": "4900.0",
+            "verified_value": "4900.0",
+            "source": "setup_task.sh:97 peak value = 4800.0 + random.uniform(0, 100) → up to 4900.0",
+            "status": "verified"
+        },
+        {
+            "key": "peak_time_index_range",
+            "metadata_value": "80-100",
+            "verified_value": "80-100",
+            "source": "setup_task.sh:81 peak_index = random.randint(80, 100)",
+            "status": "verified"
+        },
+        {
+            "key": "verification_watts_tolerance",
+            "metadata_value": "±1.0",
+            "verified_value": "±1.0",
+            "source": "verifier.py:66 tolerance check: abs(reported_watts - true_watts) <= 1.0",
+            "status": "verified"
+        },
+        {
+            "key": "verification_timestamp_tolerance_seconds",
+            "metadata_value": "600",
+            "verified_value": "600",
+            "source": "verifier.py:84 tolerance check: abs(reported_time - true_time) <= 600",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Task find_peak_demand@1 generates synthetic power demand data (24 hours, 144 points at 10-minute intervals) in Emoncms feed 'main_panel_power' with an injected peak of 4800-4900 Watts at a randomized timestamp (index 80-100, corresponding to 13:20-16:40 UTC). The ground truth is stored in /tmp/ground_truth_peak.json. Agent must find peak power and timestamp, write results to /home/ga/peak_demand_report.txt. Verification allows ±1.0 W tolerance for watts and ±600 seconds (one interval) for timestamp. All metadata values are correct and consistently implemented across setup, export, and verifier scripts.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,35 @@
+{
+  "id": "sam_license_audit_reconciliation@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an IT Asset Manager preparing for a software vendor audit. Using the SAM_ADMIN schema in Oracle (connected as sam_admin/SamAdmin2024 to XEPDB1), normalize discovery data from RAW_CMDB_DISCOVERY into a view named NORMALIZED_INSTALLS_VW. This view must extract the version (2-4 digits, optionally followed by 'c'), edition, and mapped product names ('Microsoft SQL Server', 'Oracle Database', 'Windows Server') while including host_id, cpu_cores, and environment_type. Create a view LICENSES_REQUIRED_VW to calculate required licenses: 0 for 'DEV' or 'TEST' environments; for 'Microsoft SQL Server', 1 per core with a minimum of 4; for 'Windows Server', 1 per core with a minimum of 16; for 'Oracle Database', a 0.5 core factor rounded up; and 1 per core for all other products. Generate a materialized view EFFECTIVE_LICENSE_POSITION_MV aggregating these requirements by product, version, and edition, joined with ENTITLEMENTS and SOFTWARE_CATALOG to show vendor, total consumed, quantity owned, variance, and financial exposure. Implement a remediation process by creating an AUDIT_ACTION_LOG table and a procedure PROC_FLAG_SHORTFALL_HOSTS that logs any host consuming licenses in a product category with a negative variance. Export the final effective license position data to /home/ga/Documents/exports/elp_audit_report.csv. Connection details: Host=localhost, Port=1521, Service=XEPDB1, User=sam_admin, Password=SamAdmin2024.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sam_license_audit_reconciliation/setup_task.sh",
+    "post_task": "/workspace/tasks/sam_license_audit_reconciliation/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/sam_audit_result.json",
+    "expected_csv_path": "/home/ga/Documents/exports/elp_audit_report.csv",
+    "occupation": "Computer Systems Analysts / IT Asset Managers",
+    "industry": "Enterprise IT / Financial Services",
+    "oracle_features": [
+      "REGEXP_SUBSTR",
+      "Materialized Views",
+      "PL/SQL",
+      "CASE statements",
+      "Analytical Math"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sam_license_audit_reconciliation"
+    }
+  }
+}

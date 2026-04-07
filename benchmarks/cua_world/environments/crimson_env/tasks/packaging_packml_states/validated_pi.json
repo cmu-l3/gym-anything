@@ -1,0 +1,131 @@
+{
+    "task_id": "packaging_packml_states@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "task_name",
+            "metadata_value": "packaging_packml_states",
+            "verified_value": "packaging_packml_states",
+            "source": "task.json",
+            "status": "verified"
+        },
+        {
+            "key": "project_filename",
+            "metadata_value": "packaging_packml.c3",
+            "verified_value": "packaging_packml.c3",
+            "source": "Explicitly defined in the prompt instructions and verifier.py checks.",
+            "status": "verified"
+        },
+        {
+            "key": "project_path",
+            "metadata_value": "C:\Users\Docker\Documents\CrimsonProjects\packaging_packml.c3",
+            "verified_value": "C:\Users\Docker\Documents\CrimsonProjects\packaging_packml.c3",
+            "source": "Explicitly defined in the prompt instructions and verified by the resulting export.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Packaging / Manufacturing",
+            "verified_value": "Packaging / Manufacturing",
+            "source": "Context of the prompt involves industrial packaging machinery (Carton Packer) HMI configuration.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Packaging and Filling Machine Operators and Tenders",
+            "verified_value": "Controls Engineer",
+            "source": "The prompt explicitly states 'You are a controls engineer configuring a high-speed Carton Packer's HMI', which contradicts the metadata's claim of an operator occupation.",
+            "status": "contradicted"
+        },
+        {
+            "key": "standard",
+            "metadata_value": "ISA-TR88.00.02 (OMAC PackML)",
+            "verified_value": "Custom / Non-standard mappings",
+            "source": "The integer-to-state mappings required by the task (e.g., 1=IDLE, 3=EXECUTE) fundamentally contradict the official ISA-TR88.00.02 OMAC PackML standard (which dictates 1=Clearing, 4=Idle, 6=Execute).",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_tags",
+            "metadata_value": [
+                "Main_State",
+                "Control_Mode",
+                "Fault_Type"
+            ],
+            "verified_value": [
+                "Main_State",
+                "Control_Mode",
+                "Fault_Type"
+            ],
+            "source": "verifier.py strictly checks for the precise existence of these three specific Data Tags in the exported project.",
+            "status": "verified"
+        },
+        {
+            "key": "excluded_tags",
+            "metadata_value": [
+                "Palletizer_Mode"
+            ],
+            "verified_value": [
+                "Palletizer_Mode"
+            ],
+            "source": "verifier.py strictly fails the agent's submission if Palletizer_Mode is present in the exported project.",
+            "status": "verified"
+        },
+        {
+            "key": "states",
+            "metadata_value": {
+                "Main_State": {
+                    "0": "UNDEFINED",
+                    "1": "IDLE",
+                    "2": "STARTING",
+                    "3": "EXECUTE",
+                    "4": "SUSPENDED",
+                    "5": "STOPPED",
+                    "6": "ABORTED"
+                },
+                "Control_Mode": {
+                    "0": "INVALID",
+                    "1": "PRODUCTION",
+                    "2": "MAINTENANCE",
+                    "3": "MANUAL"
+                },
+                "Fault_Type": {
+                    "0": "NONE",
+                    "1": "JAM_INFEED",
+                    "2": "JAM_OUTFEED",
+                    "3": "LOW_CARTON",
+                    "4": "GUARD_OPEN"
+                }
+            },
+            "verified_value": {
+                "Main_State": {
+                    "0": "UNDEFINED",
+                    "1": "IDLE",
+                    "2": "STARTING",
+                    "3": "EXECUTE",
+                    "4": "SUSPENDED",
+                    "5": "STOPPED",
+                    "6": "ABORTED"
+                },
+                "Control_Mode": {
+                    "0": "INVALID",
+                    "1": "PRODUCTION",
+                    "2": "MAINTENANCE",
+                    "3": "MANUAL"
+                },
+                "Fault_Type": {
+                    "0": "NONE",
+                    "1": "JAM_INFEED",
+                    "2": "JAM_OUTFEED",
+                    "3": "LOW_CARTON",
+                    "4": "GUARD_OPEN"
+                }
+            },
+            "source": "These are the exact dictionary mapping values hardcoded in verifier.py that the agent's exported Multi-State format string arrays are strictly scored against, regardless of the fact that they contradict the official OMAC standard.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "I confirmed that the task requires the generative configuration of 3 specific PackML data tags (Main_State, Control_Mode, and Fault_Type) using Multi-State formatting in Crimson 3.0, while explicitly prohibiting the configuration of 'Palletizer_Mode'. I discovered that the required state mappings in the task (e.g., Main_State 1=IDLE, 3=EXECUTE) contradict the official ISA-TR88.00.02 (OMAC PackML) standard explicitly claimed in the metadata, where 1=Clearing, 4=Idle, and 6=Execute. Furthermore, I identified a critical defect: the task relies on 'setup_task.ps1' to generate the reference CSV and OMAC text files on the VM desktop and 'export_result.ps1' to extract the Crimson output file, but both of these scripts are entirely missing from the environment. Consequently, the agent cannot access the required reference files, and the verifier will perpetually fail with a file not found error, making the task programmatically unscorable.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,34 @@
+{
+  "id": "batch_cronjob_governance@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "The 'data-platform' namespace has two misconfigured CronJobs causing cluster instability. Reconfigure the 'hourly-backup' CronJob to forbid concurrent executions, retain only the 2 most recent successful and 1 failed job history records, and enforce a 3600-second timeout on the Job execution. Suspend the 'legacy-export' CronJob without deleting the resource. Access the environment via the Rancher UI (https://localhost, admin / Admin12345678!) or the terminal (kubectl).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/batch_cronjob_governance/setup_task.sh",
+    "post_task": "/workspace/tasks/batch_cronjob_governance/export_result.sh"
+  },
+  "metadata": {
+    "target_namespace": "data-platform",
+    "hourly_backup_expected": {
+      "concurrencyPolicy": "Forbid",
+      "successfulJobsHistoryLimit": 2,
+      "failedJobsHistoryLimit": 1,
+      "activeDeadlineSeconds": 3600
+    },
+    "legacy_export_expected": {
+      "suspend": true
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_batch_cronjob_governance"
+    }
+  }
+}

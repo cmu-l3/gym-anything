@@ -1,0 +1,115 @@
+{
+  "task_id": "encrypted_c2_dns_exfiltration@1",
+  "dataset": null,
+  "case_id": null,
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "pcap_path",
+      "metadata_value": "/home/ga/Documents/captures/corporate_traffic.pcapng",
+      "verified_value": "/home/ga/Documents/captures/corporate_traffic.pcapng",
+      "source": "Cross-referenced setup_task.sh line 466 (cp command) and export_result.sh. Verified file exists with correct permissions (644, owned by ga) during live testing. File size was 15654 bytes in the test run.",
+      "status": "verified"
+    },
+    {
+      "key": "keylog_path",
+      "metadata_value": "/home/ga/Documents/captures/tls_keys.log",
+      "verified_value": "/home/ga/Documents/captures/tls_keys.log",
+      "source": "Cross-referenced setup_task.sh line 467 (cp command). Verified file exists with correct permissions during live testing. Contains NSS Key Log Format entries for 7 TLS sessions (4 HTTPS servers x multiple requests).",
+      "status": "verified"
+    },
+    {
+      "key": "output_path",
+      "metadata_value": "/home/ga/Documents/forensic_evidence.json",
+      "verified_value": "/home/ga/Documents/forensic_evidence.json",
+      "source": "Cross-referenced task description, export_result.sh line 14, and verifier.py. All three reference the same path. Verified during live testing that the ga user can write to ~/Documents/.",
+      "status": "verified"
+    },
+    {
+      "key": "c2_server_sni",
+      "metadata_value": null,
+      "verified_value": "secure-updates.corp-cdn.net",
+      "source": "Hardcoded in setup_task.sh line 44 (C2_SNI variable), /etc/hosts entry at line 112, and curl --resolve at line 312-313. The C2 HTTPS server binds to 10.0.1.20:443 with CN=secure-updates.corp-cdn.net. Verified via live tshark: 'tshark -r corporate_traffic.pcapng -Y tls.handshake.extensions_server_name -T fields -e tls.handshake.extensions_server_name' shows this SNI in Client Hello packets to 10.0.1.20.",
+      "status": "verified"
+    },
+    {
+      "key": "c2_command_text",
+      "metadata_value": null,
+      "verified_value": "{\"action\": \"exfiltrate\", \"method\": \"dns_tunnel\", \"domain\": \"sync-telemetry.analytics-cdn.net\", \"xor_key\": \"k7Xm9pQ2\", \"encoding\": \"base64\"}",
+      "source": "The C2 server Python script (setup_task.sh lines 137-161) uses json.dumps() with a dict literal. Python json.dumps default formatting adds spaces after ':' and ','. Independently verified by running json.dumps({...}) locally. Also verified during live testing by running 'tshark -r corporate_traffic.pcapng -o tls.keylog_file:tls_keys.log -Y http.response -T fields -e http.file_data' which showed the decrypted HTTP response body matching this exact JSON string.",
+      "status": "verified"
+    },
+    {
+      "key": "exfil_domain",
+      "metadata_value": null,
+      "verified_value": "sync-telemetry.analytics-cdn.net",
+      "source": "Hardcoded in setup_task.sh line 43 (EXFIL_DOMAIN variable). Used in the DNS tunneling Python script (lines 352, 372). Also embedded in the C2 command JSON 'domain' field. Verified during live testing: tshark filter 'dns.qry.name contains sync-telemetry.analytics-cdn.net' matched 21 DNS query packets.",
+      "status": "verified"
+    },
+    {
+      "key": "exfil_source_ip",
+      "metadata_value": null,
+      "verified_value": "10.0.1.10",
+      "source": "The DNS tunneling Python script (setup_task.sh line 367) explicitly binds to src_ip='10.0.1.10'. All DNS tunnel queries originate from this IP. Verified during live testing: tshark extraction of ip.src for DNS tunnel queries all showed 10.0.1.10.",
+      "status": "verified"
+    },
+    {
+      "key": "decoded_sha256",
+      "metadata_value": null,
+      "verified_value": "5d27337ca43271af60a42bf93491e63cec9714c805eb78cc02347c3a8c154baa",
+      "source": "Independently computed by running hashlib.sha256() on the exact CSV heredoc content from setup_task.sh lines 23-37. The CSV is 775 bytes, 13 lines (1 header + 12 data rows). Round-trip verified: CSV -> XOR(key=k7Xm9pQ2) -> base64 -> URL-safe -> split into 21 chunks -> reassemble -> URL-unsafe -> base64 decode -> XOR decrypt -> SHA-256 matches. Also verified end-to-end inside the live VM during testing.",
+      "status": "verified"
+    },
+    {
+      "key": "decoded_first_line",
+      "metadata_value": null,
+      "verified_value": "id,first_name,last_name,email,ssn,department",
+      "source": "First line of the CSV heredoc in setup_task.sh line 24. Independently verified by reading the heredoc content and splitting on newline. This is the CSV header row with 6 columns: id, first_name, last_name, email, ssn, department.",
+      "status": "verified"
+    },
+    {
+      "key": "dns_tunnel_query_count",
+      "metadata_value": null,
+      "verified_value": 21,
+      "source": "The CSV is 775 bytes. After XOR encryption and base64 encoding, the URL-safe encoded string is 1034 characters. Split into 50-char chunks yields ceil(1034/50) = 21 chunks, so 21 DNS queries are sent. Verified independently by running the encode logic locally (got 21 chunks) and during live testing via tshark count of DNS queries containing the exfil domain.",
+      "status": "verified"
+    },
+    {
+      "key": "xor_key",
+      "metadata_value": null,
+      "verified_value": "k7Xm9pQ2",
+      "source": "Hardcoded in setup_task.sh line 42 (XOR_KEY variable), in the Python encode script (line 59), and in the C2 server response JSON. The key is 8 bytes. Verified that XOR with this key is reversible (round-trip test passed).",
+      "status": "verified"
+    },
+    {
+      "key": "dns_chunk_format",
+      "metadata_value": null,
+      "verified_value": "<3-digit-seq>.<url-safe-base64-chunk>.<exfil_domain>",
+      "source": "DNS tunneling script at setup_task.sh line 372: query_name = f'{i:03d}.{chunk}.{domain}'. Sequence numbers are zero-padded 3-digit integers (000, 001, ..., 020). Chunks use URL-safe base64 (+ replaced with -, / replaced with _, = stripped). Verified during live testing by examining DNS query names in tshark output.",
+      "status": "verified"
+    },
+    {
+      "key": "network_topology",
+      "metadata_value": null,
+      "verified_value": "10.0.1.10=workstation, 10.0.1.20=C2(secure-updates.corp-cdn.net), 10.0.1.30=legit(cdn.jquery.com), 10.0.1.40=legit(api.github.com), 10.0.1.50=legit(fonts.googleapis.com), 10.0.1.60=DNS",
+      "source": "Loopback aliases configured in setup_task.sh lines 100-105. /etc/hosts entries at lines 110-116. All verified via live testing (ip addr show lo showed all aliases).",
+      "status": "verified"
+    },
+    {
+      "key": "total_packets_in_capture",
+      "metadata_value": null,
+      "verified_value": "approximately 167 packets",
+      "source": "Verified during live testing: tshark -r corporate_traffic.pcapng | wc -l returned 167. This includes ~100 TCP/TLS packets for 7 HTTPS sessions, ~26 DNS packets (13 queries + 13 responses for normal DNS), ~42 DNS packets (21 queries + 21 responses for tunneling), plus some TCP RST/FIN packets.",
+      "status": "verified"
+    },
+    {
+      "key": "tls_sessions_count",
+      "metadata_value": null,
+      "verified_value": "7 HTTPS sessions to 4 different servers",
+      "source": "Setup script makes 7 curl requests: 3 in phase 1 (cdn.jquery.com, api.github.com, fonts.googleapis.com), 2 in phase 3 (cdn.jquery.com again, api.github.com again), 1 C2 in phase 4 (secure-updates.corp-cdn.net), 1 in phase 7 (fonts.googleapis.com again). Verified via live testing: tshark SNI extraction showed 4 unique SNIs with 7 total Client Hello packets.",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "This is a synthetic forensic investigation task. The capture at ~/Documents/captures/corporate_traffic.pcapng contains approximately 167 packets of mixed legitimate and malicious traffic on loopback aliases. A TLS session key log at ~/Documents/captures/tls_keys.log enables decryption of all 7 HTTPS sessions across 4 servers. The C2 server has SNI 'secure-updates.corp-cdn.net' (IP 10.0.1.20). After TLS decryption, the C2 HTTP response body contains the exact JSON: {\"action\": \"exfiltrate\", \"method\": \"dns_tunnel\", \"domain\": \"sync-telemetry.analytics-cdn.net\", \"xor_key\": \"k7Xm9pQ2\", \"encoding\": \"base64\"}. Three legitimate HTTPS servers are cdn.jquery.com (10.0.1.30), api.github.com (10.0.1.40), and fonts.googleapis.com (10.0.1.50). DNS tunneling queries go to domain 'sync-telemetry.analytics-cdn.net' from source IP 10.0.1.10, totaling 21 queries. Each query has format <3-digit-seq>.<url-safe-base64-chunk>.<domain> (e.g., '000.<chunk>.sync-telemetry.analytics-cdn.net'). The encoded data uses URL-safe base64 where + is replaced with -, / with _, and = padding is stripped. Before base64, the data is XOR-encrypted with key 'k7Xm9pQ2'. To decode: extract subdomain labels, sort by sequence number, concatenate, reverse URL-safe chars (- to +, _ to /), add base64 padding, base64 decode, XOR decrypt with key. The decoded data is a 775-byte CSV with header 'id,first_name,last_name,email,ssn,department' and 12 employee records. Its SHA-256 hash is 5d27337ca43271af60a42bf93491e63cec9714c805eb78cc02347c3a8c154baa. Normal DNS queries (13 total) go to domains like google.com, weather.com, stackoverflow.com, etc. All traffic originates from 10.0.1.10. The DNS server at 10.0.1.60 responds to all queries with IP 10.0.1.60.",
+  "pi_confidence": "high"
+}

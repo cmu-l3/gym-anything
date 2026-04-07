@@ -1,0 +1,68 @@
+{
+  "id": "packaging_oee_calculation_tags@1",
+  "version": "1.0",
+  "env_id": "crimson_env@0.1",
+  "description": "You are the packaging automation engineer for a corrugated box manufacturing plant responsible for adding real-time OEE metrics to a Flexo Folder Gluer's local HMI in Red Lion Crimson 3.0. Create five internal integer tags named 'PLC_GoodCount', 'PLC_ScrapCount', 'PLC_RunTimeMin', 'PLC_PlannedMin', and 'PLC_IdealCycleMin'. Create five calculated float tags named 'TotalParts', 'Availability', 'Performance', 'Quality', and 'OEE_Total' using the mathematical formulas specified in the 'tpm_oee_formulas.txt' reference document located in the CrimsonTasks folder on the Desktop. Save the project as 'flexo_gluer_oee.c3' in C:\\Users\\Docker\\Documents\\CrimsonProjects\\. Login credentials: Docker / GymAnything123!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\packaging_oee_calculation_tags\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\packaging_oee_calculation_tags\\export_result.ps1"
+  },
+  "metadata": {
+    "task_name": "packaging_oee_calculation_tags",
+    "project_filename": "flexo_gluer_oee.c3",
+    "project_path": "C:\\Users\\Docker\\Documents\\CrimsonProjects\\flexo_gluer_oee.c3",
+    "industry": "Packaging / Corrugated Box Manufacturing",
+    "occupation": "Automation Engineer",
+    "base_tags": [
+      "PLC_GoodCount",
+      "PLC_ScrapCount",
+      "PLC_RunTimeMin",
+      "PLC_PlannedMin",
+      "PLC_IdealCycleMin"
+    ],
+    "calc_tags": [
+      "TotalParts",
+      "Availability",
+      "Performance",
+      "Quality",
+      "OEE_Total"
+    ],
+    "acceptable_formulas": {
+      "totalparts": [
+        "plc_goodcount+plc_scrapcount"
+      ],
+      "availability": [
+        "(plc_runtimemin/plc_plannedmin)*100.0",
+        "(plc_runtimemin/plc_plannedmin)*100",
+        "plc_runtimemin/plc_plannedmin*100.0"
+      ],
+      "performance": [
+        "((totalparts*plc_idealcyclemin)/plc_runtimemin)*100.0",
+        "(totalparts*plc_idealcyclemin)/plc_runtimemin*100.0",
+        "totalparts*plc_idealcyclemin/plc_runtimemin*100.0"
+      ],
+      "quality": [
+        "(plc_goodcount/totalparts)*100.0",
+        "plc_goodcount/totalparts*100.0",
+        "(plc_goodcount/totalparts)*100"
+      ],
+      "oee_total": [
+        "(availability*performance*quality)/10000.0",
+        "availability*performance*quality/10000.0",
+        "(availability*performance*quality)/10000"
+      ]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_packaging_oee_calculation_tags"
+    }
+  }
+}

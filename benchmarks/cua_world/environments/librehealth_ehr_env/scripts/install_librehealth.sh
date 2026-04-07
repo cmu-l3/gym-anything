@@ -55,14 +55,26 @@ pip3 install --no-cache-dir mysql-connector-python PyMySQL 2>/dev/null || true
 # Install gawk (required by LibreHealth dev scripts)
 apt-get install -y gawk
 
-# Pre-pull the LibreHealth EHR Docker image to avoid timeout during setup
+# Pre-pull Docker images with Google mirror fallback (avoids Docker Hub rate limits)
 echo "Pre-pulling LibreHealth EHR Docker images..."
 docker pull registry.gitlab.com/librehealth/ehr/lh-ehr:latest 2>/dev/null || \
     echo "WARNING: Could not pre-pull lh-ehr image, will pull during setup"
-docker pull mariadb:10.3 2>/dev/null || \
-    echo "WARNING: Could not pre-pull mariadb image, will pull during setup"
-docker pull adminer:4 2>/dev/null || \
-    echo "WARNING: Could not pre-pull adminer image, will pull during setup"
+
+# mariadb - try Docker Hub first, then Google mirror
+docker pull mariadb:10.3 2>/dev/null || {
+    echo "Docker Hub rate limited, trying Google mirror for mariadb..."
+    docker pull mirror.gcr.io/library/mariadb:10.3 2>/dev/null && \
+        docker tag mirror.gcr.io/library/mariadb:10.3 mariadb:10.3 || \
+        echo "WARNING: Could not pre-pull mariadb image"
+}
+
+# adminer - try Docker Hub first, then Google mirror
+docker pull adminer:4 2>/dev/null || {
+    echo "Docker Hub rate limited, trying Google mirror for adminer..."
+    docker pull mirror.gcr.io/library/adminer:4 2>/dev/null && \
+        docker tag mirror.gcr.io/library/adminer:4 adminer:4 || \
+        echo "WARNING: Could not pre-pull adminer image"
+}
 
 # Clean up package cache
 apt-get clean

@@ -1,0 +1,34 @@
+{
+  "id": "museum_collection_logistics@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Process museum artifact data for an upcoming exhibition using WPS Spreadsheet. Using the raw artwork records in /home/ga/Documents/moma_exhibition_subset.csv, create a workbook with a sheet named \"Collection\" that includes three new columns: \"Crate_Type\", \"Conservation_Flag\", and \"Handling_Category\". \"Crate_Type\" is \"Oversize\" if Height_cm (Column I) or Width_cm (Column J) is greater than 120, otherwise \"Standard\". \"Conservation_Flag\" is \"Review\" if the Medium (Column D) contains \"paper\" (case-insensitive), otherwise \"OK\". \"Handling_Category\" is \"Heavy\" if Weight_kg (Column L) is greater than 50, \"Fragile\" if Classification (Column F) is \"Sculpture\", and \"Standard\" otherwise. Additionally, create a \"Logistics Dashboard\" sheet with a summary table (A1:B6) showing the counts of Total Items, Oversize Crates, Items for Review, Heavy Items, and Fragile Items. Format the header rows as bold, apply an auto-filter to the \"Collection\" sheet, and save the final workbook to /home/ga/Documents/moma_logistics.xlsx.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/museum_collection_logistics/setup_task.sh",
+    "post_task": "/workspace/tasks/museum_collection_logistics/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/moma_logistics.xlsx",
+    "required_sheets": [
+      "Collection",
+      "Logistics Dashboard"
+    ],
+    "required_headers": [
+      "Crate_Type",
+      "Conservation_Flag",
+      "Handling_Category"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_museum_logistics"
+    }
+  }
+}

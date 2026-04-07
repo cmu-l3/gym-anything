@@ -1,0 +1,36 @@
+{
+  "id": "automated_remediation_profiles@1",
+  "version": "1.0",
+  "env_id": "manageengine_opmanager_env@0.1",
+  "description": "The NOC is implementing automated self-healing for common alerts. A remediation playbook has been placed at ~/Desktop/remediation_playbook.txt. Read this playbook, create the three required shell scripts in /opt/remediation-scripts/ (make sure they are executable), and then configure the three corresponding 'Run Program' notification profiles in OpManager to trigger them. OpManager is accessible at http://localhost:8060 (admin/Admin@123).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/automated_remediation_profiles/setup_task.sh",
+    "post_task": "/workspace/tasks/automated_remediation_profiles/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/automated_remediation_result.json",
+    "script_dir": "/opt/remediation-scripts",
+    "scripts": [
+      "restart_snmpd.sh",
+      "clear_disk_cache.sh",
+      "check_service_health.sh"
+    ],
+    "profiles": [
+      "Auto-Remediate-SNMP-Failure",
+      "Auto-Remediate-Disk-Usage",
+      "Auto-Remediate-Device-Down"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_automated_remediation_profiles"
+    }
+  }
+}

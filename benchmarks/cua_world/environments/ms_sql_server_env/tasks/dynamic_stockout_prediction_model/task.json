@@ -1,0 +1,31 @@
+{
+  "id": "dynamic_stockout_prediction_model@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "As a Supply Chain Manager at Adventure Works Cycles, identify products at risk of stocking out in the AdventureWorks2022 database based on 2013 sales velocity. Develop a stockout prediction system by creating a view 'Production.vw_ProductStockoutProjection' for all finished goods (FinishedGoodsFlag = 1) that calculates CurrentInventory (summed from Production.ProductInventory), TotalSales2013 (summed OrderQty from Sales.SalesOrderDetail for 2013), AvgDailyBurnRate (TotalSales2013/365.0), EstimatedDaysSupply (CurrentInventory/AvgDailyBurnRate), and ProjectedStockoutDate (EstimatedDaysSupply rounded down added to the anchor date '2014-01-01'). Ensure the view handles nulls and zero burn rates correctly. Additionally, create a stored procedure 'Production.usp_GetCriticalStockouts' that accepts an integer parameter @RunwayDays (default 30) to filter the view for products where EstimatedDaysSupply is less than or equal to the parameter, ordered by EstimatedDaysSupply then ProductID. Export the results of this procedure using @RunwayDays = 60 to /home/ga/Documents/critical_stockouts.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dynamic_stockout_prediction_model/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/dynamic_stockout_prediction_model/export_result.sh"
+  },
+  "metadata": {
+    "expected_view_name": "vw_ProductStockoutProjection",
+    "expected_proc_name": "usp_GetCriticalStockouts",
+    "expected_csv_path": "/home/ga/Documents/critical_stockouts.csv",
+    "anchor_date": "2014-01-01",
+    "sample_product_id": 707,
+    "sql_hint": "Use DATEADD for date projection and ISNULL/COALESCE for handling nulls."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_stockout_prediction"
+    }
+  }
+}

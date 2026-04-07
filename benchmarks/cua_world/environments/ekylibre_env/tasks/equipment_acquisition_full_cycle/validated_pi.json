@@ -1,0 +1,150 @@
+{
+    "task_id": "equipment_acquisition_full_cycle@1",
+    "dataset": "GAEC JOULIN farm demo dataset (Charente-Maritime, France) from https://github.com/ekylibre/first_run-demo.git",
+    "case_id": "demo_tenant_ekylibre",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "ekylibre_url",
+            "metadata_value": "http://demo.ekylibre.farm:3000",
+            "verified_value": "http://demo.ekylibre.farm:3000",
+            "source": "Confirmed in setup_ekylibre.sh lines 10,23,151 (hosts entry 127.0.0.1 demo.ekylibre.farm) and task_utils.sh line 6. The hostname is mapped to localhost via /etc/hosts inside the VM. detect_ekylibre_url() tries this URL first among 5 fallback options.",
+            "status": "verified"
+        },
+        {
+            "key": "admin_email",
+            "metadata_value": "admin@ekylibre.org",
+            "verified_value": "admin@ekylibre.org",
+            "source": "Confirmed in task_utils.sh line 8 (ADMIN_EMAIL variable). Used consistently across all 27 existing ekylibre tasks. The account is created by the first_run-demo seed data from the official Ekylibre demo repository.",
+            "status": "verified"
+        },
+        {
+            "key": "admin_password",
+            "metadata_value": "12345678",
+            "verified_value": "12345678",
+            "source": "Confirmed in task_utils.sh line 9 (ADMIN_PASSWORD variable). Used consistently across all 27 existing ekylibre tasks and referenced in their task descriptions.",
+            "status": "verified"
+        },
+        {
+            "key": "equipment_model_real",
+            "metadata_value": "Claas Lexion 770",
+            "verified_value": "Claas Lexion 770",
+            "source": "Web search confirms the Claas Lexion 770 is a real combine harvester manufactured by Claas (HQ: Harsewinkel, Germany). Multiple production generations exist (2010-2019) with 405-430 kW engine output. Verified via LECTURA Specs and Wikipedia.",
+            "status": "verified"
+        },
+        {
+            "key": "equipment_price_realistic",
+            "metadata_value": "285000.00 EUR HT",
+            "verified_value": "285000.00 EUR HT",
+            "source": "Used Lexion 770 machines sell for EUR 74,000-244,000 (Agroline, Tractorpool). New bare-machine price of EUR 285,000 HT falls within the plausible range for a new wheeled Lexion 770 without header. Market prices are not publicly listed by Claas, but the value is consistent with similar high-end combine harvesters.",
+            "status": "verified"
+        },
+        {
+            "key": "tva_rate",
+            "metadata_value": "20%",
+            "verified_value": "20%",
+            "source": "Standard French TVA rate is 20% for general goods and industrial/agricultural equipment. Confirmed via Avalara French VAT guide and French tax code. No reduced rate applies to combine harvesters.",
+            "status": "verified"
+        },
+        {
+            "key": "ttc_amount_calculation",
+            "metadata_value": "342000.00 EUR TTC",
+            "verified_value": "342000.00 EUR TTC",
+            "source": "Arithmetic verification: 285,000.00 * 1.20 = 342,000.00. Python computation confirms: 285000 * 1.20 = 342000.0. Correct.",
+            "status": "verified"
+        },
+        {
+            "key": "depreciation_method",
+            "metadata_value": "linear (straight-line)",
+            "verified_value": "linear",
+            "source": "Linear (straight-line) depreciation is the standard method for agricultural equipment under French GAAP. Ekylibre's fixed asset form supports 'linear' as a depreciation_method value, confirmed by the existing create_fixed_asset task's verifier.py which checks method == 'linear'.",
+            "status": "verified"
+        },
+        {
+            "key": "depreciation_duration",
+            "metadata_value": "10 years (120 months)",
+            "verified_value": "10 years",
+            "source": "French tax guidance (Direction Generale des Finances Publiques, BOI-BA-BASE-20-30-10-20) specifies 5-10% annual depreciation for large agricultural machinery, implying 10-20 year useful life. 10 years (10% per year) is the standard lower bound. Confirmed via courtier-agricole.fr and bofip.impots.gouv.fr.",
+            "status": "verified"
+        },
+        {
+            "key": "asset_account_2154",
+            "metadata_value": "2154",
+            "verified_value": "2154",
+            "source": "French Plan Comptable General (PCG) account 2154 = 'Materiel industriel' — records acquisition cost of tangible fixed assets (machinery, equipment). Confirmed via Pennylane.com PCG reference. Also verified by the existing create_fixed_asset task which uses the same account (metadata: target_asset_account_prefix=2154).",
+            "status": "verified"
+        },
+        {
+            "key": "depreciation_account_28154",
+            "metadata_value": "28154",
+            "verified_value": "28154",
+            "source": "French PCG account 28154 = 'Amortissements du materiel industriel' — accumulated depreciation contra-account for 2154. Credited when annual depreciation is booked. Confirmed via Pennylane.com PCG reference. Also verified by existing create_fixed_asset task (metadata: target_allocation_account_prefix=28154).",
+            "status": "verified"
+        },
+        {
+            "key": "expense_account_68112",
+            "metadata_value": "68112",
+            "verified_value": "68112",
+            "source": "French PCG account 68112 = 'Dotations aux amortissements sur immobilisations corporelles' — income statement expense account debited when tangible asset depreciation is recorded. Confirmed via Pennylane.com and l-expert-comptable.com PCG references. Also verified by existing create_fixed_asset task (metadata: target_expense_account_prefix=68112).",
+            "status": "verified"
+        },
+        {
+            "key": "supplier_siret_format",
+            "metadata_value": "38497215600042",
+            "verified_value": "38497215600042 (valid format, fictional entity)",
+            "source": "SIRET must be exactly 14 digits: SIREN (9) + NIC (5). '38497215600042' has 14 digits, SIREN=384972156, NIC=00042 — structurally valid. However, Luhn checksum test FAILS (sum=58, not divisible by 10). This is a fictional SIRET for a fictional entity the agent creates. The real Claas France SAS has a different SIRET. This is acceptable since the task requires the agent to CREATE this entity with the specified SIRET.",
+            "status": "verified"
+        },
+        {
+            "key": "supplier_name_plausible",
+            "metadata_value": "Claas France SAS",
+            "verified_value": "Claas France SAS",
+            "source": "Bloomberg Markets lists 'CLAAS France SAS' as a real legal entity (French subsidiary of Claas Group). Claas also operates 'Usines Claas France SAS' (manufacturing in Metz and Le Mans). The name is plausible and based on a real company structure, though the SIRET and address are fictional.",
+            "status": "verified"
+        },
+        {
+            "key": "supplier_city_postal_code",
+            "metadata_value": "51100 Reims",
+            "verified_value": "51100 Reims",
+            "source": "51100 is a verified postal code for Reims, Marne department, Grand Est region, France. Confirmed via multiple postal code databases (Cybo, postalpinzipcodes.com). Note: the real Claas France is not headquartered in Reims (it is in Velizy-Villacoublay or Metz), so the address is fictional but the city/postal code combination is valid.",
+            "status": "verified"
+        },
+        {
+            "key": "french_term_moissonneuse_batteuse",
+            "metadata_value": "Moissonneuse-batteuse Claas Lexion 770",
+            "verified_value": "Moissonneuse-batteuse = combine harvester",
+            "source": "Confirmed via Cambridge Dictionary and Collins Dictionary. 'Moissonneuse' (reaper, from 'moisson'=harvest) + 'batteuse' (thresher, from 'battre'=to thresh). Standard French agricultural term.",
+            "status": "verified"
+        },
+        {
+            "key": "depreciation_end_date",
+            "metadata_value": "2034-09-01 (10 years from 2024-09-01)",
+            "verified_value": "2034-08-31 or 2034-09-01",
+            "source": "Python date calculation: 10 years from 2024-09-01 = 2034-09-01. Ekylibre's fixed_assets table stores stopped_on; the existing create_fixed_asset verifier checks '2032' in stopped_on for a 7-year asset starting 2025-01-15 (expected end ~2032-01-14). For our 10-year asset starting 2024-09-01, stopped_on should contain '2034'. Ekylibre may use 2034-08-31 (day before anniversary) or 2034-09-01.",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "GAEC JOULIN demo tenant",
+            "verified_value": "https://github.com/ekylibre/first_run-demo.git (GAEC JOULIN farm, Charente-Maritime, France)",
+            "source": "setup_ekylibre.sh lines 64-65 clone the official Ekylibre demo data repository. The demo contains a real French agricultural farm (GAEC JOULIN) with 99 supplier entities, 171 bovines, land parcels, and accounting data. Loaded via 'bundle exec rake first_run' with folder=demo.",
+            "status": "verified"
+        },
+        {
+            "key": "invoice_validation_generates_journal_entries",
+            "metadata_value": "Validating invoice generates accounting journal entries",
+            "verified_value": "Confirmed",
+            "source": "The existing purchase_invoice_multi_supplier_entry task's export_result.sh (lines 62-67) counts new journal_entries after task start, and its verifier.py (lines 14-15) awards 15 points for '>=1 new journal entry generated'. This confirms that invoice validation in Ekylibre triggers automatic journal entry creation.",
+            "status": "verified"
+        },
+        {
+            "key": "db_tables_exist",
+            "metadata_value": "entities, purchases, fixed_assets, outgoing_payments, journal_entries",
+            "verified_value": "All 5 tables confirmed",
+            "source": "All 5 tables are used in existing task export scripts: entities (register_supplier_credit_note, record_outgoing_payment), purchases with type='PurchaseInvoice' (purchase_invoice_multi_supplier_entry), fixed_assets (create_fixed_asset), outgoing_payments (record_outgoing_payment), journal_entries (purchase_invoice_multi_supplier_entry). Each table is queried successfully in those tasks' export_result.sh scripts.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task uses the GAEC JOULIN demo farm data (Charente-Maritime, France) loaded from https://github.com/ekylibre/first_run-demo.git. The Ekylibre web application runs at http://demo.ekylibre.farm:3000 (mapped to localhost via /etc/hosts). Login credentials are admin@ekylibre.org / 12345678. The agent must complete 4 operations across 4 Ekylibre modules starting from the dashboard (/backend): (1) Create supplier entity 'Claas France SAS' with SIRET 38497215600042 at '2 rue de l'Industrie, 51100 Reims' — this is a fictional entity the agent creates; the Claas Lexion 770 is a real combine harvester model. (2) Create a purchase invoice dated 2024-09-01, reference FA-2024-CLAAS-770, pretax amount EUR 285,000.00 with 20% TVA (standard French rate), then validate/confirm the invoice which generates automatic accounting journal entries. (3) Register a fixed asset named 'Claas Lexion 770' with gross/depreciable amount EUR 285,000, linear depreciation over 10 years (stopped_on should contain '2034'), using French PCG accounts: 2154 (Materiel industriel), 28154 (Amortissements du materiel), 68112 (Dotations aux amortissements sur immobilisations corporelles). (4) Record an outgoing payment of EUR 342,000.00 TTC (285,000 * 1.20) to Claas France SAS dated 2024-10-15 via bank transfer ('Virement bancaire'). The export_result.sh searches for entities with name ILIKE '%claas%', invoices by recency after task start, fixed assets with name ILIKE '%lexion%' OR '%claas%', and payments by recency. All DB tables (entities, purchases, fixed_assets, outgoing_payments, journal_entries) are confirmed to exist in the demo schema.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,38 @@
+{
+    "task_id": "high_risk_patient_clinical_dossier@1",
+    "dataset": "worldvista/vehu",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "output_file",
+            "metadata_value": "/home/ga/Desktop/patient_risk_dossier.txt",
+            "verified_value": "/home/ga/Desktop/patient_risk_dossier.txt",
+            "source": "Confirmed consistent across task.json metadata, setup_task.sh (rm -f on this path), export_result.sh (OUTPUT_FILE variable), and verifier.py (OUTPUT_FILE constant). Live test confirmed the Desktop directory exists with write permissions for user 'ga'.",
+            "status": "verified"
+        },
+        {
+            "key": "risk_score_formula",
+            "metadata_value": "(prescription_count * 2) + (allergy_count * 3)",
+            "verified_value": "(prescription_count * 2) + (allergy_count * 3)",
+            "source": "Formula is consistent across task.json description, task.json metadata, verifier.py ground truth computation (line: 'risk_scores = {dfn: (rx_counts.get(dfn, 0) * 2) + (allergy_counts.get(dfn, 0) * 3)}'), and the MUMPS ground truth routine (riskcalc, line: 'S SCORE=(RX*2)+(AL*3)'). Independently executed against live VEHU database to produce verified rankings.",
+            "status": "verified"
+        },
+        {
+            "key": "globals_required",
+            "metadata_value": "[\"^PS(55)\", \"^GMR(120.8)\", \"^DPT\", \"^DIC(21)\", \"^DIC(8)\", \"^DIC(31)\", \"^PSRX\", \"^PSDRUG\"]",
+            "verified_value": "[\"^PS(55)\", \"^GMR(120.8)\", \"^DPT\", \"^DIC(21)\", \"^DIC(8)\", \"^DIC(31)\", \"^PSRX\", \"^PSDRUG\"]",
+            "source": "Each global independently verified to exist and contain data in live VEHU environment. ^PS(55): header='PHARMACY PATIENT^55P^108^526', first DFN=1. ^GMR(120.8): header='PATIENT ALLERGIES^120.8IPs^1222^1094', first IEN=1. ^DPT: first DFN=1, sample='ZZZRETFIVEFIFTYONE,PATIENT^M^2350407...'. ^DIC(21): header='PERIOD OF SERVICE^21I^121^38', first='USAF, USSF - ACTIVE DUTY'. ^DIC(8): header='ELIGIBILITY CODE^8I^32^32', first='AID & ATTENDANCE'. ^DIC(31): header='DISABILITY CONDITION^31I^1400^1232', first='OSTEOMYELITIS'. ^PSRX: first IEN=200018. ^PSDRUG: first entry='AZATHIOPRINE 50MG TAB'. All confirmed via docker exec into vista-vehu container.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_outcome",
+            "metadata_value": "File /home/ga/Desktop/patient_risk_dossier.txt created during the task session, containing the comprehensive clinical dossier for the patient with the highest combined medication-allergy risk score, including resolved pointer values for service history, eligibility, and disabilities, complete allergy list, prescription summary, and contraindication screening results.",
+            "verified_value": "The correct highest-risk patient is ZZZRETFIVEFIFTYONE,PATIENT (DFN=1) with risk score 464 (208 prescriptions * 2 + 16 allergies * 3 = 464). The dossier must contain: Demographics: name=ZZZRETFIVEFIFTYONE,PATIENT, DOB=April 7 1935 (FileMan 2350407), sex=Male. Service history: Period of Service pointer=121 resolves to PERSIAN GULF WAR in ^DIC(21). Eligibility: pointer=10 resolves to NSC in ^DIC(8). Disabilities: node .372 does NOT exist for DFN 1 (no rated disabilities). Allergies (16 entries): MILK/ICE CREAM/YOGURT, SULFA DRUGS, PENICILLIN, ASPIRIN, VANNA, CYCLOPHOSPHAMIDE, TESTOSTERONE, TUNA FISH (x2), TUNA, DOG HAIR, MESSINA, RADIOLOGICAL/CONTRAST MEDIA, XXX-NKA, TETRACYCLINE (x2). Sample prescriptions include AMPICILLIN 250MG CAP, CIMETIDINE 200MG TAB, BISACODYL 5MG EC TAB, NIFEDIPINE 20MG CAPS, CYCLOPHOSPHAMIDE 50MG TAB. Contraindication: CYCLOPHOSPHAMIDE allergy vs CYCLOPHOSPHAMIDE 50MG TAB prescription is a confirmed match.",
+            "source": "Ground truth computed by executing MUMPS routine 'riskcalc' directly against the live VEHU YottaDB database via docker exec. All pointer chain resolutions (^DPT→^DIC(21), ^DPT→^DIC(8), ^DPT→^DIC(31)) independently verified. Allergy reactants extracted by iterating ^GMR(120.8) filtered by DFN=1. Prescription drug names resolved through ^PS(55,1,\"P\")→^PSRX(IEN,0) piece 6→^PSDRUG(DrugIEN,0) piece 1. Contraindication found by substring matching allergy 'CYCLOPHOSPHAMIDE' against prescription 'CYCLOPHOSPHAMIDE 50MG TAB'.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The target patient is ZZZRETFIVEFIFTYONE,PATIENT (DFN=1) with risk score 464 (208 prescriptions × 2 + 16 allergies × 3). The next highest are DFN=51 (ZZZRETIREDTWENTY,PATIENT, score=194), DFN=80 (ZZZRETIREDFORTYNINE,PATIENT, score=185), and DFN=206 (ZZZRETSIXFIFTYNINE,PATIENT, score=170). For DFN 1: DOB is April 7, 1935 (FileMan format 2350407), sex is Male. Period of Service pointer at ^DPT(1,.32) piece 3 is 121, which resolves to 'PERSIAN GULF WAR' in ^DIC(21,121,0). Primary Eligibility pointer at ^DPT(1,.36) piece 1 is 10, which resolves to 'NSC' in ^DIC(8,10,0). Node .372 does NOT exist for DFN 1, so there are no rated disabilities. The 16 allergy entries in ^GMR(120.8) for DFN 1 are: MILK/ICE CREAM/YOGURT, SULFA DRUGS, PENICILLIN, ASPIRIN, VANNA, CYCLOPHOSPHAMIDE, TESTOSTERONE, TUNA FISH (×2), TUNA, DOG HAIR, MESSINA, RADIOLOGICAL/CONTRAST MEDIA, XXX-NKA (DO NOT USE), TETRACYCLINE (×2). Sample prescription drug names (resolved via ^PS(55,1,\"P\")→^PSRX→^PSDRUG): AMPICILLIN 250MG CAP, CIMETIDINE 200MG TAB, BISACODYL 5MG EC TAB, NIFEDIPINE 20MG CAPS, TOBRAMYCIN 80MG/2ML INJ, ACETAMINOPHEN 650MG RTL SUPP, CYCLOPHOSPHAMIDE 50MG TAB. Key data quirk: the Rx IEN for a prescription is stored at ^PS(55,DFN,\"P\",K,0), not K itself; and the drug pointer is piece 6 of ^PSRX(IEN,0) pointing into ^PSDRUG. There is one confirmed contraindication: patient is allergic to CYCLOPHOSPHAMIDE and has active prescriptions for CYCLOPHOSPHAMIDE 50MG TAB. The data is synthetic (worldvista/vehu test database). All globals are confirmed accessible. YDBGui runs without authentication after the setup script restarts it.",
+    "pi_confidence": "high"
+}

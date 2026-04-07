@@ -1,0 +1,80 @@
+{
+    "task_id": "chinook_payroll_etl@1",
+    "dataset": "Chinook Database",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "source_db_dataset",
+            "metadata_value": "Chinook database (implied by task.json metadata source_db path and setup script)",
+            "verified_value": "Real public database from github.com/lerocha/chinook-database",
+            "source": "GitHub repository verification and database inspection",
+            "status": "verified"
+        },
+        {
+            "key": "database_year_of_invoices",
+            "metadata_value": "2011 (from task description: 'invoices dated in 2011')",
+            "verified_value": "Current master branch: 2021-2025. Historical version v1.4.0 (Dec 2012): 2009-2013 including 2011",
+            "source": "Downloaded and queried current master (Chinook_Sqlite.sqlite) and v1.4.0 release database files. Current: SELECT DISTINCT strftime('%Y', InvoiceDate) FROM Invoice returns 2021,2022,2023,2024,2025. v1.4.0: returns 2009,2010,2011,2012,2013",
+            "status": "contradicted"
+        },
+        {
+            "key": "genres_rock_and_latin_exist",
+            "metadata_value": "Rock and Latin genres exist (required for commission rate calculation in description)",
+            "verified_value": "Yes, both genres exist in database with GenreId 1 (Rock) and 7 (Latin)",
+            "source": "Queried current Chinook database: SELECT GenreId, Name FROM Genre WHERE Name IN ('Rock', 'Latin')",
+            "status": "verified"
+        },
+        {
+            "key": "support_representatives_exist",
+            "metadata_value": "Support Representatives available for commission calculation (from task description)",
+            "verified_value": "Yes, 3 employees with title 'Sales Support Agent': Jane Peacock (EmployeeId 3), Margaret Park (4), Steve Johnson (5)",
+            "source": "Queried: SELECT EmployeeId, FirstName, LastName, Title FROM Employee WHERE Title LIKE '%Support%'",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns_exist_in_employees",
+            "metadata_value": "required_columns: ['EmployeeId', 'FullName', 'TotalCommission']",
+            "verified_value": "Employee table has EmployeeId, FirstName, LastName (FullName must be concatenated). TotalCommission is not in database and must be calculated.",
+            "source": "PRAGMA table_info(Employee) shows EmployeeId, FirstName, LastName columns exist",
+            "status": "verified"
+        },
+        {
+            "key": "schema_supports_commission_calculation",
+            "metadata_value": "Database structure supports calculating SUM(Quantity * UnitPrice * RateByGenre) grouped by employee",
+            "verified_value": "Yes. Schema includes: Employee (EmployeeId, FirstName, LastName), Customer (SupportRepId), Invoice (InvoiceDate), InvoiceLine (UnitPrice, Quantity, TrackId), Track (GenreId), Genre (Name)",
+            "source": "PRAGMA table_info on all relevant tables confirms required columns and relationships",
+            "status": "verified"
+        },
+        {
+            "key": "commission_rates_synthetic",
+            "metadata_value": "Commission rates (Rock: 15%, Latin: 10%, All other: 5%) from task description",
+            "verified_value": "These rates are NOT part of the Chinook database schema or documentation. They are task-specific synthetic requirements.",
+            "source": "Web search found no documentation of commission rates in Chinook database. Rates are custom task specification.",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_2011_commissions_v140",
+            "metadata_value": "Expected commission values for 2011 using Chinook v1.4.0 data and specified rates",
+            "verified_value": "Jane Peacock: $17.14, Margaret Park: $12.53, Steve Johnson: $13.47 (calculated from v1.4.0 database)",
+            "source": "SQL query against Chinook v1.4.0: SELECT e.EmployeeId, e.FirstName||' '||e.LastName, ROUND(SUM(ii.UnitPrice*ii.Quantity*CASE WHEN g.Name='Rock' THEN 0.15 WHEN g.Name='Latin' THEN 0.10 ELSE 0.05 END), 2) FROM Employee e LEFT JOIN Customer c ON e.EmployeeId=c.SupportRepId LEFT JOIN Invoice i ON c.CustomerId=i.CustomerId LEFT JOIN InvoiceLine ii ON i.InvoiceId=ii.InvoiceId LEFT JOIN Track t ON ii.TrackId=t.TrackId LEFT JOIN Genre g ON t.GenreId=g.GenreId WHERE strftime('%Y', i.InvoiceDate)='2011' GROUP BY e.EmployeeId",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_all_years_commissions_current",
+            "metadata_value": "If using current master branch (2021-2025 data) with same commission rates",
+            "verified_value": "Jane Peacock: $78.63, Margaret Park: $74.81, Steve Johnson: $64.77",
+            "source": "SQL query against current master branch Chinook database (invoice dates 2021-2025)",
+            "status": "verified"
+        },
+        {
+            "key": "database_version_mismatch",
+            "metadata_value": "Task specifies 2011 invoices, but current public Chinook master branch contains 2021-2025 data",
+            "verified_value": "CRITICAL MISMATCH: Setup script downloads from master branch (latest), which has NO 2011 invoices. Task requires 2011 data that only exists in Chinook v1.4.0 or earlier.",
+            "source": "Verified by: (1) Downloading current master: strftime('%Y', InvoiceDate) returns 2021-2025; (2) Downloading v1.4.0 release which contains 2009-2013; (3) Checking GitHub releases showing master is continuously updated",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The Chinook database is a real, public SQL sample database (verified from github.com/lerocha/chinook-database) modeling a digital music store with employees, customers, invoices, and media tracks. The task requires calculating 2011 sales commissions using synthetic genre-based rates (Rock: 15%, Latin: 10%, others: 5%). CRITICAL ISSUE: The current public Chinook database contains invoice data from 2021-2025, NOT 2011. A historical version (v1.4.0 from Dec 2012) contains 2011 data with expected commissions of Jane Peacock: $17.14, Margaret Park: $12.53, Steve Johnson: $13.47. The database schema properly supports the calculation with Employee, Customer (SupportRepId), Invoice, InvoiceLine (UnitPrice, Quantity), Track, and Genre tables.",
+    "pi_confidence": "high"
+}

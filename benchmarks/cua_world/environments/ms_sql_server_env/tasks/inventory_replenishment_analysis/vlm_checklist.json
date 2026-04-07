@@ -1,0 +1,53 @@
+{
+  "task_id": "inventory_replenishment_analysis@1",
+  "task_completion": [
+    {
+      "id": "create_tvf_product_demand_stats",
+      "description": "Implement the inline Table-Valued Function 'dbo.fn_ProductDemandStats'.",
+      "points": 20,
+      "visual_evidence": "Look for a SQL script creating the function 'dbo.fn_ProductDemandStats' with parameters @StartDate and @EndDate, returning ProductID, TotalUnitsSold, NumOrderDays, and AvgDailyDemand, or the function visible in the database Object Explorer."
+    },
+    {
+      "id": "create_view_inventory_health_dashboard",
+      "description": "Create the view 'dbo.vw_InventoryHealthDashboard' joining Product, ProductInventory, and the TVF.",
+      "points": 20,
+      "visual_evidence": "Look for a SQL script creating 'dbo.vw_InventoryHealthDashboard' that joins Production.Product, Production.ProductInventory, and calls the TVF with dates '2013-01-01' to '2014-01-01'."
+    },
+    {
+      "id": "view_columns_and_risk_logic",
+      "description": "Ensure the view contains all required columns and the correct StockoutRiskLevel logic.",
+      "points": 20,
+      "visual_evidence": "Look at the view definition or query results. It must include ProductID, ProductName (aliased from Name), ProductNumber, TotalOnHand, SafetyStockLevel, ReorderPoint, AvgDailyDemand, EstimatedDaysOfSupply, and StockoutRiskLevel. The risk level logic must use CASE statements for 'CRITICAL', 'WARNING', and 'HEALTHY'."
+    },
+    {
+      "id": "create_table_replenishment_queue",
+      "description": "Create and populate the table 'Production.ReplenishmentQueue'.",
+      "points": 20,
+      "visual_evidence": "Look for a SQL script executing a CREATE TABLE or SELECT INTO for 'Production.ReplenishmentQueue', or the table visible in the Object Explorer."
+    },
+    {
+      "id": "replenishment_queue_data_and_suggested_qty",
+      "description": "Verify the ReplenishmentQueue table filters correctly and includes SuggestedOrderQty.",
+      "points": 20,
+      "visual_evidence": "Look for the query populating the table or a SELECT from it. It must filter WHERE StockoutRiskLevel IN ('CRITICAL', 'WARNING') and include a column 'SuggestedOrderQty' calculated using GREATEST(ReorderPoint * 2 - TotalOnHand, 0)."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_sql_execution",
+      "description": "The agent actually executed the SQL commands against the database.",
+      "visual_evidence": "Look for execution success messages (e.g., 'Commands completed successfully', row counts) or result grids in a SQL client (like SSMS, Azure Data Studio, or terminal)."
+    },
+    {
+      "id": "no_hardcoded_mock_data",
+      "description": "The agent used actual SQL logic rather than hardcoding the final output.",
+      "visual_evidence": "The SQL scripts should show actual JOINs, SUMs, and CASE statements rather than INSERT statements with hardcoded literal values for the final table."
+    },
+    {
+      "id": "genuine_sql_client",
+      "description": "The agent used a genuine database client or terminal.",
+      "visual_evidence": "The screenshots should show a database management tool (SSMS, DBeaver, Azure Data Studio) or a terminal running a SQL CLI, not just a plain text editor without execution capabilities."
+    }
+  ],
+  "privileged_info_for_vlm": "Database: AdventureWorks2022. The Production.Product table uses the column name 'Name', which must be aliased to 'ProductName' in the view. Production.ProductInventory has multiple rows per product (due to LocationID), so 'Quantity' must be summed to calculate 'TotalOnHand'. The TVF must be called with the exact date range '2013-01-01' to '2014-01-01'. The risk levels are exactly 'CRITICAL', 'WARNING', and 'HEALTHY'."
+}

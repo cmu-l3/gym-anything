@@ -1,0 +1,29 @@
+{
+  "id": "whisper_retention_policy_optimization@1",
+  "version": "1.0",
+  "env_id": "graphite_env@0.1",
+  "description": "You are an SRE resolving a disk space issue where high-resolution web traffic metrics are causing storage bloat. Update the storage schemas in /opt/graphite/conf/storage-schemas.conf inside the graphite Docker container by adding a [web_traffic] section with the pattern ^servers\\.web_traffic\\..* and retentions 1m:7d, 10m:30d. Resize the existing metric databases at /opt/graphite/storage/whisper/servers/web_traffic/speed_sensor_1.wsp and /opt/graphite/storage/whisper/servers/web_traffic/speed_sensor_2.wsp to match the new retention schema while preserving all historical data.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/whisper_retention_policy_optimization/setup_task.sh",
+    "post_task": "/workspace/tasks/whisper_retention_policy_optimization/export_result.sh"
+  },
+  "metadata": {
+    "target_pattern": "^servers\\.web_traffic\\..*",
+    "expected_retentions": "1m:7d, 10m:30d",
+    "retention_args": "1m:7d 10m:30d",
+    "wsp_file_1": "speed_sensor_1.wsp",
+    "wsp_file_2": "speed_sensor_2.wsp"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_whisper_retention"
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+    "task_id": "macro_workflow_automation@1",
+    "dataset": "ImageJ Blobs (25K) sample image",
+    "case_id": "standard_protocol.ijm",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_parameters.sigma",
+            "metadata_value": "2",
+            "verified_value": "2",
+            "source": "ImageJ Gaussian Blur API documentation (imagej.net). Sigma represents standard deviation of Gaussian filter. Value of 2 is within standard range (0.5 to 60) and widely used in practice.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_parameters.threshold_method",
+            "metadata_value": "Otsu",
+            "verified_value": "Otsu",
+            "source": "ImageJ Auto Threshold plugin documentation (imagej.net/plugins/auto-threshold). Otsu thresholding is a standard method in Fiji that minimizes intra-class variance. Accessible via Image › Adjust › Auto Threshold.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_parameters.min_size",
+            "metadata_value": "20",
+            "verified_value": "20",
+            "source": "ImageJ Analyze Particles documentation (imagej.net/imaging/particle-analysis). Size parameter filters particles by area. Value of 20 pixels is reasonable for typical microscopy images.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_commands[0]",
+            "metadata_value": "Gaussian Blur",
+            "verified_value": "Gaussian Blur",
+            "source": "ImageJ Process menu (imagej.net/ij/docs/guide/146-29.html). Gaussian Blur is accessible at Process › Filters › Gaussian Blur. Macro recorder captures this as run(\"Gaussian Blur...\", \"sigma=2\").",
+            "status": "verified"
+        },
+        {
+            "key": "expected_commands[1]",
+            "metadata_value": "Threshold",
+            "verified_value": "Otsu thresholding (via setAutoThreshold or run Threshold command)",
+            "source": "ImageJ Threshold commands (imagej.net/ij/docs/menus/image.html). Multiple threshold methods available. Macro recorder outputs setAutoThreshold(\"Otsu dark\") or similar for Otsu method.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_commands[2]",
+            "metadata_value": "Analyze Particles",
+            "verified_value": "Analyze Particles",
+            "source": "ImageJ Analyze menu (imagej.net/ij/docs/guide/146-30.html). Analyze Particles is accessible at Analyze › Analyze Particles. Macro recorder captures this as run(\"Analyze Particles...\", \"size=20-Infinity\").",
+            "status": "verified"
+        },
+        {
+            "key": "expected_particle_count_min",
+            "metadata_value": "40",
+            "verified_value": "59 (from direct simulation)",
+            "source": "Direct simulation of workflow using Python (scipy, skimage): Downloaded Blobs 25K image from imagej.net/ij/images/blobs.gif (256x254 pixels). Applied: (1) Gaussian blur sigma=2, (2) Otsu threshold, (3) particle size filtering >=20. Result: 59 particles detected.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_particle_count_max",
+            "metadata_value": "70",
+            "verified_value": "59 (from direct simulation)",
+            "source": "Same direct simulation as above. Result of 59 particles falls within metadata range [40, 70].",
+            "status": "verified"
+        },
+        {
+            "key": "macro_path",
+            "metadata_value": "/home/ga/ImageJ_Data/macros/standard_protocol.ijm",
+            "verified_value": "/home/ga/ImageJ_Data/macros/standard_protocol.ijm",
+            "source": "Task scripts confirm this path. setup_task.sh creates $MACRO_DIR (/home/ga/ImageJ_Data/macros) and removes existing $MACRO_FILE ($MACRO_DIR/standard_protocol.ijm). export_result.sh reads from same path.",
+            "status": "verified"
+        }
+    ],
+    "discrepancies": [
+        {
+            "location": "verifier.py line 104 vs metadata",
+            "issue": "Particle count range mismatch",
+            "metadata_claim": "expected_particle_count_max = 70",
+            "verifier_code": "if 40 <= count <= 80: (full 30 pts); else: 15 pts",
+            "verifier_comment": "line 103 states 'Expected range for Blobs with Sigma=2, Otsu, Size>20 is approx 40-70'",
+            "analysis": "The verifier code checks [40, 80] but metadata and verifier comment both claim [40, 70]. This means particles in range [71, 80] will score full points despite being outside the stated expected range. The verifier comment matches metadata, but the actual code allows higher values."
+        }
+    ],
+    "privileged_info_summary": "The Blobs (25K) sample image is a real public dataset distributed with ImageJ (256x254 pixels, 26KB). When processed with Gaussian blur (sigma=2), Otsu automatic thresholding, and particle analysis (minimum size 20 pixels), it produces approximately 59 particles using standard image processing algorithms (verified via direct simulation). The task's metadata parameter values are accurate: sigma=2 is a standard value for Gaussian blur in microscopy image preprocessing; Otsu is a standard automatic thresholding method in ImageJ; minimum size 20 pixels is typical for particle filtering. The expected particle count range in metadata [40, 70] is consistent with real-world output (59 particles observed). However, the verifier implementation checks for [40, 80] particles, allowing particles outside the stated expected maximum of 70.",
+    "pi_confidence": "high"
+}

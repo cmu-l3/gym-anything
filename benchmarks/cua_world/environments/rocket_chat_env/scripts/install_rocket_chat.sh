@@ -32,6 +32,18 @@ systemctl start docker
 
 usermod -aG docker ga 2>/dev/null || true
 
+# Wait for Docker to be fully ready
+sleep 5
+
+# Authenticate with Docker Hub to avoid rate limits
+echo "dckr_pat_YISK01jQAaGVVmzkVoZnkOH3Q3g" | docker login -u "hackear2041" --password-stdin 2>/dev/null || true
+
+# Pre-pull Docker images for Rocket.Chat
+echo "Pre-pulling Docker images..."
+docker pull registry.rocket.chat/rocketchat/rocket.chat:8.1.0 || true
+docker pull docker.io/mongodb/mongodb-community-server:8.2-ubi8 || true
+docker pull docker.io/nats:2.11-alpine || true
+
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 

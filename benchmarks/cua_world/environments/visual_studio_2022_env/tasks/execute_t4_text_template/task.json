@@ -1,0 +1,25 @@
+{
+  "id": "execute_t4_text_template@1",
+  "version": "1.0",
+  "env_id": "visual_studio_2022_env@0.1",
+  "description": "Visual Studio 2022 is open with the ChemCalc solution. The project directory contains a dataset 'elements.csv'. Your goal is to use a T4 Text Template to parse this CSV at design time and generate a C# class with constants. Create a Text Template in the ChemCalc project named 'ElementConstants.tt' containing the following code:\n\n<#@ template debug=\"false\" hostspecific=\"true\" language=\"C#\" #>\n<#@ assembly name=\"System.Core\" #>\n<#@ import namespace=\"System.IO\" #>\n<#@ import namespace=\"System.Collections.Generic\" #>\n<#@ output extension=\".cs\" #>\nnamespace ChemCalc\n{\n    public static class ElementConstants\n    {\n<#\n        string path = this.Host.ResolvePath(\"elements.csv\");\n        if (File.Exists(path))\n        {\n            string[] lines = File.ReadAllLines(path);\n            for(int i = 1; i < lines.Length; i++)\n            {\n                string[] parts = lines[i].Split(',');\n                if(parts.Length >= 4)\n                {\n                    string name = parts[2].Trim();\n                    string mass = parts[3].Trim();\n#>\n        public const double <#= name #> = <#= mass #>;\n<#\n                }\n            }\n        }\n#>\n    }\n}\n\nGenerate the 'ElementConstants.cs' file from the template. In 'Program.cs', uncomment the line 'Console.WriteLine($\"Carbon Mass: {ElementConstants.Carbon}\");' and ensure the solution builds successfully without errors.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 35,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\execute_t4_text_template\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\execute_t4_text_template\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_output_string": "Carbon Mass: 12.011"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_execute_t4_text_template"
+    }
+  }
+}

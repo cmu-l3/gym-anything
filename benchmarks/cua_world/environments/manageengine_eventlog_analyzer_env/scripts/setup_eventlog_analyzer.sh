@@ -25,6 +25,13 @@ ELA_HOME="/opt/ManageEngine/EventLog"
 # =====================================================
 echo "Configuring Firefox profile..."
 
+# Fix snap Firefox data directory permissions (snap requires version-specific dir)
+SNAP_FF_VERSION=$(snap list firefox 2>/dev/null | awk '/firefox/{print $3}')
+if [ -n "$SNAP_FF_VERSION" ]; then
+    mkdir -p "/home/ga/snap/firefox/$SNAP_FF_VERSION"
+    chown -R ga:ga /home/ga/snap/firefox 2>/dev/null || true
+fi
+
 if [ -d "/home/ga/snap/firefox" ]; then
     echo "Detected snap Firefox"
     FIREFOX_PROFILE_BASE="/home/ga/snap/firefox/common/.mozilla/firefox"
@@ -72,6 +79,10 @@ user_pref("browser.sidebar.dismissed", true);
 user_pref("browser.uitour.enabled", false);
 USERJS
 
+# Fix ownership of entire snap Firefox tree (post_start runs as root, so
+# mkdir -p above creates parent dirs owned by root — snap Firefox then
+# fails with "Profile Missing" because it can't read/write its own dirs).
+chown -R ga:ga /home/ga/snap 2>/dev/null || true
 chown -R ga:ga "$FIREFOX_PROFILE_BASE"
 echo "Firefox profile configured at $FIREFOX_PROFILE_BASE"
 
@@ -93,6 +104,9 @@ DESKTOPEOF
 chown ga:ga /home/ga/Desktop/EventLogAnalyzer.desktop
 chmod +x /home/ga/Desktop/EventLogAnalyzer.desktop
 
+# Mark desktop file as trusted so GNOME doesn't show "Untrusted Desktop File" dialog
+su - ga -c "dbus-launch gio set /home/ga/Desktop/EventLogAnalyzer.desktop metadata::trusted true" 2>/dev/null || true
+
 # =====================================================
 # Step 3: Write background ELA setup script
 # Does all time-consuming work: wait for install, start ELA, reset password.
@@ -110,19 +124,39 @@ ELA_URL="http://localhost:${ELA_PORT}/event/index.do"
 log() { echo "[$(date '+%H:%M:%S')] $*" >> "$SETUP_LOG"; }
 log "=== Background ELA Setup Started ==="
 
-# Wait for background install to complete (written by pre_start background script)
-log "Waiting for install marker..."
-WAIT_ELAPSED=0
-while [ ! -f "$INSTALL_MARKER" ]; do
-    sleep 15
-    WAIT_ELAPSED=$((WAIT_ELAPSED + 15))
-    log "  Waiting for install... ${WAIT_ELAPSED}s"
-    if [ $WAIT_ELAPSED -ge 1800 ]; then
-        log "ERROR: Install timed out after 1800s"
-        echo "INSTALL_TIMEOUT" > "$SERVICE_MARKER"
-        exit 1
-    fi
-done
+# Check if ELA is already installed (checkpoint recovery or repeated run).
+if [ -d "$ELA_HOME/bin" ]; then
+    log "ELA already installed at $ELA_HOME/bin"
+    echo "OK" > "$INSTALL_MARKER"
+elif [ ! -f "$INSTALL_MARKER" ] && [ -f "/opt/setup/ela_install_bg.sh" ]; then
+    # Checkpoint recovery scenario: the install script exists (written by pre_start)
+    # but neither the install marker nor the install directory exists. The background
+    # installer from pre_start was killed by VM reboot. Re-run it synchronously.
+    log "No ELA install found. Re-running installer (checkpoint recovery)..."
+    bash /opt/setup/ela_install_bg.sh
+    log "Installer completed (re-run)"
+fi
+
+# If the installer is running in background (normal non-cached flow), wait for it
+if [ ! -d "$ELA_HOME/bin" ] && [ ! -f "$INSTALL_MARKER" ]; then
+    log "Waiting for install marker..."
+    WAIT_ELAPSED=0
+    while [ ! -f "$INSTALL_MARKER" ]; do
+        if [ -d "$ELA_HOME/bin" ]; then
+            log "ELA install directory appeared, marking as complete"
+            echo "OK" > "$INSTALL_MARKER"
+            break
+        fi
+        sleep 15
+        WAIT_ELAPSED=$((WAIT_ELAPSED + 15))
+        log "  Waiting for install... ${WAIT_ELAPSED}s"
+        if [ $WAIT_ELAPSED -ge 1800 ]; then
+            log "ERROR: Install timed out after 1800s"
+            echo "INSTALL_TIMEOUT" > "$SERVICE_MARKER"
+            exit 1
+        fi
+    done
+fi
 
 MARKER_CONTENT=$(cat "$INSTALL_MARKER" 2>/dev/null)
 if [ "$MARKER_CONTENT" != "OK" ]; then
@@ -166,30 +200,68 @@ if [ "$READY" != "true" ]; then
 fi
 sleep 5
 
+# Stop ELA before running resetPwd.sh (notes: "Must stop ELA first")
+log "Stopping ELA for password reset..."
+pkill -f "WrapperJVMMain" 2>/dev/null || true
+pkill -f "java.*EventLog" 2>/dev/null || true
+sleep 10
+# Verify it's fully stopped
+while pgrep -f "WrapperJVMMain" > /dev/null 2>&1; do
+    log "  Waiting for ELA to stop..."
+    pkill -9 -f "WrapperJVMMain" 2>/dev/null || true
+    pkill -9 -f "java.*EventLog" 2>/dev/null || true
+    sleep 5
+done
+log "ELA stopped."
+
 # Reset admin password to 'admin' via resetPwd.sh
 log "Resetting admin password via resetPwd.sh..."
 (cd "$ELA_HOME/troubleshooting" && bash resetPwd.sh >> "$SETUP_LOG" 2>&1)
 log "Password reset done"
+sleep 3
 
-# Restart ELA to pick up new password hash
-log "Restarting ELA for new password hash..."
-pkill -f "WrapperJVMMain" 2>/dev/null || true
-pkill -f "java.*EventLog" 2>/dev/null || true
-sleep 5
-(cd "$ELA_HOME/bin" && nohup bash app_ctl.sh run >> /tmp/ela_start.log 2>&1 &)
+# Start ELA with retry logic (sometimes first start after reset fails)
+log "Starting ELA after password reset..."
+ATTEMPT=0
+MAX_ATTEMPTS=2
+ELA_STARTED=false
+while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+    ATTEMPT=$((ATTEMPT + 1))
+    log "Start attempt $ATTEMPT of $MAX_ATTEMPTS..."
+    (cd "$ELA_HOME/bin" && nohup bash app_ctl.sh run >> /tmp/ela_start.log 2>&1 &)
 
-# Wait for ELA restart (up to 5 minutes)
-log "Waiting for ELA restart..."
-ELAPSED=0
-while [ $ELAPSED -lt 300 ]; do
-    HTTP=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$ELA_URL" 2>/dev/null || echo "000")
-    if [ "$HTTP" = "200" ] || [ "$HTTP" = "302" ]; then
-        log "ELA restarted after ${ELAPSED}s"
+    # Wait for ELA to come up (up to 5 minutes per attempt)
+    ELAPSED=0
+    while [ $ELAPSED -lt 300 ]; do
+        HTTP=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$ELA_URL" 2>/dev/null || echo "000")
+        if [ "$HTTP" = "200" ] || [ "$HTTP" = "302" ]; then
+            log "ELA started after ${ELAPSED}s (attempt $ATTEMPT)"
+            ELA_STARTED=true
+            break
+        fi
+        # Check if wrapper crashed ("System halted" in the log)
+        if [ $ELAPSED -ge 60 ] && ! pgrep -f "WrapperJVMMain" > /dev/null 2>&1; then
+            log "WARNING: ELA process died during startup (attempt $ATTEMPT)"
+            break
+        fi
+        sleep 10
+        ELAPSED=$((ELAPSED + 10))
+    done
+
+    if [ "$ELA_STARTED" = "true" ]; then
         break
     fi
+
+    # Cleanup for retry
+    log "Retrying ELA start..."
+    pkill -9 -f "WrapperJVMMain" 2>/dev/null || true
+    pkill -9 -f "java.*EventLog" 2>/dev/null || true
     sleep 10
-    ELAPSED=$((ELAPSED + 10))
 done
+
+if [ "$ELA_STARTED" != "true" ]; then
+    log "WARNING: ELA failed to start after $MAX_ATTEMPTS attempts"
+fi
 sleep 5
 
 # Configure rsyslog

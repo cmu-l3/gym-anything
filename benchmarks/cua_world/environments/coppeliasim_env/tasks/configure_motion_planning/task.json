@@ -1,0 +1,28 @@
+{
+  "id": "coordinate_multi_robot@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Coordinate Multi-Robot Arm Movements",
+  "description": "CoppeliaSim is running with the movementViaRemoteApi scene containing 3 robot arms (red, green, blue - each 7-DOF). Write a Python script using the ZMQ Remote API to coordinate all three robots in a synchronized sequence. Steps: 1) Connect via RemoteAPIClient, 2) Get joint handles for all 3 robots (e.g., sim.getObject('/redRobot/joint', {'index': i}) for i in 0-6), 3) Start the simulation with sim.setStepping(True), 4) Move the RED robot to joint configuration [90, 0, 90, 0, 0, 0, 0] degrees using sim.moveToConfig(), 5) Then move the BLUE robot to [0, 90, 0, -90, 0, 90, 0] degrees, 6) Then move the GREEN robot's IK target (sim.getObject('/greenRobot/target')) upward by 0.2m using sim.moveToPose(), 7) Finally, move all 3 robots back to their home positions [0,0,0,0,0,0,0] simultaneously using threading, 8) Stop the simulation and save a screenshot to '/home/ga/Documents/CoppeliaSim/exports/multi_robot_done.png'. The agent must observe intermediate states via screenshots to verify each robot moved correctly before proceeding to the next step.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_motion_planning/setup_task.sh"
+  },
+  "metadata": {
+    "robots": ["redRobot", "greenRobot", "blueRobot"],
+    "num_joints_each": 7,
+    "screenshot_path": "/home/ga/Documents/CoppeliaSim/exports/multi_robot_done.png"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_motion_planning"
+    }
+  },
+  "tags": ["teleoperation", "multi-robot", "coordination", "threading", "hard", "zmq-api"]
+}

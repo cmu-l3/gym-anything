@@ -1,0 +1,66 @@
+{
+    "task_id": "configure_test_signal_channels@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "settings_dir",
+            "metadata_value": "/home/ga/Documents/OpenBCI_GUI/Settings",
+            "verified_value": "/home/ga/Documents/OpenBCI_GUI/Settings",
+            "source": "Code analysis of setup_task.sh and export_result.sh confirm this directory is used to store and retrieve settings.",
+            "status": "verified"
+        },
+        {
+            "key": "target_channels",
+            "metadata_value": [0, 1, 2, 3],
+            "verified_value": [0, 1, 2, 3],
+            "source": "Task instructions target Channels 1-4, which correspond to indices 0-3.",
+            "status": "verified"
+        },
+        {
+            "key": "target_input_type",
+            "metadata_value": ["TEST", "TESTSIG"],
+            "verified_value": ["TEST"],
+            "source": "Code analysis of OpenBCI_GUI/ADS1299SettingsBoard.pde shows the enum is InputType.TEST, serialized as 'TEST' by Gson.",
+            "status": "verified"
+        },
+        {
+            "key": "target_gain",
+            "metadata_value": 8,
+            "verified_value": "X8",
+            "source": "Code analysis of OpenBCI_GUI/ADS1299SettingsBoard.pde shows the enum Gain.X8 is serialized by Gson as the string 'X8', contradicting the integer 8.",
+            "status": "contradicted"
+        },
+        {
+            "key": "default_channels",
+            "metadata_value": [4, 5, 6, 7],
+            "verified_value": [4, 5, 6, 7],
+            "source": "Task instructions state Channels 5-8 are default, which correspond to indices 4-7.",
+            "status": "verified"
+        },
+        {
+            "key": "default_input_type",
+            "metadata_value": ["NORMAL"],
+            "verified_value": ["NORMAL"],
+            "source": "Code analysis of OpenBCI_GUI/ADS1299SettingsBoard.pde shows the enum InputType.NORMAL is the default input type.",
+            "status": "verified"
+        },
+        {
+            "key": "default_gain",
+            "metadata_value": 24,
+            "verified_value": "X24",
+            "source": "Code analysis of OpenBCI_GUI/ADS1299SettingsBoard.pde shows the default Gain enum is Gain.X24, serialized by Gson as the string 'X24', contradicting the integer 24.",
+            "status": "contradicted"
+        },
+        {
+            "key": "app_process",
+            "metadata_value": "OpenBCI_GUI",
+            "verified_value": "OpenBCI_GUI",
+            "source": "Setup scripts and the verifier use 'pgrep -f OpenBCI_GUI' to check if the app is running.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "OpenBCI GUI v5.2.2 serializes ADS1299 hardware settings as a JSON object with top-level array properties (e.g., 'gain', 'inputType'), rather than a list of dicts under a 'channels' key as expected by the verifier. Consequently, the verifier will always fail to parse the saved settings file and assign zero points for the file verification check, making the task mathematically impossible to pass (max possible score is 45/100: 5 for app running + 15 for saving + 25 for VLM). Additionally, the target_gain and default_gain are serialized as strings ('X8' and 'X24' respectively), rather than the integers 8 and 24 claimed in the metadata. The input type is serialized as 'TEST'.",
+    "pi_confidence": "high"
+}

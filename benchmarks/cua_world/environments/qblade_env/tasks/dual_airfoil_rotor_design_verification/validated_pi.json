@@ -1,0 +1,66 @@
+{
+    "task_id": "dual_airfoil_rotor_design_verification@1",
+    "dataset": "NACA 4-digit airfoil coordinate database (Selig format)",
+    "case_id": "NACA 0015 + NACA 4412 dual-airfoil small HAWT rotor",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "project_path",
+            "metadata_value": "/home/ga/Documents/results/dual_airfoil_turbine.wpa",
+            "verified_value": "/home/ga/Documents/results/dual_airfoil_turbine.wpa",
+            "source": "Cross-referenced task.json description, setup_task.sh cleanup (line 9), and export_result.sh PROJECT_FILE (line 14). All three match exactly. Live test confirmed directory exists and is writable by ga user.",
+            "status": "verified"
+        },
+        {
+            "key": "bem_data_path",
+            "metadata_value": "/home/ga/Documents/results/cp_tsr_sweep.dat",
+            "verified_value": "/home/ga/Documents/results/cp_tsr_sweep.dat",
+            "source": "Cross-referenced task.json description, setup_task.sh cleanup (line 10), and export_result.sh BEM_FILE (line 51). All three match. Live test confirmed directory writable.",
+            "status": "verified"
+        },
+        {
+            "key": "summary_path",
+            "metadata_value": "/home/ga/Documents/results/performance_summary.txt",
+            "verified_value": "/home/ga/Documents/results/performance_summary.txt",
+            "source": "Cross-referenced task.json description, setup_task.sh cleanup (line 11), and export_result.sh SUMMARY_FILE (line 75). All three match. Live test confirmed export_result.sh correctly parses Cp and TSR values from this file using grep patterns.",
+            "status": "verified"
+        },
+        {
+            "key": "required_airfoils",
+            "metadata_value": ["0015", "4412"],
+            "verified_value": ["0015", "4412"],
+            "source": "Live test verified both airfoil files exist in VM: naca0015.dat (728 bytes, 73 lines, Selig format, header 'NACA 0015') and naca4412.dat (693 bytes, 73 lines, header 'NACA 4412'). NACA 0015 verified as symmetric with 15.0% max thickness at 30% chord. NACA 4412 verified as 4% camber at 40% chord, 12% thickness. Both are real NACA 4-digit profiles from the standard coordinate database. Export_result.sh greps for '0015' and '4412' in the project file to confirm both airfoils were used.",
+            "status": "verified"
+        },
+        {
+            "key": "min_project_size_bytes",
+            "metadata_value": 5000,
+            "verified_value": 5000,
+            "source": "Verified against sample QBlade project files in the VM: NREL_5MW.wpa=746214 bytes, NREL_PhaseVI.wpa=604750, SANDIA_SERI-8.wpa=398817, TUB_BeRTwpa.wpa=1259731. The smallest real project (SANDIA) is 398KB. A project containing 2 airfoils, 2 XFoil polars, 2 extrapolated polars, 1 blade definition, and 1 BEM simulation would be at minimum tens of KB. The 5000 byte threshold is a conservative lower bound that filters out empty or trivially small files while accepting any real project.",
+            "status": "verified"
+        },
+        {
+            "key": "min_bem_data_lines",
+            "metadata_value": 15,
+            "verified_value": 15,
+            "source": "TSR sweep from 1 to 12 with step 0.5 produces exactly (12-1)/0.5 + 1 = 23 data points. The threshold of 15 allows for partial completion (65% of sweep) while filtering out empty or trivially short files. This is a reasonable lower bound: verified via arithmetic on the task parameters.",
+            "status": "verified"
+        },
+        {
+            "key": "cp_range",
+            "metadata_value": [0.30, 0.55],
+            "verified_value": [0.30, 0.55],
+            "source": "Verified against aerodynamic theory: (1) Betz limit is 16/27 = 0.5926, so 0.55 is below the theoretical maximum. (2) Practical 3-bladed HAWTs with BEM tip/root loss corrections typically achieve Cp_max of 0.40-0.50. (3) The lower bound 0.30 accommodates sub-optimal designs or simulations with additional loss models enabled. (4) For this specific blade with mid-span solidity sigma=0.064 (3 blades, chord 0.28m at r=2.1m) and mixed NACA 0015/4412 airfoils, expected Cp_max is approximately 0.38-0.48 depending on correction models. The range [0.30, 0.55] comfortably encompasses all plausible QBlade BEM results for this configuration.",
+            "status": "verified"
+        },
+        {
+            "key": "tsr_range",
+            "metadata_value": [4.0, 10.0],
+            "verified_value": [4.0, 10.0],
+            "source": "Verified against rotor aerodynamic theory: For a 3-bladed HAWT with mid-span solidity sigma=0.064, the optimal TSR empirically falls in the range 6-8. Standard references (Burton et al. 'Wind Energy Handbook', Manwell et al. 'Wind Energy Explained') show optimal TSR scales inversely with solidity. The range [4.0, 10.0] provides generous bounds that accommodate variations in BEM correction models, pitch settings, and airfoil polar data quality. It excludes clearly unrealistic values (TSR<4 indicates very high solidity turbines; TSR>10 indicates very low solidity designs not matching this blade geometry).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires the agent to work in QBlade v0.96.2 to perform a complete dual-airfoil rotor design and BEM simulation. The agent must generate NACA 0015 (symmetric, 15% thickness) and NACA 4412 (4% camber, 12% thickness) airfoils with 100 panels each via the Foil > Naca Foils menu. For each airfoil, the agent must create an XFoil polar at Re=500,000 (NCrit=9, default in QBlade), alpha -5 to 20 deg (step 0.5), then extrapolate to 360 degrees using the 360 Polar module (Montgomerie or Viterna method). The HAWT blade must have exactly 6 stations with specific radial positions (0.35, 0.70, 1.40, 2.10, 2.80, 3.50 m), chord values (0.42, 0.45, 0.38, 0.28, 0.18, 0.10 m), twist values (22.0, 15.0, 9.0, 5.5, 3.0, 0.5 deg), with NACA 0015 assigned to the first two root stations and NACA 4412 to the remaining four outboard stations. The BEM TSR sweep runs from 1 to 12 with step 0.5, producing 23 data points. The expected Cp_max for this design is approximately 0.38-0.48 (must fall within 0.30-0.55) and the optimal TSR should be approximately 6-8 (must fall within 4.0-10.0). Three deliverables are required in /home/ga/Documents/results/: dual_airfoil_turbine.wpa (project file, must be >5000 bytes and contain references to both '0015' and '4412'), cp_tsr_sweep.dat (exported BEM data with >=15 numeric data lines), and performance_summary.txt (text file with Cp_max and optimal TSR values, parsed by grepping for 'Cp' and 'TSR' keywords followed by decimal numbers). The project file is checked against MD5 hashes of 4 sample projects (NREL_5MW, NREL_PhaseVI, SANDIA_SERI-8, TUB_BeRT) to prevent copying. All output files must have modification timestamps after the task start time.",
+    "pi_confidence": "high"
+}

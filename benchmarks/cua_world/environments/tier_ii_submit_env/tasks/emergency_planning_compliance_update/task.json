@@ -1,0 +1,35 @@
+{
+  "id": "emergency_planning_compliance_update@1",
+  "version": "1.0",
+  "env_id": "tier_ii_submit_env@0.1",
+  "name": "EPCRA Emergency Planning Compliance Update",
+  "description": "The Green Valley Water Facility (Colchester, VT) is undergoing its annual EPCRA compliance review. As the facility's Compliance Officer, you must audit the current Tier II submission data and bring it into full compliance with EPCRA Section 302 emergency planning requirements. Using the EPA Tier2 Submit application (already open), import the facility's data from C:\\Users\\Docker\\Desktop\\Tier2Tasks\\green_valley_baseline.t2s. Review ALL chemical inventories and determine whether the facility's current emergency planning status correctly reflects its Extremely Hazardous Substance (EHS) holdings relative to Threshold Planning Quantities (TPQ). If any EHS chemical exceeds its TPQ, the facility must be subject to emergency planning. Additionally, update the facility certification for the 2025 reporting year — the certifier should be 'Sarah Chen, Director of Safety Operations' with a date signed of '2025-01-15'. Also verify that the facility's maximum occupants field is set to 22 (the facility expanded in 2024). After making all required compliance corrections, save and export to C:\\Users\\Docker\\Desktop\\Tier2Output\\compliance_updated.t2s.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\emergency_planning_compliance_update\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\emergency_planning_compliance_update\\export_result.ps1"
+  },
+  "metadata": {
+    "output_file": "C:\\Users\\Docker\\Desktop\\Tier2Output\\compliance_updated.t2s",
+    "result_file": "C:\\Users\\Docker\\Desktop\\emergency_planning_compliance_update_result.json",
+    "pass_threshold": 60,
+    "expected_values": {
+      "subjectToEmergencyPlanning": true,
+      "certifier_name": "Sarah Chen, Director of Safety Operations",
+      "date_signed": "2025-01-15",
+      "max_occupants": 22
+    },
+    "rationale": "Chlorine (CAS 7782-50-5) is EHS with TPQ=100 lbs. Facility has 20,000 lbs on site, far exceeding TPQ. subjectToEmergencyPlanning must be true.",
+    "source_data": "green_valley_baseline.t2s"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_emergency_planning_compliance_update"
+    }
+  }
+}

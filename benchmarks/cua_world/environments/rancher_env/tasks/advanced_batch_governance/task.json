@@ -1,0 +1,27 @@
+{
+  "id": "advanced_batch_governance@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "A Data Engineering team is running machine learning pipelines on Rancher in the 'ml-pipelines' namespace, but two of their batch Jobs are misconfigured.\n\nFirst, their parallel 'model-trainer' Job is duplicating work because all 5 pods are processing partition 0 (they lack partition identity). Second, their 'data-cleaner' Job wastes expensive compute resources by blindly retrying 6 times when it encounters an unrecoverable data corruption error (exit code 13).\n\nYour task is to fix these Jobs at the orchestration level without modifying their underlying application scripts (the 'ml-scripts' ConfigMap must remain unchanged).\n\n1. Fix `model-trainer`:\n   - Recreate the Job using `completionMode: Indexed` with 5 completions.\n   - Ensure each pod processes a distinct partition (0 through 4).\n   - You must map the job's completion index to the `PARTITION_ID` environment variable. (Hint: Use the Downward API to map the `batch.kubernetes.io/job-completion-index` annotation to the `PARTITION_ID` env var).\n   - Ensure the Job completes successfully.\n\n2. Fix `data-cleaner`:\n   - Recreate the Job with a `podFailurePolicy`.\n   - Add a rule to perform the `FailJob` action specifically for exit code `13`.\n   - Keep `backoffLimit: 6` intact (so transient errors would still retry).\n   - Allow the Job to run and fail immediately without retrying.\n\nLogin to Rancher at https://localhost with credentials admin / Admin12345678!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/advanced_batch_governance/setup_task.sh",
+    "post_task": "/workspace/tasks/advanced_batch_governance/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Platform Engineer / Data Engineer",
+    "target_namespace": "ml-pipelines",
+    "pass_threshold": 75
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_advanced_batch_governance"
+    }
+  }
+}

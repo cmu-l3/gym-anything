@@ -1,0 +1,72 @@
+{
+    "task_id": "map_hazard_offset@1",
+    "dataset": "world_survey.gpkg",
+    "case_id": "Paris",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "reference_city",
+            "metadata_value": "Paris",
+            "verified_value": "Paris",
+            "source": "Queried 'world_capitals' layer in 'world_survey.gpkg', confirming Paris exists at longitude 2.3488 and latitude 48.8534.",
+            "status": "verified"
+        },
+        {
+            "key": "target_distance_km",
+            "metadata_value": 45.0,
+            "verified_value": 45.0,
+            "source": "Matches the exact task description requirement ('45 km West') and haversine_distance logic in 'verifier.py'.",
+            "status": "verified"
+        },
+        {
+            "key": "target_bearing_deg",
+            "metadata_value": 270.0,
+            "verified_value": 270.0,
+            "source": "Matches the exact task description requirement ('Due West' / 270 degrees) and verifier logic.",
+            "status": "verified"
+        },
+        {
+            "key": "target_layer",
+            "metadata_value": "field_observations",
+            "verified_value": "field_observations",
+            "source": "Confirmed that 'field_observations' exists as a layer/table within 'world_survey.gpkg' via SQLite schema inspection.",
+            "status": "verified"
+        },
+        {
+            "key": "required_name",
+            "metadata_value": "Hazard Zone Alpha",
+            "verified_value": null,
+            "source": "SQLite schema inspection reveals the 'field_observations' table has no 'name' or 'notes' columns (only observer_name, species, location, obs_date, quality_grade). The verifier script's SQL query expecting these columns will fatal-error.",
+            "status": "contradicted"
+        },
+        {
+            "key": "gpkg_path",
+            "metadata_value": "/sdcard/Android/data/ch.opengis.qfield/files/world_survey.gpkg",
+            "verified_value": "/sdcard/Android/data/ch.opengis.qfield/files/world_survey.gpkg",
+            "source": "Matches GPKG_WORK constant defined in 'setup_task.sh'.",
+            "status": "verified"
+        },
+        {
+            "key": "backup_gpkg_source",
+            "metadata_value": "/sdcard/QFieldData/world_survey.gpkg",
+            "verified_value": "/sdcard/QFieldData/world_survey.gpkg",
+            "source": "Matches GPKG_SRC constant defined in 'setup_task.sh'.",
+            "status": "verified"
+        },
+        {
+            "key": "tolerances",
+            "metadata_value": {
+                "distance_km": 5.0,
+                "bearing_deg": 5.0
+            },
+            "verified_value": {
+                "distance_km": 5.0,
+                "bearing_deg": 5.0
+            },
+            "source": "Matches the exact fallback extraction mapping logic for tol_dist and tol_bearing variables inside 'verifier.py'.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The target GeoPackage 'world_survey.gpkg' contains a synthetic 'field_observations' layer and a real-world 'world_capitals' layer. Querying 'world_capitals' validates Paris at approximately (2.3488, 48.8534). A point 45 km Due West would ideally fall near (1.7338, 48.8534). However, the task instruction and 'verifier.py' logic contain fatal flaws: the 'field_observations' table fundamentally lacks the 'name' and 'notes' columns needed to assign 'Hazard Zone Alpha'. Furthermore, 'verifier.py' queries the database using 'ST_X' and 'ST_Y', which are unsupported in standard Python sqlite3 without the Spatialite extension, resulting in an unconditional runtime crash.",
+    "pi_confidence": "high"
+}

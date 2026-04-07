@@ -1,0 +1,79 @@
+{
+    "task_id": "multi_tenant_data_isolation@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/multi_tenant_result.json",
+            "verified_value": "/tmp/multi_tenant_result.json",
+            "source": "export_result.sh lines 114-118",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Software Developers",
+            "verified_value": null,
+            "source": "Flavor text, unverified",
+            "status": "unverified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Technology / SaaS",
+            "verified_value": null,
+            "source": "Flavor text, unverified",
+            "status": "unverified"
+        },
+        {
+            "key": "gdp_contribution",
+            "metadata_value": "$4.5B",
+            "verified_value": null,
+            "source": "Flavor text, unverified",
+            "status": "unverified"
+        },
+        {
+            "key": "design_pattern",
+            "metadata_value": "Error Injection",
+            "verified_value": "Error Injection",
+            "source": "setup_task.sh explicitly injects intentional security flaws into the Oracle environment",
+            "status": "verified"
+        },
+        {
+            "key": "oracle_features",
+            "metadata_value": [
+                "DBMS_RLS (VPD)",
+                "Application Contexts",
+                "Policy Functions",
+                "DBMS_SESSION",
+                "Security Audit"
+            ],
+            "verified_value": [
+                "DBMS_RLS (VPD)",
+                "Application Contexts",
+                "Policy Functions",
+                "DBMS_SESSION",
+                "Security Audit"
+            ],
+            "source": "setup_task.sh uses DBMS_RLS.ADD_POLICY, CREATE CONTEXT, SYS_CONTEXT, DBMS_SESSION.SET_CONTEXT, and the task requires creating Security Audit infrastructure",
+            "status": "verified"
+        },
+        {
+            "key": "injected_flaws",
+            "metadata_value": {
+                "broken_policy_function": "Returns NULL predicate instead of tenant_id filter",
+                "missing_policy": "FINANCIAL_RECORDS table has no VPD policy",
+                "context_default_superuser": "TENANT_CTX defaults to tenant_id=0 (superuser access)"
+            },
+            "verified_value": {
+                "broken_policy_function": "Returns NULL predicate instead of tenant_id filter",
+                "missing_policy": "FINANCIAL_RECORDS table has no VPD policy",
+                "context_default_superuser": "TENANT_CTX defaults to tenant_id=0 (superuser access)"
+            },
+            "source": "setup_task.sh lines 388, 370, 396 explicitly document and implement these three intentional bugs",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically generated multi-tenant SaaS data in an Oracle database. It has been explicitly verified that the setup script injects three intentional security flaws: (1) the TENANT_ISOLATION_POLICY function incorrectly returns a NULL predicate instead of filtering by tenant_id, (2) the FINANCIAL_RECORDS table is left completely unprotected without a VPD policy, and (3) the TENANT_CTX_PKG application context package incorrectly defaults to tenant_id 0 (superuser) instead of denying access. The task uses Oracle features such as DBMS_RLS (VPD), Application Contexts, Policy Functions, and DBMS_SESSION, and requires the creation of security audit infrastructure. The expected output is evaluated via /tmp/multi_tenant_result.json.",
+    "pi_confidence": "high"
+}

@@ -182,6 +182,18 @@ EOF
 chown -R ga:ga /home/ga/.mozilla 2>/dev/null || true
 chown -R ga:ga /home/ga/snap 2>/dev/null || true
 
+# Re-verify NextGen Connect is responsive before launching Firefox
+echo "Re-verifying NextGen Connect is responsive before launching Firefox..."
+for i in $(seq 1 60); do
+    HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" -H "X-Requested-With: OpenAPI" -H "Accept: text/plain" https://localhost:8443/api/server/version 2>/dev/null || echo "000")
+    HTTP_CODE2=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 2>/dev/null || echo "000")
+    if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE2" = "200" ]; then
+        echo "NextGen Connect web service ready"
+        break
+    fi
+    sleep 2
+done
+
 # Launch Firefox pointing to the HTTP landing page
 # The landing page shows the "Launch Mirth Connect Administrator" button
 echo "Launching Firefox with NextGen Connect landing page..."

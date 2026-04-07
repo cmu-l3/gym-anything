@@ -1,0 +1,30 @@
+{
+  "id": "migrate_media_urls_mongodb@1",
+  "version": "1.0",
+  "env_id": "socioboard_env@0.1",
+  "description": "The marketing agency 'Acme Social' recently migrated their self-hosted media assets to a new enterprise CDN. Perform a bulk database update in the local MongoDB instance (database: `socioboard`, port: 27017) to fix scheduled posts and drafts in the `userpublishposts` and `drafts` collections. Replace all occurrences of the legacy domain `http://media.acmesocial.legacy` within the `mediaUrl` fields with the new CDN domain `https://cdn.acme-corp.com`. You must preserve the exact file paths, avoid altering URLs belonging to other domains, and ensure zero documents remain with the legacy domain in these collections.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/migrate_media_urls_mongodb/setup_task.sh",
+    "post_task": "/workspace/tasks/migrate_media_urls_mongodb/export_result.sh"
+  },
+  "metadata": {
+    "legacy_domain": "http://media.acmesocial.legacy",
+    "new_domain": "https://cdn.acme-corp.com",
+    "target_collections": [
+      "userpublishposts",
+      "drafts"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_migrate_media_urls"
+    }
+  }
+}

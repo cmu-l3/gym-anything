@@ -1,0 +1,35 @@
+{
+  "id": "hospital_infection_contact_tracing@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Infection Prevention Analyst at a major hospital system managing concurrent outbreaks of MRSA and C.DIFF. Implement an automated contact tracing system using the EHR schema (connected as ehr_analyst/EhrData2024 to XEPDB1) which contains ADMISSIONS, TRANSFERS, and MICROBIOLOGY tables.\n\nCreate a view named INDEX_INFECTIONS_VW identifying primary infected cases from EHR.MICROBIOLOGY where test_result is 'POSITIVE' for 'MRSA' or 'C.DIFF'. The infectious period (infectious_start to infectious_end) must be calculated starting 48 hours before the lab chartdate and ending at the patient's dischtime from EHR.ADMISSIONS (using SYSDATE if dischtime is NULL). The view must include subject_id, hadm_id, org_name, infectious_start, and infectious_end.\n\nCreate a view named PATIENT_EXPOSURES_VW that joins the index infections with EHR.TRANSFERS to identify other patients in the same careunit at the same time. Calculate the precise overlapping time window (overlap_start, overlap_end) and exposure_duration_hours (where duration = (LEAST(index_end, exposed_end) - GREATEST(index_start, exposed_start)) * 24). Filter the view to only include exposures where exposure_duration_hours >= 12. The view must include exposed_subject_id, exposed_hadm_id, index_subject_id, careunit, org_name, overlap_start, overlap_end, and exposure_duration_hours.\n\nCreate a materialized view named WARD_HOTSPOT_MV that aggregates PATIENT_EXPOSURES_VW by careunit and org_name to show total_index_cases (distinct infected subjects), total_exposed_patients (distinct exposed subjects), and max_exposure_hours.\n\nEstablish a table named ISOLATION_ORDERS with columns order_id (NUMBER, generated identity or sequence), subject_id (NUMBER), hadm_id (NUMBER), isolation_type (VARCHAR2), order_date (DATE), and reason (VARCHAR2). Develop and execute a PL/SQL procedure named PROC_FLAG_ISOLATION that identifies currently admitted exposed patients (where EHR.ADMISSIONS.dischtime IS NULL) and populates the ISOLATION_ORDERS table with isolation_type = 'CONTACT', order_date = SYSDATE, and a reason indicating the specific org_name and careunit of exposure.\n\nConnection details: Host=localhost, Port=1521, Service=XEPDB1, User=ehr_analyst, Password=EhrData2024",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hospital_infection_contact_tracing/setup_task.sh",
+    "post_task": "/workspace/tasks/hospital_infection_contact_tracing/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/infection_tracing_result.json",
+    "occupation": "Epidemiologists / Clinical Data Managers",
+    "industry": "Healthcare",
+    "expected_exposures": 3,
+    "expected_isolated": 2,
+    "oracle_features": [
+      "Temporal Logic",
+      "Materialized Views",
+      "PL/SQL",
+      "Identity Columns"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hospital_infection_contact_tracing"
+    }
+  }
+}

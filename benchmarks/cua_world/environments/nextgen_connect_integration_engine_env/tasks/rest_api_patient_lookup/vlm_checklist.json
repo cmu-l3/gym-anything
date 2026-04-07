@@ -1,0 +1,59 @@
+{
+  "task_id": "rest_api_patient_lookup@1",
+  "task_completion": [
+    {
+      "id": "channel_created",
+      "description": "Verify that a channel named 'Patient_Status_API' has been created in NextGen Connect.",
+      "points": 10,
+      "visual_evidence": "Look for 'Patient_Status_API' in the NextGen Connect Administrator Channels list or dashboard."
+    },
+    {
+      "id": "http_listener_configured",
+      "description": "Verify the channel's source is configured as an HTTP Listener on port 6670.",
+      "points": 15,
+      "visual_evidence": "Look for the Source tab or Summary showing 'HTTP Listener' and the port field set to '6670'."
+    },
+    {
+      "id": "database_query_configured",
+      "description": "Verify the channel is configured to query the PostgreSQL database for the patient's MRN.",
+      "points": 20,
+      "visual_evidence": "Look for a Database Reader destination, a JavaScript step, or a Database connection step showing a SQL query like 'SELECT full_name, status FROM hospital_patients WHERE mrn = ...' and the JDBC URL 'jdbc:postgresql://nextgen-postgres:5432/mirthdb'."
+    },
+    {
+      "id": "success_response_configured",
+      "description": "Verify the channel is configured to return an HTTP 200 response with the patient's JSON data when found.",
+      "points": 20,
+      "visual_evidence": "Look for response mapping or JavaScript code constructing a JSON object with keys 'mrn', 'name', and 'status', and setting the HTTP status code to 200."
+    },
+    {
+      "id": "error_response_configured",
+      "description": "Verify the channel is configured to return an HTTP 404 response with an error JSON when the patient is not found.",
+      "points": 15,
+      "visual_evidence": "Look for conditional logic or response mapping setting the HTTP status to 404 and the response body to '{\"error\": \"Patient not found\"}' when the database returns no records."
+    },
+    {
+      "id": "channel_deployed_and_tested",
+      "description": "Verify the channel is deployed and successfully tested using an HTTP client.",
+      "points": 20,
+      "visual_evidence": "Look for the channel marked as 'Deployed' in NextGen Connect, and a terminal (e.g., curl) or browser window showing a successful GET request to 'http://localhost:6670?mrn=MRN-1001' returning the correct JSON."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "gui_used_for_channel",
+      "description": "Verify the agent used the NextGen Connect Administrator GUI to create and configure the channel.",
+      "visual_evidence": "Screenshots should show the NextGen Connect Administrator Java application interface being interacted with, not just XML files being edited in a text editor or terminal."
+    },
+    {
+      "id": "genuine_db_connection",
+      "description": "Verify the agent actually configured a database connection rather than hardcoding the response for MRN-1001.",
+      "visual_evidence": "Look for database connection settings or SQL queries in the channel configuration, ensuring the response isn't just a hardcoded string '{\"mrn\": \"MRN-1001\", \"name\": \"John Doe\", \"status\": \"Active\"}' without a DB lookup."
+    },
+    {
+      "id": "actual_http_testing",
+      "description": "Verify the agent tested the endpoint using a real HTTP client.",
+      "visual_evidence": "Look for a terminal running 'curl', a browser window, or an API client making a request to the configured port, rather than just echoing the expected output in a text editor."
+    }
+  ],
+  "privileged_info_for_vlm": "The channel must be named 'Patient_Status_API' and listen on port 6670. A successful test for MRN 'MRN-1001' should return HTTP 200 with JSON containing name 'John Doe' and status 'Active'. A test for a missing MRN like 'MRN-9999' must return HTTP 404 with JSON {\"error\": \"Patient not found\"}."
+}

@@ -2,6 +2,7 @@
 echo "=== Setting up abnormal_hba1c_management task ==="
 
 source /workspace/scripts/task_utils.sh
+wait_for_postgres
 
 # --- 1. Find Ana Isabel Betz ---
 ANA_PATIENT_ID=$(gnuhealth_db_query "

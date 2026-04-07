@@ -1,0 +1,28 @@
+{
+  "id": "build_system_healthcheck@1",
+  "version": "1.0",
+  "env_id": "socioboard_env@0.1",
+  "description": "Create an executable bash script at /usr/local/bin/socioboard-health.sh that generates a JSON health report for the Socioboard system. The script must check the status of the apache2, mariadb, and mongod systemd services, verify a MariaDB connection to the 'socioboard' database (user: socioboard, password: SocioPass2024!) by executing 'SELECT 1;', and retrieve the HTTP status code from http://localhost. The output must be a strict JSON object with keys \"apache\" (\"online\" or \"offline\"), \"mariadb\" (\"online\" or \"offline\"), \"mongodb\" (\"online\" or \"offline\"), \"database\" (\"connected\" or \"disconnected\"), \"frontend\" (integer status code or 0), and \"overall\" (\"healthy\" if all services are online, DB is connected, and frontend is 200; otherwise \"unhealthy\").",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/build_system_healthcheck/setup_task.sh",
+    "post_task": "/workspace/tasks/build_system_healthcheck/export_result.sh"
+  },
+  "metadata": {
+    "script_path": "/usr/local/bin/socioboard-health.sh",
+    "db_user": "socioboard",
+    "db_pass": "SocioPass2024!",
+    "db_name": "socioboard"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_build_system_healthcheck"
+    }
+  }
+}

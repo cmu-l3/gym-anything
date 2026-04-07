@@ -1,0 +1,53 @@
+{
+  "task_id": "docker_image_versioning@1",
+  "task_completion": [
+    {
+      "id": "dockerfile_args_and_envs",
+      "description": "Dockerfile is modified to accept build arguments and set environment variables.",
+      "points": 20,
+      "visual_evidence": "A text editor or terminal output showing the Dockerfile containing 'ARG BUILD_DATE', 'ARG GIT_SHA', 'ARG GIT_BRANCH' and corresponding 'ENV APP_BUILD_DATE', 'ENV APP_REVISION', 'ENV APP_BRANCH' declarations."
+    },
+    {
+      "id": "dockerfile_labels",
+      "description": "Dockerfile is modified to set the required OCI labels.",
+      "points": 20,
+      "visual_evidence": "A text editor or terminal output showing the Dockerfile containing 'LABEL org.opencontainers.image.created', 'LABEL org.opencontainers.image.revision', and 'LABEL org.opencontainers.image.source'."
+    },
+    {
+      "id": "build_script_git_extraction",
+      "description": "build.sh is modified to extract Git metadata and pass it as build arguments.",
+      "points": 20,
+      "visual_evidence": "A text editor or terminal output showing 'build.sh' with commands to extract git metadata (e.g., 'git rev-parse HEAD') and a 'docker build' command using '--build-arg BUILD_DATE=...', '--build-arg GIT_SHA=...', and '--build-arg GIT_BRANCH=...'."
+    },
+    {
+      "id": "docker_build_execution",
+      "description": "The Docker image is successfully built with the extracted metadata.",
+      "points": 20,
+      "visual_evidence": "Terminal output showing the execution of './build.sh' or 'docker build', displaying the '--build-arg' parameters being passed and successfully tagging the image as 'acme-payment:latest'."
+    },
+    {
+      "id": "service_endpoint_verification",
+      "description": "The service is running and returns the correct metadata at the /version endpoint.",
+      "points": 20,
+      "visual_evidence": "Terminal showing a successful request (e.g., 'curl http://localhost:5000/version') or a web browser at that URL, displaying a response that includes the injected git metadata (branch, revision, and build date)."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "no_hardcoded_metadata",
+      "description": "Ensure the build script dynamically extracts git information rather than using hardcoded strings.",
+      "visual_evidence": "In 'build.sh', look for actual commands like 'git rev-parse' or 'date' being used to set variables, rather than hardcoded hashes, branch names, or dates."
+    },
+    {
+      "id": "genuine_docker_build",
+      "description": "Ensure the Docker build actually executed and wasn't faked.",
+      "visual_evidence": "Terminal shows authentic Docker build output (e.g., 'Step 1/X', layer caching, or BuildKit output) rather than just a script echoing a success message."
+    },
+    {
+      "id": "genuine_service_response",
+      "description": "Ensure the endpoint response comes from the actual running service.",
+      "visual_evidence": "The terminal should show the container being started (e.g., 'docker run -p 5000:5000 acme-payment:latest') before the curl command is executed, proving the response is from the built image."
+    }
+  ],
+  "privileged_info_for_vlm": "Project directory: /home/ga/projects/acme-payment-service. Target image tag: acme-payment:latest. Required environment variables: APP_REVISION, APP_BRANCH, APP_BUILD_DATE. Required OCI labels: org.opencontainers.image.revision, org.opencontainers.image.source, org.opencontainers.image.created. Verification endpoint: http://localhost:5000/version."
+}

@@ -72,5 +72,5 @@ The task requires domain-level reasoning (distinguishing enzyme induction from e
 
 ## Evidence
 
-Evidence files are stored in `benchmarks/cua_world/environments/liverpool_cancer_ichart_env/evidence/`:
+Evidence files are stored in `examples/liverpool_cancer_ichart_env/evidence_docs/`:
 - `venetoclax_cyp3a4_induction_risk_assessment_evidence.json`

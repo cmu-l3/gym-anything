@@ -1,0 +1,87 @@
+{
+    "task_id": "new_housing_price_premium_analysis@1",
+    "dataset": "San Francisco UrbanSim Public Data",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_notebook_path",
+            "metadata_value": "/home/ga/urbansim_projects/notebooks/new_construction_premium.ipynb",
+            "verified_value": "/home/ga/urbansim_projects/notebooks/new_construction_premium.ipynb",
+            "source": "Task description and setup_task.sh explicit constraints",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/urbansim_projects/output/zone_premium_analysis.csv",
+            "verified_value": "/home/ga/urbansim_projects/output/zone_premium_analysis.csv",
+            "source": "Task description and verifier.py logic",
+            "status": "verified"
+        },
+        {
+            "key": "expected_scatter_path",
+            "metadata_value": "/home/ga/urbansim_projects/output/premium_scatter.png",
+            "verified_value": "/home/ga/urbansim_projects/output/premium_scatter.png",
+            "source": "Task description and export_result.sh checks",
+            "status": "verified"
+        },
+        {
+            "key": "expected_bar_path",
+            "metadata_value": "/home/ga/urbansim_projects/output/top_premium_zones.png",
+            "verified_value": "/home/ga/urbansim_projects/output/top_premium_zones.png",
+            "source": "Task description and export_result.sh checks",
+            "status": "verified"
+        },
+        {
+            "key": "data_path",
+            "metadata_value": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+            "verified_value": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+            "source": "Task setup_task.sh explicitly checks for this file path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_columns",
+            "metadata_value": [
+                "zone_id",
+                "new_units",
+                "existing_units",
+                "median_price_new",
+                "median_price_existing",
+                "price_premium_ratio"
+            ],
+            "verified_value": [
+                "zone_id",
+                "new_units",
+                "existing_units",
+                "median_price_new",
+                "median_price_existing",
+                "price_premium_ratio"
+            ],
+            "source": "Task description and verifier.py explicit checks",
+            "status": "verified"
+        },
+        {
+            "key": "min_new_units",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "Task description and verifier.py default logic",
+            "status": "verified"
+        },
+        {
+            "key": "min_existing_units",
+            "metadata_value": 50,
+            "verified_value": 50,
+            "source": "Task description and verifier.py default logic",
+            "status": "verified"
+        },
+        {
+            "key": "vintage_cutoff_year",
+            "metadata_value": 2000,
+            "verified_value": 2000,
+            "source": "Task description explicitly specifies year_built >= 2000",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Completed PI audit for urban_sim_env new_housing_price_premium_analysis task. The dataset used is the real San Francisco UrbanSim open dataset (sanfran_public.h5). All metadata claims representing file paths, target unit minimums, and expected outputs precisely match the verifier logic and description. However, I discovered a critical bug in the task's evaluation logic: the export_result.sh script attempts to calculate the ground truth directly from the 'buildings' table using 'zone_id', but 'zone_id' does not exist in the 'buildings' table (it resides in 'parcels', which must be joined by 'parcel_id'). This triggers a KeyError during the ground truth extraction, leaving 'gt_valid_zones' as 0. Because verifier.py bypasses its ground truth checks if 'gt_zones' is not greater than 0, any agent that successfully joins the parcels table to extract the actual 119 valid zones (or even an agent that hallucinates mathematically valid data) will bypass the accuracy assessment but still achieve a passing score of 80 out of 100.",
+    "pi_confidence": "high"
+}

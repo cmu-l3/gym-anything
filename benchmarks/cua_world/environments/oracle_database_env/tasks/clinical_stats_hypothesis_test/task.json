@@ -1,0 +1,32 @@
+{
+  "id": "clinical_stats_hypothesis_test@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A Biostatistician needs to analyze heart disease risk factors using the UCI Cleveland dataset. Connect to the Oracle database (User: RESEARCH, Password: research123, PDB: XEPDB1) to create a view named PATIENT_COHORTS_VW containing all columns from HEART_PATIENTS and a COHORT column ('DISEASE' if diagnosis > 0, else 'NORMAL'). Create a table STUDY_RESULTS with columns METRIC_NAME (VARCHAR2) and METRIC_VALUE (NUMBER). Populate STUDY_RESULTS with the following statistics (precise to 4 decimal places): 'P_VALUE_HR_DIFF' (two-sided P-value for Max Heart Rate (THALACH) difference between cohorts using STATS_T_TEST_INDEP), 'CORRELATION_AGE_CHOL' (Pearson correlation between Age and Cholesterol (CHOL) using CORR), 'AVG_HR_DISEASE' (average Max Heart Rate for DISEASE cohort), and 'AVG_HR_NORMAL' (average Max Heart Rate for NORMAL cohort).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/clinical_stats_hypothesis_test/setup_task.sh",
+    "post_task": "/workspace/tasks/clinical_stats_hypothesis_test/export_result.sh"
+  },
+  "metadata": {
+    "database_user": "RESEARCH",
+    "database_pass": "research123",
+    "source_url": "https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data",
+    "tolerances": {
+      "p_value": 0.0001,
+      "correlation": 0.0001,
+      "average": 0.01
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_clinical_stats"
+    }
+  }
+}

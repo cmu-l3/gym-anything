@@ -1,26 +1,29 @@
 #!/bin/bash
-set -euo pipefail
+set -e
 
 echo "=== Setting up LibreOffice Impress configuration ==="
+
+# Wait for desktop to be ready
+sleep 5
 
 # Set up Impress for a specific user
 setup_user_impress() {
     local username=$1
     local home_dir=$2
-    
+
     echo "Setting up LibreOffice Impress for user: $username"
-    
+
     # Create LibreOffice config directory
-    sudo -u $username mkdir -p "$home_dir/.config/libreoffice/4/user"
-    sudo -u $username mkdir -p "$home_dir/.config/libreoffice/4/user/template"
-    sudo -u $username mkdir -p "$home_dir/.config/libreoffice/4/user/gallery"
-    sudo -u $username mkdir -p "$home_dir/Documents/Presentations"
-    sudo -u $username mkdir -p "$home_dir/Documents/results"
-    sudo -u $username mkdir -p "$home_dir/Desktop"
-    
+    sudo -u "$username" mkdir -p "$home_dir/.config/libreoffice/4/user"
+    sudo -u "$username" mkdir -p "$home_dir/.config/libreoffice/4/user/template"
+    sudo -u "$username" mkdir -p "$home_dir/.config/libreoffice/4/user/gallery"
+    sudo -u "$username" mkdir -p "$home_dir/Documents/Presentations"
+    sudo -u "$username" mkdir -p "$home_dir/Documents/results"
+    sudo -u "$username" mkdir -p "$home_dir/Desktop"
+
     # Copy custom preferences if available
     if [ -f "/workspace/config/registrymodifications.xcu" ]; then
-        sudo -u $username cp "/workspace/config/registrymodifications.xcu" "$home_dir/.config/libreoffice/4/user/"
+        sudo -u "$username" cp "/workspace/config/registrymodifications.xcu" "$home_dir/.config/libreoffice/4/user/"
         echo "  - Copied custom preferences"
     else
         # Create default preferences optimized for presentations
@@ -52,16 +55,16 @@ setup_user_impress() {
   </item>
 </oor:items>
 PREFEOF
-        chown $username:$username "$home_dir/.config/libreoffice/4/user/registrymodifications.xcu"
+        chown "$username:$username" "$home_dir/.config/libreoffice/4/user/registrymodifications.xcu"
         echo "  - Created default preferences"
     fi
-    
+
     # Copy default template if available
     if [ -f "/workspace/config/default_template.otp" ]; then
-        sudo -u $username cp "/workspace/config/default_template.otp" "$home_dir/.config/libreoffice/4/user/template/"
+        sudo -u "$username" cp "/workspace/config/default_template.otp" "$home_dir/.config/libreoffice/4/user/template/"
         echo "  - Copied default template"
     fi
-    
+
     # Set up desktop shortcut
     cat > "$home_dir/Desktop/LibreOffice-Impress.desktop" << DESKTOPEOF
 [Desktop Entry]
@@ -75,28 +78,82 @@ MimeType=application/vnd.oasis.opendocument.presentation;application/vnd.ms-powe
 Categories=Office;Presentation;
 Type=Application
 DESKTOPEOF
-    chown $username:$username "$home_dir/Desktop/LibreOffice-Impress.desktop"
+    chown "$username:$username" "$home_dir/Desktop/LibreOffice-Impress.desktop"
     chmod +x "$home_dir/Desktop/LibreOffice-Impress.desktop"
+
+    # Mark desktop file as trusted so GNOME doesn't show "Untrusted Desktop File" dialog
+    su - "$username" -c "dbus-launch gio set $home_dir/Desktop/LibreOffice-Impress.desktop metadata::trusted true" 2>/dev/null || true
+
     echo "  - Created desktop shortcut"
-    
+
     # Create launch script
     cat > "$home_dir/launch_impress.sh" << 'LAUNCHEOF'
 #!/bin/bash
 # Launch LibreOffice Impress with optimized settings
 export DISPLAY=${DISPLAY:-:1}
 
-# Ensure proper permissions for X11
-xhost +local: 2>/dev/null || true
-
 # Launch Impress
-libreoffice --impress "$@" > /tmp/impress_$USER.log 2>&1 &
+setsid libreoffice --impress "$@" > /tmp/impress_$USER.log 2>&1 &
 
-echo "LibreOffice Impress started"
-echo "Log file: /tmp/impress_$USER.log"
+echo "LibreOffice Impress started (PID: $!)"
 LAUNCHEOF
-    chown $username:$username "$home_dir/launch_impress.sh"
+    chown "$username:$username" "$home_dir/launch_impress.sh"
     chmod +x "$home_dir/launch_impress.sh"
     echo "  - Created launch script"
+
+    # === Warm-up launch to dismiss first-run dialogs ===
+    echo "  - Performing warm-up launch to dismiss first-run dialogs..."
+    su - "$username" -c "DISPLAY=:1 setsid libreoffice --impress" &
+    local warmup_pid=$!
+    sleep 15
+
+    # Dismiss all startup dialogs: Template Selector, Tip of the Day, etc.
+    for i in 1 2 3 4; do
+        su - "$username" -c "DISPLAY=:1 xdotool key Escape" 2>/dev/null || true
+        sleep 1
+        su - "$username" -c "DISPLAY=:1 xdotool key Return" 2>/dev/null || true
+        sleep 1
+    done
+
+    # Gracefully close LibreOffice (Ctrl+Q)
+    su - "$username" -c "DISPLAY=:1 xdotool key ctrl+q" 2>/dev/null || true
+    sleep 5
+
+    # Handle "Don't Save" dialog if it appears
+    su - "$username" -c "DISPLAY=:1 xdotool key Return" 2>/dev/null || true
+    sleep 2
+
+    # If still running, force kill
+    pkill -f "soffice" 2>/dev/null || true
+    wait $warmup_pid 2>/dev/null || true
+    sleep 3
+    pkill -9 -f "soffice" 2>/dev/null || true
+    sleep 2
+
+    # Clean up recovery files to prevent Document Recovery dialog
+    rm -rf "$home_dir/.config/libreoffice/4/user/backup/" 2>/dev/null || true
+    rm -rf /tmp/lu*/ 2>/dev/null || true
+    rm -f /tmp/.~lock.* 2>/dev/null || true
+
+    # Remove only recovery entries from registrymodifications.xcu
+    # Keep all other settings that LibreOffice wrote during warm-up (like mstone, TipOfTheDay, etc.)
+    local config_file="$home_dir/.config/libreoffice/4/user/registrymodifications.xcu"
+    if [ -f "$config_file" ]; then
+        python3 -c "
+import re
+with open('$config_file', 'r') as f:
+    content = f.read()
+# Remove recovery-related items
+content = re.sub(r'<item oor:path=\"/org\.openoffice\.Office\.Recovery/RecoveryList\">.*?</item>', '', content, flags=re.DOTALL)
+content = re.sub(r'<item oor:path=\"/org\.openoffice\.Office\.Recovery/RecoveryInfo\">.*?</item>', '', content, flags=re.DOTALL)
+with open('$config_file', 'w') as f:
+    f.write(content)
+" 2>/dev/null || true
+        chown "$username:$username" "$config_file"
+        echo "  - Removed recovery entries from config (kept first-run dismissal settings)"
+    fi
+
+    echo "  - Warm-up launch complete (first-run dialogs dismissed, recovery files cleaned)"
 }
 
 # Setup for ga user (the main VNC user)
@@ -132,9 +189,3 @@ HEADLESSEOF
 chmod +x /usr/local/bin/impress-headless
 
 echo "=== LibreOffice Impress configuration completed ==="
-
-echo "LibreOffice Impress is ready! Users can:"
-echo "  - Launch from desktop shortcut"
-echo "  - Run 'libreoffice --impress' from terminal"
-echo "  - Run '~/launch_impress.sh <file>' for optimized launch"
-echo "  - Use 'impress-headless' for conversions"

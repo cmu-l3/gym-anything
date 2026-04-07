@@ -1,0 +1,80 @@
+{
+    "task_id": "complete_base_transfer_setup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_display_name",
+            "metadata_value": "Capt. Rodriguez | LAX",
+            "verified_value": null,
+            "source": "Synthetic persona created for this benchmark task. The display name format 'Name | Airport' is consistent with the existing task crew_partner_network_setup which uses 'Capt. Rodriguez | ORD'. The CUA Suite field in Settings (content-desc: 'CUA Suite - THE NAME USED FOR SOME OF THE FEATURES IN THE APP') accepts free-text input for display name.",
+            "status": "unverified"
+        },
+        {
+            "key": "display_name_keyword",
+            "metadata_value": "Rodriguez",
+            "verified_value": "Rodriguez",
+            "source": "Correctly derived as substring of target_display_name 'Capt. Rodriguez | LAX'. The export_result.sh greps for 'Rodriguez' in the Settings UI XML dump (line 46).",
+            "status": "verified"
+        },
+        {
+            "key": "target_position",
+            "metadata_value": "Captain",
+            "verified_value": "Captain",
+            "source": "Verified as valid position option in Flight Crew View. The Position field in Settings shows default 'Flight Attendant' (confirmed from settings_xml.txt content-desc). The app is designed for 'pilots and flight attendants' per Google Play description. The existing task crew_partner_network_setup successfully uses 'Captain' as target position with the same verification pattern (grep -qi 'Captain' in Settings XML). Captain is a standard airline cockpit position.",
+            "status": "verified"
+        },
+        {
+            "key": "target_home_airport",
+            "metadata_value": "LAX",
+            "verified_value": "LAX",
+            "source": "IATA code LAX = Los Angeles International Airport (ICAO: KLAX), verified via Wikipedia and world-airport-codes.com. The Home Airport field in FLICA Settings accepts IATA codes (evidence: home_airports_xml.txt shows 'Home Airport...ORD' as current value, confirming the field displays IATA codes). LAX is the primary airport of Los Angeles, served 76.6M passengers in 2024.",
+            "status": "verified"
+        },
+        {
+            "key": "target_base_airport",
+            "metadata_value": "LAX",
+            "verified_value": "LAX",
+            "source": "Same IATA code as target_home_airport. The Base/Activity Airport field in FLICA Settings also accepts IATA codes (evidence: home_airports_xml.txt shows 'Base/Activity Airport...LGA' as current value). Delta Air Lines is verified as the LARGEST global carrier at LAX with 151+ peak-day departures to 50+ destinations, operating from Terminals 2, 3, and B (source: Delta News Hub). LAX is a confirmed Delta crew base.",
+            "status": "verified"
+        },
+        {
+            "key": "target_chat_message",
+            "metadata_value": "Capt Rodriguez reporting for duty at LAX base",
+            "verified_value": null,
+            "source": "Synthetic message created for this benchmark task. Crew Chat feature exists in the app (confirmed in settings_xml_scrolled.txt as 'CREW CHAT' section, and accessible via hamburger menu in live testing). The export_result.sh checks for substring 'reporting for duty' via grep in the Crew Chat UI XML dump.",
+            "status": "unverified"
+        },
+        {
+            "key": "chat_keyword",
+            "metadata_value": "reporting for duty",
+            "verified_value": "reporting for duty",
+            "source": "Correctly derived as substring of target_chat_message. The export_result.sh line 162 uses 'grep -qi reporting for duty' to check the Crew Chat XML dump. This substring is unique enough to confirm the correct message was sent without false positives.",
+            "status": "verified"
+        },
+        {
+            "key": "target_package",
+            "metadata_value": "com.robert.fcView",
+            "verified_value": "com.robert.fcView",
+            "source": "Verified on Google Play Store (https://play.google.com/store/apps/details?id=com.robert.fcView). App name: 'Flight Crew View', developer: Robert Murray / Flight Crew Apps LLC, 50,000+ downloads. Confirmed installed and running on the Android AVD during live testing (pm list packages shows com.robert.fcView). App version 3.9.4 confirmed in Settings XML (content-desc: 'FLIGHT CREW VIEW 3.9.4').",
+            "status": "verified"
+        },
+        {
+            "key": "persona",
+            "metadata_value": "Delta Air Lines Captain",
+            "verified_value": "Delta Air Lines is a real airline. Captain is a real airline position. Delta is the largest carrier at LAX.",
+            "source": "Delta Air Lines verified as real major US airline (NYSE: DAL). LAX is Delta's primary West Coast hub with $2.3B terminal investment (Delta Sky Way at LAX). Captain is a standard cockpit position for airline pilots. The persona is synthetic (Rodriguez is not a real Delta captain) but the airline+position+base combination is realistic.",
+            "status": "verified"
+        },
+        {
+            "key": "base",
+            "metadata_value": "LAX",
+            "verified_value": "LAX",
+            "source": "Duplicate of target_home_airport and target_base_airport. LAX confirmed as Delta Air Lines crew base via Delta News Hub (151+ peak-day departures, Terminals 2/3/B operations).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task runs on an Android AVD (API 34) with Flight Crew View app (com.robert.fcView v3.9.4) logged in via Friend/Family account (cuasuite@gmail.com). After setup_task.sh runs pm clear and login_helper.sh, the app starts on the Friends page with default profile: display name 'John Doe' (or 'CUA Suite'), position 'Flight Attendant', and default airports. The agent must navigate to Settings via the hamburger menu (top-right, coordinates ~1027,200). The Settings page is very long and scrollable with 20+ sections. At the TOP: CUA Suite (display name field), Position (shows 'Flight Attendant' by default). After 5-6 downward scrolls: HOME & BASE AIRPORTS section (must be TAPPED to expand, revealing 'Home Airport' and 'Base/Activity Airport' sub-fields that accept IATA codes). The agent must set display name to 'Capt. Rodriguez | LAX', position to 'Captain', and both airports to 'LAX'. For system hardening: battery optimization is reset to default (optimized) via 'dumpsys deviceidle whitelist -com.robert.fcView', the agent must navigate Android Settings > Apps > Flight Crew View > Battery > Unrestricted. DND is reset to off (zen_mode=0), the agent must enable DND and add the app as an exception via Android Settings > Sound > Do Not Disturb. The Crew Chat is accessible via the hamburger menu. The export_result.sh verifies: display name via grep for 'Rodriguez' AND 'LAX' in Settings XML, position via grep for 'Captain', airports via grep for 'LAX' in expanded airports XML, battery via dumpsys deviceidle whitelist, DND via settings get global zen_mode and dumpsys notification policy, and chat message via grep for 'reporting for duty' in Crew Chat XML. LAX is Los Angeles International Airport (IATA: LAX). Delta Air Lines is the largest carrier at LAX with 151+ daily departures.",
+    "pi_confidence": "high"
+}

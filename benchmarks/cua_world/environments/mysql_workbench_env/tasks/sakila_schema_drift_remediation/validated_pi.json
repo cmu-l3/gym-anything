@@ -1,0 +1,45 @@
+{
+    "task_id": "sakila_schema_drift_remediation@1",
+    "dataset": "MySQL Sakila Sample Database",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "reference_db",
+            "metadata_value": "sakila_gold",
+            "verified_value": "sakila_gold",
+            "source": "Verified by reading setup_task.sh, which creates and loads the reference schema into sakila_gold.",
+            "status": "verified"
+        },
+        {
+            "key": "target_db",
+            "metadata_value": "sakila_prod",
+            "verified_value": "sakila_prod",
+            "source": "Verified by reading setup_task.sh, which clones sakila_gold into sakila_prod and applies unauthorized drifts.",
+            "status": "verified"
+        },
+        {
+            "key": "drifts",
+            "metadata_value": "[\"customer.last_name varchar length mismatch\", \"address.idx_fk_city_id missing\", \"store.internal_notes extra column\", \"customer_list view definition mismatch\"]",
+            "verified_value": "[\"customer.last_name varchar length mismatch\", \"address.idx_fk_city_id missing\", \"store.internal_notes extra column\", \"customer_list view definition mismatch\"]",
+            "source": "Verified by reading setup_task.sh, which explicitly alters the customer table (last_name VARCHAR(100)), drops the idx_fk_city_id index from address, adds internal_notes to the store table, and replaces the customer_list view omitting the country column.",
+            "status": "verified"
+        },
+        {
+            "key": "tracer_data_table",
+            "metadata_value": "rental",
+            "verified_value": "rental",
+            "source": "Verified by reading setup_task.sh, which inserts a live dummy record into the rental table, and export_result.sh, which queries the rental table to ensure this live data is preserved.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_script_path",
+            "metadata_value": "/home/ga/Documents/sql_scripts/revert_drift.sql",
+            "verified_value": "/home/ga/Documents/sql_scripts/revert_drift.sql",
+            "source": "Verified by reading export_result.sh and task.json, both of which require the remediation script to be saved at this path.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on the synthetic MySQL Sakila Sample Database. The reference database is 'sakila_gold' and the target database is 'sakila_prod'. Four specific schema drifts are introduced into sakila_prod: customer.last_name is altered to VARCHAR(100), the idx_fk_city_id index is dropped from the address table, an extra internal_notes column is added to the store table, and the customer_list view is missing the country column. A tracer record is inserted into the 'rental' table to ensure that the database is altered rather than dropped and recreated. The resulting synchronization script must be saved to /home/ga/Documents/sql_scripts/revert_drift.sql.",
+    "pi_confidence": "high"
+}

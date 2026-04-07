@@ -1,0 +1,45 @@
+{
+    "task_id": "migrate_freestyle_to_pipeline@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "pipeline_job_name",
+            "metadata_value": "orders-api-pipeline",
+            "verified_value": "orders-api-pipeline",
+            "source": "Verified in setup_task.sh (line 43: cleans up pre-existing 'orders-api-pipeline'), export_result.sh (line 17: job_exists 'orders-api-pipeline'), and verifier.py (line 66: checks for 'orders-api-pipeline'). All three files consistently reference this job name.",
+            "status": "verified"
+        },
+        {
+            "key": "source_jobs",
+            "metadata_value": ["orders-api-build", "orders-api-test", "orders-api-security-scan", "orders-api-staging-deploy"],
+            "verified_value": ["orders-api-build", "orders-api-test", "orders-api-security-scan", "orders-api-staging-deploy"],
+            "source": "Verified in setup_task.sh: Job 1 created at line 370 (create_job_with_retry 'orders-api-build'), Job 2 at line 468, Job 3 at line 522, Job 4 at line 587. Each job is also verified to exist in the loop at lines 597-604. Live testing confirmed all 4 jobs were created successfully (HTTP 200 for each).",
+            "status": "verified"
+        },
+        {
+            "key": "required_stages",
+            "metadata_value": ["Build", "Test", "Security Scan", "Deploy"],
+            "verified_value": ["Build", "Test", "Security Scan", "Deploy"],
+            "source": "Verified by cross-referencing the 4 freestyle jobs with the verifier stage detection regexes in export_result.sh lines 127-130: stage('Build'), stage('Test'), stage('Security Scan'), stage('Deploy'). These map 1:1 to the 4 source freestyle jobs: orders-api-build->Build, orders-api-test->Test, orders-api-security-scan->Security Scan, orders-api-staging-deploy->Deploy.",
+            "status": "verified"
+        },
+        {
+            "key": "required_credentials",
+            "metadata_value": ["staging-db-creds", "staging-ssh-key"],
+            "verified_value": ["staging-db-creds", "staging-ssh-key"],
+            "source": "Verified in setup_task.sh: staging-db-creds created at lines 77-91 (UsernamePasswordCredentialsImpl, username=dbadmin, password=Str0ngP@ss!), staging-ssh-key created at lines 94-107 (StringCredentialsImpl, secret=ssh-rsa-AAAA-staging-key-placeholder). Job 2 XML references staging-db-creds in credentialsId (line 454). Job 4 XML references staging-ssh-key in credentialsId (line 578). Live testing confirmed both credentials exist via Jenkins API.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 55,
+            "verified_value": 55,
+            "source": "Verified in verifier.py line 185: 'passed = score >= 55'. Consistent with metadata.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The agent must create a Declarative Pipeline job named 'orders-api-pipeline' that consolidates 4 existing Freestyle jobs. The ground truth configuration details are: (1) orders-api-build has 3 parameters: BRANCH_NAME (string, default 'main'), SKIP_TESTS (boolean, default false), BUILD_PROFILE (choice: dev/staging/production). It has Git SCM pointing to https://github.com/jenkinsci/pipeline-examples.git branch */master. It has a cron trigger 'H/30 * * * *', a build discarder with numToKeep=10 and artifactNumToKeep=5, archives artifacts 'target/*.jar', and triggers downstream orders-api-test. Its shell command echoes 'Building Orders API' and creates target/orders-api.jar. (2) orders-api-test has 1 parameter: TEST_SUITE (string, default 'full'). It binds credential 'staging-db-creds' (username/password) to DB_USER/DB_PASS. Environment variables DB_HOST=orders-db.staging.internal and DB_PORT=5432 are set via export in the shell command. It creates JUnit XML at test-reports/results.xml (12 tests, 0 failures) and publishes with pattern '**/test-reports/*.xml'. Its shell echoes 'Running Integration Tests'. (3) orders-api-security-scan is restricted to label 'security-node' (assignedNode=security-node, canRoam=false). It archives 'security-reports/**'. Its shell echoes 'Running OWASP Dependency Check'. (4) orders-api-staging-deploy has 2 parameters: DEPLOY_REGION (choice: us-east-1/eu-west-1/ap-southeast-1) and FORCE_DEPLOY (boolean, default false). It binds credential 'staging-ssh-key' (secret text) to variable STAGING_KEY. Its shell echoes 'Deploying to Staging'. The pipeline must have: a parameters block with all 6 parameters, an environment block with credentials('staging-db-creds') and credentials('staging-ssh-key') plus DB_HOST and DB_PORT, triggers { cron('H/30 * * * *') }, options { buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '5')) }, 4 stages (Build, Test, Security Scan, Deploy) each preserving original shell commands, archiveArtifacts in Build and Security Scan stages, junit step in Test stage, and the Security Scan stage must use agent { label 'security-node' }. The pipeline must be triggered and complete with SUCCESS or UNSTABLE status. Pass threshold is 55/100.",
+    "pi_confidence": "high"
+}

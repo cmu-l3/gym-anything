@@ -1,0 +1,30 @@
+{
+  "id": "post_incident_timeline@1",
+  "version": "1.0",
+  "env_id": "graphite_env@0.1",
+  "description": "After a 3-hour production incident, you need to prepare a dashboard that tells the incident story clearly for a post-incident review meeting. Create and save a Graphite dashboard named 'Post-Incident Review' containing exactly three graphs: 'Hourly Peak CPU' with targets aliasByNode(summarize(servers.ec2_instance_1.cpu.utilization, '1h', 'max'), 1), aliasByNode(summarize(servers.ec2_instance_2.cpu.utilization, '1h', 'max'), 1), and aliasByNode(summarize(servers.ec2_instance_3.cpu.cloudwatch_utilization, '1h', 'max'), 1); 'Gap-Filled Temperature' with target keepLastValue(servers.datacenter.machine_temperature, 5); and 'Request Rate Summary' with target alias(summarize(derivative(servers.load_balancer.requests.count), '30min', 'sum'), 'LB Requests per 30min').",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/post_incident_timeline/setup_task.sh",
+    "post_task": "/workspace/tasks/post_incident_timeline/export_result.sh"
+  },
+  "metadata": {
+    "expected_dashboard_name": "Post-Incident Review",
+    "expected_graphs": [
+      "Hourly Peak CPU",
+      "Gap-Filled Temperature",
+      "Request Rate Summary"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_post_incident_timeline"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "ebr_zero_downtime_deployment@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Perform a zero-downtime patch of the 'PAYROLL_CALC' package in the HR schema using Oracle Edition-Based Redefinition (EBR). In the base edition ('ORA$BASE'), implement the 'GET_BONUS(p_emp_id NUMBER)' function to return a constant 1000. Create a child edition named 'RELEASE_V2' where the function is updated to return 10% of the employee's salary from the EMPLOYEES table. Document the output of GET_BONUS(100) (Steven King) from both editions to /home/ga/Desktop/patch_validation.txt to verify isolation, then set the database-wide default edition to 'RELEASE_V2'.\n\nConnection: localhost:",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ebr_zero_downtime_deployment/setup_task.sh",
+    "post_task": "/workspace/tasks/ebr_zero_downtime_deployment/export_result.sh"
+  },
+  "metadata": {
+    "base_edition": "ORA$BASE",
+    "new_edition": "RELEASE_V2",
+    "package_name": "PAYROLL_CALC",
+    "function_name": "GET_BONUS",
+    "test_emp_id": 100,
+    "expected_base_value": 1000,
+    "expected_v2_value": 2400,
+    "report_path": "/home/ga/Desktop/patch_validation.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ebr_deployment"
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "id": "release_management_pipeline@1",
+  "version": "1.0",
+  "env_id": "openproject_env@0.1",
+  "description": "You are the VP of Engineering at TechCorp. Set up a formal release management pipeline in OpenProject (http://localhost:8080, admin / Admin1234!).\n\nCreate three new work package statuses: \"Ready for QA\", \"QA Passed\", and \"Staging Deployed\". Configure the workflow for the Member role on Feature type to allow these transitions: \"In progress\" to \"Ready for QA\", \"Ready for QA\" to \"QA Passed\", \"QA Passed\" to \"Staging Deployed\", and \"Staging Deployed\" to \"Closed\".\n\nCreate a work package list custom field named \"Target Release\" with options \"v2.0.0-alpha\", \"v2.1.0-beta\", and \"v3.0.0\". Enable it for Feature and Bug types across all three existing projects.\n\nCreate a new public project named \"Release Coordination\" (identifier: release-coordination) with modules: work_package_tracking, wiki, and board_view. Add members alice.johnson, bob.smith, and carol.williams with the Member role.\n\nIn Release Coordination, create three Feature work packages: \"Release v2.0.0 - E-Commerce Stabilization\" assigned to alice.johnson with Target Release \"v2.0.0-alpha\" and status \"In progress\"; \"Release v2.1.0 - Mobile Banking Security Patch\" assigned to carol.williams with Target Release \"v2.1.0-beta\"; and \"Release v3.0.0 - Full Platform Upgrade\" assigned to bob.smith with Target Release \"v3.0.0\".\n\nCreate a status-based board named \"Release Pipeline\" in Release Coordination with columns for New, In progress, Ready for QA, QA Passed, Staging Deployed, and Closed.\n\nCreate a wiki page titled \"Release Management Process\" in Release Coordination documenting the complete status workflow, the three release candidates with their assigned owners, and QA sign-off procedures.",
+  "difficulty": "very_hard",
+  "tags": [
+    "openproject",
+    "admin",
+    "workflow",
+    "custom-fields",
+    "release-management",
+    "long-horizon"
+  ],
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/release_management_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/release_management_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "status_names": ["Ready for QA", "QA Passed", "Staging Deployed"],
+    "workflow_role": "Member",
+    "workflow_type": "Feature",
+    "workflow_transitions": [
+      ["In progress", "Ready for QA"],
+      ["Ready for QA", "QA Passed"],
+      ["QA Passed", "Staging Deployed"],
+      ["Staging Deployed", "Closed"]
+    ],
+    "custom_field_name": "Target Release",
+    "custom_field_format": "list",
+    "custom_field_values": ["v2.0.0-alpha", "v2.1.0-beta", "v3.0.0"],
+    "custom_field_types": ["Feature", "Bug"],
+    "project_name": "Release Coordination",
+    "project_identifier": "release-coordination",
+    "project_modules": ["work_package_tracking", "wiki", "board_view"],
+    "member_logins": ["alice.johnson", "bob.smith", "carol.williams"],
+    "member_role": "Member",
+    "work_packages": [
+      {
+        "subject": "Release v2.0.0 - E-Commerce Stabilization",
+        "assignee": "alice.johnson",
+        "target_release": "v2.0.0-alpha",
+        "status": "In progress",
+        "type": "Feature"
+      },
+      {
+        "subject": "Release v2.1.0 - Mobile Banking Security Patch",
+        "assignee": "carol.williams",
+        "target_release": "v2.1.0-beta",
+        "status": "New",
+        "type": "Feature"
+      },
+      {
+        "subject": "Release v3.0.0 - Full Platform Upgrade",
+        "assignee": "bob.smith",
+        "target_release": "v3.0.0",
+        "status": "New",
+        "type": "Feature"
+      }
+    ],
+    "board_name": "Release Pipeline",
+    "wiki_title": "Release Management Process"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_release_management_pipeline"
+    }
+  }
+}

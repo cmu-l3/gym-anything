@@ -1,0 +1,38 @@
+{
+  "id": "compute_station_distances@1",
+  "version": "1.0",
+  "env_id": "seiscomp_env@0.1",
+  "name": "Compute Station-Epicenter Distances for the Noto Earthquake",
+  "description": "A seismologist at the GYM Seismology Lab needs to determine which stations in the GE network are closest to the 2024 Noto Peninsula earthquake epicenter. Calculate the great-circle distance (in km) from the epicenter to each GE network station (TOLI, GSI, KWP, SANI, BKB) using the Haversine formula (d = 2R·arcsin(√(sin²(Δlat/2) + cos(lat1)·cos(lat2)·sin²(Δlon/2))) where R = 6371 km).\n\nExport a CSV file to ~/Documents/station_distances.csv with the header station,network,latitude,longitude,distance_km, containing all five GE stations sorted by ascending distance. Create a summary report at ~/Documents/distance_summary.txt containing the earthquake origin parameters (latitude, longitude, depth, origin time), the nearest and farthest station names with their distances, and the total number of stations processed.\n\nThe SeisComP database (mysql -u sysop -psysop seiscomp; tables: Origin, Station, Network, Event, PublicObject), CLI tools (scinv, scevtls, scorgls), and Python 3 are available for use. Distances must be accurate to within ±5 km.",
+  "difficulty": "medium",
+  "category": "seismological_analysis",
+  "tags": [
+    "seiscomp",
+    "cli",
+    "database",
+    "computation",
+    "inventory",
+    "earthquake"
+  ],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_station_distances/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_station_distances/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/station_distances.csv",
+    "expected_summary_path": "/home/ga/Documents/distance_summary.txt",
+    "distance_tolerance_km": 5.0,
+    "coordinate_tolerance_deg": 0.01
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_station_distances"
+    }
+  }
+}

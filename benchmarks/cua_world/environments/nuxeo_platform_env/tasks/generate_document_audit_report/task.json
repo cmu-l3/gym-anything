@@ -1,0 +1,34 @@
+{
+  "id": "generate_document_audit_report@1",
+  "version": "1.0",
+  "env_id": "nuxeo_platform_env@0.1",
+  "description": "Query the Nuxeo Platform's audit trail system to compile a history report for all documents in the '/default-domain/workspaces/Projects' workspace. Compile the audit history (provenance) for at least 2 distinct documents found in the workspace into a JSON file saved at '/home/ga/audit_report.json'.\n\nThe JSON file must follow this exact structure:\n{\n  \"report_title\": \"Projects Workspace Audit Report\",\n  \"generated_at\": \"<ISO-8601 timestamp>\",\n  \"workspace_path\": \"/default-domain/workspaces/Projects\",\n  \"total_entries\": <integer count>,\n  \"entries\": [\n    {\n      \"document_title\": \"<dc:title>\",\n      \"document_path\": \"<doc path>\",\n      \"event_id\": \"<e.g. documentCreated>\",\n      \"event_date\": \"<ISO-8601 date>\",\n      \"principal\": \"<username>\",\n      \"category\": \"<event category>\"\n    }\n  ]\n}",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/generate_document_audit_report/setup_task.sh",
+    "post_task": "/workspace/tasks/generate_document_audit_report/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/audit_report.json",
+    "required_fields": [
+      "document_title",
+      "document_path",
+      "event_id",
+      "event_date",
+      "principal",
+      "category"
+    ],
+    "workspace_path": "/default-domain/workspaces/Projects"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_generate_document_audit_report"
+    }
+  }
+}

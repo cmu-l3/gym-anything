@@ -1,0 +1,40 @@
+{
+  "id": "manufacturing_spc_quality_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Industrial Engineer at an automotive parts manufacturer preparing for an upcoming ISO 9001:2015 surveillance audit. Using the QC_ENGINEER schema in Oracle (User: qc_engineer, Password: Quality2024, Host: localhost, Port: 1521, Service: XEPDB1), you must analyze production measurement data to generate an audit-ready summary report.\n\nCreate a view named PROCESS_CAPABILITY_VW that calculates the process mean (X-bar), standard deviation (sigma), Cp, Cpk, sample count, and date range for each part and production line. Include a capability_rating column categorized as 'EXCELLENT' (Cpk >= 1.67), 'CAPABLE' (Cpk >= 1.33), 'MARGINAL' (Cpk >= 1.00), or 'INCAPABLE' (Cpk < 1.00).\n\nImplement Western Electric Rules 1 through 4 to detect out-of-control processes. Create a table named CONTROL_VIOLATIONS (including violation_id, part_id, line_id, run_id, rule_number, violation_description, measurement_mean, control_limit, and detection_date) and a PL/SQL procedure named PROC_DETECT_VIOLATIONS to identify and record violations for single points beyond 3 sigma, 2 of 3 points beyond 2 sigma, 4 of 5 points beyond 1 sigma, and 8 consecutive points on one side of the center line. Execute this procedure to populate the table.\n\nAdditionally, create a DEFECT_PARETO_VW showing defect types ranked by frequency with a cumulative percentage column, and a CALIBRATION_ALERTS_VW identifying instruments with a next_calibration_date prior to SYSDATE. Finally, create a materialized view QUALITY_AUDIT_MV using ROLLUP to summarize defect rates (rejected_qty / batch_size) by production line, part, and shift, including subtotals at the line and part levels. Export the quality audit summary to /home/ga/quality_audit_report.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/manufacturing_spc_quality_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/manufacturing_spc_quality_analysis/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/spc_task_result.json",
+    "occupation": "Industrial Engineers",
+    "industry": "Manufacturing - Motor Vehicle Parts",
+    "gdp_contribution": "$758M",
+    "design_pattern": "Signal Detection + Statistical Analytics",
+    "oracle_features": [
+      "Analytical Functions",
+      "Materialized Views",
+      "ROLLUP/CUBE",
+      "PL/SQL Processing"
+    ],
+    "embedded_signals": {
+      "mean_drift": "Line 2 Bearing Housing drifts upward simulating tool wear",
+      "mean_shift": "Line 1 Brake Rotor shifts suddenly due to material lot change",
+      "increased_variation": "Line 3 Valve Spring has standard deviation jump simulating fixture loosening"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_manufacturing_spc_quality_analysis"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "task_id": "patient_index_deduplication@1",
+  "task_completion": [
+    {
+      "id": "channel_source_setup",
+      "description": "Verify the channel is created with the correct name and source listener port.",
+      "points": 15,
+      "visual_evidence": "Look for the NextGen Connect (Mirth Connect) Administrator GUI showing a channel named 'Patient Master Index Sync'. In the Source tab, the connector type should be 'TCP Listener' and the Local Port should be '6665'."
+    },
+    {
+      "id": "hl7_field_extraction",
+      "description": "Verify the JavaScript transformer extracts the required HL7 fields into channel map variables.",
+      "points": 20,
+      "visual_evidence": "Look for the 'Edit Transformer' screen (either Source or Destination transformer) showing JavaScript or mapping steps that extract mrn (PID.3), last_name (PID.5.1), first_name (PID.5.2), dob (PID.7), gender (PID.8), and ssn (PID.19) into variables."
+    },
+    {
+      "id": "database_writer_setup",
+      "description": "Verify the destination is configured as a Database Writer connecting to the PostgreSQL database.",
+      "points": 15,
+      "visual_evidence": "Look for the Destinations tab showing the connector type as 'Database Writer'. The URL should point to 'jdbc:postgresql://nextgen-postgres:5432/mirthdb' with the username 'postgres'."
+    },
+    {
+      "id": "upsert_sql_query",
+      "description": "Verify the Database Writer contains the correct PostgreSQL UPSERT query.",
+      "points": 25,
+      "visual_evidence": "Look for the SQL query text area in the Database Writer destination. It must contain the logic: 'INSERT INTO patient_master_index ... ON CONFLICT (mrn) DO UPDATE SET last_name=EXCLUDED.last_name ... update_count=patient_master_index.update_count+1'."
+    },
+    {
+      "id": "response_transformer_ack",
+      "description": "Verify the Response Transformer is configured to construct an HL7 ACK message.",
+      "points": 15,
+      "visual_evidence": "Look for the 'Edit Response Transformer' screen showing logic or mapping that constructs an HL7 ACK message with acknowledgment code 'AA' and maps the MSH-10 Message Control ID from the inbound message."
+    },
+    {
+      "id": "channel_deployed",
+      "description": "Verify the channel has been successfully deployed and is active.",
+      "points": 10,
+      "visual_evidence": "Look for the Dashboard view in the NextGen Connect Administrator showing 'Patient Master Index Sync' in the list of deployed channels with a status of 'Started' or 'Listening'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_mirth_interaction",
+      "description": "Ensure the agent interacted with the actual NextGen Connect Administrator GUI or used valid REST API calls, rather than just writing an XML file in a text editor.",
+      "visual_evidence": "Look for screenshots of the NextGen Connect Administrator Java application, or terminal windows showing valid curl/Postman API interactions with https://localhost:8443/api. A plain text editor showing channel XML is insufficient unless accompanied by a successful deployment API call."
+    },
+    {
+      "id": "dynamic_ack_generation",
+      "description": "Ensure the ACK message dynamically uses the MSH-10 field rather than hardcoding a specific value from the sample file.",
+      "visual_evidence": "In the Response Transformer, look for a variable reference (e.g., msg['MSH']['MSH.10']['MSH.10.1'].toString()) rather than a hardcoded string like '12345' for the message control ID."
+    },
+    {
+      "id": "database_interaction_authenticity",
+      "description": "Ensure the database query was actually entered into the application.",
+      "visual_evidence": "Look for the SQL query inside the NextGen Connect Database Writer configuration pane, or evidence of the agent testing the query via 'psql' in the terminal."
+    }
+  ],
+  "privileged_info_for_vlm": "Channel Name: 'Patient Master Index Sync'. Listen Port: 6665. Database Table: 'patient_master_index'. The task requires an explicit PostgreSQL UPSERT (INSERT ... ON CONFLICT) query. The SOC code for the metadata is 11-9111.00 (Medical and Health Services Managers)."
+}

@@ -1,0 +1,36 @@
+{
+  "id": "public_health_db_optimization@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Database Architect at a municipal health department. The public restaurant inspection portal is crashing under load, and you need to optimize the legacy HEALTH_ADMIN.FOOD_INSPECTIONS table. Connect to the database (Host=localhost, Port=1521, Service=XEPDB1, User=health_admin, Password=Health2024) to implement the following optimizations.\n\nAdd a virtual column named INSPECTION_YEAR (NUMBER) defined as EXTRACT(YEAR FROM inspection_date) to the FOOD_INSPECTIONS table. Create a function-based index named IDX_FBI_DBA on UPPER(dba_name) in the same table. Configure a fast-refresh materialized view named MV_ZIP_STATS (BUILD IMMEDIATE, REFRESH FAST ON DEMAND) defined as SELECT zip_code, results, COUNT(*) as count FROM food_inspections GROUP BY zip_code, results. This requires creating a Materialized View Log on FOOD_INSPECTIONS that includes ROWID, SEQUENCE, zip_code, and results, including new values.\n\nCreate a view named PEST_VIOLATIONS_VW that identifies severe pest issues by selecting inspection_id, dba_name, inspection_date, and violations where the inspection failed (results = 'Fail') and the violations CLOB contains any of the following words (case-insensitive): roach, mice, rodent, rat, or droppings, using Oracle's REGEXP_LIKE function. Create a second view named CHRONIC_FAILURES_VW to identify systemic health risks; use analytical window functions to select license_no, dba_name, and inspection_date for any inspection where the facility accumulated 3 or more 'Fail' results in the preceding 365 days (including the current inspection). Export the results of CHRONIC_FAILURES_VW to /home/ga/Documents/exports/chronic_offenders.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/public_health_db_optimization/setup_task.sh",
+    "post_task": "/workspace/tasks/public_health_db_optimization/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/public_health_result.json",
+    "expected_csv_path": "/home/ga/Documents/exports/chronic_offenders.csv",
+    "occupation": "Database Architects",
+    "industry": "State and Local Government / Public Health",
+    "oracle_features": [
+      "Virtual Columns",
+      "Function-Based Indexes",
+      "Materialized View Logs",
+      "Fast Refresh MVs",
+      "REGEXP_LIKE on CLOB",
+      "Window Functions with RANGE BETWEEN"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_public_health_db_optimization"
+    }
+  }
+}

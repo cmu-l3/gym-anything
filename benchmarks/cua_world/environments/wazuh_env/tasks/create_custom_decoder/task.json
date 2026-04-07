@@ -1,0 +1,29 @@
+{
+  "id": "create_custom_decoder@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create a custom Wazuh decoder named 'bastion-session' and two detection rules (IDs 100010 and 100011) to parse and alert on authentication events from a bastion host based on the sample log at '/home/ga/bastion_logs/sample_bastion.log'. The decoder must match the program name 'session_auth' and extract fields for user, srcip (from src_ip), action, status, and extra_data (reason). Rule 100010 (Level 8) must trigger when status is 'failed' (Description: 'Bastion host failed authentication') and Rule 100011 (Level 3) must trigger when status is 'success' (Description: 'Bastion host successful authentication'). Apply and verify the configuration.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_custom_decoder/setup_task.sh",
+    "post_task": "/workspace/tasks/create_custom_decoder/export_result.sh"
+  },
+  "metadata": {
+    "decoder_name": "bastion-session",
+    "program_name": "session_auth",
+    "rule_failed_id": "100010",
+    "rule_success_id": "100011",
+    "test_log_line": "Jan 15 10:25:01 bastion-gw session_auth[5236]: user=root src_ip=203.0.113.42 action=login status=failed reason=\"account_locked\""
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_custom_decoder"
+    }
+  }
+}

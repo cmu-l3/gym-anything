@@ -3,6 +3,9 @@ echo "=== Setting up sender_blocklist_recommendation task ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 # ============================================================
 # 1. Clean and Prepare Maildir
 # ============================================================
@@ -85,9 +88,8 @@ echo "${JUNK_COUNT}" > /tmp/initial_junk_count
 
 date +%s > /tmp/task_start_time
 
-# Force Dovecot index update
-doveadm index -u ga INBOX 2>/dev/null || true
-doveadm index -u ga Junk 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # ============================================================
 # 3. Launch Application

@@ -1,0 +1,31 @@
+{
+  "id": "bulk_agent_cleanup@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Clean up the Wazuh agent inventory by removing all stale ephemeral agents matching the naming pattern 'temp-test-*'. Ensure that 'production-web', 'production-db', and the Wazuh manager (agent 000) remain active.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/bulk_agent_cleanup/setup_task.sh",
+    "post_task": "/workspace/tasks/bulk_agent_cleanup/export_result.sh"
+  },
+  "metadata": {
+    "stale_pattern": "temp-test-",
+    "keep_agents": [
+      "production-web",
+      "production-db",
+      "wazuh-manager"
+    ],
+    "expected_final_count": 3
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bulk_agent_cleanup"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "task_id": "spatial_coverage_analysis@1",
+  "task_completion": [
+    {
+      "id": "add_geometry_columns",
+      "description": "Verify that the GEO_LOCATION column of type SDO_GEOMETRY was added to both tables.",
+      "points": 10,
+      "visual_evidence": "Look for SQL ALTER TABLE commands adding 'GEO_LOCATION SDO_GEOMETRY' to EXISTING_TOWERS and PROPOSED_SITES, or a table schema view showing these columns."
+    },
+    {
+      "id": "update_geometry_data",
+      "description": "Verify that existing latitude and longitude data was converted into the new GEO_LOCATION columns using SRID 4326.",
+      "points": 15,
+      "visual_evidence": "Look for SQL UPDATE statements setting GEO_LOCATION to SDO_GEOMETRY(2001, 4326, SDO_POINT_TYPE(longitude, latitude, NULL), NULL, NULL) for both tables."
+    },
+    {
+      "id": "register_spatial_metadata",
+      "description": "Verify that both tables were registered in USER_SDO_GEOM_METADATA with the correct bounds and tolerance.",
+      "points": 15,
+      "visual_evidence": "Look for INSERT statements into USER_SDO_GEOM_METADATA specifying the table names, column 'GEO_LOCATION', bounds of -180 to 180 and -90 to 90, and a tolerance of 0.05."
+    },
+    {
+      "id": "create_spatial_indexes",
+      "description": "Verify that spatial indexes were created on the GEO_LOCATION columns.",
+      "points": 15,
+      "visual_evidence": "Look for CREATE INDEX commands with the clause 'INDEXTYPE IS MDSYS.SPATIAL_INDEX' targeting the GEO_LOCATION columns of both tables."
+    },
+    {
+      "id": "execute_spatial_query",
+      "description": "Verify that a spatial query was executed to find sites more than 25km away from existing towers.",
+      "points": 20,
+      "visual_evidence": "Look for a SELECT query using Oracle Spatial operators (like SDO_WITHIN_DISTANCE or SDO_NN) or SDO_GEOM.SDO_DISTANCE with a threshold of 25000 meters or 25 km."
+    },
+    {
+      "id": "verify_output_file",
+      "description": "Verify the final output file contains the correct unserviced sites sorted alphabetically.",
+      "points": 25,
+      "visual_evidence": "Look for the contents of '/home/ga/Desktop/priority_expansion_sites.txt' showing exactly 10 sites (Albany Downtown, Atlantic City Boardwalk, Buffalo Waterfront, Burlington Church St, Harrisburg Capitol, Montauk Point, New Haven Green, Portland Old Port, Providence Waterplace, Syracuse University) along with their states, sorted alphabetically by Site Name."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "database_interaction_visible",
+      "description": "Ensure the agent actually interacted with the Oracle database.",
+      "visual_evidence": "Look for an active database client interface (like SQL*Plus in the terminal, SQL Developer, or a script being executed) rather than just typing SQL into a text editor without running it."
+    },
+    {
+      "id": "query_driven_output",
+      "description": "Ensure the agent did not hardcode the final list of sites.",
+      "visual_evidence": "Look for evidence that the output file was generated from the results of the spatial SQL query (e.g., using SPOOL or shell redirection from the query output) rather than the agent manually typing the 10 correct sites into an echo command or text editor."
+    },
+    {
+      "id": "no_manual_file_creation",
+      "description": "Ensure the agent didn't copy-paste expected answers from the task description or external knowledge.",
+      "visual_evidence": "The text file creation should be the direct result of a database export or script execution. Manual typing of the specific site names in a text editor like nano or gedit is a sign of cheating."
+    }
+  ],
+  "privileged_info_for_vlm": "The correct unserviced sites (located >25km from all existing towers) are exactly 10: Albany Downtown, Atlantic City Boardwalk, Buffalo Waterfront, Burlington Church St, Harrisburg Capitol, Montauk Point, New Haven Green, Portland Old Port, Providence Waterplace, and Syracuse University. The spatial metadata must use SRID 4326, bounds -180 to 180 (longitude) and -90 to 90 (latitude), and a tolerance of 0.05. The output file must be located at /home/ga/Desktop/priority_expansion_sites.txt."
+}

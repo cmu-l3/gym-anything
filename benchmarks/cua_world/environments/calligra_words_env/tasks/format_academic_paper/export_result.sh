@@ -1,42 +1,27 @@
 #!/bin/bash
-set -e
-
-echo "=== Exporting format_academic_paper result ==="
+set -euo pipefail
 
 source /workspace/scripts/task_utils.sh
 
-TASK_START=$(cat /tmp/format_academic_paper_start_ts 2>/dev/null || echo "0")
-OUTPUT_PATH="/home/ga/Documents/origin_of_species.odt"
-OUTPUT_EXISTS=false
-FILE_CREATED_DURING_TASK=false
-OUTPUT_SIZE=0
+echo "=== Exporting Format Academic Paper Result ==="
 
-if [ -f "$OUTPUT_PATH" ]; then
-    OUTPUT_EXISTS=true
-    OUTPUT_SIZE=$(stat -c %s "$OUTPUT_PATH" 2>/dev/null || echo "0")
-    OUTPUT_MTIME=$(stat -c %Y "$OUTPUT_PATH" 2>/dev/null || echo "0")
-    if [ "$OUTPUT_MTIME" -gt "$TASK_START" ]; then
-        FILE_CREATED_DURING_TASK=true
-    fi
+wid=$(get_calligra_window_id)
+if [ -n "$wid" ]; then
+    focus_window "$wid" || true
 fi
 
-take_screenshot /tmp/format_academic_paper_end.png
+take_screenshot /tmp/calligra_format_academic_paper_post_task.png
 
-python3 <<PY
-import json
+if [ -f "/home/ga/Documents/origin_of_species.odt" ]; then
+    stat -c "Saved file: %n (%s bytes, mtime=%Y)" /home/ga/Documents/origin_of_species.odt || true
+else
+    echo "Warning: /home/ga/Documents/origin_of_species.odt is missing"
+fi
 
-with open("/tmp/format_academic_paper_result.json", "w", encoding="utf-8") as f:
-    json.dump(
-        {
-            "output_exists": "${OUTPUT_EXISTS}".lower() == "true",
-            "file_created_during_task": "${FILE_CREATED_DURING_TASK}".lower() == "true",
-            "output_size_bytes": ${OUTPUT_SIZE},
-        },
-        f,
-        indent=2,
-    )
-PY
+# Do not force-save. The agent must persist its own changes.
+safe_xdotool ga :1 key --delay 200 ctrl+q || true
+sleep 2
 
-chmod 666 /tmp/format_academic_paper_result.json
-cat /tmp/format_academic_paper_result.json
-echo "=== Export complete ==="
+kill_calligra_processes
+
+echo "=== Export Complete ==="

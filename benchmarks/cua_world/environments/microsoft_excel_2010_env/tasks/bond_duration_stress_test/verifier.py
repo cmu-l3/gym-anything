@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""
+"""
 Verifier for bond_duration_stress_test task.
 
 Verification pipeline:

@@ -1,0 +1,32 @@
+{
+  "id": "model_pv_lifetime_degradation@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "description": "Using PySAM's Pvwattsv8 module, model a 100 MW DC fixed-tilt utility-scale PV system near Tucson, AZ (~32.1N, ~110.9W) and compute its 25-year lifetime energy production accounting for 0.5%/year compounding module degradation (Year N = Year 1 * (1 - 0.005)^(N-1)). Use a TMY weather file from the directory specified in /home/ga/.SAM/solar_resource_dir.txt, selecting the nearest Arizona location if a Tucson-specific file is unavailable.\n\nSystem Configuration:\n- DC Capacity: 100,000 kW\n- DC:AC Ratio: 1.2\n- Array Type: Fixed open rack (type 0)\n- Tilt: 30 degrees\n- Azimuth: 180 degrees\n- System Losses: 14.08%\n- Degradation Rate: 0.5%/year\n\nCalculate the year 1 energy, year 25 energy, cumulative 25-year energy, lifetime capacity factor, and total degradation loss. Save the results to /home/ga/Documents/SAM_Projects/lifetime_degradation_results.json including the following keys:\n- weather_file_used\n- location_description\n- system_capacity_kw\n- dc_ac_ratio\n- tilt_degrees\n- azimuth_degrees\n- degradation_rate_pct_per_year\n- analysis_period_years\n- year1_annual_energy_kwh\n- year25_annual_energy_kwh\n- cumulative_25yr_energy_kwh\n- lifetime_capacity_factor\n- total_degradation_loss_kwh\n- annual_energy_by_year_kwh\n\nPySAM is already installed; use python3 for the implementation.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/model_pv_lifetime_degradation/setup_task.sh",
+    "post_task": "/workspace/tasks/model_pv_lifetime_degradation/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/SAM_Projects/lifetime_degradation_results.json",
+    "capacity_kw": 100000,
+    "tilt": 30,
+    "azimuth": 180,
+    "dc_ac_ratio": 1.2,
+    "degradation_rate": 0.5,
+    "year1_min_kwh": 160000000,
+    "year1_max_kwh": 240000000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pv_degradation"
+    }
+  }
+}

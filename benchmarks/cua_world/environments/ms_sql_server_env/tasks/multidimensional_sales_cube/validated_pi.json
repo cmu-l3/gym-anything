@@ -1,0 +1,80 @@
+{
+    "task_id": "multidimensional_sales_cube@1",
+    "dataset": "AdventureWorks2022",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "database",
+            "metadata_value": "AdventureWorks2022",
+            "verified_value": "AdventureWorks2022",
+            "source": "Official Microsoft SQL Server sample database, downloadable from https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak",
+            "status": "verified"
+        },
+        {
+            "key": "required_objects",
+            "metadata_value": "[\"dbo.fn_SalesCube\", \"dbo.vw_SalesCubeSummary\", \"dbo.usp_ExportSalesCube\", \"dbo.SalesCubeExport\"]",
+            "verified_value": "[\"dbo.fn_SalesCube\", \"dbo.vw_SalesCubeSummary\", \"dbo.usp_ExportSalesCube\", \"dbo.SalesCubeExport\"]",
+            "source": "Task description (lines 1-4) specifies creation of: inline table-valued function, view, stored procedure, and export table",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "/home/ga/Documents/exports/sales_cube_report.txt",
+            "verified_value": "/home/ga/Documents/exports/sales_cube_report.txt",
+            "source": "setup_task.sh line 22: rm -f /home/ga/Documents/exports/sales_cube_report.txt and task description line 3",
+            "status": "verified"
+        },
+        {
+            "key": "min_grouping_levels",
+            "metadata_value": 4,
+            "verified_value": 7,
+            "source": "Task description specifies 7 aggregation combinations: Grand Total, Category, Category+Subcategory, TerritoryGroup, TerritoryGroup+Territory, Year, Year+Quarter. The export_result.sh checks COUNT(DISTINCT GroupingLevel) which would reflect the number of unique GROUPING_ID() values returned by the function.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_grand_total_range",
+            "metadata_value": "[100000000, 150000000]",
+            "verified_value": "[14155699.53, 123216786.12]",
+            "source": "Web search for AdventureWorks2022 sales revenue 2011-2014 yielded: 2011=$14,155,699.53, 2012=$37,675,700.31, 2013=$48,965,887.96, 2014=$22,419,498.32. Total=$123,216,786.12. Setup_task.sh (lines 35-40) calculates reference revenue using SUM(LineTotal) from Sales.SalesOrderDetail for the date range 2011-01-01 to 2014-12-31.",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_location",
+            "metadata_value": null,
+            "verified_value": "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak",
+            "source": "setup_mssql.sh line 15 defines ADVENTUREWORKS_URL with this exact GitHub release URL",
+            "status": "verified"
+        },
+        {
+            "key": "date_range",
+            "metadata_value": null,
+            "verified_value": "2011-01-01 to 2014-12-31",
+            "source": "setup_task.sh lines 35-40 and export_result.sh use this exact date range for revenue calculations",
+            "status": "verified"
+        },
+        {
+            "key": "territory_dimension_field",
+            "metadata_value": null,
+            "verified_value": "Sales.SalesTerritory.Group (nvarchar(50)) - Geographic area classification",
+            "source": "Dataedo AdventureWorks schema documentation confirms Sales.SalesTerritory contains a 'Group' column for geographic area classification",
+            "status": "verified"
+        },
+        {
+            "key": "sales_data_tables",
+            "metadata_value": null,
+            "verified_value": "Sales.SalesOrderDetail and Sales.SalesOrderHeader",
+            "source": "setup_task.sh lines 37-39 specify: SELECT SUM(LineTotal) FROM Sales.SalesOrderDetail joined with Sales.SalesOrderHeader on SalesOrderID",
+            "status": "verified"
+        },
+        {
+            "key": "product_dimension_fields",
+            "metadata_value": null,
+            "verified_value": "Production.ProductCategory.Name, Production.ProductSubcategory.Name",
+            "source": "Task description mentions aggregation by 'Category' and 'Category+Subcategory'. Dataedo schema confirms these tables exist in AdventureWorks2022",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on AdventureWorks2022, the official Microsoft SQL Server 2022 sample database downloaded from GitHub. It performs sales aggregation for dates 2011-01-01 to 2014-12-31, with a verified grand total revenue of $123,216,786.12 (within the claimed range of $100M-$150M). The database contains required tables: Sales.SalesOrderDetail/Header for transaction data, Production.ProductCategory/Subcategory for product dimensions, and Sales.SalesTerritory with a 'Group' column for territory grouping. The task requires 7 aggregation levels (Grand Total, Category, Category+Subcategory, TerritoryGroup, TerritoryGroup+Territory, Year, Year+Quarter), not the claimed minimum of 4.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "optical_vignetting_characterization@1",
+  "version": "1.0",
+  "env_id": "kstars_sim_env@0.1",
+  "description": "The observatory has just installed a new field flattener lens. Characterize the sensor's optical vignetting and read noise by capturing 5 BIAS frames (0s exposure) to ~/Calibration/Bias/ and 5 FLAT frames (2s exposure, 'Luminance' filter in Slot 1) to ~/Calibration/Flats/. Create a Python script at ~/analyze_sensor.py that takes a FITS file path as a command-line argument and uses astropy.io.fits and numpy to calculate the Vignetting Ratio (mean of the four 50x50 extreme corners combined [[:50,:50], [:50,-50:], [-50:,:50], [-50:,-50:]] divided by the mean of the central 100x100 pixels [H//2-50:H//2+50, W//2-50:W//2+50]) and the RMS Noise (standard deviation of the entire image array). The script must print exactly two lines to standard output: \"Vignetting Ratio: <float>\" and \"RMS Noise: <float>\". Save the combined analysis results from one Bias frame and one Flat frame to ~/Documents/sensor_report.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/optical_vignetting_characterization/setup_task.sh",
+    "post_task": "/workspace/tasks/optical_vignetting_characterization/export_result.sh"
+  },
+  "metadata": {
+    "expected_bias_count": 5,
+    "expected_flat_count": 5,
+    "bias_dir": "/home/ga/Calibration/Bias",
+    "flat_dir": "/home/ga/Calibration/Flats",
+    "script_path": "/home/ga/analyze_sensor.py",
+    "report_path": "/home/ga/Documents/sensor_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vignetting_characterization"
+    }
+  }
+}

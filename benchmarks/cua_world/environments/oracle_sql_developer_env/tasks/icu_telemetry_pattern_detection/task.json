@@ -1,0 +1,34 @@
+{
+  "id": "icu_telemetry_pattern_detection@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Health Informatics Specialist at a research hospital. The CLINICAL schema in Oracle (connected as clinical_admin/Clinical2024 to XEPDB1 at localhost:1521) continuously ingests JSON payloads from ICU patient monitors. You must parse this unstructured data, clean the time-series, and implement pattern-matching logic to detect early warning signs of patient deterioration.\n\nCreate a view named PARSED_VITALS_VW from the RAW_FHIR_EVENTS table. The view must include a numeric patient_id (with the 'Patient/' prefix removed), obs_time (TIMESTAMP), heart_rate (code '8867-4'), sbp (code '8480-6'), and glucose (code '15074-8'). Using this data, create a materialized view named CLEAN_VITALS_MV that forward-fills missing values for heart_rate, sbp, and glucose for each patient ordered by time.\n\nDevelop a view named HYPOGLYCEMIA_EVENTS_VW that identifies instances where a patient's glucose drops below 70 mg/dL and stays below that threshold for at least three consecutive readings. Each row should contain the patient_id, the start and end times of the event, and the lowest glucose value observed during that period. Additionally, create a view named TACHYCARDIA_TRENDS_VW to detect dangerous upward trends, defined as a sequence of four or more consecutive readings where the heart rate strictly increases at every step, starting at 90 bpm or higher and ending at 120 bpm or higher. Export the contents of TACHYCARDIA_TRENDS_VW to /home/ga/Documents/exports/tachycardia_alerts.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/icu_telemetry_pattern_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/icu_telemetry_pattern_detection/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/icu_telemetry_result.json",
+    "occupation": "Health Informatics Specialists",
+    "industry": "Healthcare / Hospitals",
+    "gdp_contribution": "$9.4B",
+    "oracle_features": [
+      "JSON_TABLE",
+      "LAST_VALUE IGNORE NULLS",
+      "MATCH_RECOGNIZE",
+      "Materialized Views"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_icu_telemetry_pattern_detection"
+    }
+  }
+}

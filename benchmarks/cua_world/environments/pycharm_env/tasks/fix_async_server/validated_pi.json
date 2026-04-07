@@ -1,0 +1,62 @@
+{
+    "task_id": "fix_async_server@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/PycharmProjects/async_scheduler",
+            "verified_value": "/home/ga/PycharmProjects/async_scheduler",
+            "source": "setup_task.sh",
+            "status": "verified"
+        },
+        {
+            "key": "num_bugs",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "setup_task.sh explicitly injects 4 labeled bugs.",
+            "status": "verified"
+        },
+        {
+            "key": "bug_locations",
+            "metadata_value": [
+                "server/worker.py:process_job — missing await on async_sleep call (blocks event loop)",
+                "server/worker.py:run_workers — uses asyncio.coroutine pattern instead of asyncio.gather",
+                "server/registry.py:JobRegistry.update_status — not using asyncio.Lock for concurrent updates",
+                "server/client.py:fetch_job_status — missing await on aiohttp response.json()"
+            ],
+            "verified_value": [
+                "server/worker.py:process_job — uses synchronous time.sleep instead of await asyncio.sleep",
+                "server/worker.py:run_workers — uses a sequential for-loop with await instead of concurrent asyncio.gather",
+                "server/registry.py:JobRegistry.update_status — not using asyncio.Lock for concurrent updates",
+                "server/client.py:fetch_job_status — missing await on aiohttp response.json()"
+            ],
+            "source": "setup_task.sh injects time.sleep() instead of an un-awaited asyncio.sleep for bug 1, and a sequential for-loop with await instead of the asyncio.coroutine pattern for bug 2.",
+            "status": "contradicted"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 65,
+            "verified_value": 65,
+            "source": "verifier.py checks for score >= 65",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Software Developers",
+            "verified_value": "Software Developers",
+            "source": "Task involves backend Python software engineering and debugging.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Computer Systems Design and Related Services",
+            "verified_value": null,
+            "source": "Task description mentions 'logistics company', which does not strictly align with 'Computer Systems Design and Related Services'.",
+            "status": "unverified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on a synthetically generated Python asyncio project that is created in setup_task.sh. It contains exactly 4 bugs. The metadata claims about the bugs contain inaccuracies: Bug 1 is claimed to be a 'missing await on async_sleep call', but the actual injected code uses a synchronous 'time.sleep()' call. Bug 2 is claimed to use the 'asyncio.coroutine pattern', but the injected code simply uses a sequential for-loop with 'await'. Bugs 3 and 4 accurately describe the missing asyncio.Lock and the missing await on response.json(). The passing score threshold is verified as 65.",
+    "pi_confidence": "high"
+}

@@ -69,6 +69,6 @@ The agent acts as the Procurement Director at Summit Manufacturing. The purchasi
 ## Testing
 
 ```bash
-python3 benchmarks/cua_world/environments/thunderbird_env/tasks/procurement_vendor_setup/verifier.py
+python3 examples/thunderbird_env/tasks/procurement_vendor_setup/verifier.py
 ```
 Expected: 4/4 tests passed

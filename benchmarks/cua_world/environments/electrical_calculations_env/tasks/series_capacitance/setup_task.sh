@@ -17,8 +17,12 @@ sleep 2
 # 3. Record task start time for anti-gaming verification
 date +%s > /sdcard/task_start_time.txt
 
-# 4. Take initial screenshot (should be home screen)
+# 4. Launch the app using robust helper
+echo "Launching Electrical Calculations..."
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
+
+# 5. Take initial screenshot (should be home screen)
 screencap -p /sdcard/task_initial.png 2>/dev/null || true
 
 echo "=== Setup complete ==="
-echo "State: App closed, device at home screen."

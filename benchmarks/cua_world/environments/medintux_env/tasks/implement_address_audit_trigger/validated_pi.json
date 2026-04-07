@@ -1,0 +1,94 @@
+{
+    "task_id": "implement_address_audit_trigger@1",
+    "dataset": "MedinTux DrTuxTest",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "database",
+            "metadata_value": "DrTuxTest",
+            "verified_value": "DrTuxTest",
+            "source": "MedinTux official SQL dump and setup_medintux.sh (line 207), verified in schema used by setup_task.sh, export_result.sh, and task_utils.sh",
+            "status": "verified"
+        },
+        {
+            "key": "target_table",
+            "metadata_value": "fchpat",
+            "verified_value": "fchpat",
+            "source": "MedinTux real schema (confirmed in task_utils.sh line 3: 'MedinTux real schema: IndexNomPrenom + fchpat (NOT Personnes)'). Table used in export_result.sh functional test (lines 74-81) and setup_medintux.sh patient insertion (lines 307-310)",
+            "status": "verified"
+        },
+        {
+            "key": "target_table_column",
+            "metadata_value": "FchPat_Adresse is the address column on fchpat table",
+            "verified_value": "FchPat_Adresse",
+            "source": "Confirmed in export_result.sh functional test (line 80: UPDATE fchpat SET FchPat_Adresse = ...) and in setup_medintux.sh patient creation (line 307: FchPat_Adresse column listed)",
+            "status": "verified"
+        },
+        {
+            "key": "audit_table",
+            "metadata_value": "address_audit_log",
+            "verified_value": "address_audit_log",
+            "source": "Task description and verified in setup_task.sh (line 26), export_result.sh database verification script (lines 47, 85)",
+            "status": "verified"
+        },
+        {
+            "key": "audit_table_required_columns",
+            "metadata_value": "patient_guid, old_address, new_address (plus log_id, change_date)",
+            "verified_value": "patient_guid, old_address, new_address (verifier checks for these 3 columns in export_result.sh line 54)",
+            "source": "Task description specifies columns; export_result.sh verification script (line 54) checks for required_cols = {'patient_guid', 'old_address', 'new_address'}. log_id and change_date are not verified by the auditor but mentioned in task description",
+            "status": "verified"
+        },
+        {
+            "key": "trigger_name",
+            "metadata_value": "trg_audit_address_update",
+            "verified_value": "trg_audit_address_update",
+            "source": "Task description and verified in setup_task.sh (line 25), export_result.sh trigger check (line 59: SHOW TRIGGERS WHERE `Trigger` = 'trg_audit_address_update')",
+            "status": "verified"
+        },
+        {
+            "key": "trigger_event",
+            "metadata_value": "Fires on UPDATE to fchpat table, detects changes to FchPat_Adresse column",
+            "verified_value": "Update trigger required to detect address changes",
+            "source": "Task description and verifier functional test (export_result.sh lines 79-81 perform an UPDATE and check if audit log entry is created)",
+            "status": "verified"
+        },
+        {
+            "key": "sql_file_path",
+            "metadata_value": "/home/ga/audit_implementation.sql",
+            "verified_value": "/home/ga/audit_implementation.sql",
+            "source": "Task description: 'Save your SQL implementation commands to ~/audit_implementation.sql', verified in setup_task.sh (line 29) and export_result.sh (line 14)",
+            "status": "verified"
+        },
+        {
+            "key": "database_software",
+            "metadata_value": "MySQL",
+            "verified_value": "MySQL (version unspecified, root access without password)",
+            "source": "All database operations use mysql client and pymysql library. Setup scripts configure MySQL with root user and empty password (setup_medintux.sh line 29)",
+            "status": "verified"
+        },
+        {
+            "key": "patient_table_guid_column",
+            "metadata_value": "FchPat_GUID_Doss holds the patient GUID in fchpat table",
+            "verified_value": "FchPat_GUID_Doss",
+            "source": "Verified in export_result.sh functional test (line 74: INSERT with FchPat_GUID_Doss, line 80: UPDATE WHERE FchPat_GUID_Doss, line 88: WHERE patient_guid matching test GUID)",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_installer",
+            "metadata_value": "MedinTux 2.16.012 Windows installer from SourceForge",
+            "verified_value": "MedinTux is real open-source French medical software. Installer available at https://downloads.sourceforge.net/project/medintux/Windows/2.16.012/medintux-2.16.012.exe",
+            "source": "Wikipedia entry confirms MedinTux as open-source healthcare software; SourceForge project verified; install_medintux.sh downloads from this URL (line 49-50)",
+            "status": "verified"
+        },
+        {
+            "key": "test_data_patients",
+            "metadata_value": "20 synthetic test patients inserted during environment setup",
+            "verified_value": "20 patients with French names, fictional addresses, dates of birth, phone numbers, social security numbers inserted in setup_medintux.sh (lines 315-334)",
+            "source": "setup_medintux.sh patient insertion script; patients include ROUSSEAU, SIMON, MARTIN, DUBOIS, BERNARD, LEROY, MOREAU, PETIT, DURAND, LAMBERT, GIRARD, ROUX, FOURNIER, MOREL, HENRY, PERRIN, BLANC, GAUTHIER, ROBIN, NICOLAS",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on MedinTux, a real open-source French medical software system. The database is DrTuxTest, which contains the real MedinTux schema including the fchpat table for patient data. The target column is FchPat_Adresse (patient address). The task requires creating an audit table named 'address_audit_log' with columns patient_guid, old_address, new_address, and a trigger named 'trg_audit_address_update' that fires on UPDATE events to the fchpat table. The database uses MySQL with root access (no password). Patient data includes 20 synthetic test records with realistic French names and addresses inserted during setup. The SQL implementation should be saved to /home/ga/audit_implementation.sql.",
+    "pi_confidence": "high"
+}

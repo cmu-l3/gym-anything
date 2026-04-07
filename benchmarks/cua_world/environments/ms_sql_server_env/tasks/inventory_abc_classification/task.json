@@ -1,0 +1,33 @@
+{
+  "id": "inventory_abc_classification@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "Perform an ABC inventory analysis for the year 2013 on the AdventureWorks database to classify products based on their contribution to total sales revenue using the Pareto Principle. Create a schema named 'Inventory' and a view 'Inventory.vw_ABC_Classification_2013' that lists all products from Production.Product, including those with no sales. The view must contain the columns ProductID, Name, TotalRevenue (sum of LineTotal for 2013), CumulativePct (running total of revenue / grand total), and ABC_Class. Apply classification logic where 'A' represents items contributing up to 80% of revenue, 'B' represents items contributing the next 15% (80% < pct <= 95%), and 'C' represents the remaining items (> 95%) and items with $0 revenue. Export the 'A' class items, ordered by revenue descending, to /home/ga/Documents/exports/class_a_priority.csv with headers for ProductID, Name, TotalRevenue, and ABC_Class.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/inventory_abc_classification/setup_task.sh",
+    "post_task": "/workspace/tasks/inventory_abc_classification/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "expected_schema": "Inventory",
+    "expected_view": "vw_ABC_Classification_2013",
+    "output_file": "/home/ga/Documents/exports/class_a_priority.csv",
+    "year_filter": 2013,
+    "abc_thresholds": {
+      "A": 0.8,
+      "B": 0.95
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_inventory_abc_classification"
+    }
+  }
+}

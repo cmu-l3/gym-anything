@@ -1,0 +1,29 @@
+{
+  "id": "provision_bi_database_views@1",
+  "version": "1.0",
+  "env_id": "socioboard_env@0.1",
+  "description": "You are a Database Administrator configuring secure data access for the Business Intelligence team. Provision a dedicated, read-only MariaDB user for the socioboard database that can only access sanitized views. Create a view named bi_user_export from the core user accounts table excluding the password column. Create a view named bi_social_export from the social media accounts table excluding any columns containing 'token' or 'secret' in their names. Create a new user bi_viewer@localhost identified by the password SecureBI#2025 and grant it SELECT privileges only on these two views, ensuring no access to base tables. Verify the configuration by querying the bi_user_export view as the bi_viewer user and saving the output to /home/ga/bi_initial_extract.csv. Connection details: database socioboard, user socioboard (password: SocioPass2024!) or root (no password).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/provision_bi_database_views/setup_task.sh",
+    "post_task": "/workspace/tasks/provision_bi_database_views/export_result.sh"
+  },
+  "metadata": {
+    "expected_user": "bi_viewer",
+    "expected_password": "SecureBI#2025",
+    "view_user": "bi_user_export",
+    "view_social": "bi_social_export",
+    "expected_extract_path": "/home/ga/bi_initial_extract.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bi_provisioning"
+    }
+  }
+}

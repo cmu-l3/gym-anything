@@ -1,0 +1,30 @@
+{
+  "id": "pvc_data_migration_workflow@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "The catalog-service deployment in the catalog namespace is currently backed by a 1Gi legacy volume (catalog-data-legacy) mounted at /usr/share/nginx/html/data. Because the storage backend does not support in-place expansion, migrate the live database to a new 5Gi PersistentVolumeClaim named catalog-data-v2 in the catalog namespace. Reconfigure the catalog-service deployment to mount only the new catalog-data-v2 PVC at /usr/share/nginx/html/data, removing all references to the legacy volume, and ensure the deployment returns to a Running state. Login to Rancher at https://localhost with credentials: admin / Admin12345678!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pvc_data_migration_workflow/setup_task.sh",
+    "post_task": "/workspace/tasks/pvc_data_migration_workflow/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Cloud Infrastructure Engineer / Site Reliability Engineer",
+    "target_namespace": "catalog",
+    "legacy_pvc": "catalog-data-legacy",
+    "new_pvc": "catalog-data-v2",
+    "mount_path": "/usr/share/nginx/html/data",
+    "pass_threshold": 80
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pvc_data_migration"
+    }
+  }
+}

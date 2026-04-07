@@ -1,0 +1,106 @@
+{
+    "task_id": "generate_access_matrix@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "file_integrity_issue": {
+        "status": "critical",
+        "description": "task.json is malformed/truncated at 482 bytes",
+        "details": "The task.json file ends abruptly mid-description field without closing the JSON string or object. File ends at character 482 with unterminated string at line 5, column 18. The metadata field is completely inaccessible."
+    },
+    "pi_items": [
+        {
+            "key": "software_vendor",
+            "metadata_value": "NetworkOptix (inferred from scripts)",
+            "verified_value": "NetworkOptix",
+            "source": "Setup scripts specify Nx Witness Media Server from updates.networkoptix.com; web search confirms NetworkOptix as vendor",
+            "status": "verified"
+        },
+        {
+            "key": "software_product",
+            "metadata_value": "Nx Witness (inferred from environment and task description)",
+            "verified_value": "Nx Witness Media Server / Nx Witness VMS",
+            "source": "install_nx_witness.sh and setup_nx_witness.sh download and configure Nx Witness; official documentation confirms product name",
+            "status": "verified"
+        },
+        {
+            "key": "primary_software_version",
+            "metadata_value": "5.1.5.39242 (specified in install_nx_witness.sh line 41)",
+            "verified_value": "5.1.5.39242",
+            "source": "install_nx_witness.sh hardcodes NX_VERSION='5.1.5.39242'; web search confirms this is a real released version from NetworkOptix",
+            "status": "verified"
+        },
+        {
+            "key": "fallback_software_version",
+            "metadata_value": "6.0.1.39873 (specified in install_nx_witness.sh line 50)",
+            "verified_value": "6.0.1.39873",
+            "source": "install_nx_witness.sh line 50-52 specifies fallback version; this is a valid NetworkOptix version numbering",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint",
+            "metadata_value": "https://localhost:7001 (specified in task description and multiple scripts)",
+            "verified_value": "https://localhost:7001",
+            "source": "setup_nx_witness.sh line 9 defines NX_BASE='https://localhost:7001'; task description mentions same endpoint",
+            "status": "verified"
+        },
+        {
+            "key": "system_name",
+            "metadata_value": "GymAnythingVMS (specified in setup_nx_witness.sh line 8)",
+            "verified_value": "GymAnythingVMS",
+            "source": "setup_nx_witness.sh line 8: NX_SYSTEM_NAME='GymAnythingVMS'; this is set via REST API system/setup call during environment initialization",
+            "status": "verified"
+        },
+        {
+            "key": "synthetic_cameras",
+            "metadata_value": "Camera names specified in setup_nx_witness.sh lines 199-204: Parking Lot Camera, Entrance Camera, Server Room Camera, Lobby Camera, Loading Dock Camera",
+            "verified_value": "True - 5 cameras created via testcamera tool with specified names",
+            "source": "setup_nx_witness.sh creates testcamera virtual cameras (line 141-169) and renames them (line 199-226) using the REST API",
+            "status": "verified"
+        },
+        {
+            "key": "synthetic_users_in_setup",
+            "metadata_value": "5 users created in setup: security.operator, camera.admin, site.manager, john.smith, sarah.jones (setup_nx_witness.sh lines 249-253)",
+            "verified_value": "5 users: security.operator, camera.admin, site.manager, john.smith, sarah.jones",
+            "source": "setup_nx_witness.sh lines 233-253 create these users via REST API POST /rest/v1/users",
+            "status": "verified"
+        },
+        {
+            "key": "synthetic_users_in_task",
+            "metadata_value": "3 users created in task: operator1, operator2, viewer1 (setup_task.sh lines 23-31)",
+            "verified_value": "3 users created in task: operator1, operator2, viewer1",
+            "source": "setup_task.sh lines 23-31 create these users via create_nx_user function; setup_task.sh line 24 sets password='Password123!'",
+            "status": "verified"
+        },
+        {
+            "key": "synthetic_layouts_in_task",
+            "metadata_value": "2 layouts created in task: 'Warehouse Ops' for operator1, 'Perimeter Check' for operator2 (setup_task.sh lines 46-77)",
+            "verified_value": "2 layouts: 'Warehouse Ops' (cameras 0,1) for operator1; 'Perimeter Check' (camera 1) for operator2",
+            "source": "setup_task.sh lines 50-77 create layouts via REST API POST /rest/v1/layouts; line 50 names 'Warehouse Ops', line 66 names 'Perimeter Check'",
+            "status": "verified"
+        },
+        {
+            "key": "report_output_path",
+            "metadata_value": "/home/ga/access_matrix_report.json (specified in task description and export_result.sh)",
+            "verified_value": "/home/ga/access_matrix_report.json",
+            "source": "Task description and export_result.sh line 8 define this path; setup_task.sh line 84 pre-clears this file",
+            "status": "verified"
+        },
+        {
+            "key": "rest_api_availability",
+            "metadata_value": "REST API available during task (inferred from verifier and scripts)",
+            "verified_value": "Yes - REST API endpoints documented and operational for /rest/v1/users, /rest/v1/devices, /rest/v1/layouts, /rest/v1/system/info",
+            "source": "Web search confirms NetworkOptix provides comprehensive REST API documentation; scripts use endpoints /rest/v1/users, /rest/v1/devices, /rest/v1/layouts, /rest/v1/system/info",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses Nx Witness VMS version 5.1.5.39242 (fallback 6.0.1.39873) from NetworkOptix. The system is initialized with the name 'GymAnythingVMS' at https://localhost:7001. Data is entirely synthetic: 5 cameras are created via testcamera (Parking Lot, Entrance, Server Room, Lobby, Loading Dock); 5 users are created during environment setup (security.operator, camera.admin, site.manager, john.smith, sarah.jones); and 3 additional users (operator1, operator2, viewer1) with 2 layouts ('Warehouse Ops' containing cameras 0-1, and 'Perimeter Check' containing camera 1) are created during task setup. The task requires querying the REST API to generate a User-Camera Access Matrix report and save it to /home/ga/access_matrix_report.json.",
+    "pi_confidence": "high",
+    "audit_notes": [
+        "CRITICAL ISSUE: The task.json file is malformed/truncated. It ends abruptly at byte 482 with an unterminated string in the description field. The 'metadata' field that should contain claims to verify is completely inaccessible. This prevents systematic verification of metadata claims as intended by this audit.",
+        "All verifiable claims extracted above come from shell scripts and environment configuration files, NOT from the malformed task.json.",
+        "The verifier.py script reveals expected structure of the access matrix report and verification criteria, but cannot substitute for task.json metadata.",
+        "All data (cameras, users, layouts) created by this task are SYNTHETIC - created via API calls during setup, not from external real-world data sources.",
+        "The Nx Witness software itself is real and from a legitimate vendor (NetworkOptix), but all application-level data is synthetic."
+    ]
+}

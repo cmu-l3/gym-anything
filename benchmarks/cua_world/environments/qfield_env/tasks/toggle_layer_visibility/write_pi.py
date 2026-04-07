@@ -1,0 +1,36 @@
+import json
+
+data = {
+    "task_id": "toggle_layer_visibility@1",
+    "dataset": "world_survey.gpkg",
+    "case_id": None,
+    "data_is_synthetic": False,
+    "pi_items": [
+        {
+            "key": "target_layer",
+            "metadata_value": "field_observations",
+            "verified_value": "field_observations",
+            "source": "Task description expressly dictates hiding the 'field_observations' layer.",
+            "status": "verified"
+        },
+        {
+            "key": "action",
+            "metadata_value": "hide",
+            "verified_value": "hide",
+            "source": "Task description expressly dictates to hide the 'field_observations' layer.",
+            "status": "verified"
+        },
+        {
+            "key": "layers_in_project",
+            "metadata_value": ["world_capitals", "field_observations"],
+            "verified_value": ["world_capitals", "field_observations"],
+            "source": "Executed sqlite3 query on the 'gpkg_contents' and 'layer_styles' tables of the target world_survey.gpkg file, which confirmed exactly two layers present.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Verified that the gpkg database world_survey.gpkg contains exactly two layers, 'world_capitals' and 'field_observations', by querying its 'layer_styles' and 'gpkg_contents' tables. The task explicitly requires the agent to hide the 'field_observations' layer, confirming the target layer is 'field_observations' and the action is 'hide'. The data is confirmed to be non-synthetic real-world data containing actual iNaturalist observations such as 'Motacilla grandis' from user 'jitensha2021'.",
+    "pi_confidence": "high"
+}
+
+with open('/compute/babel-u5-24/pranjala/gym_anything_clean/Gym-Anything_for_cmu_super_clean/examples/qfield_env/tasks/toggle_layer_visibility/validated_pi.json', 'w') as f:
+    json.dump(data, f, indent=4)

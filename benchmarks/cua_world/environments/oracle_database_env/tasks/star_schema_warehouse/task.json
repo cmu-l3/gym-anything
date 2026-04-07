@@ -1,0 +1,40 @@
+{
+  "id": "star_schema_warehouse@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Transform the normalized Oracle HR schema into a star schema data warehouse. Create four dimension tables (DIM_DEPARTMENT, DIM_JOB, DIM_EMPLOYEE, DIM_TIME) and a fact table (FACT_WORKFORCE) in the HR schema. DIM_DEPARTMENT must contain DEPARTMENT_KEY (PK), DEPARTMENT_ID, DEPARTMENT_NAME, MANAGER_NAME (First Last), CITY, STATE_PROVINCE, COUNTRY_NAME, and REGION_NAME. DIM_JOB must contain JOB_KEY (PK), JOB_ID, JOB_TITLE, MIN_SALARY, MAX_SALARY, and SALARY_RANGE (Max-Min). DIM_EMPLOYEE must contain EMPLOYEE_KEY (PK), EMPLOYEE_ID, FULL_NAME (First Last), EMAIL, and PHONE_NUMBER. DIM_TIME must contain TIME_KEY (PK), FULL_DATE, YEAR, QUARTER, MONTH, and MONTH_NAME, populated with distinct hire_dates from the employees table. The FACT_WORKFORCE table must include FACT_KEY (PK), EMPLOYEE_KEY (FK), DEPARTMENT_KEY (FK, nullable), JOB_KEY (FK), HIRE_DATE_KEY (FK), SALARY, and COMMISSION_PCT, populated with one row per employee as a current state snapshot. Establish all necessary foreign key constraints. Generate an analytical report joining these tables to show Department Name, Region, Job Title, Hire Year, Headcount, Total Salary, Avg Salary, Min Salary, and Max Salary, ordered by Total Salary DESC. Save the report output with headers to /home/ga/Desktop/warehouse_analysis.txt and the row counts of all five tables to /home/ga/Desktop/warehouse_counts.txt in the format 'TABLE_NAME:count'. Connection: localhost:1521/XEPDB1, User: hr, Password: hr123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/star_schema_warehouse/setup_task.sh",
+    "post_task": "/workspace/tasks/star_schema_warehouse/export_result.sh"
+  },
+  "metadata": {
+    "required_tables": [
+      "DIM_DEPARTMENT",
+      "DIM_JOB",
+      "DIM_EMPLOYEE",
+      "DIM_TIME",
+      "FACT_WORKFORCE"
+    ],
+    "min_row_counts": {
+      "DIM_DEPARTMENT": 11,
+      "DIM_JOB": 19,
+      "DIM_EMPLOYEE": 100,
+      "DIM_TIME": 5,
+      "FACT_WORKFORCE": 100
+    },
+    "output_report": "/home/ga/Desktop/warehouse_analysis.txt",
+    "output_counts": "/home/ga/Desktop/warehouse_counts.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_star_schema_warehouse"
+    }
+  }
+}

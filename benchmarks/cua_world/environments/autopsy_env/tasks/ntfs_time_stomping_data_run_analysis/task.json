@@ -1,0 +1,31 @@
+{
+  "id": "ntfs_time_stomping_data_run_analysis@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "You must conduct a low-level file system analysis to detect potential time stomping on a seized USB drive. Your mission:\n\n1. Create a forensic case named 'MFT_Analysis_2024' (Case number 'INV-MFT-009') in /home/ga/Cases.\n2. Add /home/ga/evidence/ntfs_undel.dd as a Disk Image data source. When prompted for ingest modules, enable ONLY the 'File Type Identification' module.\n3. After ingest, locate the 5 LARGEST deleted files on the filesystem (ignore directories and virtual nodes like $CarvedFiles). If sizes tie, prioritize the lowest inode number.\n4. Create a custom tag named 'Time Stomp Check' and apply it to these exactly 5 files within Autopsy.\n5. For each of the 5 files, view the 'File Metadata' tab (which displays raw MFT attributes). Extract:\n   - Inode number\n   - $STANDARD_INFORMATION Created timestamp\n   - $FILE_NAME Created timestamp (use the first one listed)\n   - The first Data Run (Starting Cluster and Length). If no data runs exist, write NONE.\n6. Write this data to /home/ga/Reports/mft_metadata_report.csv using EXACTLY this pipe-delimited format (including header):\nFILENAME|INODE|SIA_CREATED|FNA_CREATED|START_CLUSTER|LENGTH_CLUSTERS\n(Extract timestamps exactly as displayed, e.g., '2010-01-01 12:00:00', ignoring timezones).\n7. Write a brief summary to /home/ga/Reports/mft_summary.txt indicating if any of the 5 files show a mismatch between their SIA and FNA creation times.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ntfs_time_stomping_data_run_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/ntfs_time_stomping_data_run_analysis/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "MFT_Analysis_2024",
+    "case_number": "INV-MFT-009",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "csv_file": "/home/ga/Reports/mft_metadata_report.csv",
+    "summary_file": "/home/ga/Reports/mft_summary.txt",
+    "result_file": "/tmp/mft_analysis_result.json",
+    "gt_file": "/tmp/mft_analysis_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ntfs_time_stomping"
+    }
+  }
+}

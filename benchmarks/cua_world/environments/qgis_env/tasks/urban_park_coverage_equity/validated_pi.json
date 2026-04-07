@@ -1,0 +1,94 @@
+{
+    "task_id": "urban_park_coverage_equity@1",
+    "dataset": "Portland Parks (OpenStreetMap) and Multnomah County 2020 Census Tracts",
+    "case_id": "Multnomah County, Oregon (FIPS: 41051)",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "parks_source",
+            "metadata_value": "/home/ga/GIS_Data/portland_parks_osm.geojson",
+            "verified_value": "OpenStreetMap parks, recreation areas, and greenspaces queried via Overpass API for Portland metro bounding box (45.43-45.60°N, -122.84--122.47°W)",
+            "source": "setup_task.sh lines 34-116 downloads from https://overpass-api.de/api/interpreter with query for leisure=park, recreation_ground, nature_reserve, garden, playground",
+            "status": "verified"
+        },
+        {
+            "key": "tracts_source",
+            "metadata_value": "/home/ga/GIS_Data/portland_census_tracts.geojson",
+            "verified_value": "US Census Bureau TIGER 2020 census tracts for Oregon (FIPS 41), filtered to Multnomah County (FIPS 051), with 2020 PL94-171 population data (P1_001N total population)",
+            "source": "setup_task.sh lines 126-206 downloads from https://www2.census.gov/geo/tiger/TIGER2020/TRACT/tl_2020_41_tract.zip and Census API https://api.census.gov/data/2020/dec/pl",
+            "status": "verified"
+        },
+        {
+            "key": "expected_geojson",
+            "metadata_value": "/home/ga/GIS_Data/exports/park_coverage_by_tract.geojson",
+            "verified_value": "/home/ga/GIS_Data/exports/park_coverage_by_tract.geojson",
+            "source": "Task description (Deliverable 1) and export_result.sh line 19 confirm identical path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv",
+            "metadata_value": "/home/ga/GIS_Data/exports/greenspace_equity_summary.csv",
+            "verified_value": "/home/ga/GIS_Data/exports/greenspace_equity_summary.csv",
+            "source": "Task description (Deliverable 2) and export_result.sh line 20 confirm identical path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_fields",
+            "metadata_value": "[\"park_area_sqm\", \"tract_area_sqm\", \"park_pct\", \"greenspace_tier\"]",
+            "verified_value": "[\"park_area_sqm\", \"tract_area_sqm\", \"park_pct\", \"greenspace_tier\"]",
+            "source": "Task description specifies all four fields exactly; export_result.sh line 74 checks for these exact field names; verifier.py line 97 lists identical fields",
+            "status": "verified"
+        },
+        {
+            "key": "gt_file",
+            "metadata_value": "/tmp/gt_park_coverage.json",
+            "verified_value": "/tmp/gt_park_coverage.json",
+            "source": "setup_task.sh line 323 saves ground truth to this location",
+            "status": "verified"
+        },
+        {
+            "key": "projected_crs_for_areas",
+            "metadata_value": "EPSG:32610 (UTM Zone 10N) or EPSG:2269",
+            "verified_value": "EPSG:32610 (WGS 84 / UTM zone 10N) is correct for Portland, Oregon; covers Western Oregon and Pacific Northwest region",
+            "source": "setup_task.sh line 235 uses EPSG:32610; verified via https://epsg.io/32610 that this is standard UTM Zone 10N covering Portland area",
+            "status": "verified"
+        },
+        {
+            "key": "greenspace_tier_classification",
+            "metadata_value": "adequate (park_pct >= 10.0), marginal (5.0 <= park_pct < 10.0), deficient (park_pct < 5.0)",
+            "verified_value": "Exact classification thresholds: adequate ≥10%, marginal 5-9.99%, deficient <5%",
+            "source": "Task description lines 30-35 and setup_task.sh lines 290-295 define identical thresholds",
+            "status": "verified"
+        },
+        {
+            "key": "multnomah_county_fips",
+            "metadata_value": "Oregon FIPS 41, Multnomah County FIPS 051",
+            "verified_value": "Oregon FIPS: 41, Multnomah County FIPS: 051 (Portland is the county seat)",
+            "source": "setup_task.sh lines 139-142 explicitly filter on COUNTYFP='051' in Oregon (41) shapefile; verified via Census Bureau geographic identifiers and Oregon GIS data",
+            "status": "verified"
+        },
+        {
+            "key": "census_population_variable",
+            "metadata_value": "2020 Census PL94-171 redistricting data, P1_001N (total population)",
+            "verified_value": "P1_001N is total population from 2020 decennial census redistricting file (PL94-171)",
+            "source": "setup_task.sh lines 155-157 query Census API /data/2020/dec/pl endpoint for P1_001N; verified via https://www.census.gov/data/developers/data-sets/decennial-census.html",
+            "status": "verified"
+        },
+        {
+            "key": "openstreetmap_leisure_tags",
+            "metadata_value": "leisure=park, leisure=recreation_ground, leisure=nature_reserve, leisure=garden, leisure=playground",
+            "verified_value": "Valid OpenStreetMap leisure tag values for park and greenspace features",
+            "source": "setup_task.sh lines 48-49 queries these exact leisure tag values; verified via OpenStreetMap Wiki (wiki.openstreetmap.org/wiki/Key:leisure)",
+            "status": "verified"
+        },
+        {
+            "key": "data_is_real_not_synthetic",
+            "metadata_value": "Data is synthetic or generated for testing",
+            "verified_value": "Data is REAL and comes from authoritative public sources",
+            "source": "Both parks (OpenStreetMap Overpass API) and census tracts (US Census Bureau TIGER 2020 + Census API) are real, live, public data sources - not synthetic or generated",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task uses real, publicly available geospatial data: OpenStreetMap parks and recreation areas queried via Overpass API for Portland metro (coordinates 45.43-45.60°N, -122.84--122.47°W) and US Census Bureau TIGER 2020 census tracts for Multnomah County (Oregon FIPS 41, Multnomah FIPS 051). Population data comes from 2020 Census PL94-171 redistricting file via Census API (variable P1_001N = total population). All area calculations must use projected CRS EPSG:32610 (UTM Zone 10N), not geographic degrees. The task defines park coverage as four fields per tract: park_area_sqm (float), tract_area_sqm (float), park_pct (2 decimals), and greenspace_tier (categorical: adequate ≥10%, marginal 5-9.99%, deficient <5%). The expected outputs are a GeoJSON FeatureCollection at /home/ga/GIS_Data/exports/park_coverage_by_tract.geojson and a CSV summary at /home/ga/GIS_Data/exports/greenspace_equity_summary.csv with rows for each tier showing tract count, total population, and average park coverage percentage.",
+    "pi_confidence": "high"
+}

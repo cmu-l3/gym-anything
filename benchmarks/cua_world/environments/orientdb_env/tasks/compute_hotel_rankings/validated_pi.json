@@ -1,0 +1,38 @@
+{
+    "task_id": "compute_hotel_rankings@1",
+    "dataset": "OrientDB DemoDB",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/top_tier_hotels.json",
+            "verified_value": "/home/ga/top_tier_hotels.json",
+            "source": "export_result.sh line 8: OUTPUT_PATH=\"/home/ga/top_tier_hotels.json\"; task.json description confirms output location",
+            "status": "verified"
+        },
+        {
+            "key": "min_impact_score",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "task.json description states 'Export all hotels with an ImpactScore greater than 60'; verifier.py line 118 validates filtering logic with condition float(item_score) <= 60 as failure case (meaning scores must be > 60); export_result.sh line 33 queries Hotels with their edge counts for verification",
+            "status": "verified"
+        },
+        {
+            "key": "formula",
+            "metadata_value": "(Stars * 10) + (in('HasStayed').size() * 2)",
+            "verified_value": "(Stars * 10) + (in('HasStayed').size() * 2)",
+            "source": "task.json description: 'ImpactScore = (Stars * 10) + (Number of incoming HasStayed edges * 2)'; verifier.py line 58 implements expected_score = (stars * 10) + (edge_count * 2) where edge_count = in('HasStayed').size(); export_result.sh line 33 queries in('HasStayed').size() as EdgeCount",
+            "status": "verified"
+        },
+        {
+            "key": "null_stars_handling",
+            "metadata_value": "Treat NULL stars as 0",
+            "verified_value": "Treat NULL stars as 0",
+            "source": "task.json description explicitly states '(Treat NULL stars as 0)'; verifier.py lines 51-52 implements this: 'if stars is None: stars = 0'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The compute_hotel_rankings task operates on OrientDB's DemoDB, a synthetic travel agency dataset containing 15 real hotel records (e.g., The Plaza Hotel, Hotel Adlon Kempinski, Park Hyatt Tokyo) seeded by seed_demodb.py. The task requires adding an ImpactScore property to the Hotels class using the formula (Stars * 10) + (in('HasStayed').size() * 2), treating NULL stars as 0. Hotels with ImpactScore > 60 must be exported to /home/ga/top_tier_hotels.json in JSON format containing Name, Stars, and ImpactScore fields. The verifier checks schema modification (10 pts), calculation accuracy (50 pts), data coverage (10 pts), and export validity (30 pts), requiring 70+ points for task success.",
+    "pi_confidence": "high"
+}

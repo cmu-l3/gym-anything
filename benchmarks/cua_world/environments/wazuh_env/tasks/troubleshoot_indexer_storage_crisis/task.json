@@ -1,0 +1,28 @@
+{
+  "id": "troubleshoot_indexer_storage_crisis@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "The Wazuh Indexer has entered a 'read-only' state due to a simulated disk usage threshold, blocking new alerts. Restore service availability by deleting legacy indices matching the pattern 'wazuh-alerts-2023.*' and removing the 'read_only_allow_delete' block from the remaining 'wazuh-alerts-*' indices. Ensure the cluster status returns to green or yellow and accepts new writes.\n\nCredentials:\n- URL: https://localhost:9200\n- User: admin\n- Password: SecretPassword",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/troubleshoot_indexer_storage_crisis/setup_task.sh",
+    "post_task": "/workspace/tasks/troubleshoot_indexer_storage_crisis/export_result.sh"
+  },
+  "metadata": {
+    "legacy_pattern": "wazuh-alerts-2023.*",
+    "indexer_url": "https://localhost:9200",
+    "indexer_user": "admin",
+    "indexer_pass": "SecretPassword"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_indexer_recovery"
+    }
+  }
+}

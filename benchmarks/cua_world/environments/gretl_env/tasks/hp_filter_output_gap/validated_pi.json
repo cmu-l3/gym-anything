@@ -1,0 +1,115 @@
+{
+    "task_id": "hp_filter_output_gap@1",
+    "dataset": "usa.gdt",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "dataset",
+            "metadata_value": "usa.gdt",
+            "verified_value": "usa.gdt - Gretl's built-in US macroeconomic time series database from Federal Reserve Bank of St. Louis",
+            "source": "Gretl official documentation (gretl.sourceforge.net/gretl_data.html), task setup script references GRETL_MASTER_DATA_DIR dataset loading",
+            "status": "verified"
+        },
+        {
+            "key": "hp_lambda",
+            "metadata_value": 1600,
+            "verified_value": 1600,
+            "source": "Academic consensus for quarterly data (Hodrick & Prescott 1997, Ravn & Uhlig 2002, MATLAB/Stata/statsmodels documentation). Quarterly data standard: λ=1600, Annual: λ=6.25, Monthly: λ=129,600",
+            "status": "verified"
+        },
+        {
+            "key": "variable_names[0]",
+            "metadata_value": "gdp",
+            "verified_value": "gdp",
+            "source": "Standard variable name for US Real GDP in Gretl datasets and Federal Reserve data (GDPC1 series)",
+            "status": "verified"
+        },
+        {
+            "key": "variable_names[1]",
+            "metadata_value": "hp_cycle",
+            "verified_value": "hp_cycle",
+            "source": "Standard naming convention for HP filter cyclical component output in econometrics literature and Gretl examples",
+            "status": "verified"
+        },
+        {
+            "key": "variable_names[2]",
+            "metadata_value": "hp_trend",
+            "verified_value": "hp_trend",
+            "source": "Standard naming convention for HP filter trend component output in econometrics literature and Gretl examples",
+            "status": "verified"
+        },
+        {
+            "key": "variable_names[3]",
+            "metadata_value": "output_gap",
+            "verified_value": "output_gap",
+            "source": "Standard variable name for HP-derived output gap, calculated as (cycle/trend)*100. Verified in verifier.py code (line 225: calc_gap = 100 * cycle / trend)",
+            "status": "verified"
+        },
+        {
+            "key": "required_files[0]",
+            "metadata_value": "hp_analysis.inp",
+            "verified_value": "hp_analysis.inp",
+            "source": "Standard Gretl script file extension (.inp). Verified in setup_task.sh and export_result.sh which reference this file path",
+            "status": "verified"
+        },
+        {
+            "key": "required_files[1]",
+            "metadata_value": "usa_hp_decomposed.gdt",
+            "verified_value": "usa_hp_decomposed.gdt",
+            "source": "Standard Gretl data file extension (.gdt). File naming matches task description and is verified in export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "required_files[2]",
+            "metadata_value": "hp_report.txt",
+            "verified_value": "hp_report.txt",
+            "source": "Text report file as specified in task description and verified in export_result.sh, verifier.py handles parsing of this report",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": null,
+            "verified_value": "Federal Reserve Bank of St. Louis (FRED) - US Real Gross Domestic Product (GDPC1) quarterly data starting 1947 Q1",
+            "source": "Gretl official documentation states dataset contains 'collection of US macroeconomic time series from the Federal Reserve Bank of St Louis'",
+            "status": "verified"
+        },
+        {
+            "key": "data_frequency",
+            "metadata_value": null,
+            "verified_value": "Quarterly (frequency=4)",
+            "source": "Verified from verifier.py line 42 (freq = int(root.attrib.get('frequency', 0))) and task description context",
+            "status": "verified"
+        },
+        {
+            "key": "task_start_date",
+            "metadata_value": null,
+            "verified_value": "1984:Q1 (first quarter 1984)",
+            "source": "Verified from verifier.py line 257-262 which calculates quarter format from index starting with 1984",
+            "status": "verified"
+        },
+        {
+            "key": "mathematical_relationship_1",
+            "metadata_value": null,
+            "verified_value": "GDP = Trend + Cycle (within floating point tolerance <1.0)",
+            "source": "Verified in verifier.py line 217: checks recon_error = np.mean(np.abs(gdp - (trend + cycle))) should be <1.0",
+            "status": "verified"
+        },
+        {
+            "key": "mathematical_relationship_2",
+            "metadata_value": null,
+            "verified_value": "output_gap = (cycle / trend) * 100",
+            "source": "Verified in verifier.py line 225: calc_gap = 100 * cycle / trend, with error tolerance <0.1",
+            "status": "verified"
+        },
+        {
+            "key": "hp_filter_implementation",
+            "metadata_value": null,
+            "verified_value": "statsmodels.tsa.filters.hp_filter.hpfilter with lambda=1600",
+            "source": "Verified as ground truth implementation in verifier.py line 235: hpfilter(gdp, lamb=1600), standard reference implementation for academic use",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses Gretl to apply a Hodrick-Prescott filter with lambda=1600 (the standard for quarterly data) to the usa.gdt dataset, which contains US macroeconomic time series from the Federal Reserve Bank of St. Louis. The data is real, not synthetic, with quarterly frequency starting from 1984 Q1. The task decomposes US Real GDP into trend and cyclical components, then calculates output gap as (cycle/trend)*100. The mathematical relationships are: GDP ≈ Trend + Cycle and output_gap = (cycle/trend)*100, verified through statsmodels implementation. Required outputs are a Gretl script (hp_analysis.inp), augmented dataset (usa_hp_decomposed.gdt), and text report (hp_report.txt) containing the smoothing parameter, output gap statistics (mean, std dev, negative count, and date of minimum).",
+    "pi_confidence": "high"
+}

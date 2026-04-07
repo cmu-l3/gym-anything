@@ -1,0 +1,30 @@
+{
+  "id": "audit_campaign_contributions@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Audit FEC campaign contributions by processing the raw data in /home/ga/Documents/fec_contributions.csv and saving the result as an Excel Workbook to /home/ga/Documents/campaign_audit.xlsx. In the primary sheet, renamed to 'Contributions', include columns for 'Year' (extracted from TRANSACTION_DT), 'Limit_Violation' (identifying TRANSACTION_AMT values over 3300 as 'FLAG', otherwise 'OK'), and 'Refund_Due' (calculating the amount exceeding 3300 for violations). Format the TRANSACTION_AMT and Refund_Due columns as currency and apply conditional formatting to highlight 'FLAG' entries. Additionally, create a sheet named 'State Summary' that lists unique states and their total contribution amounts, sorted in descending order by the total.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_campaign_contributions/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_campaign_contributions/export_result.sh"
+  },
+  "metadata": {
+    "data_source": "Simulated FEC Individual Contributions",
+    "expected_output_path": "/home/ga/Documents/campaign_audit.xlsx",
+    "expected_sheets": [
+      "Contributions",
+      "State Summary"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_campaign"
+    }
+  }
+}

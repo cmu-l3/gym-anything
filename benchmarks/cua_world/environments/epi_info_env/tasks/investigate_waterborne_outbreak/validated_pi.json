@@ -1,0 +1,147 @@
+{
+    "task_id": "investigate_waterborne_outbreak@1",
+    "dataset": "outbreak_survey.csv",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "dataset",
+            "metadata_value": "C:\\Users\\Docker\\Documents\\outbreak_survey.csv",
+            "verified_value": "C:\\Users\\Docker\\Documents\\outbreak_survey.csv",
+            "source": "setup_task.ps1 line 28-33 copies from C:\\workspace\\tasks\\investigate_waterborne_outbreak\\outbreak_survey.csv to C:\\Users\\Docker\\Documents\\outbreak_survey.csv. Live VM test confirmed: Test-Path returns True, file size 9341 bytes, 201 lines (1 header + 200 data). MD5 of VM copy matches source file.",
+            "status": "verified"
+        },
+        {
+            "key": "total_respondents",
+            "metadata_value": 200,
+            "verified_value": 200,
+            "source": "Direct count of data rows in outbreak_survey.csv (excluding header): 200 rows. Verified both locally (wc -l = 201) and from VM copy (PowerShell Measure-Object -Line = 201). generate_data.py line 20: N = 200.",
+            "status": "verified"
+        },
+        {
+            "key": "analysis_modules",
+            "metadata_value": ["Classic Analysis"],
+            "verified_value": ["Classic Analysis"],
+            "source": "Epi Info 7 Classic Analysis is the command-driven analysis module supporting READ, FREQ, TABLES, LOGISTIC, GRAPH, RECODE, DEFINE, SELECT. All commands referenced in the task description are valid Classic Analysis commands. Epi Info 7.2.7.0 confirmed running on the VM via screenshot (status bar shows version).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_commands",
+            "metadata_value": ["READ", "RECODE", "DEFINE", "ASSIGN", "FREQ", "TABLES", "LOGISTIC", "GRAPH", "SELECT"],
+            "verified_value": ["READ", "RECODE", "DEFINE", "ASSIGN", "FREQ", "TABLES", "LOGISTIC", "GRAPH", "SELECT"],
+            "source": "All 9 commands are standard Epi Info Classic Analysis PGM commands. Verified against existing tasks that use them: clean_standardize_outbreak_data uses RECODE, calculate_composite_risk_score uses DEFINE+ASSIGN+IF, logistic_regression_outbreak uses LOGISTIC, ecoli_comprehensive uses TABLES+GRAPH+SELECT. READ for CSV is confirmed working in existing agent evaluations.",
+            "status": "verified"
+        },
+        {
+            "key": "required_outputs",
+            "metadata_value": ["C:\\Users\\Docker\\Documents\\outbreak_report.txt"],
+            "verified_value": ["C:\\Users\\Docker\\Documents\\outbreak_report.txt"],
+            "source": "export_result.ps1 line 40 reads from this exact path. verifier.py scores based on this file's existence and content via the export JSON. Live VM test confirmed C:\\Users\\Docker\\Documents\\ is writable (write test succeeded). File correctly does not exist before task starts (stale cleanup confirmed).",
+            "status": "verified"
+        },
+        {
+            "key": "overall_attack_rate",
+            "metadata_value": null,
+            "verified_value": "45.0% (90 ill out of 200 total)",
+            "source": "Independent computation from outbreak_survey.csv: counted rows where Ill in {Yes, Y, 1} = 90; total rows = 200; 90/200 = 0.45 = 45.0%. Ill variants: Yes=25, Y=25, 1=40 (total 90). Not-ill variants: No=36, N=36, 0=38 (total 110).",
+            "status": "verified"
+        },
+        {
+            "key": "highest_attack_rate_neighborhood",
+            "metadata_value": null,
+            "verified_value": "North (62.5%, 25/40)",
+            "source": "Independent computation: North=25/40=62.5%, South=17/40=42.5%, East=18/40=45.0%, West=15/40=37.5%, Central=15/40=37.5%. North is unambiguously highest, 17.5 percentage points above the next (East). Each neighborhood has exactly 40 respondents (interleaved assignment in generate_data.py line 36: hood = neighborhoods[i % 5]).",
+            "status": "verified"
+        },
+        {
+            "key": "primary_risk_factor",
+            "metadata_value": null,
+            "verified_value": "MunicipalWater (municipal tap water)",
+            "source": "After RECODE of WaterSource (Tap/tap/Municipal/municipal -> Municipal; Bottled/Well -> Other), the 2x2 table is: Municipal ill=80, well=47 (total 127, AR=63.0%); Other ill=10, well=63 (total 73, AR=13.7%). RR=4.60, OR=10.72, Fisher exact p < 0.000001. This is by far the strongest association. Next highest crude RR is SwimmingPool at 2.22 (a confounder). The data generation model assigns MunicipalWater the largest logistic coefficient (+2.0).",
+            "status": "verified"
+        },
+        {
+            "key": "municipal_water_crude_rr",
+            "metadata_value": null,
+            "verified_value": 4.60,
+            "source": "RR = (80/127) / (10/73) = 0.6299 / 0.1370 = 4.598. Epi Info TABLES command will report this as Risk Ratio (RR) in the 2x2 output. Note: Epi Info may report slightly different precision depending on rounding. The OR from the same table is (80*63)/(47*10) = 5040/470 = 10.72.",
+            "status": "verified"
+        },
+        {
+            "key": "confounder_variable",
+            "metadata_value": null,
+            "verified_value": "SwimmingPool",
+            "source": "SwimmingPool has crude RR=2.22 (crude OR=4.60, swim_ill=55, swim_well=28, noswim_ill=35, noswim_well=82). It APPEARS significant in crude analysis. However, in the data generation model (generate_data.py line 77), SwimmingPool has ZERO causal effect on illness (no logit contribution). The crude association exists solely because SwimmingPool is correlated with MunicipalWater (58% of municipal users swim vs 12% of non-municipal, line 61-64). After multivariable logistic regression adjusting for MunicipalWater, the SwimmingPool adjusted OR should drop to approximately 1.0-1.3 and become non-significant. This is the textbook definition of confounding.",
+            "status": "verified"
+        },
+        {
+            "key": "swimming_pool_crude_rr",
+            "metadata_value": null,
+            "verified_value": 2.22,
+            "source": "RR = (55/83) / (35/117) = 0.6627 / 0.2991 = 2.216. The 2x2 table: swim_ill=55, swim_well=28, noswim_ill=35, noswim_well=82. Crude OR = (55*82)/(28*35) = 4510/980 = 4.60.",
+            "status": "verified"
+        },
+        {
+            "key": "uses_filter_protective",
+            "metadata_value": null,
+            "verified_value": "Protective, RR=0.70",
+            "source": "RR = (12/36) / (78/164) = 0.3333 / 0.4756 = 0.701. Filter users have 33.3% attack rate vs 47.6% for non-filter users. In the data generation model, UsesFilter has logit coefficient -1.2 (protective). The 2x2 table: filter_ill=12, filter_well=24, nofilt_ill=78, nofilt_well=86.",
+            "status": "verified"
+        },
+        {
+            "key": "daycare_contact_rr",
+            "metadata_value": null,
+            "verified_value": 1.31,
+            "source": "RR = (19/34) / (71/166) = 0.5588 / 0.4277 = 1.306. Daycare_ill=19, daycare_well=15, no_dc_ill=71, no_dc_well=95. In the data generation model, DaycareContact has logit coefficient +0.9 (moderate independent effect). The crude RR is modest (1.31) because the effect operates through the logistic model, not a direct rate difference.",
+            "status": "verified"
+        },
+        {
+            "key": "high_consumption_dose_response",
+            "metadata_value": null,
+            "verified_value": "HighConsumption (DailyGlasses>=5) RR=1.56",
+            "source": "RR = (34/56) / (56/144) = 0.6071 / 0.3889 = 1.561. High_ill=34, high_well=22, low_ill=56, low_well=88. DailyGlasses range: 0-8, mean=3.3. In the data generation model, DailyGlasses has logit coefficient +0.15 per glass (dose-response). In multivariable logistic regression, DailyGlasses as continuous predictor should show significant positive OR (approximately 1.1-1.3 per glass).",
+            "status": "verified"
+        },
+        {
+            "key": "onset_date_distribution",
+            "metadata_value": null,
+            "verified_value": "90 ill cases have onset dates from 2024-03-01 to 2024-03-11, peak at 2024-03-04 (16 cases) and 2024-03-05 (15 cases)",
+            "source": "Independent count from CSV: 2024-03-01:8, 03-02:7, 03-03:4, 03-04:16, 03-05:15, 03-06:10, 03-07:13, 03-08:6, 03-09:5, 03-10:4, 03-11:2. Total=90 dates. No non-ill cases have onset dates (verified: well_with_date=0). The epidemic curve peaks around day 4-7, consistent with the generation model using random.gauss(6, 2.5) for day number.",
+            "status": "verified"
+        },
+        {
+            "key": "data_messy_variants",
+            "metadata_value": null,
+            "verified_value": {
+                "Sex": {"M": 31, "Male": 26, "male": 38, "F": 37, "Female": 31, "female": 37},
+                "WaterSource": {"Tap": 28, "tap": 35, "Municipal": 31, "municipal": 33, "Bottled": 37, "Well": 36},
+                "Ill": {"Yes": 25, "Y": 25, "1": 40, "No": 36, "N": 36, "0": 38}
+            },
+            "source": "Case-sensitive Python Counter on outbreak_survey.csv. All 6 variants for each column are present as listed in the task description. Post-generation patching in generate_data.py (lines 110-127) ensures variant coverage. Verified from VM-copied CSV (md5 identical to source).",
+            "status": "verified"
+        },
+        {
+            "key": "data_provenance",
+            "metadata_value": null,
+            "verified_value": "Fully synthetic, generated by generate_data.py with random.seed(42)",
+            "source": "generate_data.py is included in the task directory. Line 18: random.seed(42). The data is NOT from any real outbreak or CDC dataset. The causal structure is engineered via a logistic model (lines 71-79) with predetermined coefficients. No external data sources are used.",
+            "status": "verified"
+        },
+        {
+            "key": "export_result_json_path",
+            "metadata_value": null,
+            "verified_value": "C:\\Users\\Docker\\investigate_waterborne_outbreak_result.json",
+            "source": "export_result.ps1 line 7 defines resultPath. verifier.py line 6 defines RESULT_PATH. Both match. Live VM test confirmed: export_result.ps1 runs successfully (exit 0), produces valid JSON with all expected fields. JSON uses UTF-8 BOM encoding; verifier correctly reads with utf-8-sig (line 35).",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_double_count",
+            "metadata_value": null,
+            "verified_value": "has_odds_ratio is scored in both criterion 5 (10 pts) and criterion 9 (10 pts), making theoretical max 110 (capped at 100)",
+            "source": "verifier.py line 90: criterion 5 checks has_risk_ratio OR has_odds_ratio for 10 pts. Line 121: criterion 9 checks has_odds_ratio for another 10 pts. If an agent includes odds ratios, they get 20 pts from these two criteria. The min(score, 100) on line 132 caps total at 100. This is a minor scoring artifact but does not affect the pass threshold of 60.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The dataset is synthetic (200 rows, generated with random.seed(42)) with 11 columns: RespondentID, Neighborhood, Age, Sex, WaterSource, DailyGlasses, UsesFilter, SwimmingPool, DaycareContact, Ill, OnsetDate. Three columns require RECODE before analysis: Sex has 6 variants (M/Male/male/F/Female/female), WaterSource has 6 variants (Tap/tap/Municipal/municipal/Bottled/Well), and Ill has 6 variants (Yes/Y/1/No/N/0). After cleaning, the correct findings are: overall attack rate is 45.0% (90/200 ill). North has the highest neighborhood attack rate at 62.5% (25/40), well above the next highest East at 45.0%. The primary risk factor is MunicipalWater (recoded from WaterSource) with crude RR=4.60 and crude OR=10.72 (Municipal: 80/127=63.0% ill vs Other: 10/73=13.7% ill). SwimmingPool is a confounder: it shows crude RR=2.22 (66.3% vs 29.9%) because it is correlated with MunicipalWater (58% of municipal users swim vs 12% of non-municipal), but it has no independent causal effect and its adjusted OR should drop to approximately 1.0-1.3 after logistic regression adjustment. UsesFilter is protective with RR=0.70 (33.3% vs 47.6%). DaycareContact has crude RR=1.31. HighConsumption (DailyGlasses>=5) shows dose-response with RR=1.56 (60.7% vs 38.9%). The epidemic curve spans 2024-03-01 to 2024-03-11 with peak on 2024-03-04 (16 cases) and 2024-03-05 (15 cases). The agent should save findings to C:\\Users\\Docker\\Documents\\outbreak_report.txt.",
+    "pi_confidence": "high"
+}

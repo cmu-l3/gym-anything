@@ -1,0 +1,42 @@
+{
+  "id": "parcel_lot_coverage_analysis@1",
+  "version": "1.0",
+  "env_id": "urban_sim_env@0.1",
+  "difficulty": "medium",
+  "description": "Calculate parcel-level lot coverage and aggregate it to identify San Francisco's least permeable 'Grey Zones' using the Jupyter notebook at /home/ga/urbansim_projects/notebooks/lot_coverage_analysis.ipynb. Using the 'buildings' and 'parcels' tables from /home/ga/urbansim_projects/data/sanfran_public.h5, estimate building footprints (filling missing building_sqft with (residential_units * 1000) + non_residential_sqft and missing stories with 1) to determine parcel lot coverage ratios capped at 1.0. Aggregate these metrics by zone_id to calculate average lot coverage, total parcel area, total footprint area, and valid parcel counts, including only zones with at least 30 valid parcels. Export the results to /home/ga/urbansim_projects/output/zone_lot_coverage.csv, a summary JSON (with keys: citywide_avg_coverage, num_zones_analyzed, greyest_zone_id, greenest_zone_id) to /home/ga/urbansim_projects/output/coverage_summary.json, and a histogram of average lot coverage to /home/ga/urbansim_projects/output/coverage_histogram.png. The notebook must be fully executed and saved.",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/parcel_lot_coverage_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/parcel_lot_coverage_analysis/export_result.sh"
+  },
+  "metadata": {
+    "expected_notebook_path": "/home/ga/urbansim_projects/notebooks/lot_coverage_analysis.ipynb",
+    "expected_csv_path": "/home/ga/urbansim_projects/output/zone_lot_coverage.csv",
+    "expected_json_path": "/home/ga/urbansim_projects/output/coverage_summary.json",
+    "expected_plot_path": "/home/ga/urbansim_projects/output/coverage_histogram.png",
+    "data_path": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+    "expected_csv_columns": [
+      "zone_id",
+      "avg_lot_coverage",
+      "total_parcel_area",
+      "total_footprint_area",
+      "valid_parcel_count"
+    ],
+    "expected_json_keys": [
+      "citywide_avg_coverage",
+      "num_zones_analyzed",
+      "greyest_zone_id",
+      "greenest_zone_id"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_parcel_lot_coverage"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "science_plan_translation@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a ground station operator receiving a science observation plan from the Science Operations Center. Your task is to translate this CSV schedule into an executable automation script and run it against the live ground system. \n\n1. Read the science plan located at /home/ga/Documents/observation_schedule.csv. It contains planned observations with explicit 'wait_sec' and 'exposure_time' columns.\n2. Write a Python script at /home/ga/Desktop/run_observations.py that reads this CSV and processes each row in order.\n3. For each row, your script must: sleep for the specified 'wait_sec' duration, then send the 'INST COLLECT' command with the 'DURATION' parameter set to the 'exposure_time' value.\n4. Execute your script to command the spacecraft.\n5. Write a summary report to /home/ga/Desktop/pass_summary.json containing exactly these keys: 'plan_file' (string, name of the csv file), 'total_observations_executed' (integer, number of rows commanded), 'total_exposure_time' (float, mathematical sum of all exposure_time values sent), and 'execution_duration_sec' (float, actual time taken by your script to run). \n\nNote: You can command the ground system via the REST API at http://localhost:2900/openc3-api/api (auth token in /home/ga/.cosmos_token), or by using the pre-installed wrapper script 'cosmos-api'. Both the python script and the json report must be created during this session. OpenC3 password: Cosmos2024!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/science_plan_translation/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/science_plan_translation/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/science_plan_translation_result.json",
+    "output_json": "/home/ga/Desktop/pass_summary.json",
+    "output_script": "/home/ga/Desktop/run_observations.py",
+    "target": "INST",
+    "expected_observations": 10,
+    "expected_total_exposure": 47.5,
+    "min_execution_time": 13.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_science_plan_translation"
+    }
+  }
+}

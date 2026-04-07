@@ -1,0 +1,40 @@
+{
+  "id": "docker_socket_proxy@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "Secure the vulnerable container monitoring stack by replacing the raw Docker socket mount in the 'dashboard' service with a secure Nginx proxy. Configure an Nginx proxy service using 'nginx:1.24-alpine' that restricts Docker API access to only 'GET /containers/json' and 'GET /containers/*/stats', blocking all other methods and paths. Update the docker-compose.yml to include this proxy, remove the direct socket mount from the dashboard service, and reconfigure the dashboard to connect via the proxy (e.g., DOCKER_HOST=tcp://proxy:2375). The dashboard must remain functional for the allowed API calls. Login: user ga, password password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_socket_proxy/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_socket_proxy/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/monitor-stack",
+    "required_services": [
+      "dashboard",
+      "proxy"
+    ],
+    "proxy_port": 2375,
+    "allowed_endpoints": [
+      "/containers/json",
+      "/containers/12345/stats"
+    ],
+    "blocked_endpoints": [
+      "/containers/create",
+      "/secrets",
+      "/images/json"
+    ],
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_socket_proxy"
+    }
+  }
+}

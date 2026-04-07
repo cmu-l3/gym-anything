@@ -1,0 +1,41 @@
+{
+  "id": "generate_inventory_report@1",
+  "version": "1.0",
+  "env_id": "safe_exam_browser_env@0.1",
+  "name": "Generate SEB Server Configuration Inventory Report via Database Query",
+  "description": "A university CTO has requested a comprehensive inventory report of all SEB Server configurations ahead of the annual IT security audit. Generate a structured JSON report by querying the SEB Server's MariaDB database (container: 'seb-server-mariadb', database: 'SEBServer', user: 'root', password: 'sebserver123').\n\nThe report must include data from the 'institution', 'user', and 'configuration_node' tables. When processing the 'user' table, map the 'role' integer values to their corresponding names: 0 = SEB_SERVER_ADMIN, 1 = INSTITUTIONAL_ADMIN, 2 = EXAM_ADMIN, 4 = EXAM_SUPPORTER.\n\nSave the final report to ~/Documents/seb_inventory_report.json using the following structure:\n{\n  \"report_title\": \"SEB Server Configuration Inventory\",\n  \"generated_by\": \"IT Administrator\",\n  \"institutions\": [\n    {\"id\": <int>, \"name\": \"<string>\", \"active\": <boolean>}\n  ],\n  \"user_accounts\": [\n    {\"username\": \"<string>\", \"name\": \"<string>\", \"email\": \"<string>\", \"role\": \"<role_name_string>\", \"institution_id\": <int>, \"active\": <boolean>}\n  ],\n  \"exam_configurations\": [\n    {\"id\": <int>, \"name\": \"<string>\", \"description\": \"<string>\", \"institution_id\": <int>, \"status\": \"<string>\"}\n  ],\n  \"summary\": {\n    \"total_institutions\": <count>,\n    \"total_users\": <count>,\n    \"total_exam_configurations\": <count>\n  }\n}\nAll data and summary counts must accurately reflect the current database records.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/generate_inventory_report/setup_task.sh",
+    "post_task": "/workspace/tasks/generate_inventory_report/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/seb_inventory_report.json",
+    "required_keys": [
+      "report_title",
+      "generated_by",
+      "institutions",
+      "user_accounts",
+      "exam_configurations",
+      "summary"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_inventory_report"
+    }
+  },
+  "tags": [
+    "seb-server",
+    "database",
+    "docker",
+    "json-formatting",
+    "cli"
+  ]
+}

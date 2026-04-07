@@ -1,0 +1,52 @@
+{
+    "task_id": "enforce_global_lobby@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "config_path",
+            "metadata_value": "/home/ga/.jitsi-meet-cfg/web/config.js",
+            "verified_value": "/home/ga/.jitsi-meet-cfg/web/config.js",
+            "source": "Confirmed in docker-compose.yml line 10 volume mount '/home/ga/.jitsi-meet-cfg/web:/config:Z' and setup_jitsi.sh line 36 which creates this directory. This is the host path to the Jitsi web configuration directory mounted into the container.",
+            "status": "verified"
+        },
+        {
+            "key": "container_name",
+            "metadata_value": "jitsi-web",
+            "verified_value": "jitsi-web-1",
+            "source": "Docker Compose v2 default naming convention: {project}-{service}-{instance}. The project directory is /home/ga/jitsi (confirmed in setup_jitsi.sh line 40-42), service name is 'web' (confirmed in docker-compose.yml line 3), and no explicit container_name is set, so the default instance number is 1. Results in container name 'jitsi-web-1'. Verified via Docker Compose documentation: https://docs.docker.com/compose/how-tos/project-name/ and GitHub issue about naming conventions: https://github.com/docker/compose/issues/6316",
+            "status": "contradicted"
+        },
+        {
+            "key": "lobby_autoenable_config",
+            "metadata_value": "lobby: { autoEnable: true }",
+            "verified_value": "NOT A VALID JITSI CONFIGURATION OPTION",
+            "source": "Official Jitsi Meet configuration documentation (https://jitsi.github.io/handbook/docs/dev-guide/dev-guide-configuration/) and source code (https://raw.githubusercontent.com/jitsi/jitsi-meet/master/config.js) show that the valid lobby configuration options are: autoKnock (boolean), enableChat (boolean), and showHangUp (boolean). There is no 'autoEnable' setting for the lobby object. The task description incorrectly states that autoEnable should be set to true, but this is not a recognized Jitsi Meet configuration parameter.",
+            "status": "contradicted"
+        },
+        {
+            "key": "jitsi_version",
+            "metadata_value": "stable-9753",
+            "verified_value": "stable-9753",
+            "source": "Confirmed in docker-compose.yml lines 4, 47, 86, and 113 where all Jitsi services use the image tag 'stable-9753'. This is a valid release tag for jitsi/jitsi-meet according to https://github.com/jitsi/docker-jitsi-meet/releases",
+            "status": "verified"
+        },
+        {
+            "key": "docker_compose_directory",
+            "metadata_value": "/home/ga/jitsi",
+            "verified_value": "/home/ga/jitsi",
+            "source": "Confirmed in setup_jitsi.sh lines 40-42 which creates the directory and copies docker-compose.yml there. Also confirmed in setup_task.sh line 31 which filters for containers with 'name=web' substring match.",
+            "status": "verified"
+        },
+        {
+            "key": "config_file_exists_on_host",
+            "metadata_value": "File should exist at /home/ga/.jitsi-meet-cfg/web/config.js",
+            "verified_value": "File path verified to be mounted and accessible; actual file existence verified in setup_task.sh lines 18-23",
+            "source": "setup_task.sh explicitly checks for file existence: 'if [ ! -f \"$CONFIG_FILE\" ]; then... exit 1'. Also confirmed in export_result.sh lines 16-22 which reads the config file with 'cat $CONFIG_FILE | base64 -w 0'.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task attempts to configure Jitsi Meet's lobby feature, but contains a critical configuration error. The task description and verifier are checking for 'lobby: { autoEnable: true }' in config.js, but this is NOT a valid Jitsi Meet configuration option. Official Jitsi Meet documentation (version stable-9753) shows the valid lobby settings are: autoKnock (enables auto-knock when lobby is enabled), enableChat (enables chat in lobby), and showHangUp (shows hangup button). The autoEnable parameter does not exist in the Jitsi Meet configuration specification. Additionally, the container_name metadata claim of 'jitsi-web' is incomplete; the actual Docker container running the web service will be named 'jitsi-web-1' following Docker Compose v2 naming conventions. The config file path /home/ga/.jitsi-meet-cfg/web/config.js is correct and confirmed to exist on the host system.",
+    "pi_confidence": "high"
+}

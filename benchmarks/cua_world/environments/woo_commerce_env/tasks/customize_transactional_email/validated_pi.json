@@ -1,0 +1,45 @@
+{
+    "task_id": "customize_transactional_email@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "CRITICAL_ISSUE_task_json_malformed",
+            "metadata_value": "N/A",
+            "verified_value": "task.json file is incomplete/malformed JSON with no metadata field",
+            "source": "Direct file inspection: task.json is 431 bytes and terminates incomplete at the description field with unterminated string. File lacks closing braces and entire metadata field. Verified using Python json.load() which raises JSONDecodeError at line 5.",
+            "status": "contradicted"
+        },
+        {
+            "key": "metadata_field_existence",
+            "metadata_value": "Metadata field present in task.json",
+            "verified_value": "No metadata field exists in task.json - file is truncated before metadata section",
+            "source": "File parsing shows task.json contains only: id, version, env_id, and incomplete description. Comparison with configure_email_settings/task.json (proper format) shows expected structure should have metadata, difficulty, init, hooks, and success fields. customize_transactional_email/task.json lacks all of these.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_subject_claim",
+            "metadata_value": "Would be 'Your package has arrived! 📦' if metadata existed",
+            "verified_value": "Inferred from incomplete task description text: 'Your package has arrived! 📦' (with U+1F4A6 package emoji)",
+            "source": "Task.json description field (incomplete, ends prematurely) shows: '- **Subject**: `Your package has arrived! 📦`'. However, this appears in the description text, NOT in the metadata field (which does not exist). Verifier.py expects this value in metadata['expected_subject'] at line 95, but would receive empty string due to missing metadata.",
+            "status": "unverified"
+        },
+        {
+            "key": "expected_heading_claim",
+            "metadata_value": "Would be 'Hooray! Order #{order_number} is complete' if metadata existed",
+            "verified_value": "Inferred from task description text: 'Hooray! Order #{order_number} is complete'",
+            "source": "Task.json description field shows: '- **Email heading**: `Hooray! Order #{order_number} is complete`'. This is part of the incomplete task description, not metadata. WooCommerce stores email headings in woocommerce_customer_completed_order_settings option (verified by export_result.sh line 15 which fetches this exact setting). The expected value uses template variable {order_number} which is standard WooCommerce syntax.",
+            "status": "unverified"
+        },
+        {
+            "key": "expected_content_line1_and_line2",
+            "metadata_value": "Values would be present in complete task.json metadata",
+            "verified_value": "Cannot determine - task description is incomplete and ends with 'Additional content**: \\n' (incomplete)",
+            "source": "Task.json file truncates at the point where additional content values should be specified. The description literally ends at byte 0x1af with the string '- **Additional content**: \\n' and does not provide the actual content lines. Verifier.py expects metadata['expected_content_line1'] and metadata['expected_content_line2'] (lines 97-98) for validation, but would receive empty strings.",
+            "status": "unverified"
+        }
+    ],
+    "privileged_info_summary": "CRITICAL: The customize_transactional_email task.json file is malformed and incomplete. The file contains invalid JSON with an unterminated string in the description field and is missing the entire metadata section that verifier.py expects. No metadata claims can be validated because no metadata field exists in the task.json file. From the incomplete description visible in the file, the task appears to be about setting WooCommerce completed order email fields: Subject to 'Your package has arrived! 📦' and Email heading to 'Hooray! Order #{order_number} is complete', but the additional content requirement is not visible as the description is cut off. The task operates on synthetic data (local WooCommerce instance with MariaDB). The setup_task.sh resets email settings to defaults, and export_result.sh fetches settings from the woocommerce_customer_completed_order_settings option.",
+    "pi_confidence": "none"
+}

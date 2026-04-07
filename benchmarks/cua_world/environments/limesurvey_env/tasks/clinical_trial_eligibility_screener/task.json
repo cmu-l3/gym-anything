@@ -1,0 +1,39 @@
+{
+  "id": "clinical_trial_eligibility_screener@1",
+  "version": "1.0",
+  "env_id": "limesurvey_env@0.1",
+  "description": "Configure the pre-existing 'Cardiovascular Risk Trial Screening (Protocol CVR-2025)' survey in LimeSurvey (admin/Admin123!). The survey has a 'Demographics' group (DOB date, SEX list Male/Female, HEIGHT_CM numerical, WEIGHT_KG numerical) and a 'Medical History' group (DIABETES yes/no, HEART_COND yes/no, CURRENT_MEDS multiple choice: SQ001 'ACE Inhibitors', SQ002 'Beta Blockers', SQ003 'Statins', SQ004 'Blood Thinners', SQ005 'None', and ALLERGIES text).\n\nSet validation on HEIGHT_CM to accept 100-250 and WEIGHT_KG to accept 30-300. Add an Equation question BMI_CALC in the Demographics group computing BMI as weight in kg divided by height-in-meters squared. Create an 'Eligibility Assessment' group containing an Equation question ELIG_SCORE that awards 1 point each for: BMI between 18.5 and 30, no diabetes, no heart condition, and Blood Thinners (SQ004) not selected. In the same group, add an Equation question RISK_DISPLAY that shows 'Eligibility: {ELIG_SCORE}/4. BMI: {BMI_CALC}' followed by 'ELIGIBLE' when ELIG_SCORE >= 3, otherwise 'REVIEW REQUIRED'. Create a 'Study Arm - Lifestyle Intervention' group visible only when ELIG_SCORE >= 3 containing a mandatory Array question DIET_HABITS with sub-questions 'Fruit/Vegetable Intake', 'Processed Food Consumption', 'Sodium Intake', 'Alcohol Consumption' on a 5-point scale (Never/Rarely/Sometimes/Often/Daily). Enable Assessment mode, set DIET_HABITS answer values Never=1 through Daily=5, and create an assessment rule 'Poor Dietary Pattern' (score 4-10, message: 'Dietary counseling recommended before enrollment'). Create quotas 'Male Enrollment' (limit 200, linked to SEX=Male) and 'Female Enrollment' (limit 200, linked to SEX=Female). Activate the survey.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/clinical_trial_eligibility_screener/setup_task.sh",
+    "post_task": "/workspace/tasks/clinical_trial_eligibility_screener/export_result.sh"
+  },
+  "metadata": {
+    "survey_title_keyword": "Cardiovascular Risk",
+    "expected_bmi_references": ["WEIGHT_KG", "HEIGHT_CM"],
+    "expected_elig_references": ["BMI_CALC", "DIABETES", "HEART_COND", "CURRENT_MEDS"],
+    "expected_group_condition_var": "ELIG_SCORE",
+    "expected_group_condition_threshold": 3,
+    "expected_diet_subquestions": 4,
+    "expected_diet_answer_count": 5,
+    "expected_assessment_rule_min": 4,
+    "expected_assessment_rule_max": 10,
+    "expected_quota_limit": 200,
+    "height_min": 100,
+    "height_max": 250,
+    "weight_min": 30,
+    "weight_max": 300,
+    "context": "Clinical Trial Eligibility Screening - Cardiovascular Risk Assessment"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_clinical_trial_eligibility"
+    }
+  }
+}

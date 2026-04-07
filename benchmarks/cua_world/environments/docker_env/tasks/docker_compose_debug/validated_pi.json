@@ -1,0 +1,108 @@
+{
+    "task_id": "docker_compose_debug@1",
+    "dataset": "AcmeCorp E-Commerce Backend - Docker Compose Debug",
+    "case_id": "task2_compose",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/ecommerce-app",
+            "verified_value": "/home/ga/projects/ecommerce-app",
+            "source": "setup_task.sh line 30 defines PROJECT_DIR and line 34 copies task2_compose data to this path",
+            "status": "verified"
+        },
+        {
+            "key": "compose_file",
+            "metadata_value": "/home/ga/projects/ecommerce-app/docker-compose.yml",
+            "verified_value": "/home/ga/projects/ecommerce-app/docker-compose.yml",
+            "source": "docker-compose.yml exists in task2_compose data and is copied to project_dir during setup",
+            "status": "verified"
+        },
+        {
+            "key": "expected_services",
+            "metadata_value": "[\"acme-db\", \"acme-cache\", \"acme-api\", \"acme-nginx\", \"acme-worker\"]",
+            "verified_value": "[\"acme-db\", \"acme-cache\", \"acme-api\", \"acme-nginx\", \"acme-worker\"]",
+            "source": "docker-compose.yml defines all 5 services with exact container_name values: line 14 (acme-db), line 32 (acme-cache), line 45 (acme-api), line 66 (acme-nginx), line 81 (acme-worker)",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint",
+            "metadata_value": "http://localhost:8080/api/products",
+            "verified_value": "http://localhost:8080/api/products",
+            "source": "docker-compose.yml line 68 maps port 8080->80; nginx.conf lines 10-18 define /api/ location; api/index.js lines 57-78 provide GET /products endpoint returning {products: [...]}",
+            "status": "verified"
+        },
+        {
+            "key": "bug_count",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "All 5 bugs verified present in source files: (1) POSTGRES_DATABASE line 18, (2) backend-net reference line 57, (3) redis:6379 line 48, (4) nginx upstream port 3001 line 3 of nginx.conf, (5) app.tasks line 92",
+            "status": "verified"
+        },
+        {
+            "key": "bug_1_postgres_env_var",
+            "metadata_value": "POSTGRES_DATABASE should be POSTGRES_DB",
+            "verified_value": "POSTGRES_DATABASE should be POSTGRES_DB",
+            "source": "docker-compose.yml line 18 uses incorrect POSTGRES_DATABASE; PostgreSQL requires POSTGRES_DB environment variable for database initialization",
+            "status": "verified"
+        },
+        {
+            "key": "bug_2_network_reference",
+            "metadata_value": "api service references non-existent network backend-net; should be app-network",
+            "verified_value": "api service references non-existent network backend-net; should be app-network",
+            "source": "docker-compose.yml line 57 specifies 'networks: - backend-net' but only 'app-network' is defined in lines 94-96",
+            "status": "verified"
+        },
+        {
+            "key": "bug_3_redis_url_scheme",
+            "metadata_value": "REDIS_URL: redis:6379 should be redis://cache:6379",
+            "verified_value": "REDIS_URL: redis:6379 should be redis://cache:6379",
+            "source": "docker-compose.yml line 48 uses incorrect format; worker service line 84 uses correct 'redis://cache:6379' format; api/index.js line 17 expects URL scheme",
+            "status": "verified"
+        },
+        {
+            "key": "bug_4_nginx_upstream_port",
+            "metadata_value": "nginx upstream port 3001 should be 3000",
+            "verified_value": "nginx upstream port 3001 should be 3000",
+            "source": "nginx.conf line 3 specifies 'server api:3001'; api service listens on PORT 3000 (docker-compose.yml line 49, api/index.js line 92, api/Dockerfile line 10)",
+            "status": "verified"
+        },
+        {
+            "key": "bug_5_worker_module_path",
+            "metadata_value": "worker command python -m app.tasks should be python -m worker.tasks",
+            "verified_value": "worker command python -m app.tasks should be python -m worker.tasks",
+            "source": "docker-compose.yml line 92 specifies 'app.tasks'; worker/Dockerfile line 10 defines correct 'CMD [\"python\", \"-m\", \"worker.tasks\"]'; file structure is worker/worker/tasks.py",
+            "status": "verified"
+        },
+        {
+            "key": "admin_user",
+            "metadata_value": "ga",
+            "verified_value": "ga",
+            "source": "setup_task.sh lines 30-35 use user 'ga'; task.json line 5 description states 'Login: user ga'",
+            "status": "verified"
+        },
+        {
+            "key": "admin_password",
+            "metadata_value": "password123",
+            "verified_value": "password123",
+            "source": "task.json line 5 description explicitly states 'password password123'",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 65,
+            "verified_value": 65,
+            "source": "verifier.py line 23 defines PASS_THRESHOLD = 65; README.md confirms 'Pass threshold: 65 points'",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_rubric",
+            "metadata_value": "db(15) + cache(10) + api(20) + nginx(15) + worker(15) + api_via_nginx(25) = 100 total points",
+            "verified_value": "db(15) + cache(10) + api(20) + nginx(15) + worker(15) + api_via_nginx(25) = 100 total points",
+            "source": "README.md lines 34-45 and verifier.py lines 62-147 both define identical scoring rubric",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a 5-service Docker Compose debugging task for an e-commerce backend application. All 5 metadata claims are verified correct: (1) The project directory is /home/ga/projects/ecommerce-app, created and populated by setup_task.sh from task data at /workspace/data/task2_compose/. (2) The application has exactly 5 services with correct container names: acme-db (PostgreSQL 14), acme-cache (Redis 7), acme-api (Node.js 20), acme-nginx (Nginx 1.24), and acme-worker (Python 3.11). (3) The API endpoint http://localhost:8080/api/products is correctly configured: Nginx listens on port 8080, routes /api/ traffic to the api service on port 3000 (note: nginx.conf currently incorrectly specifies port 3001), and the api service provides a /products endpoint returning product data from PostgreSQL. (4) All 5 bugs are present and verified in source code: Bug 1 uses incorrect POSTGRES_DATABASE env var instead of POSTGRES_DB, Bug 2 references non-existent backend-net network, Bug 3 has malformed redis:6379 instead of redis://cache:6379, Bug 4 specifies nginx upstream port 3001 instead of 3000, Bug 5 uses wrong module path app.tasks instead of worker.tasks. (5) The pass threshold of 65 points is verified in both the verifier.py and README.md. (6) The scoring rubric totals 100 points with specific allocations for each service's health/running status and the end-to-end API response test. The task data is synthetic, created specifically for this benchmark exercise.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,37 @@
+{
+  "id": "claims_pipeline_reconciliation@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "You are a DBA at a health insurance company. Quarterly claims reconciliation has revealed data integrity issues. Connect to Oracle using DBeaver (host: localhost, port: 1521, service: XEPDB1, user: claims_admin, password: Claims2024secure).\n\nThe CLAIMS_ADMIN schema contains: PROVIDERS (50 providers with active/terminated status), MEMBERS (200 insured individuals with coverage periods), FEE_SCHEDULE (100 procedure rate entries by provider type), CLAIMS_RAW (500 submitted claims), CLAIMS_ADJUDICATED (450 processed claims), and PAYMENT_AUTHORIZATIONS (400 payments).\n\nInvestigate and fix all discrepancies:\n1. Overpayments: approved_amount in CLAIMS_ADJUDICATED exceeding FEE_SCHEDULE.allowed_amount for the claim's procedure_code and provider type. Correct approved_amount to the allowed amount.\n2. Orphaned adjudications: CLAIMS_ADJUDICATED records with no matching claim_id in CLAIMS_RAW. Delete them.\n3. Duplicate payments: same claim_id appearing multiple times in PAYMENT_AUTHORIZATIONS. Delete duplicates, keeping the lowest payment_id.\n4. Eligibility violations: claims where the provider's termination_date or member's coverage_end is before the service_date. Set claim_status to 'REJECTED'.\n5. Payment cascade mismatches: PAYMENT_AUTHORIZATIONS.payment_amount not matching CLAIMS_ADJUDICATED.approved_amount for the same claim. Correct payment_amount to match.\n\nAfter remediation, create: (a) a PL/SQL package CLAIMS_RECONCILIATION with a function COUNT_DISCREPANCIES returning the total remaining issues across all categories (should return 0 after fixes); (b) a trigger on PAYMENT_AUTHORIZATIONS that rejects INSERT of a duplicate claim_id; (c) a materialized view RECONCILIATION_DASHBOARD showing discrepancy counts by category. Save a reconciliation report to ~/Desktop/reconciliation_report.txt listing each category with count found and count fixed.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/claims_pipeline_reconciliation/setup_task.sh",
+    "post_task": "/workspace/tasks/claims_pipeline_reconciliation/export_result.sh"
+  },
+  "metadata": {
+    "overpayment_claim_ids": [397, 398, 399, 401, 402],
+    "orphaned_adjudication_claim_ids": [9901, 9902, 9903, 9904],
+    "duplicate_payment_claim_ids": [200, 250, 300, 350],
+    "terminated_provider_claim_ids": [101, 102, 103, 104],
+    "lapsed_member_claim_ids": [106, 206, 406],
+    "payment_mismatch_claim_ids": [150, 175, 225, 275, 325],
+    "total_discrepancies": 25,
+    "report_path": "/home/ga/Desktop/reconciliation_report.txt",
+    "db_config": {
+      "user": "claims_admin",
+      "password": "Claims2024secure",
+      "dsn": "localhost:1521/XEPDB1"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_claims_pipeline_reconciliation"
+    }
+  }
+}

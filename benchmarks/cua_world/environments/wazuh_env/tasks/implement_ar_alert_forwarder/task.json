@@ -1,0 +1,28 @@
+{
+  "id": "implement_ar_alert_forwarder@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Implement a custom Wazuh Active Response to forward high-severity alerts (Level 10 or higher) to a JSON file. Create a Python script at /var/ossec/active-response/bin/ticket_forwarder.py that reads the Active Response JSON payload from stdin, extracts the 'rule_id', 'level', 'description', and 'timestamp' fields, and appends them as a JSON object to /var/ossec/logs/ticketing_queue.json. The script must be owned by root:ossec with 750 permissions. Configure the Wazuh manager's ossec.conf to include a command named 'ticket-forward' and an active-response block that executes this command on the manager for alerts with level >= 10. Verify the integration by triggering a qualifying alert and confirming the output in the JSON log.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/implement_ar_alert_forwarder/setup_task.sh",
+    "post_task": "/workspace/tasks/implement_ar_alert_forwarder/export_result.sh"
+  },
+  "metadata": {
+    "script_path": "/var/ossec/active-response/bin/ticket_forwarder.py",
+    "output_path": "/var/ossec/logs/ticketing_queue.json",
+    "conf_path": "/var/ossec/etc/ossec.conf",
+    "container_name": "wazuh-wazuh.manager-1"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_implement_ar_alert_forwarder"
+    }
+  }
+}

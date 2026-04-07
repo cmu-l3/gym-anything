@@ -116,27 +116,5 @@ def verify_game_dialogue_logic_flow(traj, env_info, task_info):
     
     try:
         vlm_res = query_vlm(images=frames + [final_img], prompt=vlm_prompt)
-        parsed = vlm_res.get("parsed", {}) if isinstance(vlm_res, dict) else {}
-        if parsed.get("is_flowchart"):
-            score += 20
-            feedback.append("VLM: Final image looks like a flowchart.")
-        else:
-            feedback.append("VLM: Final image does not clearly look like a flowchart.")
-
-        if parsed.get("has_branching"):
-            score += 10
-            feedback.append("VLM: Branching paths detected.")
-
-        if parsed.get("visual_differentiation"):
-            score += 10
-            feedback.append("VLM: Different node shapes detected.")
-    except Exception as e:
-        logger.error(f"VLM verification failed: {e}")
-        feedback.append("VLM verification failed.")
-
-    passed = score >= 60 and node_count >= 5 and result.get('file_created_during_task')
-    return {
-        "passed": passed,
-        "score": min(score, 100),
-        "feedback": " ".join(feedback),
-    }
+        # Clean markdown
+        if "

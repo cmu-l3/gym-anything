@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: mm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mmuser
+      POSTGRES_PASSWORD: mmuser_password
+      POSTGRES_DB: mattermost
+    volumes:
+      - mm_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U mmuser -d mattermost
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 15s
+
+  mattermost:
+    image: mattermost/mattermost-team-edition:10.4
+    container_name: mm-mattermost
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8065:8065"
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: postgres
+      MM_SQLSETTINGS_DATASOURCE: postgres://mmuser:mmuser_password@postgres:5432/mattermost?sslmode=disable&connect_timeout=10
+      MM_SERVICESETTINGS_SITEURL: http://localhost:8065
+      MM_SERVICESETTINGS_ENABLEDEVELOPER: "true"
+      MM_SERVICESETTINGS_ENABLETESTING: "true"
+      MM_TEAMSETTINGS_ENABLEOPENSERVER: "false"
+      MM_PLUGINSETTINGS_ENABLEUPLOADS: "true"
+      MM_LOGSETTINGS_CONSOLELEVEL: INFO
+      MM_LOGSETTINGS_FILELEVEL: INFO
+      # Disable telemetry and onboarding
+      MM_LOGSETTINGS_ENABLEDIAGNOSTICS: "false"
+      MM_SERVICESETTINGS_ENABLEONBOARDINGFLOW: "false"
+    volumes:
+      - mm_data:/mattermost/data
+      - mm_logs:/mattermost/logs
+      - mm_config:/mattermost/config
+      - mm_plugins:/mattermost/plugins
+      - mm_client_plugins:/mattermost/client/plugins
+
+volumes:
+  mm_postgres_data:
+    driver: local
+  mm_data:
+    driver: local
+  mm_logs:
+    driver: local
+  mm_config:
+    driver: local
+  mm_plugins:
+    driver: local
+  mm_client_plugins:
+    driver: local

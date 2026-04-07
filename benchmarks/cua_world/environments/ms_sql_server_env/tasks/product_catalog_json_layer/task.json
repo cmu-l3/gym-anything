@@ -1,0 +1,40 @@
+{
+  "id": "product_catalog_json_layer@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are a backend developer building a data interchange layer for the product catalog in the AdventureWorks2022 database. Implement JSON export and import capabilities by creating a stored procedure named 'dbo.usp_ExportProductCatalog' that accepts a '@CategoryName' parameter and returns a nested JSON document (Category -> Subcategories -> Products) using FOR JSON PATH by joining Production.Product, Production.ProductSubcategory, and Production.ProductCategory. Export the result for the 'Bikes' category to /home/ga/Documents/exports/product_catalog.json. You also need to create a staging table 'Production.ProductReviewStaging' with columns StagingID (INT IDENTITY PK), ProductID (INT), ReviewerName (NVARCHAR(100)), Rating (INT), Comments (NVARCHAR(MAX)), and ImportedDate (DATETIME DEFAULT GETDATE()). Implement a stored procedure 'dbo.usp_ImportProductReviews' that accepts a '@ReviewJSON' parameter, parses the array using OPENJSON, and inserts the rows into the staging table. Execute the import procedure using this JSON payload: [{\"ProductID\": 776, \"ReviewerName\": \"David Ortiz\", \"Rating\": 5, \"Comments\": \"Excellent mountain bike, handles rough terrain perfectly.\"}, {\"ProductID\": 749, \"ReviewerName\": \"Sarah Kim\", \"Rating\": 4, \"Comments\": \"Great road bike, comfortable on long rides.\"}, {\"ProductID\": 771, \"ReviewerName\": \"Mike Torres\", \"Rating\": 3, \"Comments\": \"Decent bike but gears needed adjustment out of the box.\"}, {\"ProductID\": 750, \"ReviewerName\": \"Lisa Monroe\", \"Rating\": 5, \"Comments\": \"Best road bike I have ever owned, superb handling.\"}, {\"ProductID\": 772, \"ReviewerName\": \"James Reed\", \"Rating\": 4, \"Comments\": \"Solid build quality and well worth the price.\"}]",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/product_catalog_json_layer/setup_task.sh",
+    "post_task": "/workspace/tasks/product_catalog_json_layer/export_result.sh"
+  },
+  "metadata": {
+    "expected_export_path": "/home/ga/Documents/exports/product_catalog.json",
+    "staging_table": "Production.ProductReviewStaging",
+    "export_proc": "dbo.usp_ExportProductCatalog",
+    "import_proc": "dbo.usp_ImportProductReviews",
+    "required_columns": [
+      "StagingID",
+      "ProductID",
+      "ReviewerName",
+      "Rating",
+      "Comments",
+      "ImportedDate"
+    ],
+    "import_payload_check": {
+      "count": 5,
+      "reviewer_sample": "David Ortiz"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_product_catalog_json_layer"
+    }
+  }
+}

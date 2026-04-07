@@ -1,0 +1,34 @@
+{
+  "id": "measure_seeing_profile@1",
+  "version": "1.0",
+  "env_id": "astroimagej_env@0.1",
+  "description": "Configure measurement settings, calculate background sky statistics for an empty region, generate a Seeing Profile for a star, and save the exported plots and values.\n\nGoal: Evaluate the image seeing (FWHM) and background sky noise of a raw V-band exposure.\n\nStarting State:\n- AstroImageJ is open.\n- The real VLT M12 FITS dataset is loaded from `~/AstroImages/raw/Vcomb.fits`.\n- A working directory exists at `~/AstroImages/measurements/`.\n\nExpected Actions:\n1. Ensure `~/AstroImages/raw/Vcomb.fits` is loaded in AstroImageJ.\n2. Configure AstroImageJ's measurement settings (Analyze > Set Measurements...) to ensure both 'Mean gray value' and 'Standard deviation' are checked.\n3. Select a rectangular region of EMPTY SKY (a background area completely devoid of stars).\n4. Measure the statistics of this region (Analyze > Measure) and save the Results table as `~/AstroImages/measurements/background_stats.csv`.\n5. Identify a prominent, clearly isolated, non-saturated star in the image.\n6. Generate a Seeing Profile plot for this star (Analyze > Seeing Profile or using the Seeing Profile icon).\n7. Save the resulting profile plot window as an image file at `~/AstroImages/measurements/seeing_profile.png`.\n8. Read the calculated FWHM value from the plot or UI.\n9. Create a text file at `~/AstroImages/measurements/seeing_report.txt` containing the extracted value exactly in this format:\nFWHM: [value]",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/measure_seeing_profile/setup_task.sh",
+    "post_task": "/workspace/tasks/measure_seeing_profile/export_result.sh"
+  },
+  "metadata": {
+    "raw_dir": "/home/ga/AstroImages/raw",
+    "measurements_dir": "/home/ga/AstroImages/measurements",
+    "fits_file": "Vcomb.fits",
+    "expected_csv": "background_stats.csv",
+    "expected_png": "seeing_profile.png",
+    "expected_txt": "seeing_report.txt",
+    "fwhm_min": 1.5,
+    "fwhm_max": 8.0,
+    "mean_tolerance_pct": 15,
+    "stddev_tolerance_pct": 40
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_seeing_profile"
+    }
+  }
+}

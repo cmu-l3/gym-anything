@@ -1,0 +1,32 @@
+{
+  "id": "sakila_fraud_detection_forensics@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "The Sakila Corporate Audit team suspects fraudulent activity in the rental system. Create a forensic reporting view named `v_fraud_report` in the sakila database (host: localhost, user: ga, password: password123) to identify three specific types of anomalies: 'Time Travel' (rentals where the return date is strictly before the rental date), 'Nepotism' (rentals processed by a Staff member for a Customer sharing the same last name, where the payment amount is 0.00), and 'Hoarding' (customers who currently have more than 3 overdue rentals where rental_date is older than 30 days ago). The view must combine these findings using UNION ALL with columns: `fraud_type` (VARCHAR), `incident_id` (INT - use rental_id for Time Travel/Nepotism, customer_id for Hoarding), and `details` (VARCHAR). Export the results of this view to /home/ga/Documents/exports/fraud_report.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_fraud_detection_forensics/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_fraud_detection_forensics/export_result.sh"
+  },
+  "metadata": {
+    "database": "sakila",
+    "expected_view": "v_fraud_report",
+    "expected_output_file": "/home/ga/Documents/exports/fraud_report.csv",
+    "injected_anomalies": {
+      "time_travel_rental_id": "stored_in_setup",
+      "nepotism_rental_id": "stored_in_setup",
+      "hoarding_customer_id": "stored_in_setup"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_fraud_detection_forensics"
+    }
+  }
+}

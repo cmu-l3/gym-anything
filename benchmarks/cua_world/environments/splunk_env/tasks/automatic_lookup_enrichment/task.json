@@ -1,0 +1,30 @@
+{
+  "id": "automatic_lookup_enrichment@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Enrich web access logs in Splunk (http://localhost:8000, username: 'admin', password: 'SplunkAdmin1!') by creating an Automatic Lookup. Create a lookup table file named 'http_status.csv' containing columns 'status', 'status_description', and 'status_type' populated with common HTTP status codes (e.g., 200, 403, 404, 500, 503) and their corresponding descriptions and types. Create a lookup definition named 'http_status_def' referencing this file in the 'search' app context. Configure an automatic lookup for the 'access_combined_wcookie' sourcetype that matches the 'status' field and outputs 'status_description' and 'status_type'. Create a saved search named 'Web_Status_Summary' that searches the 'tutorial' index and provides a count by 'status_description' and 'status_type' using the query '| stats count by status_description, status_type'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/automatic_lookup_enrichment/setup_task.sh",
+    "post_task": "/workspace/tasks/automatic_lookup_enrichment/export_result.sh"
+  },
+  "metadata": {
+    "expected_lookup_def": "http_status_def",
+    "expected_saved_search": "Web_Status_Summary",
+    "target_sourcetype": "access_combined_wcookie",
+    "target_index": "tutorial",
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_automatic_lookup"
+    }
+  }
+}

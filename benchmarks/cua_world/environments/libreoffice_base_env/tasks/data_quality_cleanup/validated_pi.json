@@ -1,0 +1,101 @@
+{
+    "task_id": "data_quality_cleanup@1",
+    "dataset": "Chinook Database",
+    "case_id": "chinook.odb",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "db_path",
+            "metadata_value": "/home/ga/chinook.odb",
+            "verified_value": "/home/ga/chinook.odb",
+            "source": "task.json metadata, verified via setup_task.sh restore_chinook_odb function",
+            "status": "verified"
+        },
+        {
+            "key": "sql_log_path",
+            "metadata_value": "/home/ga/cleanup_queries.sql",
+            "verified_value": "/home/ga/cleanup_queries.sql",
+            "source": "task.json metadata, verified via setup_task.sh and export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "anomalies_customers",
+            "metadata_value": "[60, 61, 62]",
+            "verified_value": "[60, 61, 62]",
+            "source": "Verified in setup_task.sh ANOMALY_SQL injection script and task.json. Customer IDs 60, 61, 62 are injected as new records with details: Customer 60 (Luis Goncalves, luisg@embraer.com.br), Customer 61 (Frantisek Wichterlicky, frantisekw@jetbrains.com), Customer 62 (Mark Phillips, mphilips12@shaw.ca)",
+            "status": "verified"
+        },
+        {
+            "key": "anomalies_invoices",
+            "metadata_value": "[413, 414]",
+            "verified_value": "[413, 414]",
+            "source": "Verified in setup_task.sh ANOMALY_SQL injection script. Invoice 413 references non-existent CustomerID 99 (date: 2025-01-15). Invoice 414 references non-existent CustomerID 100 (date: 2025-02-20)",
+            "status": "verified"
+        },
+        {
+            "key": "anomalies_invoice_lines",
+            "metadata_value": "[2241, 2242, 2243]",
+            "verified_value": "[2241, 2242, 2243]",
+            "source": "Verified in setup_task.sh ANOMALY_SQL injection script. InvoiceLine 2241 and 2242 belong to orphan Invoice 413. InvoiceLine 2243 belongs to orphan Invoice 414",
+            "status": "verified"
+        },
+        {
+            "key": "expected_count_Customer",
+            "metadata_value": "59",
+            "verified_value": "59",
+            "source": "Verified by direct SQL query on original Chinook SQLite database downloaded from GitHub (https://github.com/lerocha/chinook-database). SELECT COUNT(*) FROM Customer returned 59",
+            "status": "verified"
+        },
+        {
+            "key": "expected_count_Invoice",
+            "metadata_value": "412",
+            "verified_value": "412",
+            "source": "Verified by direct SQL query on original Chinook SQLite database. SELECT COUNT(*) FROM Invoice returned 412",
+            "status": "verified"
+        },
+        {
+            "key": "expected_count_InvoiceLine",
+            "metadata_value": "2240",
+            "verified_value": "2240",
+            "source": "Verified by direct SQL query on original Chinook SQLite database. SELECT COUNT(*) FROM InvoiceLine returned 2240",
+            "status": "verified"
+        },
+        {
+            "key": "original_max_customer_id",
+            "metadata_value": null,
+            "verified_value": "59",
+            "source": "Verified by direct SQL query: SELECT MAX(CustomerId) FROM Customer returned 59 in original Chinook database. This confirms customer IDs 60, 61, 62 are new additions",
+            "status": "verified"
+        },
+        {
+            "key": "original_max_invoice_id",
+            "metadata_value": null,
+            "verified_value": "412",
+            "source": "Verified by direct SQL query: SELECT MAX(InvoiceId) FROM Invoice returned 412 in original Chinook database. This confirms invoice IDs 413, 414 are new additions",
+            "status": "verified"
+        },
+        {
+            "key": "non_existent_customers",
+            "metadata_value": null,
+            "verified_value": "[99, 100]",
+            "source": "Verified that CustomerIDs 99 and 100 do not exist in original Chinook database (SELECT COUNT(*) FROM Customer WHERE CustomerId IN (99, 100) returned 0)",
+            "status": "verified"
+        },
+        {
+            "key": "anomaly_injection_method",
+            "metadata_value": null,
+            "verified_value": "ODB file modification via ZIP extraction and HSQLDB script manipulation",
+            "source": "Verified in setup_task.sh: the script extracts the ODB (which is a ZIP file), modifies the internal HSQLDB script file at database/script, inserts SQL statements, and repackages the ODB",
+            "status": "verified"
+        },
+        {
+            "key": "database_source",
+            "metadata_value": null,
+            "verified_value": "Chinook sample database (public, official repository: github.com/lerocha/chinook-database)",
+            "source": "Verified that chinook.odb is restored from /opt/libreoffice_base_samples/chinook.odb (per task_utils.sh restore_chinook_odb function). The Chinook database is a widely used public sample database for SQL training",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on the Chinook database, a publicly available SQL training sample database with 59 original customers, 412 invoices, and 2240 invoice lines. Data is synthetic (artificially injected): three duplicate customer records (IDs 60-62) are inserted with valid customer information, two orphan invoices (IDs 413-414) referencing non-existent customers (99-100), and three orphan invoice line records (IDs 2241-2243) referencing the orphan invoices. The database file is modified via ODB ZIP extraction and HSQLDB script manipulation before task execution.",
+    "pi_confidence": "high"
+}

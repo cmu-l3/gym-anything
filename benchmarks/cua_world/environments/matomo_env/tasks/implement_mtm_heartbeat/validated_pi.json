@@ -1,0 +1,73 @@
+{
+    "task_id": "implement_mtm_heartbeat@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_site_id",
+            "metadata_value": "1",
+            "verified_value": "1",
+            "source": "Code analysis: setup_task.sh creates and ensures Site ID 1 exists; export_result.sh queries matomo_tagmanager_container WHERE idsite=1",
+            "status": "verified"
+        },
+        {
+            "key": "expected_heartbeat_seconds",
+            "metadata_value": "15",
+            "verified_value": "15",
+            "source": "Matomo documentation confirms 15 seconds is the default and recommended heartbeat timer interval (minimum 5 seconds, default 15 seconds per https://matomo.org/faq/how-to/faq_21824/)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_container_name",
+            "metadata_value": "BlogTracker",
+            "verified_value": null,
+            "source": "Task description specifies 'Create a new Container named BlogTracker', but the verifier code does NOT check the container name. Only container_found, version_published, config_variable_found, heartbeat_enabled, and interval_correct are verified.",
+            "status": "unverified"
+        },
+        {
+            "key": "heartbeat_parameter_name",
+            "metadata_value": "heartbeatTimer (expected by verifier at line 95: params.get('heartbeatTimer'))",
+            "verified_value": "According to Matomo documentation, the actual parameter names are 'enableHeartBeatTimer' (boolean) and 'configHeartBeatDelay' (for interval value) per GitHub issue #666",
+            "source": "Matomo Tag Manager documentation and GitHub issue matomo-org/tag-manager#666 indicate parameter names are 'enableHeartBeatTimer' and 'configHeartBeatDelay', not 'heartbeatTimer'",
+            "status": "contradicted"
+        },
+        {
+            "key": "container_exists_points",
+            "metadata_value": "20",
+            "verified_value": "20",
+            "source": "Verifier code line 53-55: 'if result.get(container_found)' awards 20 points",
+            "status": "verified"
+        },
+        {
+            "key": "version_published_points",
+            "metadata_value": "20",
+            "verified_value": "20",
+            "source": "Verifier code line 63-65: awards 20 points when published_id exists and is not NULL",
+            "status": "verified"
+        },
+        {
+            "key": "config_variable_found_points",
+            "metadata_value": "20",
+            "verified_value": "20",
+            "source": "Verifier code line 85-87: awards 20 points when variable with type 'MatomoConfiguration' is found",
+            "status": "verified"
+        },
+        {
+            "key": "heartbeat_enabled_points",
+            "metadata_value": "20",
+            "verified_value": "20",
+            "source": "Verifier code line 97-99: awards 20 points when heartbeatTimer parameter exists and is truthy",
+            "status": "verified"
+        },
+        {
+            "key": "interval_correct_points",
+            "metadata_value": "20",
+            "verified_value": "20",
+            "source": "Verifier code line 102-108: awards 20 points when interval value equals expected_interval (15)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic task running on a local Matomo Docker environment. The task requires configuring a Tag Manager container with heartbeat timer set to 15 seconds (the Matomo default). The target site is ID 1 (created in setup). Verified scoring weights are: container_exists (20), version_published (20), config_variable_found (20), heartbeat_enabled (20), interval_correct (20). However, there is a critical parameter naming discrepancy: the verifier checks for a parameter called 'heartbeatTimer', but Matomo documentation indicates the actual parameter names are 'enableHeartBeatTimer' (boolean) and 'configHeartBeatDelay' (for the interval value). Additionally, the task description requires naming the container 'BlogTracker', but the verifier does not validate this name requirement.",
+    "pi_confidence": "medium"
+}

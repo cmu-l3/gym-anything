@@ -1,0 +1,52 @@
+{
+    "task_id": "remove_decommissioned_sensors@1",
+    "dataset": "world_survey.gpkg",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_file",
+            "metadata_value": "world_survey.gpkg",
+            "verified_value": "world_survey.gpkg",
+            "source": "task.json and setup scripts",
+            "status": "verified"
+        },
+        {
+            "key": "table_name",
+            "metadata_value": "field_observations",
+            "verified_value": "field_observations",
+            "source": "sqlite3 inspection of world_survey.gpkg",
+            "status": "verified"
+        },
+        {
+            "key": "active_count",
+            "metadata_value": 3,
+            "verified_value": 0,
+            "source": "sqlite3 inspection of world_survey.gpkg and setup_task.sh execution. The setup script fails to inject the data because it references non-existent columns (id, name, notes).",
+            "status": "contradicted"
+        },
+        {
+            "key": "decommissioned_count",
+            "metadata_value": 3,
+            "verified_value": 0,
+            "source": "sqlite3 inspection of world_survey.gpkg and setup_task.sh execution. The setup script fails to inject the data because it references non-existent columns (id, name, notes).",
+            "status": "contradicted"
+        },
+        {
+            "key": "target_ids",
+            "metadata_value": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ],
+            "verified_value": null,
+            "source": "The dataset contains real iNaturalist records. Since the setup script fails to add the required synthetic 'Status' attributes to the first 6 records, none of them are valid targets for the specified task.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The 'world_survey.gpkg' database contains real-world iNaturalist observations (e.g., observer 'montanhaburigo', species 'Drephalys dumeril'). The setup_task.sh script attempts to synthetically inject 3 'Active' and 3 'Decommissioned' sensor states into the 'field_observations' table. However, this injection completely fails because the SQL UPDATE statement references non-existent columns ('id', 'name', 'notes'). Consequently, the database retains its original real-world data, leaving exactly 0 active sensors and 0 decommissioned sensors in the dataset. Furthermore, the verifier.py script is fundamentally broken as it queries the non-existent 'notes' column, raising a SQLite OperationalError and perpetually failing the task.",
+    "pi_confidence": "high"
+}

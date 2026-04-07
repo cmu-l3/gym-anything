@@ -1,0 +1,53 @@
+{
+  "task_id": "cox_survival_cancer@1",
+  "task_completion": [
+    {
+      "id": "load_dataset",
+      "description": "Verify that the agent loads the TH.data package and the GBSG2 dataset in R.",
+      "points": 15,
+      "visual_evidence": "Look for R code such as `library(TH.data)` and `data(GBSG2)` or `data(\"GBSG2\", package = \"TH.data\")` in an R script or console."
+    },
+    {
+      "id": "fit_cox_model",
+      "description": "Verify that the agent fits a multivariable Cox proportional hazards model using the specified covariates.",
+      "points": 30,
+      "visual_evidence": "Look for R code using `coxph()` (from the survival package) with a formula that includes all required covariates: `horTh + tsize + pnodes + progrec + estrec + menostat + tgrade`, using `data = GBSG2`."
+    },
+    {
+      "id": "format_results_dataframe",
+      "description": "Verify that the agent formats the model summary into a dataframe with the exact required columns.",
+      "points": 25,
+      "visual_evidence": "Look for R code creating a dataframe or tibble with columns named exactly 'covariate', 'hazard_ratio', 'hr_lower95', and 'hr_upper'. This usually involves extracting `exp(coef)` and `exp(confint)` from the model summary."
+    },
+    {
+      "id": "export_csv_command",
+      "description": "Verify that the agent writes the formatted results to the specified CSV file path.",
+      "points": 15,
+      "visual_evidence": "Look for R code such as `write.csv(...)` or `write_csv(...)` saving the dataframe to `/home/ga/RProjects/output/gbsg_cox_results.csv`."
+    },
+    {
+      "id": "verify_csv_creation",
+      "description": "Verify that the CSV file was successfully created and contains the correct data.",
+      "points": 15,
+      "visual_evidence": "Look for terminal output, file explorer, or R console output showing the file `gbsg_cox_results.csv` exists in `/home/ga/RProjects/output/` and/or displaying its contents to confirm the presence of the correct columns and calculated hazard ratios."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "executed_r_code",
+      "description": "Verify that the R code was actually executed and not just typed into a text editor.",
+      "visual_evidence": "Look for execution outputs in the R console, terminal running Rscript, or RStudio environment pane showing loaded data and model objects."
+    },
+    {
+      "id": "no_hardcoded_results",
+      "description": "Verify that the agent calculated the hazard ratios using the model rather than hardcoding fake values.",
+      "visual_evidence": "Ensure the CSV writing command uses the dataframe generated dynamically from the `coxph` model summary, not manually typed numbers."
+    },
+    {
+      "id": "correct_dataset_used",
+      "description": "Verify that the agent used the actual GBSG2 dataset and didn't mock the data.",
+      "visual_evidence": "Check that the data loaded is explicitly from the `TH.data` package and no code is present that generates a synthetic dataset."
+    }
+  ],
+  "privileged_info_for_vlm": "The correct dataset is GBSG2 from the TH.data package (686 patients). The required covariates for the Cox model are: horTh, tsize, pnodes, progrec, estrec, menostat, tgrade. The output CSV must be saved to /home/ga/RProjects/output/gbsg_cox_results.csv with columns: covariate, hazard_ratio, hr_lower95, hr_upper. If the CSV contents are visible, verify that the hazard ratio for horTh is less than 1 (~0.701) and the hazard ratio for pnodes is greater than 1 (~1.050)."
+}

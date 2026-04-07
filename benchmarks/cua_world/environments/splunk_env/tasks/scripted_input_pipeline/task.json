@@ -1,0 +1,30 @@
+{
+  "id": "scripted_input_pipeline@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Onboard live OS telemetry into Splunk (http://localhost:8000, admin/SplunkAdmin1!) by implementing a custom Scripted Input. The telemetry must consist of real system metrics (e.g., from /proc, df, or free) formatted as single-line key-value pairs containing the identifier 'event_type=live_os_telemetry'. The script must be located at /opt/splunk/etc/apps/search/bin/ with executable permissions. Configure the Scripted Input to run every 60 seconds, assigning the Source Type 'os_telemetry' and the Index 'system_logs'. Create a saved search (Report) named 'Live_Telemetry_Monitor' that performs statistical aggregation on these metrics within the 'system_logs' index.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/scripted_input_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/scripted_input_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "expected_bin_path": "/opt/splunk/etc/apps/search/bin/",
+    "expected_index": "system_logs",
+    "expected_sourcetype": "os_telemetry",
+    "expected_interval": "60",
+    "expected_search_name": "Live_Telemetry_Monitor",
+    "expected_event_marker": "event_type=live_os_telemetry"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_scripted_input_pipeline"
+    }
+  }
+}

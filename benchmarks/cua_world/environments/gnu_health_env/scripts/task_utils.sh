@@ -5,10 +5,27 @@
 # Database helpers
 # ---------------------------------------------------------------
 
+# Wait for PostgreSQL to be ready (needed after checkpoint restore)
+wait_for_postgres() {
+    local max_wait="${1:-60}"
+    local elapsed=0
+    echo "Waiting for PostgreSQL to be ready..."
+    while [ $elapsed -lt $max_wait ]; do
+        if su - gnuhealth -c "psql -d health50 -At -c 'SELECT 1'" 2>/dev/null | grep -q '1'; then
+            echo "PostgreSQL ready after ${elapsed}s"
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+    echo "WARNING: PostgreSQL not ready after ${max_wait}s"
+    return 1
+}
+
 # Execute SQL against the GNU Health PostgreSQL database
 gnuhealth_db_query() {
     local query="$1"
-    su - gnuhealth -c "psql -d health50 -N -t -c \"$query\"" 2>/dev/null | sed 's/^[[:space:]]*//' | sed '/^$/d'
+    su - gnuhealth -c "psql -d health50 -At -c \"$query\"" 2>/dev/null | sed 's/^[[:space:]]*//' | sed '/^$/d'
 }
 
 # Get count from a table with optional WHERE clause
@@ -153,8 +170,9 @@ ensure_firefox_gnuhealth() {
     focus_firefox
 }
 
-# Log into GNU Health via the Sao web interface
-# Credentials: admin / gnusolidario (or the demo user)
+# Log into GNU Health via the Sao web interface (Tryton 7.0 two-step login)
+# Step 1: Enter username on login page, click LOGIN
+# Step 2: Password dialog appears, enter password, click OK
 gnuhealth_login_firefox() {
     local database="${1:-health50}"
     local username="${2:-admin}"
@@ -167,37 +185,35 @@ gnuhealth_login_firefox() {
     navigate_firefox_to "http://localhost:8000/"
     sleep 8
 
-    # The Sao login page has a database selector, login, and password field
-    # First, select the database if not already selected
-    # Database field is a dropdown - click it and select health50
-    # In Sao UI (1920x1080): database dropdown is near top of login form
-
-    # Type in the database field (clear and type)
-    # Database select: approximately (960, 400) in 1920x1080
-    DISPLAY=:1 xdotool mousemove 960 400
+    # Step 1: Click the username field and type the username
+    # Username field center is approximately (995, 384) in 1920x1080
+    DISPLAY=:1 xdotool mousemove --sync 995 384
     sleep 0.3
     DISPLAY=:1 xdotool click 1
     sleep 0.5
     DISPLAY=:1 xdotool key ctrl+a
-    DISPLAY=:1 xdotool type --delay 30 "$database"
+    sleep 0.2
+    DISPLAY=:1 xdotool type --clearmodifiers --delay 30 "$username"
     sleep 0.5
 
-    # Press Tab to go to username field
+    # Click the LOGIN button: Tab from username field to button, then Space
     DISPLAY=:1 xdotool key Tab
-    sleep 0.5
-    DISPLAY=:1 xdotool key ctrl+a
-    DISPLAY=:1 xdotool type --delay 30 "$username"
     sleep 0.3
+    DISPLAY=:1 xdotool key space
+    sleep 3
 
-    # Press Tab to go to password field
-    DISPLAY=:1 xdotool key Tab
+    # Step 2: Password dialog should now be visible ("Password for <user>")
+    # The password input field gets focus automatically; type the password
+    DISPLAY=:1 xdotool type --clearmodifiers --delay 30 "$password"
     sleep 0.5
-    DISPLAY=:1 xdotool type --delay 30 "$password"
-    sleep 0.3
 
-    # Press Enter to log in
+    # Press Enter to submit the password dialog (clicks OK)
     DISPLAY=:1 xdotool key Return
     sleep 8
+
+    # Dismiss Firefox "Save password" prompt if it appears
+    DISPLAY=:1 xdotool key Escape
+    sleep 1
 
     echo "Login submitted: database=$database user=$username"
 }

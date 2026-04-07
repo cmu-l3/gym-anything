@@ -1,0 +1,35 @@
+{
+  "id": "build_supplier_scorecard@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Build a quarterly Vendor Performance Scorecard from raw USAID procurement data in /home/ga/Documents/supplier_shipments.xlsx. Create a new sheet named 'Scorecard' with headers for Vendor, Total_Shipments, On_Time_Rate, Avg_Unit_Price, Total_Value, Weighted_Score, and Rank. For the 15 unique vendors identified in the 'Shipments' sheet, calculate their total shipments, on-time rate (on-time shipments divided by total shipments), average unit price, and total line item value. Compute a Weighted_Score for each vendor using the formula: (On_Time_Rate * 0.4) + (1 - Avg_Unit_Price / Max_Avg_Unit_Price) * 0.35 + (Total_Value / Max_Total_Value) * 0.25. Rank the vendors based on this score in descending order and save the updated file to /home/ga/Documents/supplier_shipments.xlsx.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/build_supplier_scorecard/setup_task.sh",
+    "post_task": "/workspace/tasks/build_supplier_scorecard/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "data_source": "USAID Supply Chain Shipment Pricing Data",
+    "expected_sheet": "Scorecard",
+    "expected_vendors_count": 15,
+    "required_formulas": [
+      "COUNTIF",
+      "SUMIF",
+      "AVERAGEIF",
+      "MAX",
+      "RANK"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_scorecard"
+    }
+  }
+}

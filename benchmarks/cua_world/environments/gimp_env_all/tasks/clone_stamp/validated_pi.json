@@ -1,0 +1,101 @@
+{
+    "task_id": "clone_stamp@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "clone_tool_ctrl_click_source",
+            "metadata_value": "GIMP clone tool uses Ctrl+click to set source point (from README section A.A)",
+            "verified_value": "VERIFIED - GIMP documentation confirms Ctrl+click (or Cmd on macOS) sets the source point for the clone tool",
+            "source": "GIMP 2.10 official documentation: https://docs.gimp.org/2.10/en/gimp-tool-clone.html",
+            "status": "verified"
+        },
+        {
+            "key": "clone_tool_keyboard_shortcut",
+            "metadata_value": "Clone Tool can be activated with C key (from README section A.1)",
+            "verified_value": "VERIFIED - GIMP clone tool is activated with C key or from toolbox",
+            "source": "GIMP official documentation and multiple tutorials confirm C key activates clone tool",
+            "status": "verified"
+        },
+        {
+            "key": "landscape_image_source",
+            "metadata_value": "Landscape image downloaded from Unsplash URL (setup_clone_task.sh line 13)",
+            "verified_value": "VERIFIED - Primary Unsplash URL returns HTTP 200 and valid JPEG image (800x533 pixels)",
+            "source": "Direct HTTP test: https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+            "status": "verified"
+        },
+        {
+            "key": "landscape_image_fallback",
+            "metadata_value": "Secondary Unsplash URL as fallback (setup_clone_task.sh line 15)",
+            "verified_value": "VERIFIED - Secondary Unsplash URL returns HTTP 200 and valid JPEG image (800x533 pixels)",
+            "source": "Direct HTTP test: https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold_percentage",
+            "metadata_value": "Pass threshold is 75% (from README section 'Scoring System' and verifier.py line 294)",
+            "verified_value": "VERIFIED - Verifier code line 294 confirms: passed = score >= 75",
+            "source": "verifier.py lines 292-294: score = int((criteria_met / total_criteria) * 100); passed = score >= 75",
+            "status": "verified"
+        },
+        {
+            "key": "pass_requires_three_criteria",
+            "metadata_value": "Pass threshold of 75% requires at least 3 out of 4 criteria (from README)",
+            "verified_value": "VERIFIED - 3/4 * 100 = 75% confirms requirement for 3 out of 4 criteria",
+            "source": "Mathematical verification and verifier.py lines 292-294",
+            "status": "verified"
+        },
+        {
+            "key": "significant_change_threshold",
+            "metadata_value": "Significant change threshold: >20 intensity units (from README and verifier.py line 98)",
+            "verified_value": "VERIFIED - verifier.py line 98: significant_threshold = 20",
+            "source": "verifier.py line 98",
+            "status": "verified"
+        },
+        {
+            "key": "target_modified_threshold",
+            "metadata_value": "Target area modified when >=30% of target region changed (from README section A and verifier.py line 102)",
+            "verified_value": "VERIFIED - verifier.py line 102: target_modified = change_percentage >= 30",
+            "source": "verifier.py line 102",
+            "status": "verified"
+        },
+        {
+            "key": "similarity_threshold",
+            "metadata_value": "Source-target similarity threshold: >=0.3 correlation (from verifier.py line 162)",
+            "verified_value": "VERIFIED - verifier.py line 162: has_similarity = best_similarity >= 0.3",
+            "source": "verifier.py line 162",
+            "status": "verified"
+        },
+        {
+            "key": "overall_modification_threshold",
+            "metadata_value": "Image meaningfully changed when >=1% of pixels modified (from verifier.py line 188)",
+            "verified_value": "VERIFIED - verifier.py line 188: meaningfully_changed = change_percentage >= 1",
+            "source": "verifier.py line 188",
+            "status": "verified"
+        },
+        {
+            "key": "red_color_range_lower_bound",
+            "metadata_value": "Red marker detection: red lower bound [180, 0, 0] (from verifier.py line 32)",
+            "verified_value": "VERIFIED - verifier.py line 32: red_lower = np.array([180, 0, 0])",
+            "source": "verifier.py line 32",
+            "status": "verified"
+        },
+        {
+            "key": "red_color_range_upper_bound",
+            "metadata_value": "Red marker detection: red upper bound [255, 80, 80] (from verifier.py line 33)",
+            "verified_value": "VERIFIED - verifier.py line 33: red_upper = np.array([255, 80, 80])",
+            "source": "verifier.py line 33",
+            "status": "verified"
+        },
+        {
+            "key": "CRITICAL_BUG_bbox_calculation",
+            "metadata_value": "Target area bounding box should be (x_min, y_min, x_max, y_max)",
+            "verified_value": "CONTRADICTED - CRITICAL BUG FOUND: verifier.py line 64 returns (x_min, y_min, x_max, y_min) with y_min appearing twice instead of y_max. This results in zero height bbox, causing analyze_cloning_changes to always return target_modified=False (lines 89-95), making successful clone verification impossible.",
+            "source": "verifier.py line 64: return {'bbox': (x_min, y_min, x_max, y_min), ...} should be (x_min, y_min, x_max, y_max)",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The clone_stamp@1 task uses GIMP's clone tool to copy texture from source areas to cover red-marked target regions. The task downloads landscape images from Unsplash (800x533 pixels), adds a 40x40 pixel red marker at coordinates (380,280) to (420,320), and verifies successful cloning using pixel analysis. CRITICAL: The verifier contains a severe bug on line 64 where the target bounding box is calculated as (x_min, y_min, x_max, y_min) instead of (x_min, y_min, x_max, y_max), resulting in zero height. This bug causes the 'target_modified' criterion to always return False (lines 89-95), making it impossible to pass verification even with correct cloning. The GIMP clone tool functionality itself is correctly described (Ctrl+click for source, C key to activate), and all other verification thresholds are correctly implemented (75% pass, 3/4 criteria required, >=30% target coverage, >=0.3 similarity, >=1% overall change).",
+    "pi_confidence": "high"
+}

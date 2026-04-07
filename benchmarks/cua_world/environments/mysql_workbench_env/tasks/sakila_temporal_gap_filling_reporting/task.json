@@ -1,0 +1,33 @@
+{
+  "id": "sakila_temporal_gap_filling_reporting@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "A Business Intelligence Analyst needs a continuous daily revenue report for July 2005 to chart sales trends, accounting for raw data gaps on July 4th and July 15th. Connect to the local MySQL server (user: ga, password: password123) and create a view named v_july_2005_calendar that generates a continuous list of dates from '2005-07-01' to '2005-07-31'. Create a second view named v_july_revenue_analysis that joins the calendar to the payment table, returning exactly 31 rows with the following columns: report_date, daily_revenue (SUM of amount, or 0.00 if no sales), and moving_avg_3day (the 3-day rolling average of daily revenue for the current day and previous two days). Export the full analysis view to /home/ga/Documents/exports/july_revenue_continuous.csv and export a list of only the dates with 0.00 revenue to /home/ga/Documents/exports/zero_revenue_days.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_temporal_gap_filling_reporting/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_temporal_gap_filling_reporting/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "target_month": "2005-07",
+    "gap_dates": [
+      "2005-07-04",
+      "2005-07-15"
+    ],
+    "expected_rows": 31,
+    "main_export": "/home/ga/Documents/exports/july_revenue_continuous.csv",
+    "zero_export": "/home/ga/Documents/exports/zero_revenue_days.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_temporal_gap_filling_reporting"
+    }
+  }
+}

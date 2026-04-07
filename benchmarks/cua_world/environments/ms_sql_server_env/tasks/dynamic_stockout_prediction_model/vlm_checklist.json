@@ -1,0 +1,53 @@
+{
+  "task_id": "dynamic_stockout_prediction_model@1",
+  "task_completion": [
+    {
+      "id": "view_created",
+      "description": "Create the view Production.vw_ProductStockoutProjection with the required calculations",
+      "points": 30,
+      "visual_evidence": "Screenshots showing a SQL query creating or altering the view 'Production.vw_ProductStockoutProjection'. The query should include calculations for CurrentInventory, TotalSales2013, AvgDailyBurnRate (TotalSales2013/365.0), EstimatedDaysSupply, and ProjectedStockoutDate (adding EstimatedDaysSupply to '2014-01-01')."
+    },
+    {
+      "id": "null_zero_handling",
+      "description": "Handle nulls and zero burn rates in the view",
+      "points": 20,
+      "visual_evidence": "In the view creation query, look for functions like ISNULL or COALESCE to handle missing inventory or sales, and NULLIF (or similar logic) to prevent divide-by-zero errors when calculating EstimatedDaysSupply."
+    },
+    {
+      "id": "procedure_created",
+      "description": "Create the stored procedure Production.usp_GetCriticalStockouts",
+      "points": 20,
+      "visual_evidence": "Screenshots showing a SQL query creating the stored procedure 'Production.usp_GetCriticalStockouts' with an integer parameter @RunwayDays (defaulting to 30). The query should select from the view where EstimatedDaysSupply <= @RunwayDays and order by EstimatedDaysSupply, then ProductID."
+    },
+    {
+      "id": "csv_exported",
+      "description": "Export the results to critical_stockouts.csv",
+      "points": 15,
+      "visual_evidence": "Screenshots showing the file 'critical_stockouts.csv' located in the '/home/ga/Documents/' directory, or a database client export dialog saving to this path."
+    },
+    {
+      "id": "csv_contents",
+      "description": "CSV contains correct results for @RunwayDays = 60",
+      "points": 15,
+      "visual_evidence": "Screenshots showing the contents of the CSV file or the query results before export. The query executed should be 'EXEC Production.usp_GetCriticalStockouts @RunwayDays = 60' (or similar), and the results should only contain products with an EstimatedDaysSupply of 60 or less."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_sql_execution",
+      "description": "SQL queries were actually executed in a database client",
+      "visual_evidence": "Look for a database client interface (like Azure Data Studio, DBeaver, or a terminal running sqlcmd) showing successful execution messages, rather than just a text editor with SQL code."
+    },
+    {
+      "id": "genuine_csv_export",
+      "description": "CSV was generated from query results",
+      "visual_evidence": "The CSV file should appear to be a genuine export from the database tool (e.g., containing headers, proper formatting) rather than manually typed or created via basic echo commands with hardcoded data."
+    },
+    {
+      "id": "no_hardcoded_results",
+      "description": "Calculations are dynamic and not hardcoded",
+      "visual_evidence": "The SQL queries must use table joins and mathematical operations on the actual columns (like OrderQty and Quantity) rather than hardcoding specific ProductIDs or expected output values."
+    }
+  ],
+  "privileged_info_for_vlm": "The task uses the AdventureWorks2022 database. The view 'Production.vw_ProductStockoutProjection' must calculate AvgDailyBurnRate as TotalSales2013/365.0, EstimatedDaysSupply as CurrentInventory/AvgDailyBurnRate, and ProjectedStockoutDate by adding the rounded-down EstimatedDaysSupply to the anchor date '2014-01-01' (e.g., using DATEADD). Nulls and zeros must be handled (e.g., using ISNULL/COALESCE and NULLIF to avoid divide-by-zero). The stored procedure 'Production.usp_GetCriticalStockouts' must accept @RunwayDays INT = 30 and filter where EstimatedDaysSupply <= @RunwayDays. The final export must use @RunwayDays = 60 and be saved to /home/ga/Documents/critical_stockouts.csv."
+}

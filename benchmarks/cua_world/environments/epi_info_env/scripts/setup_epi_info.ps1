@@ -321,11 +321,31 @@ try {
 
     # Kill Edge repeatedly before checkpoint
     Write-Host "Killing Edge to ensure clean checkpoint..."
-    for ($k = 0; $k -lt 5; $k++) {
+    for ($k = 0; $k -lt 3; $k++) {
         taskkill /F /IM msedge.exe 2>$null
         Start-Sleep -Seconds 2
     }
     $ErrorActionPreference = $prevEAP4
+
+    # Clean up desktop in Session 1 (minimize terminals, close Start menu)
+    Write-Host "Cleaning up desktop..."
+    $cleanupScript = "C:\Windows\Temp\cleanup_desktop.ps1"
+    @'
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+(New-Object -ComObject Shell.Application).MinimizeAll()
+'@ | Set-Content $cleanupScript -Encoding UTF8
+    $prevEAP5 = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    schtasks /Create /TN "CleanupDesktop_GA" /TR "powershell -ExecutionPolicy Bypass -File $cleanupScript" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
+    schtasks /Run /TN "CleanupDesktop_GA" 2>$null
+    Start-Sleep -Seconds 5
+    schtasks /Delete /TN "CleanupDesktop_GA" /F 2>$null
+    Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
+    $ErrorActionPreference = $prevEAP5
 
     Write-Host "=== Epi Info 7 Environment Setup Complete ==="
 

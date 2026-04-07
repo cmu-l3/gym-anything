@@ -1,0 +1,38 @@
+{
+  "id": "secure_conference_deployment@1",
+  "version": "1.0",
+  "env_id": "jitsi_meet_env@0.1",
+  "description": "Configure the Jitsi Meet instance as a branded, authenticated conference platform called 'SecureConf' and verify the complete meeting flow works end-to-end. The platform must enforce internal authentication: only registered users can host meetings, while guests can still join. Edit /home/ga/jitsi/.env to set ENABLE_AUTH=1, AUTH_TYPE=internal, and ENABLE_GUESTS=1. Register an admin account (username: admin, password: SecureConf2024!) on the meet.jitsi XMPP domain. Restart all Jitsi services so changes take effect. Brand the interface by creating /home/ga/.jitsi-meet-cfg/web/custom-interface_config.js: set the app name to 'SecureConf', restrict the toolbar to exactly microphone, camera, chat, tileview, hangup, and participants-pane, and disable mobile app promotion. Verify end-to-end: navigate Firefox to http://localhost:8080/VerificationRoom, authenticate as admin, join the meeting as moderator, and enable the lobby. Then open Epiphany to the same room URL so a guest attempts to join -- the guest should be held in the lobby. Admit the guest from the moderator view in Firefox. Save a deployment report to /home/ga/secure_conference_report.txt.",
+  "difficulty": "very_hard",
+  "natural_language": {
+    "prompt": "Configure the Jitsi Meet instance as a branded, authenticated conference platform called \"SecureConf\" and verify the complete meeting flow works end-to-end.\n\nThe platform must enforce internal authentication: only registered users can host meetings, while guests can still join. Edit /home/ga/jitsi/.env to set ENABLE_AUTH=1, AUTH_TYPE=internal, and ENABLE_GUESTS=1. Register an admin account (username: admin, password: SecureConf2024!) on the meet.jitsi XMPP domain. Restart all Jitsi services so changes take effect.\n\nBrand the interface by creating /home/ga/.jitsi-meet-cfg/web/custom-interface_config.js: set the app name to \"SecureConf\", restrict the toolbar to exactly microphone, camera, chat, tileview, hangup, and participants-pane, and disable mobile app promotion.\n\nVerify end-to-end: navigate Firefox to http://localhost:8080/VerificationRoom, authenticate as admin, join the meeting as moderator, and enable the lobby. Then open Epiphany to the same room URL so a guest attempts to join -- the guest should be held in the lobby. Admit the guest from the moderator view in Firefox.\n\nSave a deployment report to /home/ga/secure_conference_report.txt."
+  },
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/secure_conference_deployment/setup_task.sh",
+    "post_task": "/workspace/tasks/secure_conference_deployment/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "admin_username": "admin",
+    "admin_password": "SecureConf2024!",
+    "registration_domain": "meet.jitsi",
+    "room_name": "VerificationRoom",
+    "app_name": "SecureConf",
+    "required_toolbar_buttons": ["microphone", "camera", "chat", "tileview", "hangup", "participants-pane"],
+    "report_file": "/home/ga/secure_conference_report.txt",
+    "interface_config_file": "/home/ga/.jitsi-meet-cfg/web/custom-interface_config.js",
+    "env_file": "/home/ga/jitsi/.env",
+    "jitsi_url": "http://localhost:8080"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_secure_conference_deployment"
+    }
+  }
+}

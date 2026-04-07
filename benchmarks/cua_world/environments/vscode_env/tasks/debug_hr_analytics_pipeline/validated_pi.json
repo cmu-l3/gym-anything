@@ -1,0 +1,167 @@
+{
+    "task_id": "debug_hr_analytics_pipeline@1",
+    "dataset": "Synthetic HR data generated with random.seed(42) and numpy.random.seed(42)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "Data Engineer",
+            "verified_value": "Data Engineer",
+            "source": "The task involves debugging a Python pandas data pipeline (load CSV, clean, transform, analyze, report). This is core data engineering work. While there is no exact SOC title 'Data Engineer', BLS classifies such roles under Software Developers or related codes.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation_code",
+            "metadata_value": "15-1252.00",
+            "verified_value": "15-1252.00 (Software Developers) — closest SOC code; no exact 'Data Engineer' code exists",
+            "source": "O*NET OnLine (https://www.onetonline.org/link/summary/15-1252.00) confirms 15-1252.00 = Software Developers. BLS SOC system does not have a dedicated Data Engineer code; 15-1252.00 is the standard mapping used for data engineering roles.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Human Resources / Analytics",
+            "verified_value": "Human Resources / Analytics",
+            "source": "The pipeline processes employees.csv, reviews.csv, compensation.csv, and departments.csv to produce a quarterly HR analytics report. Domain is unambiguously HR analytics.",
+            "status": "verified"
+        },
+        {
+            "key": "soc_major_group",
+            "metadata_value": "Computer and Mathematical",
+            "verified_value": "Computer and Mathematical",
+            "source": "BLS SOC major group 15-0000 is 'Computer and Mathematical Occupations'. Code 15-1252.00 falls under this group. Confirmed via https://www.bls.gov/soc/2018/major_groups.htm",
+            "status": "verified"
+        },
+        {
+            "key": "features",
+            "metadata_value": ["pandas_transformations", "csv_parsing", "merge_operations", "data_deduplication", "statistical_calculations", "multi_file_debugging", "runtime_debugging"],
+            "verified_value": ["pandas_transformations", "csv_parsing", "merge_operations", "data_deduplication", "statistical_calculations", "multi_file_debugging", "runtime_debugging"],
+            "source": "Verified by reading all pipeline source files and running the pipeline live: (1) pandas_transformations — all pipeline stages use pandas DataFrames; (2) csv_parsing — Bug 1 is specifically about pd.read_csv not handling European decimal format; (3) merge_operations — Bug 3 is about pd.merge creating duplicates from 1:N relationship; (4) data_deduplication — Bug 2 is about drop_duplicates(keep='first') vs keep='last', Bug 3 fix requires dedup before merge; (5) statistical_calculations — retention rate, salary averages, performance averages; (6) multi_file_debugging — 4 bugs across loader.py, cleaner.py, transformer.py, analyzer.py; (7) runtime_debugging — bugs produce wrong output silently, not visible from code inspection alone.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 50,
+            "verified_value": 50,
+            "source": "Defined in task.json metadata. The verifier.py is a stub (returns score=100 always), so this threshold is not programmatically enforced. It serves as guidance for VLM scoring.",
+            "status": "verified"
+        },
+        {
+            "key": "difficulty",
+            "metadata_value": "very_hard",
+            "verified_value": "very_hard",
+            "source": "Task requires debugging 4 subtle bugs across 4 files, each requiring runtime observation to discover (not visible from static code reading). Bugs cascade — fixing one reveals the next. Longest vscode_env task at 200 steps / 3600s timeout.",
+            "status": "verified"
+        }
+    ],
+    "ground_truth": {
+        "data_files": {
+            "employees.csv": {
+                "rows": 200,
+                "columns": ["employee_id", "first_name", "last_name", "email", "department_id", "hire_date", "termination_date", "status", "gender"],
+                "active_count": 173,
+                "terminated_count": 27,
+                "new_hires_q1": 12,
+                "terminated_in_q1": 4,
+                "terminated_before_q1": 23,
+                "departments": 10
+            },
+            "reviews.csv": {
+                "rows": 354,
+                "columns": ["review_id", "employee_id", "quarter", "review_date", "score", "reviewer_id", "status"],
+                "draft_count": 177,
+                "final_count": 177,
+                "sorted_by": "review_date ascending (drafts in January before finals in March)"
+            },
+            "compensation.csv": {
+                "rows": 270,
+                "columns": ["employee_id", "effective_date", "base_salary", "bonus", "currency"],
+                "format_quirk": "European decimal format — commas as decimal separators (e.g., '118653,21' instead of '118653.21'), values enclosed in double quotes",
+                "employees_with_1_record": 140,
+                "employees_with_2_records": 50,
+                "employees_with_3_records": 10
+            },
+            "departments.csv": {
+                "rows": 10,
+                "columns": ["department_id", "name", "budget"],
+                "department_names": ["Engineering", "Sales", "Marketing", "Finance", "Human Resources", "Operations", "Legal", "Product", "Customer Support", "Data Science"]
+            }
+        },
+        "bugs": {
+            "bug_1_loader": {
+                "file": "pipeline/loader.py",
+                "function": "_load_compensation()",
+                "root_cause": "pd.read_csv(path) called without decimal=',' parameter. compensation.csv uses European decimal format with commas. pd.to_numeric(errors='coerce') silently converts all salary strings like '118653,21' to NaN.",
+                "fix": "pd.read_csv(path, decimal=',')",
+                "symptom_in_output": "total_salary_budget=null, avg_salary=null, all department avg_salary=0.0",
+                "symptom_in_tests": "test_salary_data_valid: 'Found 270 NaN values in base_salary out of 270 records'"
+            },
+            "bug_2_cleaner": {
+                "file": "pipeline/cleaner.py",
+                "function": "clean_reviews()",
+                "root_cause": "drop_duplicates(subset=['employee_id', 'quarter'], keep='first') with data sorted ascending by review_date. 'first' keeps January draft reviews instead of March final reviews.",
+                "fix": "Change keep='first' to keep='last'",
+                "symptom_in_output": "company_avg performance=2.78 instead of 3.28, ratings_below_2=62 instead of 25",
+                "symptom_in_tests": "test_reviews_are_final: 'Found 177 non-final reviews after cleaning'"
+            },
+            "bug_3_transformer": {
+                "file": "pipeline/transformer.py",
+                "function": "build_master_dataset()",
+                "root_cause": "pd.merge(employees, compensation, on='employee_id') without deduplicating compensation first. 60 employees have 2-3 compensation records, creating duplicate rows (270 instead of 200).",
+                "fix": "Deduplicate compensation by employee_id (keeping latest effective_date) before merging: compensation.sort_values('effective_date').drop_duplicates(subset=['employee_id'], keep='last')",
+                "symptom_in_output": "total_headcount=270 instead of 200, active_employees=234 instead of 173",
+                "symptom_in_tests": "test_no_duplicate_employees: 'Master dataset has 270 rows but only 200 unique employees'"
+            },
+            "bug_4_analyzer": {
+                "file": "pipeline/analyzer.py",
+                "function": "calculate_retention_rate()",
+                "root_cause": "Formula uses active/total*100 which computes all-time retention (173/200=86.5%). Should use quarterly: (1 - q1_terminations/start_of_period_active)*100. QUARTER_START and QUARTER_END are imported from config but not used in the function.",
+                "fix": "Filter terminations to Q1 date range using QUARTER_START/QUARTER_END, compute start-of-period headcount = active + q1_terms - new_hires",
+                "symptom_in_output": "retention_rate=86.7 instead of 97.6",
+                "symptom_in_tests": "test_retention_rate_valid: 'Retention rate 86.7% is implausibly low for a single quarter'"
+            }
+        },
+        "expected_correct_output": {
+            "total_headcount": 200,
+            "active_employees": 173,
+            "new_hires": 12,
+            "terminations_this_quarter": 4,
+            "retention_rate": 97.6,
+            "total_salary_budget": 16348613.82,
+            "avg_salary": 94500.66,
+            "company_avg_performance": 3.28,
+            "ratings_above_4": 53,
+            "ratings_below_2": 25
+        },
+        "buggy_output": {
+            "total_headcount": 270,
+            "active_employees": 234,
+            "new_hires": 18,
+            "retention_rate": 86.7,
+            "total_salary_budget": null,
+            "avg_salary": null,
+            "company_avg_performance": 2.78,
+            "ratings_above_4": 44,
+            "ratings_below_2": 62
+        },
+        "tests": {
+            "total": 5,
+            "all_failing_initially": true,
+            "test_names": [
+                "test_salary_data_valid (catches Bug 1)",
+                "test_no_duplicate_employees (catches Bug 3)",
+                "test_reviews_are_final (catches Bug 2)",
+                "test_retention_rate_valid (catches Bug 4)",
+                "test_report_matches_expected (catches all 4 bugs)"
+            ]
+        },
+        "pipeline_structure": {
+            "entry_point": "python3 main.py",
+            "test_command": "python3 -m pytest tests/ -v",
+            "stages": ["loader.py (load)", "cleaner.py (clean)", "transformer.py (transform)", "analyzer.py (analyze)", "reporter.py (report)"],
+            "config": "config.py with QUARTER='2025-Q1', QUARTER_START='2025-01-01', QUARTER_END='2025-03-31'"
+        }
+    },
+    "privileged_info_summary": "This is a Python pandas data pipeline debugging task with 4 bugs across 4 files in /home/ga/workspace/hr_analytics/pipeline/. The pipeline processes HR data (200 employees, 354 reviews, 270 compensation records, 10 departments) and should produce output matching expected_output/quarterly_report.json. Bug 1 (loader.py): compensation.csv uses European decimal format with commas (e.g., '118653,21'); pd.read_csv needs decimal=',' parameter, otherwise pd.to_numeric coerces all 270 salary values to NaN. Bug 2 (cleaner.py): drop_duplicates(keep='first') keeps draft reviews instead of final ones because data is sorted by review_date ascending; fix is keep='last'. Bug 3 (transformer.py): pd.merge with compensation creates 270 rows instead of 200 because 60 employees have multiple compensation records; fix is to deduplicate compensation by employee_id (keeping latest effective_date) before merging. Bug 4 (analyzer.py): calculate_retention_rate uses active/total*100 giving 86.7% (all-time); correct quarterly retention is 97.6% computed as (1 - 4/165)*100 where 4 is Q1 terminations and 165 is start-of-period active headcount. QUARTER_START and QUARTER_END are imported in analyzer.py but unused — they are needed for the fix. Expected correct values: total_headcount=200, active=173, new_hires=12, retention=97.6%, salary_budget=16348613.82, avg_salary=94500.66, avg_performance=3.28. All 5 pytest tests should pass after fixes.",
+    "pi_confidence": "high"
+}

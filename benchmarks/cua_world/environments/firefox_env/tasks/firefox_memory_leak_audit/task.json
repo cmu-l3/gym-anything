@@ -1,0 +1,27 @@
+{
+  "id": "firefox_memory_leak_audit@1",
+  "version": "1.0",
+  "env_id": "firefox_env@0.1",
+  "description": "A severe memory leak has been reported in our local photo gallery app. Firefox is already running with the app loaded at http://localhost:8080/. Open the Firefox Developer Tools Memory panel and capture a baseline heap snapshot, saving it to ~/Documents/baseline.fxsnapshot. Then, interact with the app to trigger the memory leak: first click 'Load High-Res Gallery', wait a second for it to render, and then click 'Destroy Gallery'. Finally, take a second heap snapshot and save it to ~/Documents/leaked.fxsnapshot. Do not worry if Firefox appends an extra .fxsnapshot extension when saving.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/firefox_memory_leak_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/firefox_memory_leak_audit/export_result.sh"
+  },
+  "metadata": {
+    "expected_diff_bytes": 1000000,
+    "baseline_name_pattern": "baseline*.fxsnapshot*",
+    "leaked_name_pattern": "leaked*.fxsnapshot*"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_firefox_memory_leak_audit"
+    }
+  }
+}

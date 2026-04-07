@@ -1,9 +1,12 @@
 #!/bin/bash
-set -euo pipefail
+set -e
 
 echo "=== Installing LibreOffice Impress and related packages ==="
 
-# Update package manager
+# Non-interactive apt
+export DEBIAN_FRONTEND=noninteractive
+
+# Update package lists
 apt-get update
 
 # Install LibreOffice Impress and full suite
@@ -33,6 +36,12 @@ apt-get install -y \
     python3-dev \
     python3-lxml
 
+# Install pip packages (handle old pip that doesn't support --break-system-packages)
+pip3 install --no-cache-dir \
+    odfpy \
+    python-pptx \
+    pillow \
+    lxml 2>/dev/null || \
 pip3 install --no-cache-dir --break-system-packages \
     odfpy \
     python-pptx \
@@ -42,6 +51,7 @@ pip3 install --no-cache-dir --break-system-packages \
 # Install GUI automation tools
 echo "Installing automation tools..."
 apt-get install -y \
+    scrot \
     xdotool \
     wmctrl \
     x11-utils \

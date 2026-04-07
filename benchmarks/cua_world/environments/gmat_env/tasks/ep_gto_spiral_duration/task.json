@@ -1,0 +1,35 @@
+{
+  "id": "ep_gto_spiral_duration@1",
+  "version": "1.0",
+  "env_id": "gmat_env@0.1",
+  "description": "You are a mission designer sizing the propulsion system for the AeroCom-1 satellite. It will be launched into GTO and use an Electric Propulsion (EP) system to continuously spiral out to GEO. Simulate this multi-month finite burn in GMAT to determine the exact time-of-flight and propellant consumed.\n\nSpacecraft 'AeroCom1' (DryMass: 1500 kg) initial state (EarthMJ2000Eq):\n- Epoch: 01 Jan 2026 12:00:00.000 UTC\n- SMA: 24392.5 km, ECC: 0.730, INC: 27.0 deg, RAAN: 0.0 deg, AOP: 180.0 deg, TA: 0.0 deg\n\nPropulsion Configuration:\n- ChemicalTank 'XenonTank': FuelMass = 500 kg\n- ChemicalThruster 'EPThruster': Thrust (C1) = 0.25 N, Isp (K1) = 1500 s, DecrementMass enabled, Thrust Vector (VNB: X=1, Y=0, Z=0)\n\nSimulation Parameters:\n- ForceModel: Earth Point Mass gravity only (Degree 0, Order 0; no drag, SRP, or third-body gravity)\n- Mission: Perform a continuous finite burn until Earth.SMA >= 42164.17 km\n\nOutputs:\n- Save GMAT script to ~/GMAT_output/ep_spiral.script\n- Write final values to ~/GMAT_output/ep_spiral_report.txt using these labels:\n  elapsed_days: [AeroCom1.ElapsedDays]\n  remaining_fuel_kg: [AeroCom1.XenonTank.FuelMass]\n  final_sma_km: [AeroCom1.Earth.SMA]\n  final_eccentricity: [AeroCom1.Earth.ECC]\n  final_inclination_deg: [AeroCom1.Earth.INC]\n\nLogin: username=ga, password=password123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ep_gto_spiral_duration/setup_task.sh",
+    "post_task": "/workspace/tasks/ep_gto_spiral_duration/export_result.sh"
+  },
+  "metadata": {
+    "script_path": "/home/ga/GMAT_output/ep_spiral.script",
+    "report_path": "/home/ga/GMAT_output/ep_spiral_report.txt",
+    "time_min_days": 120.0,
+    "time_max_days": 250.0,
+    "fuel_min_kg": 150.0,
+    "fuel_max_kg": 350.0,
+    "target_sma_km": 42164.17,
+    "sma_tolerance_km": 15.0,
+    "initial_ecc": 0.73,
+    "target_inc_deg": 27.0,
+    "inc_tolerance_deg": 1.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ep_gto_spiral"
+    }
+  }
+}

@@ -1,0 +1,171 @@
+{
+    "task_id": "pharma_lot_recall_quarantine@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/pharma_recall_result.json",
+            "verified_value": "/tmp/pharma_recall_result.json",
+            "source": "Verified by reading export_result.sh which writes to RESULT_FILE='/tmp/pharma_recall_result.json' (line 9). Confirmed during live testing: file was created at that path with permissions 666.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 75,
+            "verified_value": 75,
+            "source": "Verified by reading verifier.py line 63: PASS_THRESHOLD = 75. Line 288 checks: passed = (score >= pass_threshold) and subscores.get('anti_gaming_passed', False). Confirmed during live testing: baseline score of 29 correctly returned passed=false.",
+            "status": "verified"
+        },
+        {
+            "key": "recall_date_range",
+            "metadata_value": null,
+            "verified_value": "January 1, 2024 through February 28, 2024 (inclusive)",
+            "source": "Extracted from setup_task.sh RECALL_NOTICE string (line 176): 'All product lots received from MedSource Pharma between January 1, 2024 and February 28, 2024 (inclusive)'. Confirmed visible in Odoo UI via MedSource Pharma contact Internal Notes tab (screenshot_05). Also confirmed in DB query 02_vendors_with_notes.txt showing the comment field.",
+            "status": "verified"
+        },
+        {
+            "key": "affected_vendor",
+            "metadata_value": null,
+            "verified_value": "MedSource Pharma",
+            "source": "From setup_task.sh RECALL_NOTICE and verifier.py AFFECTED_LOTS (lines 35-40). All affected lots have 'MedSource Pharma' in their lot notes. Confirmed via DB query 04_lots_with_notes.txt and UI screenshots.",
+            "status": "verified"
+        },
+        {
+            "key": "replacement_vendor",
+            "metadata_value": null,
+            "verified_value": "SafePharm Industries",
+            "source": "From setup_task.sh RECALL_NOTICE (line 180): 'REPLACEMENT SUPPLIER: Contact SafePharm Industries'. Verifier checks POs to SafePharm Industries (export_result.sh line 123). Confirmed in DB and UI.",
+            "status": "verified"
+        },
+        {
+            "key": "affected_lot_AMX-2024-041",
+            "metadata_value": null,
+            "verified_value": "Quarantine 500 units. From MedSource Pharma, received 2024-01-15 (within recall window).",
+            "source": "setup_task.sh lot spec line 242: ('AMX-2024-041', 'PHARMA-AMX', 'MedSource Pharma', '2024-01-15', 500). Verifier.py AFFECTED_LOTS line 36: qty=500. Confirmed via DB query 04_lots_with_notes.txt and 05_stock_quantities_per_lot.txt showing 500 units in WH/Stock.",
+            "status": "verified"
+        },
+        {
+            "key": "affected_lot_AMX-2024-089",
+            "metadata_value": null,
+            "verified_value": "Quarantine 200 units. From MedSource Pharma, received 2024-02-12 (within recall window).",
+            "source": "setup_task.sh lot spec line 244: ('AMX-2024-089', 'PHARMA-AMX', 'MedSource Pharma', '2024-02-12', 200). Verifier.py AFFECTED_LOTS line 37: qty=200. Confirmed via DB query and screenshot_12_lot_amx089_affected.png showing 'Received from MedSource Pharma on 2024-02-12'.",
+            "status": "verified"
+        },
+        {
+            "key": "affected_lot_IBU-2024-033",
+            "metadata_value": null,
+            "verified_value": "Quarantine 800 units. From MedSource Pharma, received 2024-01-22 (within recall window).",
+            "source": "setup_task.sh lot spec line 245: ('IBU-2024-033', 'PHARMA-IBU', 'MedSource Pharma', '2024-01-22', 800). Verifier.py AFFECTED_LOTS line 38: qty=800. Confirmed via DB query 04_lots_with_notes.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "affected_lot_CET-2024-071",
+            "metadata_value": null,
+            "verified_value": "Quarantine 500 units. From MedSource Pharma, received 2024-02-18 (within recall window).",
+            "source": "setup_task.sh lot spec line 248: ('CET-2024-071', 'PHARMA-CET', 'MedSource Pharma', '2024-02-18', 500). Verifier.py AFFECTED_LOTS line 39: qty=500. Confirmed via DB query 04_lots_with_notes.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "trap_lot_IBU-2024-112",
+            "metadata_value": null,
+            "verified_value": "Must NOT be quarantined. 600 units from MedSource Pharma received 2024-03-08 (AFTER recall window ends Feb 28). This is a deliberate trap — same vendor but outside date range.",
+            "source": "setup_task.sh lot spec line 246: ('IBU-2024-112', 'PHARMA-IBU', 'MedSource Pharma', '2024-03-08', 600). Verifier.py TRAP_LOT line 42-44: checks quarantine_qty==0 and wh_stock_qty==600 for 10 points. Confirmed via screenshot_08_trap_lot_ibu112_detail.png showing 'Received from MedSource Pharma on 2024-03-08' and qty=600.",
+            "status": "verified"
+        },
+        {
+            "key": "non_medsource_lot_AMX-2024-067",
+            "metadata_value": null,
+            "verified_value": "Must NOT be quarantined. 300 units from SafePharm Industries (not MedSource), received 2024-01-28.",
+            "source": "setup_task.sh lot spec line 243. Verifier.py NON_MEDSOURCE_LOTS line 46-49: checks quarantine_qty==0 for 8 pts. Confirmed via DB query 04_lots_with_notes.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "non_medsource_lot_CET-2024-015",
+            "metadata_value": null,
+            "verified_value": "Must NOT be quarantined. 1000 units from BioMed Supplies Co. (not MedSource), received 2023-12-20.",
+            "source": "setup_task.sh lot spec line 247. Verifier.py NON_MEDSOURCE_LOTS line 46-49. Confirmed via screenshot_14_lot_cet015_biomed.png showing 'Received from BioMed Supplies Co. on 2023-12-20' and qty=1000.",
+            "status": "verified"
+        },
+        {
+            "key": "control_lot_MET-2024-022",
+            "metadata_value": null,
+            "verified_value": "Must NOT be touched. 750 units from SafePharm Industries. Anti-gaming control — modifying this caps score at 50.",
+            "source": "setup_task.sh lot spec line 249. Verifier.py CONTROL_LOTS line 51-55 and anti-gaming check lines 238-282. Confirmed via screenshot_13_lot_met022_control.png and DB query.",
+            "status": "verified"
+        },
+        {
+            "key": "control_lot_MET-2024-045",
+            "metadata_value": null,
+            "verified_value": "Must NOT be touched. 600 units from SafePharm Industries. Anti-gaming control.",
+            "source": "setup_task.sh lot spec line 250. Verifier.py CONTROL_LOTS line 51-55. Confirmed via DB query 05_stock_quantities_per_lot.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "control_lot_OMP-2024-019",
+            "metadata_value": null,
+            "verified_value": "Must NOT be touched. 400 units from BioMed Supplies Co. Anti-gaming control.",
+            "source": "setup_task.sh lot spec line 251. Verifier.py CONTROL_LOTS line 51-55 and anti-gaming check lines 257-274. Confirmed via DB query 05_stock_quantities_per_lot.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_po_qty_PHARMA-AMX",
+            "metadata_value": null,
+            "verified_value": 700,
+            "source": "Verifier.py EXPECTED_PO_QTY line 58: 'PHARMA-AMX': 700. This equals AMX-2024-041 (500) + AMX-2024-089 (200) = 700. Cross-verified by summing affected lot quantities from setup_task.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_po_qty_PHARMA-IBU",
+            "metadata_value": null,
+            "verified_value": 800,
+            "source": "Verifier.py EXPECTED_PO_QTY line 59: 'PHARMA-IBU': 800. This equals IBU-2024-033 (800). Only one affected IBU lot (IBU-2024-112 is the trap and excluded). Cross-verified against setup_task.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_po_qty_PHARMA-CET",
+            "metadata_value": null,
+            "verified_value": 500,
+            "source": "Verifier.py EXPECTED_PO_QTY line 60: 'PHARMA-CET': 500. This equals CET-2024-071 (500). CET-2024-015 is from BioMed (not affected). Cross-verified against setup_task.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "quarantine_location_requirements",
+            "metadata_value": null,
+            "verified_value": "Must contain 'Quarantine' in the name (case-insensitive), have usage='internal', and be a direct child of WH/Stock (location_id points to WH/Stock). Full points (5) if child of WH/Stock, partial (2) if exists but not under WH/Stock.",
+            "source": "export_result.sh lines 47-49: searches for location with name ilike 'Quarantine' and usage='internal', then checks if location_id matches wh_stock_id. Verifier.py lines 109-121: 5 pts if is_child_of_wh_stock, 2 pts if found but not child. The task description says 'Quarantine - Regulatory Hold' under WH/Stock.",
+            "status": "verified"
+        },
+        {
+            "key": "po_confirmation_requirement",
+            "metadata_value": null,
+            "verified_value": "PO must be in state 'purchase' or 'done' (confirmed). Draft or sent POs do not count for the main PO check. Export searches for state in ['purchase','done'].",
+            "source": "export_result.sh lines 136-138: filters POs by state in ['purchase','done']. Verifier.py lines 221-229: checks all_confirmed = all(po.get('state') in ('purchase', 'done')). Worth 5 pts.",
+            "status": "verified"
+        },
+        {
+            "key": "po_qty_tolerance",
+            "metadata_value": null,
+            "verified_value": "5% tolerance on PO quantities. For PHARMA-AMX (700): acceptable range 665-735. For PHARMA-IBU (800): 760-840. For PHARMA-CET (500): 475-525.",
+            "source": "Verifier.py line 204: tolerance = expected_qty * 0.05. Verified by code analysis.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_breakdown",
+            "metadata_value": null,
+            "verified_value": "100 pts total: quarantine_location=5, AMX-041=8, AMX-089=8, IBU-033=8, CET-071=8, trap_IBU-112=10, non_medsource=8, PO_exists=5, PO_AMX=8, PO_IBU=8, PO_CET=8, PO_confirmed=5, AG_metformin=5.5, AG_omeprazole=5.5. Anti-gaming violation caps total at 50.",
+            "source": "Verifier.py scoring comments lines 5-20 and code analysis. Confirmed by baseline run returning 29/100 (sum of trap=10 + non_medsource=8 + AG_met=5.5 + AG_omp=5.5 = 29).",
+            "status": "verified"
+        },
+        {
+            "key": "odoo_credentials",
+            "metadata_value": null,
+            "verified_value": "admin/admin at http://localhost:8069, database=odoo_inventory",
+            "source": "setup_task.sh lines 9-13 and export_result.sh lines 19-22. Confirmed during live testing: successfully logged in with admin/admin.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic Odoo 17 pharmaceutical recall task. The agent must read a recall notice from the MedSource Pharma vendor contact's Internal Notes tab, which specifies: recall date range is January 1, 2024 through February 28, 2024 (inclusive), and the replacement supplier is SafePharm Industries. Each lot's description field contains the source vendor and receipt date. The 4 affected lots that must be quarantined are: AMX-2024-041 (500 units, MedSource, Jan 15), AMX-2024-089 (200 units, MedSource, Feb 12), IBU-2024-033 (800 units, MedSource, Jan 22), and CET-2024-071 (500 units, MedSource, Feb 18). CRITICAL TRAP: Lot IBU-2024-112 (600 units) is from MedSource Pharma but was received on March 8, 2024 — AFTER the recall window ends — and must NOT be quarantined (worth 10 points). Lots AMX-2024-067 (SafePharm) and CET-2024-015 (BioMed) must not be quarantined because they are from different vendors. Control products Metformin (MET-2024-022: 750 units, MET-2024-045: 600 units) and Omeprazole (OMP-2024-019: 400 units) must not be modified at all — touching them triggers an anti-gaming penalty capping the score at 50. The quarantine location must be named with 'Quarantine' (case-insensitive), be an internal location, and be a child of WH/Stock. A confirmed Purchase Order (state='purchase') to SafePharm Industries must be created with quantities: Amoxicillin (PHARMA-AMX) = 700, Ibuprofen (PHARMA-IBU) = 800, Cetirizine (PHARMA-CET) = 500, with 5% tolerance. Total scoring is 100 points with pass threshold of 75. Login credentials are admin/admin on localhost:8069, database odoo_inventory.",
+    "pi_confidence": "high"
+}

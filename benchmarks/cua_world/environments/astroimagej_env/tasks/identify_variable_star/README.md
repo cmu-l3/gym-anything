@@ -11,7 +11,7 @@ This task uses **real astronomical data** from the University of Louisville Astr
 - **Filter**: r-band
 - **Images**: 186 calibrated 4096x4096 FITS frames
 - **Exposure**: 100 seconds per frame
-- **Data URL**: https://www.astro.louisville.edu/software/astroimagej/benchmarks/cua_world/environments/WASP-12b_example_calibrated_images.tar.gz
+- **Data URL**: https://www.astro.louisville.edu/software/astroimagej/examples/WASP-12b_example_calibrated_images.tar.gz
 
 ## Goal
 Discover which star in the WASP-12 field is variable using multi-aperture differential photometry across 186 frames. The agent is NOT told which star is variable -- they must figure it out by analyzing the light curves.

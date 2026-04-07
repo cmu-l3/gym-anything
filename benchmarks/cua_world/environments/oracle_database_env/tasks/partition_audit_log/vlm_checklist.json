@@ -1,0 +1,53 @@
+{
+  "task_id": "partition_audit_log@1",
+  "task_completion": [
+    {
+      "id": "database_connection",
+      "description": "Connect to the Oracle database using the provided credentials.",
+      "points": 10,
+      "visual_evidence": "Screenshots showing a successful connection to the XEPDB1 database as user 'hr' via a database client (like DBeaver, SQL Developer) or terminal (SQL*Plus)."
+    },
+    {
+      "id": "create_partitioned_table",
+      "description": "Create the range-partitioned table organized by ACTION_DATE with the 5 specified partitions.",
+      "points": 30,
+      "visual_evidence": "SQL commands or GUI table properties showing the creation of 'EMPLOYEE_AUDIT_LOG' with 'PARTITION BY RANGE (ACTION_DATE)'. The statement must include the 5 specific partitions: P_2021, P_2022, P_2023, P_2024, and P_FUTURE with their respective date boundaries (e.g., LESS THAN (TO_DATE('2022-01-01', ...)) and MAXVALUE)."
+    },
+    {
+      "id": "migrate_data",
+      "description": "Migrate all 100,000 records from the original table to the new partitioned table.",
+      "points": 20,
+      "visual_evidence": "Execution of an INSERT statement (e.g., 'INSERT INTO ... SELECT * FROM ...') transferring data, or a 'SELECT COUNT(*)' query on the new partitioned table returning exactly 100,000 rows."
+    },
+    {
+      "id": "create_local_indexes",
+      "description": "Create LOCAL indexes on the 'EMPLOYEE_ID' and 'ACTION_TYPE' columns.",
+      "points": 20,
+      "visual_evidence": "SQL commands showing 'CREATE INDEX ... ON EMPLOYEE_AUDIT_LOG (EMPLOYEE_ID) LOCAL' and 'CREATE INDEX ... ON EMPLOYEE_AUDIT_LOG (ACTION_TYPE) LOCAL', or GUI evidence showing these indexes with the 'LOCAL' property."
+    },
+    {
+      "id": "save_summary_file",
+      "description": "Save a summary of the partition structure and row counts to the specified text file.",
+      "points": 20,
+      "visual_evidence": "A text editor or terminal output showing the file '/home/ga/Desktop/partition_summary.txt' containing the partition names (P_2021, P_2022, etc.) and their corresponding row counts."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_database_interaction",
+      "description": "Verify the agent actually executed SQL commands against the Oracle database.",
+      "visual_evidence": "Look for SQL execution results, success messages (e.g., 'Table created', '100000 rows inserted'), or query outputs in a real database client or terminal, rather than just typing commands into a text file without running them."
+    },
+    {
+      "id": "authentic_data_migration",
+      "description": "Verify the agent did not just create an empty table and fake the summary file.",
+      "visual_evidence": "Look for evidence of the actual data migration step (the INSERT statement executing) or a query showing the row counts per partition directly from the database before it was written to the text file."
+    },
+    {
+      "id": "no_hardcoded_summary",
+      "description": "Verify the summary file is based on actual database queries.",
+      "visual_evidence": "The row counts in the summary file should match the output of a 'SELECT partition_name, num_rows' or 'COUNT(*)' query executed by the agent, rather than being arbitrarily guessed or hardcoded."
+    }
+  ],
+  "privileged_info_for_vlm": "Target table is 'EMPLOYEE_AUDIT_LOG'. The table must contain exactly 100,000 rows after migration. Exactly 5 partitions must be created: P_2021, P_2022, P_2023, P_2024, P_FUTURE. Indexes on 'EMPLOYEE_ID' and 'ACTION_TYPE' must be 'LOCAL'. The final summary must be saved to '/home/ga/Desktop/partition_summary.txt'."
+}

@@ -1,0 +1,94 @@
+{
+    "task_id": "remove_background@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "metadata_field_exists",
+            "metadata_value": "No metadata field in task.json",
+            "verified_value": "Task.json does not contain a 'metadata' field. Other tasks in the codebase (e.g., add_text_annotation@1) do have metadata fields with expected values.",
+            "source": "Direct inspection of task.json structure and comparison with other task.json files in codebase",
+            "status": "verified"
+        },
+        {
+            "key": "image_source_url_primary",
+            "metadata_value": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
+            "verified_value": "URL is accessible and returns HTTP 200 with JPEG image at 800x533 pixels",
+            "source": "curl HTTP header check and wget download verification",
+            "status": "verified"
+        },
+        {
+            "key": "image_source_url_fallback",
+            "metadata_value": "https://images.unsplash.com/photo-1542291026-7eec264c27ff",
+            "verified_value": "URL is accessible and returns HTTP 200 with JPEG image at 800x533 pixels",
+            "source": "curl HTTP header check and wget download verification",
+            "status": "verified"
+        },
+        {
+            "key": "image_format",
+            "metadata_value": "Image should be JPEG initially (JPEG does not support alpha channel)",
+            "verified_value": "Both Unsplash images are JPEG format with 800x533 pixels, RGB mode (no alpha channel)",
+            "source": "Python PIL image analysis and file command verification",
+            "status": "verified"
+        },
+        {
+            "key": "white_background_property",
+            "metadata_value": "Setup script claims 'Download image with clear subject on white background'",
+            "verified_value": "Primary image has 0.01% white pixels (all channels > 240). Image 1 has yellow/tan top color [254,206,0]. Does NOT have white background.",
+            "source": "PIL/numpy pixel-level analysis of actual downloaded Unsplash image",
+            "status": "contradicted"
+        },
+        {
+            "key": "background_transparency_threshold",
+            "metadata_value": "README.md: 'Background areas: ≥70% of original white background areas now transparent'",
+            "verified_value": "verifier.py line 229: if verification_result['background_transparent_ratio'] >= 0.7",
+            "source": "Code inspection of verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "subject_opaque_threshold",
+            "metadata_value": "README.md: 'Subject areas: ≥85% of original subject areas remain opaque'",
+            "verified_value": "verifier.py line 233: if verification_result['subject_opaque_ratio'] >= 0.85",
+            "source": "Code inspection of verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold_score",
+            "metadata_value": "README.md: 'Pass Threshold: 75%'",
+            "verified_value": "verifier.py line 248: passed = score >= 75",
+            "source": "Code inspection of verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "total_verification_criteria",
+            "metadata_value": "README.md: 4 verification criteria (PNG with Alpha, Background Transparent, Subject Preserved, Clean Execution)",
+            "verified_value": "verifier.py line 222: total_criteria = 4, with criteria checks at lines 225-244",
+            "source": "Code inspection of verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "alpha_transparency_threshold",
+            "metadata_value": "Transparent pixels defined as alpha < 50, Opaque pixels as alpha > 200",
+            "verified_value": "verifier.py lines 36-38: transparent_pixels = np.sum(alpha_channel < 50), opaque_pixels = np.sum(alpha_channel >= 200)",
+            "source": "Code inspection of verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "software_used",
+            "metadata_value": "Task description: 'Remove white background from an image using GIMP's selection and transparency tools'",
+            "verified_value": "GIMP is installed via install_gimp.sh. Tasks use GIMP for image manipulation via setup_background_task.sh which opens GIMP with the image",
+            "source": "Script inspection and task.json hooks specification",
+            "status": "verified"
+        },
+        {
+            "key": "data_provenance",
+            "metadata_value": "Images downloaded from Unsplash with fallback to Python-generated synthetic images",
+            "verified_value": "Primary: Real Unsplash images (accessible, verified). Fallback: Python PIL generates synthetic test image if downloads fail (setup_background_task.sh lines 24-37)",
+            "source": "setup_background_task.sh inspection and download verification",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task remove_background@1 uses real Unsplash images as primary data source (both URLs verified accessible) with fallback to synthetic generation. The verification thresholds are precisely specified: background transparency ≥70%, subject opacity ≥85%, pass threshold 75% (requiring 3/4 criteria met). Alpha channel values define transparency as <50 and opacity as >200. CRITICAL CONTRADICTION: The setup script claims to download 'image with clear subject on white background', but the actual primary Unsplash image contains only 0.01% white pixels and has a tan/yellow color scheme - it is not a white background image suitable for the stated task. The task.json lacks a metadata field present in other similar tasks.",
+    "pi_confidence": "high"
+}

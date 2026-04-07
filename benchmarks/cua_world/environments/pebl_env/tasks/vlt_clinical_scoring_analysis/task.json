@@ -1,0 +1,37 @@
+{
+  "id": "vlt_clinical_scoring_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "description": "A Postsecondary Psychology Teacher has collected PEBL Verbal Learning Test data from 50 participants for a clinical memory assessment module. Process the data located in ~/pebl/data/vlt_raw_data.csv, ~/pebl/data/demographics.csv, and ~/pebl/data/norms.json to generate a comprehensive memory assessment report. The processing requires merging performance and demographics, cleaning 'trial' strings (trimming whitespaces and converting to uppercase), and excluding participants with missing age data or invalid learning patterns (defined as an increase of 10 or more correct words directly between Trial A1 and Trial A2). For each valid participant, compute 'total_acquisition' (sum of A1 through A5), 'learning_slope' (A5 minus A1), 'retroactive_interference' (A5 minus A6), 'delayed_retention' (A7 / A6, or 0.0 if A6=0), and 'total_acquisition_zscore' (calculated using the age-stratified norms from norms.json and rounded to 2 decimals). Save the results to ~/pebl/analysis/vlt_report.json, including a 'participants' list with IDs and computed metrics (or an 'excluded': true reason) and a 'group_means' dictionary containing the average of each of the five metrics across all valid participants rounded to 2 decimals.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/vlt_clinical_scoring_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/vlt_clinical_scoring_analysis/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/pebl/analysis/vlt_report.json",
+    "ground_truth_path": "/root/vlt_ground_truth.json",
+    "excluded_participants": [
+      "sub-888",
+      "sub-999"
+    ],
+    "expected_fields": [
+      "total_acquisition",
+      "learning_slope",
+      "retroactive_interference",
+      "delayed_retention",
+      "total_acquisition_zscore"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vlt_clinical_scoring_analysis"
+    }
+  }
+}

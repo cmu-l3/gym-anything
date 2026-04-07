@@ -23,6 +23,11 @@ if ! pm list packages | grep -q "com.hsn.electricalcalculations"; then
     exit 1
 fi
 
+# Launch the app using robust helper
+echo "Launching Electrical Calculations..."
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
+
 # Take initial screenshot for evidence
 screencap -p /sdcard/task_initial.png
 

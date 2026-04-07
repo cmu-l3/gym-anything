@@ -1,0 +1,28 @@
+{
+  "id": "enforce_part11_security_baselines@1",
+  "version": "1.0",
+  "env_id": "openclinica_env@0.1",
+  "description": "During a routine IT security audit, the Electronic Data Capture (EDC) system was found to be non-compliant with FDA 21 CFR Part 11 requirements regarding password expiration and complexity. Furthermore, the auditor discovered that a Clinical Data Manager (username 'mrivera') may have had their credentials compromised. As the Systems Analyst, harden the system parameters and force a password reset for the compromised account. Update the OpenClinica configuration file (/usr/local/tomcat/webapps/OpenClinica/WEB-INF/classes/datainfo.properties) in the 'oc-app' container to enforce a minimum password length of 12, a 90-day password expiration, and set the support email to 'audit-support@clinical-trials.org'. In the 'oc-postgres' database ('openclinica'), update the user_account table for 'mrivera' to set the password timestamp to a date at least 90 days in the past to trigger an immediate password expiration. Ensure the application is restarted and accessible with the new configurations active.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/enforce_part11_security_baselines/setup_task.sh",
+    "post_task": "/workspace/tasks/enforce_part11_security_baselines/export_result.sh"
+  },
+  "metadata": {
+    "expected_passwd_length_min": "12",
+    "expected_passwd_exp_days": "90",
+    "expected_support_email": "audit-support@clinical-trials.org",
+    "target_user": "mrivera"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_enforce_part11"
+    }
+  }
+}

@@ -59,18 +59,24 @@ try {
     if (-not (Test-Path $backupPath)) { New-Item -Path $backupPath -Force | Out-Null }
     Set-ItemProperty -Path $backupPath -Name "DisableWindowsConsumerFeatures" -Value 1 -Type DWord -Force
 
-    # Minimize terminal windows
-    Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class Win32Setup {
-    [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-}
-"@
-    Get-Process cmd -ErrorAction SilentlyContinue | ForEach-Object {
-        [Win32Setup]::ShowWindow($_.MainWindowHandle, 6) | Out-Null
-    }
+    # Clean up desktop in Session 1 (minimize terminals, close Start menu)
+    $cleanupScript = "C:\Windows\Temp\cleanup_desktop.ps1"
+    @'
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+(New-Object -ComObject Shell.Application).MinimizeAll()
+'@ | Set-Content $cleanupScript -Encoding UTF8
+    $prevEAP2 = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    schtasks /Create /TN "CleanupDesktop_GA" /TR "powershell -ExecutionPolicy Bypass -File $cleanupScript" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
+    schtasks /Run /TN "CleanupDesktop_GA" 2>$null
+    Start-Sleep -Seconds 5
+    schtasks /Delete /TN "CleanupDesktop_GA" /F 2>$null
+    Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
+    $ErrorActionPreference = $prevEAP2
 
     Write-Host "Available building models:"
     Get-ChildItem $projectsDir -Filter "*.inp" | ForEach-Object { Write-Host "  - $($_.Name)" }

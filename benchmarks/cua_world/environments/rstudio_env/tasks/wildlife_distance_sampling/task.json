@@ -1,0 +1,36 @@
+{
+  "id": "wildlife_distance_sampling@1",
+  "version": "1.0",
+  "env_id": "rstudio_env@0.1",
+  "difficulty": "hard",
+  "description": "You are a conservation biologist analyzing line transect survey data for the Hawaii Amakihi (*Hemignathus virens*). The data is available in the 'Distance' R package (dataset 'amakihi').\n\nYour goal is to estimate the population abundance using Distance Sampling methods.\n\nRequired Steps:\n1. Install and load the 'Distance' package from CRAN.\n2. Load the 'amakihi' dataset.\n3. Perform the analysis using a truncation distance of 82.5 meters (discard sightings > 82.5m).\n4. Fit three detection function models using the hazard-rate key function ('hr'):\n   - Model A: Null model (no covariates)\n   - Model B: Covariate model including Observer ('~OBS')\n   - Model C: Covariate model including Minutes After Sunrise ('~MAS')\n5. Select the best model based on the lowest AIC.\n6. Generate abundance estimates for the 7 regions using the best model.\n\nDeliverables (save to /home/ga/RProjects/output/):\n- 'model_selection.csv': Columns [model, aic, delta_aic]. Rows for the three models.\n- 'abundance_estimates.csv': Columns [Region.Label, Estimate, Standard_Error, Lower_CI, Upper_CI]. Estimates for the 7 regions using the best model.\n- 'detection_function.png': Plot of the fitted detection function for the best model.\n- 'gof_qqplot.png': Q-Q plot of the goodness-of-fit for the best model.\n\nSave your full R script to /home/ga/RProjects/amakihi_analysis.R.",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/wildlife_distance_sampling/setup_task.sh",
+    "post_task": "/workspace/tasks/wildlife_distance_sampling/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "truncation_distance": 82.5,
+    "key_function": "hazard-rate",
+    "covariates": ["OBS", "MAS"],
+    "expected_files": [
+      "/home/ga/RProjects/output/model_selection.csv",
+      "/home/ga/RProjects/output/abundance_estimates.csv",
+      "/home/ga/RProjects/output/detection_function.png",
+      "/home/ga/RProjects/output/gof_qqplot.png"
+    ],
+    "reference_aic_range": [12300, 12400],
+    "total_abundance_range": [2000, 4500]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_wildlife_distance_sampling"
+    }
+  }
+}

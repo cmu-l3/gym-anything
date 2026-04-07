@@ -1,0 +1,34 @@
+{
+  "id": "calmodulin_contact_network_analysis@1",
+  "version": "1.0",
+  "env_id": "pymol_env@0.1",
+  "description": "Fetch the calcium-loaded calmodulin structure (PDB: 1CLL), compute all intra-chain Cα–Cα contacts satisfying distance < 8.0 Å and sequence separation |i−j| > 12, export the contact list, identify domain boundaries from the contact pattern, and render a domain-colored figure.\n\nExpected Actions:\n1. Fetch PDB 1CLL from the RCSB Protein Data Bank into PyMOL (or load from ~/PyMOL_Data/structures/1CLL.pdb).\n2. Select chain A (the calmodulin chain).\n3. Extract all Cα atom coordinates and residue numbers using PyMOL's Python API (`iterate_state` or `cmd.get_model`).\n4. Compute pairwise Cα–Cα distances for all residue pairs.\n5. Filter contacts: keep pairs where distance < 8.0 Å AND |residue_i − residue_j| > 12.\n6. Export the filtered contact list to `/home/ga/PyMOL_Data/calmodulin_contacts.txt` with format: one contact per line, showing at minimum both residue numbers and the distance (e.g., `5 72 6.84`).\n7. Analyze the contact pattern to identify domain boundaries — where inter-domain long-range contacts are sparse.\n8. Write a domain analysis report to `/home/ga/PyMOL_Data/calmodulin_domain_report.txt` containing:\n   - The identified domain boundaries (approximate residue ranges for N-terminal domain, central linker, C-terminal domain)\n   - The total number of long-range contacts found\n   - A brief description of the domain architecture\n9. Color the protein by domain in PyMOL (N-terminal domain in one color, linker in another, C-terminal domain in a third).\n10. Ray-trace and save the figure to `/home/ga/PyMOL_Data/images/calmodulin_domains.png`.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/calmodulin_contact_network_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/calmodulin_contact_network_analysis/export_result.sh"
+  },
+  "metadata": {
+    "pdb_id": "1CLL",
+    "result_json": "/tmp/calmodulin_result.json",
+    "contacts_path": "/home/ga/PyMOL_Data/calmodulin_contacts.txt",
+    "report_path": "/home/ga/PyMOL_Data/calmodulin_domain_report.txt",
+    "figure_path": "/home/ga/PyMOL_Data/images/calmodulin_domains.png",
+    "min_figure_size_bytes": 30000,
+    "min_contacts": 100,
+    "boundary_1_range": [60, 80],
+    "boundary_2_range": [85, 100],
+    "plausible_contact_count": [50, 600]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_calmodulin_contact_network_analysis"
+    }
+  }
+}

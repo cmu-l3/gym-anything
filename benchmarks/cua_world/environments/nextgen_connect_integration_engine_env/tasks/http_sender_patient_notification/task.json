@@ -1,0 +1,33 @@
+{
+  "id": "http_sender_patient_notification@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "A regional hospital needs to notify an external patient registry API whenever a new admission occurs. Create and deploy a NextGen Connect channel named 'Patient_Notification_API' that transforms HL7v2 (MLLP) messages received via a TCP Listener on port 6661 into JSON. The channel must send an HTTP POST request to http://webhook-server:8888/api/patient-notification with the Content-Type set to 'application/json'. The JSON payload must contain the following fields extracted from the HL7 message: 'mrn' (PID-3.1), 'firstName' (PID-5.2), 'lastName' (PID-5.1), 'dateOfBirth' (PID-7.1 in YYYYMMDD format), and 'eventType' (MSH-9.2). Ensure the channel is deployed and in a STARTED state. A sample HL7 message is available at /home/ga/sample_adt.hl7 for verification. NextGen Connect API: https://localhost:8443/api (admin/admin).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/http_sender_patient_notification/setup_task.sh",
+    "post_task": "/workspace/tasks/http_sender_patient_notification/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Patient_Notification_API",
+    "webhook_url": "http://webhook-server:8888/api/patient-notification",
+    "expected_json": {
+      "mrn": "PAT78432",
+      "firstName": "ELENA",
+      "lastName": "MARTINEZ",
+      "dateOfBirth": "19780622",
+      "eventType": "A01"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_http_sender_patient_notification"
+    }
+  }
+}

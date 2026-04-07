@@ -1,0 +1,28 @@
+{
+  "id": "data_spillage_remediation@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "A critical data spillage incident has occurred: cleartext passwords were inadvertently logged to Splunk. Remediate this using the Splunk web interface (http://localhost:8000, admin/SplunkAdmin1!) and terminal. Update the admin user's roles to include can_delete permissions and purge all events in the web_logs index with sourcetype=apache_leak that contain password= data, ensuring no other events are deleted. To prevent future leaks, implement an index-time masking rule in /opt/splunk/etc/system/local/props.conf for the [apache_leak] stanza using the directive SEDCMD-redact = s/password=[^&\" ]+/password=REDACTED/g. Ensure all configuration and permission changes are fully active on the Splunk service.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/data_spillage_remediation/setup_task.sh",
+    "post_task": "/workspace/tasks/data_spillage_remediation/export_result.sh"
+  },
+  "metadata": {
+    "expected_index": "web_logs",
+    "expected_sourcetype": "apache_leak",
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_data_spillage_remediation"
+    }
+  }
+}

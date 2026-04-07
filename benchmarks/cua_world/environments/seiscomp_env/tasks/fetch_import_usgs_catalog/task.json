@@ -1,0 +1,31 @@
+{
+  "id": "fetch_import_usgs_catalog@1",
+  "version": "1.0",
+  "env_id": "seiscomp_env@0.1",
+  "description": "Update the local SeisComP database with aftershocks of the 2024 Noto Peninsula earthquake (M >= 4.5, within 24 hours, 1.5-degree radius) by querying the USGS FDSN Event Service (earthquake.usgs.gov) using the mainshock's latitude, longitude, and origin time retrieved from the database. Save the QuakeML data to '~/aftershocks_usgs.xml' and the converted SeisComP XML (via '/workspace/scripts/convert_quakeml.py') to '~/aftershocks.scml'. Produce a CSV report at '~/imported_events.csv' listing 'event_id, magnitude, time' for all events in the database, including the mainshock and imported aftershocks.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fetch_import_usgs_catalog/setup_task.sh",
+    "post_task": "/workspace/tasks/fetch_import_usgs_catalog/export_result.sh"
+  },
+  "metadata": {
+    "target_event_region": "Noto Peninsula, Japan",
+    "target_event_magnitude": 7.5,
+    "quakeml_output": "/home/ga/aftershocks_usgs.xml",
+    "scml_output": "/home/ga/aftershocks.scml",
+    "report_output": "/home/ga/imported_events.csv",
+    "convert_script": "/workspace/scripts/convert_quakeml.py",
+    "expected_min_aftershocks": 3
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fetch_import_usgs_catalog"
+    }
+  }
+}

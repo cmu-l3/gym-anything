@@ -1,0 +1,28 @@
+{
+  "id": "verify_age_pdf417@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "Enable PDF417 scanning in bcWebCam for future use, and process a log of previously scanned raw AAMVA driver's license data to determine age compliance for purchasing restricted goods.\n\nGoal: Configure bcWebCam to scan PDF417 codes, parse the provided log of raw AAMVA text, calculate age as of March 9, 2026, and output a CSV file.\n\nStarting State: \n- The Windows desktop is active with bcWebCam installed and closed.\n- A log of previously scanned raw AAMVA strings is located at `C:\\workspace\\data\\scanned_aamva_log.txt`.\n\nExpected Actions:\n1. Launch bcWebCam. Open bcWebCam's settings/options and explicitly enable the **PDF417** barcode symbology (which is disabled by default).\n2. Close bcWebCam settings to save the configuration.\n3. Open the previously scanned data log at `C:\\workspace\\data\\scanned_aamva_log.txt`.\n4. Parse the raw AAMVA text blocks to extract: First Name (DAC), Last Name (DCS), and Date of Birth (DBB).\n5. Calculate the age of each individual as of the current system date (March 9, 2026).\n6. Create a CSV file at `C:\\workspace\\age_verification_log.csv`.\n7. Write the extracted data and an age verification decision (`Approved` if 21 or older, `Denied` if under 21) into the CSV with exact columns: `FirstName`, `LastName`, `DOB`, `Status`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\verify_age_pdf417\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\verify_age_pdf417\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_csv_path": "C:\\workspace\\age_verification_log.csv",
+    "reference_date": "2026-03-09",
+    "age_threshold": 21,
+    "expected_headers": ["FirstName", "LastName", "DOB", "Status"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_age_pdf417"
+    }
+  }
+}

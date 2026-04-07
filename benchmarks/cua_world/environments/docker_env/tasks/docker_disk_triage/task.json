@@ -1,0 +1,46 @@
+{
+  "id": "docker_disk_triage@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are a DevOps engineer managing a shared development Docker host. Reclaim disk space by removing all dangling images, stopped containers, and orphaned named volumes while strictly preserving the 'acme-debug-snapshot' container (labeled 'preserve=true') and the 'acme-pgdata' volume. Ensure that the production containers 'acme-prod-web', 'acme-prod-api', and 'acme-prod-db' remain running throughout the process. Document the before and after disk usage state in a report at ~/Desktop/disk_cleanup_report.txt and create an executable maintenance script at ~/projects/maintenance/auto_cleanup.sh that automates this cleanup logic including the required safety filters.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_disk_triage/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_disk_triage/export_result.sh"
+  },
+  "metadata": {
+    "protected_containers": [
+      "acme-prod-web",
+      "acme-prod-api",
+      "acme-prod-db",
+      "acme-debug-snapshot"
+    ],
+    "protected_volumes": [
+      "acme-pgdata"
+    ],
+    "trash_containers_prefix": [
+      "acme-failed-build",
+      "acme-old-migration",
+      "acme-test-runner-old"
+    ],
+    "trash_volumes": [
+      "acme-redis-data",
+      "acme-old-uploads",
+      "acme-test-fixtures",
+      "acme-build-cache-vol"
+    ],
+    "report_path": "/home/ga/Desktop/disk_cleanup_report.txt",
+    "script_path": "/home/ga/projects/maintenance/auto_cleanup.sh"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_disk_triage"
+    }
+  }
+}

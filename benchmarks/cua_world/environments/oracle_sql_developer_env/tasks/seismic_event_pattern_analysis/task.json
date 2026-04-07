@@ -1,0 +1,34 @@
+{
+  "id": "seismic_event_pattern_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Geoscientist at a regional seismic monitoring center analyzing USGS earthquake catalog data in the SEISMO schema (seismo/Seismo2024@XEPDB1). Your objective is to identify seismic sequences, calculate statistical values, and establish automated monitoring.\n\nCreate a view named FMA_SEQUENCES using the MATCH_RECOGNIZE clause to detect Foreshock-Mainshock-Aftershock sequences ordered by event_time within each seismic_region. The pattern must identify a foreshock (magnitude < next event), a mainshock (highest magnitude in sequence), and one or more aftershocks (magnitude <= mainshock, occurring within 72 hours of the mainshock). The view must include sequence_id (match_number), foreshock_event_id, foreshock_mag, mainshock_event_id, mainshock_mag, aftershock_count, sequence_start_time, sequence_end_time, and region (seismic_region).\n\nCreate a view GR_BVALUE_ANALYSIS that calculates the Gutenberg-Richter b-value per seismic_region. Bin earthquakes by magnitude in 0.1 increments, calculate the cumulative count (N) of events >= each magnitude bin, and use the REGR_SLOPE function on (LOG(10, cumulative_count), magnitude) to derive the b-value as the negative of the slope. The output must include seismic_region, b_value, event_count, min_magnitude, and max_magnitude.\n\nCreate a view SWARM_DETECTION that identifies periods where the rolling 7-day event count in a region exceeds 3x the region's overall weekly average using analytical window functions. The view must include seismic_region, event_time, rolling_7day_count, and is_swarm ('Y' if > 3x average, 'N' otherwise).\n\nSet up automated monitoring by creating a table SEISMICITY_ALERTS with columns for alert_id (identity primary key), region, alert_type, event_count, alert_message, and created_date. Develop a procedure PROC_CHECK_SEISMIC_ANOMALIES that checks for events with magnitude >= 5.0 or active swarms in the last 24 hours and inserts corresponding alerts into SEISMICITY_ALERTS. Configure a DBMS_SCHEDULER job named SEISMIC_MONITOR to execute this procedure every 6 hours.\n\nExport a summary report containing region and b_value data to /home/ga/seismic_report.csv.\n\nConnection: Host=localhost, Port=1521, Service=XEPDB1, User=seismo, Password=Seismo2024",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/seismic_event_pattern_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/seismic_event_pattern_analysis/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/seismic_result.json",
+    "occupation": "Geoscientists",
+    "industry": "Life, Physical, and Social Science",
+    "oracle_features": [
+      "MATCH_RECOGNIZE",
+      "REGR_SLOPE",
+      "Analytical Window Functions",
+      "DBMS_SCHEDULER"
+    ],
+    "data_source": "USGS Earthquake Catalog API (Real Data)"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_seismic_event_pattern_analysis"
+    }
+  }
+}

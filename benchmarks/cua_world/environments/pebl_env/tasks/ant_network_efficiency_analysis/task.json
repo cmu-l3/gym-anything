@@ -1,0 +1,44 @@
+{
+  "id": "ant_network_efficiency_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "description": "A cognitive psychology laboratory has collected Attention Network Test (ANT) data from 20 participants, plus one contaminated dataset (sub-99) from a student who admitted to random button mashing. Using the dataset at ~/pebl/data/ant_data.csv (columns: participant_id, block, trial, cue_type, flanker_type, target_direction, accuracy, rt_ms), compute the three independent attention network scores (Alerting, Orienting, Executive Control) for each valid participant using the Fan et al. (2002) subtractive method on correct trials only. Formulas: Alerting = mean_RT(nocue) - mean_RT(double); Orienting = mean_RT(center) - mean_RT(spatial); Executive",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ant_network_efficiency_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/ant_network_efficiency_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "sub-99",
+    "contamination_reason": "Random button mashing (RT 40-65ms, chance accuracy)",
+    "n_valid_participants": 20,
+    "tolerances": {
+      "individual_score_ms": 12.0,
+      "group_mean_ms": 8.0
+    },
+    "scoring_weights": {
+      "valid_json": 10,
+      "contamination_excluded": 20,
+      "all_valid_present": 10,
+      "alerting_correct": 15,
+      "orienting_correct": 15,
+      "executive_correct": 15,
+      "group_alerting": 5,
+      "group_orienting": 5,
+      "group_executive": 5
+    },
+    "data_source": "Ex-Gaussian empirical simulation based on Fan et al. (2002) parameters",
+    "output_file": "/home/ga/pebl/analysis/ant_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ant_network_efficiency_analysis"
+    }
+  }
+}

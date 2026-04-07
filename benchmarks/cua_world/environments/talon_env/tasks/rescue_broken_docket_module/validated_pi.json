@@ -1,0 +1,150 @@
+{
+    "task_id": "rescue_broken_docket_module@1",
+    "dataset": "court_docket.csv (synthetic court docket data, 80 cases)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_dir",
+            "metadata_value": "C:\\Users\\Docker\\AppData\\Roaming\\Talon\\user\\docket_module",
+            "verified_value": "C:\\Users\\Docker\\AppData\\Roaming\\Talon\\user\\docket_module",
+            "source": "Confirmed by setup_task.ps1 line: $targetDir = \"$Script:TalonUserDir\\docket_module\" where $Script:TalonUserDir = C:\\Users\\Docker\\AppData\\Roaming\\Talon\\user. Live test verified directory creation via SSH.",
+            "status": "verified"
+        },
+        {
+            "key": "csv_source",
+            "metadata_value": "C:\\workspace\\data\\court_docket.csv",
+            "verified_value": "C:\\workspace\\data\\court_docket.csv",
+            "source": "Verified by: (1) host file exists at examples/talon_env/data/court_docket.csv (10208 bytes), (2) env.json mounts examples/talon_env/data -> C:\\workspace\\data as read-only, (3) setup_task.ps1 checks Test-Path C:\\workspace\\data\\court_docket.csv and throws if missing. Live test confirmed file accessible inside VM.",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "C:\\Users\\Docker\\rescue_broken_docket_module_result.json",
+            "verified_value": "C:\\Users\\Docker\\rescue_broken_docket_module_result.json",
+            "source": "Confirmed by export_result.ps1 line 17: $resultFile = 'C:\\Users\\Docker\\rescue_broken_docket_module_result.json'. Verified matches verifier.py default fallback path. Live test confirmed export script creates valid JSON at this path.",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "C:\\Users\\Docker\\Desktop\\TalonTasks\\docket_report.txt",
+            "verified_value": "C:\\Users\\Docker\\Desktop\\TalonTasks\\docket_report.txt",
+            "source": "Confirmed by: (1) setup_task.ps1 creates TalonTasks directory, (2) verifier.py checks report_content from export_result.ps1, (3) task description instructs agent to write report to this path. Live test verified TalonTasks directory exists and is writable.",
+            "status": "verified"
+        },
+        {
+            "key": "total_cases",
+            "metadata_value": 80,
+            "verified_value": 80,
+            "source": "Independently computed: parsed court_docket.csv with csv.DictReader, counted rows = 80. CSV has 81 lines (1 header + 80 data rows + 1 empty trailing line).",
+            "status": "verified"
+        },
+        {
+            "key": "num_judges",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Independently computed: Counter(c['judge'] for c in cases) yields 5 unique values: Hon. Robert Smith, Hon. Lisa Chen, Hon. Marcus Williams, Hon. Patricia O'Brien, Hon. David Park.",
+            "status": "verified"
+        },
+        {
+            "key": "cases_per_judge",
+            "metadata_value": 16,
+            "verified_value": 16,
+            "source": "Independently computed: Counter(c['judge'] for c in cases) shows exactly 16 cases for each of the 5 judges (16 * 5 = 80 total).",
+            "status": "verified"
+        },
+        {
+            "key": "num_case_types",
+            "metadata_value": 8,
+            "verified_value": 8,
+            "source": "Independently computed: Counter(c['case_type'] for c in cases) yields 8 unique types: FL, MS, CV, FM, TR, JV, PV, RO.",
+            "status": "verified"
+        },
+        {
+            "key": "cases_per_type",
+            "metadata_value": 10,
+            "verified_value": 10,
+            "source": "Independently computed: Counter(c['case_type'] for c in cases) shows exactly 10 cases for each of the 8 types (10 * 8 = 80 total).",
+            "status": "verified"
+        },
+        {
+            "key": "active_high_count",
+            "metadata_value": 15,
+            "verified_value": 15,
+            "source": "Independently computed: len([c for c in cases if c['status'] == 'Active' and c['priority'] == 'High']) = 15. Per-judge breakdown: Smith=4, Chen=3, Williams=2, O'Brien=3, Park=3. Full list: 2024-CF-001234, 2024-CF-001891, 2024-PV-000567, 2024-RO-000789 (Smith); 2024-CF-002301, 2024-PV-000634, 2024-RO-000823 (Chen); 2024-CF-002567, 2024-PV-000778 (Williams); 2024-CF-002801, 2024-CF-002934, 2024-PV-000901 (O'Brien); 2024-CF-003012, 2024-PV-001023, 2024-RO-001012 (Park).",
+            "status": "verified"
+        },
+        {
+            "key": "correct_csv_path",
+            "metadata_value": "C:/workspace/data/court_docket.csv",
+            "verified_value": "C:/workspace/data/court_docket.csv",
+            "source": "Verified by: (1) env.json mounts data dir to C:\\workspace\\data, (2) setup_task.ps1 confirms file at C:\\workspace\\data\\court_docket.csv, (3) the buggy docket_engine.py uses C:/workspace/court_docket.csv (missing /data/), (4) live test confirmed file exists at this path inside VM via dir command.",
+            "status": "verified"
+        },
+        {
+            "key": "correct_date_format",
+            "metadata_value": "%Y-%m-%d %H:%M",
+            "verified_value": "%Y-%m-%d %H:%M",
+            "source": "Independently verified: (1) all 80 next_hearing values follow format YYYY-MM-DD HH:MM (e.g., '2025-04-07 09:00'), (2) datetime.strptime(v, '%Y-%m-%d %H:%M') successfully parses all 80 values (100%), (3) the buggy format '%m/%d/%Y' fails on all 80 values (0%).",
+            "status": "verified"
+        },
+        {
+            "key": "correct_list_name",
+            "metadata_value": "docket_field",
+            "verified_value": "docket_field",
+            "source": "Verified from setup_task.ps1: the Python code declares mod.list(\"docket_field\", ...) (singular). The buggy .talon and .talon-list files use 'docket_fields' (plural). In Talon, the list name in .talon captures and .talon-list headers must match the mod.list() declaration. Therefore 'docket_field' (singular) is the canonical correct name.",
+            "status": "verified"
+        },
+        {
+            "key": "all_csv_columns",
+            "metadata_value": ["case_number", "case_type", "defendant", "plaintiff", "attorney", "judge", "next_hearing", "courtroom", "status", "priority"],
+            "verified_value": ["case_number", "case_type", "defendant", "plaintiff", "attorney", "judge", "next_hearing", "courtroom", "status", "priority"],
+            "source": "Independently read csv.DictReader(f).fieldnames from court_docket.csv. Header line: 'case_number,case_type,defendant,plaintiff,attorney,judge,next_hearing,courtroom,status,priority'. All 10 columns confirmed. The seeded .talon-list only maps 5 (case_number, defendant, judge, status, priority); missing: case_type, plaintiff, attorney, next_hearing, courtroom.",
+            "status": "verified"
+        },
+        {
+            "key": "bugs.docket_engine.py:path",
+            "metadata_value": "CSV path is C:/workspace/court_docket.csv — missing /data/ subdirectory",
+            "verified_value": "Confirmed: seeded Python has DOCKET_CSV = \"C:/workspace/court_docket.csv\", correct path is C:/workspace/data/court_docket.csv",
+            "source": "Read setup_task.ps1 here-string content for docket_engine.py; found DOCKET_CSV = \"C:/workspace/court_docket.csv\". Verified correct path from env.json mount: data -> C:\\workspace\\data.",
+            "status": "verified"
+        },
+        {
+            "key": "bugs.docket_engine.py:date_format",
+            "metadata_value": "datetime format is %m/%d/%Y but CSV uses YYYY-MM-DD HH:MM",
+            "verified_value": "Confirmed: seeded Python uses strptime(c['next_hearing'], '%m/%d/%Y'), but CSV dates are '%Y-%m-%d %H:%M'",
+            "source": "Read setup_task.ps1 here-string; found datetime.strptime(c['next_hearing'], '%m/%d/%Y'). Independently confirmed all 80 CSV dates parse with '%Y-%m-%d %H:%M' and fail with '%m/%d/%Y'.",
+            "status": "verified"
+        },
+        {
+            "key": "bugs.docket.talon:action_name",
+            "metadata_value": "calls user.docket_find but Python defines docket_search",
+            "verified_value": "Confirmed: seeded .talon has 'user.docket_find(docket_fields, text)', Python @mod.action_class defines 'def docket_search(field, value)'",
+            "source": "Read setup_task.ps1 here-strings for both files. The .talon calls user.docket_find; Python class defines docket_search. Name mismatch confirmed.",
+            "status": "verified"
+        },
+        {
+            "key": "bugs.docket.talon:list_name",
+            "metadata_value": "uses {user.docket_fields} but Python declares mod.list(docket_field)",
+            "verified_value": "Confirmed: .talon uses <user.docket_fields>, Python declares mod.list(\"docket_field\")",
+            "source": "Read setup_task.ps1: .talon content has '<user.docket_fields>', Python has mod.list(\"docket_field\", ...). Plural vs singular mismatch confirmed.",
+            "status": "verified"
+        },
+        {
+            "key": "bugs.docket_fields.talon-list:header",
+            "metadata_value": "header says user.docket_fields but Python declares docket_field",
+            "verified_value": "Confirmed: seeded .talon-list header is 'list: user.docket_fields', should be 'list: user.docket_field'",
+            "source": "Read setup_task.ps1 here-string for .talon-list. Header line is 'list: user.docket_fields' (plural). Must match Python mod.list(\"docket_field\") (singular).",
+            "status": "verified"
+        },
+        {
+            "key": "bugs.docket_fields.talon-list:incomplete",
+            "metadata_value": "only 5 of 10 CSV columns mapped",
+            "verified_value": "Confirmed: mapped = [case_number, defendant, judge, status, priority]; missing = [case_type, plaintiff, attorney, next_hearing, courtroom]",
+            "source": "Read setup_task.ps1 here-string for .talon-list content. Found 5 entries after separator. Cross-referenced with CSV header (10 columns). Missing: case_type, plaintiff, attorney, next_hearing, courtroom.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires fixing a buggy Talon Voice module at %APPDATA%\\Talon\\user\\docket_module\\ and completing its missing functionality. The court docket CSV is at C:\\workspace\\data\\court_docket.csv (80 cases, 10 columns). BUG FIXES: (1) docket_engine.py has wrong CSV path 'C:/workspace/court_docket.csv' — must add '/data/' to get 'C:/workspace/data/court_docket.csv'; (2) docket_engine.py has wrong datetime format '%m/%d/%Y' — CSV dates are 'YYYY-MM-DD HH:MM' so correct format is '%Y-%m-%d %H:%M'; (3) docket.talon calls 'user.docket_find' but Python defines 'docket_search' — must change to 'user.docket_search'; (4) docket.talon and docket_fields.talon-list both use 'docket_fields' (plural) but Python declares mod.list('docket_field') (singular) — all references must use 'docket_field'; (5) docket_fields.talon-list only maps 5 of 10 columns (case_number, defendant, judge, status, priority) — missing case_type, plaintiff, attorney, next_hearing, courtroom. NEW FUNCTIONS: docket_judge_workload (5 judges, each with exactly 16 cases: Hon. Robert Smith, Hon. Lisa Chen, Hon. Marcus Williams, Hon. Patricia O'Brien, Hon. David Park), docket_high_priority (15 Active+High cases: Smith has 4 [2024-CF-001234, 2024-CF-001891, 2024-PV-000567, 2024-RO-000789], Chen has 3 [2024-CF-002301, 2024-PV-000634, 2024-RO-000823], Williams has 2 [2024-CF-002567, 2024-PV-000778], O'Brien has 3 [2024-CF-002801, 2024-CF-002934, 2024-PV-000901], Park has 3 [2024-CF-003012, 2024-PV-001023, 2024-RO-001012]), docket_export_report (writes report to C:\\Users\\Docker\\Desktop\\TalonTasks\\docket_report.txt with total=80, per-judge=16 each, 8 case types with 10 each: FL MS CV FM TR JV PV RO, and 15 active high-priority cases). VOICE COMMANDS: three new commands in docket.talon calling user.docket_judge_workload(), user.docket_high_priority(), user.docket_export_report(). The agent should open files in Notepad++ (not PowerShell) to edit them. The data is synthetic.",
+    "pi_confidence": "high"
+}

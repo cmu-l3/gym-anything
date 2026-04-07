@@ -1,0 +1,108 @@
+{
+    "task_id": "parameterized_spatial_analysis_view@1",
+    "dataset": "Natural Earth 1:110m Cultural Vectors (admin-0 countries + populated places)",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_workspace",
+            "metadata_value": "spatial_analytics",
+            "verified_value": "spatial_analytics",
+            "source": "Matches task description. Verified via live testing that this workspace does NOT pre-exist (8 existing workspaces: cite, tiger, nurc, sde, it.geosolutions, topp, sf, ne). Agent must create it.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_namespace",
+            "metadata_value": "http://spatial.analytics.example.org",
+            "verified_value": "http://spatial.analytics.example.org",
+            "source": "Task-defined URI. Consistent with task description. Verified export_result.sh checks this via REST API at /rest/namespaces/spatial_analytics.json.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_datastore",
+            "metadata_value": "city_demographics",
+            "verified_value": "city_demographics",
+            "source": "Task-defined name. Consistent with task description. Verified export_result.sh checks for datastores under spatial_analytics workspace.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_layer",
+            "metadata_value": "continental_city_stats",
+            "verified_value": "continental_city_stats",
+            "source": "Task-defined SQL view layer name. Consistent with task description. Verified export_result.sh queries featuretype metadata including SQL text, parameters, and geometry declaration.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_style",
+            "metadata_value": "urban_density_gradient",
+            "verified_value": "urban_density_gradient",
+            "source": "Task-defined SLD style name. Consistent with task description. Verified export_result.sh checks both workspace-scoped and global style endpoints.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_param_name",
+            "metadata_value": "target_continent",
+            "verified_value": "target_continent",
+            "source": "Task-defined SQL view parameter name. GeoServer 2.25.x documentation confirms parameterized SQL views use %param_name% syntax in SQL and viewparams=key:value in WMS requests (https://docs.geoserver.org/2.25.x/en/user/data/database/sqlview.html). Verified via live testing that parameterized SQL view creation and WMS viewparams both work on this GeoServer 2.25.2 instance.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_param_default",
+            "metadata_value": "Europe",
+            "verified_value": "Europe",
+            "source": "Task-defined default value. Verified that 'Europe' is a valid continent value in ne_countries table (39 European countries found via spatial join query during live testing).",
+            "status": "verified"
+        },
+        {
+            "key": "source_tables",
+            "metadata_value": ["ne_countries", "ne_populated_places"],
+            "verified_value": ["ne_countries (177 rows)", "ne_populated_places (243 rows)"],
+            "source": "Verified via live PostGIS queries. ne_countries: 177 rows (matches Natural Earth 1:110m official data from naturalearthdata.com). ne_populated_places: 243 rows. Both loaded by setup_geoserver.sh via ogr2ogr from Natural Earth shapefiles downloaded in install_geoserver.sh. Key columns verified: ne_countries has gid(int), name(varchar), adm0_a3(varchar), continent(varchar), geom(geometry). ne_populated_places has gid(int), name(varchar), pop_max(numeric), geom(geometry). IMPORTANT: geometry column is 'geom' NOT 'wkb_geometry', and primary key is 'gid' NOT 'ogc_fid'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output_paths",
+            "metadata_value": ["/home/ga/output/europe_density.png", "/home/ga/output/asia_density.png"],
+            "verified_value": ["/home/ga/output/europe_density.png", "/home/ga/output/asia_density.png"],
+            "source": "Task-defined output paths. Verified via live testing that /home/ga/output/ directory exists with drwxr-xr-x permissions owned by ga:ga. Stale files are cleared by setup_task.sh. WMS GetMap image generation for existing layers (ne:ne_countries) confirmed functional.",
+            "status": "verified"
+        },
+        {
+            "key": "spatial_join_validity",
+            "metadata_value": "ST_Contains(c.geom, p.geom) with LEFT JOIN works",
+            "verified_value": "Confirmed working. Europe: 39 countries (all with >=1 city at this scale). Asia: 47 countries (Cyprus has 0 cities, confirming LEFT JOIN). France leads Europe with 4 cities (total urban pop 11,234,369). China leads Asia with 5 cities (total urban pop 40,997,000).",
+            "source": "Executed actual SQL queries during live testing: SELECT c.name, c.adm0_a3, c.continent, COUNT(p.gid), COALESCE(SUM(p.pop_max),0) FROM ne_countries c LEFT JOIN ne_populated_places p ON ST_Contains(c.geom, p.geom) WHERE c.continent='Europe' GROUP BY c.name, c.adm0_a3, c.continent, c.geom. Results saved in evidence logs spatial_join_europe.txt and spatial_join_asia.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "postgis_connection_params",
+            "metadata_value": "host: gs-postgis, port: 5432, db: gis, user: geoserver, pass: geoserver123",
+            "verified_value": "host: gs-postgis, port: 5432, db: gis, user: geoserver, pass: geoserver123",
+            "source": "Verified from existing ne workspace datastore REST API response (geoserver_ne_datastore.json evidence file): host=gs-postgis, port=5432, database=gis, user=geoserver. Password confirmed from docker-compose.yml in config/ directory (POSTGRES_PASS=geoserver123). Both gs-app and gs-postgis Docker containers confirmed healthy and running.",
+            "status": "verified"
+        },
+        {
+            "key": "geoserver_credentials",
+            "metadata_value": "admin / Admin123!",
+            "verified_value": "admin / Admin123!",
+            "source": "Verified from env.json environment variables (GEOSERVER_USER=admin, GEOSERVER_PASS=Admin123!) and docker-compose.yml (GEOSERVER_ADMIN_PASSWORD=Admin123!). Confirmed working via REST API calls during live testing. NOTE: The default GeoServer password 'geoserver' does NOT work — this was a common agent failure pattern in evaluations.",
+            "status": "verified"
+        },
+        {
+            "key": "sld_color_codes",
+            "metadata_value": "#D3D3D3, #AEC7E8, #2CA02C, #FF7F0E, #D62728, stroke #333333",
+            "verified_value": "#D3D3D3 (LightGray, 0 cities), #AEC7E8 (Tableau light blue, 1-2), #2CA02C (Tableau green, 3-5), #FF7F0E (Tableau orange, 6-10), #D62728 (Tableau red, 11+), #333333 (dark gray stroke)",
+            "source": "Colors from Tableau 10 / d3 category10 palette. All valid 6-digit hex codes. Verified export_result.sh SLD parser correctly extracts these via regex from GeoServer SLD XML (tested end-to-end during live verification).",
+            "status": "verified"
+        },
+        {
+            "key": "column_name_geom",
+            "metadata_value": "geom (in task description SQL: c.geom, p.geom)",
+            "verified_value": "geom",
+            "source": "CRITICAL DATA QUIRK: The PostGIS geometry column is named 'geom', NOT 'wkb_geometry' as ogr2ogr typically creates. This was discovered during live testing by querying information_schema.columns. The setup_geoserver.sh uses ogr2ogr with default settings, but the Natural Earth shapefiles' .dbf schema uses 'geom'. The task description correctly references c.geom and p.geom. An agent that assumes wkb_geometry (the ogr2ogr default) will fail.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires creating a parameterized spatial analysis service on GeoServer 2.25.2 with PostGIS. The source data is real Natural Earth 1:110m data: ne_countries (177 rows) and ne_populated_places (243 rows) in PostGIS (host: gs-postgis, port: 5432, db: gis, user: geoserver, pass: geoserver123). CRITICAL: the geometry column in both tables is named 'geom' (NOT 'wkb_geometry') and the primary key is 'gid' (NOT 'ogc_fid'). The GeoServer admin credentials are admin / Admin123! (NOT the default 'geoserver'). The agent must create workspace 'spatial_analytics' (URI: http://spatial.analytics.example.org), PostGIS datastore 'city_demographics', and a SQL view layer 'continental_city_stats' using ST_Contains(c.geom, p.geom) with LEFT JOIN and GROUP BY, parameterized by 'target_continent' (default: Europe, regex: ^[a-zA-Z ]+$). The SQL view must declare geometry as MultiPolygon SRID 4326. Expected spatial join results: Europe returns 39 countries (France: 4 cities/11.2M pop, Italy: 3, Austria/Netherlands: 2 each, 35 countries with 1 city). Asia returns 47 countries (China: 5 cities/41M pop, India: 4/40.9M, Japan/Malaysia: 3 each, Cyprus: 0 cities confirming LEFT JOIN works). SLD style 'urban_density_gradient' must have 5 rules based on city_count with colors: #D3D3D3 (0), #AEC7E8 (1-2), #2CA02C (3-5), #FF7F0E (6-10), #D62728 (11+), all with #333333 stroke. Two WMS GetMap PNGs (800x400, EPSG:4326, bbox -180,-90,180,90) must be generated using viewparams=target_continent:Europe and viewparams=target_continent:Asia, saved to /home/ga/output/europe_density.png and /home/ga/output/asia_density.png. There are 8 pre-existing workspaces; spatial_analytics must be newly created. The GeoServer SQL view parameter syntax uses %param_name% delimiters in the SQL query.",
+    "pi_confidence": "high"
+}

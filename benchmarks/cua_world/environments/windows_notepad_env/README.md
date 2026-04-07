@@ -74,7 +74,7 @@ python loop_all_modular.py --env windows_notepad_env --task hello_world
 from gym_anything.api import from_config
 
 # Create environment (no task for basic testing)
-env = from_config("benchmarks/cua_world/environments/windows_notepad_env")
+env = from_config("examples/windows_notepad_env")
 
 # Reset starts the VM
 obs = env.reset(seed=42, use_cache=False)

@@ -1,0 +1,40 @@
+{
+  "id": "log_source_health_monitor@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Your SOC team needs to ensure that critical log feeds do not silently fail. Using the Splunk web interface (http://localhost:8000, credentials: admin / SplunkAdmin1!), create a log source health monitoring system in the Search & Reporting app. Create a saved report named 'Log_Source_Health_Report' showing event ingestion volume over the last 24 hours grouped by index for at least two of the critical indexes: security_logs, web_logs, and system_logs. Additionally, create and enable a scheduled alert named 'Log_Source_Silence_Alert' to run every hour (cron: 0 * * * *) that detects if any of the three critical indexes (security_logs, web_logs, and system_logs) have received zero or abnormally few events in the last 60 minutes.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/log_source_health_monitor/setup_task.sh",
+    "post_task": "/workspace/tasks/log_source_health_monitor/export_result.sh"
+  },
+  "metadata": {
+    "report_name": "Log_Source_Health_Report",
+    "alert_name": "Log_Source_Silence_Alert",
+    "critical_indexes": [
+      "security_logs",
+      "web_logs",
+      "system_logs"
+    ],
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!",
+    "scoring": {
+      "report_exists": 20,
+      "report_groups_by_index": 20,
+      "alert_exists": 20,
+      "alert_references_all": 20,
+      "alert_scheduled_hourly": 20
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_log_source_health_monitor"
+    }
+  }
+}

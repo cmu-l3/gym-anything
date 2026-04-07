@@ -1,0 +1,38 @@
+{
+    "task_id": "floodplain_technical_report@1",
+    "dataset": "HEC-RAS Muncie Example (USACE)",
+    "case_id": "Muncie.p04 — White River at Muncie, IN",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "Civil Engineers",
+            "verified_value": "Civil Engineers",
+            "source": "O*NET OnLine: SOC code 17-2051.00 maps to 'Civil Engineers' — https://www.onetonline.org/link/details/17-2051.00",
+            "status": "verified"
+        },
+        {
+            "key": "onetsoc",
+            "metadata_value": "17-2051.00",
+            "verified_value": "17-2051.00",
+            "source": "O*NET OnLine confirms 17-2051.00 is the correct SOC code for Civil Engineers. Task involves hydraulic engineering (floodplain analysis, HEC-RAS simulation), which falls under Civil Engineering.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Government / Flood Insurance / Water Resources",
+            "verified_value": "Government / Flood Insurance / Water Resources",
+            "source": "FEMA Flood Insurance Studies (FIS) are government-funded water resources engineering projects. HEC-RAS was developed by USACE specifically for this domain. The task (floodplain technical report with infrastructure impact assessment) is a standard FIS deliverable.",
+            "status": "verified"
+        },
+        {
+            "key": "difficulty",
+            "metadata_value": "expert",
+            "verified_value": "expert",
+            "source": "Task requires 5+ distinct operation types (HDF5 multi-path extraction, geometry parsing, spatial interpolation, b04 modification, simulation execution, cross-scenario comparison) across 3 output files. The hardest existing HEC-RAS task (flood_frequency_analysis, rated 'very_hard') scored 15/100 with the evaluation agent. This task is strictly harder due to operational diversity and intermediate result management requirements. 'Expert' rating is justified.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task uses the USACE HEC-RAS Muncie example model (White River, Muncie, Indiana). The model is synthetic (not calibrated for real decision-making) but uses real geography (EPSG:2965 NAD83/Indiana East, units in feet). HEC-RAS 6.6 Linux compute engine is installed at /opt/hec-ras/bin/.\n\nMODEL STRUCTURE: The Muncie model has exactly 61 cross-sections. River stations range from 237.6 (downstream) to 15696.2 (upstream), decreasing downstream. The upstream boundary is at station 15696.24 on River 'White', Reach 'Muncie'.\n\nBASELINE SIMULATION: Pre-run with peak flow 21,000 cfs. Results stored in Muncie.p04.hdf. The clean template for re-running is Muncie.p04.tmp.hdf. Command: RasUnsteady Muncie.p04.tmp.hdf x04.\n\nBASELINE PEAK WSE (all 61 cross-sections, upstream to downstream): 955.42, 955.17, 954.95, 954.89, 954.56, 953.99, 953.59, 953.70, 953.34, 953.23, 952.32, 950.09, 950.79, 947.95, 948.74, 948.84, 948.66, 948.35, 948.24, 947.23, 946.94, 947.31, 946.94, 946.70, 946.17, 946.23, 945.89, 945.51, 944.78, 944.87, 944.80, 944.68, 944.71, 944.65, 944.59, 944.47, 944.04, 943.89, 943.64, 943.80, 943.21, 943.06, 942.67, 942.73, 942.47, 942.18, 941.94, 941.83, 941.45, 941.12, 941.10, 940.89, 940.40, 939.87, 939.80, 939.45, 939.41, 939.39, 939.15, 939.06, 938.73 ft. Overall range: 938.73 to 955.42 ft.\n\nBASELINE MAX VELOCITY range: 2.04 to 16.91 fps. Highest velocity 16.91 fps at station 14039.64.\n\nBED ELEVATIONS (minimum channel elevation per cross-section): range 913.62 to 941.39 ft. Computed from Geometry/Cross Sections/Station Elevation Values in HDF5.\n\nFLOOD DEPTHS: Max flood depth is 25.53 ft at station 865.5 (near downstream end). Range: 9.55 to 25.53 ft.\n\nHDF5 PATHS (critical for agent): Stations from 'Geometry/Cross Sections/Attributes' field 'RS'. Peak WSE from 'Results/Unsteady/Output/Output Blocks/Base Output/Unsteady Time Series/Cross Sections/Water Surface' (shape 289x61, take max over axis 0). Velocity from same base path but 'Velocity Total'. Bed elevation from 'Geometry/Cross Sections/Station Elevation Values' (shape 5158x2) indexed by 'Geometry/Cross Sections/Station Elevation Info' (shape 61x2, start_index and count).\n\nINFRASTRUCTURE IMPACT (8 facilities, 4 FLOODED / 4 SAFE): Ball_Memorial_Hospital (RS=15100, FFE=957.00, WSE=954.71, SAFE), Muncie_Central_High_School (RS=13650, FFE=946.00, WSE=948.80, FLOODED), Delaware_County_Courthouse (RS=11500, FFE=948.50, WSE=946.43, SAFE), Riverside_Elementary (RS=9700, FFE=943.00, WSE=944.83, FLOODED), White_River_WWTP (RS=7750, FFE=946.50, WSE=944.34, SAFE), Ball_State_University (RS=5500, FFE=940.00, WSE=942.71, FLOODED), Muncie_Fire_Station_4 (RS=3100, FFE=943.00, WSE=941.00, SAFE), Cardinal_Greenway_Trailhead (RS=1600, FFE=935.00, WSE=939.43, FLOODED).\n\nSENSITIVITY ANALYSIS: The agent must scale ALL flow values in Muncie.b04 by 1.5x. Original b04 has 25 time-flow pairs in 'Upstream Flow Hydrograph' section with peak 21,000 cfs. Scaled peak becomes 31,500 cfs. The b04 format uses fixed-width columns: 5 pairs of (time, flow) per line, 8 characters per field. CRITICAL: Only b04 text file modifications affect simulation results. Manning's n modifications (x04, HDF5, or any other method) produce ZERO WSE change in this model. Live testing confirmed sensitivity delta WSE range of 1.79 to 4.87 ft (mean 3.34 ft) for the 1.5x flow scaling.\n\nEXPECTED SUMMARY VALUES: NUM_CROSS_SECTIONS=61, MAX_FLOOD_DEPTH_FT=25.53, MAX_FLOOD_DEPTH_STATION=865.5413 (or approximately 865.5), FACILITIES_FLOODED=4, FACILITIES_SAFE=4, MAX_SENSITIVITY_DELTA_FT should be approximately 4.87 ft.",
+    "pi_confidence": "high"
+}

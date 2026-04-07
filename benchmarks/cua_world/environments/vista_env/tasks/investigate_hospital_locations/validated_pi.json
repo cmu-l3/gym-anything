@@ -1,0 +1,50 @@
+{
+    "task_id": "investigate_hospital_locations@1",
+    "dataset": "VistA VEHU (CPRS Demo database)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "interface",
+            "metadata_value": "ydbgui",
+            "verified_value": "ydbgui",
+            "source": "setup_task.sh confirms the interface by launching 'yottadb -run %ydbgui --port 8089'",
+            "status": "verified"
+        },
+        {
+            "key": "location_global",
+            "metadata_value": "^SC",
+            "verified_value": "^SC",
+            "source": "setup_task.sh verifies the Hospital Location data using the ^SC global and VistA documentation confirms File 44 uses ^SC",
+            "status": "verified"
+        },
+        {
+            "key": "min_entries",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "task.json objective and verifier.py prompt both explicitly state 'Need to see at least 5 ideally'",
+            "status": "verified"
+        },
+        {
+            "key": "required_types",
+            "metadata_value": ["C", "W"],
+            "verified_value": ["C", "W"],
+            "source": "task.json and verifier.py prompt both explicitly look for Clinics (Type 'C') and Wards (Type 'W')",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights",
+            "metadata_value": {
+                "infrastructure_ready": 20,
+                "global_navigated": 25,
+                "multiple_entries_visible": 25,
+                "types_identified": 30
+            },
+            "verified_value": null,
+            "source": "verifier.py is severely truncated at line 107 ('vlm_resp = vlm_resp.replace('), causing a SyntaxError. Therefore, the VLM scoring logic is completely broken and these weights are never applied, making the task unscorable.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "Verified that the VistA VEHU container serves synthetic hospital data. The target interface is YDBGui, and the target VistA global for Hospital Locations (File 44) is explicitly confirmed as ^SC. The task correctly requires identifying at least 5 entries, specifically targeting Clinic ('C') and Ward ('W') types. However, a critical defect was discovered: 'verifier.py' is severely truncated and ends with a SyntaxError ('vlm_resp = vlm_resp.replace('), meaning the VLM evaluation logic is broken and the task is fundamentally unscorable.",
+    "pi_confidence": "high"
+}

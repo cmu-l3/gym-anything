@@ -1,0 +1,122 @@
+{
+    "task_id": "invasive_species_state_expansion@1",
+    "dataset": "GBIF Harmonia axyridis occurrences + Natural Earth US state boundaries",
+    "case_id": "GBIF taxonKey 4989904, Natural Earth 50m admin-1",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "species_name",
+            "metadata_value": "Harmonia axyridis (Asian lady beetle)",
+            "verified_value": "Harmonia axyridis (Pallas, 1773) - verified via GBIF species API",
+            "source": "GBIF species API (https://api.gbif.org/v1/species/4989904)",
+            "status": "verified"
+        },
+        {
+            "key": "gbif_taxonKey",
+            "metadata_value": "1045608",
+            "verified_value": "4989904",
+            "source": "GBIF API direct query: taxonKey 1045608 returns Ennearthron unicolor (Ciidae); taxonKey 4989904 returns Harmonia axyridis (Coccinellidae). Tested GBIF occurrence search with both keys: taxonKey=1045608 returns 0 US records; taxonKey=4989904 returns 173,436 US records.",
+            "status": "contradicted"
+        },
+        {
+            "key": "gbif_occurrence_count_us",
+            "metadata_value": "Not explicitly stated, but implied task should have data",
+            "verified_value": "173,436 total US records for Harmonia axyridis with coordinates (as of 2026-03-04)",
+            "source": "GBIF API query: https://api.gbif.org/v1/occurrence/search?taxonKey=4989904&country=US&hasCoordinate=true returns count=173436",
+            "status": "verified"
+        },
+        {
+            "key": "gbif_records_early_period",
+            "metadata_value": "Period 2005-2012 expected to have records",
+            "verified_value": "1,393 records for Harmonia axyridis in US during 2005-2012",
+            "source": "GBIF API query: https://api.gbif.org/v1/occurrence/search?taxonKey=4989904&country=US&hasCoordinate=true&year=2005,2012 returns count=1393",
+            "status": "verified"
+        },
+        {
+            "key": "gbif_records_recent_period",
+            "metadata_value": "Period 2016-2023 expected to have records",
+            "verified_value": "97,919 records for Harmonia axyridis in US during 2016-2023",
+            "source": "GBIF API query: https://api.gbif.org/v1/occurrence/search?taxonKey=4989904&country=US&hasCoordinate=true&year=2016,2023 returns count=97919",
+            "status": "verified"
+        },
+        {
+            "key": "gbif_year_field_presence",
+            "metadata_value": "GBIF records expected to have year property",
+            "verified_value": "100% of sampled records (20/20) include year field",
+            "source": "GBIF API sample query results - all records include 'year' property with values like 2026, 2025, etc.",
+            "status": "verified"
+        },
+        {
+            "key": "gbif_coordinates_field",
+            "metadata_value": "GBIF records expected to have coordinates",
+            "verified_value": "100% of sampled records (20/20) include decimalLatitude and decimalLongitude",
+            "source": "GBIF API sample query - all records have decimalLatitude and decimalLongitude properties",
+            "status": "verified"
+        },
+        {
+            "key": "natural_earth_data_source",
+            "metadata_value": "Natural Earth 50m admin-1 states provinces shapefile",
+            "verified_value": "https://naturalearth.s3.amazonaws.com/50m_cultural/ne_50m_admin_1_states_provinces.zip - accessible, 911,408 bytes, last modified 2022-05-13",
+            "source": "Direct HTTP HEAD request to Natural Earth S3 bucket returns HTTP 200 with valid metadata",
+            "status": "verified"
+        },
+        {
+            "key": "natural_earth_us_state_coverage",
+            "metadata_value": "Natural Earth 50m states includes US state boundaries with name and postal fields",
+            "verified_value": "Natural Earth 50m admin-1 data includes all US states (48+ contiguous states) with name, postal (POSTAL or similar), and type_en fields",
+            "source": "Natural Earth documentation: 50m Admin 1 dataset includes all US states; setup script successfully filters by adm0_a3='USA' and selects name, postal, type_en fields using ogr2ogr",
+            "status": "verified"
+        },
+        {
+            "key": "field_pct_change_formula",
+            "metadata_value": "100*(count_2016_2023 - count_2005_2012)/count_2005_2012; null if count_2005_2012 == 0",
+            "verified_value": "Formula is mathematically correct for calculating percentage change from early to recent period",
+            "source": "Task description explicitly specifies this formula with proper null handling for division by zero",
+            "status": "verified"
+        },
+        {
+            "key": "invasion_status_categories",
+            "metadata_value": "Four categories: expanding, new_invasion, established, no_recent_activity",
+            "verified_value": "Categories and logic verified: (1) expanding: recent > early AND early > 0; (2) new_invasion: early == 0 AND recent > 0; (3) established: recent <= early AND early > 0 AND recent > 0; (4) no_recent_activity: recent == 0 AND early > 0",
+            "source": "Task description provides complete logic definition for all four status categories",
+            "status": "verified"
+        },
+        {
+            "key": "output_csv_columns",
+            "metadata_value": "invasion_status, state_count, total_occurrences_recent",
+            "verified_value": "Three columns required: invasion_status (categorical), state_count (integer count of states in each status), total_occurrences_recent (sum of recent period occurrences)",
+            "source": "Task description: 'Also export /home/ga/GIS_Data/exports/invasion_summary.csv with columns: invasion_status, state_count, total_occurrences_recent'",
+            "status": "verified"
+        },
+        {
+            "key": "output_geojson_fields",
+            "metadata_value": "count_2005_2012, count_2016_2023, pct_change, invasion_status",
+            "verified_value": "Four derived fields required in GeoJSON feature properties, plus original state fields (name, postal, etc.)",
+            "source": "Task metadata expected_fields array and task description specifications",
+            "status": "verified"
+        },
+        {
+            "key": "geographic_extent",
+            "metadata_value": "Contiguous United States",
+            "verified_value": "Setup script filters GBIF records to contiguous US bbox: -125 <= lon <= -66 and 24 <= lat <= 50",
+            "source": "setup_task.sh line 76: spatial filter for contiguous US coordinates",
+            "status": "verified"
+        },
+        {
+            "key": "species_invasiveness",
+            "metadata_value": "Harmonia axyridis is described as invasive Asian lady beetle",
+            "verified_value": "Harmonia axyridis is confirmed as invasive in North America, known as harlequin/Asian/multicoloured Asian ladybeetle, expansion rate 50-100+ km/yr, established across contiguous US",
+            "source": "Wikipedia, GBIF, Animal Diversity Web - species is well-documented as one of the world's most invasive insects",
+            "status": "verified"
+        },
+        {
+            "key": "temporal_gap_in_analysis",
+            "metadata_value": "Analysis periods: 2005-2012 (early), 2016-2023 (recent) with intentional gap 2013-2015",
+            "verified_value": "Temporal gap is intentional and well-defined in task specification",
+            "source": "Task description explicitly defines two periods: '2005–2012' vs '2016–2023' with implied gap of 4 years",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task analyzes the spatial-temporal spread of Harmonia axyridis (Asian ladybird) across the US by comparing occurrence records from GBIF (authentic public biodiversity data) for two periods: 2005-2012 (early invasion phase, 1,393 US records) and 2016-2023 (recent expansion, 97,919 US records). GBIF data includes year, coordinates, and state information for 173,436 total US occurrences. US state boundaries come from Natural Earth's 50m admin-1 dataset, which provides 48+ contiguous states with name and postal fields. The task requires computing percentage change in occurrence counts per state (using the formula 100*(recent-early)/early with null handling) and classifying invasion status into four categories (expanding, new_invasion, established, no_recent_activity) based on temporal dynamics. Output is a GeoJSON FeatureCollection with these derived fields plus a summary CSV. CRITICAL ISSUE DETECTED: The setup script uses incorrect GBIF taxonKey 1045608 (which refers to Ennearthron unicolor, a different beetle entirely and returns 0 US records), when the correct taxonKey for Harmonia axyridis is 4989904 (which provides 173,436 US records). This is a fundamental data pipeline error that would cause task failure with the current setup script.",
+    "pi_confidence": "high"
+}

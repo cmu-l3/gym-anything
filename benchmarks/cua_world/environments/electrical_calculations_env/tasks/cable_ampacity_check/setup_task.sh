@@ -21,20 +21,8 @@ sleep 1
 
 # Launch the application
 echo "Launching Electrical Calculations..."
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 8
-
-# Dismiss any potential startup dialogs/ads by pressing back once
-# (Common pattern for free Android apps)
-input keyevent KEYCODE_BACK
-sleep 1
-
-# Check if we accidentally exited (if no ad was present), relaunch if needed
-if dumpsys window | grep mCurrentFocus | grep -q "Launcher"; then
-    echo "Relaunching app..."
-    monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-    sleep 5
-fi
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
 
 # Capture initial state screenshot
 screencap -p /sdcard/initial_screenshot.png

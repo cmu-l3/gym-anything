@@ -5,7 +5,7 @@ echo "=== Setting up add_sphere_to_scene task ==="
 source /workspace/scripts/task_utils.sh
 
 # Record initial scene state using Blender Python API
-SOURCE_BLEND="/home/ga/BlenderProjects/sample_scene.blend"
+SOURCE_BLEND="/home/ga/BlenderProjects/baseline_scene.blend"
 OUTPUT_BLEND="/home/ga/BlenderProjects/scene_with_sphere.blend"
 
 # Get initial object list from the source blend file
@@ -18,7 +18,7 @@ import bpy
 import json
 
 # Open the source file
-bpy.ops.wm.open_mainfile(filepath="/home/ga/BlenderProjects/sample_scene.blend")
+bpy.ops.wm.open_mainfile(filepath="/home/ga/BlenderProjects/baseline_scene.blend")
 
 objects = []
 for obj in bpy.data.objects:

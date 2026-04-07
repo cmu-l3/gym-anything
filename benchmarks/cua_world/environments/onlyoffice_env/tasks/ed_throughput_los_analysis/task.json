@@ -1,0 +1,44 @@
+{
+  "id": "ed_throughput_los_analysis@1",
+  "version": "1.0",
+  "env_id": "onlyoffice_env@0.1",
+  "description": "As the healthcare informatics analyst for Memorial General Hospital, process the Q3 Emergency Department visit logs from ~/Documents/Spreadsheets/ed_visit_logs_q3.csv to build an ED Operations Dashboard saved as ~/Documents/Spreadsheets/ed_operations_dashboard.xlsx. The dashboard must include patient-level calculations for 'Door-to-Doctor Time' (MD_Seen_Time - Arrival_Time) and 'Total LOS' (Departure_Time - Arrival_Time) in minutes, ensuring cross-midnight calculations are handled correctly. Include a status column flagging visits where Total LOS exceeds the 240-minute target as 'Breach' versus 'Compliant'. On a separate summary sheet, provide the overall average Door-to-Doctor time, the overall LWBS rate (percentage of visits where Disposition is 'LWBS'), and a summary table showing the average or median Total LOS grouped by Acuity_ESI level (1-5). Format the final dashboard for executive review.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "metadata": {
+    "ground_truth_hints": {
+      "total_records": 1500,
+      "target_los_minutes": 240,
+      "lwbs_rate_approx": 0.04,
+      "door_to_doc_approx": 45,
+      "esi_levels": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "breach_flag_keywords": [
+        "breach",
+        "exceeded",
+        "compliant",
+        "met"
+      ]
+    }
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ed_throughput_los_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/ed_throughput_los_analysis/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ed_throughput"
+    }
+  }
+}

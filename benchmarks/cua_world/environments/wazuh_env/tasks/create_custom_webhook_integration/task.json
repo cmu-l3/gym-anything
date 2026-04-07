@@ -1,0 +1,31 @@
+{
+  "id": "create_custom_webhook_integration@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create a custom Wazuh integration named 'custom-slack-alerts' in the wazuh-wazuh.manager-1 container that forwards alerts with level 12 or higher to http://webhook-receiver:9999/alerts. The integration requires a shell wrapper at /var/ossec/integrations/custom-slack-alerts and a Python script at /var/ossec/integrations/custom-slack-alerts.py. The Python script must parse the alert JSON (from the path in the first argument) to extract the timestamp, rule.id, rule.level, rule.description, and agent.name, then POST this data to the webhook URL (from the third argument) using urllib.request. The integration must be enabled in ossec.conf using the 'json' format.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/create_custom_webhook_integration/setup_task.sh",
+    "post_task": "/workspace/tasks/create_custom_webhook_integration/export_result.sh"
+  },
+  "metadata": {
+    "container_name": "wazuh-wazuh.manager-1",
+    "shell_script_path": "/var/ossec/integrations/custom-slack-alerts",
+    "python_script_path": "/var/ossec/integrations/custom-slack-alerts.py",
+    "config_path": "/var/ossec/etc/ossec.conf",
+    "integration_name": "custom-slack-alerts",
+    "hook_url": "http://webhook-receiver:9999/alerts",
+    "alert_level": 12
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_custom_webhook_integration"
+    }
+  }
+}

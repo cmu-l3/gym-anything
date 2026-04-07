@@ -1,0 +1,35 @@
+{
+  "id": "logistics_partition_strategy@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Logistics Analyst addressing performance issues in the LOGISTICS_MGR schema (connected as logistics_mgr/Logistics2024 to XEPDB1) by implementing a partitioning strategy for large unpartitioned tables. Implement range partitioning by creating SHIPMENT_EVENTS_PART (matching SHIPMENT_EVENTS columns) with 24 monthly partitions named P_2023_01 through P_2024_12 plus a P_FUTURE maxvalue partition, and migrate all data from SHIPMENT_EVENTS. Implement list partitioning by creating SHIPMENTS_PART (matching SHIPMENTS columns) with five regional partitions (P_NORTHEAST, P_SOUTHEAST, P_MIDWEST, P_SOUTHWEST, P_WEST) and migrate all data from SHIPMENTS. Create a composite-partitioned table SHIPMENT_ANALYTICS (columns: shipment_id, tracking_number, carrier_id, dest_region, weight_lbs, declared_value, service_level, created_date, delivered_date, transit_days, on_time_flag) range-partitioned by created_date (8 quarterly partitions for 2023-2024 plus FUTURE) and list-subpartitioned by dest_region (5 subpartitions each); populate this table by joining SHIPMENTS and computing transit_days (delivered - created) and on_time_flag ('Y' if transit_days <= 5, 'N' otherwise). \n\nEstablish local partitioned indexes IDX_EVENTS_PART_SHIPID on SHIPMENT_EVENTS_PART(shipment_id), IDX_SHIPMENTS_PART_CARRIER on SHIPMENTS_PART(carrier_id), and IDX_ANALYTICS_PART_CREATED on SHIPMENT_ANALYTICS(created_date). Perform a partition exchange by creating a non-partitioned EVENTS_STAGING table matching SHIPMENT_EVENTS_PART, inserting at least 100 rows with an event_date in January 2025, and executing an exchange of the P_FUTURE partition with the staging table without validation. Gather statistics using DBMS_STATS and create a view PARTITION_STATS_VW querying USER_TAB_PARTITIONS to show table_name, partition_name, partition_position, num_rows, and high_value. Finally, provide evidence of partition pruning by generating an explain plan for a query on SHIPMENT_EVENTS_PART where event_date is between 2024-06-01 and 2024-06-30, saving the output of DBMS_XPLAN.DISPLAY to /home/ga/Documents/exports/partition_pruning_plan.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/logistics_partition_strategy/setup_task.sh",
+    "post_task": "/workspace/tasks/logistics_partition_strategy/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Logistics Analysts",
+    "industry": "Transportation and Warehousing",
+    "expected_pruning_output": "/home/ga/Documents/exports/partition_pruning_plan.txt",
+    "oracle_features": [
+      "RANGE Partitioning",
+      "LIST Partitioning",
+      "COMPOSITE Partitioning",
+      "Local Indexes",
+      "Partition Exchange Loading",
+      "DBMS_XPLAN"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_logistics_partition_strategy"
+    }
+  }
+}

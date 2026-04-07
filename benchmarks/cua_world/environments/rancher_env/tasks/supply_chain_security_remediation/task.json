@@ -1,0 +1,41 @@
+{
+  "id": "supply_chain_security_remediation@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "The information security team has completed a container security audit of the software supply chain platform and produced a findings report at /home/ga/Desktop/security_audit_report.txt. Six security violations were identified across workloads in the 'supply-chain' namespace. Your job as the platform security engineer is to read the audit report, identify the specific workloads with violations, and remediate all findings to bring the namespace into compliance. The report lists vulnerability categories and affected service tier — it does not name specific Kubernetes resources. You must correlate findings to workloads by inspecting the cluster. Login to Rancher at https://localhost (cluster: 'local') with credentials admin / Admin12345678!.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 120
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/supply_chain_security_remediation/setup_task.sh",
+    "post_task": "/workspace/tasks/supply_chain_security_remediation/export_result.sh"
+  },
+  "metadata": {
+    "target_namespace": "supply-chain",
+    "audit_report_path": "/home/ga/Desktop/security_audit_report.txt",
+    "num_violations": 6,
+    "injected_violations": [
+      "registry-proxy: privileged=true AND no seccompProfile",
+      "artifact-scanner: hostPath /var/run/docker.sock AND no runAsNonRoot",
+      "build-agent: SYS_ADMIN capability in securityContext",
+      "deploy-controller: ClusterRoleBinding to cluster-admin",
+      "sbom-generator: no resource limits (requests and limits both absent)",
+      "registry-proxy: also missing resource limits"
+    ],
+    "verification_criteria": {
+      "C1": "registry-proxy: privileged removed, seccompProfile=RuntimeDefault, resource limits set",
+      "C2": "artifact-scanner: no hostPath docker.sock mount, runAsNonRoot=true",
+      "C3": "build-agent: SYS_ADMIN capability removed from securityContext",
+      "C4": "deploy-controller: no cluster-admin ClusterRoleBinding for its ServiceAccount"
+    },
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_supply_chain_security_remediation"
+    }
+  }
+}

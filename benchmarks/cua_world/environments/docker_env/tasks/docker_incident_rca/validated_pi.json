@@ -1,0 +1,59 @@
+{
+    "task_id": "docker_incident_rca@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/store-app",
+            "verified_value": "/home/ga/projects/store-app",
+            "source": "setup_task.sh line 22: PROJECT_DIR=\"/home/ga/projects/store-app\" and lines 23-24 create and populate this directory",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Desktop/incident_report.txt",
+            "verified_value": "/home/ga/Desktop/incident_report.txt",
+            "source": "export_result.sh line 32: REPORT_PATH=\"/home/ga/Desktop/incident_report.txt\"; verifier.py expects report at this location",
+            "status": "verified"
+        },
+        {
+            "key": "required_services",
+            "metadata_value": ["store-db", "store-api", "store-worker", "store-web"],
+            "verified_value": ["store-db", "store-api", "store-worker", "store-web"],
+            "source": "setup_task.sh lines 135-180 define docker-compose services: store-db (line 135), store-api (line 151), store-worker (line 161), store-web (line 171); export_result.sh lines 12-15 check these exact services",
+            "status": "verified"
+        },
+        {
+            "key": "health_endpoint",
+            "metadata_value": "http://localhost:8080/api/health",
+            "verified_value": "http://localhost:8080/api/health",
+            "source": "setup_task.sh line 47: Flask app defines @app.route('/api/health'); line 176 maps docker port 8080:80; line 122 nginx proxies /api/ to store-api:5000; export_result.sh line 28 tests curl http://localhost:8080/api/health",
+            "status": "verified"
+        },
+        {
+            "key": "admin_user",
+            "metadata_value": "ga",
+            "verified_value": "ga",
+            "source": "setup_task.sh lines 24, 250: chown -R ga:ga; line 258: su - ga command; task.json description line 5: 'Login: user ga, password password123'",
+            "status": "verified"
+        },
+        {
+            "key": "admin_password",
+            "metadata_value": "password123",
+            "verified_value": "password123",
+            "source": "task.json description line 5 explicitly states 'Login: user ga, password password123' for system login",
+            "status": "verified"
+        },
+        {
+            "key": "min_db_connections",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "verifier.py line 75: checks if max_connections >= 20 to award 15 points for root cause fix; setup_task.sh line 142 deliberately sets max_connections=5 (the broken state); 20 is the minimum acceptable after fix",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic Docker incident RCA task where a fragile e-commerce application stack (store-app) with four services (store-db, store-api, store-worker, store-web) is deliberately crashed via connection exhaustion. The root cause is PostgreSQL max_connections set to 5 in docker-compose.yml line 142. The application code (Flask app.py with health endpoint at /api/health on port 5000, proxied via nginx to localhost:8080) is generated during task setup. The task requires fixing max_connections to at least 20, restarting services, and creating an incident report at /home/ga/Desktop/incident_report.txt. Login credentials are ga/password123. All data is synthetic and created by setup_task.sh; no external data sources are imported.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,29 @@
+{
+  "id": "calculate_tod_ppa_revenue@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "A Financial Analyst at a renewable energy developer is evaluating a 100 MW utility-scale solar project near Phoenix, AZ. The local utility is offering a PPA with a base price of $30.00/MWh, but it includes Time-of-Delivery (TOD) multipliers. Midday generation is penalized, while late-afternoon generation is rewarded.\n\nSimulate a 100 MW (100,000 kW DC) single-axis tracking PV system in Phoenix. Use NREL's PySAM in Python to extract the 8760-hour generation profile and calculate time-weighted revenue.\n\nSystem Parameters:\n- Location: Phoenix, AZ (use any bundled Phoenix TMY weather file)\n- DC Capacity: 100,000 kW (100 MW)\n- Array Type: Single-axis tracking (type 2)\n- DC-to-AC Ratio: 1.30\n- System Losses: 14.08%\n- Inverter Efficiency: 96%\n- Tilt: 0, Azimuth: 180\n\nFinancial & TOD Parameters:\n- Base PPA Price: $30.00 / MWh\n- Assume an 8760-hour standard year. The hour-of-day can be calculated as `hour % 24` (0 is midnight to 1AM, 16 is 4PM to 5PM).\n- Summer Months (June-Sept, months 6-9): Peak (hours 16, 17, 18, 19) multiplier = 2.5; Day (hours 8-15) multiplier = 0.7; Off-Peak (all other) multiplier = 0.9.\n- Winter Months (Jan-May, Oct-Dec, months 1-5, 10-12): Peak (hours 16-19) multiplier = 1.2; Day (hours 8-15) multiplier = 0.8; Off-Peak multiplier = 0.9.\n\nFor each hour, revenue = Generation (MWh) × $30.00 × TOD_Multiplier.\n\nSave your Python script to `/home/ga/Documents/SAM_Projects/calculate_tod.py`.\n\nSave the final aggregated metrics as a JSON file at `/home/ga/Documents/SAM_Projects/tod_revenue_analysis.json` containing exactly these keys:\n- `total_generation_mwh` (float)\n- `total_revenue_usd` (float)\n- `effective_ppa_price_usd_per_mwh` (float)\n- `summer_peak_revenue_usd` (float)\n\nMake sure the script executes successfully and outputs the JSON file.",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/calculate_tod_ppa_revenue/setup_task.sh",
+    "post_task": "/workspace/tasks/calculate_tod_ppa_revenue/export_result.sh"
+  },
+  "metadata": {
+    "expected_generation_mwh_min": 220000,
+    "expected_generation_mwh_max": 245000,
+    "expected_effective_price_min": 22.00,
+    "expected_effective_price_max": 28.00,
+    "base_ppa_price": 30.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_calculate_tod_ppa_revenue"
+    }
+  }
+}

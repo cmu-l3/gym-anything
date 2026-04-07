@@ -252,8 +252,40 @@ try {
         Start-Sleep -Seconds 3
 
         Write-Host "Workgroup server added (localhost)"
+
+        # Relaunch Edge to ADAudit Plus main page so it's visible on screen
+        Start-Sleep -Seconds 3
+        Write-Host "Relaunching Edge to ADAudit Plus..."
+        $edgeBatch2 = "C:\Windows\Temp\launch_edge_main.cmd"
+        "@echo off`r`nstart `"`" `"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`" --start-maximized --no-first-run --disable-sync --no-default-browser-check --disable-features=msEdgeOnRampFRE `"http://localhost:8081/`"" | Out-File -FilePath $edgeBatch2 -Encoding ASCII
+
+        $prevEAP3 = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        schtasks /Delete /TN LaunchEdgeMain /F 2>$null
+        schtasks /Create /TN LaunchEdgeMain /TR "cmd /c $edgeBatch2" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
+        schtasks /Run /TN LaunchEdgeMain 2>$null
+        $ErrorActionPreference = $prevEAP3
+        Start-Sleep -Seconds 10
+        schtasks /Delete /TN LaunchEdgeMain /F 2>$null
+        Remove-Item $edgeBatch2 -Force -ErrorAction SilentlyContinue
+        Write-Host "Edge relaunched to ADAudit Plus"
     } else {
         Write-Host "WARNING: PyAutoGUI not available - skipping workgroup server addition"
+
+        # Still launch Edge to ADAudit Plus even without PyAutoGUI
+        Write-Host "Launching Edge to ADAudit Plus..."
+        $edgeBatch2 = "C:\Windows\Temp\launch_edge_main.cmd"
+        "@echo off`r`nstart `"`" `"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`" --start-maximized --no-first-run --disable-sync --no-default-browser-check --disable-features=msEdgeOnRampFRE `"http://localhost:8081/`"" | Out-File -FilePath $edgeBatch2 -Encoding ASCII
+
+        $prevEAP3 = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        schtasks /Delete /TN LaunchEdgeMain /F 2>$null
+        schtasks /Create /TN LaunchEdgeMain /TR "cmd /c $edgeBatch2" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
+        schtasks /Run /TN LaunchEdgeMain 2>$null
+        $ErrorActionPreference = $prevEAP3
+        Start-Sleep -Seconds 10
+        schtasks /Delete /TN LaunchEdgeMain /F 2>$null
+        Remove-Item $edgeBatch2 -Force -ErrorAction SilentlyContinue
     }
 
     # ------------------------------------------------------------------

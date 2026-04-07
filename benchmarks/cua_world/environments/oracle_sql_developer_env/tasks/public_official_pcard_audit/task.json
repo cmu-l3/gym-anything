@@ -1,0 +1,40 @@
+{
+  "id": "public_official_pcard_audit@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Senior Compliance Analyst for a State Auditor General's office implementing forensic accounting rules to audit government Purchase Card (P-Card) expenses in the STATE_AUDIT schema (User: state_audit, Password: Audit2024!, Host: localhost, Port: 1521, Service: XEPDB1).\n\nIdentify split transactions by creating a view VW_SPLIT_TXNS (emp_id, expense_date, merchant_name, total_amount, txn_count) where an employee made multiple purchases at the same merchant on the same date totaling >= 500, with a transaction count > 1, and each individual transaction < 500.\n\nIdentify unauthorized weekend spending in a view VW_WEEKEND_VIOLATIONS (expense_id, emp_id, expense_date, amount, merchant_name) for expenses on Saturdays or Sundays (using 'SAT' or 'SUN' via Oracle's TO_CHAR with NLS_DATE_LANGUAGE=ENGLISH) where the employee lacks an 'APPROVED' record in TRAVEL_AUTHORIZATIONS covering the expense_date.\n\nDetect cross-employee duplicates in a view VW_CROSS_EMP_DUPLICATES (expense_date, amount, merchant_name, emp_id_1, emp_id_2) where different employees (ensure emp_id_1 < emp_id_2) had identical expenses on the same date at the same merchant.\n\nIdentify prohibited spending in a view VW_PROHIBITED_SPEND (expense_id, emp_id, expense_date, amount, merchant_name, mcc_code, description) where MERCHANT_CATEGORIES.is_prohibited is 1.\n\nConsolidate these findings into a Materialized View MV_AGENCY_RISK_SUMMARY containing agency_name, total_violating_employees (distinct count of employees appearing in any of the four violation views), and total_prohibited_spend (sum of amount from VW_PROHIBITED_SPEND).\n\nExport the contents of MV_AGENCY_RISK_SUMMARY to /home/ga/Documents/exports/agency_audit_summary.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/public_official_pcard_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/public_official_pcard_audit/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/pcard_audit_result.json",
+    "occupation": "Accountants and Auditors",
+    "industry": "Government / Public Administration",
+    "oracle_features": [
+      "Materialized Views",
+      "Window Functions",
+      "Date Formatting",
+      "Self Joins"
+    ],
+    "expected_outputs": {
+      "split_emp_id": 101,
+      "weekend_emp_id": 102,
+      "duplicate_emp_1": 103,
+      "duplicate_emp_2": 104,
+      "prohibited_emp_id": 105
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pcard_audit"
+    }
+  }
+}

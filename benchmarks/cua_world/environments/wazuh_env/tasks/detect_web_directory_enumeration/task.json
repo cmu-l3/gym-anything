@@ -1,0 +1,29 @@
+{
+  "id": "detect_web_directory_enumeration@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Install Nginx on the Wazuh Manager system and configure Wazuh to detect directory enumeration attacks. Monitor the Nginx access log at /var/log/nginx/access.log using the nginx-access log format. Create a custom detection rule with ID 100500 and level 10 that inherits from rule 31101. The rule must trigger if the parent rule fires 15 times within 60 seconds from the same source IP. Use the description 'High frequency of 404 errors - Possible Directory Enumeration' and ensure the Wazuh manager applies these changes.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/detect_web_directory_enumeration/setup_task.sh",
+    "post_task": "/workspace/tasks/detect_web_directory_enumeration/export_result.sh"
+  },
+  "metadata": {
+    "rule_id": "100500",
+    "parent_sid": "31101",
+    "frequency": "15",
+    "timeframe": "60",
+    "log_file": "/var/log/nginx/access.log"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_detect_web_directory_enumeration"
+    }
+  }
+}

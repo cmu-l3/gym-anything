@@ -1,0 +1,50 @@
+{
+  "id": "setup_forced_degradation_study@1",
+  "version": "1.0",
+  "env_id": "scinote_env@0.1",
+  "description": "You are a pharmaceutical analyst documenting an ICH Q1A forced degradation study for Ibuprofen. Login to SciNote (admin@scinote.net / inHisHouseAtRlyehDeadCthulhuWaitsDreaming).\n\nCreate a project 'Ibuprofen Forced Degradation - ICH Q1A' containing an experiment 'Stress Testing Panel'. The experiment should have a branching workflow where 'Stock Solution Preparation' connects to three parallel stress tasks: 'Acid Hydrolysis (0.1M HCl)', 'Base Hydrolysis (0.1M NaOH)', and 'Oxidative Stress (3% H2O2)', all of which then connect to 'HPLC Purity Analysis' (5 tasks, 6 directed connections in a fan-out/fan-in pattern).\n\nAdd a protocol to 'Stock Solution Preparation' by transcribing the procedure from ~/Desktop/degradation_protocol.txt, with each numbered step as a separate protocol step preserving its full text.\n\nCreate an inventory 'Degradation Reagents' with columns CAS Number (Text) and Grade (Text), populated with: Ibuprofen RS (58560-75-1, USP RS), HCl 1M (7647-01-0, ACS Reagent), and NaOH 1M (1310-73-2, ACS Reagent). Assign 'Ibuprofen RS' and 'HCl 1M' to the 'Stock Solution Preparation' task.\n\nOn the 'HPLC Purity Analysis' task, add a text result summarizing findings from ~/Desktop/hplc_summary.txt, referencing 'Ibuprofen RS' via smart annotation (#Ibuprofen RS).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_forced_degradation_study/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_forced_degradation_study/export_result.sh"
+  },
+  "metadata": {
+    "expected_project_name": "Ibuprofen Forced Degradation - ICH Q1A",
+    "expected_experiment_name": "Stress Testing Panel",
+    "expected_task_names": [
+      "Stock Solution Preparation",
+      "Acid Hydrolysis (0.1M HCl)",
+      "Base Hydrolysis (0.1M NaOH)",
+      "Oxidative Stress (3% H2O2)",
+      "HPLC Purity Analysis"
+    ],
+    "expected_connections": [
+      {"from": "Stock Solution Preparation", "to": "Acid Hydrolysis (0.1M HCl)"},
+      {"from": "Stock Solution Preparation", "to": "Base Hydrolysis (0.1M NaOH)"},
+      {"from": "Stock Solution Preparation", "to": "Oxidative Stress (3% H2O2)"},
+      {"from": "Acid Hydrolysis (0.1M HCl)", "to": "HPLC Purity Analysis"},
+      {"from": "Base Hydrolysis (0.1M NaOH)", "to": "HPLC Purity Analysis"},
+      {"from": "Oxidative Stress (3% H2O2)", "to": "HPLC Purity Analysis"}
+    ],
+    "expected_protocol_task": "Stock Solution Preparation",
+    "expected_protocol_min_steps": 6,
+    "expected_inventory_name": "Degradation Reagents",
+    "expected_inventory_columns": ["CAS Number", "Grade"],
+    "expected_inventory_items": ["Ibuprofen RS", "HCl 1M", "NaOH 1M"],
+    "expected_assignment_task": "Stock Solution Preparation",
+    "expected_assigned_items": ["Ibuprofen RS", "HCl 1M"],
+    "smart_annotation_keyword": "Ibuprofen RS",
+    "result_task": "HPLC Purity Analysis"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_forced_degradation_study"
+    }
+  }
+}

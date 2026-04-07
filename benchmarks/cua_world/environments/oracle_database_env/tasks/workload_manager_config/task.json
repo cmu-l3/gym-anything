@@ -1,0 +1,43 @@
+{
+  "id": "workload_manager_config@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Configure the Oracle Database Resource Manager to manage workload for 'Order Entry' (high priority) and 'Reporting' (low priority) applications. Create a resource plan named 'STABILITY_PLAN' containing consumer groups 'CRITICAL_APP_CG' and 'BATCH_REPORT_CG'. The plan directives must guarantee 60% CPU to 'CRITICAL_APP_CG' (with an automatic switch to 'BATCH_REPORT_CG' if a call exceeds 60 seconds), 20% CPU to 'BATCH_REPORT_CG', and 20% CPU to 'OTHER_GROUPS', all at Management Level 1. Map 'APP_USER' to 'CRITICAL_APP_CG' and 'RPT_USER' to 'BATCH_REPORT_CG', granting them the required privileges to switch to these groups. Enable 'STABILITY_PLAN' as the active resource plan. Connect as SYSTEM (password: OraclePassword123).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/workload_manager_config/setup_task.sh",
+    "post_task": "/workspace/tasks/workload_manager_config/export_result.sh"
+  },
+  "metadata": {
+    "plan_name": "STABILITY_PLAN",
+    "groups": [
+      "CRITICAL_APP_CG",
+      "BATCH_REPORT_CG"
+    ],
+    "users": [
+      "APP_USER",
+      "RPT_USER"
+    ],
+    "cpu_allocations": {
+      "CRITICAL_APP_CG": 60,
+      "BATCH_REPORT_CG": 20,
+      "OTHER_GROUPS": 20
+    },
+    "switch_rules": {
+      "group": "CRITICAL_APP_CG",
+      "limit_sec": 60,
+      "target_group": "BATCH_REPORT_CG"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_workload_manager"
+    }
+  }
+}

@@ -24,8 +24,12 @@ if ! pm list packages | grep -q "$PACKAGE"; then
     exit 1
 fi
 
+# Launch the app using robust helper
+echo "Launching Electrical Calculations..."
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
+
 # Take initial screenshot
 screencap -p /sdcard/task_initial.png
 
-echo "App is installed, device is at home screen."
 echo "=== 555 Timer Astable task setup complete ==="

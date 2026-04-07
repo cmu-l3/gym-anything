@@ -1,0 +1,58 @@
+{
+  "id": "cradle_to_gate_cmu_carbon_footprint@1",
+  "version": "1.0",
+  "env_id": "openlca_env@0.1",
+  "description": "You are a sustainability engineer preparing the carbon footprint of a standard concrete masonry unit (CMU, 17.2 kg). Build a complete cradle-to-gate life cycle model in OpenLCA.\n\nCreate a new database 'CMU_Footprint'. Model four unit processes with the exact flows and quantities below:\n\n'Cement Production': output 1 kg 'Portland Cement' (reference product flow); inputs 1.52 kg 'Limestone', 0.092 kg 'Coal' (product flows); elementary emission output 0.83 kg 'Carbon Dioxide' to air (representing calcination).\n\n'Aggregate Processing': output 1 kg 'Mixed Aggregate' (reference product flow); inputs 1.05 kg 'Raw Gravel', 0.003 kg 'Diesel Fuel' (product flows).\n\n'Concrete Mixing': output 1 kg 'Fresh Concrete' (reference product flow); inputs 0.15 kg 'Portland Cement', 0.75 kg 'Mixed Aggregate', 0.10 kg 'Process Water' (product flows).\n\n'Block Molding': output 17.2 kg 'CMU Block' (reference product flow); inputs 17.2 kg 'Fresh Concrete', 0.021 kg 'Diesel Fuel' (product flows).\n\nCreate a product system 'CMU_Production_System' with 'Block Molding' as reference process. Link all upstream processes: Cement Production and Aggregate Processing feed into Concrete Mixing, which feeds Block Molding.\n\nImport LCIA methods from ~/LCA_Imports/lcia_methods.zip. Calculate Global Warming Potential using TRACI 2.1 and export results to ~/LCA_Results/cmu_footprint.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cradle_to_gate_cmu_carbon_footprint/setup_task.sh",
+    "post_task": "/workspace/tasks/cradle_to_gate_cmu_carbon_footprint/export_result.sh"
+  },
+  "metadata": {
+    "database_name": "CMU_Footprint",
+    "required_processes": [
+      "Cement Production",
+      "Aggregate Processing",
+      "Concrete Mixing",
+      "Block Molding"
+    ],
+    "required_product_flows": [
+      "Portland Cement",
+      "Mixed Aggregate",
+      "Fresh Concrete",
+      "CMU Block",
+      "Limestone",
+      "Coal",
+      "Raw Gravel",
+      "Diesel Fuel",
+      "Process Water"
+    ],
+    "required_elementary_flow": "Carbon Dioxide",
+    "product_system_name": "CMU_Production_System",
+    "expected_output_file": "/home/ga/LCA_Results/cmu_footprint.csv",
+    "lcia_method": "TRACI 2.1",
+    "impact_category": "Global Warming",
+    "key_exchanges": {
+      "cement_limestone_input_kg": 1.52,
+      "cement_coal_input_kg": 0.092,
+      "cement_co2_emission_kg": 0.83,
+      "aggregate_gravel_input_kg": 1.05,
+      "mixing_cement_input_kg": 0.15,
+      "mixing_aggregate_input_kg": 0.75,
+      "mixing_water_input_kg": 0.10,
+      "molding_concrete_input_kg": 17.2
+    },
+    "expected_gwp_range_kg_co2eq": [1.5, 3.0]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cmu_carbon_footprint"
+    }
+  }
+}

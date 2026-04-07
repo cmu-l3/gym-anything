@@ -1,0 +1,60 @@
+{
+    "task_id": "active_transportation_propensity@1",
+    "dataset": "San Francisco UrbanSim Public Data",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_notebook_path",
+            "metadata_value": "/home/ga/urbansim_projects/notebooks/active_transportation_index.ipynb",
+            "verified_value": "/home/ga/urbansim_projects/notebooks/active_transportation_index.ipynb",
+            "source": "Confirmed via setup_task.sh and export_result.sh scripts which target this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/urbansim_projects/output/active_transit_scores.csv",
+            "verified_value": "/home/ga/urbansim_projects/output/active_transit_scores.csv",
+            "source": "Confirmed via verifier.py and export_result.sh checks for this exact CSV file.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_plot_path",
+            "metadata_value": "/home/ga/urbansim_projects/output/top_atps_zones.png",
+            "verified_value": "/home/ga/urbansim_projects/output/top_atps_zones.png",
+            "source": "Confirmed via export_result.sh, which explicitly checks for this plot path.",
+            "status": "verified"
+        },
+        {
+            "key": "data_path",
+            "metadata_value": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+            "verified_value": "/home/ga/urbansim_projects/data/sanfran_public.h5",
+            "source": "Confirmed via setup_urbansim.sh which copies the actual dataset from GitHub to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "required_norm_columns",
+            "metadata_value": [
+                "hh_density_norm",
+                "job_density_norm",
+                "zero_car_pct_norm"
+            ],
+            "verified_value": [
+                "hh_density_norm",
+                "job_density_norm",
+                "zero_car_pct_norm"
+            ],
+            "source": "Confirmed via verifier.py logic iterating over these expected fields.",
+            "status": "verified"
+        },
+        {
+            "key": "score_column",
+            "metadata_value": "atp_score",
+            "verified_value": "atp_score",
+            "source": "Confirmed via verifier.py explicit checks.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task relies on real San Francisco UrbanSim public datasets. All metadata claims regarding file paths, scripts, and target columns are accurately represented in the setup and verifier logic. However, an independent extraction of the underlying HDF5 tables (downloaded directly from UDST's GitHub) reveals a fatal flaw in the task's design: both the prompt instructions and the background setup_task.sh script assert the existence of a 'cars' column in the 'households' table. The 'households' table actually only contains building_id, building_type_id, income, persons, and tenure columns, completely omitting 'cars'. This KeyError causes the ground truth generation script to crash and silently write an empty JSON array. The verifier will blindly bypass its empty 'gt_top_5' condition and allow an agent to pass anyway if the agent manages to artificially fake the missing data.",
+    "pi_confidence": "high"
+}

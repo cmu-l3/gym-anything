@@ -1,0 +1,115 @@
+{
+    "task_id": "clinical_trial_eligibility_screener@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "survey_title_keyword",
+            "metadata_value": "Cardiovascular Risk",
+            "verified_value": "Cardiovascular Risk",
+            "source": "setup_task.sh line 72 creates survey with title 'Cardiovascular Risk Trial Screening (Protocol CVR-2025)'. Live testing DB query confirmed: SELECT surveyls_title FROM lime_surveys_languagesettings returned exactly this title. export_result.sh line 19 searches via LIKE '%cardiovascular%risk%'. The keyword 'Cardiovascular Risk' is present in the actual title.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_bmi_references",
+            "metadata_value": ["WEIGHT_KG", "HEIGHT_CM"],
+            "verified_value": ["WEIGHT_KG", "HEIGHT_CM"],
+            "source": "Task description step 2 says 'weight in kg divided by height-in-meters squared'. Standard BMI formula is kg/m^2, requiring WEIGHT_KG and HEIGHT_CM. setup_task.sh creates these questions: HEIGHT_CM (type N, line 109) and WEIGHT_KG (type N, line 115). Live testing confirmed both exist with these exact codes (DB query returned title=HEIGHT_CM type=N and title=WEIGHT_KG type=N). The agent's equation MUST reference both codes.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_elig_references",
+            "metadata_value": ["BMI_CALC", "DIABETES", "HEART_COND", "CURRENT_MEDS"],
+            "verified_value": ["BMI_CALC", "DIABETES", "HEART_COND", "CURRENT_MEDS_SQ004"],
+            "source": "Task description step 3 specifies 4 criteria: BMI 18.5-30 (requires BMI_CALC), no diabetes (requires DIABETES), no heart condition (requires HEART_COND), Blood Thinners SQ004 not selected (requires CURRENT_MEDS_SQ004). setup_task.sh creates DIABETES (type Y, line 121), HEART_COND (type Y, line 127), and CURRENT_MEDS sub-question SQ004='Blood Thinners' (line 140). Live testing confirmed all exist. Note: metadata says 'CURRENT_MEDS' but the actual EM reference for the sub-question would be 'CURRENT_MEDS_SQ004' (LimeSurvey's notation for Multiple Choice sub-question answers). The metadata is slightly imprecise but directionally correct.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_group_condition_var",
+            "metadata_value": "ELIG_SCORE",
+            "verified_value": "ELIG_SCORE",
+            "source": "Task description step 5 says 'visible only when ELIG_SCORE >= 3'. The agent must create an Equation question with code ELIG_SCORE (step 3), then reference it in the Study Arm group's grelevance field. The export_result.sh captures grelevance for all groups (lines 115-127) and equation formulas for all type='*' questions (lines 68-112).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_group_condition_threshold",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Task description step 5: 'visible only when ELIG_SCORE >= 3'. ELIG_SCORE ranges 0-4 (4 boolean criteria each worth 1 point). Threshold of 3 means 3 of 4 inclusion criteria must be met. This is a standard clinical trial design pattern (e.g., allowing one minor exclusion criterion to be unmet).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_diet_subquestions",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "Task description step 5 lists exactly 4 sub-questions: 'Fruit/Vegetable Intake', 'Processed Food Consumption', 'Sodium Intake', 'Alcohol Consumption'. Count confirmed by enumeration. The export_result.sh queries COUNT(*) FROM lime_questions WHERE parent_qid=DIET_QID (line 132).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_diet_answer_count",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Task description step 5 specifies '5-point scale (Never/Rarely/Sometimes/Often/Daily)'. Count: Never(1), Rarely(2), Sometimes(3), Often(4), Daily(5) = 5 answer options. The export_result.sh captures answer options from lime_answers WHERE qid=DIET_QID (lines 135-147).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_assessment_rule_min",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "Task description step 6: 'score 4-10'. With 4 diet sub-questions and answer values 1-5, the minimum total score is 4 (all 'Never'=1, 4*1=4). The assessment rule minimum of 4 represents the lowest possible total, corresponding to the worst dietary pattern. The export_result.sh reads lime_assessments.minimum (line 152).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_assessment_rule_max",
+            "metadata_value": 10,
+            "verified_value": 10,
+            "source": "Task description step 6: 'score 4-10'. With 4 sub-questions valued 1-5, max total is 20 (4*5). A cutoff of 10 (=4*2.5) means scores in the bottom half indicate poor dietary patterns. This is a reasonable clinical threshold. The export_result.sh reads lime_assessments.maximum (line 152).",
+            "status": "verified"
+        },
+        {
+            "key": "height_min",
+            "metadata_value": 100,
+            "verified_value": 100,
+            "source": "Task description step 1: 'HEIGHT_CM accepts 100-250'. 100cm (approximately 3 feet 3 inches) is a standard lower bound for adult height validation in clinical data systems, allowing for extreme short stature. The export_result.sh reads lime_question_attributes WHERE attribute='min_num_value_n' (line 55). Live testing confirmed no validation exists initially (empty result for HEIGHT_CM attributes).",
+            "status": "verified"
+        },
+        {
+            "key": "height_max",
+            "metadata_value": 250,
+            "verified_value": 250,
+            "source": "Task description step 1: 'HEIGHT_CM accepts 100-250'. 250cm (approximately 8 feet 2 inches) exceeds the tallest recorded humans (~272cm for Robert Wadlow) and serves as a generous upper bound to catch data entry errors. The export_result.sh reads lime_question_attributes WHERE attribute='max_num_value_n' (line 56).",
+            "status": "verified"
+        },
+        {
+            "key": "weight_min",
+            "metadata_value": 30,
+            "verified_value": 30,
+            "source": "Task description step 1: 'WEIGHT_KG accepts 30-300'. 30kg (approximately 66 lbs) allows for small adults and is a common minimum in clinical data entry validation. The export_result.sh reads lime_question_attributes WHERE attribute='min_num_value_n' (line 61).",
+            "status": "verified"
+        },
+        {
+            "key": "weight_max",
+            "metadata_value": 300,
+            "verified_value": 300,
+            "source": "Task description step 1: 'WEIGHT_KG accepts 30-300'. 300kg (approximately 661 lbs) provides a generous upper bound to accommodate extreme obesity while filtering implausible entries. The export_result.sh reads lime_question_attributes WHERE attribute='max_num_value_n' (line 62).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_quota_limit",
+            "metadata_value": 200,
+            "verified_value": 200,
+            "source": "Task description step 7: 'Male Enrollment (limit 200)' and 'Female Enrollment (limit 200)'. Both quotas require qlimit=200. The export_result.sh queries lime_quota for count and lime_quota_members for answer-level linkage (lines 167-176).",
+            "status": "verified"
+        },
+        {
+            "key": "context",
+            "metadata_value": "Clinical Trial Eligibility Screening - Cardiovascular Risk Assessment",
+            "verified_value": "Clinical Trial Eligibility Screening - Cardiovascular Risk Assessment",
+            "source": "Descriptive label. The survey title 'Cardiovascular Risk Trial Screening (Protocol CVR-2025)' and the content (BMI screening, medication exclusion criteria, study arm assignment) are consistent with a cardiovascular risk clinical trial eligibility workflow.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The survey 'Cardiovascular Risk Trial Screening (Protocol CVR-2025)' is pre-created with 2 groups and 8 questions. The 'Demographics' group contains: DOB (Date type, code DOB), SEX (List type, code SEX, answer codes M='Male' and F='Female'), HEIGHT_CM (Numerical type, no validation), WEIGHT_KG (Numerical type, no validation). The 'Medical History' group contains: DIABETES (Yes/No type), HEART_COND (Yes/No type), CURRENT_MEDS (Multiple Choice type with sub-questions SQ001='ACE Inhibitors', SQ002='Beta Blockers', SQ003='Statins', SQ004='Blood Thinners', SQ005='None of the above'), and ALLERGIES (Short Text type). The agent must: (1) set HEIGHT_CM min=100, max=250 and WEIGHT_KG min=30, max=300 via question attributes min_num_value_n/max_num_value_n; (2) add Equation question BMI_CALC computing BMI as WEIGHT_KG/((HEIGHT_CM/100)*(HEIGHT_CM/100)), referencing both variable codes; (3) add Equation question ELIG_SCORE computing a 0-4 score by summing boolean conditions: BMI_CALC between 18.5-30, DIABETES answered 'N', HEART_COND answered 'N', CURRENT_MEDS_SQ004 not selected; (4) add Equation question RISK_DISPLAY with conditional text using LimeSurvey's if() function showing 'ELIGIBLE' when ELIG_SCORE>=3, 'REVIEW REQUIRED' otherwise; (5) create group 'Study Arm - Lifestyle Intervention' with grelevance referencing ELIG_SCORE>=3; (6) add Array question DIET_HABITS (code DIET_HABITS) with 4 sub-questions and 5-point Never-to-Daily scale; (7) enable survey assessment mode (assessments='Y'), set assessment_value 1-5 on DIET_HABITS answer options, create assessment rule 'Poor Dietary Pattern' minimum=4, maximum=10; (8) create quotas 'Male Enrollment' (qlimit=200, linked to SEX answer code 'M') and 'Female Enrollment' (qlimit=200, linked to SEX answer code 'F') via lime_quota and lime_quota_members; (9) activate the survey (active='Y'). Critical data quirk: SEX answer codes are 'M' and 'F' (not 'Male'/'Female') — quota members must be linked to these exact codes. For Yes/No questions, LimeSurvey uses 'Y' for Yes and 'N' for No internally.",
+    "pi_confidence": "high"
+}

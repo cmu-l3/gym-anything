@@ -1,0 +1,52 @@
+{
+  "id": "visualize_web_attacks_dashboard@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create and save a Wazuh Dashboard named 'Web_Attack_Analysis' to analyze web traffic anomalies based on the pre-loaded data in the 'wazuh-alerts-*' index. The dashboard must include four visualizations: a metric named 'Total Web Criticals' showing the count of alerts where 'rule.groups' includes 'web' and 'rule.level' is 10 or higher; a pie or donut chart named 'Attack Vectors' showing the top 5 'rule.description' for web alerts; a horizontal bar chart named 'Top Attacker IPs' showing the top 10 'data.srcip' for web alerts; and a data table named 'Recent Web Incidents' displaying @timestamp, data.srcip, data.method, data.url, and rule.id for web alerts.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/visualize_web_attacks_dashboard/setup_task.sh",
+    "post_task": "/workspace/tasks/visualize_web_attacks_dashboard/export_result.sh"
+  },
+  "metadata": {
+    "dashboard_title": "Web_Attack_Analysis",
+    "required_visualizations": [
+      {
+        "type": "metric",
+        "title": "Total Web Criticals",
+        "filter_field": "rule.level",
+        "filter_operator": "gte",
+        "filter_value": 10
+      },
+      {
+        "type": "pie",
+        "title": "Attack Vectors",
+        "agg_field": "rule.description"
+      },
+      {
+        "type": "horizontal_bar",
+        "title": "Top Attacker IPs",
+        "agg_field": "data.srcip"
+      },
+      {
+        "type": "table",
+        "title": "Recent Web Incidents",
+        "columns": [
+          "data.srcip",
+          "data.url"
+        ]
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_visualize_web_attacks_dashboard"
+    }
+  }
+}

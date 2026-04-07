@@ -1,0 +1,59 @@
+{
+    "task_id": "forensic_peer_review_audit@1",
+    "dataset": "DFTT Test 7 (NTFS Undelete)",
+    "case_id": "INV-PRA-006",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "case_name",
+            "metadata_value": "Peer_Review_Audit_2024",
+            "verified_value": "Peer_Review_Audit_2024",
+            "source": "Task description and export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "case_number",
+            "metadata_value": "INV-PRA-006",
+            "verified_value": "INV-PRA-006",
+            "source": "Task description",
+            "status": "verified"
+        },
+        {
+            "key": "disk_image",
+            "metadata_value": "/home/ga/evidence/ntfs_undel.dd",
+            "verified_value": "/home/ga/evidence/ntfs_undel.dd",
+            "source": "Task description and setup scripts",
+            "status": "verified"
+        },
+        {
+            "key": "report_file",
+            "metadata_value": "/home/ga/Reports/peer_review_report.txt",
+            "verified_value": "/home/ga/Reports/peer_review_report.txt",
+            "source": "export_result.sh checks",
+            "status": "verified"
+        },
+        {
+            "key": "error_summary_file",
+            "metadata_value": "/home/ga/Reports/error_summary.txt",
+            "verified_value": "/home/ga/Reports/error_summary.txt",
+            "source": "export_result.sh checks",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/peer_review_result.json",
+            "verified_value": "/tmp/peer_review_result.json",
+            "source": "verifier.py checks",
+            "status": "verified"
+        },
+        {
+            "key": "gt_file",
+            "metadata_value": "/tmp/peer_review_gt.json",
+            "verified_value": "/tmp/peer_review_gt.json",
+            "source": "verifier.py checks",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on real forensic test data downloaded from the DFTT project (NTFS Undelete test image). I verified that all target case attributes, disk image paths, and report paths strictly match the task description and verifier logic. However, I discovered two critical flaws in the evaluation logic. First, the ground truth generation script (setup_task.sh) uses a broken substring search (if \" r/r \" in line or \" -/r \" in line) to parse `fls` output, which permanently skips all files located in the root directory (as they begin directly with `r/r` without a preceding space). Consequently, the verifier rigidly expects incorrect counts: TOTAL_FILES = 8 (instead of ~27) and DELETED_FILES = 3 (instead of 8+). An agent accurately reporting the true file counts from Autopsy will fail the verifier strict +/- 5 tolerance. Second, the verifier expects LARGEST_FILE_NAME to be tracking.log by explicitly ignoring all system files (via name NOT LIKE \"$%\" in its SQL query), even though the task instructions simply ask for the \"largest file\" without specifying to exclude NTFS system metadata like $BadClus:$Bad (6 MB) or $LogFile (2 MB).",
+    "pi_confidence": "high"
+}

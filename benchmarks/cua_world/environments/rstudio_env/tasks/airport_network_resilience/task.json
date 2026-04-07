@@ -1,0 +1,35 @@
+{
+  "id": "airport_network_resilience@1",
+  "version": "1.0",
+  "env_id": "rstudio_env@0.1",
+  "difficulty": "hard",
+  "description": "Perform a comprehensive network analysis of the US airport transportation network using the `igraph` package in R.\n\nYour goal is to identify critical hubs, detect communities, and simulate network resilience against targeted attacks.\n\n**1. Setup:**\n   - Install the `igraph` and `igraphdata` packages (these are NOT pre-installed).\n   - Load the `USairports` dataset from `igraphdata`.\n   - The dataset is a directed multigraph. You may need to simplify it (combine multiple edges between airports) for certain metrics.\n\n**2. Deliverables:**\n   Create the following files in `/home/ga/RProjects/output/`:\n\n   - **airport_centrality.csv**: A table of centrality measures for the top 30 airports sorted by betweenness.\n     - Columns: `airport` (IATA code), `degree_total`, `betweenness`, `pagerank`.\n     - Ensure 'ATL' (Atlanta) is present in this list.\n\n   - **airport_communities.csv**: Community detection results for ALL airports.\n     - Columns: `airport`, `community` (an integer ID).\n     - Use any modularity-based algorithm (e.g., Louvain, Walktrap, Fast Greedy).\n\n   - **airport_resilience.csv**: A simulation of sequential targeted attacks.\n     - Method: Iteratively remove the top 10 airports by highest betweenness centrality (recalculate betweenness or use initial rank).\n     - Columns: `step` (0-10), `removed_airport` (NA for step 0), `largest_component_size` (number of nodes), `fraction_reachable` (size/total).\n     - Step 0 is the original network.\n\n   - **airport_network.png**: A visualization of the network.\n     - Nodes should be colored by community.\n     - Node sizes should reflect centrality.\n     - Label the top 5 hubs.\n\n**3. Execution:**\n   - Write your analysis code in `/home/ga/RProjects/airport_network_analysis.R`.\n   - Save all outputs to the specified paths.",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/airport_network_resilience/setup_task.sh",
+    "post_task": "/workspace/tasks/airport_network_resilience/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "expected_files": [
+      "/home/ga/RProjects/output/airport_centrality.csv",
+      "/home/ga/RProjects/output/airport_communities.csv",
+      "/home/ga/RProjects/output/airport_resilience.csv",
+      "/home/ga/RProjects/output/airport_network.png"
+    ],
+    "script_path": "/home/ga/RProjects/airport_network_analysis.R",
+    "ground_truth_hub": "ATL",
+    "min_airports": 700,
+    "resilience_steps": 11
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_airport_network_resilience"
+    }
+  }
+}

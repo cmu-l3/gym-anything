@@ -1,0 +1,29 @@
+{
+  "id": "db_reader_patient_feed@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "A hospital has deployed a new patient registration portal that writes records directly to a PostgreSQL database. The integration team needs a NextGen Connect channel to detect new registrations and generate HL7 ADT^A04 messages for downstream systems.\n\nCreate and deploy a NextGen Connect channel named 'DB_Patient_Registration_Feed' that reads unprocessed patient registration records from the 'patient_registrations' table in the 'mirthdb' database (jdbc:postgresql://nextgen-postgres:5432/mirthdb, credentials: postgres/postgres). The channel must convert these records into HL7 v2.5.1 ADT^A04 messages and write them as individual files with unique names ending in .hl7 to /opt/connect/outbound_hl7.\n\nThe transformation must produce valid HL7 messages with the following segment requirements:\n- MSH: Message type ADT^A04, sending facility REGISTRATION_PORTAL, receiving facility DOWNSTREAM_HIS, HL7 version 2.5.1.\n- EVN: Event type A04 with a timestamp.\n- PID: Include Patient MRN, name (last_name, first_name), DOB, gender, address (address, city, state, zip), and phone.\n- PV1: Patient class O (outpatient), assigned location REG.\n\nThe channel must poll the database every 5000 milliseconds, selecting all columns where 'processed' is false, and must update the 'processed' column to true for each record after it is handled. \n\nUse the NextGen Connect API at https://localhost:8443/api (credentials: admin/admin) to create and deploy the channel. All API calls must include the header 'X-Requested-With: OpenAPI'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/db_reader_patient_feed/setup_task.sh",
+    "post_task": "/workspace/tasks/db_reader_patient_feed/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "DB_Patient_Registration_Feed",
+    "db_table": "patient_registrations",
+    "output_dir": "/opt/connect/outbound_hl7",
+    "expected_msg_type": "ADT^A04",
+    "initial_record_count": 25
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_db_reader_patient_feed"
+    }
+  }
+}

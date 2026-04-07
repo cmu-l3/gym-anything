@@ -1,0 +1,94 @@
+{
+    "task_id": "provision_dashboard_widget_access@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_user_login",
+            "metadata_value": "lobby_display",
+            "verified_value": "lobby_display",
+            "source": "Task description line 5 and setup_task.sh line 19 both confirm user login 'lobby_display' must be created",
+            "status": "verified"
+        },
+        {
+            "key": "expected_permission",
+            "metadata_value": "view",
+            "verified_value": "view",
+            "source": "Task description states 'Grant this user **View** permission (only)'. export_result.sh line 19 checks for permission_level='view'. verifier.py line 50 validates permission == 'view'.",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "/home/ga/lobby_widget.html",
+            "verified_value": "/home/ga/lobby_widget.html",
+            "source": "Task description states 'Create an HTML file at `/home/ga/lobby_widget.html`'. setup_task.sh line 26 cleans up this path. export_result.sh line 33 validates file existence at this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.user_exists",
+            "metadata_value": 15,
+            "verified_value": 15,
+            "source": "verifier.py line 42-44 awards 15 points for user_exists check. Metadata and verifier agree.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.permission_correct",
+            "metadata_value": 15,
+            "verified_value": 15,
+            "source": "verifier.py line 48-56 awards 15 points for permissions check. Metadata and verifier agree.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.file_exists",
+            "metadata_value": 10,
+            "verified_value": 10,
+            "source": "verifier.py line 67-71 awards 10 points for file_exists AND widget_iframe_found combined check. However, metadata lists this as separate 'file_exists': 10 points.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.widget_structure_correct",
+            "metadata_value": 20,
+            "verified_value": 10,
+            "source": "Metadata claims 'widget_structure_correct': 20 points, but verifier.py line 67 only awards 10 points for 'File Structure' check (file_exists AND widget_iframe_found). The actual widget structure validation in verifier only contributes 10 points, not 20.",
+            "status": "contradicted"
+        },
+        {
+            "key": "scoring_weights.token_functional",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "verifier.py line 73-79 awards 20 points for token_functional check. Metadata and verifier agree.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.token_belongs_to_correct_user",
+            "metadata_value": 20,
+            "verified_value": 30,
+            "source": "Metadata claims 'token_belongs_to_correct_user': 20 points, but verifier.py line 81-90 awards 30 points for 'Token Ownership' check. The actual points awarded are 10 points higher than metadata claims.",
+            "status": "contradicted"
+        },
+        {
+            "key": "scoring_weights.not_superuser_check",
+            "metadata_value": null,
+            "verified_value": 10,
+            "source": "verifier.py line 58-64 awards 10 points for 'Not Superuser' check, but this scoring item is NOT present in metadata.scoring_weights. This is a hidden scoring criterion not disclosed in metadata.",
+            "status": "unverified"
+        },
+        {
+            "key": "task_description.widget_name",
+            "metadata_value": null,
+            "verified_value": "Real-time Visitor Map",
+            "source": "Task description line 5 states: 'Configure a secured \"Real-time Visitor Map\" widget for a public lobby display.' Web search confirms Matomo has a Real-time Visitor Map widget accessible via Widgetize menu.",
+            "status": "verified"
+        },
+        {
+            "key": "task_description.api_token_parameter",
+            "metadata_value": null,
+            "verified_value": "token_auth",
+            "source": "Task description line 6 states: 'append the API token to the widget URL in the HTML file (parameter `&token_auth=YOUR_TOKEN`)'. Web search confirms Matomo uses 'token_auth' parameter for widget authentication, and super user tokens are not allowed for embedded widgets - only view-access tokens.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires creating a restricted user 'lobby_display' with view-only permission on 'Initial Site' in Matomo, generating an API token for that user, and embedding the Real-time Visitor Map widget in an HTML file authenticated via the token_auth parameter. The Real-time Visitor Map and token_auth authentication mechanism are real Matomo features. However, the scoring weights in metadata contain discrepancies: widget_structure_correct is claimed as 20 points but actually worth 10, and token_belongs_to_correct_user is claimed as 20 points but actually worth 30. Additionally, a 'Not Superuser' validation worth 10 points is implemented in the verifier but not disclosed in the metadata scoring weights.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,87 @@
+{
+    "task_id": "optimize_pv_battery_tou_arbitrage@1",
+    "dataset": "NSRDB PSM v3 TMY (SAM Bundled Solar Resources)",
+    "case_id": "daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/Documents/SAM_Projects/curtailment_battery_optimization.json",
+            "verified_value": "/home/ga/Documents/SAM_Projects/curtailment_battery_optimization.json",
+            "source": "Verified in live VM: directory /home/ga/Documents/SAM_Projects/ exists, is owned by ga:ga, and is writable. setup_task.sh creates it if missing.",
+            "status": "verified"
+        },
+        {
+            "key": "pv_generation_min_mwh",
+            "metadata_value": 180000,
+            "verified_value": 180000,
+            "source": "Live PySAM Pvwattsv8 simulation inside the VM produced 221,261 MWh (100 MW DC, single-axis tracking, DC:AC 1.3, 14% losses, Daggett CA TMY file). 180,000 is a conservative lower bound allowing for model version differences. Actual value 221,261 is well within [180k, 230k].",
+            "status": "verified"
+        },
+        {
+            "key": "pv_generation_max_mwh",
+            "metadata_value": 230000,
+            "verified_value": 230000,
+            "source": "Live simulation yielded 221,261 MWh. 230,000 as upper bound provides ~4% margin above actual. The max hourly AC output was 76,923 kW (= 100,000/1.3), confirming DC:AC clipping is correctly modeled.",
+            "status": "verified"
+        },
+        {
+            "key": "no_battery_curtailed_min_mwh",
+            "metadata_value": 20000,
+            "verified_value": 20000,
+            "source": "Live simulation: with 50 MW grid limit, curtailed energy = 44,217 MWh. 2,790 hours exceeded 50 MW (32% of daylight hours). 20,000 MWh as lower bound is conservative but valid — the actual value is 44,217.",
+            "status": "verified"
+        },
+        {
+            "key": "no_battery_curtailed_max_mwh",
+            "metadata_value": 90000,
+            "verified_value": 90000,
+            "source": "Live simulation: curtailed energy = 44,217 MWh. 90,000 MWh is a generous upper bound (~2x actual). Justified because different dispatch implementations might attribute more energy to curtailment depending on how battery charging interacts with the grid limit.",
+            "status": "verified"
+        },
+        {
+            "key": "no_battery_revenue_min_dollars",
+            "metadata_value": 5000000,
+            "verified_value": 5000000,
+            "source": "Live TOU revenue simulation: no-battery revenue = $16,126,407. At a flat mid-peak rate of $0.08/kWh, revenue would be ~$14.2M (as cross-checked in PySAM test). $5M as lower bound is very conservative to accommodate alternative TOU implementations.",
+            "status": "verified"
+        },
+        {
+            "key": "no_battery_revenue_max_dollars",
+            "metadata_value": 20000000,
+            "verified_value": 20000000,
+            "source": "Live simulation: no-battery revenue = $16,126,407. The $20M upper bound provides ~24% headroom above actual. Revenue depends on exact TOU hour mapping — agents who assign more generation to on-peak/super-peak hours would compute higher revenue.",
+            "status": "verified"
+        },
+        {
+            "key": "num_battery_scenarios",
+            "metadata_value": 6,
+            "verified_value": 6,
+            "source": "Task description specifies testing capacities [0, 50, 100, 150, 200, 300] MWh = 6 scenarios. Verified in live simulation: all 6 scenarios ran and produced valid results.",
+            "status": "verified"
+        },
+        {
+            "key": "battery_capacities",
+            "metadata_value": [0, 50, 100, 150, 200, 300],
+            "verified_value": [0, 50, 100, 150, 200, 300],
+            "source": "Directly from task description. All 6 capacities were tested in live simulation. Results: discharge MWh = [0, 12994, 22995, 29868, 32900, 32950], curtailed MWh = [44217, 31223, 21222, 14349, 11317, 11267].",
+            "status": "verified"
+        },
+        {
+            "key": "optimal_capacity_min_mwh",
+            "metadata_value": 50,
+            "verified_value": 50,
+            "source": "Live simulation: optimal capacity is 150 MWh (NPV = $29,990,974). The next-best alternatives are 100 MWh ($25.9M NPV) and 200 MWh ($26.1M NPV). 50 MWh as lower bound is valid — the optimal is never at 0 MWh since batteries always add revenue when curtailment exists.",
+            "status": "verified"
+        },
+        {
+            "key": "optimal_capacity_max_mwh",
+            "metadata_value": 250,
+            "verified_value": 250,
+            "source": "Live simulation: optimal is 150 MWh. NPV drops sharply at 200 MWh ($26.1M) and 300 MWh ($6.2M) due to battery cost exceeding marginal revenue. 250 MWh as upper bound correctly excludes 300 MWh.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses real NSRDB PSM v3 TMY weather data for Daggett, CA (lat 34.85, lon -116.78, elevation 561m, timezone UTC-8) bundled with SAM at /opt/SAM/2024.12.12/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv (477,638 bytes, 8,763 lines including 8,760 hourly data rows). The weather file path is discoverable via /home/ga/.SAM/solar_resource_dir.txt which points to /opt/SAM/2024.12.12/solar_resource. PySAM Pvwattsv8 simulation with 100 MW DC, single-axis tracking (array_type=2), DC:AC ratio 1.3, and 14% system losses produces 221,261 MWh annual AC generation with a maximum hourly output of 76,923 kW (= 100,000/1.3 DC:AC clipping). The capacity factor is 25.3%. With the 50 MW grid export limit, 2,790 hours exceed the cap, resulting in 44,217 MWh of annual curtailed energy. Using the specified TOU rate schedule (off-peak $0.04 hours 0-7/22-23, mid-peak $0.08 hours 8-15/21, on-peak $0.18 hours 16-20 Oct-May, super-peak $0.30 hours 16-20 Jun-Sep), the no-battery annual revenue is $16,126,407. Battery scenarios (50 MW, 85% RTE, 10% min SOC): 0 MWh yields $0 NPV (baseline); 50 MWh yields 12,994 MWh discharge, $2,976,344 incremental revenue, $15,475,955 NPV; 100 MWh yields 22,995 MWh discharge, $5,363,597 incremental revenue, $25,909,592 NPV; 150 MWh yields 29,868 MWh discharge, $7,008,718 incremental revenue, $29,990,974 NPV (OPTIMAL); 200 MWh yields 32,900 MWh discharge, $7,721,908 incremental revenue, $26,095,506 NPV; 300 MWh yields 32,950 MWh discharge, $7,732,236 incremental revenue, $6,183,911 NPV. Curtailment is monotonically non-increasing: 44217, 31223, 21222, 14349, 11317, 11267 MWh. Discharge is monotonically non-decreasing. NPV peaks at the interior point 150 MWh. The 15-year present value annuity factor at 8% discount rate is 8.5595. Note: StandAloneBattery module is NOT available in the installed PySAM version — the agent must use custom Python dispatch logic, Battwatts, Battery, or BatteryStateful modules. The TOU rate structure is modeled on California SCE TOU-GS-3 commercial rates (verified via web search: SCE peak rates range $0.20-0.35/kWh, off-peak $0.04-0.08/kWh). Battery cost of $200/kWh is consistent with NREL ATB 2024 mid-range utility-scale BESS estimates ($150-$334/kWh installed).",
+    "pi_confidence": "high"
+}

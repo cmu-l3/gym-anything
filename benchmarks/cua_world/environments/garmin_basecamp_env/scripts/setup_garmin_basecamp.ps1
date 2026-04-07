@@ -239,6 +239,7 @@ $taskName = "GarminInteractiveSetup"
 $runTime  = (Get-Date).AddMinutes(1).ToString("HH:mm")
 Write-Host "Scheduling interactive setup at $runTime..."
 schtasks /Create /SC ONCE /IT /TR "$toolDir\run_interactive_setup.bat" /TN $taskName /ST $runTime /F 2>&1 | Write-Host
+schtasks /Run /TN $taskName 2>&1 | Write-Host
 
 # Poll for completion marker (max 150 seconds after scheduling)
 Write-Host "Waiting for interactive setup (max 150 seconds)..."
@@ -284,6 +285,23 @@ Set-ItemProperty -Path $edgePol -Name "BackgroundModeEnabled" -Value 0 -Type DWo
 @("msedge","chrome","OneDrive") | ForEach-Object {
     Stop-Process -Name $_ -Force -ErrorAction SilentlyContinue
 }
+
+# Clean up desktop in Session 1 (minimize terminals, close Start menu)
+Write-Host "Cleaning up desktop..."
+$cleanupScript = "C:\Windows\Temp\cleanup_desktop.ps1"
+@'
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+(New-Object -ComObject Shell.Application).MinimizeAll()
+'@ | Set-Content $cleanupScript -Encoding UTF8
+schtasks /Create /TN "CleanupDesktop_GA" /TR "powershell -ExecutionPolicy Bypass -File $cleanupScript" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
+schtasks /Run /TN "CleanupDesktop_GA" 2>$null
+Start-Sleep -Seconds 5
+schtasks /Delete /TN "CleanupDesktop_GA" /F 2>$null
+Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
 
 Write-Host "=== Garmin BaseCamp setup complete ==="
 Stop-Transcript | Out-Null

@@ -265,6 +265,18 @@ DESKTOPEOF
 chmod +x /home/ga/Desktop/SQLDeveloper.desktop
 chown ga:ga /home/ga/Desktop/SQLDeveloper.desktop
 
+# Wait for file to be fully written/synced before trusting
+sleep 2
+
+# Mark desktop file as trusted (GNOME requirement) - multiple approaches for reliability
+su - ga -c "dbus-launch gio set /home/ga/Desktop/SQLDeveloper.desktop metadata::trusted true" 2>/dev/null || true
+
+# Fallback: set trusted attribute via python3 gio
+su - ga -c "python3 -c \"import subprocess; subprocess.run(['gio', 'set', '/home/ga/Desktop/SQLDeveloper.desktop', 'metadata::trusted', 'true'])\"" 2>/dev/null || true
+
+# Fallback: clear immutable flag if set
+chattr -i /home/ga/Desktop/SQLDeveloper.desktop 2>/dev/null || true
+
 chown -R ga:ga "$SQLDEVELOPER_CONFIG"
 
 # Launch SQL Developer

@@ -1,0 +1,73 @@
+{
+    "task_id": "optimize_patient_lookup_speed@1",
+    "dataset": "MedinTux DrTuxTest (Medical Practice Management System)",
+    "case_id": "fchpat table - Patient demographics and SSN field",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "database",
+            "metadata_value": "DrTuxTest",
+            "verified_value": "DrTuxTest",
+            "source": "setup_medintux.sh line 207: CREATE DATABASE IF NOT EXISTS DrTuxTest; and setup_task.sh line 20 verifies database exists",
+            "status": "verified"
+        },
+        {
+            "key": "table",
+            "metadata_value": "fchpat",
+            "verified_value": "fchpat",
+            "source": "setup_medintux.sh line 256 checks for fchpat table existence; line 308 inserts data into fchpat table; setup_task.sh line 30 queries information_schema.STATISTICS for fchpat indexes",
+            "status": "verified"
+        },
+        {
+            "key": "column",
+            "metadata_value": "FchPat_NumSS",
+            "verified_value": "FchPat_NumSS",
+            "source": "setup_medintux.sh line 308 inserts data with FchPat_NumSS column; export_result.sh line 31 queries information_schema for FchPat_NumSS column; task description references it as Numéro de Sécurité Sociale (French SSN)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_index_name",
+            "metadata_value": "idx_numss",
+            "verified_value": "idx_numss",
+            "source": "verifier.py line 58 uses task_info metadata to get expected_index_name; setup_task.sh line 30 queries for indexes on FchPat_NumSS column",
+            "status": "verified"
+        },
+        {
+            "key": "proof_file",
+            "metadata_value": "/home/ga/optimization_proof.txt",
+            "verified_value": "/home/ga/optimization_proof.txt",
+            "source": "task.json line 21, setup_task.sh line 46 removes the file, export_result.sh line 8 checks for the file, verifier.py line 8 comment references optimization_proof.txt",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": null,
+            "verified_value": "MedinTux 2.16.012 Windows installer from SourceForge (medintux-2.16.012.exe, ~210.9 MB) downloaded from https://downloads.sourceforge.net/project/medintux/Windows/2.16.012/medintux-2.16.012.exe",
+            "source": "install_medintux.sh lines 46-53 download official MedinTux 2.16.012 Windows installer from SourceForge. setup_medintux.sh lines 215-248 load official SQL dumps from the installed application under Programmes/set_bases/bin/SqlCreateTable/",
+            "status": "verified"
+        },
+        {
+            "key": "medintux_version",
+            "metadata_value": null,
+            "verified_value": "2.16.012",
+            "source": "MedinTux is a real French medical practice management software. Version 2.16.012 is confirmed as the last official Windows release (2014-07-11, 210.9 MB) from SourceForge. Wikipedia and SourceForge confirm MedinTux as free healthcare software for managing consultations, written for French environment.",
+            "status": "verified"
+        },
+        {
+            "key": "test_data_patients",
+            "metadata_value": null,
+            "verified_value": "20 synthetic test patients inserted with test names (ROUSSEAU, SIMON, MARTIN, DUBOIS, BERNARD, LEROY, MOREAU, PETIT, DURAND, LAMBERT, GIRARD, ROUX, FOURNIER, MOREL, HENRY, PERRIN, BLANC, GAUTHIER, ROBIN, NICOLAS) and synthetic French SSNs",
+            "source": "setup_medintux.sh lines 315-334 insert_test_patient function inserts 20 patients with test data. Line 315 example: ROUSSEAU Laurent with SSN 1750578999999. All SSNs follow valid French Numéro de Sécurité Sociale (13-digit format with structure: sex_digit + year + month + department + sequential).",
+            "status": "verified"
+        },
+        {
+            "key": "explain_output_format",
+            "metadata_value": null,
+            "verified_value": "MySQL EXPLAIN FORMAT=JSON. Expected structure: query_block.table.key (index name) and query_block.table.access_type",
+            "source": "export_result.sh line 37 runs: EXPLAIN FORMAT=JSON SELECT * FROM fchpat WHERE FchPat_NumSS = '1750578999999'; verifier.py lines 78-86 parses this JSON output to check if used_key is not NULL",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task involves optimizing the MedinTux (version 2.16.012) DrTuxTest database by creating an index on the FchPat_NumSS (French Social Security Number) column of the fchpat (patient demographics) table. MedinTux is a real, free French medical practice management software using MySQL backend. The data is synthetic: 20 test patients are inserted with realistic French names and properly-formatted test French Social Security Numbers (13-digit format: sex_digit + birth_year + birth_month + department + sequential). The SQL dumps are from the official MedinTux installer. The task verifies index creation and effectiveness using MySQL EXPLAIN FORMAT=JSON output, checking that a query uses the created index.",
+    "pi_confidence": "high"
+}

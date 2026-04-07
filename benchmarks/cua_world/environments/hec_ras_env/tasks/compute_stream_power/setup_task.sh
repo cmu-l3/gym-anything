@@ -19,9 +19,9 @@ chown -R ga:ga "$RESULTS_DIR"
 
 # 3. Restore Muncie project from clean copy
 echo "--- Restoring Muncie project ---"
-if [ -d "$HECRAS_HOME/benchmarks/cua_world/environments/Muncie" ]; then
+if [ -d "$HECRAS_HOME/examples/Muncie" ]; then
     rm -rf "$MUNCIE_DIR"/*
-    cp -r "$HECRAS_HOME/benchmarks/cua_world/environments/Muncie"/* "$MUNCIE_DIR/"
+    cp -r "$HECRAS_HOME/examples/Muncie"/* "$MUNCIE_DIR/"
     # Copy source files (inputs) if separated
     if [ -d "$MUNCIE_DIR/wrk_source" ]; then
         cp "$MUNCIE_DIR/wrk_source"/* "$MUNCIE_DIR/" 2>/dev/null || true

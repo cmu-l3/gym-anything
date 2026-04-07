@@ -1,0 +1,187 @@
+{
+    "task_id": "infusion_interlock_oq_protocol@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "artifacts.threshold_screenshot",
+            "metadata_value": "/home/ga/Desktop/oq_test_threshold.png",
+            "verified_value": "/home/ga/Desktop/oq_test_threshold.png",
+            "source": "Confirmed in setup_task.sh line 9 (cleanup), export_result.sh lines 70-73 (existence check), and task description (Test 1 screenshot path). Path is writable by ga user (verified via live test: touch /home/ga/Desktop/test_write_oq.txt succeeded).",
+            "status": "verified"
+        },
+        {
+            "key": "artifacts.failsafe_screenshot",
+            "metadata_value": "/home/ga/Desktop/oq_test_failsafe.png",
+            "verified_value": "/home/ga/Desktop/oq_test_failsafe.png",
+            "source": "Confirmed in setup_task.sh line 10 (cleanup), export_result.sh lines 75-80 (existence check), and task description (Test 3 screenshot path). Path writable confirmed via live test.",
+            "status": "verified"
+        },
+        {
+            "key": "artifacts.results_csv",
+            "metadata_value": "/home/ga/Desktop/oq_test_results.csv",
+            "verified_value": "/home/ga/Desktop/oq_test_results.csv",
+            "source": "Confirmed in setup_task.sh line 11 (cleanup), export_result.sh lines 85-108 (existence, row count, content, and test-name keyword checks). CSV columns specified in task description: Test_ID,Test_Name,Expected_Behavior,Observed_Behavior,Pass_Fail.",
+            "status": "verified"
+        },
+        {
+            "key": "artifacts.validation_report",
+            "metadata_value": "/home/ga/Desktop/oq_validation_report.txt",
+            "verified_value": "/home/ga/Desktop/oq_validation_report.txt",
+            "source": "Confirmed in setup_task.sh line 12 (cleanup), export_result.sh lines 110-150 (existence, size, UDI/OQ/hysteresis/test-name keyword checks). Path writable confirmed via live test.",
+            "status": "verified"
+        },
+        {
+            "key": "required_devices[0]",
+            "metadata_value": "Pulse Oximeter",
+            "verified_value": "ICE PO (4s Fixed Average No Soft Avg)",
+            "source": "Live GUI verification: opened 'Create a device adapter...' dialog, Device Category='Simulated', Device Type dropdown shows 'ICE PO (4s Fixed Average No Soft Avg)' as the Pulse Oximeter option. Confirmed in OpenICE source code: SimPulseOximeter.java (4S_FF_NO_SOFT_AVG_PO_Simulator). Screenshot evidence: 28_all_device_types_dropdown.png. Device was successfully created in live test (screenshot 30_pulse_oximeter_created.png). The simulated Pulse Oximeter produces SpO2 readings via DDS topic MDC_PULS_OXIM_SAT_O2, default value ~98%.",
+            "status": "verified"
+        },
+        {
+            "key": "required_devices[1]",
+            "metadata_value": "Infusion Pump",
+            "verified_value": "ICE Infusion Pump",
+            "source": "Live GUI verification: Device Type dropdown shows 'ICE Infusion Pump' as the pump option. Confirmed in OpenICE source code: SimInfusionPump.java (Pump_Simulator). Screenshot evidence: 28_all_device_types_dropdown.png. Device was successfully created in live test (screenshot 31_both_devices_created.png).",
+            "status": "verified"
+        },
+        {
+            "key": "required_app",
+            "metadata_value": "Infusion Safety",
+            "verified_value": "Infusion Safety",
+            "source": "Live GUI verification: ICE Applications grid shows 'Infusion Safety' icon. Clicking it launches the Infusion Safety dialog with pump list, Interlock Status, Infusion Status, Informational Messages sections, and Configuration Mode checkbox. Screenshot evidence: 32_infusion_safety_launched.png. Window title confirmed via wmctrl: 'Infusion Safety'. Source code: PCAConfig.java and PCAPanel.java in org.mdpnp.apps.testapp.pca package implement this app. The app subscribes to SpO2 data and controls infusion pump via DDS InfusionObjective messages.",
+            "status": "verified"
+        },
+        {
+            "key": "test_protocol.threshold_pct",
+            "metadata_value": 90,
+            "verified_value": 90,
+            "source": "This is a task-defined target value (the agent must configure SpO2 low alarm threshold to 90%). Verified feasible: VitalSign.java defines SpO2 with minimum=50.0, maximum=100.0, default criticalLow=85.0, default low=95.0. The VitalView FXML (VitalView.fxml) includes a MultiRangeSlider (min=50, max=100) and four Spinner controls (lowestSpinner, lowerSpinner, higherSpinner, highestSpinner) that allow setting thresholds anywhere in the 50-100 range. Setting the low threshold to 90% is within the valid range. The agent selects 'SpO2' from the vitalSigns ComboBox, clicks 'Add', and adjusts the spinner/slider in the VitalView panel.",
+            "status": "verified"
+        },
+        {
+            "key": "test_protocol.test_count",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "Task description specifies exactly 4 tests: Threshold Response, Recovery Hysteresis, Sensor Failure Fail-Safe, Boundary Condition. CSV export_result.sh checks for all 4 test names (lines 99-108). Report export checks for all 4 tests mentioned (lines 142-149).",
+            "status": "verified"
+        },
+        {
+            "key": "test_protocol.test_names[0]",
+            "metadata_value": "Threshold Response",
+            "verified_value": "Threshold Response",
+            "source": "Task description Test 1: 'Configure the SpO2 low alarm threshold to 90%... confirm the interlock stops the pump.' This test validates the core interlock mechanism. Source code confirms: PCAConfig.java stateProperty listener transitions Warning->Alarm, and on Alarm calls infusionPumpModel.stopInfusion(). export_result.sh line 104 checks for 'threshold|test.?1' in CSV.",
+            "status": "verified"
+        },
+        {
+            "key": "test_protocol.test_names[1]",
+            "metadata_value": "Recovery Hysteresis",
+            "verified_value": "Recovery Hysteresis",
+            "source": "Task description Test 2: 'gradually restore SpO2 above the threshold. Determine the exact SpO2 value at which the pump resumes.' This tests whether the interlock has hysteresis. Source code analysis: PCAConfig.java interlockStatusClicked() calls infusionPumpModel.resetInfusion(), suggesting the agent must click the Interlock Status text area to manually reset the pump after the alarm clears. The VitalModel transitions back to Normal when SpO2 exceeds the low threshold. export_result.sh line 105 checks for 'hysteresis|recovery|test.?2'.",
+            "status": "verified"
+        },
+        {
+            "key": "test_protocol.test_names[2]",
+            "metadata_value": "Sensor Failure Fail-Safe",
+            "verified_value": "Sensor Failure Fail-Safe",
+            "source": "Task description Test 3: 'Close the Pulse Oximeter device window to simulate sensor disconnection.' This is a proven testable operation — the existing task 'safety_interlock_fail_safe_validation' tests exactly this scenario (closing Pulse Ox window while pump remains). export_result.sh lines 155-159 check pulse_ox_window_open status. The existing task's verifier awards 30 points for log_pulse_ox_created=true AND pulse_ox_window_open=false (proving disconnection). export_result.sh line 106 checks for 'fail.?safe|sensor|disconnect|test.?3'.",
+            "status": "verified"
+        },
+        {
+            "key": "test_protocol.test_names[3]",
+            "metadata_value": "Boundary Condition",
+            "verified_value": "Boundary Condition",
+            "source": "Task description Test 4: 'Set SpO2 to exactly the alarm threshold value. Record whether the pump is active or stopped at the boundary.' This tests the comparison operator (< vs <=) used in the alarm logic. The VitalSign constructor parameters are (startingLow, startingHigh, criticalLow, criticalHigh) which define the threshold boundaries. If the agent sets the low threshold to 90 and SpO2 to exactly 90, the result depends on whether the comparison is '<' or '<='. export_result.sh line 107 checks for 'boundary|exact|test.?4'.",
+            "status": "verified"
+        },
+        {
+            "key": "openice_platform",
+            "metadata_value": "OpenICE (Open-source Integrated Clinical Environment)",
+            "verified_value": "OpenICE is an open-source medical device interoperability platform from the MD PnP (Medical Device Plug-and-Play) Interoperability Program at Massachusetts General Hospital. Source code at https://github.com/mdpnp/mdpnp, installed to /opt/openice/mdpnp in the VM.",
+            "source": "Live verification: Java process confirmed running (ps aux shows org.mdpnp.apps.testapp.Main). Git repo confirmed at /opt/openice/mdpnp. OpenICE GUI confirmed visible and functional via VNC screenshots. MD PnP documentation at mdpnp.org confirms this is a real peer-reviewed platform implementing the ASTM F2761 ICE standard.",
+            "status": "verified"
+        },
+        {
+            "key": "spo2_default_alarm_thresholds",
+            "metadata_value": null,
+            "verified_value": {
+                "warning_low": 95.0,
+                "warning_high": 100.0,
+                "critical_low": 85.0,
+                "critical_high": 100.0,
+                "minimum": 50.0,
+                "maximum": 100.0,
+                "metric_id": "MDC_PULS_OXIM_SAT_O2"
+            },
+            "source": "VitalSign.java line 42: SpO2(\"SpO2\", \"%\", new String[] { rosetta.MDC_PULS_OXIM_SAT_O2.VALUE }, 95.0, 100.0, 85.0, 100.0, 50.0, 100.0, 5000L, 5000L, Color.pink). Constructor signature (line 120): VitalSign(label, units, metric_ids, startingLow, startingHigh, criticalLow, criticalHigh, minimum, maximum, ...). Confirmed by reading the source file directly from the VM during live testing.",
+            "status": "verified"
+        },
+        {
+            "key": "infusion_safety_mechanism",
+            "metadata_value": null,
+            "verified_value": "The Infusion Safety app (PCAConfig.java) uses a VitalModel-based alarm system. Adding a vital sign (e.g., SpO2) creates a VitalView with a MultiRangeSlider and four Spinner controls for Lowest/Lower/Higher/Highest thresholds. When monitored values cross thresholds: Normal->Warning (below 'Lower' or above 'Higher') -> Alarm (below 'Lowest' or above 'Highest'). On Alarm state, PCAConfig calls infusionPumpModel.stopInfusion() which sends a DDS InfusionObjective with stopInfusion=true. The warningsToAlarm count (configurable 1-9) determines how many concurrent warnings trigger an Alarm. To reset after alarm, user clicks the Interlock Status text area (interlockStatusClicked -> infusionPumpModel.resetInfusion()).",
+            "source": "PCAConfig.java source code analysis: stateProperty listener (line ~155) switches on State.Alarm to call infusionPumpModel.stopInfusion(). interlockStatusClicked() method (line ~215) calls infusionPumpModel.resetInfusion(). VitalView.fxml confirms MultiRangeSlider and 4 Spinner controls. PCAConfig.fxml confirms FlowPane with warningsToAlarm ComboBox, vitalSigns ComboBox, and Add Button.",
+            "status": "verified"
+        },
+        {
+            "key": "simulated_pulse_oximeter_details",
+            "metadata_value": null,
+            "verified_value": {
+                "device_type_name": "ICE PO (4s Fixed Average No Soft Avg)",
+                "internal_name": "4S_FF_NO_SOFT_AVG_PO_Simulator",
+                "default_spo2": 98,
+                "default_pulse_rate": 60,
+                "udi_format": "alphanumeric string visible in device detail panel",
+                "example_udi": "5bvHSPByrk8uo8oZzCBiyiP8IGdDk-MGOAE"
+            },
+            "source": "Live GUI verification: Created Pulse Oximeter device, opened detail panel. Screenshot 15_pulse_oximeter_detail_with_UDI.png shows: UDI '5bvHSPByrk8uo8oZzCBiyiP8IGdDk-MGOAE', SpO2 98%, Pulse Rate 60 BPM, Model '4s Fully Fixed Average Pulse Ox No Averaging (Simulated)'. Device creation confirmed in demo-apps.log: '4S_FF_NO_SOFT_AVG_PO_Simulator!'. UDIs are NOT in log files — they are only accessible via the device detail GUI panel.",
+            "status": "verified"
+        },
+        {
+            "key": "available_simulated_device_types",
+            "metadata_value": null,
+            "verified_value": [
+                "Hospira Symbiq",
+                "ICE Capnometer",
+                "ICE Controllable BP Monitor",
+                "ICE Controllable Pump",
+                "ICE ElectroCardioGram",
+                "ICE Infusion Pump",
+                "ICE Invasive Blood Pressure",
+                "ICE Multiparameter Monitor",
+                "ICE Noninvasive Blood Pressure",
+                "ICE PO (4s Fixed Average No Soft Avg)"
+            ],
+            "source": "Live GUI verification: Opened 'Create a device adapter...' dialog, set Device Category to 'Simulated', expanded Device Type dropdown. Screenshot 28_all_device_types_dropdown.png shows all 10 device types. Confirmed by visual grounding analysis of the screenshot.",
+            "status": "verified"
+        },
+        {
+            "key": "available_vital_signs_for_monitoring",
+            "metadata_value": null,
+            "verified_value": [
+                "HeartRate",
+                "SpO2PulseRate",
+                "ECGHeartRate",
+                "SpO2",
+                "RespiratoryRate",
+                "EndTidalCO2",
+                "Temperature",
+                "InvSystolic",
+                "InvDiastolic",
+                "InvMean"
+            ],
+            "source": "Live GUI verification: In Infusion Safety app, enabled Configuration Mode, clicked the vitalSigns ComboBox dropdown. Screenshot 29_vitalsigns_dropdown_all_options.png shows all available vital sign types. Confirmed by VitalSign.java enum which defines these exact names. The agent must select 'SpO2' (not 'SpO2PulseRate') from this list to monitor oxygen saturation percentage.",
+            "status": "verified"
+        },
+        {
+            "key": "udi_location",
+            "metadata_value": "device detail panels",
+            "verified_value": "Device UDIs are visible ONLY in the device detail GUI panel (accessed by clicking on a device icon in the Supervisor). They are NOT logged in any log file. The UDI format is an alphanumeric string (not a standard UUID).",
+            "source": "Live verification: Searched /home/ga/openice/logs/openice.log and /home/ga/demo-apps.log for UUID patterns — no matches (evidence file 13_uuid_search.txt). Searched for 'device.*identity' patterns — found DDS topic references but no actual UDI values (evidence file 14_device_identity_search.txt). However, clicking on the Pulse Oximeter device icon in the Supervisor reveals the detail panel with 'Unique Device Identifier' field showing the UDI (screenshot 15_pulse_oximeter_detail_with_UDI.png).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "OpenICE is an open-source medical device interoperability platform (MD PnP Program, https://github.com/mdpnp/mdpnp) installed at /opt/openice/mdpnp. The Infusion Safety clinical application implements a closed-loop medication safety interlock controlled via a VitalModel alarm system. To configure it: enable Configuration Mode (checkbox at bottom of dialog), select a vital sign (e.g., 'SpO2') from the vitalSigns dropdown, click 'Add', then adjust alarm thresholds via MultiRangeSlider and four Spinner controls (Lowest/Lower/Higher/Highest). Default SpO2 thresholds are: warning_low=95%, warning_high=100%, critical_low=85%, critical_high=100%, range 50-100%. The interlock fires when vital sign state transitions to Alarm (value below 'Lowest' threshold), which calls infusionPumpModel.stopInfusion() sending a DDS InfusionObjective with stopInfusion=true. To reset the pump after alarm, click the Interlock Status text area. The warningsToAlarm count (1-9, configurable) determines how many concurrent warnings trigger an alarm. The simulated Pulse Oximeter device type is 'ICE PO (4s Fixed Average No Soft Avg)' producing default SpO2 ~98% and pulse rate 60 BPM. The Infusion Pump type is 'ICE Infusion Pump'. Device UDIs are alphanumeric strings visible ONLY in the device detail panel (click device icon in Supervisor), NOT in log files. The pump status shows 'ACTIVE' when running normally. Expected task artifacts: oq_test_threshold.png (Test 1 interlock screenshot), oq_test_failsafe.png (Test 3 sensor disconnect screenshot), oq_test_results.csv (4 rows with columns Test_ID,Test_Name,Expected_Behavior,Observed_Behavior,Pass_Fail), and oq_validation_report.txt (with device UDIs, all 4 test results, hysteresis finding, and PASS/FAIL determination).",
+    "pi_confidence": "high"
+}

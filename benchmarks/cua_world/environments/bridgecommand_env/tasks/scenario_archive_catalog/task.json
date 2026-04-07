@@ -1,0 +1,28 @@
+{
+  "id": "scenario_archive_catalog@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "Inventory all Bridge Command training scenarios located in '/opt/bridgecommand/Scenarios/' and create a digital preservation catalog. Create a JSON catalog file at '/home/ga/Documents/scenario_catalog.json' consisting of a JSON array where each object represents a scenario directory and contains: 'scenario_name' (directory name), 'directory_path' (full path), 'world_model' (from environment.ini 'Setting'), 'start_time' (from environment.ini 'StartTime'), 'own_ship_name' (from ownship.ini 'ShipName'), 'traffic_vessel_count' (count of 'Type(x)' indices in othership.ini), 'files_present' (list of filenames), and 'is_complete' (boolean, true if environment.ini, ownship.ini, and othership.ini all exist). Generate SHA-256 checksums for every file in every scenario directory and save to '/home/ga/Documents/scenario_checksums.sha256' in standard format using absolute paths. Write a 'Preservation Assessment Report' to '/home/ga/Documents/preservation_report.txt' including the total count of scenarios, a count of complete vs incomplete scenarios, and a list of all unique World Models found.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/scenario_archive_catalog/setup_task.sh",
+    "post_task": "/workspace/tasks/scenario_archive_catalog/export_result.sh"
+  },
+  "metadata": {
+    "catalog_file": "/home/ga/Documents/scenario_catalog.json",
+    "checksum_file": "/home/ga/Documents/scenario_checksums.sha256",
+    "report_file": "/home/ga/Documents/preservation_report.txt",
+    "scenarios_root": "/opt/bridgecommand/Scenarios"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_scenario_catalog"
+    }
+  }
+}

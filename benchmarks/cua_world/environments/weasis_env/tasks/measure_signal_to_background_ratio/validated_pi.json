@@ -1,0 +1,59 @@
+{
+    "task_id": "measure_signal_to_background_ratio@1",
+    "dataset": "Rubo Medical XA Demo / Synthetic Fallback",
+    "case_id": "0002.DCM / CT_slice_001.dcm",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_text_file",
+            "metadata_value": "/home/ga/DICOM/exports/bone_air_ratio.txt",
+            "verified_value": "/home/ga/DICOM/exports/bone_air_ratio.txt",
+            "source": "Task instruction explicitly defines this output path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_screenshot_file",
+            "metadata_value": "/home/ga/DICOM/exports/qa_rois.png",
+            "verified_value": "/home/ga/DICOM/exports/qa_rois.png",
+            "source": "Task instruction explicitly defines this output path",
+            "status": "verified"
+        },
+        {
+            "key": "bone_mean_min",
+            "metadata_value": 100,
+            "verified_value": 100,
+            "source": "Medical literature confirms typical cancellous bone HU is >100. Confirmed valid against the synthetic CT fallback (bone=976) and also the actual Rubo Medical XA dataset where bright structures are ~200.",
+            "status": "verified"
+        },
+        {
+            "key": "bone_mean_max",
+            "metadata_value": 3000,
+            "verified_value": 3000,
+            "source": "Medical literature confirms dense cortical bone HU is ~3000. Confirmed valid against synthetic CT fallback (max=2960).",
+            "status": "verified"
+        },
+        {
+            "key": "air_mean_min",
+            "metadata_value": -1100,
+            "verified_value": null,
+            "source": "Contradicted by the provided default dataset. While -1100 is valid for a CT scan and the synthetic fallback (air=-1024), the actual downloaded dataset (0002.DCM) is an X-Ray Angiography (XA) image with a background value of 0.",
+            "status": "contradicted"
+        },
+        {
+            "key": "air_mean_max",
+            "metadata_value": -700,
+            "verified_value": null,
+            "source": "Contradicted by the provided default dataset. The X-Ray Angiography (XA) image 0002.DCM has an air/background value of 0, which falls far outside the claimed maximum bound of -700. Only valid for the synthetic fallback.",
+            "status": "contradicted"
+        },
+        {
+            "key": "tolerance",
+            "metadata_value": 0.05,
+            "verified_value": 0.05,
+            "source": "Standard mathematical floating point tolerance for ratio verification in verifier.py logic.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task instructs the agent to measure HU values of air and bone in a CT scan. The metadata asserts CT-specific bounds (Air: -1100 to -700, Bone: 100 to 3000). While these claims perfectly match standard medical definitions and the task's python-generated synthetic dataset (Air: -1024, Bone: 976), the default public dataset downloaded in the environment (Rubo Medical 0002.DCM) is an X-Ray Angiography (XA) image, not a CT scan. The XA image lacks HU calibration (no RescaleIntercept/Slope) and its background measures as 0, which contradicts the expected -1100 to -700 air bounds. Therefore, the task is unsolvable as designed unless the agent forces the environment to fall back to the synthetic dataset.",
+    "pi_confidence": "high"
+}

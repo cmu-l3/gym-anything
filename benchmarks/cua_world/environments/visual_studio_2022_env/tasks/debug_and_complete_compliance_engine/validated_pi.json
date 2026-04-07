@@ -1,0 +1,88 @@
+{
+    "task_id": "debug_and_complete_compliance_engine@1",
+    "dataset": "Synthetic clinical trial adverse events (FDA MedWatch-aligned fields, CTCAE v5.0 grading)",
+    "case_id": "adverse_events.csv (25 events, 13 unique patients, TRIAL-ONCO-003)",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_name",
+            "metadata_value": "ComplianceReporter",
+            "verified_value": "ComplianceReporter",
+            "source": "Live environment verification: solution file at C:\\Users\\Docker\\source\\repos\\ComplianceReporter\\ComplianceReporter.sln confirmed via SSH dir listing. Evidence: evidence_solution.sln, evidence_file_listing.txt",
+            "status": "verified"
+        },
+        {
+            "key": "project_path",
+            "metadata_value": "C:\\Users\\Docker\\source\\repos\\ComplianceReporter",
+            "verified_value": "C:\\Users\\Docker\\source\\repos\\ComplianceReporter",
+            "source": "Live environment verification: directory exists with all expected subdirectories (src/ComplianceReporter.Engine, src/ComplianceReporter.App, tests/ComplianceReporter.Tests). Evidence: evidence_file_listing.txt",
+            "status": "verified"
+        },
+        {
+            "key": "target_files",
+            "metadata_value": ["ReportGenerator.cs", "StatisticsHelper.cs", "ReportAggregator.cs"],
+            "verified_value": ["ReportGenerator.cs", "StatisticsHelper.cs", "ReportAggregator.cs"],
+            "source": "Live environment verification: all three files exist in src/ComplianceReporter.Engine/ directory. Contents confirmed via SSH cat commands. Evidence: evidence_ReportGenerator.cs, evidence_StatisticsHelper.cs, evidence_ReportAggregator.cs",
+            "status": "verified"
+        },
+        {
+            "key": "bugs[0] - severity labels swapped",
+            "metadata_value": "Severity classification labels swapped: Grade 3 returns Moderate instead of Severe, Grade 2 returns Severe instead of Moderate",
+            "verified_value": "CONFIRMED. In ReportGenerator.cs, the if-chain has: ctcaeGrade >= 3 returns 'Moderate' (should be 'Severe' per CTCAE v5.0), ctcaeGrade >= 2 returns 'Severe' (should be 'Moderate'). Live xUnit test output: ClassifySeverity_Grade3_ReturnsSevere FAILED with 'Assert.Equal() Failure: Expected: Severe, Actual: Moderate'. CTCAE v5.0 standard verified via NCI/CTEP documentation: Grade 1=Mild, Grade 2=Moderate, Grade 3=Severe, Grade 4=Life-Threatening, Grade 5=Fatal.",
+            "source": "1) Live test output (evidence_test_output.txt line showing 'Expected: Severe, Actual: Moderate'). 2) Source code inspection (evidence_ReportGenerator.cs). 3) CTCAE v5.0 standard from dctd.cancer.gov/research/ctep-trials/for-sites/adverse-events/ctcae-v5-5x7.pdf. 4) Export result JSON confirms severity_bug_present=true.",
+            "status": "verified"
+        },
+        {
+            "key": "bugs[1] - reversed date subtraction",
+            "metadata_value": "Onset days calculation has reversed date subtraction: enrollmentDate - eventDate instead of eventDate - enrollmentDate",
+            "verified_value": "CONFIRMED. In ReportGenerator.cs, CalculateOnsetDays returns (enrollmentDate - eventDate).Days which gives negative values when eventDate > enrollmentDate. Live xUnit test output: CalculateOnsetDays_14DaysApart_Returns14 FAILED with 'Assert.Equal() Failure: Expected: 14, Actual: -14'. Fix: swap to (eventDate - enrollmentDate).Days.",
+            "source": "1) Live test output (evidence_test_output.txt line showing 'Expected: 14, Actual: -14'). 2) Source code inspection (evidence_ReportGenerator.cs). 3) Export result JSON confirms date_bug_present=true. 4) Python computation: (Jan15 - Jan29).days = -14, (Jan29 - Jan15).days = 14.",
+            "status": "verified"
+        },
+        {
+            "key": "bugs[2] - integer division truncation",
+            "metadata_value": "Event rate uses integer division: eventCount / totalPatients truncates to 0 for fractional results",
+            "verified_value": "CONFIRMED. In StatisticsHelper.cs, CalculateEventRate returns 'eventCount / totalPatients' where both parameters are int. C# integer division truncates: 15/100 = 0 instead of 0.15. Live xUnit test output: CalculateEventRate_15of100_Returns0point15 FAILED with 'Assert.Equal() Failure: Expected: 0.15, Actual: 0'. Fix: cast to (double)eventCount / totalPatients. Note: CalculateEventRate_EvenDivision_Returns2 (100/50=2) passes even with the bug since 100 divides evenly by 50.",
+            "source": "1) Live test output (evidence_test_output.txt showing 'Expected: 0.14999999999999999 (rounded from 0.14999999999999999), Actual: 0 (rounded from 0)'). 2) Source code inspection (evidence_StatisticsHelper.cs). 3) Export result JSON confirms int_div_bug_present=true.",
+            "status": "verified"
+        },
+        {
+            "key": "stubs[0] - CalculateWilsonScoreInterval",
+            "metadata_value": "CalculateWilsonScoreInterval: Wilson score confidence interval for binomial proportions",
+            "verified_value": "CONFIRMED. ReportAggregator.cs contains method CalculateWilsonScoreInterval(int successes, int trials, double zScore) that throws NotImplementedException. Live xUnit test output: WilsonCI_50of200_ReturnsExpected and WilsonCI_AllSuccesses_UpperBoundIsOne both FAILED with 'System.NotImplementedException'. XML doc comment contains the formula: (p + z^2/2n +/- z * sqrt(p*(1-p)/n + z^2/4n^2)) / (1 + z^2/n). Wilson formula verified via Wikipedia 'Binomial proportion confidence interval' article.",
+            "source": "1) Live test output (evidence_test_output.txt showing NotImplementedException at ReportAggregator.cs:22). 2) Source code inspection (evidence_ReportAggregator.cs). 3) Wilson formula verified at en.wikipedia.org/wiki/Binomial_proportion_confidence_interval. 4) Computed expected values: 50/200 at z=1.96 gives lower=0.195081, upper=0.314342; 100/100 gives lower=0.963005, upper=1.000000.",
+            "status": "verified"
+        },
+        {
+            "key": "stubs[1] - DetectExpeditedReportingFlags",
+            "metadata_value": "DetectExpeditedReportingFlags: FDA 15-day expedited reporting filter (Grade>=4, Death/Life-Threatening, OnsetDays<=15)",
+            "verified_value": "CONFIRMED. ReportAggregator.cs contains method DetectExpeditedReportingFlags(List<AdverseEvent> events) that throws NotImplementedException. Live xUnit test output shows both ExpeditedFlags tests FAILED with NotImplementedException. XML doc comment specifies criteria: Grade >= 4, Outcome 'Death' or 'Life-Threatening', onset within 15 days. FDA 15-day reporting rule verified via 21 CFR 312.32 (ecfr.gov).",
+            "source": "1) Live test output (evidence_test_output.txt showing NotImplementedException at ReportAggregator.cs:37). 2) Source code inspection (evidence_ReportAggregator.cs). 3) FDA rule verified at ecfr.gov/current/title-21/chapter-I/subchapter-D/part-312/subpart-B/section-312.32.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_test_results.initial",
+            "metadata_value": {"passed": 5, "failed": 7, "total": 12},
+            "verified_value": {"passed": 5, "failed": 7, "total": 12},
+            "source": "Live environment dotnet test output verbatim: 'Total tests: 12\\nTest Run Failed.\\n     Passed: 5\\n     Failed: 7'. Passing tests: ClassifySeverity_Grade1_ReturnsMild, ClassifySeverity_Grade4_ReturnsLifeThreatening, ClassifySeverity_Grade5_ReturnsFatal, CalculateOnsetDays_SameDay_ReturnsZero, CalculateEventRate_EvenDivision_Returns2. Failing tests: ClassifySeverity_Grade3_ReturnsSevere (bug 1), CalculateOnsetDays_14DaysApart_Returns14 (bug 2), CalculateEventRate_15of100_Returns0point15 (bug 3), WilsonCI_50of200_ReturnsExpected (stub 1), WilsonCI_AllSuccesses_UpperBoundIsOne (stub 1), ExpeditedFlags_MixedEvents_FiltersCorrectly (stub 2), ExpeditedFlags_NoneQualify_ReturnsEmpty (stub 2). Evidence: evidence_test_output.txt",
+            "status": "verified"
+        },
+        {
+            "key": "expected_test_results.final",
+            "metadata_value": {"passed": 12, "failed": 0, "total": 12},
+            "verified_value": {"passed": 12, "failed": 0, "total": 12},
+            "source": "Verified computationally: (1) Bug 1 fix (swap 'Severe'/'Moderate') makes Grade3 test pass without breaking Grade1/4/5 tests. (2) Bug 2 fix (swap operands) makes 14DaysApart test pass without breaking SameDay test (0-0=0 either way). (3) Bug 3 fix ((double) cast) makes 15of100 test pass without breaking EvenDivision test (100/50=2.0 either way). (4) Wilson CI implementation passes both tests: 50/200 gives lower=0.195 in [0.19,0.20] and upper=0.314 in [0.31,0.32]; 100/100 gives lower=0.963 in [0.96,0.97] and upper=1.000 in [0.99,1.01]. (5) Expedited flags: test data has AE-001 (Grade5,Death,7d) and AE-002 (Grade4,Life-Threatening,9d) qualifying, AE-003 (Grade3) and AE-004 (30d) not qualifying — correct count is 2. Empty test: AE-010 (Grade2) and AE-011 (Grade4,Recovered) don't qualify.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_expedited_flags",
+            "metadata_value": 6,
+            "verified_value": 6,
+            "source": "Computed from adverse_events.csv (25 events). Applied criteria Grade>=4 AND Outcome in (Death, Life-Threatening) AND (EventDate-EnrollmentDate).days<=15 to each event: AE-00002 (Grade5, Death, 7d) YES; AE-00003 (Grade4, Life-Threatening, 10d) YES; AE-00006 (Grade4, Death, 8d) YES; AE-00015 (Grade5, Death, 11d) YES; AE-00019 (Grade4, Life-Threatening, 4d) YES; AE-00025 (Grade4, Death, 10d) YES. Near-misses: AE-00021 (Grade4, Life-Threatening, 24d — exceeds 15d). Total qualifying: 6.",
+            "source_detail": "Python computation verified all 25 events individually. Date arithmetic double-checked for each qualifying event.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The ComplianceReporter solution is a .NET 8 multi-project solution with 3 injected bugs and 2 unimplemented stubs. Initially 5 of 12 xUnit tests pass and 7 fail. Bug 1 (ReportGenerator.cs): CTCAE severity labels 'Severe' and 'Moderate' are swapped — Grade 3 returns 'Moderate' instead of 'Severe', Grade 2 returns 'Severe' instead of 'Moderate'. Fix: swap the two string literals. Bug 2 (ReportGenerator.cs): CalculateOnsetDays computes (enrollmentDate - eventDate).Days giving -14 instead of 14. Fix: swap to (eventDate - enrollmentDate).Days. Bug 3 (StatisticsHelper.cs): CalculateEventRate performs integer division (int/int=int), returning 0 for 15/100 instead of 0.15. Fix: cast to (double)eventCount / totalPatients. Stub 1 (ReportAggregator.cs): CalculateWilsonScoreInterval must implement Wilson score formula: (p + z²/2n ± z√(p(1-p)/n + z²/4n²)) / (1 + z²/n). Expected test values: 50/200 at z=1.96 gives lower≈0.195, upper≈0.314; 100/100 gives lower≈0.963, upper≈1.000. Stub 2 (ReportAggregator.cs): DetectExpeditedReportingFlags must filter events where CtcaeGrade>=4 AND Outcome is 'Death' or 'Life-Threatening' AND (EventDate-EnrollmentDate).Days<=15. Test expects 2 of 5 sample events to qualify (AE-001 and AE-002). The CSV dataset has 25 events with 6 qualifying for expedited reporting. After all fixes, the agent must run the App (Ctrl+F5) to generate compliance_report.txt and write debug_report.txt documenting the fixes.",
+    "pi_confidence": "high"
+}

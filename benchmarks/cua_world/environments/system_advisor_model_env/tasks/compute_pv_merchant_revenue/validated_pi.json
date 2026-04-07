@@ -1,0 +1,52 @@
+{
+    "task_id": "compute_pv_merchant_revenue@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_filename",
+            "metadata_value": "merchant_revenue_analysis.json",
+            "verified_value": "merchant_revenue_analysis.json",
+            "source": "Confirmed via export_result.sh EXPECTED_FILE path check.",
+            "status": "verified"
+        },
+        {
+            "key": "weather_file",
+            "metadata_value": "/home/ga/SAM_Weather_Data/phoenix_az_tmy.csv",
+            "verified_value": "/home/ga/SAM_Weather_Data/phoenix_az_tmy.csv",
+            "source": "Confirmed via install_sam.sh copying it from the bundled SAM solar resource and setup_task.sh reading from it.",
+            "status": "verified"
+        },
+        {
+            "key": "lmp_file",
+            "metadata_value": "/home/ga/Documents/SAM_Projects/caiso_sp15_2022_lmp.csv",
+            "verified_value": "/home/ga/Documents/SAM_Projects/caiso_sp15_2022_lmp.csv",
+            "source": "Confirmed via setup_task.sh which generates this synthetic file.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_capacity",
+            "metadata_value": 50000,
+            "verified_value": 50000,
+            "source": "Confirmed via task description instructing 50,000 kW DC system capacity.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_energy_min",
+            "metadata_value": 105000,
+            "verified_value": 105000,
+            "source": "Ran PySAM simulation with Pvwattsv8 replicating the task parameters (50MW, 1.2 DC/AC, 1-axis tracking, 14% loss) using the actual SAM Phoenix TMY file, yielding 111,304 MWh which is safely inside the bounds.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_energy_max",
+            "metadata_value": 140000,
+            "verified_value": 140000,
+            "source": "Ran PySAM simulation with Pvwattsv8 yielding 111,304 MWh, comfortably beneath the max threshold.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires generating a synthetic dataset for LMP using the weather file. I confirmed the expected parameters (50MW, 1.2 DC/AC, 1-axis tracking, 14% loss) result in 111,304 MWh of annual energy, comfortably bounded by 105,000 and 140,000. Additionally, I discovered two major defects in the task design. First, the weather CSV has 3 header rows, but setup_task.sh parses lines[2:8762], losing the first data row and generating an LMP CSV with only 8759 rows instead of the expected 8760, which may break agents zipping it with PySAM's 8760-row generation output. Second, the verifier.py script is entirely missing from the environment, making the task completely unscorable.",
+    "pi_confidence": "high"
+}

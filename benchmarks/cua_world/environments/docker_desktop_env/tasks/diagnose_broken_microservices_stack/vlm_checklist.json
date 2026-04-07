@@ -1,0 +1,65 @@
+{
+  "task_id": "diagnose_broken_microservices_stack@1",
+  "task_completion": [
+    {
+      "id": "nginx_config_fixed",
+      "description": "Nginx configuration is fixed to point to the correct Flask port",
+      "points": 10,
+      "visual_evidence": "Terminal or editor showing nginx/nginx.conf with the upstream server port for flask-app changed from 8000 to 5000 (e.g., 'server flask-app:5000;')."
+    },
+    {
+      "id": "flask_network_fixed",
+      "description": "Flask app is added to the backend network",
+      "points": 10,
+      "visual_evidence": "Terminal or editor showing docker-compose.yml with '- backend' added under the networks section of the flask-app service."
+    },
+    {
+      "id": "database_url_fixed",
+      "description": "Database URL is fixed to use the correct database name",
+      "points": 10,
+      "visual_evidence": "Terminal or editor showing docker-compose.yml with the DATABASE_URL environment variable updated to use 'myapp' instead of 'production_db'."
+    },
+    {
+      "id": "redis_url_fixed",
+      "description": "Redis URL is fixed to include the required password",
+      "points": 10,
+      "visual_evidence": "Terminal or editor showing docker-compose.yml with the REDIS_URL environment variable updated to include the password (e.g., 'redis://:secretredis123@redis:6379/0')."
+    },
+    {
+      "id": "services_running",
+      "description": "All four Docker services are running",
+      "points": 10,
+      "visual_evidence": "Terminal showing output of 'docker compose ps' or 'docker ps' with nginx, flask-app, db, and redis containers present and in an 'Up' state."
+    },
+    {
+      "id": "health_endpoint_success",
+      "description": "The health endpoint returns the correct status",
+      "points": 25,
+      "visual_evidence": "Terminal showing the execution of 'curl http://localhost:80/api/health' returning HTTP 200 and the exact JSON payload: {\"status\": \"healthy\", \"database\": \"connected\", \"cache\": \"connected\"}."
+    },
+    {
+      "id": "items_endpoint_success",
+      "description": "The items endpoint returns the inventory list",
+      "points": 25,
+      "visual_evidence": "Terminal showing the execution of 'curl http://localhost:80/api/items' returning HTTP 200 and a JSON array of inventory items (e.g., 'Wireless Keyboard', 'USB-C Hub') with id, name, and price fields."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "no_app_py_modification",
+      "description": "The Flask application source code was not modified",
+      "visual_evidence": "There should be no evidence of app/app.py being edited to hardcode the responses or bypass the database/redis connections. The task explicitly forbids modifying this file."
+    },
+    {
+      "id": "genuine_curl_execution",
+      "description": "The curl commands were genuinely executed against the local server",
+      "visual_evidence": "The curl commands should be run in a real terminal against localhost:80, without using 'echo' or wrapper scripts to fake the JSON output."
+    },
+    {
+      "id": "docker_compose_used",
+      "description": "The stack is running via Docker Compose as intended",
+      "visual_evidence": "The services should be running as Docker containers (visible via docker ps with standard compose naming conventions), not as standalone local processes."
+    }
+  ],
+  "privileged_info_for_vlm": "The task requires fixing 4 configuration bugs in a Docker Compose stack at /home/ga/microservices-debug/: 1) In nginx/nginx.conf, change upstream port from 8000 to 5000. 2) In docker-compose.yml, add the 'backend' network to the flask-app service. 3) In docker-compose.yml, change DATABASE_URL to use 'myapp' instead of 'production_db'. 4) In docker-compose.yml, add the password ':secretredis123@' to REDIS_URL. When fixed, `curl http://localhost:80/api/health` returns `{\"status\":\"healthy\",\"database\":\"connected\",\"cache\":\"connected\"}` and `curl http://localhost:80/api/items` returns a JSON array of 8 items (e.g., Wireless Keyboard, USB-C Hub). The file app/app.py must NOT be modified."
+}

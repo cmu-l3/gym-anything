@@ -1,0 +1,29 @@
+{
+  "id": "flanker_gratton_effect_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "very_hard",
+  "description": "A cognitive control laboratory is investigating conflict adaptation via the Sequential Congruency Effect (often called the Gratton Effect) using Eriksen Flanker task data. The raw dataset is located at ~/pebl/data/flanker_data.csv with columns: participant, block, trial, flankers (congruent, incongruent, neutral), and rt (reaction time in seconds). One participant's data has been corrupted by a stuck key/automated responder, resulting in physiologically impossible RTs.\n\nYour objective is to compute the Gratton Effect for each valid participant and output the results to ~/pebl/analysis/gratton_report.json.\n\nSteps to perform:\n1. Filter the dataset to include ONLY 'congruent' and 'incongruent' trials. Drop 'neutral' trials entirely for this analysis.\n2. Ensure the data is sorted chronologically by participant, block, and trial.\n3. For each trial, identify the preceding trial's condition ('congruent' or 'incongruent') strictly within the SAME block. Do not look across block boundaries or participant boundaries. The first valid trial of each block will not have a preceding trial and should be ignored.\n4. Group the remaining trials into four transition types:\n   - cC: Previous was congruent, current is congruent\n   - cI: Previous was congruent, current is incongruent\n   - iC: Previous was incongruent, current is congruent\n   - iI: Previous was incongruent, current is incongruent\n5. Calculate the mean reaction time in milliseconds (multiply the 'rt' column by 1000) for each of these 4 transitions for each participant.\n6. Compute the Gratton Effect (in ms) using the formula: (cI_mean - cC_mean) - (iI_mean - iC_mean).\n7. Identify and exclude any participant whose overall mean RT is less than 100 ms (impossible human performance).\n\nThe final JSON report must have two keys:\n- 'participants': A list of dictionaries. Each dict must contain 'id', 'gratton_effect_ms', 'cC_mean_ms', 'cI_mean_ms', 'iC_mean_ms', and 'iI_mean_ms'. If a participant is excluded, their dict should only contain 'id', 'excluded': true, and 'reason'.\n- 'group_mean_gratton_ms': The average Gratton Effect across all valid participants.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/flanker_gratton_effect_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/flanker_gratton_effect_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "s99",
+    "contamination_type": "equipment_malfunction_impossibly_fast_rt",
+    "n_real_participants": 27,
+    "output_file": "/home/ga/pebl/analysis/gratton_report.json",
+    "data_source": "real flanker RT data (participants s1-s27) from assets, s99 injected with impossibly fast RTs"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_flanker_gratton_effect_analysis"
+    }
+  }
+}

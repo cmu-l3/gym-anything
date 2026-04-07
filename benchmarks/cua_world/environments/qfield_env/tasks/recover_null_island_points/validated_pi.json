@@ -1,0 +1,64 @@
+{
+    "task_id": "recover_null_island_points@1",
+    "dataset": "world_survey.gpkg",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_file",
+            "metadata_value": "world_survey.gpkg",
+            "verified_value": "world_survey.gpkg",
+            "source": "task description and setup_task.sh",
+            "status": "verified"
+        },
+        {
+            "key": "layer_name",
+            "metadata_value": "world_capitals",
+            "verified_value": "world_capitals",
+            "source": "sqlite3 inspection of world_survey.gpkg",
+            "status": "verified"
+        },
+        {
+            "key": "targets",
+            "metadata_value": {
+                "Caracas": {
+                    "lat": 10.5,
+                    "lon": -66.9
+                },
+                "Bogota": {
+                    "lat": 4.6,
+                    "lon": -74.1
+                },
+                "Quito": {
+                    "lat": -0.2,
+                    "lon": -78.5
+                }
+            },
+            "verified_value": {
+                "Caracas": {
+                    "lat": 10.5,
+                    "lon": -66.9
+                },
+                "Bogota": {
+                    "lat": 4.6,
+                    "lon": -74.08
+                },
+                "Quito": {
+                    "lat": -0.22,
+                    "lon": -78.52
+                }
+            },
+            "source": "verifier.py TARGETS definition",
+            "status": "contradicted"
+        },
+        {
+            "key": "null_island_wkb_hex",
+            "metadata_value": "47500001E6100000010100000000000000000000000000000000000000",
+            "verified_value": "47500001E6100000010100000000000000000000000000000000000000",
+            "source": "struct and binascii decoding of WKB Point(0 0) in SRID 4326",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on 'world_survey.gpkg', which contains real-world capital city data in the 'world_capitals' layer. However, the task contains severe setup bugs. First, the setup_task.sh script fails to corrupt the coordinates to Null Island because it attempts to execute an UPDATE query referencing a non-existent 'description' column, and it uses SpatiaLite functions (st_y, st_x) which are not available in standard Android sqlite3. Consequently, the original valid coordinates for Bogota and Quito are never altered, and no points exist at Null Island (0,0). Second, the feature 'Caracas' does not exist anywhere in the 'world_capitals' table, meaning the agent cannot read its original coordinates from a description field as instructed. The agent can only pass if they rely on their own world knowledge to manually create a new 'Caracas' feature at the correct coordinates while leaving the unbroken Bogota and Quito features alone. Finally, the target coordinates defined in the metadata for Bogota and Quito are less precise and contradict the exact targets defined in verifier.py (Bogota: 4.60, -74.08, Quito: -0.22, -78.52).",
+    "pi_confidence": "high"
+}

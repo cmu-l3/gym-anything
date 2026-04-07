@@ -1,0 +1,31 @@
+{
+  "id": "deleted_file_differential_analysis@1",
+  "version": "1.0",
+  "env_id": "autopsy_env@0.1",
+  "description": "You are investigating a corporate espionage case where the suspect may have selectively deleted files. Perform a differential analysis comparing allocated vs. deleted files on the evidence image to determine if the deletion was systematic or incidental.\n\nYour mission:\n1. Create a forensic case named 'Deletion_Differential_2024' with case number 'INV-DIFF-006' in Autopsy.\n2. Add /home/ga/evidence/ntfs_undel.dd as a Disk Image data source. Enable ONLY the 'File Type Identification' ingest module.\n3. After ingest, examine both allocated and deleted files in the file views. Exclude NTFS system metadata files (e.g., $MFT, $LogFile, $Bitmap, files starting with '$').\n4. Write a differential analysis report to /home/ga/Reports/deletion_differential.txt containing exactly these sections in this order:\n   ALLOCATED_FILE_COUNT: <N>\n   DELETED_FILE_COUNT: <N>\n   TOTAL_USER_FILES: <N>\n   DELETION_RATIO: <N.NN> (deleted count / allocated count)\n\n   ALLOCATED_FILES:\n   <filename>|<size_bytes>|<extension>\n   ...\n\n   DELETED_FILES:\n   <filename>|<size_bytes>|<extension>\n   ...\n\n   TYPE_DISTRIBUTION_ALLOCATED:\n   <extension>: <N> files\n   ...\n\n   TYPE_DISTRIBUTION_DELETED:\n   <extension>: <N> files\n   ...\n\n   DELETION_PATTERN_ASSESSMENT: <SYSTEMATIC|INCIDENTAL|INCONCLUSIVE>\n   ASSESSMENT_JUSTIFICATION: <brief explanation>\n\n5. Write a summary to /home/ga/Reports/deletion_summary.txt with:\n   CASE_NUMBER: INV-DIFF-006\n   IMAGE_FILE: ntfs_undel.dd\n   FILESYSTEM: NTFS\n   ALLOCATED_FILE_COUNT: <N>\n   DELETED_FILE_COUNT: <N>\n   DELETION_RATIO: <N.NN>\n   TYPES_ONLY_IN_DELETED: <comma-separated list or 'None'>\n   TYPES_ONLY_IN_ALLOCATED: <comma-separated list or 'None'>\n   DELETION_PATTERN_ASSESSMENT: <SYSTEMATIC|INCIDENTAL|INCONCLUSIVE>",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/deleted_file_differential_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/deleted_file_differential_analysis/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Deletion_Differential_2024",
+    "case_number": "INV-DIFF-006",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "report_file": "/home/ga/Reports/deletion_differential.txt",
+    "summary_file": "/home/ga/Reports/deletion_summary.txt",
+    "result_file": "/tmp/deletion_differential_result.json",
+    "gt_file": "/tmp/deletion_differential_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_deleted_file_differential_analysis"
+    }
+  }
+}

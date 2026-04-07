@@ -68,17 +68,17 @@ mkdir -p /opt/sweethome3d_samples
 # userGuideExample.sh3d - Basic user guide example (2.3 MB)
 echo "Downloading userGuideExample.sh3d..."
 wget -q -O /opt/sweethome3d_samples/userGuideExample.sh3d \
-    "https://www.sweethome3d.com/benchmarks/cua_world/environments/userGuideExample.sh3d" || true
+    "https://www.sweethome3d.com/examples/userGuideExample.sh3d" || true
 
 # SweetHome3DExample.sh3d - Basic apartment (1.8 MB)
 echo "Downloading SweetHome3DExample.sh3d..."
 wget -q -O /opt/sweethome3d_samples/SweetHome3DExample.sh3d \
-    "https://www.sweethome3d.com/benchmarks/cua_world/environments/SweetHome3DExample.sh3d" || true
+    "https://www.sweethome3d.com/examples/SweetHome3DExample.sh3d" || true
 
 # SweetHome3DExample7.sh3d - Contemporary villa (7 MB)
 echo "Downloading SweetHome3DExample7.sh3d..."
 wget -q -O /opt/sweethome3d_samples/SweetHome3DExample7.sh3d \
-    "https://www.sweethome3d.com/benchmarks/cua_world/environments/SweetHome3DExample7.sh3d" || true
+    "https://www.sweethome3d.com/examples/SweetHome3DExample7.sh3d" || true
 
 # Verify at least one sample downloaded successfully
 SAMPLE_COUNT=0

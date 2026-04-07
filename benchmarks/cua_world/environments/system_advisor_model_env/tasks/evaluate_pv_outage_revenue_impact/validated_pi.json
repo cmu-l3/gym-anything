@@ -1,0 +1,52 @@
+{
+    "task_id": "evaluate_pv_outage_revenue_impact@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_json",
+            "metadata_value": "/home/ga/Documents/SAM_Projects/outage_results.json",
+            "verified_value": "/home/ga/Documents/SAM_Projects/outage_results.json",
+            "source": "Verified by explicitly matching the export_result.sh queries and task description instructions.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_script",
+            "metadata_value": "/home/ga/Documents/SAM_Projects/outage_analysis.py",
+            "verified_value": "/home/ga/Documents/SAM_Projects/outage_analysis.py",
+            "source": "Verified by explicitly matching the export_result.sh queries and task description instructions.",
+            "status": "verified"
+        },
+        {
+            "key": "ppa_price_per_kwh",
+            "metadata_value": 0.04,
+            "verified_value": 0.04,
+            "source": "Verified by explicit statement in task description ('$0.04/kWh').",
+            "status": "verified"
+        },
+        {
+            "key": "baseline_min_kwh",
+            "metadata_value": 80000000,
+            "verified_value": null,
+            "source": "Contradicted. A PySAM simulation of a 50 MW tracking plant using standard US TMY files like 'fargo_nd' or 'des_moines_ia' yields a baseline around 74.8M to 75.1M kWh, which falls below the 80,000,000 constraint, directly contradicting the prompt's instruction that 'any available US TMY file' can be used.",
+            "status": "contradicted"
+        },
+        {
+            "key": "baseline_max_kwh",
+            "metadata_value": 140000000,
+            "verified_value": 140000000,
+            "source": "Verified by PySAM simulation of various US TMY files (e.g., Daggett, CA maxes around 110.6M kWh), making 140M a safe upper bound.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_recommendation",
+            "metadata_value": "winter",
+            "verified_value": "winter",
+            "source": "Verified by PySAM simulation, which demonstrates that US summer outages result in significantly more lost energy and revenue (~$190k-$210k) than winter outages (~$43k-$103k), making winter the optimal recommendation to minimize losses.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Completed PI audit for evaluate_pv_outage_revenue_impact task by verifying that real-world TMY weather data from the National Solar Radiation Database is utilized. The expected recommendation ('winter') is verified as correct since PySAM simulation demonstrates that summer outages cause approximately twice the lost revenue in the US compared to winter outages. The baseline_min_kwh constraint of 80,000,000 is contradicted, as valid US TMY locations like Fargo and Des Moines produce baselines around ~75M kWh. Discovered a critical defect: 'verifier.py' is entirely missing from the environment, making the task programmatically unscorable. Additionally, the task instructions contain a fatal semantic error regarding PySAM's AdjustmentFactors: it instructs the agent to use 'the hourly array of 8760 multipliers' and to 'Zero out hour indices' for an outage. However, in PySAM 7.1.0, the hourly adjustments (adjust_timeindex) represent percentage loss, not multipliers. An agent explicitly following the instructions and setting 0 for outage hours will configure 0% loss (100% availability), incorrectly generating higher energy during the outage period and artificially reversing the recommendation to summer.",
+    "pi_confidence": "high"
+}

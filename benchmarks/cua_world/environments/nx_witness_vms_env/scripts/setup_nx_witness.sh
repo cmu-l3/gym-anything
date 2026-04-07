@@ -318,75 +318,44 @@ fi
 
 # Launch Firefox with the Nx Witness web admin URL
 su - ga -c "DISPLAY=:1 firefox 'https://localhost:7001/static/index.html' &" 2>/dev/null || true
-sleep 10
-
-# Accept SSL warning: click "Advanced..." then "Accept the Risk and Continue"
-# Scale: 1920x1080 actual, VG coords are 1280x720
-# Advanced button at VG(879, 470) → actual(1319, 705)
-DISPLAY=:1 xdotool mousemove 1319 705 click 1 2>/dev/null || true
-sleep 3
-
-# "Accept the Risk and Continue" at VG(835, 671) → actual(1253, 1007)
-DISPLAY=:1 xdotool mousemove 1253 1007 click 1 2>/dev/null || true
-sleep 5
-
-# The web admin shows login page — use JS injection via xdotool
-# This is more reliable than mouse clicks for the login form
-# Navigate to the login page URL to ensure focus is on the login form
-sleep 5
-
-# Click on URL bar, navigate to login page (ensures page is loaded)
-DISPLAY=:1 xdotool key ctrl+l 2>/dev/null || true
-sleep 0.5
-DISPLAY=:1 xdotool type "https://localhost:7001/static/index.html" 2>/dev/null || true
-DISPLAY=:1 xdotool key Return 2>/dev/null || true
-sleep 8
-
-# At this point the page should show the login form OR may show SSL warning again
-# Try to dismiss SSL warning if it appeared
-DISPLAY=:1 xdotool mousemove 1319 705 click 1 2>/dev/null || true
-sleep 2
-DISPLAY=:1 xdotool mousemove 1253 1007 click 1 2>/dev/null || true
-sleep 5
-
-# Login via JS injection in browser console — most reliable approach
-# Open Firefox developer console and inject login via fetch API
-DISPLAY=:1 xdotool key ctrl+l 2>/dev/null || true
-sleep 0.3
-# Use javascript: URL to perform login programmatically
-DISPLAY=:1 xdotool type "javascript:void(0)" 2>/dev/null || true
-DISPLAY=:1 xdotool key Return 2>/dev/null || true
-sleep 1
-
-# Instead: use xdotool to interact with the login form via Tab navigation
-# First click on the page body to ensure focus, then Tab to username field
-DISPLAY=:1 xdotool key ctrl+l 2>/dev/null || true
-sleep 0.3
-DISPLAY=:1 xdotool type "https://localhost:7001/static/index.html" 2>/dev/null || true
-DISPLAY=:1 xdotool key Return 2>/dev/null || true
-sleep 8
-
-# Click username field at VG(663, 375) → actual(994, 563)
-DISPLAY=:1 xdotool mousemove 994 563 click 1 2>/dev/null || true
-sleep 0.5
-DISPLAY=:1 xdotool key ctrl+a 2>/dev/null || true
-DISPLAY=:1 xdotool type "admin" 2>/dev/null || true
-sleep 0.3
-
-# Tab to password field (more reliable than mouse click to password field)
-DISPLAY=:1 xdotool key Tab 2>/dev/null || true
-sleep 0.3
-DISPLAY=:1 xdotool type "${NX_ADMIN_PASS}" 2>/dev/null || true
-sleep 0.3
-
-# Escape first to dismiss any Firefox password manager popup, then Enter to submit
-DISPLAY=:1 xdotool key Escape 2>/dev/null || true
-sleep 0.3
-DISPLAY=:1 xdotool key Return 2>/dev/null || true
 sleep 12
 
-# Dismiss "Save password?" Firefox dialog — "Not now" button at VG(462, 222) → actual(693, 333)
-DISPLAY=:1 xdotool mousemove 693 333 click 1 2>/dev/null || true
+# Accept SSL warning using keyboard navigation (most reliable method).
+# The NX Witness cert has SAN=<server-uuid> not localhost, so Firefox always
+# shows the SSL warning. Click page body for focus, then Shift+Tab focuses
+# "Accept the Risk and Continue" (last tabbable element), Enter clicks it.
+DISPLAY=:1 xdotool mousemove 960 400 click 1 2>/dev/null || true
+sleep 0.5
+DISPLAY=:1 xdotool key shift+Tab 2>/dev/null || true
+sleep 0.3
+DISPLAY=:1 xdotool key Return 2>/dev/null || true
+sleep 8
+
+# If the Advanced section wasn't auto-expanded, the first attempt clicked
+# "Advanced..." — now try the accept button again
+DISPLAY=:1 xdotool mousemove 960 400 click 1 2>/dev/null || true
+sleep 0.3
+DISPLAY=:1 xdotool key shift+Tab 2>/dev/null || true
+sleep 0.3
+DISPLAY=:1 xdotool key Return 2>/dev/null || true
+sleep 8
+
+# Login: triple-click Login field to select any stale text, type credentials
+DISPLAY=:1 xdotool mousemove 960 563 click --repeat 3 1 2>/dev/null || true
+sleep 0.5
+DISPLAY=:1 xdotool type --clearmodifiers "admin" 2>/dev/null || true
+sleep 0.3
+# Click Password field directly (more reliable than Tab)
+DISPLAY=:1 xdotool mousemove 960 637 click 1 2>/dev/null || true
+sleep 0.5
+DISPLAY=:1 xdotool type --clearmodifiers "${NX_ADMIN_PASS}" 2>/dev/null || true
+sleep 0.3
+# Click "Log In" button directly
+DISPLAY=:1 xdotool mousemove 960 690 click 1 2>/dev/null || true
+sleep 12
+
+# Dismiss "Save password?" Firefox dialog with Escape
+DISPLAY=:1 xdotool key Escape 2>/dev/null || true
 sleep 2
 
 # Maximize Firefox

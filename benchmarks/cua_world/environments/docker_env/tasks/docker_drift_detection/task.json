@@ -1,0 +1,46 @@
+{
+  "id": "docker_drift_detection@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are an SRE at AcmeCorp. A compliance audit flagged three production containers for filesystem drift: 'acme-webserver', 'acme-appserver', and 'acme-taskrunner'. Detect all unauthorized changes in each container and extract legitimate configuration files to '~/projects/container-configs/webserver/', '~/projects/container-configs/appserver/', and '~/projects/container-configs/taskrunner/'. Write a drift report to '~/Desktop/drift_report.txt' documenting and classifying the changes. Stop the drifted containers and deploy clean replacements named 'acme-webserver-clean', 'acme-appserver-clean', and 'acme-taskrunner-clean' using the original base images and mounting the preserved configurations. Login: user ga, password password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_drift_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_drift_detection/export_result.sh"
+  },
+  "metadata": {
+    "drift_report_path": "/home/ga/Desktop/drift_report.txt",
+    "config_extract_base": "/home/ga/projects/container-configs",
+    "containers": {
+      "webserver": {
+        "original": "acme-webserver",
+        "clean": "acme-webserver-clean",
+        "image": "nginx:1.24-alpine",
+        "forbidden_file": "/usr/bin/curl"
+      },
+      "appserver": {
+        "original": "acme-appserver",
+        "clean": "acme-appserver-clean",
+        "image": "python:3.11-slim",
+        "forbidden_package": "debugpy"
+      },
+      "taskrunner": {
+        "original": "acme-taskrunner",
+        "clean": "acme-taskrunner-clean",
+        "image": "alpine:3.19"
+      }
+    },
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_drift_detection"
+    }
+  }
+}

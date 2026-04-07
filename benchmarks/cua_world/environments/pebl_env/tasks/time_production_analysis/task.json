@@ -1,0 +1,33 @@
+{
+  "id": "time_production_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "hard",
+  "description": "A psychology professor has collected Time Reproduction psychophysics data from 16 students, located at ~/pebl/data/time_production_data.csv. The CSV contains participant_id, trial, target_duration_ms, and produced_duration_ms. One student (sub-99) cheated by using a stopwatch, resulting in artificially precise timing. Compute the following timing error metrics for each target duration (500, 1000, 2000, 3000) for each participant: Constant Error (CE) as the mean of (produced_duration_ms - target_duration_ms), Absolute Error (AE) as the mean of absolute differences, and Coefficient of Variation (CV) as the sample standard deviation (N-1) of produced_duration_ms divided by the mean of produced_duration_ms. Exclude participant sub-99 from the final group statistics. Write a JSON report to ~/pebl/analysis/timing_report.json containing a 'participants' list where each entry has an 'id' and either a 'durations' dictionary (keyed by '500', '1000', '2000', '3000' containing 'ce_ms', 'ae_ms', 'cv' as floats) or 'excluded': true with a 'reason' string. Include a 'group_means' dictionary (keyed by '500', '1000', '2000', '3000') containing 'mean_ce_ms', 'mean_ae_ms', and 'mean_cv' representing the averages of the participant-level metrics across all valid participants.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/time_production_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/time_production_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "sub-99",
+    "contamination_type": "cheater_stopwatch_cv_near_zero",
+    "target_durations": [
+      500,
+      1000,
+      2000,
+      3000
+    ],
+    "output_file": "/home/ga/pebl/analysis/timing_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_time_production_analysis"
+    }
+  }
+}

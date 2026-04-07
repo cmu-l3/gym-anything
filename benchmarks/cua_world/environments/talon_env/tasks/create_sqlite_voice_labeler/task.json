@@ -1,0 +1,33 @@
+{
+  "id": "create_sqlite_voice_labeler@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Create a stateful Talon voice module in C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\db_labeler\\ to fetch and label unreviewed incident reports from a local SQLite database at C:\\workspace\\data\\incidents.db. The database contains a reports table with id, narrative, offense_type, and status columns. Implement a Talon Module (user.db_labeler) in labeler.py that maintains a CURRENT_REPORT_ID state. The module must include an action db_get_next() to fetch the first 'PENDING' report, store its ID, and insert its narrative, and an action db_label_record(offense: str) to update the stored record's offense_type, set its status to 'REVIEWED', and reset the state. Create labeler.talon in the same directory mapping the voice command \"report fetch\" to user.db_get_next() and the commands \"tag assault\", \"tag burglary\", \"tag fraud\", and \"tag theft\" to user.db_label_record() with the corresponding uppercase offense types.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_sqlite_voice_labeler\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_sqlite_voice_labeler\\export_result.ps1"
+  },
+  "metadata": {
+    "db_path": "C:\\workspace\\data\\incidents.db",
+    "module_dir": "C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\db_labeler",
+    "expected_commands": [
+      "report fetch",
+      "tag assault",
+      "tag burglary",
+      "tag fraud",
+      "tag theft"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sqlite_labeler"
+    }
+  }
+}

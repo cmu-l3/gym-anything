@@ -119,21 +119,22 @@ Get-Process -Name "CheckUpdates" -ErrorAction SilentlyContinue | Stop-Process -F
 Start-Sleep -Seconds 2
 $ErrorActionPreference = "Stop"
 
-# Minimize any cmd.exe windows via PyAutoGUI (Win+D then click away)
+# Clean up desktop in Session 1 (minimize terminals, close Start menu)
+$cleanupScript = "C:\Windows\Temp\cleanup_desktop.ps1"
+@'
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+(New-Object -ComObject Shell.Application).MinimizeAll()
+'@ | Set-Content $cleanupScript -Encoding UTF8
 $ErrorActionPreference = "Continue"
-Get-Process cmd -ErrorAction SilentlyContinue | ForEach-Object {
-    if ($_.MainWindowHandle -ne [IntPtr]::Zero) {
-        Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class Win32Window {
-    [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-}
-"@
-        [Win32Window]::ShowWindow($_.MainWindowHandle, 6) | Out-Null
-    }
-}
+schtasks /Create /TN "CleanupDesktop_GA" /TR "powershell -ExecutionPolicy Bypass -File $cleanupScript" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
+schtasks /Run /TN "CleanupDesktop_GA" 2>$null
+Start-Sleep -Seconds 5
+schtasks /Delete /TN "CleanupDesktop_GA" /F 2>$null
+Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
 $ErrorActionPreference = "Stop"
 
 Write-Host "=== StudioTax 2024 setup complete ==="

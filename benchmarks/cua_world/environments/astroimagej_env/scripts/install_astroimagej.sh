@@ -127,7 +127,7 @@ chmod -R 755 "$FITS_DIR"
 # This is cached at install time to avoid re-downloading 4.3GB each run
 # ============================================================
 echo "Downloading real WASP-12b transit data from University of Louisville..."
-WASP12_DATA_URL="https://www.astro.louisville.edu/software/astroimagej/benchmarks/cua_world/environments/WASP-12b_example_calibrated_images.tar.gz"
+WASP12_DATA_URL="https://www.astro.louisville.edu/software/astroimagej/examples/WASP-12b_example_calibrated_images.tar.gz"
 WASP12_CACHE="/opt/fits_samples/WASP-12b_calibrated.tar.gz"
 
 mkdir -p /opt/fits_samples

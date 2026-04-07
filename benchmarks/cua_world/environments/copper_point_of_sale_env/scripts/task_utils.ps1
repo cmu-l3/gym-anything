@@ -143,35 +143,111 @@ function Find-CopperExe {
 function Launch-CopperInteractive {
     <#
     .SYNOPSIS
-        Launches Copper POS in the interactive desktop session via schtasks.
-        SSH runs in Session 0 (no GUI), so schtasks /IT is required.
+        Launches Copper POS in the interactive desktop session.
+        Tries PyAutoGUI Win+R first (most reliable for Session 1), then
+        schtasks fallbacks with process polling and retry logic.
     .PARAMETER WaitSeconds
-        Seconds to wait for Copper to fully load (default 15).
+        Seconds to poll for Copper process per attempt (default 20).
     #>
     param(
-        [int]$WaitSeconds = 15
+        [int]$WaitSeconds = 20
     )
 
     $copperExe = Find-CopperExe
-    $launchScript = "C:\Windows\Temp\launch_copper.cmd"
-    $batchContent = "@echo off`r`nstart `"`" `"$copperExe`""
-    [System.IO.File]::WriteAllText($launchScript, $batchContent)
+    Write-Host "Launching Copper POS from: $copperExe"
 
-    $taskName = "LaunchCopper_GA"
-    $prevEAP = $ErrorActionPreference
+    # Ensure Task Scheduler service is running (needed for schtasks fallbacks)
     try {
-        $ErrorActionPreference = "Continue"
-        $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
-        schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
-        schtasks /Run /TN $taskName 2>$null
-        Start-Sleep -Seconds $WaitSeconds
-    } finally {
-        schtasks /Delete /TN $taskName /F 2>$null
-        Remove-Item $launchScript -Force -ErrorAction SilentlyContinue
-        $ErrorActionPreference = $prevEAP
+        $svc = Get-Service -Name "Schedule" -ErrorAction SilentlyContinue
+        if ($svc -and $svc.Status -ne "Running") {
+            Start-Service -Name "Schedule" -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 3
+        }
+    } catch { }
+
+    # Create a batch launcher at a path with no spaces (safe for PyAutoGUI typing)
+    $launchBat = "C:\Windows\Temp\launchcopper.cmd"
+    [System.IO.File]::WriteAllText($launchBat, "@echo off`r`nstart `"`" `"$copperExe`"")
+
+    # ── Strategy 1: PyAutoGUI Win+R (runs directly in Session 1) ──────────
+    Write-Host "Attempt 1: Win+R via PyAutoGUI..."
+    $pyguiOk = Send-PyAutoGUI -Command @{action="ping"}
+    if ($pyguiOk) {
+        # Press Escape first to dismiss any existing dialogs/menus
+        PyAutoGUI-Press -Key "escape"
+        Start-Sleep -Seconds 1
+        PyAutoGUI-Hotkey -Keys @("win", "r")
+        Start-Sleep -Seconds 2
+        PyAutoGUI-Write -Text $launchBat
+        Start-Sleep -Seconds 1
+        PyAutoGUI-Press -Key "enter"
+        Start-Sleep -Seconds 3
+
+        if (Wait-ForCopperProcess -TimeoutSeconds $WaitSeconds) {
+            Write-Host "Copper POS launched via Win+R."
+            return
+        }
+        Write-Host "  Win+R attempt: process not detected."
+    } else {
+        Write-Host "  PyAutoGUI not available, skipping Win+R."
     }
 
-    Write-Host "Copper POS launched (waited ${WaitSeconds}s)."
+    # ── Strategy 2: schtasks with CMD batch ───────────────────────────────
+    Write-Host "Attempt 2: schtasks CMD batch..."
+    $taskName = "LaunchCopper_GA_$(Get-Random)"
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    schtasks /Create /TN $taskName /TR "cmd /c `"$launchBat`"" /SC ONCE /SD 01/01/2099 /ST 00:00 /RL HIGHEST /IT /F 2>&1 | Out-Null
+    schtasks /Run /TN $taskName 2>&1 | Out-Null
+    $ErrorActionPreference = $prevEAP
+
+    if (Wait-ForCopperProcess -TimeoutSeconds $WaitSeconds) {
+        schtasks /Delete /TN $taskName /F 2>$null
+        Write-Host "Copper POS launched via schtasks CMD."
+        return
+    }
+    schtasks /Delete /TN $taskName /F 2>$null
+    Write-Host "  schtasks CMD attempt: process not detected."
+
+    # ── Strategy 3: schtasks with PowerShell Start-Process ────────────────
+    Write-Host "Attempt 3: schtasks PowerShell..."
+    $ps1File = "C:\Windows\Temp\launch_copper_ps.ps1"
+    Set-Content -Path $ps1File -Value "Start-Process -FilePath `"$copperExe`""
+    $taskName2 = "LaunchCopper_GA_$(Get-Random)"
+    $trCmd = "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File `"$ps1File`""
+    $ErrorActionPreference = "Continue"
+    schtasks /Create /TN $taskName2 /TR "$trCmd" /SC ONCE /SD 01/01/2099 /ST 00:00 /RL HIGHEST /IT /F 2>&1 | Out-Null
+    schtasks /Run /TN $taskName2 2>&1 | Out-Null
+    $ErrorActionPreference = $prevEAP
+
+    if (Wait-ForCopperProcess -TimeoutSeconds $WaitSeconds) {
+        schtasks /Delete /TN $taskName2 /F 2>$null
+        Remove-Item $ps1File -Force -ErrorAction SilentlyContinue
+        Write-Host "Copper POS launched via schtasks PowerShell."
+        return
+    }
+    schtasks /Delete /TN $taskName2 /F 2>$null
+    Remove-Item $ps1File -Force -ErrorAction SilentlyContinue
+    Write-Host "  schtasks PowerShell attempt: process not detected."
+
+    # ── Strategy 4: Explorer launch ───────────────────────────────────────
+    Write-Host "Attempt 4: Explorer launch..."
+    $taskName3 = "LaunchCopper_GA_$(Get-Random)"
+    $ErrorActionPreference = "Continue"
+    schtasks /Create /TN $taskName3 /TR "explorer `"$copperExe`"" /SC ONCE /SD 01/01/2099 /ST 00:00 /RL HIGHEST /IT /F 2>&1 | Out-Null
+    schtasks /Run /TN $taskName3 2>&1 | Out-Null
+    $ErrorActionPreference = $prevEAP
+
+    if (Wait-ForCopperProcess -TimeoutSeconds $WaitSeconds) {
+        schtasks /Delete /TN $taskName3 /F 2>$null
+        Write-Host "Copper POS launched via Explorer."
+        return
+    }
+    schtasks /Delete /TN $taskName3 /F 2>$null
+
+    # Clean up
+    Remove-Item $launchBat -Force -ErrorAction SilentlyContinue
+    Write-Host "WARNING: All launch attempts failed for Copper POS."
 }
 
 # =====================================================================

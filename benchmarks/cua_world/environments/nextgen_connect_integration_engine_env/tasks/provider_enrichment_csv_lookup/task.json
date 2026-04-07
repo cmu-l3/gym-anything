@@ -1,0 +1,28 @@
+{
+  "id": "provider_enrichment_csv_lookup@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Optimize a channel named 'Provider_Enrichment' for high-throughput enrichment by caching reference data from '/home/ga/reference/providers.csv' (Format: ProviderID,LastName,FirstName) in the Global Channel Map. The channel must read HL7 ADT messages from '/home/ga/inbound_hl7' every 5 seconds and write them to '/home/ga/outbound_hl7' using a File Writer. Load the CSV data into the globalChannelMap using the ProviderID as the key during channel deployment. Populate the Provider Name fields PV1-7.2 (LastName) and PV1-7.3 (FirstName) by looking up the Provider ID from PV1-7.1 in the cached map, ensuring the reference file is not accessed during the message transformation process.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/provider_enrichment_csv_lookup/setup_task.sh",
+    "post_task": "/workspace/tasks/provider_enrichment_csv_lookup/export_result.sh"
+  },
+  "metadata": {
+    "csv_path": "/home/ga/reference/providers.csv",
+    "inbound_dir": "/home/ga/inbound_hl7",
+    "outbound_dir": "/home/ga/outbound_hl7",
+    "channel_name": "Provider_Enrichment"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_provider_enrichment_csv_lookup"
+    }
+  }
+}

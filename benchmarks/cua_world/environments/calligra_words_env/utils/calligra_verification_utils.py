@@ -301,6 +301,46 @@ def _parse_style(style_elem, styles_dict):
     styles_dict[name] = props
 
 
+def _normalize_style_label(value):
+    """Normalize ODF style identifiers for fuzzy matching."""
+    if not value:
+        return ""
+    return value.replace('_20_', ' ').replace('_', ' ').strip().lower()
+
+
+def _iter_style_chain(styles, style_name):
+    """Yield a style and its parents, stopping on cycles."""
+    seen = set()
+    current = style_name
+
+    while current and current not in seen:
+        seen.add(current)
+        style = styles.get(current)
+        if not style:
+            break
+        yield current, style
+        current = style.get('parent', '')
+
+
+def _resolve_style_property(styles, style_name, prop_name):
+    """Resolve a style property by walking up the parent chain."""
+    for _, style in _iter_style_chain(styles, style_name):
+        value = style.get(prop_name)
+        if value not in ('', None):
+            return value
+    return ''
+
+
+def _style_matches_heading_level(styles, style_name, expected_level):
+    """Return True if a style chain looks like Heading N."""
+    expected = f'heading {expected_level}'
+    for name, style in _iter_style_chain(styles, style_name):
+        for label in (name, style.get('display_name', ''), style.get('parent', '')):
+            if expected in _normalize_style_label(label):
+                return True
+    return False
+
+
 def check_heading_styles_odt(content_tree, styles_tree, expected_headings, expected_level):
     """Check if expected headings have the correct outline level in ODF.
 
@@ -314,6 +354,7 @@ def check_heading_styles_odt(content_tree, styles_tree, expected_headings, expec
         tuple: (matched_count, total_expected, details)
     """
     paragraphs = get_odt_paragraphs(content_tree)
+    styles = get_odt_styles(content_tree, styles_tree)
     matched = 0
     details = []
 
@@ -321,7 +362,9 @@ def check_heading_styles_odt(content_tree, styles_tree, expected_headings, expec
         found = False
         for para in paragraphs:
             if expected.lower().strip() in para['text'].lower().strip():
-                if para['outline_level'] == expected_level:
+                if para['outline_level'] == expected_level or _style_matches_heading_level(
+                    styles, para['style_name'], expected_level
+                ):
                     matched += 1
                     details.append(f"'{expected}': Heading {expected_level} OK")
                     found = True
@@ -359,14 +402,7 @@ def check_paragraph_alignment_odt(content_tree, styles_tree, text_pattern, expec
     for para in paragraphs:
         if re.search(text_pattern, para['text'], re.IGNORECASE):
             checked += 1
-            style_name = para['style_name']
-            style = styles.get(style_name, {})
-            alignment = style.get('alignment', '')
-
-            # Check parent style chain
-            if not alignment and style.get('parent'):
-                parent_style = styles.get(style.get('parent'), {})
-                alignment = parent_style.get('alignment', '')
+            alignment = _resolve_style_property(styles, para['style_name'], 'alignment')
 
             if alignment == expected_alignment:
                 matched += 1
@@ -526,21 +562,14 @@ def check_text_bold_odt(content_tree, styles_tree, text_pattern):
 
     for para in paragraphs:
         if re.search(text_pattern, para['text'], re.IGNORECASE):
-            style = styles.get(para['style_name'], {})
-            if style.get('bold'):
+            if _resolve_style_property(styles, para['style_name'], 'bold'):
                 return True
-            # Check parent style
-            if style.get('parent'):
-                parent = styles.get(style['parent'], {})
-                if parent.get('bold'):
-                    return True
             # Check inline spans in the element
             elem = para.get('element')
             if elem is not None:
                 for span in elem.iter(f"{{{ODF_NS['text']}}}span"):
                     span_style = span.get(f"{{{ODF_NS['text']}}}style-name", "")
-                    s = styles.get(span_style, {})
-                    if s.get('bold'):
+                    if _resolve_style_property(styles, span_style, 'bold'):
                         return True
     return False
 
@@ -556,20 +585,43 @@ def check_text_italic_odt(content_tree, styles_tree, text_pattern):
 
     for para in paragraphs:
         if re.search(text_pattern, para['text'], re.IGNORECASE):
-            style = styles.get(para['style_name'], {})
-            if style.get('italic'):
+            if _resolve_style_property(styles, para['style_name'], 'italic'):
                 return True
-            if style.get('parent'):
-                parent = styles.get(style['parent'], {})
-                if parent.get('italic'):
-                    return True
             elem = para.get('element')
             if elem is not None:
                 for span in elem.iter(f"{{{ODF_NS['text']}}}span"):
                     span_style = span.get(f"{{{ODF_NS['text']}}}style-name", "")
-                    s = styles.get(span_style, {})
-                    if s.get('italic'):
+                    if _resolve_style_property(styles, span_style, 'italic'):
                         return True
+    return False
+
+
+def check_text_font_size_odt(content_tree, styles_tree, text_pattern, min_points):
+    """Check whether matching text has at least the requested point size."""
+    paragraphs = get_odt_paragraphs(content_tree)
+    styles = get_odt_styles(content_tree, styles_tree)
+
+    for para in paragraphs:
+        if not re.search(text_pattern, para['text'], re.IGNORECASE):
+            continue
+
+        size_candidates = []
+
+        para_size = _resolve_style_property(styles, para['style_name'], 'font_size')
+        if para_size:
+            size_candidates.append(parse_odf_measurement(para_size) * 72.0)
+
+        elem = para.get('element')
+        if elem is not None:
+            for span in elem.iter(f"{{{ODF_NS['text']}}}span"):
+                span_style = span.get(f"{{{ODF_NS['text']}}}style-name", "")
+                span_size = _resolve_style_property(styles, span_style, 'font_size')
+                if span_size:
+                    size_candidates.append(parse_odf_measurement(span_size) * 72.0)
+
+        if size_candidates and max(size_candidates) >= min_points:
+            return True
+
     return False
 
 

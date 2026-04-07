@@ -13,7 +13,7 @@
 --
 -- Key tables created by the official SQL:
 --   users, civilian_names, ncic_names, ncic_plates, ncic_warrants,
---   ncic_citations, ncic_weapons, ncic_arrests, calls, call_history,
+--   ncic_citations, ncic_warnings, ncic_weapons, ncic_arrests, calls, call_history,
 --   bolos_persons, bolos_vehicles, departments, streets, vehicles,
 --   colors, weapons, incident_types, statuses, tones, radio_codes,
 --   citation_types, warrant_types, warning_types, aop, active_users,

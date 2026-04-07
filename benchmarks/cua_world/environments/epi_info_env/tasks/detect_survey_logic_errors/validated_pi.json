@@ -1,0 +1,101 @@
+{
+    "task_id": "detect_survey_logic_errors@1",
+    "dataset": "raw_health_survey",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "input_file",
+            "metadata_value": "C:\\Users\\Docker\\Documents\\SurveyData\\raw_health_survey.csv",
+            "verified_value": "C:\\Users\\Docker\\Documents\\SurveyData\\raw_health_survey.csv",
+            "source": "task.json metadata field and task.json description line 1; verifier.py expects to copy this file from environment",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "C:\\Users\\Docker\\Documents\\SurveyData\\validation_errors.csv",
+            "verified_value": "C:\\Users\\Docker\\Documents\\SurveyData\\validation_errors.csv",
+            "source": "task.json metadata field and task.json description line 5; verifier.py line 69 copies this file from environment",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_file",
+            "metadata_value": "C:\\Users\\Docker\\Documents\\SurveyData\\ground_truth_errors.csv",
+            "verified_value": "C:\\Users\\Docker\\Documents\\SurveyData\\ground_truth_errors.csv",
+            "source": "task.json metadata field",
+            "status": "verified"
+        },
+        {
+            "key": "total_records",
+            "metadata_value": 100,
+            "verified_value": null,
+            "source": "task.json metadata field; setup_task.ps1 does not exist to verify actual record count",
+            "status": "unverified"
+        },
+        {
+            "key": "expected_error_count",
+            "metadata_value": 7,
+            "verified_value": 7,
+            "source": "task.json metadata field; verifier.py line 30-34 defines gender_conflict_ids={'15','42','78','91'} (4 records) and skip_conflict_ids={'5','33','60'} (3 records), totaling 7 errors",
+            "status": "verified"
+        },
+        {
+            "key": "gender_conflict_error_ids",
+            "metadata_value": ["15", "42", "78", "91"],
+            "verified_value": ["15", "42", "78", "91"],
+            "source": "task.json error_ids subset; verifier.py line 33 defines gender_conflict_ids={\"15\", \"42\", \"78\", \"91\"}; task.json description specifies 'Gender Conflict: Respondent is Male BUT IsPregnant is Yes'",
+            "status": "verified"
+        },
+        {
+            "key": "skip_conflict_error_ids",
+            "metadata_value": ["5", "33", "60"],
+            "verified_value": ["5", "33", "60"],
+            "source": "task.json error_ids subset; verifier.py line 34 defines skip_conflict_ids={\"5\", \"33\", \"60\"}; task.json description specifies 'Skip Pattern Conflict: EverSmoked is No BUT CigsPerDay is greater than 0'",
+            "status": "verified"
+        },
+        {
+            "key": "error_ids_count",
+            "metadata_value": 7,
+            "verified_value": 7,
+            "source": "task.json error_ids array contains 7 unique IDs: [\"15\", \"42\", \"78\", \"91\", \"5\", \"33\", \"60\"]",
+            "status": "verified"
+        },
+        {
+            "key": "required_output_columns",
+            "metadata_value": "RespondentID, ErrorType",
+            "verified_value": "RespondentID, ErrorType",
+            "source": "task.json description line 5 specifies 'Ensure the output includes RespondentID and ErrorType'; verifier.py line 79-80 verifies RespondentID column exists",
+            "status": "verified"
+        },
+        {
+            "key": "error_logic_type_1",
+            "metadata_value": "GenderConflict",
+            "verified_value": "GenderConflict",
+            "source": "task.json description specifies error type as 'GenderConflict' for Gender Conflict validation rule",
+            "status": "verified"
+        },
+        {
+            "key": "error_logic_type_2",
+            "metadata_value": "SkipConflict",
+            "verified_value": "SkipConflict",
+            "source": "task.json description specifies error type as 'SkipConflict' for Skip Pattern Conflict validation rule",
+            "status": "verified"
+        },
+        {
+            "key": "setup_task_hook",
+            "metadata_value": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\detect_survey_logic_errors\\setup_task.ps1",
+            "verified_value": null,
+            "source": "task.json hooks.pre_task field; file does not exist on filesystem (missing from repository)",
+            "status": "unverified"
+        },
+        {
+            "key": "export_result_hook",
+            "metadata_value": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\detect_survey_logic_errors\\export_result.ps1",
+            "verified_value": null,
+            "source": "task.json hooks.post_task field; file does not exist on filesystem (missing from repository)",
+            "status": "unverified"
+        }
+    ],
+    "privileged_info_summary": "Task expects synthetic health survey data (raw_health_survey.csv) with 100 records containing logical inconsistencies. Two validation rules: (1) Gender Conflict - identify Male respondents with IsPregnant=Yes (expected IDs: 15, 42, 78, 91); (2) Skip Pattern Conflict - identify respondents with EverSmoked=No but CigsPerDay>0 (expected IDs: 5, 33, 60). Total expected errors: 7 records. Agent must create an output CSV (validation_errors.csv) with columns RespondentID and ErrorType, containing only the 7 error records. Verifier checks: (1) output file exists and created during task session (30 pts); (2) all 4 gender conflicts detected (25 pts); (3) all 3 skip conflicts detected (25 pts); (4) no false positives (20 pts). Task fails if score < 80. Note: setup_task.ps1 and export_result.ps1 files referenced in hooks are missing from repository.",
+    "pi_confidence": "high"
+}

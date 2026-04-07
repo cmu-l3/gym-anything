@@ -8,21 +8,19 @@ export DEBIAN_FRONTEND=noninteractive
 # Update package lists
 apt-get update
 
-# Install Docker
-apt-get install -y docker.io
+# Install prerequisites
+apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+
+# Install Docker CE from official repository
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+    | tee /etc/apt/sources.list.d/docker.list > /dev/null
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
 systemctl enable docker
 systemctl start docker
 usermod -aG docker ga
-
-# Install Docker Compose v2 plugin
-apt-get install -y docker-compose-plugin || {
-    # Fallback: manual install
-    mkdir -p /usr/local/lib/docker/cli-plugins
-    COMPOSE_VER="v2.24.5"
-    curl -SL "https://github.com/docker/compose/releases/download/${COMPOSE_VER}/docker-compose-linux-x86_64" \
-        -o /usr/local/lib/docker/cli-plugins/docker-compose
-    chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-}
 
 # Verify docker compose v2 works
 docker compose version
@@ -42,5 +40,16 @@ apt-get install -y \
 
 # Install Python xmlrpc (for seeding data via Odoo API)
 python3 -c "import xmlrpc.client; print('xmlrpc.client available')"
+
+# Authenticate with Docker Hub to avoid rate limits
+if [ -f /workspace/config/.dockerhub_credentials ]; then
+    source /workspace/config/.dockerhub_credentials
+    echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin 2>/dev/null || true
+fi
+
+# Pre-pull Docker images to avoid rate limit issues during setup
+echo "Pre-pulling Docker images..."
+docker pull postgres:15 2>&1 | tail -3 || true
+docker pull odoo:17.0 2>&1 | tail -3 || true
 
 echo "=== Odoo CRM Installation complete ==="

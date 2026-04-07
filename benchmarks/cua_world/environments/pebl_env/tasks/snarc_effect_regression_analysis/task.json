@@ -1,0 +1,30 @@
+{
+  "id": "snarc_effect_regression_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "hard",
+  "description": "A cognitive psychology postdoc has collected parity judgment data for a replication study on numerical cognition. The data is located at ~/pebl/data/snarc_data.csv and contains columns: participant_id, block, trial, number (1-4, 6-9), expected_hand, response_hand, accuracy (1=correct, 0=error), and rt_ms. At least one participant's data looks like a malfunctioning auto-responder script. Your task is to extract the 'SNARC slope' for each valid participant using the Lorch & Myers (1990) method and compute the overall mean accuracy (before filtering) for each participant. Identify and exclude the contaminated participant, then compute the group mean SNARC slope across all valid participants. Write a JSON report to ~/pebl/analysis/snarc_report.json containing a 'participants' list (each entry: 'id', 'snarc_slope_ms_per_digit', 'mean_accuracy', and optionally 'excluded': true with 'reason') and a 'group_mean_snarc_slope' field.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/snarc_effect_regression_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/snarc_effect_regression_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "sub-99",
+    "contamination_type": "invariant_rt",
+    "contamination_description": "Impossibly fast and invariant reaction times of exactly 45.0ms with 100% accuracy",
+    "n_real_participants": 15,
+    "method": "Lorch & Myers (1990) within-subject regression",
+    "output_file": "/home/ga/pebl/analysis/snarc_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_snarc_analysis"
+    }
+  }
+}

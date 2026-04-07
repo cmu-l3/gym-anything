@@ -1,0 +1,78 @@
+{
+    "task_id": "configure_hipaa_compliance_monitoring@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "devices_added",
+            "metadata_value": [
+                {
+                    "name": "ehr-server-01",
+                    "ip": "10.10.1.10"
+                },
+                {
+                    "name": "pharmacy-db",
+                    "ip": "10.10.1.11"
+                },
+                {
+                    "name": "billing-system",
+                    "ip": "10.10.1.12"
+                }
+            ],
+            "verified_value": [
+                {
+                    "name": "ehr-server-01",
+                    "ip": "10.10.1.10"
+                },
+                {
+                    "name": "pharmacy-db",
+                    "ip": "10.10.1.11"
+                },
+                {
+                    "name": "billing-system",
+                    "ip": "10.10.1.12"
+                }
+            ],
+            "source": "setup_task.sh REST API curl commands",
+            "status": "verified"
+        },
+        {
+            "key": "required_retention_days",
+            "metadata_value": 2555,
+            "verified_value": 2555,
+            "source": "export_result.sh checks if LOG_RETENTION_DAYS >= 2555",
+            "status": "verified"
+        },
+        {
+            "key": "required_alert_name",
+            "metadata_value": "PHI Unauthorized Access",
+            "verified_value": "Any name containing 'phi', 'unauthorized', 'hipaa', or 'patient' (case-insensitive)",
+            "source": "export_result.sh SQL query uses ILIKE '%phi%' OR ILIKE '%unauthorized%' OR ILIKE '%hipaa%' OR ILIKE '%patient%'",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_alert_severity",
+            "metadata_value": "Critical",
+            "verified_value": null,
+            "source": "export_result.sh and verifier.py do not check the severity of the alert",
+            "status": "contradicted"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Desktop/hipaa_compliance_report.html",
+            "verified_value": "/home/ga/Desktop/hipaa_compliance_report.html",
+            "source": "export_result.sh sets REPORT_FILE to this path",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "verifier.py sets PASS_THRESHOLD = 60",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task relies on synthetic data injected via the OS logger. While the metadata claims an alert strictly named 'PHI Unauthorized Access' with 'Critical' severity is required, the scoring scripts only enforce that the alert name contains 'phi', 'unauthorized', 'hipaa', or 'patient' and do not check severity at all. The required log retention of 2555 days (7 years), the report export path, and the pass threshold of 60 points are fully corroborated by the verification scripts.",
+    "pi_confidence": "high"
+}

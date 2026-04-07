@@ -36,7 +36,7 @@ def verify_parametric_window_retrofit_analysis(traj, env_info, task_info):
     try:
         # Note: The PS1 script saves to C:\workspace\tasks\..., but copy_from_env 
         # maps to the container path. In equest_env, mounts are:
-        # benchmarks/cua_world/environments/equest_env/tasks -> /workspace/tasks
+        # examples/equest_env/tasks -> /workspace/tasks
         # So we copy from the linux path inside the container.
         copy_from_env("/workspace/tasks/parametric_window_retrofit_analysis/task_result.json", temp_file.name)
         with open(temp_file.name, 'r') as f:

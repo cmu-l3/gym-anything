@@ -1,0 +1,27 @@
+{
+  "id": "parse_zatca_einvoice_qr@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "Scan the ZATCA e-invoice QR code and extract its data.\n\nSteps:\n1. A QR code is generated in the file 'C:\\Users\\Docker\\Documents\\zatca_qr.html'. Open this HTML file in a browser so the QR code is visible on screen.\n2. Use bcWebCam to scan the QR code and copy the resulting Base64 string.\n3. Write a Python script (save it in C:\\Users\\Docker\\Documents\\) to parse the Base64 string. The payload follows the ZATCA TLV (Tag-Length-Value) standard:\n   - Byte 1: Tag ID (1=Seller Name, 2=VAT Number, 3=Timestamp, 4=Invoice Total, 5=VAT Total)\n   - Byte 2: Length of the value in bytes\n   - Bytes 3 to (3+Length-1): The UTF-8 string value\n4. Extract the values for Tag 1 (Seller Name), Tag 4 (Invoice Total), and Tag 5 (VAT Total).\n5. Save the extracted data as a JSON file to 'C:\\Users\\Docker\\Documents\\zatca_audit.json' with exact keys:\n{\n  \"seller_name\": \"<extracted_string>\",\n  \"invoice_total\": \"<extracted_string>\",\n  \"vat_total\": \"<extracted_string>\"\n}\n\nYou must correctly decode the Base64 payload and ensure the zatca_audit.json file is accurate.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\parse_zatca_einvoice_qr\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\parse_zatca_einvoice_qr\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_output_file": "C:\\Users\\Docker\\Documents\\zatca_audit.json",
+    "qr_file": "C:\\Users\\Docker\\Documents\\zatca_qr.html",
+    "ground_truth": "C:\\temp\\ground_truth.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_zatca_einvoice"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "task_id": "financial_ledger_etl_transformation@1",
+  "task_completion": [
+    {
+      "id": "schema_and_coa_created",
+      "description": "Create the 'Finance' schema and 'Finance.ChartOfAccounts' table seeded with the 7 specified accounts.",
+      "points": 15,
+      "visual_evidence": "Screenshots showing a SQL script or Object Explorer with the 'Finance' schema and 'ChartOfAccounts' table. Evidence of the seeded accounts (1100, 2100, 4001, 4002, 4003, 4004, 4100) via an INSERT statement or a SELECT query result."
+    },
+    {
+      "id": "gl_table_created",
+      "description": "Create the 'Finance.GeneralLedger' table with the specified columns and non-negative constraints.",
+      "points": 15,
+      "visual_evidence": "Screenshots showing the CREATE TABLE script for 'Finance.GeneralLedger' including columns JournalID, SalesOrderID, TransactionDate, AccountCode, Description, Debit, Credit, and CHECK constraints ensuring Debit >= 0 and Credit >= 0."
+    },
+    {
+      "id": "stored_procedure_created",
+      "description": "Develop the stored procedure 'Finance.usp_PostSalesToGL' to transform SalesOrderHeader records into balanced GL entries.",
+      "points": 30,
+      "visual_evidence": "Screenshots showing the CREATE PROCEDURE script for 'Finance.usp_PostSalesToGL'. The logic should show INSERTs into GeneralLedger, debiting AR (TotalDue) and crediting Revenue (SubTotal mapped by Territory Group), Tax (TaxAmt), and Freight (Freight)."
+    },
+    {
+      "id": "procedure_executed_gl_populated",
+      "description": "Execute the stored procedure for the period '2013-01-01' to '2013-03-31' to populate the GeneralLedger table.",
+      "points": 20,
+      "visual_evidence": "Screenshots showing the execution of the stored procedure (e.g., EXEC Finance.usp_PostSalesToGL '2013-01-01', '2013-03-31') and/or a SELECT query on 'Finance.GeneralLedger' showing populated transaction records."
+    },
+    {
+      "id": "unbalanced_view_created",
+      "description": "Create the view 'Finance.vw_UnbalancedTransactions' to audit for unbalanced orders.",
+      "points": 20,
+      "visual_evidence": "Screenshots showing the CREATE VIEW script for 'Finance.vw_UnbalancedTransactions' containing logic to group by SalesOrderID and check if SUM(Debit) <> SUM(Credit)."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_database_interaction",
+      "description": "The agent interacted with a real SQL client connected to the AdventureWorks2022 database.",
+      "visual_evidence": "Screenshots should show a SQL client interface (like Azure Data Studio, SSMS, DBeaver, or sqlcmd) executing queries against the AdventureWorks2022 database, not just a text editor."
+    },
+    {
+      "id": "no_mocked_data",
+      "description": "The agent transformed actual SalesOrderHeader data rather than inserting hardcoded mock data into the GeneralLedger.",
+      "visual_evidence": "The stored procedure should contain dynamic SQL or INSERT...SELECT statements pulling from Sales.SalesOrderHeader, rather than hardcoded INSERT statements with fake data."
+    },
+    {
+      "id": "genuine_execution_results",
+      "description": "The agent actually executed the scripts and verified the results.",
+      "visual_evidence": "Look for query execution success messages, row counts affected, or result grids showing the actual data in the database."
+    }
+  ],
+  "privileged_info_for_vlm": "Target schema: Finance. Required tables: ChartOfAccounts, GeneralLedger. Required procedure: usp_PostSalesToGL. Required view: vw_UnbalancedTransactions. Account codes: 1100 (AR), 2100 (Tax Payable), 4001-4004 (Sales Revenue by Territory Group: North America, Europe, Pacific, Other), 4100 (Freight). Date range: 2013-01-01 to 2013-03-31. The database is the real Microsoft AdventureWorks2022 sample database."
+}

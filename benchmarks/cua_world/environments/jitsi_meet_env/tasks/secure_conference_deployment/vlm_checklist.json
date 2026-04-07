@@ -1,0 +1,65 @@
+{
+  "task_id": "secure_conference_deployment@1",
+  "task_completion": [
+    {
+      "id": "backend_configuration",
+      "description": "Agent configures authentication in .env, registers the admin user, and restarts Jitsi services.",
+      "points": 10,
+      "visual_evidence": "Terminal showing edits to /home/ga/jitsi/.env (ENABLE_AUTH=1, AUTH_TYPE=internal, ENABLE_GUESTS=1), the command 'docker exec <container> prosodyctl ... register admin meet.jitsi SecureConf2024!', and 'docker compose down && docker compose up -d'."
+    },
+    {
+      "id": "branding_configuration",
+      "description": "Agent creates the custom interface configuration file with the required branding settings.",
+      "points": 10,
+      "visual_evidence": "Terminal or text editor showing /home/ga/.jitsi-meet-cfg/web/custom-interface_config.js being created or edited with APP_NAME='SecureConf', TOOLBAR_BUTTONS containing exactly the 6 specified buttons, and MOBILE_APP_PROMO=false."
+    },
+    {
+      "id": "moderator_authenticated_and_lobby_enabled",
+      "description": "Agent authenticates as admin in Firefox and enables the lobby.",
+      "points": 15,
+      "visual_evidence": "Firefox browser open to http://localhost:8080/VerificationRoom. The user is authenticated as a moderator (visible star or [M] badge on their video tile or in the participants pane). The Security Options menu shows the 'Lobby' feature toggled on, or a notification confirms the lobby is enabled."
+    },
+    {
+      "id": "custom_branding_visible",
+      "description": "The Jitsi Meet interface reflects the custom branding and restricted toolbar.",
+      "points": 15,
+      "visual_evidence": "In the browser (Firefox or Epiphany), the Jitsi toolbar at the bottom contains exactly 6 buttons (microphone, camera, chat, tileview, hangup, participants-pane). No other buttons should be visible. The app name 'SecureConf' may be visible in the UI or page title."
+    },
+    {
+      "id": "guest_waiting_in_lobby",
+      "description": "A guest attempts to join via Epiphany and is held in the lobby.",
+      "points": 20,
+      "visual_evidence": "Epiphany browser open to http://localhost:8080/VerificationRoom displaying a lobby waiting screen (e.g., 'Waiting for the host to let you in' or 'Waiting for a moderator to approve your request')."
+    },
+    {
+      "id": "guest_admitted",
+      "description": "The moderator admits the guest from the lobby.",
+      "points": 15,
+      "visual_evidence": "Firefox showing a notification to admit a guest from the lobby, or the meeting showing two participants (moderator and guest) successfully connected in the room."
+    },
+    {
+      "id": "report_saved",
+      "description": "The deployment report is saved to the correct path.",
+      "points": 15,
+      "visual_evidence": "Terminal or text editor showing a report being written or saved to /home/ga/secure_conference_report.txt."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_browsers_used",
+      "description": "Verifies that Firefox and Epiphany are genuinely used to test the meeting flow.",
+      "visual_evidence": "Screenshots show actual Firefox and Epiphany browser windows rendering the Jitsi web interface, not just terminal curl outputs or mockups."
+    },
+    {
+      "id": "real_docker_interaction",
+      "description": "Verifies that the agent actually interacted with the Docker containers.",
+      "visual_evidence": "Terminal shows genuine execution of 'docker exec' for prosodyctl and 'docker compose' commands, rather than just echoing success messages."
+    },
+    {
+      "id": "genuine_file_paths",
+      "description": "Verifies that configuration files are edited at their exact required paths.",
+      "visual_evidence": "File paths in text editors or terminal commands exactly match /home/ga/jitsi/.env and /home/ga/.jitsi-meet-cfg/web/custom-interface_config.js."
+    }
+  ],
+  "privileged_info_for_vlm": "The Jitsi instance is hosted at http://localhost:8080. The authentication domain for user registration is 'meet.jitsi' (not auth.meet.jitsi). The command to register the admin is 'docker exec jitsi-prosody-1 prosodyctl --config /config/prosody.cfg.lua register admin meet.jitsi SecureConf2024!'. The custom branding file must be at /home/ga/.jitsi-meet-cfg/web/custom-interface_config.js. When auth is enabled, joining a room prompts 'Waiting for a moderator' with a 'Log-in' button, which leads to an 'Authentication required' dialog. Successful login grants a moderator badge (e.g., [M] or star). The restricted toolbar should only show 6 specific buttons: microphone, camera, chat, tileview, hangup, participants-pane. Epiphany browser is used for the guest. The report must be saved to /home/ga/secure_conference_report.txt."
+}

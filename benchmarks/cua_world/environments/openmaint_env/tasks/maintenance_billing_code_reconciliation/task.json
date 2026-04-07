@@ -1,0 +1,32 @@
+{
+  "id": "maintenance_billing_code_reconciliation@1",
+  "version": "1.0",
+  "env_id": "openmaint_env@0.1",
+  "description": "You are a Facilities Administrator performing end-of-month billing reconciliation. Log in to OpenMaint (admin/admin) and process 6 work orders starting with 'WO-BILL-'. For each work order, identify the location from the description and append 'BILLING_CODE: [CODE]' to the 'Notes' field. Determine the [CODE] using the mapping in /home/ga/Desktop/billing_code_map.csv. Use the default code 'GEN-000' for locations not found in the mapping (e.g., Hallways, Exterior). If a work order description contains the word 'Warranty', do not modify the record.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/maintenance_billing_code_reconciliation/setup_task.sh",
+    "post_task": "/workspace/tasks/maintenance_billing_code_reconciliation/export_result.sh"
+  },
+  "metadata": {
+    "expected_codes": {
+      "WO-BILL-001": "FIN-900",
+      "WO-BILL-002": "IT-550",
+      "WO-BILL-003": "GEN-000",
+      "WO-BILL-004": "HR-200",
+      "WO-BILL-006": "EXEC-100"
+    },
+    "exception_wo": "WO-BILL-005"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_maintenance_billing_code_reconciliation"
+    }
+  }
+}

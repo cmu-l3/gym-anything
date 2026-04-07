@@ -1,0 +1,29 @@
+{
+  "id": "sakila_revenue_correction_audit@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "A POS system glitch caused a batch of rental payments to be recorded as $0.01 instead of the correct rental rate. Audit and fix this data in the Sakila database by creating a view named 'v_audit_underpayments' that identifies all completed rentals where the payment amount is strictly less than the film's rental rate. The view must include columns: payment_id, rental_id, amount, rental_rate, and difference. Export the results of this view to /home/ga/Documents/exports/underpayment_audit.csv. Update the payment.amount for these records to match the film.rental_rate, ensuring that only incorrect records are modified and no valid payments or late fees are overwritten. Verify the fix by ensuring the view returns no rows.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_revenue_correction_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_revenue_correction_audit/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "expected_view": "v_audit_underpayments",
+    "expected_csv_path": "/home/ga/Documents/exports/underpayment_audit.csv",
+    "corrupted_value": "0.01",
+    "min_corrupted_count": 30
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_revenue_correction_audit"
+    }
+  }
+}

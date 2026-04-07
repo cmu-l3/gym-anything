@@ -1,0 +1,30 @@
+{
+  "id": "sakila_selective_disaster_recovery@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "A critical data loss incident occurred. A junior developer accidentally deleted all payment records from the Memorial Day weekend (May 25-28, 2005) in the production `sakila` database. Using the legacy backup file `~/Documents/sakila_legacy_dump.sql`, restore the missing records from May 25, 2005, to May 28, 2005, into the production `payment` table. Note that the production table now includes an `audit_tag` column not present in the backup; populate this column with the value 'RESTORED' for all recovered rows. Export a list of the restored payment IDs and their amounts to `/home/ga/Documents/exports/restored_payments.csv`.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_selective_disaster_recovery/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_selective_disaster_recovery/export_result.sh"
+  },
+  "metadata": {
+    "backup_file": "/home/ga/Documents/sakila_legacy_dump.sql",
+    "missing_date_start": "2005-05-25",
+    "missing_date_end": "2005-05-28",
+    "required_audit_tag": "RESTORED",
+    "expected_restored_count": 203,
+    "total_payment_count": 16049
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_selective_disaster_recovery"
+    }
+  }
+}

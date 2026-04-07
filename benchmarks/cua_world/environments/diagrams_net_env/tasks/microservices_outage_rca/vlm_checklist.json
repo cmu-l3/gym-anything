@@ -1,0 +1,65 @@
+{
+  "task_id": "microservices_outage_rca@1",
+  "task_completion": [
+    {
+      "id": "mark_root_cause",
+      "description": "Identify and mark the true root cause service on the architecture diagram.",
+      "points": 15,
+      "visual_evidence": "The 'Payment Service' box has a red double-border and is explicitly labeled with 'ROOT CAUSE'."
+    },
+    {
+      "id": "color_code_services",
+      "description": "Color-code every service based on its status at peak impact (14:31 UTC).",
+      "points": 20,
+      "visual_evidence": "Payment Service and Order Processing are colored red (down). Shopping Cart, API Gateway, Product Catalog, and Notification Service are colored orange (degraded). Inventory Service and User Auth are colored green (healthy)."
+    },
+    {
+      "id": "draw_propagation_path",
+      "description": "Draw dashed red arrows tracing the failure propagation path with calculated delay labels.",
+      "points": 20,
+      "visual_evidence": "Dashed red arrows connect: payments-db to payment-service (+30s), payment-service to order-processing (+77s), order-processing to shopping-cart (+28s), order-processing to api-gateway (+58s), and api-gateway to product-catalog (+30s)."
+    },
+    {
+      "id": "create_remediated_page",
+      "description": "Create a second diagram page named 'Remediated Architecture'.",
+      "points": 10,
+      "visual_evidence": "The draw.io interface shows a second page tab at the bottom of the screen named 'Remediated Architecture'."
+    },
+    {
+      "id": "remediate_sync_to_async",
+      "description": "Convert synchronous dependencies that amplified the cascade to asynchronous via message queue on the remediated page.",
+      "points": 15,
+      "visual_evidence": "On the 'Remediated Architecture' page, the connections from 'order-processing' to 'payment-service' and from 'shopping-cart' to 'order-processing' are modified to route through a message queue (e.g., RabbitMQ) instead of direct synchronous links."
+    },
+    {
+      "id": "add_circuit_breakers",
+      "description": "Add circuit breaker annotations at critical points where the cascade could have been stopped on the remediated page.",
+      "points": 10,
+      "visual_evidence": "On the 'Remediated Architecture' page, circuit breaker annotations (text or icons) are placed on the connections from 'api-gateway' to 'order-processing', 'api-gateway' to 'shopping-cart', and 'api-gateway' to 'product-catalog'."
+    },
+    {
+      "id": "export_pdf",
+      "description": "Export the final diagram as a PDF to the specified location.",
+      "points": 10,
+      "visual_evidence": "A file named 'shopstream_rca.pdf' is visible in the '~/Diagrams/' directory in a file manager or terminal, or the draw.io PDF export dialog is shown successfully completing."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "used_drawio_gui",
+      "description": "The agent used the draw.io GUI to edit the diagram.",
+      "visual_evidence": "Screenshots show the draw.io application open with the diagram being actively edited, rather than just terminal commands modifying the XML file directly."
+    },
+    {
+      "id": "analyzed_csv_files",
+      "description": "The agent opened and analyzed the provided CSV files.",
+      "visual_evidence": "Screenshots show 'incident_timeline.csv' and 'service_dependencies.csv' opened in a spreadsheet viewer, text editor, or terminal (e.g., using cat, less, or column) for analysis."
+    },
+    {
+      "id": "exported_via_gui",
+      "description": "The agent exported the PDF using the draw.io export feature.",
+      "visual_evidence": "The draw.io 'File > Export as > PDF' menu or dialog is visible in the screenshots."
+    }
+  ],
+  "privileged_info_for_vlm": "Root Cause: Payment Service (must have red double-border and 'ROOT CAUSE' label). Red Herring: Order Processing (transient GC pause, NOT the root cause). Service Colors at 14:31: Payment Service & Order Processing = Red (Down); Shopping Cart, API Gateway, Product Catalog, Notification Service = Orange (Degraded); Inventory Service & User Auth = Green (Healthy). Propagation Path (dashed red arrows with labels): payments-db -> payment-service (+30s), payment-service -> order-processing (+77s), order-processing -> shopping-cart (+28s), order-processing -> api-gateway (+58s), api-gateway -> product-catalog (+30s). Remediated Page: Sync to Async conversions for order-processing -> payment-service and shopping-cart -> order-processing. Circuit Breakers at api-gateway -> order-processing, api-gateway -> shopping-cart, and api-gateway -> product-catalog."
+}

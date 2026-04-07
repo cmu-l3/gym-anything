@@ -4,6 +4,9 @@ echo "=== Setting up false_positive_rescue ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 # Configuration
 MAILDIR="/home/ga/Maildir"
 ASSETS_HAM="/workspace/assets/emails/ham"
@@ -82,9 +85,8 @@ EOF
 
 chown -R ga:ga "${MAILDIR}"
 
-# Force Dovecot index update
-doveadm index -u ga INBOX 2>/dev/null || true
-doveadm index -u ga Junk 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # 5. Record Baseline Stats for Export Script
 echo "15" > /tmp/initial_junk_count

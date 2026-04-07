@@ -1,0 +1,59 @@
+{
+  "task_id": "siu_to_adt_bridge@1",
+  "task_completion": [
+    {
+      "id": "siu_channel_source",
+      "description": "Verify the 'SIU Intake Channel' is created and configured to listen on the correct port.",
+      "points": 15,
+      "visual_evidence": "Look for a channel named 'SIU Intake Channel' in the NextGen Connect (Mirth) Administrator. Its Source should be configured as a TCP Listener (or MLLP) on port 6666."
+    },
+    {
+      "id": "siu_channel_transformer",
+      "description": "Verify the SIU to ADT transformation and mapping logic.",
+      "points": 20,
+      "visual_evidence": "Look at the Source or Destination Transformers/Scripts for the 'SIU Intake Channel'. There should be logic (JavaScript or mapping steps) extracting PID and SCH segments, building an ADT^A04 message, and assigning it to a channel map variable named 'transformedADT'."
+    },
+    {
+      "id": "siu_channel_destination",
+      "description": "Verify the 'SIU Intake Channel' forwards messages to the ADT processor.",
+      "points": 15,
+      "visual_evidence": "Look at the Destinations for the 'SIU Intake Channel'. It should be configured as a 'Channel Writer' (or similar routing mechanism) pointing to the 'ADT Pre-Registration Processor' channel."
+    },
+    {
+      "id": "adt_channel_destination",
+      "description": "Verify the 'ADT Pre-Registration Processor' channel is created with a Database Writer.",
+      "points": 20,
+      "visual_evidence": "Look for a second channel named 'ADT Pre-Registration Processor'. Its Destination must be configured as a 'Database Writer'."
+    },
+    {
+      "id": "db_writer_configuration",
+      "description": "Verify the Database Writer is configured to insert into the correct PostgreSQL table.",
+      "points": 20,
+      "visual_evidence": "In the Database Writer destination settings for the ADT channel, look for the URL 'jdbc:postgresql://nextgen-postgres:5432/mirthdb' and an SQL INSERT statement targeting the 'scheduling_preregistrations' table with columns for appt_id, patient_mrn, patient_name, and appt_datetime."
+    },
+    {
+      "id": "channels_deployed",
+      "description": "Verify both channels are fully deployed.",
+      "points": 10,
+      "visual_evidence": "Look at the NextGen Connect Dashboard. Both 'SIU Intake Channel' and 'ADT Pre-Registration Processor' should be listed with a status of 'Started' or 'Deployed'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_mirth_usage",
+      "description": "Verify the agent interacted with the NextGen Connect (Mirth) Administrator GUI or made genuine REST API calls.",
+      "visual_evidence": "Screenshots should show the NextGen Connect Administrator Java application interface or terminal windows executing curl/Postman requests to the Mirth API, not just mock scripts."
+    },
+    {
+      "id": "genuine_db_writer",
+      "description": "Verify the database insertion is configured within NextGen Connect.",
+      "visual_evidence": "The SQL INSERT statement must be visible inside the NextGen Connect Database Writer destination configuration, rather than in a standalone Python or bash script."
+    },
+    {
+      "id": "no_text_editor_faking",
+      "description": "Verify the agent did not simply type the expected channel names and configurations into a text editor.",
+      "visual_evidence": "Ensure the configurations are entered into the actual application's input fields, dropdowns, and script editors, rather than a plain text file."
+    }
+  ],
+  "privileged_info_for_vlm": "The SIU channel must be named exactly 'SIU Intake Channel' and listen on port 6666. The ADT channel must be named exactly 'ADT Pre-Registration Processor'. The target database table is 'scheduling_preregistrations'. The occupation context is Clinical Systems Integration Engineer (SOC: 15-1299.09)."
+}

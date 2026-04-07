@@ -1,0 +1,53 @@
+{
+  "task_id": "weather_variant_batch_creation@1",
+  "task_completion": [
+    {
+      "id": "variant_directories_created",
+      "description": "Verify that the four required variant directories were created in the Scenarios folder.",
+      "points": 15,
+      "visual_evidence": "Look for terminal output (e.g., from 'ls /opt/bridgecommand/Scenarios/') or a script showing the creation of '01_Assessment_Clear', '02_Assessment_Haze', '03_Assessment_Fog', and '04_Assessment_Storm'."
+    },
+    {
+      "id": "environment_ini_modifications",
+      "description": "Verify that the environment.ini files for the variants are modified with the correct meteorological parameters.",
+      "points": 20,
+      "visual_evidence": "Look for script logic or terminal output (like 'cat') showing the environment.ini files being updated with the specific values for each variant: Clear (Visibility=12.0, Weather=1, RainVisible=0, Fog=0), Haze (Visibility=4.0, Weather=3, RainVisible=0, Fog=1), Fog (Visibility=0.5, Weather=2, RainVisible=0, Fog=1), and Storm (Visibility=1.0, Weather=8, RainVisible=1, Fog=0)."
+    },
+    {
+      "id": "ownship_ini_speed_updates",
+      "description": "Verify that the ownship.ini files have their InitialSpeed updated based on the correct percentage of the master base speed.",
+      "points": 20,
+      "visual_evidence": "Look for script logic or terminal output showing the calculation and updating of InitialSpeed: Clear (100%), Haze (85%), Fog (50%), and Storm (40%). The values should be rounded to one decimal place."
+    },
+    {
+      "id": "briefing_txt_creation",
+      "description": "Verify that a briefing.txt file is created in each variant directory with the correct format.",
+      "points": 20,
+      "visual_evidence": "Look for script logic or terminal output showing the creation of 'briefing.txt' containing the exact string format: 'Current Conditions: Visibility [V]nm, Weather Force [W]. Safe speed set to [S] kts.' with the respective values filled in."
+    },
+    {
+      "id": "summary_csv_generation",
+      "description": "Verify that the scenario_manifest.csv file is generated at the correct path with the required columns.",
+      "points": 25,
+      "visual_evidence": "Look for terminal output showing the creation or contents of '/home/ga/Documents/scenario_manifest.csv'. It must contain the columns: Directory, Visibility, Weather, and Speed, populated with the data for the four variants."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "dynamic_speed_extraction",
+      "description": "Ensure the agent dynamically reads the base speed from the master scenario rather than hardcoding a guessed value.",
+      "visual_evidence": "Look at the agent's script or commands. There should be logic to read/extract the 'InitialSpeed' from '/opt/bridgecommand/Scenarios/00_Master_Assessment/ownship.ini' (e.g., using grep, awk, or Python file reading) rather than a hardcoded number."
+    },
+    {
+      "id": "actual_file_modification",
+      "description": "Ensure the agent actually writes the changes to the respective files and directories.",
+      "visual_evidence": "Look for file writing operations in scripts (e.g., 'with open(...) as f: f.write(...)') or terminal commands (e.g., 'cp', 'sed -i', '>'). The agent should not just print the expected output to the console."
+    },
+    {
+      "id": "correct_csv_path",
+      "description": "Ensure the summary CSV is saved exactly to the requested absolute path.",
+      "visual_evidence": "Check that the file path used for the CSV is exactly '/home/ga/Documents/scenario_manifest.csv' and not just a local file in the current working directory."
+    }
+  ],
+  "privileged_info_for_vlm": "The master scenario's base InitialSpeed is randomly generated between 12.0 and 20.0 knots at runtime. The agent MUST read this value dynamically rather than hardcoding it. The required speed multipliers are: Clear (1.0), Haze (0.85), Fog (0.5), Storm (0.4). Speeds must be rounded to one decimal place. Note: While Bridge Command officially uses 'VisibilityRange' and 'Rain', the prompt explicitly specifies 'Visibility', 'RainVisible', and 'Fog'. The agent adding these exact keys to environment.ini is expected and correct based on the prompt instructions."
+}

@@ -1,0 +1,32 @@
+{
+  "id": "avian_occupancy_modeling@1",
+  "version": "1.0",
+  "env_id": "rstudio_env@0.1",
+  "difficulty": "hard",
+  "description": "You are a wildlife biologist analyzing data from the Swiss Breeding Bird Survey to determine habitat preferences of Mallards (*Anas platyrhynchos*). You need to account for imperfect detection using occupancy modeling.\n\n**Goal**: Estimate the true occupancy probability of Mallards and determine how it is affected by forest cover, accounting for how detection probability varies with survey date.\n\n**Instructions**:\n1. Install and load the `unmarked` package. The data is available internally as `data(mallard)`.\n2. Create an `unmarkedFrameOccu` object using:\n   - Detection history: `mallard.y`\n   - Site covariates: `mallard.site` (contains `forest`)\n   - Observation covariates: `mallard.obs` (contains `date`)\n3. Fit three single-season occupancy models using `occu()` (formula format is `~detection ~occupancy`):\n   - **Model 1 (Null)**: `~1 ~1`\n   - **Model 2 (Date)**: Detection depends on date `~date ~1`\n   - **Model 3 (Forest)**: Occupancy depends on forest, Detection depends on date `~date ~forest`\n4. Create a model selection table comparing AIC values. Save as `/home/ga/RProjects/output/model_selection.csv` (columns: model, AIC, delta_AIC).\n5. Using the best model (Model 3), predict occupancy probability (`psi`) for a range of forest values (min to max). Save predictions as `/home/ga/RProjects/output/forest_predictions.csv` (columns: forest, Predicted, lower, upper).\n6. Create a plot of Predicted Occupancy vs Forest Cover with 95% CI bands. Save as `/home/ga/RProjects/output/occupancy_plot.png`.\n7. Save your full script to `/home/ga/RProjects/occupancy_analysis.R`.\n\n**Note**: `Predicted` values must be probabilities (0-1), not logits.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/avian_occupancy_modeling/setup_task.sh",
+    "post_task": "/workspace/tasks/avian_occupancy_modeling/export_result.sh"
+  },
+  "metadata": {
+    "expected_aic_null": 518.3,
+    "expected_aic_date": 503.7,
+    "expected_aic_forest": 497.6,
+    "aic_tolerance": 2.0,
+    "output_selection": "/home/ga/RProjects/output/model_selection.csv",
+    "output_predictions": "/home/ga/RProjects/output/forest_predictions.csv",
+    "output_plot": "/home/ga/RProjects/output/occupancy_plot.png",
+    "output_script": "/home/ga/RProjects/occupancy_analysis.R"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_occupancy_modeling"
+    }
+  }
+}

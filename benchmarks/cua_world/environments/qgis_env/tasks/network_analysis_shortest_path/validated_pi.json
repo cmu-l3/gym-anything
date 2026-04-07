@@ -1,0 +1,59 @@
+{
+    "task_id": "network_analysis_shortest_path@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "road_network_path",
+            "metadata_value": "/home/ga/GIS_Data/road_network.geojson",
+            "verified_value": "/home/ga/GIS_Data/road_network.geojson",
+            "source": "setup_task.sh creates the file at this path via 'cat > /home/ga/GIS_Data/road_network.geojson'",
+            "status": "verified"
+        },
+        {
+            "key": "stops_path",
+            "metadata_value": "/home/ga/GIS_Data/logistics_stops.geojson",
+            "verified_value": "/home/ga/GIS_Data/logistics_stops.geojson",
+            "source": "setup_task.sh creates the file at this path via 'cat > /home/ga/GIS_Data/logistics_stops.geojson'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/GIS_Data/exports/delivery_route.geojson",
+            "verified_value": "/home/ga/GIS_Data/exports/delivery_route.geojson",
+            "source": "export_result.sh checks for output at /home/ga/GIS_Data/exports/delivery_route.geojson (line 20)",
+            "status": "verified"
+        },
+        {
+            "key": "optimal_length_approx",
+            "metadata_value": 0.141,
+            "verified_value": 1.4142,
+            "source": "Calculated from road_network geometry: diagonal distance from (0,0) to (1,1) is sqrt(2) ≈ 1.4142. The metadata value 0.141 appears to be a typo with misplaced decimal point.",
+            "status": "contradicted"
+        },
+        {
+            "key": "suboptimal_length_approx",
+            "metadata_value": 0.2,
+            "verified_value": 2.0,
+            "source": "Calculated from road_network geometry: Manhattan path distance is 1.0 + 1.0 = 2.0 (from (0,0) to (0,1) to (1,1)). Metadata claims 0.2, which is only 10% of actual distance.",
+            "status": "contradicted"
+        },
+        {
+            "key": "optimal_midpoint",
+            "metadata_value": [-0.5, 0.5],
+            "verified_value": [0.5, 0.5],
+            "source": "Diagonal path goes from (0,0) to (1,1), so midpoint is (0.5, 0.5). export_result.sh line 95 confirms it checks distance to point (0.5, 0.5) as the optimal checkpoint. Metadata has negative x-coordinate which is outside the coordinate space [0,1]x[0,1].",
+            "status": "contradicted"
+        },
+        {
+            "key": "suboptimal_corner",
+            "metadata_value": [-1.0, 1.0],
+            "verified_value": [0.0, 1.0],
+            "source": "Manhattan path passes through corner (0.0, 1.0). export_result.sh line 96 confirms it checks distance to point (0.0, 1.0) as the suboptimal checkpoint. Metadata has both negative x-coordinate and incorrect y-coordinate.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task uses a synthetic road network with 5 line features connecting points (0,0) to (1,1). The optimal shortest path is the diagonal (highway) with length 1.4142 and passes through midpoint (0.5, 0.5). The suboptimal Manhattan path has length 2.0 and passes through corner (0.0, 1.0). The data files are generated during task setup at /home/ga/GIS_Data/road_network.geojson and /home/ga/GIS_Data/logistics_stops.geojson with warehouse at (0,0) and customer at (1,1). The agent must save the computed shortest path as a GeoJSON file to /home/ga/GIS_Data/exports/delivery_route.geojson.",
+    "pi_confidence": "high"
+}

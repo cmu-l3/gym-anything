@@ -28,6 +28,7 @@ Usage:
   python3 seed_library.py --mode duplicate_merge
   python3 seed_library.py --mode hierarchical_reorg
   python3 seed_library.py --mode citation_qa
+  python3 seed_library.py --mode systematic_review
 
 Outputs JSON to stdout with item IDs for use by task scripts.
 """
@@ -706,6 +707,160 @@ CS_THEORY_PAPERS = [
 # Indices in CS_THEORY_PAPERS that will be inserted twice (duplicate pairs):
 CS_THEORY_DUPLICATE_INDICES = [14, 15, 16]
 
+# ── NEUROAI: Computational Neuroscience papers for systematic_review task ────
+
+# Group A: pre-2000 papers (to be trashed)
+# Group B: papers with placeholder abstracts (to be flagged)
+# Group C: duplicate pairs with metadata variations (to be merged)
+# Group D: abbreviated venues (to be fixed)
+# Group E: clean papers
+NEUROAI_PAPERS_PRE2000 = [
+    {"title": "A Quantitative Description of Membrane Current and its Application to Conduction and Excitation in Nerve",
+     "year": "1952", "publication": "Journal of Physiology",
+     "authors": [("A.L.", "Hodgkin"), ("A.F.", "Huxley")],
+     "volume": "117", "pages": "500-544",
+     "abstract": "We propose equations which describe the changes in sodium and potassium conductance associated with excitation and recovery in the giant axon of Loligo."},
+    {"title": "Neural Networks and Physical Systems with Emergent Collective Computational Abilities",
+     "year": "1982", "publication": "Proceedings of the National Academy of Sciences",
+     "authors": [("J.J.", "Hopfield")],
+     "volume": "79", "pages": "2554-2558",
+     "abstract": "Computational properties of use to biological organisms or to the construction of computers can emerge as collective properties of systems having a large number of simple equivalent components."},
+    {"title": "Learning Representations by Back-propagating Errors",
+     "year": "1986", "publication": "Nature",
+     "authors": [("David E.", "Rumelhart"), ("Geoffrey E.", "Hinton"), ("Ronald J.", "Williams")],
+     "volume": "323", "pages": "533-536",
+     "abstract": "We describe a new learning procedure, back-propagation, for networks of neurone-like units."},
+    {"title": "Receptive Fields, Binocular Interaction and Functional Architecture in the Cat's Visual Cortex",
+     "year": "1962", "publication": "Journal of Physiology",
+     "authors": [("D.H.", "Hubel"), ("T.N.", "Wiesel")],
+     "volume": "160", "pages": "106-154",
+     "abstract": "The striate cortex was studied in lightly anaesthetized cats by recording extracellularly from single units and stimulating the retinas with spots or patterns of light."},
+]
+
+NEUROAI_PAPERS_INCOMPLETE = [
+    {"title": "Performance-optimized hierarchical models predict neural responses in higher visual cortex",
+     "year": "2014", "publication": "Proceedings of the National Academy of Sciences",
+     "authors": [("Daniel L.K.", "Yamins"), ("Ha", "Hong"), ("Charles F.", "Cadieu"), ("Ethan A.", "Solomon"), ("Darren", "Seibert"), ("James J.", "DiCarlo")],
+     "volume": "111", "pages": "8619-8624",
+     "abstract": "Abstract not available"},
+    {"title": "Vector-based navigation using grid-like representations in artificial agents",
+     "year": "2018", "publication": "Nature",
+     "authors": [("Andrea", "Banino"), ("Caswell", "Barry"), ("Benigno", "Uria"), ("Charles", "Blundell"), ("Timothy", "Lillicrap")],
+     "volume": "557", "pages": "429-433",
+     "abstract": "Abstract not available"},
+    {"title": "A Task-Optimized Neural Network Replicates Human Auditory Behavior, Predicts Brain Responses, and Reveals a Cortical Processing Hierarchy",
+     "year": "2018", "publication": "Neuron",
+     "authors": [("Alexander J.E.", "Kell"), ("Daniel L.K.", "Yamins"), ("Erica N.", "Shook"), ("Sam V.", "Norman-Haignere"), ("Josh H.", "McDermott")],
+     "volume": "98", "pages": "630-644",
+     "abstract": "Abstract not available"},
+    {"title": "If deep learning is the answer, what is the question?",
+     "year": "2021", "publication": "Nature Reviews Neuroscience",
+     "authors": [("Andrew M.", "Saxe"), ("Stephanie", "Nelli"), ("Christopher", "Summerfield")],
+     "volume": "22", "pages": "55-67",
+     "abstract": "Abstract not available"},
+]
+
+# Duplicate pair A: copy_a has DOI but no pages; copy_b has pages but no DOI
+NEUROAI_DUP_A = {
+    "title": "Neuroscience-Inspired Artificial Intelligence",
+    "year": "2017", "publication": "Neuron",
+    "authors": [("Christopher", "Summerfield"), ("Demis", "Hassabis"), ("Dharshan", "Kumaran"), ("Matthew", "Botvinick")],
+    "volume": "95",
+    "copy_a": {"doi": "10.1016/j.neuron.2017.06.011", "pages": None,
+               "abstract": "The fields of neuroscience and artificial intelligence (AI) have a long and intertwined history."},
+    "copy_b": {"doi": None, "pages": "245-258",
+               "abstract": "The fields of neuroscience and artificial intelligence (AI) have a long and intertwined history."},
+}
+
+# Duplicate pair B: copy_a has full venue + DOI; copy_b has abbreviated venue + no DOI
+NEUROAI_DUP_B = {
+    "title": "A deep learning framework for neuroscience",
+    "year": "2019", "publication_a": "Nature Neuroscience", "publication_b": "Nat. Neurosci.",
+    "authors": [("Blake A.", "Richards"), ("Timothy P.", "Lillicrap"), ("Denis", "Beaulieu"), ("Yoshua", "Bengio"), ("Rafal", "Bogacz")],
+    "volume": "22",
+    "copy_a": {"doi": "10.1038/s41593-019-0520-2", "pages": "1761-1770",
+               "abstract": "Systems neuroscience seeks explanations for how the brain implements a wide variety of perceptual, cognitive and motor tasks."},
+    "copy_b": {"doi": None, "pages": None,
+               "abstract": "Systems neuroscience seeks explanations for how the brain implements a wide variety of perceptual, cognitive and motor tasks."},
+}
+
+# Duplicate pair C: copy_a has full venue + DOI; copy_b has abbreviated venue + no DOI
+NEUROAI_DUP_C = {
+    "title": "Toward an Integration of Deep Learning and Neuroscience",
+    "year": "2016", "publication_a": "Frontiers in Computational Neuroscience", "publication_b": "Front. Comput. Neurosci.",
+    "authors": [("Adam H.", "Marblestone"), ("Greg", "Wayne"), ("Konrad P.", "Kording")],
+    "volume": "10",
+    "copy_a": {"doi": "10.3389/fncom.2016.00094", "pages": "94",
+               "abstract": "Neuroscience has focused on the detailed implementation of computation, studying neural codes, dynamics of networks, and the like."},
+    "copy_b": {"doi": None, "pages": None,
+               "abstract": "Neuroscience has focused on the detailed implementation of computation, studying neural codes, dynamics of networks, and the like."},
+}
+# Papers with abbreviated venues (standalone, not duplicates)
+NEUROAI_PAPERS_WRONG_VENUE = [
+    {"title": "Recurrent neural networks as versatile tools of neuroscience research",
+     "year": "2017", "publication": "Curr. Opin. Neurobiol.",
+     "authors": [("Omri", "Barak")],
+     "volume": "46", "pages": "1-6",
+     "abstract": "Task-based modeling with recurrent neural networks (RNNs) has emerged as a popular approach in systems neuroscience."},
+    {"title": "Deep Neural Networks: A New Framework for Modeling Biological Vision and Brain Information Processing",
+     "year": "2015", "publication": "Annu. Rev. Vis. Sci.",
+     "authors": [("Nikolaus", "Kriegeskorte")],
+     "volume": "1", "pages": "417-446",
+     "abstract": "Recent advances in neural network modeling have enabled major strides in computer vision and other areas of artificial intelligence."},
+]
+
+# Clean papers (no issues)
+NEUROAI_PAPERS_CLEAN = [
+    {"title": "Backpropagation and the brain",
+     "year": "2020", "publication": "Nature Reviews Neuroscience",
+     "authors": [("Timothy P.", "Lillicrap"), ("Adam", "Santoro"), ("Luke", "Marris"), ("Colin J.", "Akerman"), ("Geoffrey", "Hinton")],
+     "volume": "21", "pages": "335-346",
+     "abstract": "During learning, the weights of deep artificial neural networks are adjusted by backpropagation."},
+    {"title": "Engineering a Less Artificial Intelligence",
+     "year": "2019", "publication": "Neuron",
+     "authors": [("Fabian H.", "Sinz"), ("Xaq", "Pitkow"), ("Jacob", "Reimer"), ("Matthias", "Bethge"), ("Andreas S.", "Tolias")],
+     "volume": "103", "pages": "967-979",
+     "abstract": "We argue for a more integrated approach to AI inspired by the brain."},
+    {"title": "A critique of pure learning and what artificial neural networks can learn from animal brains",
+     "year": "2019", "publication": "Nature Communications",
+     "authors": [("Anthony M.", "Zador")],
+     "volume": "10", "pages": "3770",
+     "abstract": "Artificial neural networks (ANNs) have undergone a revolution."},
+    {"title": "Deep Neural Networks as Scientific Models",
+     "year": "2019", "publication": "Trends in Cognitive Sciences",
+     "authors": [("Radoslaw M.", "Cichy"), ("Daniel", "Kaiser")],
+     "volume": "23", "pages": "305-317",
+     "abstract": "Deep neural networks (DNNs) have become increasingly popular as models in cognitive science and neuroscience."},
+    {"title": "An Approximation of the Error Backpropagation Algorithm in a Predictive Coding Network with Local Hebbian Synaptic Plasticity",
+     "year": "2017", "publication": "Neural Computation",
+     "authors": [("Rafal", "Bogacz"), ("James C.R.", "Whittington")],
+     "volume": "29", "pages": "1229-1262",
+     "abstract": "This article shows that a network related to the predictive coding model can approximate the error backpropagation algorithm."},
+    {"title": "Analyzing biological and artificial neural networks: challenges with opportunities for synergy?",
+     "year": "2019", "publication": "Current Opinion in Neurobiology",
+     "authors": [("David G.T.", "Barrett"), ("Ari S.", "Morcos"), ("Jakob H.", "Macke")],
+     "volume": "55", "pages": "55-64",
+     "abstract": "We review recent developments in analyzing both biological and artificial neural networks."},
+    {"title": "Deep Neural Networks in Computational Neuroscience",
+     "year": "2019", "publication": "Oxford Research Encyclopedia of Neuroscience",
+     "authors": [("Nikolaus", "Kriegeskorte"), ("Tim C.", "Kietzmann"), ("Patrick", "McClure")],
+     "volume": None, "pages": None,
+     "abstract": "Deep neural networks are increasingly being used as models of brain information processing."},
+    {"title": "Convolutional Neural Networks as a Model of the Visual System: Past, Present, and Future",
+     "year": "2021", "publication": "Annual Review of Vision Science",
+     "authors": [("Grace W.", "Lindsay")],
+     "volume": "7", "pages": "397-421",
+     "abstract": "Convolutional neural networks (CNNs) were inspired by the visual brain."},
+    {"title": "Brain-Score: Which Artificial Neural Network for Object Recognition is most Brain-Like?",
+     "year": "2020", "publication": "bioRxiv",
+     "authors": [("Ha", "Hong"), ("James J.", "DiCarlo"), ("Martin", "Schrimpf"), ("Jonas", "Kubilius"), ("Najib J.", "Majaj"), ("Rishi", "Rajalingham"), ("Elias B.", "Issa"), ("Kohitij", "Kar"), ("Pouya", "Bashivan"), ("Jonathan", "Prescott-Roy")],
+     "volume": None, "pages": None,
+     "abstract": "The internal representations of brain and deep neural networks (DNNs) can be compared using neural predictivity metrics."},
+]
+
+
+
+
 # ── Database helpers ─────────────────────────────────────────────────────────
 
 def generate_key(length=8):
@@ -1194,7 +1349,99 @@ def seed_citation_qa(cur):
 
     return ids
 
+def seed_systematic_review(cur):
+    """Seed 25 computational neuroscience papers for systematic review task.
 
+    Paper groups:
+      A. 4 pre-2000 papers (to be trashed by agent)
+      B. 4 papers with placeholder abstracts (to be flagged)
+      C. 3 duplicate pairs with metadata variations (to be merged; 6 rows total)
+      D. 2 papers with abbreviated venue names (to be fixed)
+      E. 9 clean papers
+
+    Total: 4 + 4 + 6 + 2 + 9 = 25 items
+    """
+    ids = {}
+
+    # Group A: pre-2000 papers
+    for p in NEUROAI_PAPERS_PRE2000:
+        iid = insert_journal_article(
+            cur, p["title"], p["year"], p["publication"], p["authors"],
+            abstract=p.get("abstract"), volume=p.get("volume"), pages=p.get("pages"))
+        if iid:
+            ids[f"pre2000_{p['title'][:30]}"] = iid
+
+    # Group B: papers with placeholder abstracts
+    for p in NEUROAI_PAPERS_INCOMPLETE:
+        iid = insert_journal_article(
+            cur, p["title"], p["year"], p["publication"], p["authors"],
+            abstract=p.get("abstract"), volume=p.get("volume"), pages=p.get("pages"))
+        if iid:
+            ids[f"incomplete_{p['title'][:30]}"] = iid
+
+    # Group C: duplicate pairs with metadata variations
+    # Pair A: Hassabis et al. - copy_a has DOI, copy_b has pages
+    dup = NEUROAI_DUP_A
+    id_a = insert_journal_article_force(
+        cur, dup["title"], dup["year"], dup["publication"], dup["authors"],
+        abstract=dup["copy_a"]["abstract"], volume=dup["volume"],
+        pages=dup["copy_a"]["pages"], doi=dup["copy_a"]["doi"])
+    id_b = insert_journal_article_force(
+        cur, dup["title"], dup["year"], dup["publication"], dup["authors"],
+        abstract=dup["copy_b"]["abstract"], volume=dup["volume"],
+        pages=dup["copy_b"]["pages"], doi=dup["copy_b"]["doi"])
+    ids["dup_a_copy_a"] = id_a
+    ids["dup_a_copy_b"] = id_b
+
+    # Pair B: Richards et al. - copy_a has full venue+DOI, copy_b abbreviated venue
+    dup = NEUROAI_DUP_B
+    id_a = insert_journal_article_force(
+        cur, dup["title"], dup["year"], dup["publication_a"], dup["authors"],
+        abstract=dup["copy_a"]["abstract"], volume=dup["volume"],
+        pages=dup["copy_a"]["pages"], doi=dup["copy_a"]["doi"])
+    id_b = insert_journal_article_force(
+        cur, dup["title"], dup["year"], dup["publication_b"], dup["authors"],
+        abstract=dup["copy_b"]["abstract"], volume=dup["volume"],
+        pages=dup["copy_b"]["pages"], doi=dup["copy_b"]["doi"])
+    ids["dup_b_copy_a"] = id_a
+    ids["dup_b_copy_b"] = id_b
+
+    # Pair C: Marblestone et al. - copy_a has full venue+DOI, copy_b abbreviated venue
+    dup = NEUROAI_DUP_C
+    id_a = insert_journal_article_force(
+        cur, dup["title"], dup["year"], dup["publication_a"], dup["authors"],
+        abstract=dup["copy_a"]["abstract"], volume=dup["volume"],
+        pages=dup["copy_a"]["pages"], doi=dup["copy_a"]["doi"])
+    id_b = insert_journal_article_force(
+        cur, dup["title"], dup["year"], dup["publication_b"], dup["authors"],
+        abstract=dup["copy_b"]["abstract"], volume=dup["volume"],
+        pages=dup["copy_b"]["pages"], doi=dup["copy_b"]["doi"])
+    ids["dup_c_copy_a"] = id_a
+    ids["dup_c_copy_b"] = id_b
+
+    # Group D: papers with abbreviated venues
+    for p in NEUROAI_PAPERS_WRONG_VENUE:
+        iid = insert_journal_article(
+            cur, p["title"], p["year"], p["publication"], p["authors"],
+            abstract=p.get("abstract"), volume=p.get("volume"), pages=p.get("pages"))
+        if iid:
+            ids[f"wrong_venue_{p['title'][:30]}"] = iid
+
+    # Group E: clean papers
+    for p in NEUROAI_PAPERS_CLEAN:
+        iid = insert_journal_article(
+            cur, p["title"], p["year"], p["publication"], p["authors"],
+            abstract=p.get("abstract"), volume=p.get("volume"), pages=p.get("pages"))
+        if iid:
+            ids[f"clean_{p['title'][:30]}"] = iid
+
+    ids["__total_items__"] = 25
+    ids["__pre2000_titles__"] = [p["title"] for p in NEUROAI_PAPERS_PRE2000]
+    ids["__incomplete_titles__"] = [p["title"] for p in NEUROAI_PAPERS_INCOMPLETE]
+    ids["__duplicate_titles__"] = [NEUROAI_DUP_A["title"], NEUROAI_DUP_B["title"], NEUROAI_DUP_C["title"]]
+    ids["__wrong_venue_titles__"] = [p["title"] for p in NEUROAI_PAPERS_WRONG_VENUE]
+
+    return ids
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -1204,7 +1451,7 @@ def main():
         choices=["all", "classic", "ml", "ml_with_collection",
                  "classic_with_errors", "all_with_errors",
                  "triage_pipeline", "metadata_audit",
-                 "duplicate_merge", "hierarchical_reorg", "citation_qa"],
+                 "duplicate_merge", "hierarchical_reorg", "citation_qa", "systematic_review"],
         default="all",
     )
     args = parser.parse_args()
@@ -1231,6 +1478,7 @@ def main():
             "duplicate_merge": seed_duplicate_merge,
             "hierarchical_reorg": seed_hierarchical_reorg,
             "citation_qa": seed_citation_qa,
+            "systematic_review": seed_systematic_review,
         }[args.mode]
 
         print(f"Seeding mode: {args.mode}", file=sys.stderr)

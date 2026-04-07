@@ -164,10 +164,10 @@ tasks/
 ### 🚀 **Running Individual Tasks**
 ```bash
 # Run specific task
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --task install_extension
+python -m gym_anything.cli run examples/vscode_env --task install_extension
 
 # Validate task configuration
-python -m gym_anything.cli validate benchmarks/cua_world/environments/vscode_env --task install_extension
+python -m gym_anything.cli validate examples/vscode_env --task install_extension
 ```
 
 ### 🔄 **Training Sequences**
@@ -223,21 +223,21 @@ python -m gym_anything.cli validate benchmarks/cua_world/environments/vscode_env
 
 ```bash
 # 1. Validate all tasks
-python -m gym_anything.cli validate benchmarks/cua_world/environments/vscode_env
+python -m gym_anything.cli validate examples/vscode_env
 
 # 2. Run beginner sequence
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --task install_extension
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --task python_autocomplete
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --task navigate_definition
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --task multi_cursor_edit
+python -m gym_anything.cli run examples/vscode_env --task install_extension
+python -m gym_anything.cli run examples/vscode_env --task python_autocomplete
+python -m gym_anything.cli run examples/vscode_env --task navigate_definition
+python -m gym_anything.cli run examples/vscode_env --task multi_cursor_edit
 
 # 3. Progress to intermediate
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --task git_commit
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --task find_replace
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --task debug_javascript
+python -m gym_anything.cli run examples/vscode_env --task git_commit
+python -m gym_anything.cli run examples/vscode_env --task find_replace
+python -m gym_anything.cli run examples/vscode_env --task debug_javascript
 
 # 4. Master advanced techniques
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --task refactor_rename
+python -m gym_anything.cli run examples/vscode_env --task refactor_rename
 ```
 
 This comprehensive VSCode training suite provides everything needed for world-class multimodal agent development in software development workflows! 🚀

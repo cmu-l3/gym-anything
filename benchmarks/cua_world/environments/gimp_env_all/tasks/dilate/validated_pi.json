@@ -1,0 +1,101 @@
+{
+    "task_id": "dilate@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "filter_name_and_location",
+            "metadata_value": "GIMP's Dilate morphological filter accessible via Filters → Generic → Dilate",
+            "verified_value": "Correct - Dilate filter exists at Filters → Generic → Dilate as documented in GIMP 2.8, 3.0, and 3.2 official documentation",
+            "source": "GIMP official documentation https://docs.gimp.org/2.8/en/plug-in-dilate.html and https://docs.gimp.org/3.0/en/gimp-filter-dilate.html confirm menu path Filters → Generic → Dilate",
+            "status": "verified"
+        },
+        {
+            "key": "filter_effect_bright_regions",
+            "metadata_value": "Dilate filter expands/widens bright regions in an image",
+            "verified_value": "Correct for GIMP 3.0+ - Dilate widens and enhances bright areas by setting each pixel to match the brightest of its 8 neighbors (3×3 matrix)",
+            "source": "GIMP 3.0+ official documentation https://docs.gimp.org/3.0/en/gimp-filter-dilate.html and https://testing.docs.gimp.org/3.2/en/gimp-filter-dilate.html confirm dilation of bright regions. Note: GIMP 2.8 documentation incorrectly stated dark regions, which was corrected in later versions.",
+            "status": "verified"
+        },
+        {
+            "key": "filter_applies_without_dialog",
+            "metadata_value": "The filter applies immediately without a parameter dialog for basic dilation",
+            "verified_value": "Unconfirmed - GIMP documentation does not explicitly state whether a dialog appears. The filter likely uses default 3×3 kernel with no user-adjustable parameters, but this cannot be definitively confirmed from available documentation.",
+            "source": "GIMP documentation pages do not provide explicit information about dialog behavior. Task design (with automated export) and README description suggest immediate application, but this remains unverified.",
+            "status": "unverified"
+        },
+        {
+            "key": "sample_image_url_primary",
+            "metadata_value": "https://images.unsplash.com/photo-1518709268805-4e9042af2176?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
+            "verified_value": "URL returns HTTP 404 - not found",
+            "source": "Direct HTTP request returns 404 status. Unsplash image ID appears to be invalid or deleted.",
+            "status": "contradicted"
+        },
+        {
+            "key": "sample_image_url_fallback",
+            "metadata_value": "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
+            "verified_value": "Valid URL returning HTTP 200 - Image accessible and intact",
+            "source": "Direct HTTP request confirms URL validity (HTTP 200 status, last-modified Feb 13 2026)",
+            "status": "verified"
+        },
+        {
+            "key": "image_fallback_mechanism",
+            "metadata_value": "Setup script includes fallback to synthetic image generation using ImageMagick 'convert' command if Unsplash URLs fail",
+            "verified_value": "Correct - setup_dilate_task.sh (lines 13-19) implements two-level fallback: primary URL → secondary URL → synthetic ImageMagick-generated image with circles and rectangles",
+            "source": "setup_dilate_task.sh lines 13-19 show fallback logic using ImageMagick with 'convert' command",
+            "status": "verified"
+        },
+        {
+            "key": "verification_criteria_bright_expansion",
+            "metadata_value": "Verifier checks bright region expansion by counting pixels above brightness threshold (200, 180, 160, 140) with >1% relative increase requirement",
+            "verified_value": "Reasonable verification logic - checks multiple brightness thresholds and computes relative change. Threshold of 1% is realistic for detecting subtle dilation effect.",
+            "source": "verifier.py lines 44-61 implement brightness threshold analysis; lines 231-234 enforce 1% relative change threshold",
+            "status": "verified"
+        },
+        {
+            "key": "verification_criteria_brightness_increase",
+            "metadata_value": "Verifier checks overall image brightness increase of at least 0.5%",
+            "verified_value": "Reasonable - 0.5% overall brightness increase is a moderate threshold that reflects dilation effect on bright pixels without being too stringent",
+            "source": "verifier.py lines 64-66 calculate overall brightness; line 241 enforce 0.5% threshold",
+            "status": "verified"
+        },
+        {
+            "key": "verification_criteria_edge_expansion",
+            "metadata_value": "Verifier uses Sobel edge detection to verify edges become thicker/stronger after dilation",
+            "verified_value": "Sound approach - Dilate increases edge magnitude by expanding bright regions near boundaries. Uses scipy.ndimage.sobel with fallback to gradient-based edge detection.",
+            "source": "verifier.py lines 100-124 implement edge detection via Sobel and gradient analysis",
+            "status": "verified"
+        },
+        {
+            "key": "verification_criteria_meaningful_change",
+            "metadata_value": "Verifier requires at least 2% of pixels to change by >10 intensity units to confirm dilation was applied",
+            "verified_value": "Reasonable threshold - 2% of pixels changing by 10+ intensity units represents a significant but not excessive image modification, appropriate for single dilation pass",
+            "source": "verifier.py lines 150-155 count meaningful changes (>10 intensity units); line 251 enforce 2% threshold",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": "Task passes if 4 of 5 verification criteria are met (75% threshold; actually 80% but threshold set to 75%)",
+            "verified_value": "Explicit code verification: Score = (criteria_met / 5) * 100; passed = score >= 75. With 5 criteria, 75% = 3.75 criteria (effectively 4/5)",
+            "source": "verifier.py lines 226-264 calculate score and pass threshold",
+            "status": "verified"
+        },
+        {
+            "key": "morphological_operation_foundation",
+            "metadata_value": "Dilation is a fundamental morphological operation used in OCR preprocessing, mask creation, edge thickening, and gap filling",
+            "verified_value": "Correct and well-established in image processing literature. Morphological dilation is indeed fundamental for these applications.",
+            "source": "Standard image processing textbooks and https://bioimagebook.github.io/chapters/2-processing/5-morph/morph.html confirm morphological operations and their applications",
+            "status": "verified"
+        },
+        {
+            "key": "task_data_is_synthetic",
+            "metadata_value": "Data is primarily real (from Unsplash) with synthetic fallback only if downloads fail",
+            "verified_value": "Correct - fallback URL works, pointing to real Unsplash image. Only generates synthetic image if both URLs fail, which is the stated design.",
+            "source": "Verified second Unsplash URL is accessible (HTTP 200). setup_dilate_task.sh shows synthetic fallback only activates after URL failures.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Dilate task references GIMP's Dilate morphological filter (Filters → Generic → Dilate), which correctly expands bright regions according to GIMP 3.0+ documentation. The task uses two Unsplash image URLs as fallback sources: the primary URL returns 404 (not found), but the fallback URL is valid and returns an accessible landscape image. If both URLs fail, the setup script generates a synthetic test image using ImageMagick. The verifier implements a multi-criterion evaluation checking bright pixel expansion (>1% increase), overall brightness increase (>0.5%), edge thickening via Sobel detection, meaningful pixel changes (>2% of pixels changed by >10 intensity units), and morphological consistency. The pass threshold is 75% (4 of 5 criteria met). All verification logic appears sound for detecting morphological dilation. The claimed behavior of the filter applying without a dialog cannot be definitively verified from GIMP documentation, but task design suggests this is accurate.",
+    "pi_confidence": "high"
+}

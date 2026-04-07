@@ -1,0 +1,29 @@
+{
+  "id": "evaluate_network_azimuthal_gap@1",
+  "version": "1.0",
+  "env_id": "seiscomp_env@0.1",
+  "description": "Evaluate the azimuthal gap of the GE network for the 2024 Noto earthquake and simulate adding a new station. Using the SeisComP MySQL database (user: sysop, pass: sysop, db: seiscomp) or the SCML inventory, determine the preferred origin coordinates of the 2024 Noto Peninsula earthquake and the coordinates of five existing GE network stations (TOLI, GSI, KWP, SANI, BKB). Compute the current network's azimuthal gap in degrees for this epicenter, then recompute the gap after simulating the addition of a proposed station GE.TK01 located in Tokyo (35.689°N, 139.692°E). Generate a JSON report at /home/ga/azimuthal_gap_report.json including the epicenter coordinates, current station count, current gap, proposed gap, and the improvement (calculated as current gap minus proposed gap).\n\nThe report must follow this schema:\n{\n  \"epicenter\": {\n    \"latitude\": <float>,\n    \"longitude\": <float>\n  },\n  \"current_stations\": 5,\n  \"current_gap_degrees\": <float>,\n  \"proposed_gap_degrees\": <float>,\n  \"improvement_degrees\": <float>\n}",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_network_azimuthal_gap/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_network_azimuthal_gap/export_result.sh"
+  },
+  "metadata": {
+    "expected_report_path": "/home/ga/azimuthal_gap_report.json",
+    "proposed_station_lat": 35.689,
+    "proposed_station_lon": 139.692,
+    "tolerance_degrees": 2.0,
+    "tolerance_epicenter": 0.05
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_azimuthal_gap"
+    }
+  }
+}

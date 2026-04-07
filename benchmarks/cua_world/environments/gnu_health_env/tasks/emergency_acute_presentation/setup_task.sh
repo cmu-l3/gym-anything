@@ -2,6 +2,7 @@
 echo "=== Setting up emergency_acute_presentation task ==="
 
 source /workspace/scripts/task_utils.sh
+wait_for_postgres
 
 # --- 1. Find patient Luna ---
 LUNA_PATIENT_ID=$(gnuhealth_db_query "

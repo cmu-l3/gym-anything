@@ -1,0 +1,73 @@
+{
+    "task_id": "crm_forensic_audit@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "CRM Audit Lead",
+            "verified_value": "CRM Audit Lead",
+            "source": "Confirmed in task.json description: 'As CRM Audit Lead, investigate his records'",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "B2B Technology",
+            "verified_value": "B2B Technology",
+            "source": "Inferred from task context: the company sells enterprise software/platforms to Fortune 500 B2B accounts (Apple, Boeing, etc.)",
+            "status": "verified"
+        },
+        {
+            "key": "turner_username",
+            "metadata_value": "aturner",
+            "verified_value": "aturner",
+            "source": "setup_task.sh line 40: $user->user_name = 'aturner'; Also confirmed in task description: 'Alex Turner (username: aturner)'",
+            "status": "verified"
+        },
+        {
+            "key": "turner_accounts",
+            "metadata_value": ["Pinnacle Defense Systems", "Quantum Dynamics Inc", "Evergreen Health Partners"],
+            "verified_value": ["Pinnacle Defense Systems", "Quantum Dynamics Inc", "Evergreen Health Partners"],
+            "source": "setup_task.sh lines 54/69/84 create these 3 accounts with assigned_user_id=$turner_id. Verified in live environment via DB query: all 3 accounts exist with correct names and are assigned to aturner.",
+            "status": "verified"
+        },
+        {
+            "key": "num_reopened_deals",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "setup_task.sh creates exactly 2 REOPEN records: (1) 'Pinnacle - Radar Upgrade Contract' in Prospecting stage with description 'Client declined our proposal after defense budget cuts' — should be moved to Closed Lost; (2) 'Quantum - ML Pipeline Accelerator' in Qualification stage with description 'Lost competitive evaluation to DataForge Systems' — should be moved to Closed Lost. Verifier C1 checks exactly these 2 IDs. Verified in live environment: both opportunities exist with correct stages and descriptions.",
+            "status": "verified"
+        },
+        {
+            "key": "num_inflated_amounts",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "setup_task.sh creates exactly 2 INFLATE records: (1) 'Quantum - Predictive Maintenance Platform' with amount=$4,200,000, description says 'Approved procurement budget of $2,100,000' — correct amount is $2,100,000; (2) 'Pinnacle - Cybersecurity Hardening Initiative' with amount=$5,800,000, description says 'Approved budget of $2,900,000' — correct amount is $2,900,000. Verifier C2 checks exactly these 2 IDs with tolerances. Verified in live environment: amounts confirmed as $4,200,000.00 and $5,800,000.00 respectively.",
+            "status": "verified"
+        },
+        {
+            "key": "num_fabricated_deals",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "setup_task.sh creates exactly 1 FABRICATED record: 'Quantum - Enterprise Data Warehouse Migration' (Closed Won, $3,800,000). This is the only Closed Won opportunity at Turner's accounts with ZERO related activity records (no Notes, Calls, or Meetings). The other 2 Closed Won opportunities ('Pinnacle - Secure Comms Platform' and 'Evergreen - Telehealth Infrastructure') have Notes, Calls, and Meetings linked via parent_type/parent_id. Verified in live environment via DB queries: notes/calls/meetings tables confirm zero records with parent_id matching the fabricated opp ID, and multiple records for the legitimate CW opps.",
+            "status": "verified"
+        },
+        {
+            "key": "num_contacts_to_reassign",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "setup_task.sh creates exactly 3 CONTACT_FIX records with email-domain/account-website mismatches: (1) Nikolai Volkov at Pinnacle (website pinnacledefense.com) with email n.volkov@quantumdyn.com — should move to Quantum Dynamics (website quantumdyn.com); (2) Elena Vasquez at Quantum (website quantumdyn.com) with email e.vasquez@evergreenhealth.org — should move to Evergreen Health (website evergreenhealth.org); (3) Diana Morales at Evergreen (website evergreenhealth.org) with email d.morales@apple.com — should move to Apple Inc. (website apple.com). Verifier C4 checks exactly these 3 contact IDs. Verified in live environment: all 3 contacts exist at their incorrect accounts with the specified email addresses.",
+            "status": "verified"
+        },
+        {
+            "key": "num_contamination_records",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "5 contamination records that must NOT be modified: (1) CONTAM_R1: 'Evergreen - Patient Data Analytics Suite' — Prospecting stage, description says 'Evergreen's board declined the competing vendor's proposal' (the word 'declined' refers to a COMPETITOR being rejected, not our deal); (2) LEGIT_CW1: 'Pinnacle - Secure Comms Platform' — Closed Won with Note 'Contract executed - ITAR compliance verified' and Call 'Final negotiation with Pinnacle procurement'; (3) LEGIT_CW2: 'Evergreen - Telehealth Infrastructure' — Closed Won with Meeting 'Evergreen IT team - deployment kickoff' and Note 'Implementation milestone 1 complete'; (4) CONTAM_C1: Takeshi Nakamura at Quantum with personal email takeshi.nakamura@gmail.com (should NOT be moved); (5) CONTAM_C2: Sarah Mitchell at Pinnacle with matching email s.mitchell@pinnacledefense.com (should NOT be moved). Verifier C5 checks all 5 with gate — if any contamination is violated, score is capped at 40. Verified in live environment: all 5 records exist with correct data.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic CRM forensic audit task in SuiteCRM 7.14.6. All data is created by the setup script — no external datasets. The departing manager Alex Turner (username: aturner) manages 3 accounts: Pinnacle Defense Systems (website: pinnacledefense.com), Quantum Dynamics Inc (website: quantumdyn.com), and Evergreen Health Partners (website: evergreenhealth.org). There are 10 opportunities at Turner's accounts and 5 contacts. The agent must perform 4 types of investigation: (1) RE-OPENED DEALS: 'Pinnacle - Radar Upgrade Contract' (Prospecting, description says 'Client declined our proposal') and 'Quantum - ML Pipeline Accelerator' (Qualification, description says 'Lost competitive evaluation to DataForge Systems') must both be moved to Closed Lost with probability 0%. The contamination opportunity 'Evergreen - Patient Data Analytics Suite' (Prospecting, description says 'Evergreen's board declined the competing vendor's proposal') must NOT be changed — 'declined' refers to a competitor being rejected. (2) INFLATED AMOUNTS: 'Quantum - Predictive Maintenance Platform' has Amount $4,200,000 but description says 'Approved procurement budget of $2,100,000' — correct to $2,100,000. 'Pinnacle - Cybersecurity Hardening Initiative' has Amount $5,800,000 but description says 'Approved budget of $2,900,000' — correct to $2,900,000. (3) FABRICATED WINS: 'Quantum - Enterprise Data Warehouse Migration' is Closed Won ($3,800,000) with zero related Notes, Calls, or Meetings — must be deleted. 'Pinnacle - Secure Comms Platform' (Closed Won, has Note and Call) and 'Evergreen - Telehealth Infrastructure' (Closed Won, has Meeting and Note) are legitimate and must NOT be deleted. (4) REASSIGNED CONTACTS: Nikolai Volkov (email n.volkov@quantumdyn.com, currently at Pinnacle) should go to Quantum Dynamics. Elena Vasquez (email e.vasquez@evergreenhealth.org, currently at Quantum) should go to Evergreen Health. Diana Morales (email d.morales@apple.com, currently at Evergreen) should go to Apple Inc. Takeshi Nakamura (email takeshi.nakamura@gmail.com, personal email at Quantum) must NOT be moved. Sarah Mitchell (email s.mitchell@pinnacledefense.com, matching domain at Pinnacle) must NOT be moved. Two legitimate active opportunities must remain untouched: 'Evergreen - EHR Integration Phase 2' (Proposal/Price Quote, $2,800,000) and 'Pinnacle - Training Simulation Platform' (Negotiation/Review, $1,900,000). Technical note: SuiteCRM stores contact-account links in the accounts_contacts join table, not in a contacts.account_id column. Account websites use the format 'https://www.domain.com'. The verifier uses exec_capture to query the MariaDB database directly. Scoring: C1=20pts (re-opened deals), C2=20pts (amounts), C3=15pts (fabricated), C4=15pts (contacts), C5=15pts GATE (contamination — score capped at 40 if violated), C6=15pts (legitimate untouched). Pass threshold: 60/100.",
+    "pi_confidence": "high"
+}

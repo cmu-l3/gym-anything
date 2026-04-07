@@ -50,8 +50,8 @@ echo "Loaded ${IDX} unread emails into inbox"
 # Fix permissions
 chown -R ga:ga "${MAILDIR}"
 
-# Force Dovecot index update
-doveadm index -u ga INBOX 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # ============================================================
 # 2. Prepare Filesystem

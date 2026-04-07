@@ -1,0 +1,59 @@
+{
+  "task_id": "docker_cli_tool_wrapper@1",
+  "task_completion": [
+    {
+      "id": "script_path",
+      "description": "Verify the wrapper script is created at the correct path",
+      "points": 10,
+      "visual_evidence": "Look for terminal commands (like nano, vim, cat, or echo) creating or editing a file at '~/projects/tools/db-migrate' or '/home/ga/projects/tools/db-migrate'."
+    },
+    {
+      "id": "script_executable",
+      "description": "Verify the script is made executable",
+      "points": 10,
+      "visual_evidence": "Look for a command like 'chmod +x ~/projects/tools/db-migrate' or 'chmod 755' applied to the script file."
+    },
+    {
+      "id": "docker_cleanup_and_tty",
+      "description": "Verify the script uses docker run with cleanup and TTY flags",
+      "points": 15,
+      "visual_evidence": "Look at the script contents (in an editor or via cat). It must contain 'docker run' along with the '--rm' flag (for cleanup) and '-it' or '-i -t' flags (for TTY)."
+    },
+    {
+      "id": "docker_mount_and_user",
+      "description": "Verify the script mounts the current directory to /app and uses the host's UID/GID",
+      "points": 20,
+      "visual_evidence": "Look at the script contents for a volume mount like '-v \"$PWD\":/app' or '-v $(pwd):/app', and a user override like '-u \"$(id -u):$(id -g)\"'."
+    },
+    {
+      "id": "docker_network_and_env",
+      "description": "Verify the script connects to the acme-net network and passes the DB_HOST environment variable",
+      "points": 20,
+      "visual_evidence": "Look at the script contents for the network flag '--network acme-net' and the environment variable flag '-e DB_HOST' or '-e DB_HOST=\"$DB_HOST\"'."
+    },
+    {
+      "id": "docker_image_and_args",
+      "description": "Verify the script calls the correct image and forwards all command-line arguments",
+      "points": 25,
+      "visual_evidence": "Look at the script contents. The docker run command must specify the image 'acme-migrator:latest' and end with '\"$@\"' to forward all arguments to the container."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "no_hardcoded_db_host",
+      "description": "Verify the script dynamically passes the DB_HOST environment variable rather than hardcoding its value",
+      "visual_evidence": "Check that the script uses '-e DB_HOST' or '-e DB_HOST=$DB_HOST'. It should NOT hardcode the value like '-e DB_HOST=acme-db'."
+    },
+    {
+      "id": "no_hardcoded_pwd",
+      "description": "Verify the script dynamically mounts the current working directory",
+      "visual_evidence": "Check that the script uses '$PWD' or '$(pwd)' for the volume mount. It should NOT hardcode a specific directory like '/home/ga/projects/myapp'."
+    },
+    {
+      "id": "genuine_terminal_usage",
+      "description": "Verify the agent used standard terminal tools to create the script",
+      "visual_evidence": "Look for genuine interaction with a text editor (nano, vim) or standard shell redirection (cat, echo) rather than pasting a pre-computed base64 blob or using a GUI editor."
+    }
+  ],
+  "privileged_info_for_vlm": "The wrapper script must be located exactly at '/home/ga/projects/tools/db-migrate'. The target Docker image is 'acme-migrator:latest'. The network must be 'acme-net'. The script must mount the current working directory to '/app' and pass the 'DB_HOST' environment variable. The script must forward arguments using '\"$@\"'."
+}

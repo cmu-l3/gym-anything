@@ -1,0 +1,39 @@
+{
+  "id": "hl7v2_to_fhir_patient@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a NextGen Connect channel named 'ADT_to_FHIR_Patient' that transforms HL7v2 ADT^A01 messages into FHIR R4 Patient JSON resources. Configure the source as a TCP Listener on port 6661 with MLLP framing and the destination as a File Writer saving to /tmp/fhir_output/ with unique filenames (e.g., 'patient_${message.messageId}.json'). Use a JavaScript transformer to map PID.3 to identifier, PID.5 to name (Family, Given), PID.7 to birthDate (YYYY-MM-DD), PID.8 to gender ('M' to 'male', 'F' to 'female'), PID.11 to address (City, State, Zip), and PID.13 to telecom (System='phone'), while setting the resourceType to 'Patient'. Process the test message located at /home/ga/test_adt.hl7 through the channel to generate the FHIR R4 JSON output in /tmp/fhir_output/.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7v2_to_fhir_patient/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7v2_to_fhir_patient/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "ADT_to_FHIR_Patient",
+    "port": 6661,
+    "output_dir": "/tmp/fhir_output",
+    "test_message_path": "/home/ga/test_adt.hl7",
+    "expected_mappings": {
+      "identifier": "MRN12345",
+      "family": "SMITH",
+      "given": "JOHN",
+      "birthDate": "1978-05-23",
+      "gender": "male",
+      "city": "CHICAGO",
+      "state": "IL",
+      "zip": "60601",
+      "phone": "3125551234"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7v2_to_fhir_patient"
+    }
+  }
+}

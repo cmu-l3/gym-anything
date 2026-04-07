@@ -1,0 +1,29 @@
+{
+  "id": "implement_pii_field_redaction@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure the Wazuh Manager (container 'wazuh-wazuh.manager-1') to redact sensitive credit card numbers from the 'payments.json' log file located at '/var/ossec/logs/payments.json'. Modify the Filebeat configuration at '/etc/filebeat/filebeat.yml' to drop the 'cc_number' field from events originating from that log file before they are sent to the indexer. Ensure other fields like 'amount' and 'status' continue to be indexed and the Filebeat service remains operational.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/implement_pii_field_redaction/setup_task.sh",
+    "post_task": "/workspace/tasks/implement_pii_field_redaction/export_result.sh"
+  },
+  "metadata": {
+    "container_name": "wazuh-wazuh.manager-1",
+    "log_file": "/var/ossec/logs/payments.json",
+    "sensitive_field": "cc_number",
+    "control_field": "amount",
+    "test_id_prefix": "VERIFY-PII-"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pii_redaction"
+    }
+  }
+}

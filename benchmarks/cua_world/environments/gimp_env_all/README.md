@@ -36,7 +36,7 @@ gimp_env3/
 
 ### Run the Environment
 ```bash
-python -m gym_anything.cli run benchmarks/cua_world/environments/gimp_env3
+python -m gym_anything.cli run examples/gimp_env3
 ```
 
 ### Connect via VNC
@@ -67,8 +67,8 @@ Scripts and config files are mounted into the container:
 ```json
 {
   "mounts": [
-    {"source": "benchmarks/cua_world/environments/gimp_env3/scripts", "target": "/workspace/setup"},
-    {"source": "benchmarks/cua_world/environments/gimp_env3/config", "target": "/workspace/config"}
+    {"source": "examples/gimp_env3/scripts", "target": "/workspace/setup"},
+    {"source": "examples/gimp_env3/config", "target": "/workspace/config"}
   ]
 }
 ```

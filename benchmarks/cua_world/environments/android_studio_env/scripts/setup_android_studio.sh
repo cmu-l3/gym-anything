@@ -212,6 +212,36 @@ export PATH=$JAVA_HOME/bin:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_S
 export PATH=/opt/android-studio/bin:$PATH
 ENVEOF
 
+# CRITICAL: Also set environment variables system-wide so that Gradle
+# subprocesses, Android Studio internal builds, and non-login shells
+# can reliably find the Android SDK. .bashrc alone is not sufficient.
+cat > /etc/profile.d/android-sdk.sh << 'PROFILEEOF'
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export ANDROID_SDK_ROOT=/opt/android-sdk
+export ANDROID_HOME=/opt/android-sdk
+export PATH=$JAVA_HOME/bin:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
+export PATH=/opt/android-studio/bin:$PATH
+PROFILEEOF
+chmod +x /etc/profile.d/android-sdk.sh
+
+# Also add to /etc/environment for PAM-based session loading
+# (covers GUI sessions, su - , etc.)
+grep -q 'ANDROID_SDK_ROOT' /etc/environment 2>/dev/null || cat >> /etc/environment << 'ETCENVEOF'
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ANDROID_SDK_ROOT=/opt/android-sdk
+ANDROID_HOME=/opt/android-sdk
+ETCENVEOF
+
+# Write local.properties with sdk.dir into all known project directories
+# so Gradle can find the SDK even without environment variables.
+for proj_dir in /workspace/data/SunflowerApp /workspace/data/BrokenApp \
+                /workspace/data/NotepadApp /workspace/data/CalculatorApp; do
+    if [ -d "$proj_dir" ]; then
+        echo "sdk.dir=/opt/android-sdk" > "$proj_dir/local.properties"
+        echo "  Wrote local.properties to $proj_dir"
+    fi
+done
+
 # Create desktop launcher
 cat > /home/ga/Desktop/AndroidStudio.desktop << 'DESKTOPEOF'
 [Desktop Entry]

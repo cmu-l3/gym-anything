@@ -1,0 +1,48 @@
+{
+  "id": "fiscal_reconciliation_and_regional_analysis@1",
+  "version": "1.0",
+  "env_id": "libreoffice_base_env@0.1",
+  "description": "You are the database administrator for the Chinook music store. An audit has flagged invoicing anomalies, and management wants regional revenue analysis. In LibreOffice Base with chinook.odb, perform a full invoice reconciliation and build a regional revenue breakdown.\n\nSome invoices have a stored Total that does not match the sum of their InvoiceLine amounts (UnitPrice * Quantity). Create a view 'InvoiceHealthCheck' joining Invoice and InvoiceLine, grouped by InvoiceId, returning InvoiceId, StoredTotal (Invoice.Total), CalculatedTotal (SUM of UnitPrice*Quantity), and Difference -- only where the two disagree. Create a table 'CorrectionBatch' (InvoiceId INTEGER PK, OldTotal NUMERIC(10,2), CorrectTotal NUMERIC(10,2), CorrectionDate DATE) and populate it with all discrepancies found. Then correct every flagged invoice's Total in the Invoice table to match its calculated amount.\n\nFor the regional analysis, create a table 'RegionMapping' (RegionId INTEGER PK, RegionName VARCHAR(100)) with rows: (1,'North America'), (2,'Europe'), (3,'South America'), (4,'Asia Pacific'), (5,'Other'). Add a RegionId column to the Invoice table and assign every invoice a region by BillingCountry: USA/Canada to 1; Germany/France/United Kingdom/Czech Republic/Portugal/Austria/Belgium/Denmark/Finland/Hungary/Ireland/Italy/Netherlands/Norway/Poland/Spain/Sweden to 2; Brazil/Argentina/Chile to 3; Australia/India to 4; all others to 5. Create a saved query 'RegionalRevenueBreakdown' joining Invoice and RegionMapping, returning RegionName, InvoiceCount (COUNT), TotalRevenue (SUM of Total), AvgOrderValue (AVG of Total), grouped by RegionName, sorted by TotalRevenue descending.\n\nFinally, create a view 'CorrectionAuditTrail' joining CorrectionBatch, Invoice, and Customer showing InvoiceId, customer full name, BillingCountry, OldTotal, CorrectTotal, absolute Difference, and CorrectionDate. Save the database.",
+  "difficulty": "extreme",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fiscal_reconciliation_and_regional_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/fiscal_reconciliation_and_regional_analysis/export_result.sh"
+  },
+  "metadata": {
+    "odb_path": "/home/ga/chinook.odb",
+    "ground_truth_path": "/tmp/ground_truth.json",
+    "corrupted_invoice_ids": [5, 15, 50, 75, 100, 150, 200, 250, 300, 375],
+    "corruption_values": {
+      "5": 138.60,
+      "15": 0.00,
+      "50": 105.94,
+      "75": 39.60,
+      "100": 0.01,
+      "150": 99.99,
+      "200": 50.00,
+      "250": 0.00,
+      "300": 25.00,
+      "375": 500.00
+    },
+    "region_mapping": {
+      "North America": ["USA", "Canada"],
+      "Europe": ["Germany", "France", "United Kingdom", "Czech Republic", "Portugal", "Austria", "Belgium", "Denmark", "Finland", "Hungary", "Ireland", "Italy", "Netherlands", "Norway", "Poland", "Spain", "Sweden"],
+      "South America": ["Brazil", "Argentina", "Chile"],
+      "Asia Pacific": ["Australia", "India"]
+    },
+    "expected_views": ["InvoiceHealthCheck", "CorrectionAuditTrail"],
+    "expected_tables": ["CorrectionBatch", "RegionMapping"],
+    "expected_query": "RegionalRevenueBreakdown"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fiscal_reconciliation_and_regional_analysis"
+    }
+  }
+}

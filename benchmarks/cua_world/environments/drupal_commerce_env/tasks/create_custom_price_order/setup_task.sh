@@ -7,7 +7,6 @@ echo "=== Setting up task: create_custom_price_order ==="
 # 1. Ensure clean state (no orders for mikewilson ideally, or we count them)
 INITIAL_ORDER_COUNT=$(get_order_count)
 echo "$INITIAL_ORDER_COUNT" > /tmp/initial_order_count.txt
-date +%s > /tmp/create_custom_price_order_start_ts
 
 # 2. Verify products exist
 if ! product_exists_by_title "Samsung Galaxy Buds2 Pro"; then

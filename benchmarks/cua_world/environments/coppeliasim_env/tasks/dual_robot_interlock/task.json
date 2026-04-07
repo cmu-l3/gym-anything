@@ -1,0 +1,36 @@
+{
+  "id": "dual_robot_interlock@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Dual Robot Workcell Interlock Synchronization",
+  "description": "A controls engineer is designing a collaborative workcell where two UR5 robots load and unload parts from a single shared central fixture. Because their reachable workspaces overlap at the fixture, you must write and validate a software interlock in simulation to guarantee that Robot A never enters the central zone while Robot B is inside it. Simulate two UR5 robot arms (Robot 1 base at [0, -0.8, 0], Robot 2 base at [0, 0.8, 0]) executing a control loop where both attempt to enter a shared central zone (sphere at origin [0, 0, 0.5] with radius 0.3m). Implement interlocking logic to prevent simultaneous occupancy of the zone. A robot's 'Home Zone' is defined as any position > 0.6m away from [0, 0, 0.5]. The simulation must run until both robots complete at least 4 full cycles (Home -> Zone -> Home). Log kinematic telemetry at every step to /home/ga/Documents/CoppeliaSim/exports/interlock_telemetry.csv (columns: time_s, r1_ee_x, r1_ee_y, r1_ee_z, r2_ee_x, r2_ee_y, r2_ee_z, r1_in_zone, r2_in_zone). Export a summary report to /home/ga/Documents/CoppeliaSim/exports/interlock_report.json (fields: total_sim_time_s, r1_cycles_completed, r2_cycles_completed, min_ee_distance_m, simultaneous_zone_violations). Login: username=ga, password=password123.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dual_robot_interlock/setup_task.sh",
+    "post_task": "/workspace/tasks/dual_robot_interlock/export_result.sh"
+  },
+  "metadata": {
+    "min_cycles": 4,
+    "zone_center": [
+      0,
+      0,
+      0.5
+    ],
+    "zone_radius_m": 0.3,
+    "home_radius_m": 0.6,
+    "min_clearance_m": 0.15,
+    "expected_csv": "/home/ga/Documents/CoppeliaSim/exports/interlock_telemetry.csv",
+    "expected_json": "/home/ga/Documents/CoppeliaSim/exports/interlock_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dual_robot_interlock"
+    }
+  }
+}

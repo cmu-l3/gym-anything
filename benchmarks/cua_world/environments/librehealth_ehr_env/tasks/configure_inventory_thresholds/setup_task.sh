@@ -19,13 +19,13 @@ librehealth_query "UPDATE globals SET gl_value='1' WHERE gl_name='d_dispensary'"
 echo "Seeding inventory data..."
 
 # Drug 1: Ibuprofen 200mg (Reset reorder_point to 0)
-librehealth_query "INSERT INTO drugs (name, ndc_number, form, size, unit, reorder_point, on_hand) 
-VALUES ('Ibuprofen 200mg', '00001-0001-01', '1', '200', 'mg', 0, 500) 
+librehealth_query "INSERT INTO drugs (name, ndc_number, form, size, unit, reorder_point, on_order)
+VALUES ('Ibuprofen 200mg', '00001-0001-01', 1, 200, 1, 0, 500)
 ON DUPLICATE KEY UPDATE reorder_point=0;"
 
 # Drug 2: Metformin 500mg (Reset reorder_point to 0)
-librehealth_query "INSERT INTO drugs (name, ndc_number, form, size, unit, reorder_point, on_hand) 
-VALUES ('Metformin 500mg', '00002-0002-02', '1', '500', 'mg', 0, 300) 
+librehealth_query "INSERT INTO drugs (name, ndc_number, form, size, unit, reorder_point, on_order)
+VALUES ('Metformin 500mg', '00002-0002-02', 1, 500, 1, 0, 300)
 ON DUPLICATE KEY UPDATE reorder_point=0;"
 
 # Record initial state for debugging/verification

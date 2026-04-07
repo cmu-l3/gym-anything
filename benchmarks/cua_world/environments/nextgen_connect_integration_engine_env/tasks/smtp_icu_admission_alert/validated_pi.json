@@ -1,0 +1,66 @@
+{
+    "task_id": "smtp_icu_admission_alert@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "channel_name_fragment",
+            "metadata_value": "ICU",
+            "verified_value": "ICU",
+            "source": "task.json description line: 'Channel Name: ICU_Admission_Notifier'; export_result.sh line 24 searches for 'ICU' in channel names",
+            "status": "verified"
+        },
+        {
+            "key": "source_port",
+            "metadata_value": "6661",
+            "verified_value": "6661",
+            "source": "task.json description: 'TCP Listener on port 6661'; setup_task.sh and export_result.sh both reference port 6661; verifier.py line 104 checks for '<port>6661</port>'",
+            "status": "verified"
+        },
+        {
+            "key": "smtp_host",
+            "metadata_value": "mailhog",
+            "verified_value": "mailhog",
+            "source": "task.json description: 'SMTP Host: mailhog'; setup_task.sh line 15-16 launches 'mailhog/mailhog:latest' Docker container; verifier.py line 111 checks for '<smtpHost>mailhog</smtpHost>'",
+            "status": "verified"
+        },
+        {
+            "key": "smtp_port",
+            "metadata_value": "1025",
+            "verified_value": "1025",
+            "source": "task.json description: 'SMTP Port: 1025'; setup_task.sh line 18 maps port '-p 1025:1025' for MailHog SMTP; MailHog Docker image uses standard SMTP port 1025; verifier.py line 121 checks for '<smtpPort>1025</smtpPort>'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_from",
+            "metadata_value": "alerts@hospital.org",
+            "verified_value": "alerts@hospital.org",
+            "source": "task.json description: 'From: alerts@hospital.org'; requirement stated explicitly in task requirements section",
+            "status": "verified"
+        },
+        {
+            "key": "expected_to",
+            "metadata_value": "icu-admin@hospital.org",
+            "verified_value": "icu-admin@hospital.org",
+            "source": "task.json description: 'To: icu-admin@hospital.org'; requirement stated explicitly in task requirements section",
+            "status": "verified"
+        },
+        {
+            "key": "filter_field",
+            "metadata_value": "PV1-3.1",
+            "verified_value": "PV1-3.1",
+            "source": "task.json description: 'Filter: Accept ONLY messages where PV1-3.1 (Patient Location -> Point of Care) contains ICU'; PV1 is a standard HL7 v2.3 segment for patient visit information; setup_task.sh lines 50-54 include test HL7 messages with PV1 segments",
+            "status": "verified"
+        },
+        {
+            "key": "filter_value",
+            "metadata_value": "ICU",
+            "verified_value": "ICU",
+            "source": "task.json description: 'contains ICU (case-insensitive)'; setup_task.sh line 54 test ICU message has 'PV1|1|I|ICU^01^01^^^HOSPITAL'; setup_task.sh line 62 test medical message has 'PV1|1|I|MED^02^02^^^HOSPITAL'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task configures NextGen Connect to create an ICU_Admission_Notifier channel that listens for HL7 ADT messages on TCP port 6661 using MLLP mode. It filters messages by the PV1-3.1 field (Point of Care location) for 'ICU' values and sends email notifications via SMTP to a test server (MailHog) running on port 1025. Verified configuration values: SMTP host 'mailhog', SMTP port 1025, from address 'alerts@hospital.org', to address 'icu-admin@hospital.org', listening port 6661, filter field PV1-3.1, filter value 'ICU'. All test data is synthetic, created by the setup script with sample HL7 v2.3 ADT A01 messages containing test patient records.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,36 @@
+{
+  "id": "classify_ssh_events@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Standardize the classification of SSH events in Splunk by creating event types, tags, and a summary report. Log in to Splunk at http://localhost:8000 using 'admin' and 'SplunkAdmin1!'. Create an event type named 'failed_ssh_authentication' for failed SSH password attempts in the 'security_logs' index, tagged with 'authentication' and 'attack'. Create an event type named 'successful_ssh_authentication' for successful SSH password attempts in the 'security_logs' index, tagged with 'authentication'. Create a saved report named 'SSH_Authentication_Summary' that queries the 'security_logs' index and uses a statistical aggregation command to summarize authentication activity.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/classify_ssh_events/setup_task.sh",
+    "post_task": "/workspace/tasks/classify_ssh_events/export_result.sh"
+  },
+  "metadata": {
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!",
+    "event_type_fail": "failed_ssh_authentication",
+    "event_type_success": "successful_ssh_authentication",
+    "report_name": "SSH_Authentication_Summary",
+    "scoring_weights": {
+      "failed_event_type": 20,
+      "success_event_type": 20,
+      "tags": 20,
+      "report_exists": 20,
+      "report_valid": 20
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_classify_ssh_events"
+    }
+  }
+}

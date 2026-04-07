@@ -1,0 +1,73 @@
+{
+    "task_id": "secure_build_with_buildkit_secrets@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/secure-build",
+            "verified_value": "/home/ga/secure-build",
+            "source": "setup_task.sh line 16: PROJECT_DIR=\"/home/ga/secure-build\"; export_result.sh line 64: DOCKERFILE=\"/home/ga/secure-build/Dockerfile\"",
+            "status": "verified"
+        },
+        {
+            "key": "image_name",
+            "metadata_value": "secure-app:latest",
+            "verified_value": "secure-app:latest",
+            "source": "export_result.sh line 11: IMAGE_NAME=\"secure-app:latest\"; setup_task.sh line 110: docker rmi secure-app:latest",
+            "status": "verified"
+        },
+        {
+            "key": "server_port",
+            "metadata_value": 8090,
+            "verified_value": 8090,
+            "source": "setup_task.sh line 38: PORT = 8090 (in Python server); setup_task.sh line 65: fuser -k 8090/tcp",
+            "status": "verified"
+        },
+        {
+            "key": "artifact_path",
+            "metadata_value": "/app/proprietary_lib.tar.gz",
+            "verified_value": "/app/proprietary_lib.tar.gz",
+            "source": "export_result.sh line 34: docker run --rm $IMAGE_NAME test -f /app/proprietary_lib.tar.gz; setup_task.sh line 76: WORKDIR /app in Dockerfile",
+            "status": "verified"
+        },
+        {
+            "key": "token_filename",
+            "metadata_value": "auth_token.txt",
+            "verified_value": "auth_token.txt",
+            "source": "setup_task.sh line 21: echo $TOKEN > $PROJECT_DIR/auth_token.txt",
+            "status": "verified"
+        },
+        {
+            "key": "token_generation_method",
+            "metadata_value": null,
+            "verified_value": "openssl rand -hex 16 (randomly generated 32-character hex string)",
+            "source": "setup_task.sh line 10: TOKEN=$(openssl rand -hex 16); stored in /tmp/secret_token.txt and $PROJECT_DIR/auth_token.txt",
+            "status": "verified"
+        },
+        {
+            "key": "artifact_is_real_tarball",
+            "metadata_value": null,
+            "verified_value": "false - synthetic dummy file",
+            "source": "setup_task.sh lines 25-28: Creates synthetic artifact as 'This is the proprietary library content.' + 1024 random bytes from /dev/urandom",
+            "status": "verified"
+        },
+        {
+            "key": "artifact_server_authentication_method",
+            "metadata_value": null,
+            "verified_value": "X-Auth-Token HTTP header validation",
+            "source": "setup_task.sh lines 46-52: Python HTTP server checks 'X-Auth-Token' header and returns 403 if invalid",
+            "status": "verified"
+        },
+        {
+            "key": "artifact_server_directory",
+            "metadata_value": null,
+            "verified_value": "/tmp/server_root",
+            "source": "setup_task.sh line 25: mkdir -p /tmp/server_root; line 40: DIRECTORY = \"/tmp/server_root\"",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task is a Docker BuildKit security exercise with all synthetic data. The authentication token is randomly generated (32-character hex string using openssl rand -hex 16) at task setup and stored in both /tmp/secret_token.txt (server-side) and auth_token.txt (client-side in /home/ga/secure-build/). The proprietary library artifact is a synthetic dummy file created with text content plus 1024 random bytes from /dev/urandom, served from a temporary Python HTTP server on port 8090 that requires X-Auth-Token header authentication. The Dockerfile is created as an incomplete template that the agent must modify to use Docker BuildKit secrets (RUN --mount=type=secret) to securely download the artifact to /app/proprietary_lib.tar.gz without leaking the token in build history or environment variables.",
+    "pi_confidence": "high"
+}

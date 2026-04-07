@@ -1,0 +1,31 @@
+{
+    "task_id": "create_crosstab_query@1",
+    "dataset": "Chinook Database",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_query_name",
+            "metadata_value": "CountrySalesPivot",
+            "verified_value": "CountrySalesPivot",
+            "source": "verifier.py uses this name to locate the db:query element in content.xml.",
+            "status": "verified"
+        },
+        {
+            "key": "required_keywords",
+            "metadata_value": "[\"CASE\", \"SUM\", \"GROUP BY\", \"ORDER BY\", \"Customer\", \"Invoice\", \"2009\", \"2013\"]",
+            "verified_value": "[\"CASE\", \"SUM\", \"GROUP BY\", \"ORDER BY\", \"2009\", \"2013\"]",
+            "source": "verifier.py checks for these strings. However, 'Customer' and 'Invoice' perpetually fail detection because they are checked in a case-sensitive manner against sql_upper. Only the 6 upper-case or numeric keywords contribute to the keyword_score.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": "[\"Country\", \"Sales_2009\", \"Sales_2010\", \"Sales_2011\", \"Sales_2012\", \"Sales_2013\", \"Grand_Total\"]",
+            "verified_value": "[\"Sales_2009\", \"Sales_2013\", \"Grand_Total\"]",
+            "source": "verifier.py strictly checks only for 'Sales_2009', 'Sales_2013', and 'Grand_Total' within required_aliases array.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The Chinook SQLite dataset downloaded from the official repository was updated in October 2025 to shift invoice dates from 2009-2013 to 2021-2025. Consequently, although the task instructions require the agent to generate a pivot table querying the years 2009 to 2013, the underlying LibreOffice database contains no data for those years. A correctly implemented query following the prompt will succeed the verifier's static code analysis but return an empty or zeroed pivot table in LibreOffice Base. Additionally, the verifier contains a bug where it searches for 'Customer' and 'Invoice' within an uppercase SQL string, perpetually failing detection (though this failure does not penalize the score), and it only enforces 3 of the 7 claimed column aliases: 'Sales_2009', 'Sales_2013', and 'Grand_Total'.",
+    "pi_confidence": "high"
+}

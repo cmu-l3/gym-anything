@@ -1,0 +1,115 @@
+{
+    "task_id": "export_disaster_recovery_config@1",
+    "dataset": "Nx Witness VMS test system",
+    "case_id": "nx_witness_vms_env@0.1",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "output_path",
+            "metadata_value": "/home/ga/dr_export/disaster_recovery_config.json",
+            "verified_value": "/home/ga/dr_export/disaster_recovery_config.json",
+            "source": "Task.json metadata field; setup_task.sh removes this directory at line 26; export_result.sh uses this path at lines 9-10",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_path",
+            "metadata_value": "/tmp/dr_ground_truth.json",
+            "verified_value": "/tmp/dr_ground_truth.json",
+            "source": "Task.json metadata field; export_result.sh generates ground truth at this path (line 58)",
+            "status": "verified"
+        },
+        {
+            "key": "required_keys",
+            "metadata_value": "[\"metadata\", \"systemInfo\", \"servers\", \"devices\", \"users\", \"layouts\", \"eventRules\", \"systemSettings\"]",
+            "verified_value": "[\"metadata\", \"systemInfo\", \"servers\", \"devices\", \"users\", \"layouts\", \"eventRules\", \"systemSettings\"]",
+            "source": "Task.json metadata field lists required_keys; task.json description (line 5) specifies exact JSON structure with these keys; export_result.sh (lines 48-56) maps API responses to these exact key names",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint_system_info",
+            "metadata_value": "/rest/v1/system/info",
+            "verified_value": "/rest/v1/system/info",
+            "source": "Confirmed in setup_nx_witness.sh line 26 (wait_for_nx_server uses it), line 51, line 84; export_result.sh line 49; task_utils.sh line 208; Web search found /rest/v1/ endpoints are documented for Nx Witness 5.0+",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint_servers",
+            "metadata_value": "/rest/v1/servers",
+            "verified_value": "/rest/v1/servers",
+            "source": "Found in export_result.sh line 50; task_utils.sh line 212; setup_nx_witness.sh line 215-225 uses /rest/v1/servers to get server IDs",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint_devices",
+            "metadata_value": "/rest/v1/devices",
+            "verified_value": "/rest/v1/devices",
+            "source": "Widely used: setup_nx_witness.sh lines 178-180, 201-202, 218; export_result.sh line 51; task_utils.sh lines 79, 111, 122-131; Web search confirms /rest/v1/devices is valid Nx Witness endpoint",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint_users",
+            "metadata_value": "/rest/v1/users",
+            "verified_value": "/rest/v1/users",
+            "source": "Found in setup_nx_witness.sh line 240 (POST to create users), line 262 (list users); export_result.sh line 52; task_utils.sh lines 138, 142-149",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint_layouts",
+            "metadata_value": "/rest/v1/layouts",
+            "verified_value": "/rest/v1/layouts",
+            "source": "Found in export_result.sh line 53; task_utils.sh lines 173, 177-184, 187-200",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint_rules",
+            "metadata_value": "/rest/v1/rules",
+            "verified_value": "/rest/v1/rules (for v1 API) or /rest/v4/events/rules (for modern API)",
+            "source": "export_result.sh line 54 uses /rest/v1/rules; Web search found /rest/v4/events/rules is the current endpoint in Nx Witness 5.0+; Both may coexist for backwards compatibility",
+            "status": "unverified"
+        },
+        {
+            "key": "api_endpoint_system_settings",
+            "metadata_value": "/rest/v1/system/settings",
+            "verified_value": "/rest/v1/system/settings",
+            "source": "Found in export_result.sh line 55",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint_login",
+            "metadata_value": "/rest/v1/login/sessions",
+            "verified_value": "/rest/v1/login/sessions",
+            "source": "Confirmed in setup_nx_witness.sh lines 59, 67, 104, 112; Web search shows this is documented Nx Witness endpoint for bearer token authentication",
+            "status": "verified"
+        },
+        {
+            "key": "system_name",
+            "metadata_value": "Not specified in metadata, but task description implies system name should be exported",
+            "verified_value": "GymAnythingVMS",
+            "source": "setup_nx_witness.sh line 8 sets NX_SYSTEM_NAME='GymAnythingVMS'; This is passed to system/setup API call at line 78",
+            "status": "verified"
+        },
+        {
+            "key": "test_cameras_created",
+            "metadata_value": "Not specified in metadata",
+            "verified_value": "5 virtual cameras with names: Parking Lot Camera, Entrance Camera, Server Room Camera, Lobby Camera, Loading Dock Camera",
+            "source": "setup_nx_witness.sh lines 154-162 start testcamera with 3 channels; lines 199-226 rename discovered cameras to the specified names (CAMERA_NAMES array)",
+            "status": "verified"
+        },
+        {
+            "key": "test_users_created",
+            "metadata_value": "Not specified in metadata",
+            "verified_value": "6 users: admin (system), security.operator, camera.admin, site.manager, john.smith, sarah.jones",
+            "source": "setup_nx_witness.sh lines 249-253 create 5 operator users via POST /rest/v1/users; admin is system user",
+            "status": "verified"
+        },
+        {
+            "key": "api_authentication_method",
+            "metadata_value": "Not specified in metadata",
+            "verified_value": "Bearer token via /rest/v1/login/sessions endpoint",
+            "source": "setup_nx_witness.sh demonstrates bearer token authentication; Web search confirms Nx Witness 5.0+ uses bearer token authentication",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task exports Nx Witness VMS configuration data to JSON. The system uses Nx Witness VMS (real, open-source software from Network Optix) deployed in a test environment at https://localhost:7001. The task requires querying REST API endpoints (/rest/v1/system/info, /rest/v1/servers, /rest/v1/devices, /rest/v1/users, /rest/v1/layouts, /rest/v1/rules, /rest/v1/system/settings) and exporting responses into a structured JSON file with metadata, systemInfo, servers, devices, users, layouts, eventRules, and systemSettings sections. The test data includes 5 virtual cameras (Parking Lot, Entrance, Server Room, Lobby, Loading Dock cameras) and 6 users (admin, security.operator, camera.admin, site.manager, john.smith, sarah.jones). The system name is 'GymAnythingVMS'. API authentication uses bearer tokens obtained from /rest/v1/login/sessions endpoint with admin/Admin1234! credentials.",
+    "pi_confidence": "high"
+}

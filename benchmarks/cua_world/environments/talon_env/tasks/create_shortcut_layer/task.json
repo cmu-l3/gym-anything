@@ -1,0 +1,40 @@
+{
+  "id": "create_shortcut_layer@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Create a context-dependent keyboard shortcut remapping layer for Talon Voice to help a user with RSI. The project consists of five files located in '%APPDATA%\\Talon\\user\\shortcut_layer\\'.\n\nThe core logic is defined in shortcut_layer.py, a Python file declaring a Talon Module named 'shortcut_layer' with a boolean setting 'user.shortcut_layer_enabled' (default True). It must define an action class containing six actions: shortcut_save(), shortcut_undo(), shortcut_redo(), shortcut_find(), shortcut_close_tab(), and shortcut_go_to_line(), using standard Windows shortcuts for default implementations.\n\nThe voice command mappings are handled in shortcut_layer_default.talon, which requires the 'user.shortcut_layer_enabled' setting to be true. It maps the voice commands 'file save', 'undo that', 'redo that', 'find it', 'close tab', and 'go to line' to their respective user.shortcut_* actions.\n\nContext-specific overrides, all requiring the enabled setting, are implemented in the following files:\n- shortcut_layer_vim.talon: Active when the window title contains 'vim' or 'nvim'. Maps actions to Vim sequences: escape then :w for save, escape then u for undo, escape then ctrl-r for redo, escape then / for find, escape then :bd for close tab, and escape then : for go to line.\n- shortcut_layer_vscode.talon: Active for VS Code (app.name: Code or title contains Visual Studio Code). Maps actions to VS Code shortcuts, including ctrl-shift-z for redo and ctrl-g for go to line.\n- shortcut_layer_browser.talon: Active for browsers (title contains Chrome, Firefox, Edge, or Brave). Maps actions to browser shortcuts, including ctrl-y for redo and ctrl-w for close tab.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_shortcut_layer\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_shortcut_layer\\export_result.ps1"
+  },
+  "metadata": {
+    "target_dir": "Talon\\user\\shortcut_layer",
+    "required_files": [
+      "shortcut_layer.py",
+      "shortcut_layer_default.talon",
+      "shortcut_layer_vim.talon",
+      "shortcut_layer_vscode.talon",
+      "shortcut_layer_browser.talon"
+    ],
+    "required_actions": [
+      "shortcut_save",
+      "shortcut_undo",
+      "shortcut_redo",
+      "shortcut_find",
+      "shortcut_close_tab",
+      "shortcut_go_to_line"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_shortcut_layer"
+    }
+  }
+}

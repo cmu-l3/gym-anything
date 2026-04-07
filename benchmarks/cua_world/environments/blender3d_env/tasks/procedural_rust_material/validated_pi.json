@@ -1,0 +1,122 @@
+{
+    "task_id": "procedural_rust_material@1",
+    "dataset": "BMW27.blend (official Blender benchmark demo scene from download.blender.org/demo/test/)",
+    "case_id": "carShell mesh object (renamed to CarBody by setup_task.sh)",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "source_blend",
+            "metadata_value": "/home/ga/BlenderDemos/BMW27.blend",
+            "verified_value": "/home/ga/BlenderDemos/BMW27.blend",
+            "source": "Live testing: file exists at this path, size 3,148,419 bytes. Downloaded from official Blender demo archive at download.blender.org/demo/test/BMW27.blend.zip by the environment's setup_blender.sh script.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_blend_output",
+            "metadata_value": "/home/ga/BlenderProjects/rust_bmw.blend",
+            "verified_value": "/home/ga/BlenderProjects/rust_bmw.blend",
+            "source": "Design choice by task creator. Live testing confirmed /home/ga/BlenderProjects/ directory exists and is writable by user 'ga'. The setup_task.sh script cleans this file before each run. The export_result.sh script checks this path. Blender 4.2.4 saves with zstd compression (magic bytes 28b52ffd), which the export script handles correctly.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_render_output",
+            "metadata_value": "/home/ga/BlenderProjects/rust_render.png",
+            "verified_value": "/home/ga/BlenderProjects/rust_render.png",
+            "source": "Design choice by task creator. Live testing confirmed rendering works: a test render at 4 samples, 25% resolution produced a 282,001-byte PNG. The export_result.sh script checks this path using PIL to get dimensions and format.",
+            "status": "verified"
+        },
+        {
+            "key": "target_object",
+            "metadata_value": "CarBody",
+            "verified_value": "CarBody",
+            "source": "Live testing confirmed: setup_task.sh renames the 'carShell' mesh object to 'CarBody'. The initial_state.json output from a live run showed car_body_object='CarBody', car_body_original_name='carShell', car_body_vertex_count=1765. The object is visible, selectable, and has the CarBodyMaterial applied. NOTE: carShell (1765 verts) is NOT the largest mesh in BMW27.blend — TireRubber has 8957 verts. The setup script identifies carShell by name, not by vertex count.",
+            "status": "verified"
+        },
+        {
+            "key": "min_render_size_kb",
+            "metadata_value": 50,
+            "verified_value": 50,
+            "source": "Live testing: a minimal test render (4 samples, 25% resolution = 480x270) produced 282KB. At the task's actual settings (32 samples, 50% resolution = 960x540) with a material applied, renders would be 500KB+. The 50KB threshold is very conservative and appropriate.",
+            "status": "verified"
+        },
+        {
+            "key": "required_node_types[0]: ShaderNodeTexNoise",
+            "metadata_value": "ShaderNodeTexNoise",
+            "verified_value": "ShaderNodeTexNoise",
+            "source": "Live testing in Blender 4.2.4: successfully created node via tree.nodes.new('ShaderNodeTexNoise'). Node exists and has Scale input (default 5.0), Detail input (default 2.0), Roughness input (default 0.5). Confirmed via official Blender Python API docs at docs.blender.org/api/current/bpy.types.ShaderNodeTexNoise.html.",
+            "status": "verified"
+        },
+        {
+            "key": "required_node_types[1]: ShaderNodeValToRGB",
+            "metadata_value": "ShaderNodeValToRGB",
+            "verified_value": "ShaderNodeValToRGB",
+            "source": "Live testing in Blender 4.2.4: successfully created node via tree.nodes.new('ShaderNodeValToRGB'). This is the internal name for the 'Color Ramp' node. Default has 2 stops: position 0.0 (black) and position 1.0 (white).",
+            "status": "verified"
+        },
+        {
+            "key": "required_node_types[2]: ShaderNodeBsdfPrincipled",
+            "metadata_value": "ShaderNodeBsdfPrincipled",
+            "verified_value": "ShaderNodeBsdfPrincipled",
+            "source": "Live testing: already present in the starting material (CarBodyMaterial). The setup creates it with Base Color (0.4, 0.4, 0.4, 1.0), Metallic 0.0, Roughness 0.5. The agent needs to create a second one and modify both.",
+            "status": "verified"
+        },
+        {
+            "key": "required_node_types[3]: ShaderNodeMixShader",
+            "metadata_value": "ShaderNodeMixShader",
+            "verified_value": "ShaderNodeMixShader",
+            "source": "Live testing in Blender 4.2.4: successfully created via tree.nodes.new('ShaderNodeMixShader'). Has Fac input (factor) and two Shader inputs.",
+            "status": "verified"
+        },
+        {
+            "key": "required_node_types[4]: ShaderNodeTexVoronoi",
+            "metadata_value": "ShaderNodeTexVoronoi",
+            "verified_value": "ShaderNodeTexVoronoi",
+            "source": "Live testing in Blender 4.2.4: successfully created via tree.nodes.new('ShaderNodeTexVoronoi'). Node name in UI is 'Voronoi Texture'. Inputs: ['Vector', 'W', 'Scale', 'Detail', 'Roughness', 'Lacunarity', 'Smoothness', 'Exponent', 'Randomness']. Outputs: ['Distance', 'Color', 'Position', 'W', 'Radius']. Default Scale is 5.0. NOTE: ShaderNodeTexMusgrave was removed in Blender 4.1+; Voronoi is the correct replacement for surface detail.",
+            "status": "verified"
+        },
+        {
+            "key": "required_node_types[5]: ShaderNodeBump",
+            "metadata_value": "ShaderNodeBump",
+            "verified_value": "ShaderNodeBump",
+            "source": "Live testing in Blender 4.2.4: successfully created via tree.nodes.new('ShaderNodeBump'). Has Strength input (default 1.0), Distance input, Height input, and Normal output. The task specifies setting Strength to 0.3.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_noise_scale",
+            "metadata_value": 5.0,
+            "verified_value": 5.0,
+            "source": "Task description specifies Scale 5.0 for the Noise Texture. This matches the Blender default for ShaderNodeTexNoise Scale input. Confirmed via Blender Python API documentation. The value is a design choice — the agent must set this value.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_noise_detail",
+            "metadata_value": 8.0,
+            "verified_value": 8.0,
+            "source": "Task description specifies Detail 8.0 for the Noise Texture. Blender default is 2.0, so the agent MUST change this from default. This is a design choice — 8.0 produces finer noise pattern suitable for realistic rust distribution. The export_result.sh correctly reads this value via n.inputs['Detail'].default_value.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_voronoi_scale",
+            "metadata_value": 15.0,
+            "verified_value": 15.0,
+            "source": "Task description specifies Scale 15.0 for the Voronoi Texture. Blender default for Voronoi Scale is 5.0, so the agent must change this. 15.0 produces fine cell-like corrosion pitting. The export_result.sh reads this via n.inputs['Scale'].default_value.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_bump_strength",
+            "metadata_value": 0.3,
+            "verified_value": 0.3,
+            "source": "Task description specifies Strength 0.3 for the Bump node. Blender default is 1.0, so the agent must change this. 0.3 gives subtle surface perturbation appropriate for corrosion. The export_result.sh reads this via n.inputs['Strength'].default_value.",
+            "status": "verified"
+        },
+        {
+            "key": "colorramp_threshold_position",
+            "metadata_value": 0.4,
+            "verified_value": 0.4,
+            "source": "Task description specifies a Color Ramp with black-to-white threshold at position 0.4. This means approximately 40% of the surface will show rust and 60% clean metal. Default Color Ramp has stops at 0.0 (black) and 1.0 (white); the agent must move the white stop to position 0.4 or add a stop there. The export_result.sh reads all color_ramp.elements positions and colors.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Target object is 'CarBody', which is the car body shell mesh originally named 'carShell' in the official BMW27.blend Blender benchmark scene (1765 vertices, 1567 faces). The starting material is 'CarBodyMaterial' — a plain grey Principled BSDF with Base Color (0.4, 0.4, 0.4), Metallic 0.0, Roughness 0.5, connected to a Material Output node (2 nodes, 1 link total). The agent must build a procedural rust-over-metal shader node graph with exactly these nodes: (1) Noise Texture with Scale=5.0 and Detail=8.0 (default Detail is 2.0, so it must be changed), (2) Color Ramp with a threshold stop at position 0.4 to create a sharp rust mask (default stops are at 0.0 and 1.0), (3) two Principled BSDFs — clean metal (dark grey ~#2A2A2A which is sRGB R=0.165/G=0.165/B=0.165, Metallic=1.0, Roughness=0.2) and rust (brown ~#8B4513 'SaddleBrown' which is sRGB R=0.545/G=0.271/B=0.075, Metallic=0.0, Roughness=0.8), (4) Mix Shader driven by Color Ramp output as Factor, blending both BSDFs, output connected to Material Output Surface, (5) Voronoi Texture with Scale=15.0 (default is 5.0, must be changed) connected through a Bump node with Strength=0.3 (default is 1.0, must be changed) to the Normal input of both BSDFs. Render engine is Cycles with 32 samples at 960x540 (1920x1080 at 50%). Expected outputs: /home/ga/BlenderProjects/rust_render.png (PNG, minimum 50KB) and /home/ga/BlenderProjects/rust_bmw.blend. Blender 4.2.4 LTS is installed at /opt/blender/blender. The Blender version uses zstd compression for .blend files (magic bytes 28b52ffd). All node types use standard Blender 4.2.4 internal names: ShaderNodeTexNoise, ShaderNodeValToRGB, ShaderNodeBsdfPrincipled, ShaderNodeMixShader, ShaderNodeTexVoronoi, ShaderNodeBump. Note: ShaderNodeTexMusgrave was removed in Blender 4.1+.",
+    "pi_confidence": "high"
+}

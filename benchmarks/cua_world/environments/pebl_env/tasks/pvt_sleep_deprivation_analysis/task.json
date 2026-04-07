@@ -1,0 +1,34 @@
+{
+  "id": "pvt_sleep_deprivation_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are a sleep researcher at a chronobiology lab analyzing Psychomotor Vigilance Task (PVT; Basner & Dinges, 2011, SLEEP) data from a total sleep deprivation (TSD) study. Twelve participants completed the standard 10-minute PVT (Dinges & Powell, 1985) at three time points: baseline (BL, well-rested), total sleep deprivation (TSD, 40h awake), and recovery (REC, one night of recovery sleep). Data files for each participant and session are stored in ~/pebl/data/pvt/ using the naming convention p{ID}_session_{SESSION}.csv (e.g., p01_session_BL.csv). Each CSV has columns: trial, stimulus_onset_ms, response_time_ms, lapse (1 if RT>500ms). A lab incident log at ~/pebl/lab/pvt_incidents.log documents data quality issues. Your task: (1) read the incident log to identify which participant and session has compromised data that must be excluded, (2) compute the following statistics for each participant across valid sessions: mean RT (ms), lapse count (RT>500ms), reciprocal RT mean (1/RT x 1000, i.e., RRT in units of 1/s x 1000), and the slowest 10% of trials mean RT (ms), (3) compute the group-level mean for each statistic per session (BL, TSD, REC) across valid participants, and (4) write a JSON report to ~/pebl/analysis/pvt_report.json. The JSON must have keys 'participants' (list of per-participant objects with fields: id, sessions with per-session stats or 'excluded': true, 'reason': string) and 'group_statistics' (object with keys 'BL', 'TSD', 'REC', each with fields: mean_rt_ms, mean_lapse_count, mean_rrt, mean_slowest10pct_rt_ms, n_valid_participants).",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pvt_sleep_deprivation_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/pvt_sleep_deprivation_analysis/export_result.sh"
+  },
+  "metadata": {
+    "n_participants": 12,
+    "n_sessions": 3,
+    "sessions": ["BL", "TSD", "REC"],
+    "trials_per_session": 144,
+    "contaminated_participant": "p08",
+    "contaminated_session": "TSD",
+    "contamination_type": "equipment_artifact_sub100ms_rts",
+    "incident_log": "/home/ga/pebl/lab/pvt_incidents.log",
+    "output_file": "/home/ga/pebl/analysis/pvt_report.json",
+    "reference": "Basner & Dinges (2011). Maximizing sensitivity of the psychomotor vigilance test (PVT) to sleep loss. SLEEP, 34(5):581-591."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pvt_sleep_deprivation_analysis"
+    }
+  }
+}

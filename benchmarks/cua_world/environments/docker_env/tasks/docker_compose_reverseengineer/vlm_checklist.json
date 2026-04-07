@@ -1,0 +1,53 @@
+{
+  "task_id": "docker_compose_reverseengineer@1",
+  "task_completion": [
+    {
+      "id": "inspect_running_containers",
+      "description": "Agent inspects the running containers to reverse-engineer their configuration.",
+      "points": 10,
+      "visual_evidence": "Terminal showing commands like `docker ps` or `docker inspect` for containers inv-db, inv-cache, inv-api, and inv-web to gather configuration details."
+    },
+    {
+      "id": "create_docker_compose",
+      "description": "Agent creates the docker-compose.yml file with the required configurations.",
+      "points": 30,
+      "visual_evidence": "A text editor or terminal output showing the contents of `~/projects/inventory-tracker/docker-compose.yml`. It should include definitions for the 4 services (inv-db, inv-cache, inv-api, inv-web), networks, volumes, and ports."
+    },
+    {
+      "id": "stop_original_containers",
+      "description": "Agent stops the original running containers.",
+      "points": 15,
+      "visual_evidence": "Terminal showing commands like `docker stop inv-db inv-cache inv-api inv-web` or `docker rm -f` for the original standalone containers."
+    },
+    {
+      "id": "start_docker_compose",
+      "description": "Agent starts the application using the newly created docker-compose.yml.",
+      "points": 20,
+      "visual_evidence": "Terminal showing `docker compose up` or `docker-compose up` executed in the `~/projects/inventory-tracker` directory, with output indicating the new services are being created and started."
+    },
+    {
+      "id": "verify_api_endpoint",
+      "description": "Agent verifies the application is accessible at the specified endpoint.",
+      "points": 25,
+      "visual_evidence": "A web browser or terminal (using `curl`) showing a successful response from `http://localhost:8080/api/items`."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_file_creation",
+      "description": "Agent manually constructs the docker-compose.yml file based on inspected data.",
+      "visual_evidence": "The agent is seen typing, pasting, or scripting the file contents rather than downloading a pre-made solution."
+    },
+    {
+      "id": "actual_container_restart",
+      "description": "Agent actually stops the old containers and starts the new ones via docker-compose.",
+      "visual_evidence": "The terminal history shows the old containers being stopped/removed before the `docker compose up` command is run, ensuring no port conflicts."
+    },
+    {
+      "id": "genuine_api_response",
+      "description": "The API response at localhost:8080 comes from the actual deployed containers.",
+      "visual_evidence": "The curl or browser request is made after the docker-compose stack is successfully brought up, not mocked via a separate script."
+    }
+  ],
+  "privileged_info_for_vlm": "The application consists of 4 services: inv-db (postgres:14), inv-cache (redis:7-alpine), inv-api (custom image inv-api:latest), and inv-web (nginx:1.24-alpine). It uses two networks: inv-backend (db, cache, api) and inv-frontend (api, web). The inv-db service uses a volume 'inv-pgdata' mounted at /var/lib/postgresql/data. The inv-web service publishes port 8080:80. The expected endpoints are http://localhost:8080/api/items and http://localhost:8080/api/status."
+}

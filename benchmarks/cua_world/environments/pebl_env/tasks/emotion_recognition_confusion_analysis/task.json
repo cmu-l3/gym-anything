@@ -1,0 +1,30 @@
+{
+  "id": "emotion_recognition_confusion_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "hard",
+  "description": "A postsecondary psychology teacher has collected facial emotion recognition data from participants using an Ekman-style task. The data is located at ~/pebl/data/emotion_recognition_data.csv with columns: participant_id, trial_num, true_emotion, response_emotion, and rt_ms. \n\nCalculate individual emotion-specific accuracies, apply clinical exclusion criteria to identify participants meeting the rules, and compute a normalized group confusion matrix for the valid participants. \n\nExclusion Rules:\n1. 'Random Responder': Exclude any participant whose overall accuracy across all trials is strictly less than 25% (< 0.25).\n2. 'Amygdala Deficit': Exclude any participant whose accuracy specifically on 'Fear' trials is strictly less than 10% (< 0.10) AND whose combined accuracy on all OTHER emotions (non-Fear trials) is strictly greater than 70% (> 0.70).\n\nSave the results as a JSON file to ~/pebl/analysis/emotion_report.json. The JSON must contain a 'participants' list. Each participant entry must include 'id', 'overall_accuracy', and 'emotion_accuracy' (a dictionary mapping each emotion to its accuracy as a decimal). If a participant meets either exclusion rule, their entry should instead contain 'id', 'excluded': true, and a 'reason' string. The JSON must also contain a 'group_confusion_matrix' object computed ONLY from the valid (non-excluded) participants. The matrix should be a dictionary of dictionaries where matrix[true_emotion][response_emotion] gives the probability of that response, normalized such that the probabilities for each true_emotion row sum to exactly 1.0.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/emotion_recognition_confusion_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/emotion_recognition_confusion_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participants": [
+      "sub-BOT",
+      "sub-AMY"
+    ],
+    "n_real_participants": 25,
+    "output_file": "/home/ga/pebl/analysis/emotion_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_emotion_recognition_confusion_analysis"
+    }
+  }
+}

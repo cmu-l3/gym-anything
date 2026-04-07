@@ -1,0 +1,29 @@
+{
+  "id": "legacy_fixed_width_ingestion@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Ingest the legacy fixed-width patient census data from /home/ga/Documents/legacy_census.dat using a channel named 'Legacy_Census_Ingest'. The channel should process files from /var/spool/mirth/inbox (inside the container) by splitting the input by line. Parse the fixed-width records using the following schema: MRN (chars 0-10), Last Name (chars 10-30), First Name (chars 30-50), DOB (chars 50-58), and Gender (chars 58-59), with all whitespace trimmed. For each patient record, output a JSON file to /var/spool/mirth/outbox named ${mrn}.json containing the keys mrn, firstName, lastName, dob, and gender.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/legacy_fixed_width_ingestion/setup_task.sh",
+    "post_task": "/workspace/tasks/legacy_fixed_width_ingestion/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Legacy_Census_Ingest",
+    "input_path_host": "/home/ga/Documents/legacy_census.dat",
+    "container_inbox": "/var/spool/mirth/inbox",
+    "container_outbox": "/var/spool/mirth/outbox",
+    "record_count": 5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_legacy_fixed_width_ingestion"
+    }
+  }
+}

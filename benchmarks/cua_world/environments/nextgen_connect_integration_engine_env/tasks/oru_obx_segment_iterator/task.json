@@ -1,0 +1,27 @@
+{
+  "id": "oru_obx_segment_iterator@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a NextGen Connect channel named 'Lab_Results_OBX_Extractor' that receives HL7 ORU^R01 messages on TCP port 6661 (MLLP framing). The channel must use a JavaScript source transformer (Inbound: HL7 v2.x, Outbound: Raw) to iterate over all repeating OBX segments in each message and write one pipe-delimited line per OBX segment to /tmp/lab_results/obx_results.txt in append mode.\n\nThe output format for each OBX line must be:\nOBX_SET_ID|LOINC_CODE|OBSERVATION_NAME|VALUE|UNITS|REFERENCE_RANGE|ABNORMAL_FLAG\n\nWhere:\n- OBX_SET_ID = OBX.1\n- LOINC_CODE = OBX.3.1\n- OBSERVATION_NAME = OBX.3.2\n- VALUE = OBX.5.1\n- UNITS = OBX.6.1\n- REFERENCE_RANGE = OBX.7\n- ABNORMAL_FLAG = OBX.8\n\nProcess the following HL7 ORU^R01 message to verify the channel output:\n\nMSH|^~\\&|LAB_SYSTEM|MEMORIAL_HOSP|EHR_SYSTEM|MEMORIAL_HOSP|20240115103000||ORU^R01^ORU_R01|MSG00001|P|2.5.1|||AL|NEPID|1||MRN123456^^^MEMORIAL_HOSP^MR||DOE^JANE^M||19780422|F|||456 OAK AVE^^SPRINGFIELD^IL^62704||2175551234PV1|1|O|LAB^^^^||||1234^SMITH^ROBERT^J^MDORC|RE|ORD789|LAB456||CMOBR|1|ORD789|LAB456|58410-2^CBC WITH DIFFERENTIAL^LN|||20240115090000|||||||20240115093000||1234^SMITH^ROBERT^J^MD||||||20240115103000|||FOBX|1|NM|6690-2^WBC^LN||7.5|10*3/uL|4.5-11.0|N|||FOBX|2|NM|789-8^RBC^LN||4.82|10*6/uL|4.00-5.50|N|||FOBX|3|NM|718-7^HGB^LN||14.2|g/dL|12.0-16.0|N|||FOBX|4|NM|4544-3^HCT^LN||42.1|%|36.0-46.0|N|||FOBX|5|NM|787-2^MCV^LN||87.3|fL|80.0-100.0|N|||FOBX|6|NM|785-6^MCH^LN||29.5|pg|27.0-33.0|N|||FOBX|7|NM|786-4^MCHC^LN||33.7|g/dL|32.0-36.0|N|||FOBX|8|NM|777-3^PLT^LN||245|10*3/uL|150-400|N|||F\n\nREST API: https://localhost:8443/api (credentials: admin/admin, header: X-Requested-With: OpenAPI). Ensure the output directory /tmp/lab_results/ exists inside the nextgen-connect container.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/oru_obx_segment_iterator/setup_task.sh",
+    "post_task": "/workspace/tasks/oru_obx_segment_iterator/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Lab_Results_OBX_Extractor",
+    "expected_port": "6661",
+    "output_file": "/tmp/lab_results/obx_results.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_oru_obx_segment_iterator"
+    }
+  }
+}

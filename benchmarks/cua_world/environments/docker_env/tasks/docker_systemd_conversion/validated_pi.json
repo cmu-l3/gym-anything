@@ -1,0 +1,122 @@
+{
+    "task_id": "docker_systemd_conversion@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/acme-services",
+            "verified_value": "/home/ga/projects/acme-services",
+            "source": "setup_task.sh line 14, confirmed in export_result.sh and task.json description",
+            "status": "verified"
+        },
+        {
+            "key": "service_names",
+            "metadata_value": "[\"acme-db\", \"acme-api\", \"acme-frontend\"]",
+            "verified_value": "[\"acme-db\", \"acme-api\", \"acme-frontend\"]",
+            "source": "setup_task.sh lines 110-135 (docker run --name), export_result.sh lines 40-42 (check_service calls), verifier.py lines 37-39 (service extraction)",
+            "status": "verified"
+        },
+        {
+            "key": "unit_files",
+            "metadata_value": "[/etc/systemd/system/acme-db.service, /etc/systemd/system/acme-api.service, /etc/systemd/system/acme-frontend.service]",
+            "verified_value": "[/etc/systemd/system/acme-db.service, /etc/systemd/system/acme-api.service, /etc/systemd/system/acme-frontend.service]",
+            "source": "export_result.sh line 14 (file_path construction), setup_task.sh line 148 (cleanup pattern), task.json lines 19-23",
+            "status": "verified"
+        },
+        {
+            "key": "admin_user",
+            "metadata_value": "ga",
+            "verified_value": "ga",
+            "source": "setup_task.sh lines 145 (chown), 153 (su - ga), task.json description (Login: user 'ga')",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": "65",
+            "verified_value": "65",
+            "source": "task.json line 25, verifier.py line 132 (passed = score >= task_info['metadata']['pass_threshold'])",
+            "status": "verified"
+        },
+        {
+            "key": "postgres_version",
+            "metadata_value": null,
+            "verified_value": "14",
+            "source": "setup_task.sh line 93-94 (docker pull postgres:14), line 116 (postgres:14 container)",
+            "status": "verified"
+        },
+        {
+            "key": "nginx_version",
+            "metadata_value": null,
+            "verified_value": "1.24-alpine",
+            "source": "setup_task.sh line 83 (FROM nginx:1.24-alpine in Dockerfile)",
+            "status": "verified"
+        },
+        {
+            "key": "python_version",
+            "metadata_value": null,
+            "verified_value": "3.11-slim",
+            "source": "setup_task.sh line 60 (FROM python:3.11-slim in Dockerfile)",
+            "status": "verified"
+        },
+        {
+            "key": "api_framework",
+            "metadata_value": null,
+            "verified_value": "Flask",
+            "source": "setup_task.sh lines 20-51 (api/app.py uses Flask, line 54 has flask in requirements.txt)",
+            "status": "verified"
+        },
+        {
+            "key": "api_port",
+            "metadata_value": null,
+            "verified_value": "5000",
+            "source": "setup_task.sh line 51 (app.run port 5000), line 123 (env for API), line 73 (nginx proxy_pass http://acme-api:5000)",
+            "status": "verified"
+        },
+        {
+            "key": "frontend_port",
+            "metadata_value": null,
+            "verified_value": "8080",
+            "source": "setup_task.sh line 134 (-p 8080:80), task.json description (Frontend at localhost:8080)",
+            "status": "verified"
+        },
+        {
+            "key": "docker_network",
+            "metadata_value": null,
+            "verified_value": "acme-net",
+            "source": "setup_task.sh lines 106, 111, 121, 132 (docker network create acme-net, --network acme-net)",
+            "status": "verified"
+        },
+        {
+            "key": "db_credentials_user",
+            "metadata_value": null,
+            "verified_value": "acmeuser",
+            "source": "setup_task.sh lines 113, 124, 125 (POSTGRES_USER=acmeuser)",
+            "status": "verified"
+        },
+        {
+            "key": "db_credentials_password",
+            "metadata_value": null,
+            "verified_value": "secretpass",
+            "source": "setup_task.sh lines 114, 125 (POSTGRES_PASSWORD=secretpass)",
+            "status": "verified"
+        },
+        {
+            "key": "db_name",
+            "metadata_value": null,
+            "verified_value": "acmedb",
+            "source": "setup_task.sh lines 115, 126 (POSTGRES_DB=acmedb)",
+            "status": "verified"
+        },
+        {
+            "key": "maximum_score",
+            "metadata_value": null,
+            "verified_value": "100",
+            "source": "verifier.py scoring breakdown: 36 (unit files) + 16 (dependencies) + 5 (docker.service) + 10 (enabled) + 15 (active) + 5 (restart) + 5 + 8 (functional)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task verifies conversion of manually-started Docker containers to systemd services. Pass threshold is 65 out of 100 points. Scoring criteria: unit file creation (36 pts), service dependencies (16 pts), docker.service dependency (5 pts), enabled state (10 pts), active state (15 pts), restart policy (5 pts), database connectivity (5 pts), frontend accessibility (8 pts). The system uses three Docker containers (acme-db running postgres:14, acme-api running a Python 3.11 Flask app on port 5000, and acme-frontend running nginx:1.24-alpine on port 8080) connected via an acme-net Docker network. Database credentials: user 'acmeuser', password 'secretpass', database 'acmedb'. The admin user for task execution is 'ga'. All data is synthetically generated by the setup script.",
+    "pi_confidence": "high"
+}

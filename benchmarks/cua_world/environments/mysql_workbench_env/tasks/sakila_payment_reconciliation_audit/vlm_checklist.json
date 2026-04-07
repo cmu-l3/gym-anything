@@ -1,0 +1,53 @@
+{
+  "task_id": "sakila_payment_reconciliation_audit@1",
+  "task_completion": [
+    {
+      "id": "import_csv_to_staging",
+      "description": "Import the processor CSV into the staging table sakila.processor_transactions",
+      "points": 15,
+      "visual_evidence": "Look for MySQL CLI commands creating the 'processor_transactions' table and importing data (e.g., LOAD DATA INFILE or a Python script inserting data), followed by a success message or a SELECT COUNT(*) showing approximately 6719 rows."
+    },
+    {
+      "id": "create_reconciliation_view",
+      "description": "Create the v_payment_reconciliation view with required matching logic and columns",
+      "points": 25,
+      "visual_evidence": "Look for a CREATE VIEW v_payment_reconciliation statement in the MySQL CLI, or a SELECT query from this view showing columns like match_status, payment_id, txn_id, customer_id, and statuses like MATCHED, DATE_MISMATCH, etc."
+    },
+    {
+      "id": "create_procedure_and_audit",
+      "description": "Create the sp_apply_corrections stored procedure and audit_corrections table",
+      "points": 20,
+      "visual_evidence": "Look for CREATE TABLE audit_corrections and CREATE PROCEDURE sp_apply_corrections statements in the MySQL CLI, handling DUPLICATE_EXTERNAL and AMOUNT_MISMATCH corrections."
+    },
+    {
+      "id": "create_summary_table",
+      "description": "Create and populate the reconciliation_summary table",
+      "points": 20,
+      "visual_evidence": "Look for CREATE TABLE reconciliation_summary and INSERT statements using GROUP BY match_status, or a SELECT * FROM reconciliation_summary showing rows for the 6 match categories with counts and amounts."
+    },
+    {
+      "id": "export_csv_files",
+      "description": "Export the reconciliation view and summary to CSV files",
+      "points": 20,
+      "visual_evidence": "Look for MySQL SELECT ... INTO OUTFILE commands or terminal commands (like ls or cat) confirming the creation of /home/ga/Documents/exports/reconciliation_report.csv and /home/ga/Documents/exports/reconciliation_summary.csv."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_database_interaction",
+      "description": "The agent actually executed SQL commands in the database",
+      "visual_evidence": "Check that SQL commands were run in the MySQL CLI (showing 'mysql>' prompts and 'Query OK' responses) or via a script that was actually executed, rather than just being typed into a text editor without running."
+    },
+    {
+      "id": "no_hardcoded_summary",
+      "description": "The agent calculated the summary dynamically rather than hardcoding ground truth values",
+      "visual_evidence": "Ensure the reconciliation_summary table is populated using SQL aggregation (e.g., COUNT, SUM, GROUP BY) rather than manual INSERT statements with hardcoded numbers like 6584 or 50."
+    },
+    {
+      "id": "genuine_export",
+      "description": "The CSV files were generated programmatically",
+      "visual_evidence": "Verify that the CSV exports were created using database export commands or a script, not by manually typing the expected output into a text editor."
+    }
+  ],
+  "privileged_info_for_vlm": "Target database: sakila. Staging table: processor_transactions (~6719 rows). View: v_payment_reconciliation (columns: match_status, payment_id, txn_id, customer_id, internal_amount, external_amount, internal_date, external_date). Procedure: sp_apply_corrections. Audit table: audit_corrections. Summary table: reconciliation_summary. Output files: /home/ga/Documents/exports/reconciliation_report.csv and /home/ga/Documents/exports/reconciliation_summary.csv. Match categories: MATCHED, DATE_MISMATCH, AMOUNT_MISMATCH, INTERNAL_ONLY, EXTERNAL_ONLY, DUPLICATE_EXTERNAL. Ground truth counts: MATCHED=6584, DATE_MISMATCH=50, AMOUNT_MISMATCH=35, INTERNAL_ONLY=40, EXTERNAL_ONLY=30, DUPLICATE_EXTERNAL=20."
+}

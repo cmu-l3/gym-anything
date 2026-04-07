@@ -1,0 +1,28 @@
+{
+  "id": "file_slack_space_extraction@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "Identify the smallest allocated JPEG file on the provided disk image, examine its file slack space, and extract the concealed cryptographic key.\n\nStarting State: Autopsy is installed and available, along with The Sleuth Kit (TSK) command-line tools. The suspect's disk image is located at /home/ga/evidence/jpeg_search.dd.\n\nExpected Actions:\n1. Analyze the disk image /home/ga/evidence/jpeg_search.dd using Autopsy or TSK command-line tools (fls, istat, etc.).\n2. Enumerate all allocated JPEG files (files with .jpg or .jpeg extensions).\n3. Identify the file with the smallest logical size (in bytes) among these allocated JPEGs.\n4. Determine the target file's logical size and its starting sector/block address.\n5. Examine the physical data block containing the end of the file. Specifically, analyze the slack space (raw physical bytes starting immediately after the logical end-of-file and extending to the end of that allocated sector/cluster).\n6. Extract the cryptographic key (which begins with KEY-) found exclusively in this slack space. Note: The suspect has planted multiple decoy keys (e.g., KEY-FALSE-...) in unallocated space and within normal text files. You must extract only the key belonging to the target JPEG's slack space.\n7. Write a structured forensic report to /home/ga/Reports/slack_extraction_report.txt containing exactly the following lines:\nTARGET_FILE: <filename>\nLOGICAL_SIZE_BYTES: <size in bytes>\nSTARTING_SECTOR: <sector number>\nEXTRACTED_KEY: <true key>",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/file_slack_space_extraction/setup_task.sh",
+    "post_task": "/workspace/tasks/file_slack_space_extraction/export_result.sh"
+  },
+  "metadata": {
+    "image_path": "/home/ga/evidence/jpeg_search.dd",
+    "report_file": "/home/ga/Reports/slack_extraction_report.txt",
+    "result_file": "/tmp/slack_extraction_result.json",
+    "gt_file": "/tmp/slack_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_slack_space_extraction"
+    }
+  }
+}

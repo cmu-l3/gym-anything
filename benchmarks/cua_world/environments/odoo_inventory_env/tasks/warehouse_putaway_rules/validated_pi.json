@@ -1,0 +1,54 @@
+{
+    "task_id": "warehouse_putaway_rules@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/putaway_rules_result.json",
+            "verified_value": "/tmp/putaway_rules_result.json",
+            "source": "Found in export_result.sh which explicitly saves the JSON dictionary to this file path, and in verifier.py which reads from it.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_locations",
+            "metadata_value": [
+                "Zone A - Power Tools",
+                "Zone B - Hand Tools",
+                "Zone C - Fasteners"
+            ],
+            "verified_value": [
+                "Zone A - Power Tools",
+                "Zone B - Hand Tools",
+                "Zone C - Fasteners"
+            ],
+            "source": "The export script requests only the \"name\" field for locations. Odoo's short name matches exactly with these metadata strings, and the verifier successfully uses them to match short names.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_rules",
+            "metadata_value": {
+                "Power Tools": "Zone A - Power Tools",
+                "Hand Tools": "Zone B - Hand Tools",
+                "Fasteners": "Zone C - Fasteners"
+            },
+            "verified_value": {
+                "Power Tools": "WH/Stock/Zone A - Power Tools",
+                "Hand Tools": "WH/Stock/Zone B - Hand Tools",
+                "Fasteners": "WH/Stock/Zone C - Fasteners"
+            },
+            "source": "Odoo's XML-RPC search_read returns Many2one fields as [ID, display_name]. For stock.location, the display_name is its complete_name which prepends the parent's complete_name. Since the parent is WH/Stock, the actual string in rule_loc_out[1] will be \"WH/Stock/Zone A - Power Tools\", explicitly contradicting the verifier's strict equality match against the short name.",
+            "status": "contradicted"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 65,
+            "verified_value": 65,
+            "source": "Explicitly defined and used as the threshold integer inside verifier.py logic.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Odoo database is synthetically populated with specific product categories (\"Power Tools\", \"Hand Tools\", \"Fasteners\") and products via setup scripts. The export script correctly targets expected sub-locations by querying their short names. However, the task verifier contains a fatal flaw regarding the \"expected_rules\": it strictly compares Odoo's many2one location_out_id display_name against the short location names. Because Odoo automatically prepends the parent location path, the actual exported display names will be formatted as \"WH/Stock/Zone A - Power Tools\", meaning any agent that correctly sets WH/Stock as the parent location will automatically fail the rules verification check.",
+    "pi_confidence": "high"
+}

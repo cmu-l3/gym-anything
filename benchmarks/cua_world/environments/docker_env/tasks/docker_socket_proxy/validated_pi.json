@@ -1,0 +1,52 @@
+{
+    "task_id": "docker_socket_proxy@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/monitor-stack",
+            "verified_value": "/home/ga/projects/monitor-stack",
+            "source": "setup_task.sh line 31: PROJECT_DIR=\"/home/ga/projects/monitor-stack\"",
+            "status": "verified"
+        },
+        {
+            "key": "required_services",
+            "metadata_value": "[\"dashboard\", \"proxy\"]",
+            "verified_value": "[\"dashboard\", \"proxy\"]",
+            "source": "Task description and verifier expectations: dashboard service initially created, proxy service to be added by user; export_result.sh validates both services (lines 14, 39)",
+            "status": "verified"
+        },
+        {
+            "key": "proxy_port",
+            "metadata_value": 2375,
+            "verified_value": 2375,
+            "source": "Multiple script references: setup_task.sh line 53 (default Docker API port), export_result.sh lines 62, 69, 78 (http://proxy:2375/*); standard Docker Engine API port",
+            "status": "verified"
+        },
+        {
+            "key": "allowed_endpoints",
+            "metadata_value": "[\"\/containers\/json\", \"\/containers\/12345\/stats\"]",
+            "verified_value": "[\"\/containers\/json\", \"\/containers\/12345\/stats\"]",
+            "source": "Docker Engine API documentation verified via web search and Docker API reference; /containers/json is tested in export_result.sh line 62 expecting 200 OK; /containers/{id}/stats is the Docker API endpoint for container statistics with 12345 as a concrete container ID example",
+            "status": "verified"
+        },
+        {
+            "key": "blocked_endpoints",
+            "metadata_value": "[\"\/containers\/create\", \"\/secrets\", \"\/images\/json\"]",
+            "verified_value": "[\"\/containers\/create\", \"\/secrets\", \"\/images\/json\"]",
+            "source": "All three are real Docker Engine API endpoints verified via web search and Docker API documentation. /containers/create (POST) tested in export_result.sh line 69-70 expecting 403/401/405. /secrets tested in export_result.sh line 76-78 expecting 403/401. /images/json is a valid endpoint but not explicitly tested in the verifier script.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 70,
+            "verified_value": 70,
+            "source": "verifier.py line 123: passed = score >= 70; also documented in verifier.py line 13 'Pass Threshold: 70 points'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The docker_socket_proxy task is a security hardening exercise that requires securing a vulnerable Docker monitoring stack. The project directory is /home/ga/projects/monitor-stack. The task requires two services: a dashboard service (initially running with raw Docker socket access) and a proxy service (to be created) running on port 2375. The allowed endpoints are GET /containers/json and GET /containers/{id}/stats (exemplified as /containers/12345/stats). Blocked endpoints include POST /containers/create, GET /secrets, and /images/json. The task passes with a score of 70 or higher. The data is synthetically generated (Docker containers and Python application created by setup scripts), not sourced from external datasets.",
+    "pi_confidence": "high"
+}

@@ -4,6 +4,9 @@ echo "=== Setting up trash_recovery ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 MAILDIR="/home/ga/Maildir"
 ASSETS_HAM="/workspace/assets/emails/ham"
 ASSETS_SPAM="/workspace/assets/emails/spam"
@@ -107,8 +110,8 @@ done
 
 # 6. Set permissions and re-index
 chown -R ga:ga "${MAILDIR}"
-doveadm index -u ga INBOX 2>/dev/null || true
-doveadm index -u ga Trash 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # 7. Record Ground Truth
 echo "$CURRENT_INBOX" > /tmp/initial_inbox_count

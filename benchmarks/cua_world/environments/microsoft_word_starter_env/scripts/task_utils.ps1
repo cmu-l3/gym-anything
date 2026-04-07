@@ -143,6 +143,13 @@ function Dismiss-WordDialogsBestEffort {
     }
 
     for ($i = 0; $i -lt $Retries; $i++) {
+        # Dismiss "Help Protect and Improve Microsoft Office" first-run dialog
+        # Click "Don't make changes" radio at (336, 412), then OK at (971, 521)
+        try { Invoke-PyAutoGUICommand -Command @{action = "click"; x = 336; y = 412} | Out-Null } catch { }
+        Start-Sleep -Milliseconds 500
+        try { Invoke-PyAutoGUICommand -Command @{action = "click"; x = 971; y = 521} | Out-Null } catch { }
+        Start-Sleep -Milliseconds 500
+
         # Send Escape key to dismiss any modal dialogs
         try { Invoke-PyAutoGUICommand -Command @{action = "press"; keys = "esc"} | Out-Null } catch { }
         Start-Sleep -Milliseconds 500

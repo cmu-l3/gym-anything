@@ -1,0 +1,41 @@
+{
+  "id": "vhs_archival_digitization_cleanup@1",
+  "version": "1.0",
+  "env_id": "vlc_env@0.1",
+  "description": "You are a digital archivist processing raw capture files from 1990s VHS tapes located in /home/ga/Videos/vhs_raw/. For the three videos (tape_1992_grad.mkv, tape_1994_picnic.mkv, and tape_1995_storm.mkv), generate access copies in /home/ga/Videos/archive_access/ using the prefix access_ and the MP4 container. Each processed file must be deinterlaced, have its audio downmixed to mono, and be cropped to remove edge noise (Left: 10px, Right: 10px, Top: 4px, Bottom: 12px). Use H.264 for video and AAC for audio, preserving the original duration. Additionally, embed the specific title_tag for each file from /home/ga/Documents/archive_catalog.csv into the MP4 metadata Title field. Do not overwrite the original files.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/vhs_archival_digitization_cleanup/setup_task.sh",
+    "post_task": "/workspace/tasks/vhs_archival_digitization_cleanup/export_result.sh"
+  },
+  "metadata": {
+    "expected_files": [
+      "access_tape_1992_grad.mp4",
+      "access_tape_1994_picnic.mp4",
+      "access_tape_1995_storm.mp4"
+    ],
+    "expected_titles": {
+      "access_tape_1992_grad.mp4": "1992 Graduation Ceremony",
+      "access_tape_1994_picnic.mp4": "1994 Company Picnic",
+      "access_tape_1995_storm.mp4": "1995 Winter Storm"
+    },
+    "expected_width": 700,
+    "expected_height": 464,
+    "expected_channels": 1,
+    "expected_vcodec": "h264",
+    "expected_acodec": "aac",
+    "duration_target_sec": 10.0,
+    "duration_tolerance_sec": 1.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vhs_cleanup"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "tsk_fragmentation_profiling@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "You are a forensic investigator analyzing a heavily fragmented FAT32 camera SD card image (/home/ga/evidence/jpeg_search.dd) to recover corrupted JPEGs. Map the fragmentation metadata for all allocated regular files (excluding deleted files, directories, and virtual files) and export the results to /home/ga/Reports/fragment_counts.csv. The CSV must use the header 'INODE,FILENAME,RUN_COUNT' (where RUN_COUNT is the total number of distinct contiguous data runs) and be sorted by RUN_COUNT in descending order, resolving ties by INODE in ascending order. For the file with the highest RUN_COUNT, create a report at /home/ga/Reports/most_fragmented_analysis.txt containing exactly these four lines: 'MOST_FRAGMENTED_INODE: <inode_number>', 'MOST_FRAGMENTED_FILENAME: <filename>', 'TOTAL_RUNS: <count>', and 'SECOND_RUN_START_SECTOR: <sector_number>'. Additionally, extract the raw binary of the starting sector of that file's second data run to /home/ga/Reports/fragment_start.bin.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tsk_fragmentation_profiling/setup_task.sh",
+    "post_task": "/workspace/tasks/tsk_fragmentation_profiling/export_result.sh"
+  },
+  "metadata": {
+    "disk_image": "/home/ga/evidence/jpeg_search.dd",
+    "csv_file": "/home/ga/Reports/fragment_counts.csv",
+    "txt_file": "/home/ga/Reports/most_fragmented_analysis.txt",
+    "bin_file": "/home/ga/Reports/fragment_start.bin",
+    "result_file": "/tmp/fragmentation_result.json",
+    "gt_file": "/tmp/tsk_fragmentation_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tsk_fragmentation_profiling"
+    }
+  }
+}

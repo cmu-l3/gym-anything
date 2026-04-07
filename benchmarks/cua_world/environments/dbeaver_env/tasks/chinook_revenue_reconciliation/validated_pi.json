@@ -1,0 +1,164 @@
+{
+    "task_id": "chinook_revenue_reconciliation@1",
+    "dataset": "Chinook Database (Sample digital media store database) with injected anomalies",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "db_path",
+            "metadata_value": "/home/ga/Documents/databases/chinook_ledger.db",
+            "verified_value": "/home/ga/Documents/databases/chinook_ledger.db",
+            "source": "setup_task.sh copies chinook.db to this path. Live test confirmed: file exists, 890880 bytes, SQLite 3.x database with 13 tables.",
+            "status": "verified"
+        },
+        {
+            "key": "connection_name",
+            "metadata_value": "LedgerAudit",
+            "verified_value": "LedgerAudit",
+            "source": "Task description requires this exact connection name. Verifier checks data-sources.json for case-insensitive match. export_result.sh greps for 'LedgerAudit'.",
+            "status": "verified"
+        },
+        {
+            "key": "export_dir",
+            "metadata_value": "/home/ga/Documents/exports",
+            "verified_value": "/home/ga/Documents/exports",
+            "source": "Live test confirmed directory exists, owned by ga:ga, writable. setup_task.sh creates it via mkdir -p.",
+            "status": "verified"
+        },
+        {
+            "key": "script_dir",
+            "metadata_value": "/home/ga/Documents/scripts",
+            "verified_value": "/home/ga/Documents/scripts",
+            "source": "Live test confirmed directory exists, owned by ga:ga, writable. setup_task.sh creates it via mkdir -p.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_outputs",
+            "metadata_value": "[\"correction_report.csv\"]",
+            "verified_value": "[\"correction_report.csv\"]",
+            "source": "Task description specifies export to /home/ga/Documents/exports/correction_report.csv. export_result.sh checks this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_script",
+            "metadata_value": "reconciliation.sql",
+            "verified_value": "reconciliation.sql",
+            "source": "Task description specifies saving SQL to /home/ga/Documents/scripts/reconciliation.sql. export_result.sh checks this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "original_invoice_item_count",
+            "metadata_value": null,
+            "verified_value": 2240,
+            "source": "Live database query: SELECT COUNT(*) FROM invoice_items on original chinook.db = 2240. This is the standard Chinook database invoice_items count. After fix, count must return to 2240.",
+            "status": "verified"
+        },
+        {
+            "key": "duplicate_count",
+            "metadata_value": null,
+            "verified_value": 18,
+            "source": "Live database query confirmed 18 duplicate invoice_items with InvoiceLineId 2241-2258. setup_task.sh inserts 6 per month (Oct/Nov/Dec 2013) via LIMIT 6 per month query.",
+            "status": "verified"
+        },
+        {
+            "key": "duplicate_invoice_line_ids",
+            "metadata_value": null,
+            "verified_value": [2241, 2242, 2243, 2244, 2245, 2246, 2247, 2248, 2249, 2250, 2251, 2252, 2253, 2254, 2255, 2256, 2257, 2258],
+            "source": "Live query: SELECT InvoiceLineId FROM invoice_items WHERE InvoiceLineId > 2240. All 18 IDs confirmed. Original max InvoiceLineId = 2240.",
+            "status": "verified"
+        },
+        {
+            "key": "duplicate_distribution_by_month",
+            "metadata_value": null,
+            "verified_value": {"2013-10": {"count": 6, "excess": 5.94, "invoice_ids": [392, 393, 394]}, "2013-11": {"count": 6, "excess": 5.94, "invoice_ids": [399, 400, 401]}, "2013-12": {"count": 6, "excess": 5.94, "invoice_ids": [406, 407, 408]}},
+            "source": "Live query: GROUP BY month on duplicates. Each month has exactly 6 duplicates at $0.99 each = $5.94 excess per month. Verified via 06_dup_by_month.log and 06_duplicates.log.",
+            "status": "verified"
+        },
+        {
+            "key": "affected_invoice_ids",
+            "metadata_value": null,
+            "verified_value": [392, 393, 394, 399, 400, 401, 406, 407, 408],
+            "source": "Live query: SELECT DISTINCT InvoiceId FROM invoice_items WHERE InvoiceLineId > 2240. These 9 invoices have duplicated line items. Oct: 392,393,394; Nov: 399,400,401; Dec: 406,407,408.",
+            "status": "verified"
+        },
+        {
+            "key": "original_invoice_totals",
+            "metadata_value": null,
+            "verified_value": {"392": 1.98, "393": 1.98, "394": 3.96, "399": 1.98, "400": 1.98, "401": 3.96, "406": 1.98, "407": 1.98, "408": 3.96},
+            "source": "From ground truth JSON verified during live test. These are the correct totals before the batch import error. After fix, each invoice Total must match: invoices with 2 original items = $1.98, invoices with 4 original items = $3.96.",
+            "status": "verified"
+        },
+        {
+            "key": "credit_memo_invoice_id",
+            "metadata_value": null,
+            "verified_value": 413,
+            "source": "Live query: SELECT * FROM invoices WHERE Total < 0 returns exactly one row: InvoiceId=413. Original Chinook max InvoiceId = 412, so 413 was inserted by setup.",
+            "status": "verified"
+        },
+        {
+            "key": "credit_memo_customer_id",
+            "metadata_value": null,
+            "verified_value": 1,
+            "source": "Live query confirmed credit memo assigned to CustomerId=1 (Luis Goncalves, Brazil). Verified this customer has NO other Q4 2013 invoices (empty result set), confirming it was misapplied.",
+            "status": "verified"
+        },
+        {
+            "key": "credit_memo_total",
+            "metadata_value": null,
+            "verified_value": -5.94,
+            "source": "Live query: InvoiceId 413 has Total=-5.94. This exactly equals the negative of November's duplicate excess ($5.94), which is why November appears reconciled in GL comparison.",
+            "status": "verified"
+        },
+        {
+            "key": "gl_october_2013",
+            "metadata_value": null,
+            "verified_value": {"gl_revenue": 37.62, "actual_revenue": 43.56, "difference": 5.94, "status": "DISCREPANT"},
+            "source": "Live query: GL vs actual comparison. October GL=$37.62, actual=$43.56 (inflated by 6 duplicate items at $0.99 = $5.94).",
+            "status": "verified"
+        },
+        {
+            "key": "gl_november_2013",
+            "metadata_value": null,
+            "verified_value": {"gl_revenue": 49.62, "actual_revenue": 49.62, "difference": 0.0, "status": "OK (masked by credit memo)"},
+            "source": "Live query: November appears OK ($0.00 diff) because the credit memo (-$5.94) exactly offsets the duplicate excess (+$5.94). This is the key investigative twist.",
+            "status": "verified"
+        },
+        {
+            "key": "gl_december_2013",
+            "metadata_value": null,
+            "verified_value": {"gl_revenue": 38.62, "actual_revenue": 44.56, "difference": 5.94, "status": "DISCREPANT"},
+            "source": "Live query: December GL=$38.62, actual=$44.56. Same $5.94 excess from 6 duplicates.",
+            "status": "verified"
+        },
+        {
+            "key": "import_log_clue",
+            "metadata_value": null,
+            "verified_value": "import_log table has 3 rows: batch 1 (catalog refresh, COMPLETED), batch 2 (q4_invoice_correction, 18 records, FAILED), batch 3 (q4_invoice_correction_retry, 18 records, COMPLETED). Both batches 2 and 3 show 18 records targeting invoice_items, indicating the failed batch was retried and data was likely inserted twice.",
+            "source": "Live query: SELECT * FROM import_log. Verified all 3 rows with exact values from 06_import_log.log.",
+            "status": "verified"
+        },
+        {
+            "key": "general_ledger_row_count",
+            "metadata_value": null,
+            "verified_value": 60,
+            "source": "Live query: SELECT COUNT(*) FROM general_ledger = 60. Covers 2009-01 through 2013-12 (5 years x 12 months).",
+            "status": "verified"
+        },
+        {
+            "key": "post_fix_expected_state",
+            "metadata_value": null,
+            "verified_value": {"invoice_items_count": 2240, "negative_invoices": 0, "discrepant_months": 0, "q4_total_mismatches": 0},
+            "source": "Verified via dry-run simulation: after deleting 18 duplicates (InvoiceLineId > 2240), deleting credit memo (InvoiceId 413), and recalculating 9 invoice totals, ALL months reconcile with GL, invoice_items returns to 2240, no negative invoices remain.",
+            "status": "verified"
+        },
+        {
+            "key": "duplicate_detection_method",
+            "metadata_value": null,
+            "verified_value": "Duplicates can be found via: SELECT InvoiceId, TrackId, COUNT(*) FROM invoice_items GROUP BY InvoiceId, TrackId HAVING COUNT(*) > 1. Returns exactly 18 pairs. Alternatively: SELECT * FROM invoice_items WHERE InvoiceLineId > 2240.",
+            "source": "Live query via 06_duplicate_detection_query.log confirmed both detection methods work correctly.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The chinook_ledger.db database is a modified Chinook database with 13 tables (11 standard Chinook + general_ledger + import_log). The general_ledger table has 60 rows of correct monthly revenue. The import_log has 3 entries; batches 2 and 3 both show 18 records targeting invoice_items (the failed batch was retried, causing duplicates). There are exactly 18 duplicate invoice_items with InvoiceLineId 2241-2258: 6 in October 2013 (invoices 392,393,394), 6 in November (399,400,401), 6 in December (406,407,408). All duplicates are $0.99 each, creating $5.94 excess per month. Affected invoice totals were recalculated to include duplicates. A credit memo (InvoiceId 413, Total=-$5.94) was inserted for November, assigned to Customer 1 (Luis Goncalves, Brazil) who has no other Q4 2013 invoices. The credit memo perfectly masks November's discrepancy, so GL comparison shows only October (+$5.94) and December (+$5.94) as discrepant while November appears balanced. To fix: delete invoice_items where InvoiceLineId > 2240 (removes 18 duplicates), delete invoice 413 (credit memo), recalculate totals for invoices 392,393,394,399,400,401,406,407,408. Correct totals: invoices 392,393,399,400,406,407 should be $1.98 each; invoices 394,401,408 should be $3.96 each. After fix: invoice_items count = 2240, no negative invoices, all 60 months reconcile. The agent must also create a correction_log table, export correction_report.csv to /home/ga/Documents/exports/, and save reconciliation.sql to /home/ga/Documents/scripts/.",
+    "pi_confidence": "high"
+}

@@ -88,29 +88,7 @@ def verify_change_look_and_feel(traj, env_info, task_info):
         
         try:
             vlm_response = query_vlm(images=frames + [final_frame], prompt=prompt)
-            parsed = vlm_response.get("parsed", {}) if isinstance(vlm_response, dict) else {}
-            if parsed.get("theme_changed"):
-                score += 15
-                feedback_parts.append("VLM: Theme change detected.")
-            else:
-                feedback_parts.append("VLM: Theme change not clearly detected.")
-
-            if parsed.get("is_nimbus"):
-                score += 25
-                feedback_parts.append("VLM: Nimbus theme characteristics detected.")
-            else:
-                feedback_parts.append("VLM: Nimbus theme characteristics not confirmed.")
-
-            if parsed.get("menu_interaction"):
-                score += 10
-                feedback_parts.append("VLM: Look and Feel menu interaction observed.")
-        except Exception as e:
-            logger.error(f"VLM verification failed: {e}")
-            feedback_parts.append("VLM verification failed.")
-
-    passed = score >= 60 and (nimbus_found or score >= 70)
-    return {
-        "passed": passed,
-        "score": min(score, 100),
-        "feedback": " | ".join(feedback_parts)
-    }
+            # Safe parsing
+            if isinstance(vlm_response, str):
+                # Try to extract JSON if wrapped in markdown code blocks
+                if "

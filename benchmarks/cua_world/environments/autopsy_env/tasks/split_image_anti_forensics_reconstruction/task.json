@@ -1,0 +1,32 @@
+{
+  "id": "split_image_anti_forensics_reconstruction@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "You are investigating a suspect who attempted to destroy evidence by fragmenting their USB drive image. They split the RAW image and renamed the second chunk to disguise it as a backup file. Reconstruct the image by concatenating /home/ga/evidence/frag.001 and /home/ga/evidence/system_backup.bak into a single contiguous file at /home/ga/evidence/restored.dd. Create a forensic case named 'Fragment_Recovery_2024' (case number 'INV-FRAG-001') in Autopsy and add the restored image as a data source using the 'File Type Identification' ingest module. Document the reconstruction in /home/ga/Reports/image_reconstruction_log.txt containing the lines: 'ORIGINAL_FRAGMENTS: frag.001, system_backup.bak', 'RECONSTRUCTED_IMAGE_SIZE_BYTES: <size>', 'RECONSTRUCTED_MD5: <md5>', and 'HIDDEN_CHUNK_START_BYTE: 3072000'. Identify all allocated, non-resident files whose data runs contain at least one physical filesystem block residing at or above the physical byte offset 3,072,000. Write these findings to /home/ga/Reports/hidden_chunk_files.csv as a pipe-delimited file with the header 'FILENAME|INODE'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/split_image_anti_forensics_reconstruction/setup_task.sh",
+    "post_task": "/workspace/tasks/split_image_anti_forensics_reconstruction/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Fragment_Recovery_2024",
+    "case_number": "INV-FRAG-001",
+    "reconstructed_image": "/home/ga/evidence/restored.dd",
+    "reconstruction_log": "/home/ga/Reports/image_reconstruction_log.txt",
+    "hidden_chunk_csv": "/home/ga/Reports/hidden_chunk_files.csv",
+    "result_file": "/tmp/reconstruction_result.json",
+    "gt_file": "/tmp/reconstruction_gt.json",
+    "chunk_byte_offset": 3072000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_split_image_reconstruction"
+    }
+  }
+}

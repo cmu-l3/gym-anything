@@ -3,6 +3,9 @@ echo "=== Setting up discussion_flow_organization ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 # ============================================================
 # 1. Clean Slate (Reset Maildir)
 # ============================================================
@@ -61,8 +64,8 @@ echo "$IDX" > /tmp/initial_inbox_count
 chown -R ga:ga "${MAILDIR}"
 chmod -R 700 "${MAILDIR}"
 
-# Force Dovecot index update
-doveadm index -u ga INBOX 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # ============================================================
 # 3. Application Setup

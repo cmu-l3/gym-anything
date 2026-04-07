@@ -1,0 +1,42 @@
+{
+  "id": "index_lifecycle_management@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Align Splunk's data retention settings with the company's updated data governance policy (http://localhost:8000, credentials: admin / SplunkAdmin1!). Create a new index named 'audit_trail' with a retention period (frozenTimePeriodInSecs) of 31536000 seconds and a maximum size (maxTotalDataSizeMB) of 5120 MB. Update the 'security_logs' index to a retention period of 31536000 seconds and the 'web_logs' index to 7776000 seconds. Create a saved search named 'Index_Volume_Monitor' that reports on the current data volume across all Splunk indexes using internal index metadata (e.g., '| rest /services/data/indexes', '| dbinspect', or querying '_internal'/'_introspection' metrics).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/index_lifecycle_management/setup_task.sh",
+    "post_task": "/workspace/tasks/index_lifecycle_management/export_result.sh"
+  },
+  "metadata": {
+    "retention_365_days_sec": 31536000,
+    "retention_90_days_sec": 7776000,
+    "retention_tolerance_sec": 86400,
+    "max_size_5gb_mb": 5120,
+    "max_size_tolerance_mb": 512,
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!",
+    "metadata_keywords": [
+      "_internal",
+      "_introspection",
+      "rest",
+      "dbinspect",
+      "licenser",
+      "metrics.log",
+      "currentdbsizemb",
+      "totaleventcount",
+      "per_index_thruput"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_index_lifecycle"
+    }
+  }
+}

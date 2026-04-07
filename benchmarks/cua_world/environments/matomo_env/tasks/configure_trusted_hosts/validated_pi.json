@@ -1,0 +1,66 @@
+{
+    "task_id": "configure_trusted_hosts@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "config_path",
+            "metadata_value": "/var/www/html/config/config.ini.php",
+            "verified_value": "/var/www/html/config/config.ini.php",
+            "source": "Official Matomo Docker image documentation and setup_task.sh line 30 which copies from 'matomo-app:/var/www/html/config/config.ini.php'. This is the standard path within the Matomo Docker container.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_host",
+            "metadata_value": "analytics.internal.corp",
+            "verified_value": "analytics.internal.corp",
+            "source": "Task description (task.json line 5): 'The marketing team is trying to access the Matomo dashboard via the internal domain `http://analytics.internal.corp`' and task instruction line 50: 'Add a new `trusted_hosts[]` entry for `analytics.internal.corp`.'",
+            "status": "verified"
+        },
+        {
+            "key": "required_hosts",
+            "metadata_value": "[\"localhost\", \"127.0.0.1\"]",
+            "verified_value": "[\"localhost\", \"127.0.0.1\"]",
+            "source": "Setup_matomo.sh lines 113-114 show the initial config created with: trusted_hosts[] = \"localhost\" and trusted_hosts[] = \"127.0.0.1\". Task description line 5 confirms: 'Ensure the existing trusted hosts (`localhost`, `127.0.0.1`) remain in the file.'",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.file_integrity",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "Verifier.py line 76-77 awards 20 points when result.get('is_valid_php', False) is true, matching metadata weight.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.new_host_added",
+            "metadata_value": 40,
+            "verified_value": 40,
+            "source": "Verifier.py line 98-99 awards 40 points when expected_host is found in trusted_hosts, matching metadata weight.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.localhost_preserved",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "Verifier.py line 105-107 iterates through required_hosts and awards 20 points for each preserved host (localhost is first), matching metadata weight.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights.ip_preserved",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "Verifier.py line 105-107 iterates through required_hosts and awards 20 points for each preserved host (127.0.0.1 is second), matching metadata weight.",
+            "status": "verified"
+        },
+        {
+            "key": "scoring_weights_total",
+            "metadata_value": 100,
+            "verified_value": 100,
+            "source": "Sum of all weights: 20 + 40 + 20 + 20 = 100. Verifier.py line 112 confirms success when score == 100.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task involves configuring Matomo's trusted_hosts security feature in the config.ini.php file located at /var/www/html/config/config.ini.php in the Docker image. The task requires adding 'analytics.internal.corp' to the trusted_hosts array while preserving existing entries 'localhost' and '127.0.0.1'. The configuration uses PHP INI array syntax (trusted_hosts[] = \"value\"). Scoring is based on four criteria: file integrity/valid PHP syntax (20%), new host successfully added (40%), localhost preservation (20%), and 127.0.0.1 preservation (20%), for a maximum score of 100 points. All environment data is synthetically generated through setup_matomo.sh and setup_task.sh scripts.",
+    "pi_confidence": "high"
+}

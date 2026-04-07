@@ -1,0 +1,63 @@
+{
+  "id": "progressive_training_suite@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "Create a progressive three-scenario training curriculum in Bridge Command's Solent environment. Establish three distinct scenario directories under /opt/bridgecommand/Scenarios/: 'p) Cadet Module L1 Familiarisation' (Daytime 10:00, 10nm visibility, calm weather 0, 2 traffic vessels), 'q) Cadet Module L2 Night Traffic' (Nighttime 22:00, 8nm visibility, moderate weather 3, 4 traffic vessels), and 'r) Cadet Module L3 Restricted Vis' (Dawn 06:00, 1.5nm visibility, rough weather 5 with rain, 6 traffic vessels). All scenarios must use the 'Solent' environment setting, place the own ship at valid coordinates (Lat 50.7-50.8, Long -1.3 to -1.0), and include at least two waypoint legs for every traffic vessel. Additionally, configure bc5.ini with radar_range_resolution=256, max_radar_range=72, full_radar=1, and arpa_on=1. Document a training syllabus of at least 500 words at /home/ga/Documents/cadet_module_syllabus.txt detailing learning objectives for each level and referencing COLREGS Rules 5, 6, 7, and 19. Login: ga / password123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/progressive_training_suite/setup_task.sh",
+    "post_task": "/workspace/tasks/progressive_training_suite/export_result.sh"
+  },
+  "metadata": {
+    "scenarios": [
+      {
+        "name": "L1",
+        "path": "/opt/bridgecommand/Scenarios/p) Cadet Module L1 Familiarisation",
+        "expected_vis": 10.0,
+        "expected_weather": 0.0,
+        "expected_vessels": 2,
+        "time_window": "day"
+      },
+      {
+        "name": "L2",
+        "path": "/opt/bridgecommand/Scenarios/q) Cadet Module L2 Night Traffic",
+        "expected_vis": 8.0,
+        "expected_weather": 3.0,
+        "expected_vessels": 4,
+        "time_window": "night"
+      },
+      {
+        "name": "L3",
+        "path": "/opt/bridgecommand/Scenarios/r) Cadet Module L3 Restricted Vis",
+        "expected_vis": 1.5,
+        "expected_weather": 5.0,
+        "expected_vessels": 6,
+        "time_window": "dawn"
+      }
+    ],
+    "radar_settings": {
+      "radar_range_resolution": "256",
+      "max_radar_range": "72",
+      "full_radar": "1",
+      "arpa_on": "1"
+    },
+    "syllabus_path": "/home/ga/Documents/cadet_module_syllabus.txt",
+    "solent_bounds": {
+      "lat_min": 50.65,
+      "lat_max": 50.9,
+      "long_min": -1.5,
+      "long_max": -0.95
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_progressive_training_suite"
+    }
+  }
+}

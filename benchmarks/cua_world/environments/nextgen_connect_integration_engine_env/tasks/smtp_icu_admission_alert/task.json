@@ -1,0 +1,32 @@
+{
+  "id": "smtp_icu_admission_alert@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a NextGen Connect channel named 'ICU_Admission_Notifier' to handle ICU admission notifications. The channel must use a TCP Listener on port 6661 in MLLP mode for HL7 v2.x data. Configure a filter to process only messages where the patient's point of care (PV1-3.1) contains 'ICU' (case-insensitive). For matching messages, use an SMTP Sender destination named 'Email_Alert' to send notifications to icu-admin@hospital.org from alerts@hospital.org via the test SMTP server (MailHog) at mailhog:1025. The email subject must include 'ICU Admission Alert' and the body must contain the patient's name from PID-5.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/smtp_icu_admission_alert/setup_task.sh",
+    "post_task": "/workspace/tasks/smtp_icu_admission_alert/export_result.sh"
+  },
+  "metadata": {
+    "channel_name_fragment": "ICU",
+    "source_port": "6661",
+    "smtp_host": "mailhog",
+    "smtp_port": "1025",
+    "expected_from": "alerts@hospital.org",
+    "expected_to": "icu-admin@hospital.org",
+    "filter_field": "PV1-3.1",
+    "filter_value": "ICU"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_smtp_icu_admission_alert"
+    }
+  }
+}

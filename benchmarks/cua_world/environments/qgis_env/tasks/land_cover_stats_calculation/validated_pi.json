@@ -1,0 +1,80 @@
+{
+    "task_id": "land_cover_stats_calculation@1",
+    "dataset": "synthetic_gis_data",
+    "case_id": "area_a_area_b_zonal_histogram",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "vector_source",
+            "metadata_value": "/home/ga/GIS_Data/sample_polygon.geojson",
+            "verified_value": "/home/ga/GIS_Data/sample_polygon.geojson",
+            "source": "setup_task.sh creates this file with hardcoded GeoJSON containing Area A and Area B features",
+            "status": "verified"
+        },
+        {
+            "key": "raster_source",
+            "metadata_value": "/home/ga/GIS_Data/rasters/landcover.tif",
+            "verified_value": "/home/ga/GIS_Data/rasters/landcover.tif",
+            "source": "setup_task.sh generates this 600x300 pixel GeoTIFF using GDAL with synthetic land cover data",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output",
+            "metadata_value": "/home/ga/GIS_Data/exports/zone_composition.geojson",
+            "verified_value": "/home/ga/GIS_Data/exports/zone_composition.geojson",
+            "source": "Task description instructs agent to save zonal histogram results to this path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_feature_count",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "setup_task.sh creates GeoJSON with exactly 2 features: Area A (west polygon) and Area B (east polygon)",
+            "status": "verified"
+        },
+        {
+            "key": "required_fields",
+            "metadata_value": ["HIST_1", "pct_water"],
+            "verified_value": ["HIST_1", "pct_water"],
+            "source": "Task step 5 produces HIST_1 via Zonal Histogram, step 6 creates pct_water via Field Calculator",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_logic_Area_A",
+            "metadata_value": "High Water (>80%)",
+            "verified_value": "Approximately 98.98% water (Class 1)",
+            "source": "Raster generation logic: Area A (west half, columns 0-300) assigned Class 1 (Water) with 1% random Class 3 noise. Analysis shows 89082 water pixels out of 90000 total = 98.98%",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_logic_Area_B",
+            "metadata_value": "Low Water (<20%)",
+            "verified_value": "Approximately 0% water (Class 1)",
+            "source": "Raster generation logic: Area B (east half, columns 300-600) assigned Class 2 (Forest) with 1% random Class 3 noise. Area B has no Class 1 pixels = 0% water",
+            "status": "verified"
+        },
+        {
+            "key": "raster_dimensions",
+            "metadata_value": null,
+            "verified_value": "600 pixels wide × 300 pixels tall",
+            "source": "setup_task.sh line 69: width, height = 600, 300",
+            "status": "verified"
+        },
+        {
+            "key": "raster_bounds",
+            "metadata_value": null,
+            "verified_value": "-122.5° to -121.9°W (E-W), 37.5° to 37.8°N (N-S)",
+            "source": "setup_task.sh lines 70-71: min_x=-122.5, max_x=-121.9, min_y=37.5, max_y=37.8",
+            "status": "verified"
+        },
+        {
+            "key": "land_cover_classes",
+            "metadata_value": null,
+            "verified_value": "1=Water, 2=Forest, 3=Urban",
+            "source": "Task description line 3 and setup_task.sh comments lines 58-62",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses synthetically generated GIS data: a 600×300 pixel GeoTIFF covering coordinates -122.5° to -121.9°W and 37.5° to 37.8°N, with land cover classes 1=Water (west half), 2=Forest (east half), and 3=Urban (1% random noise). The vector layer contains 2 features (Area A and Area B) covering the western and eastern halves respectively. Area A is expected to contain approximately 98.98% water pixels (Class 1), while Area B contains 0% water (all Class 2 Forest). The task requires computing zonal histogram statistics (HIST_1, HIST_2, HIST_3) and calculating pct_water as (HIST_1 / total) * 100.",
+    "pi_confidence": "high"
+}

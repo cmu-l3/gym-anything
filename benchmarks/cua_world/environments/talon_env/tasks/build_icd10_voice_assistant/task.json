@@ -1,0 +1,40 @@
+{
+  "id": "build_icd10_voice_assistant@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Create a Talon voice command module for searching and inserting official 2024 ICD-10-CM medical codes from a CSV file located at C:\\Users\\Docker\\Documents\\icd10_codes.csv (columns: 'Code', 'Description'). Develop the module within C:\\Users\\Docker\\AppData\\Roaming\\Talon\\user\\icd_assistant\\ using two files. The first, icd_assistant.py, must define a Talon Module named 'icd_assistant' that loads the CSV into memory and implements two actions: icd_search(query: str), which displays the top 3 case-insensitive description matches using app.notify, and icd_insert(query: str), which types the code of the single best match using actions.insert(). The second file, icd_assistant.talon, must map the voice commands \"diagnosis search <user.text>\" and \"diagnosis insert <user.text>\" to these respective actions.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\build_icd10_voice_assistant\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\build_icd10_voice_assistant\\export_result.ps1"
+  },
+  "metadata": {
+    "csv_path": "C:\\Users\\Docker\\Documents\\icd10_codes.csv",
+    "target_dir": "C:\\Users\\Docker\\AppData\\Roaming\\Talon\\user\\icd_assistant",
+    "test_queries": [
+      {
+        "query": "cholera vibrio biovar",
+        "expected": "A00.0"
+      },
+      {
+        "query": "type 2 diabetes without complications",
+        "expected": "E11.9"
+      },
+      {
+        "query": "headache unspecified",
+        "expected": "R51.9"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_icd10_voice_assistant"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "maritime_ais_port_congestion@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Maritime Logistics Analyst. The MARINE_OPS schema in Oracle (marine_ops/Marine2024, XEPDB1) requires a robust analytical pipeline to transform raw AIS_PINGS and PORT_ZONES into port call wait-time metrics. This pipeline consists of a view PING_ZONES_VW (joining pings to zones via bounding box logic), a view VESSEL_STAYS_VW (grouping consecutive pings into continuous stays for non-null zones), and a view PORT_CALLS_VW (linking 'ANCHORAGE' stays to 'TERMINAL' stays within 24 hours to calculate wait and operation hours using VESSELS table metadata). Metrics must be aggregated into a Materialized View WEEKLY_CONGESTION_MV by vessel_type and ISO Week with ROLLUP subtotals, supported by a daily midnight DBMS_SCHEDULER job named REFRESH_CONGESTION_DATA. The final congestion summary, excluding the grand total row, must be exported to /home/ga/Documents/exports/congestion_report.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/maritime_ais_port_congestion/setup_task.sh",
+    "post_task": "/workspace/tasks/maritime_ais_port_congestion/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/exports/congestion_report.csv",
+    "expected_mmsi1001_stays": 3,
+    "expected_mmsi1003_stays": 0,
+    "expected_port_calls": 1
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_maritime_ais_port_congestion"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "configure_apache_api_proxy@1",
+  "version": "1.0",
+  "env_id": "socioboard_env@0.1",
+  "description": "Configure an Apache reverse proxy for the Socioboard backend microservices to route traffic over port 80. The four Node.js microservices are running via pm2 on their default ports: User (3000), Feeds (3001), Publish (3002), and Notification (3003). Map these services to the paths /proxy/user/, /proxy/feeds/, /proxy/publish/, and /proxy/notification/ respectively within the Apache configuration (e.g., /etc/apache2/sites-available/000-default.conf). Additionally, update the PHP frontend configuration file at /opt/socioboard/socioboard-web-php/.env to point the variables API_URL, API_URL_FEEDS, API_URL_PUBLISH, and API_URL_NOTIFICATION to these new proxy endpoints on localhost. A successful configuration allows HTTP requests to the proxy paths on port 80 to reach the underlying Node.js applications.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_apache_api_proxy/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_apache_api_proxy/export_result.sh"
+  },
+  "metadata": {
+    "expected_proxy_paths": {
+      "user": "/proxy/user",
+      "feeds": "/proxy/feeds",
+      "publish": "/proxy/publish",
+      "notification": "/proxy/notification"
+    },
+    "env_file_path": "/opt/socioboard/socioboard-web-php/.env",
+    "apache_conf_path": "/etc/apache2/sites-available/000-default.conf"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_apache_api_proxy"
+    }
+  }
+}

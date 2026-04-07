@@ -1,0 +1,31 @@
+{
+  "id": "compressed_log_ingestion_preprocessor@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A cybersecurity firm has a large archive of compressed firewall logs. You need to configure the Oracle Database (User: `hr`, Pass: `hr123`, Service: `XEPDB1`) to query these logs directly from the compressed file `/workspace/data/firewall_trace.csv.gz` without extracting them to disk. Set up a working directory at `/home/ga/log_warehouse` with appropriate permissions for the `oracle` user. Create an Oracle DIRECTORY object named `LOG_DIR` and an External Table named `FIREWALL_LOGS_EXT` in the `HR` schema using the `ORACLE_LOADER` driver and a preprocessor to read the GZIP data. The table must include columns: `LOG_ID` (NUMBER), `TIMESTAMP` (TIMESTAMP), `SOURCE_IP` (VARCHAR2), `DEST_IP` (VARCHAR2), `ACTION` (VARCHAR2), and `BYTES` (NUMBER). Create a view named `BLOCKED_TRAFFIC_SUMMARY` that counts records where the ACTION is 'BLOCK' or 'DROP', grouped by SOURCE_IP. Export the top 5 blocked source IPs and their counts to `/home/ga/Desktop/blocked_report.txt`.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compressed_log_ingestion_preprocessor/setup_task.sh",
+    "post_task": "/workspace/tasks/compressed_log_ingestion_preprocessor/export_result.sh"
+  },
+  "metadata": {
+    "data_path": "/workspace/data/firewall_trace.csv.gz",
+    "expected_count": 5000,
+    "target_table": "FIREWALL_LOGS_EXT",
+    "target_view": "BLOCKED_TRAFFIC_SUMMARY",
+    "report_path": "/home/ga/Desktop/blocked_report.txt",
+    "db_user": "hr",
+    "db_pass": "hr123"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compressed_ingestion"
+    }
+  }
+}

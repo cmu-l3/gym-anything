@@ -1,0 +1,59 @@
+{
+    "task_id": "recover_failed_migration@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_domain",
+            "metadata_value": "acmecorp.test",
+            "verified_value": "acmecorp.test",
+            "source": "Verified via live VM: `virtualmin list-domains --name-only` returns 'acmecorp.test'. Apache VirtualHost config at /etc/apache2/sites-available/acmecorp.test.conf has ServerName acmecorp.test. Domain web root is /home/acmecorp/public_html/. setup_task.sh line 44 checks domain existence. evidence: 08_all_breakage_verification.txt, 09_apache_phpfpm_configs.txt",
+            "status": "verified"
+        },
+        {
+            "key": "status_url_path",
+            "metadata_value": "/status.php",
+            "verified_value": "/status.php",
+            "source": "Verified via live VM: setup_task.sh lines 137-169 create /home/acmecorp/public_html/status.php. export_result.sh line 37 curls http://localhost/status.php. Live test confirmed: `curl http://localhost/status.php --header 'Host: acmecorp.test'` returns 503 (broken state) and 'System Operational' (fixed state). evidence: 08_all_breakage_verification.txt checks 1-2, 13_fix2b_password.txt",
+            "status": "verified"
+        },
+        {
+            "key": "expected_status_string",
+            "metadata_value": "System Operational",
+            "verified_value": "System Operational",
+            "source": "Verified via live VM: status.php source code (line 154) outputs exactly 'System Operational' when the DB connection succeeds and actor count > 0. Live test confirmed after fixing PHP-FPM + DB permissions + DB password: curl returned exactly 'System Operational'. export_result.sh line 40 checks for this exact string. evidence: 22_status_php.txt (source code), 13_fix2b_password.txt (live output), 18_task_result_json.txt (status_body field)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_dmarc_policy",
+            "metadata_value": "reject",
+            "verified_value": "reject",
+            "source": "Verified via live VM: `virtualmin modify-dns --domain acmecorp.test --add-record '_dmarc IN TXT v=DMARC1; p=reject; rua=mailto:dmarc@acmecorp.test'` succeeded. `virtualmin get-dns` output shows '_dmarc IN TXT v=DMARC1; p=reject'. export_result.sh line 111 checks for 'v=DMARC1.*p=reject'. The DMARC p=reject policy is the strictest DMARC mode per RFC 7489. evidence: 16_dkim_spf_dmarc_setup.txt, 23_dns_zone.txt, 18_task_result_json.txt",
+            "status": "verified"
+        },
+        {
+            "key": "db_password_after_migration",
+            "metadata_value": "MigratedPwd999!",
+            "verified_value": "MigratedPwd999!",
+            "source": "Verified via live VM: setup_task.sh line 229 executes `ALTER USER 'acmecorp'@'localhost' IDENTIFIED BY 'MigratedPwd999!'`. Live test confirmed: `mysql -u acmecorp -pGymAnything123! sakila` returns 'Access denied' while `mysql -u acmecorp -pMigratedPwd999! sakila` succeeds (returns '1'). The db_config.php file retains the OLD password 'GymAnything123!' (setup_task.sh line 180), creating the credential mismatch. evidence: 08_all_breakage_verification.txt CHECK 7 (old password rejected, new password accepted)",
+            "status": "verified"
+        },
+        {
+            "key": "php_fpm_broken_listen",
+            "metadata_value": "127.0.0.1:9099",
+            "verified_value": "127.0.0.1:9099",
+            "source": "Verified via live VM: setup_task.sh line 210 executes `sed -i 's|^listen = .*|listen = 127.0.0.1:9099|'` on the pool file. Live test confirmed: `grep '^listen = ' /etc/php/8.1/fpm/pool.d/177430447047369.conf` returns 'listen = 127.0.0.1:9099'. Apache VirtualHost has `SetHandler proxy:unix:/run/php/177430447047369.sock|fcgi://127.0.0.1` (expects Unix socket). This mismatch causes HTTP 503. The original socket path was /run/php/177430447047369.sock (saved to /tmp/original_socket_path.txt). evidence: 08_all_breakage_verification.txt CHECK 3, 09_apache_phpfpm_configs.txt, 25_task_metadata.txt",
+            "status": "verified"
+        },
+        {
+            "key": "postfix_dead_relay",
+            "metadata_value": "smtp:[127.0.0.1]:12345",
+            "verified_value": "smtp:[127.0.0.1]:12345",
+            "source": "Verified via live VM: setup_task.sh line 244 writes 'acmecorp.test    smtp:[127.0.0.1]:12345' to /etc/postfix/transport. Live test confirmed: `cat /etc/postfix/transport` shows exactly 'acmecorp.test    smtp:[127.0.0.1]:12345'. `postconf transport_maps` returns 'transport_maps = hash:/etc/postfix/transport'. Nothing listens on port 12345, causing immediate 'Connection refused' bounces for all acmecorp.test mail. evidence: 08_all_breakage_verification.txt CHECK 8, 15_mail_debug.txt",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task targets domain acmecorp.test on a Virtualmin server. Four breakages are applied by the setup script. (1) PHP-FPM breakage: the pool config at /etc/php/8.1/fpm/pool.d/<DOMAIN_ID>.conf has its 'listen' directive changed from the original Unix socket path /run/php/<DOMAIN_ID>.sock to TCP 127.0.0.1:9099. Apache's VirtualHost still has 'SetHandler proxy:unix:/run/php/<DOMAIN_ID>.sock|fcgi://127.0.0.1', causing a 503 for all PHP requests. Fix: change 'listen' back to the Unix socket path (found in the Apache config) and restart php8.1-fpm. (2) Database breakage (two layers): db_config.php at /home/acmecorp/public_html/includes/db_config.php is set to root:root 600 (web server cannot read it), AND the MySQL password for user 'acmecorp'@'localhost' was changed to 'MigratedPwd999!' while db_config.php still has the old password 'GymAnything123!'. Fix layer A: chown to acmecorp:acmecorp and chmod 640. Fix layer B: either update the password in db_config.php to 'MigratedPwd999!' or change the MySQL password back. The status.php page returns 'System Operational' when both layers are fixed. It queries the Sakila database's actor table (200 rows). (3) Postfix breakage: /etc/postfix/transport contains 'acmecorp.test smtp:[127.0.0.1]:12345' routing all domain mail to a dead relay. Fix: remove this transport entry (or clear the file), run 'postmap /etc/postfix/transport', remove transport_maps from main.cf or clear it, and restart Postfix. (4) Email authentication: DKIM, SPF, and DMARC are not configured. The agent must run 'virtualmin set-dkim --enable' (requires opendkim package), 'virtualmin modify-dns --domain acmecorp.test --spf' for SPF, and add a DMARC TXT record at _dmarc.acmecorp.test with 'v=DMARC1; p=reject'. Email delivery is verified by checking for new files in /home/acmecorp/homes/info/Maildir/new/ — note that the Maildir is owned by user 'info@acmecorp.test' (not 'acmecorp'), which is the Virtualmin-created mail user with its own UID. The Webmin control panel is at https://localhost:10000, login root/GymAnything123!.",
+    "pi_confidence": "high"
+}

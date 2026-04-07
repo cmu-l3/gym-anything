@@ -1,0 +1,31 @@
+{
+  "id": "sakila_business_rules_engine@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "Implement business logic for the Sakila DVD rental database using MySQL (localhost, user: ga, password: password123). Create a stored function `fn_rental_late_days(p_rental_id INT)` that calculates late days based on `DATEDIFF(return_date, rental_date) - film.rental_duration` (returning -1 if return_date is NULL, 0 if returned early or on time, or the positive number of late days). Create a stored function `fn_late_fee(p_rental_id INT)` that calculates the late fee as `fn_rental_late_days(p_rental_id) * 1.50`. Create a stored function `fn_customer_tier(p_customer_id INT)` that returns 'GOLD' for >= 35 lifetime rentals, 'SILVER' for 25-34, and 'BRONZE' for < 25. Create a stored function `fn_film_popularity(p_film_id INT)` using the formula `(count_of_rentals * 2.0) + (total_revenue * 0.1)`. Define a view `v_customer_billing_summary` containing `customer_id`, `customer_name` (First Last), `tier`, `total_rentals`, `total_payments`, and `total_late_fees`. Populate a physical table `customer_billing_report` with data from this view for active customers (`active = 1`) and export the resulting table to /home/ga/Documents/exports/customer_billing_report.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_business_rules_engine/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_business_rules_engine/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/exports/customer_billing_report.csv",
+    "expected_active_customers": 584,
+    "test_cases": {
+      "customer_gold": 148,
+      "customer_silver": 318,
+      "customer_bronze": 61
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_business_rules_engine"
+    }
+  }
+}

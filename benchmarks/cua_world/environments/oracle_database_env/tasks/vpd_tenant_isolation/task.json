@@ -1,0 +1,35 @@
+{
+  "id": "vpd_tenant_isolation@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Implement Virtual Private Database (VPD) / Row-Level Security on the SAAS_CORE.PATIENT_ENCOUNTERS table to enforce multi-tenant isolation. Ensure that database users CLINIC_NORTH_APP and CLINIC_SOUTH_APP can only access records associated with their assigned CLINIC_ID as defined in the CLINIC_USER_MAP table, while the SAAS_ADMIN user retains access to all rows. Verify the solution by confirming that each user sees the appropriate subset of data.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/vpd_tenant_isolation/setup_task.sh",
+    "post_task": "/workspace/tasks/vpd_tenant_isolation/export_result.sh"
+  },
+  "metadata": {
+    "schema": "SAAS_CORE",
+    "table": "PATIENT_ENCOUNTERS",
+    "mapping_table": "CLINIC_USER_MAP",
+    "north_user": "CLINIC_NORTH_APP",
+    "south_user": "CLINIC_SOUTH_APP",
+    "admin_user": "SAAS_ADMIN",
+    "expected_north_count": 35,
+    "expected_south_count": 42,
+    "expected_total_count": 100,
+    "connection_string": "localhost:1521/XEPDB1",
+    "admin_password": "Admin123"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_vpd_isolation"
+    }
+  }
+}

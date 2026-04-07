@@ -1,0 +1,70 @@
+{
+    "task_id": "develop_powershell_obfuscation_rule@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "rule_id",
+            "metadata_value": 100300,
+            "verified_value": 100300,
+            "source": "Task description and verifier.py logic explicitly require rule ID 100300.",
+            "status": "verified"
+        },
+        {
+            "key": "target_level",
+            "metadata_value": 10,
+            "verified_value": 10,
+            "source": "Task description and verifier.py logic explicitly require rule level 10.",
+            "status": "verified"
+        },
+        {
+            "key": "sample_log_path",
+            "metadata_value": "/home/ga/data/powershell_samples.json",
+            "verified_value": "/home/ga/data/powershell_samples.json",
+            "source": "setup_task.sh script explicitly writes the synthetic JSON logs to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "rules_file",
+            "metadata_value": "/var/ossec/etc/rules/local_rules.xml",
+            "verified_value": "/var/ossec/etc/rules/local_rules.xml",
+            "source": "export_result.sh and verifier.py explicitly target this file for extracting and evaluating the custom rule.",
+            "status": "verified"
+        },
+        {
+            "key": "required_regex_matches",
+            "metadata_value": [
+                "powershell.exe -enc JAB",
+                "powershell -EncodedCommand JAB",
+                "powershell.exe -e JAB",
+                "POWERSHELL.EXE -ENCODEDCOMMAND JAB"
+            ],
+            "verified_value": [
+                "powershell.exe -enc JAB",
+                "powershell -EncodedCommand JAB",
+                "powershell.exe -e JAB",
+                "POWERSHELL.EXE -ENCODEDCOMMAND JAB"
+            ],
+            "source": "verifier.py uses these exact strings from the metadata to test the user's regex, which match the task instructions for checking `-EncodedCommand` flags.",
+            "status": "verified"
+        },
+        {
+            "key": "required_regex_non_matches",
+            "metadata_value": [
+                "powershell.exe -ExecutionPolicy Bypass",
+                "powershell.exe -File script.ps1",
+                "powershell.exe -Command Get-Date"
+            ],
+            "verified_value": [
+                "powershell.exe -ExecutionPolicy Bypass",
+                "powershell.exe -File script.ps1",
+                "powershell.exe -Command Get-Date"
+            ],
+            "source": "While not directly evaluated in verifier.py, these are correct logical non-matches as per the task description's scope to only target Base64 encoded commands. The provided benign sample also uses `-ExecutionPolicy Bypass`.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically generated Windows Event logs injected via setup_task.sh. The expected custom Wazuh rule ID is 100300 at level 10, and must be created in /var/ossec/etc/rules/local_rules.xml. The rule must successfully match PowerShell commands utilizing various case-insensitive truncations of the `-EncodedCommand` flag.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,66 @@
+{
+  "task_id": "corporate_usb_exfiltration_analysis@1",
+  "dataset": "Synthetic NTFS disk images created by setup_task.sh",
+  "case_id": "IP_Theft_2024 / INV-IPT-0892",
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "case_name",
+      "metadata_value": "IP_Theft_2024",
+      "verified_value": "IP_Theft_2024",
+      "source": "Verified in task.json description and setup_task.sh cleanup code (glob pattern 'IP_Theft_2024*'). Export_result.sh searches for this pattern. Confirmed consistent across all files.",
+      "status": "verified"
+    },
+    {
+      "key": "case_number",
+      "metadata_value": "INV-IPT-0892",
+      "verified_value": "INV-IPT-0892",
+      "source": "Verified in task.json description. Agent must type this during case creation. Export script does not verify case number directly.",
+      "status": "verified"
+    },
+    {
+      "key": "corporate_image",
+      "metadata_value": "/home/ga/evidence/corporate_repo.dd",
+      "verified_value": "/home/ga/evidence/corporate_repo.dd",
+      "source": "Live test confirmed: file exists, 16777216 bytes (16MB), owned by ga:ga, permissions 644. Created by setup_task.sh via dd+mkfs.ntfs. Contains 30 files across 5 departments (Engineering/6, Finance/6, Legal/6, Research/6, Executive/6).",
+      "status": "verified"
+    },
+    {
+      "key": "usb_image",
+      "metadata_value": "/home/ga/evidence/suspect_usb.dd",
+      "verified_value": "/home/ga/evidence/suspect_usb.dd",
+      "source": "Live test confirmed: file exists, 16777216 bytes (16MB), owned by ga:ga, permissions 644. Contains 11 allocated files (8 exact copies + 3 modified), 5 deleted files, 3 NTFS ADS. Verified via fls -r -p output showing all entries.",
+      "status": "verified"
+    },
+    {
+      "key": "hash_file",
+      "metadata_value": "/home/ga/evidence/corporate_hashes.txt",
+      "verified_value": "/home/ga/evidence/corporate_hashes.txt",
+      "source": "Live test confirmed: file exists, 1696 bytes, 30 lines, owned by ga:ga, permissions 644. Each line is 'md5_hash  filename' format. All 30 lines validated as having 32-char hex MD5 hashes. Hashes computed at runtime from actual corporate_repo.dd contents using fls+icat+hashlib.md5.",
+      "status": "verified"
+    },
+    {
+      "key": "report_file",
+      "metadata_value": "/home/ga/Reports/exfiltration_report.txt",
+      "verified_value": "/home/ga/Reports/exfiltration_report.txt",
+      "source": "Verified that /home/ga/Reports/ directory exists with ga:ga ownership and 755 permissions. Write test confirmed ga user can create files there. This is where the agent must write the report.",
+      "status": "verified"
+    },
+    {
+      "key": "result_file",
+      "metadata_value": "/tmp/exfiltration_result.json",
+      "verified_value": "/tmp/exfiltration_result.json",
+      "source": "Verified by running export_result.sh in live environment. Script produces valid JSON at this path with all expected fields (case_db_found, data_source_count, hashset_imported, report_exists, etc.). Output was valid JSON with start_time=1774122537.",
+      "status": "verified"
+    },
+    {
+      "key": "gt_file",
+      "metadata_value": "/tmp/exfiltration_gt.json",
+      "verified_value": "/tmp/exfiltration_gt.json",
+      "source": "Verified in live environment: file exists after setup, chmod 600 owned by root, NOT readable by ga user (anti-gaming confirmed). Contains full ground truth with corporate_files, exfiltrated, modified, deleted, ads, and summary sections.",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The task creates two 16MB NTFS disk images. corporate_repo.dd contains exactly 30 files across 5 departments (Engineering, Finance, Legal, Research, Executive — 6 files each). suspect_usb.dd contains 11 allocated files, 5 deleted files, and 3 NTFS Alternate Data Streams.\n\nEXFILTRATED FILES (8 exact MD5 matches between corporate and USB): (1) circuit_design_v3.txt (MD5: b9663487aa0463e1dbf639cbb5ac2353, 653 bytes, from Engineering), (2) firmware_specs.txt (MD5: ad6012ae573fcf595f75dd19da73404b, 600 bytes, from Engineering), (3) revenue_forecast_2024.txt (MD5: 60da274b46da6ac3f2b8992bc8e4c5b7, 474 bytes, from Finance), (4) patent_draft_2024_001.txt (MD5: 7188b420d72eeedf264f6d3bc3b75121, 784 bytes, from Legal), (5) compound_analysis.csv (MD5: bf51eb475626ca77f2a1b9da8c1ea70e, 576 bytes, from Research), (6) board_strategy_2025.txt (MD5: 2556b67dfad045fbf5bf1b2e2c92cecd, 759 bytes, from Executive), (7) acquisition_target_list.txt (MD5: ce2855136dce96b9c3fa1ac331b2379b, 785 bytes, from Executive), (8) executive_compensation.csv (MD5: fcbb6d71c8f6fbe9641e7544ad5ca9b5, 413 bytes, from Executive).\n\nMODIFIED COPIES (3 files with same name but different MD5 — USB versions have appended content): (1) sensor_calibration.csv (Corp MD5: c0aab859ca831e27a75c81b6aa8b68ba, USB MD5: bbbe7ca5ddf16275b4a024d1e7ab35be), (2) trial_results_batch_7.txt (Corp MD5: 43468e52d2a8e761c5cb73562d1fe9be, USB MD5: 7e9bdfc5cec9568d26e33b6cc8cae402), (3) market_analysis.txt (Corp MD5: 78ab13b6f553fc9400f668cc1cd55626, USB MD5: 4ca10909023daf1bfcad42f9ba7d930c).\n\nDELETED USB FILES (5 files marked with * in fls output): (1) vendor_payments_q3.csv (inode 77), (2) experiment_log_042.txt (inode 78), (3) personal_notes.txt (inode 79), (4) job_applications.txt (inode 80), (5) usb_transfer_log.txt (inode 81).\n\nCONCEALED DATA — 3 NTFS Alternate Data Streams on USB: (1) circuit_design_v3.txt:transfer_log (107 bytes, content: 'Copied via USB3.0 hub at 22:14 UTC 2024-03-10'), (2) board_strategy_2025.txt:notes (115 bytes, content: 'Review before CompetitorCorp interview on March 20'), (3) compound_analysis.csv:source_path (92 bytes, content: 'Original location: //CORP-NAS/Research/Active/Project_Nimbus/').\n\nINVESTIGATION SUMMARY: 8 exfiltrated, 3 modified, 5 deleted, 3 concealed. Most-targeted department is Executive (3 exfiltrated files: board_strategy_2025.txt, acquisition_target_list.txt, executive_compensation.csv). Risk classification should be HIGH or CRITICAL given the volume and sensitivity of exfiltrated data (board strategy, M&A targets, executive compensation, patent drafts).\n\nThe corporate_hashes.txt file contains 30 MD5 hashes (one per corporate file) and should be imported as a hash set named 'Corporate_IP' in Autopsy. The USB files are organized under Documents/ (8 allocated) and Projects/ (3 allocated: compound_analysis.csv, sensor_calibration.csv, trial_results_batch_7.txt). All data is deterministic — file content is hardcoded in setup_task.sh heredocs, so MD5 hashes are consistent across runs.",
+  "pi_confidence": "high"
+}

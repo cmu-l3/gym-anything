@@ -1,0 +1,29 @@
+{
+  "id": "fvc_empirical_modeling@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "Map Fractional Vegetation Cover (FVC) and bare soil using the Landsat multispectral image at /home/ga/snap_data/landsat_multispectral.tif. Create a virtual band named 'ndvi' using the NIR and Red bands, and a virtual band named 'fvc' using the formula ((NDVI - 0.15) / (0.85 - 0.15))^2, ensuring values are clamped between 0.0 and 1.0 using conditional logic. Additionally, create a binary virtual band named 'bare_soil_mask' where pixels with fvc == 0 or ndvi <= 0.15 evaluate to 1. Save the complete enriched product to /home/ga/snap_exports/landsat_fvc.dim in BEAM-DIMAP format and export the 'fvc' band as a GeoTIFF to /home/ga/snap_exports/fvc_map.tif.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fvc_empirical_modeling/setup_task.sh",
+    "post_task": "/workspace/tasks/fvc_empirical_modeling/export_result.sh"
+  },
+  "metadata": {
+    "data_file": "/home/ga/snap_data/landsat_multispectral.tif",
+    "expected_dim_path": "/home/ga/snap_exports/landsat_fvc.dim",
+    "expected_tif_path": "/home/ga/snap_exports/fvc_map.tif",
+    "ndvi_soil": 0.15,
+    "ndvi_veg": 0.85
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fvc_empirical_modeling"
+    }
+  }
+}

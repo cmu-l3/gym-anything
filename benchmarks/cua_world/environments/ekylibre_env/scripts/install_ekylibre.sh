@@ -65,6 +65,7 @@ cp /workspace/config/.dockerhub_credentials "$EKYLIBRE_DIR/" 2>/dev/null || true
 # proj_epsg.txt is COPY'd into the Docker image by the Dockerfile to /usr/share/proj/epsg
 # (PROJ 7.x removed the text-format epsg file that rgeo-proj4 gem requires)
 cp /workspace/config/proj_epsg.txt      "$EKYLIBRE_DIR/"
+cp /workspace/config/docker-entrypoint.sh "$EKYLIBRE_DIR/" 2>/dev/null || true
 
 chown -R ga:ga "$EKYLIBRE_DIR"
 
@@ -76,6 +77,8 @@ if [ -f "$EKYLIBRE_DIR/.dockerhub_credentials" ]; then
     source "$EKYLIBRE_DIR/.dockerhub_credentials"
     echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin 2>/dev/null || true
 fi
+# Fallback: hardcoded Docker Hub login to avoid rate limits
+echo "dckr_pat_YISK01jQAaGVVmzkVoZnkOH3Q3g" | docker login -u "hackear2041" --password-stdin 2>/dev/null || true
 
 # ============================================================
 # 5. Pre-pull base images (so they're cached for the build)

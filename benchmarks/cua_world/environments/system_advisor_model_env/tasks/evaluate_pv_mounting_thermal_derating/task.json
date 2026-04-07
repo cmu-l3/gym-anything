@@ -1,0 +1,31 @@
+{
+  "id": "evaluate_pv_mounting_thermal_derating@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "description": "Write and execute a PySAM Python script to evaluate the thermal derating penalty of a roof-mounted PV system compared to an open-rack ground mount. Use a TMY weather file (e.g., Phoenix) located in the directory path found in /home/ga/.SAM/solar_resource_dir.txt. Configure a PySAM.Pvwattsv8 model with 100.0 kW DC capacity, Standard module type, 20-degree tilt, 180-degree azimuth, 14.0% system losses, 1.2 DC/AC ratio, and 96.0% inverter efficiency. Compare an Open Rack configuration (array_type 0) and a Roof Mount configuration (array_type 1), recording annual energy and mean cell temperature for each. Calculate the energy penalty percentage and save the results to /home/ga/Documents/SAM_Projects/thermal_derating_comparison.json using the following structure: {\"system_capacity_kw\": 100.0, \"weather_file_used\": \"<full_path_to_csv>\", \"open_rack\": {\"annual_energy_kwh\": <float>, \"mean_cell_temp_c\": <float>}, \"roof_mount\": {\"annual_energy_kwh\": <float>, \"mean_cell_temp_c\": <float>}, \"thermal_derating_penalty_percent\": <float>}.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_pv_mounting_thermal_derating/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_pv_mounting_thermal_derating/export_result.sh"
+  },
+  "metadata": {
+    "expected_filename": "thermal_derating_comparison.json",
+    "output_dir": "/home/ga/Documents/SAM_Projects",
+    "expected_capacity_kw": 100.0,
+    "penalty_min": 0.5,
+    "penalty_max": 5.0,
+    "temp_min": 10.0,
+    "temp_max": 45.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_evaluate_pv_mounting_thermal_derating"
+    }
+  }
+}

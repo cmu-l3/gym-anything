@@ -1,0 +1,45 @@
+{
+  "id": "ntfs_ads_concealment_detection@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "You are a cybercrime investigator analyzing a suspect's storage device at /home/ga/evidence/suspect_drive.dd. Locate and extract all user-created hidden Alternate Data Streams (ADS), ignoring standard NTFS system metadata streams like $BadClus:$Bad or $Secure:$SDS. Document the findings in a pipe-delimited CSV at /home/ga/Reports/ads_findings.csv with the header 'PARENT_FILENAME|STREAM_NAME|STREAM_CONTENT', using only base filenames for the parent files. Provide a summary report at /home/ga/Reports/ads_summary.txt containing 'TOTAL_ADS_FOUND: <N>' and 'INVESTIGATION_CONCLUSION: <brief assessment of the payloads>'. For the analysis, use Autopsy (case 'ADS_Investigation_2024', number 'INV-ADS-009') or Sleuth Kit CLI tools.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ntfs_ads_concealment_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/ntfs_ads_concealment_detection/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "ADS_Investigation_2024",
+    "case_number": "INV-ADS-009",
+    "disk_image": "/home/ga/evidence/suspect_drive.dd",
+    "expected_total_ads": 3,
+    "expected_findings": [
+      {
+        "parent": "alpha_spec.txt",
+        "stream": "config.ini",
+        "content": "192.168.100.55"
+      },
+      {
+        "parent": "hawaii_trip.txt",
+        "stream": "wallet.dat",
+        "content": "abandon ability..."
+      },
+      {
+        "parent": "backup.log",
+        "stream": "service_cfg",
+        "content": "22222"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ntfs_ads_concealment"
+    }
+  }
+}

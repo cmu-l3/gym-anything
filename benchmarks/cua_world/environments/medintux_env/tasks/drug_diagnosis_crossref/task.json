@@ -1,0 +1,28 @@
+{
+  "id": "drug_diagnosis_crossref@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Generate a therapeutic-diagnostic cross-reference report by exploring the MedinTux databases. \n\nYour goal is to map pharmaceutical ATC codes (from the 'MedicaTuxTest' database) to ICD-10 diagnostic chapters (from the 'CIM10Test' database). \n\n1. Explore the MySQL databases (user: root, no password) to understand the table structures.\n2. Count the number of drugs available for each first-level ATC code (A, B, C, D, G, H, J, L, M, N, P, R, S, V).\n3. Map these to the corresponding CIM10 chapters (e.g., ATC 'C' -> CIM10 Chapter IX 'Circulatory System') and count the diagnostic codes in those chapters.\n4. Identify 'therapeutic gaps' where a CIM10 chapter exists but has few or no corresponding drugs.\n\nSave your final report to '/home/ga/drug_diagnosis_crossref_report.txt'. The report must be a structured text file containing the mapping table and the gap analysis.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/drug_diagnosis_crossref/setup_task.sh",
+    "post_task": "/workspace/tasks/drug_diagnosis_crossref/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/drug_diagnosis_crossref_report.txt",
+    "min_atc_categories": 8,
+    "min_cim10_chapters": 5,
+    "required_db_names": ["MedicaTuxTest", "CIM10Test"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_drug_diagnosis_crossref"
+    }
+  }
+}

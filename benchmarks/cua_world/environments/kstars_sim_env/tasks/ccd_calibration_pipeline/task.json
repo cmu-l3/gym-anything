@@ -1,0 +1,28 @@
+{
+  "id": "ccd_calibration_pipeline@1",
+  "version": "1.0",
+  "env_id": "kstars_sim_env@0.1",
+  "description": "A science observing run requires data reduction, but the dome closed before flat fields could be acquired! Capture 5 flat frames (V-band, Slot 2) to /home/ga/Data/raw_flats/. Write a Python script at ~/reduce.py to calibrate 3 raw science images from /home/ga/Data/raw_lights/ using the captured flats and existing darks in /home/ga/Data/raw_darks/. The script must create a master dark and master flat using medians, calculate a normalized flat (master_flat divided by its mean), and apply the calibration formula: (raw_light - master_dark) / norm_flat. Save the three calibrated arrays as float32 FITS files in /home/ga/Data/calibrated/ named exactly calibrated_1.fits, calibrated_2.fits, and calibrated_3.fits.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ccd_calibration_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/ccd_calibration_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "expected_flats_count": 5,
+    "expected_calibrated_count": 3,
+    "required_filter": "V",
+    "spec_path": "/home/ga/Documents/pipeline_spec.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ccd_calibration"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "scrub_image_secret_squash@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "A Docker image 'legacy-app:unsafe' was built with a critical security flaw: a 'secrets.txt' file containing an AWS key was added in one layer and deleted in a subsequent layer. Although the file is not visible in the final filesystem, the secret persists in the image history. Create a new image named 'legacy-app:safe' that contains the same application code and runtime behavior as the unsafe image but does not contain the secret string 'AKIA_TEST_SECRET_DO_NOT_USE' anywhere in its history or layers. The new image must preserve the original metadata, including CMD, environment variables, and ports.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/scrub_image_secret_squash/setup_task.sh",
+    "post_task": "/workspace/tasks/scrub_image_secret_squash/export_result.sh"
+  },
+  "metadata": {
+    "unsafe_image": "legacy-app:unsafe",
+    "safe_image": "legacy-app:safe",
+    "secret_string": "AKIA_TEST_SECRET_DO_NOT_USE",
+    "expected_env": "APP_COLOR=blue",
+    "expected_port": "5000"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_scrub_image_secret_squash"
+    }
+  }
+}

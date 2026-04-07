@@ -1,0 +1,48 @@
+{
+  "id": "streaming_loudness_compliance@1",
+  "version": "1.0",
+  "env_id": "vlc_env@0.1",
+  "description": "You are a digital distribution coordinator preparing a 4-track EP for release. Measure the integrated loudness (LUFS) of the master tracks in /home/ga/Music/ep_masters/ and normalize them to meet the specifications (Target LUFS, format, bitrate, and sample rate) found in /home/ga/Documents/platform_loudness_specs.json for Spotify, Apple Music, and YouTube Music. Save the normalized files in /home/ga/Music/normalized_delivery/ using subdirectories 'spotify/', 'apple/', and 'youtube/'. Produce a JSON compliance report at /home/ga/Documents/loudness_compliance_report.json documenting the original, target, and achieved LUFS for every track on every platform using the structure from the specs document.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/streaming_loudness_compliance/setup_task.sh",
+    "post_task": "/workspace/tasks/streaming_loudness_compliance/export_result.sh"
+  },
+  "metadata": {
+    "platforms": {
+      "spotify": {
+        "target_lufs": -14.0,
+        "codec": "mp3",
+        "sample_rate": 44100
+      },
+      "apple": {
+        "target_lufs": -16.0,
+        "codec": "aac",
+        "sample_rate": 44100
+      },
+      "youtube": {
+        "target_lufs": -13.0,
+        "codec": "opus",
+        "sample_rate": 48000
+      }
+    },
+    "tolerance_lufs": 1.5,
+    "source_tracks": [
+      "track_01_overture.wav",
+      "track_02_nocturne.wav",
+      "track_03_pulse.wav",
+      "track_04_finale.wav"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_streaming_loudness_compliance"
+    }
+  }
+}

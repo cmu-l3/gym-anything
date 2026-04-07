@@ -1,0 +1,45 @@
+{
+    "task_id": "configure_shared_workspace@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "group_name",
+            "metadata_value": "creative_team",
+            "verified_value": "creative_team",
+            "source": "task.json description explicitly states 'Create a new Unix group named creative_team' and confirmed in setup_task.sh, export_result.sh, and verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "target_users",
+            "metadata_value": "[\"jordan\", \"alex\"]",
+            "verified_value": "[\"jordan\", \"alex\"]",
+            "source": "task.json description states 'Add the existing users jordan and alex to this group' and confirmed in setup_task.sh (creates both users) and export_result.sh (checks membership for both)",
+            "status": "verified"
+        },
+        {
+            "key": "directory_path",
+            "metadata_value": "/home/acmecorp/campaign_2026",
+            "verified_value": "/home/acmecorp/campaign_2026",
+            "source": "task.json description states 'Create a shared directory at /home/acmecorp/campaign_2026' and confirmed in setup_task.sh (cleanup removes this path) and export_result.sh (checks directory at this path)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_permissions",
+            "metadata_value": "2770",
+            "verified_value": "2770",
+            "source": "Derived from task.json requirements: SetGID bit (2xxx) + owner rwx (7) + group rwx (7) + others no access (0). Verified against verifier.py logic which checks group_digit==7, other_digit==0, and SetGID bit presence. export_result.sh extracts octal permissions and checks SetGID bit (^2 pattern or rws in human-readable format)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_group_owner",
+            "metadata_value": "creative_team",
+            "verified_value": "creative_team",
+            "source": "task.json description states 'The directory is owned by user acmecorp and group creative_team' and confirmed in export_result.sh which checks DIR_GROUP=$(stat -c '%G' \"$DIR_PATH\") and verifier.py which validates owner_group == 'creative_team'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task configures a shared workspace for Acme Corp's creative team. A Unix group named 'creative_team' must be created with users 'jordan' and 'alex' as members. A directory at '/home/acmecorp/campaign_2026' must be created and configured with ownership by user 'acmecorp' and group 'creative_team'. Directory permissions must be set to octal 2770 (rwxrwx--- with SetGID bit enabled) to ensure group-inherited ownership of new files created within the directory. The SetGID bit is critical for ensuring files created by group members automatically inherit the 'creative_team' group ownership rather than the creator's primary group.",
+    "pi_confidence": "high"
+}

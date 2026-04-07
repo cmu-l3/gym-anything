@@ -1,0 +1,59 @@
+{
+  "task_id": "container_security_hardening@1",
+  "task_completion": [
+    {
+      "id": "open_configuration_files",
+      "description": "Agent opens the Dockerfile and docker-compose.yml files for editing.",
+      "points": 10,
+      "visual_evidence": "Visual evidence of a text editor (e.g., nano, vim, VS Code) or terminal output showing the contents of Dockerfile and docker-compose.yml in the /home/ga/insecure-app/ directory."
+    },
+    {
+      "id": "dockerfile_user_directive",
+      "description": "Agent adds a USER directive to the Dockerfile to prevent running as root.",
+      "points": 15,
+      "visual_evidence": "Visual evidence of the Dockerfile being edited to include a 'USER' directive (e.g., 'USER appuser', 'USER nginx', or a specific UID)."
+    },
+    {
+      "id": "docker_compose_security_fixes",
+      "description": "Agent removes privileged mode and the Docker socket mount from docker-compose.yml.",
+      "points": 20,
+      "visual_evidence": "Visual evidence of docker-compose.yml being edited to remove or comment out 'privileged: true' and the volume mount for '/var/run/docker.sock'."
+    },
+    {
+      "id": "docker_compose_resource_limits",
+      "description": "Agent adds CPU and memory resource limits to docker-compose.yml.",
+      "points": 15,
+      "visual_evidence": "Visual evidence of docker-compose.yml being edited to include resource limits (e.g., 'mem_limit', 'cpus', or a 'deploy.resources.limits' block)."
+    },
+    {
+      "id": "rebuild_and_redeploy",
+      "description": "Agent rebuilds the container image with the required tag and redeploys it.",
+      "points": 20,
+      "visual_evidence": "Terminal output showing 'docker build -t secure-web:hardened .' (or similar) followed by 'docker-compose up -d' or 'docker run' to deploy the new image."
+    },
+    {
+      "id": "verify_application_running",
+      "description": "Agent verifies the application is functional on port 8090.",
+      "points": 20,
+      "visual_evidence": "Terminal output showing a successful 'curl localhost:8090', a web browser displaying the application at 'http://localhost:8090', or 'docker ps' showing the container running and mapped to port 8090."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_file_modification",
+      "description": "Agent actually modified and saved the configuration files.",
+      "visual_evidence": "Look for standard save actions in text editors or valid sed/awk commands, rather than just printing the desired text to the console without saving."
+    },
+    {
+      "id": "genuine_rebuild",
+      "description": "Agent genuinely rebuilt the Docker image and restarted the container.",
+      "visual_evidence": "Look for actual Docker build logs and container startup messages, ensuring the agent didn't just print fake success messages."
+    },
+    {
+      "id": "no_direct_container_exec",
+      "description": "Agent fixed the configuration files rather than temporarily modifying a running container.",
+      "visual_evidence": "Ensure the agent did not use 'docker exec' to change settings inside the running container, which would not persist or satisfy the requirement to fix the Dockerfile and docker-compose.yml."
+    }
+  ],
+  "privileged_info_for_vlm": "The application is located at /home/ga/insecure-app. There are exactly 4 security violations to fix: (1) missing USER directive in Dockerfile, (2) Docker socket mounted at /var/run/docker.sock in docker-compose.yml, (3) privileged:true mode in docker-compose.yml, and (4) missing resource limits (memory/CPU) in docker-compose.yml. The hardened image must be rebuilt and tagged as 'secure-web:hardened', and the redeployed application must be accessible on port 8090."
+}

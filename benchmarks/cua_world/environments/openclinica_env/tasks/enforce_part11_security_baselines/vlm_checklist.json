@@ -1,0 +1,59 @@
+{
+  "task_id": "enforce_part11_security_baselines@1",
+  "task_completion": [
+    {
+      "id": "update_password_length",
+      "description": "Verify the minimum password length is set to 12 in the OpenClinica configuration file.",
+      "points": 15,
+      "visual_evidence": "Look for a terminal showing a text editor (like nano or vim) or a command output (like cat or grep) displaying the contents of '/usr/local/tomcat/webapps/OpenClinica/WEB-INF/classes/datainfo.properties' inside the 'oc-app' container, with a property for password length (e.g., passwd.length.min) set to 12."
+    },
+    {
+      "id": "update_password_expiration",
+      "description": "Verify the password expiration is set to 90 days in the OpenClinica configuration file.",
+      "points": 15,
+      "visual_evidence": "Look for a terminal showing the 'datainfo.properties' file being edited or viewed, with a property for password expiration (e.g., passwd.expiration.days) explicitly set to 90."
+    },
+    {
+      "id": "update_support_email",
+      "description": "Verify the support email is set to 'audit-support@clinical-trials.org' in the OpenClinica configuration file.",
+      "points": 15,
+      "visual_evidence": "Look for a terminal showing the 'datainfo.properties' file being edited or viewed, with the support email property (e.g., support.email) set to 'audit-support@clinical-trials.org'."
+    },
+    {
+      "id": "update_db_mrivera",
+      "description": "Verify the database was updated to force a password reset for user 'mrivera'.",
+      "points": 25,
+      "visual_evidence": "Look for a terminal showing interaction with the 'oc-postgres' database (e.g., using psql). There should be an UPDATE SQL statement targeting the 'user_account' table for the user 'mrivera', setting their password timestamp/date to a value at least 90 days in the past, followed by a success confirmation (e.g., 'UPDATE 1')."
+    },
+    {
+      "id": "restart_application",
+      "description": "Verify the OpenClinica application container was restarted to apply the new configurations.",
+      "points": 15,
+      "visual_evidence": "Look for a terminal command executing a restart of the application container, such as 'docker restart oc-app', and returning the container name as confirmation."
+    },
+    {
+      "id": "verify_app_accessible",
+      "description": "Verify the OpenClinica application is accessible after the restart.",
+      "points": 15,
+      "visual_evidence": "Look for a web browser window open to the OpenClinica application URL (typically localhost:8080/OpenClinica), successfully displaying the login screen or application interface without connection errors."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_container_interaction",
+      "description": "Ensure the agent actually modified the file inside the correct Docker container.",
+      "visual_evidence": "Check that the file edits were performed via 'docker exec' into the 'oc-app' container, rather than modifying a local dummy file on the host machine."
+    },
+    {
+      "id": "genuine_db_update",
+      "description": "Ensure the SQL update command was actually executed against the database.",
+      "visual_evidence": "Look for the PostgreSQL prompt and execution confirmation (like 'UPDATE 1') rather than just typing the command into a text editor or leaving it unexecuted in the prompt."
+    },
+    {
+      "id": "genuine_app_access",
+      "description": "Ensure the application access check is genuine.",
+      "visual_evidence": "The web browser should show the actual OpenClinica interface loaded from the local server (check the address bar), not a static image, a search results page, or an error page."
+    }
+  ],
+  "privileged_info_for_vlm": "Target user is 'mrivera'. Expected minimum password length is 12. Expected password expiration is 90 days. Expected support email is 'audit-support@clinical-trials.org'. The database update must target the 'user_account' table for 'mrivera' and set the password timestamp to a date at least 90 days in the past to trigger immediate expiration."
+}

@@ -1,0 +1,28 @@
+{
+  "id": "trim_supplier_prefix_from_barcode@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "Configure bcWebCam to automatically remove the first 4 characters of scanned barcodes, then scan the provided shipping label and save the correctly trimmed output.\n\nGoal: Strip the 'FAC-' prefix from the supplier barcode so only the product ID remains.\n\nStarting State:\n- bcWebCam is running.\n- A high-resolution photograph of a real industrial shipping label (containing the Code-128 barcode 'FAC-889012345K') is opened in the Windows image viewer on screen. bcWebCam can scan this directly from the display or via the virtual camera.\n\nExpected Actions:\n1. Access the settings/configuration menu in bcWebCam.\n2. Navigate to the data formatting or character stripping section.\n3. Locate the specific setting to 'Remove leading characters', 'Strip from start', or 'Trim prefix'.\n4. Set the trim value to exactly 4.\n5. Apply and save the configuration.\n6. Return to the main window and allow the application to scan the provided barcode.\n7. Copy the resulting scanned output.\n8. Save the output string into a NEW text file at C:\\workspace\\data\\trimmed_output.txt.\n\nFinal State:\n- The application configuration reflects a 4-character trim rule for the start of the barcode.\n- A file named 'trimmed_output.txt' exists in C:\\workspace\\data\\ and contains exactly the string '889012345K'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\trim_supplier_prefix_from_barcode\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\trim_supplier_prefix_from_barcode\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_output_path": "C:\\workspace\\data\\trimmed_output.txt",
+    "expected_raw_barcode": "FAC-889012345K",
+    "expected_trimmed_barcode": "889012345K",
+    "trim_amount": 4
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_trim_supplier_prefix"
+    }
+  }
+}

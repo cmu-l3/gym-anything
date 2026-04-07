@@ -1,0 +1,66 @@
+# AcmeCorp Production Security Audit - Container Configuration
+# Three containers running with security misconfigurations.
+# Security Engineer must identify ALL issues and create remediated replacements.
+#
+# SECURITY ISSUES (agent must discover all):
+#   Container 1 (acme-webapp): Running with dangerous capabilities (SYS_ADMIN, NET_ADMIN)
+#                               that are not required for a web application.
+#   Container 2 (acme-gateway): Contains hardcoded sensitive credentials in
+#                               environment variables (violates secret management policy).
+#   Container 3 (acme-monitor): Has a dangerous bind mount of /etc from the host,
+#                               exposing all host configuration files to the container.
+
+version: "3.9"
+
+services:
+  # Container 1: Web application with excessive capabilities
+  acme-webapp:
+    image: nginx:1.24-alpine
+    container_name: acme-webapp
+    cap_add:
+      - SYS_ADMIN    # SECURITY ISSUE: not needed for nginx
+      - NET_ADMIN    # SECURITY ISSUE: not needed for nginx
+      - SYS_PTRACE   # SECURITY ISSUE: not needed for nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./webapp/html:/usr/share/nginx/html:ro
+    networks:
+      - acme-net
+
+  # Container 2: API gateway with hardcoded secrets
+  acme-gateway:
+    image: python:3.11-slim
+    container_name: acme-gateway
+    environment:
+      # SECURITY ISSUE: Secrets hardcoded in environment variables
+      DATABASE_PASSWORD: "Sup3rS3cr3t_ProdDB_2024!"
+      AWS_ACCESS_KEY_ID: "AKIAIOSFODNN7EXAMPLE"
+      AWS_SECRET_ACCESS_KEY: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+      STRIPE_SECRET_KEY: "sk_live_51EXAMPLEKEYNOTREAL000000"
+      INTERNAL_API_TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.EXAMPLE"
+      # These non-sensitive vars are fine:
+      PORT: "5000"
+      LOG_LEVEL: "info"
+    ports:
+      - "5000:5000"
+    networks:
+      - acme-net
+    command: ["python", "-c", "import http.server, socketserver; socketserver.TCPServer(('',5000), http.server.SimpleHTTPRequestHandler).serve_forever()"]
+
+  # Container 3: Monitoring agent with dangerous host mount
+  acme-monitor:
+    image: alpine:3.18
+    container_name: acme-monitor
+    volumes:
+      # SECURITY ISSUE: Mounting /etc from host gives container full access to host config
+      - /etc:/host-etc:ro
+      # This legitimate mount is fine:
+      - ./monitor/config.yml:/app/config.yml:ro
+    networks:
+      - acme-net
+    command: ["sh", "-c", "while true; do echo 'monitoring...'; sleep 30; done"]
+
+networks:
+  acme-net:
+    driver: bridge

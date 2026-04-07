@@ -1,0 +1,32 @@
+{
+  "id": "spectral_variability_mapping@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "Process the 4-band Landsat multispectral GeoTIFF located at ~/snap_data/landsat_multispectral.tif, where bands 1 through 4 represent SWIR1, NIR, Red, and Green. Create three new derived bands named exactly 'spectral_mean', 'spectral_range', and 'nir_deviation'. The 'spectral_mean' band must compute the pixel-wise average of all 4 bands: (band_1 + band_2 + band_3 + band_4) / 4.0. The 'spectral_range' band must compute the pixel-wise range (max minus min) across all 4 bands: max(max(band_1, band_2), max(band_3, band_4)) - min(min(band_1, band_2), min(band_3, band_4)). The 'nir_deviation' band must compute the normalized NIR departure from the spectral mean: (band_2 - spectral_mean) / spectral_mean. Save the final product in BEAM-DIMAP format to ~/snap_exports/spectral_variability.dim and export it as a GeoTIFF to ~/snap_exports/spectral_variability.tif.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/spectral_variability_mapping/setup_task.sh",
+    "post_task": "/workspace/tasks/spectral_variability_mapping/export_result.sh"
+  },
+  "metadata": {
+    "data_file": "/home/ga/snap_data/landsat_multispectral.tif",
+    "export_dir": "/home/ga/snap_exports",
+    "expected_bands": [
+      "spectral_mean",
+      "spectral_range",
+      "nir_deviation"
+    ],
+    "min_geotiff_size": 51200
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_spectral_variability_mapping"
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+    "task_id": "enable_legacy_utm_tracking@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "config_path",
+            "metadata_value": "/var/www/html/config/config.ini.php",
+            "verified_value": "/var/www/html/config/config.ini.php",
+            "source": "Matomo Docker official image documentation and docker-compose.yml mappings.",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.campaign_var_name",
+            "metadata_value": "[\"pk_campaign\", \"utm_campaign\"]",
+            "verified_value": "\"pk_cpn,pk_campaign,piwik_campaign,mtm_campaign,matomo_campaign,utm_campaign,utm_source,utm_medium\"",
+            "source": "Matomo Core source code (config/global.ini.php) reveals that 'campaign_var_name' already defaults to including 'utm_campaign', contradicting the premise that it must be manually added.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_params.campaign_keyword_var_name",
+            "metadata_value": "[\"pk_kwd\", \"utm_term\"]",
+            "verified_value": "\"pk_kwd,pk_keyword,piwik_kwd,mtm_kwd,mtm_keyword,matomo_kwd,utm_term\"",
+            "source": "Matomo Core source code (config/global.ini.php) reveals that 'campaign_keyword_var_name' already defaults to including 'utm_term'.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_params.campaign_source_var_name",
+            "metadata_value": "[\"pk_source\", \"utm_source\"]",
+            "verified_value": null,
+            "source": "Matomo GitHub repository search. The key 'campaign_source_var_name' does not exist in Matomo. The correct setting is 'campaign_source' under the '[MarketingCampaignsReporting]' section, not '[Tracker]'.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_params.campaign_medium_var_name",
+            "metadata_value": "[\"pk_medium\", \"utm_medium\"]",
+            "verified_value": null,
+            "source": "Matomo GitHub repository search. The key 'campaign_medium_var_name' is fabricated. The correct setting is 'campaign_medium' under '[MarketingCampaignsReporting]'.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_params.campaign_content_var_name",
+            "metadata_value": "[\"pk_content\", \"utm_content\"]",
+            "verified_value": null,
+            "source": "Matomo GitHub repository search. The key 'campaign_content_var_name' is fabricated. The correct setting is 'campaign_content' under '[MarketingCampaignsReporting]'.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_params.campaign_id_var_name",
+            "metadata_value": "[\"pk_id\", \"utm_id\"]",
+            "verified_value": null,
+            "source": "Matomo GitHub repository search. The key 'campaign_id_var_name' is fabricated. The correct setting is 'campaign_id' under '[MarketingCampaignsReporting]'.",
+            "status": "contradicted"
+        },
+        {
+            "key": "scoring_weights",
+            "metadata_value": "{\"campaign_name\": 15, \"campaign_source\": 15, \"campaign_medium\": 15, \"campaign_keyword\": 15, \"campaign_content\": 15, \"campaign_id\": 10, \"defaults_preserved\": 15}",
+            "verified_value": "{\"campaign_name\": 15, \"campaign_source\": 15, \"campaign_medium\": 15, \"campaign_keyword\": 15, \"campaign_content\": 15, \"campaign_id\": 10, \"defaults_preserved\": 15}",
+            "source": "verifier.py internal logic.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task asks the agent to add missing Google Analytics UTM parameters to Matomo's `[Tracker]` configuration. However, Matomo's source code explicitly shows that `utm_campaign` and `utm_term` are already tracked by default under `campaign_var_name` and `campaign_keyword_var_name`. Furthermore, the task and verifier completely fabricate four configuration keys (`campaign_source_var_name`, `campaign_medium_var_name`, `campaign_content_var_name`, `campaign_id_var_name`) which do not exist in Matomo; the actual parameters (e.g., `campaign_source`) belong under the `[MarketingCampaignsReporting]` section, not `[Tracker]`. The agent must inject hallucinated keys to pass the verifier.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,49 @@
+{
+  "id": "litigation_email_triage@1",
+  "version": "1.0",
+  "env_id": "thunderbird_env@0.1",
+  "description": "You are a paralegal at Whitmore & Associates managing emails for the active \"Meridian Corp v. Apex Industries\" litigation. Your inbox has 15 emails, most with generic subjects like \"Re: Follow-up\", \"Documents Attached\", or \"FYI\" that do not indicate the category. You must read each email's body to classify it.\n\nCreate a folder called \"Meridian_v_Apex\" under Local Folders with three subfolders: \"Pleadings\" (court filings and motions), \"Discovery\" (document requests, depositions, interrogatories), and \"Billing\" (invoices and cost reports). Read each email and move it to the correct subfolder based on its body content. Leave the two non-case emails (firm-wide announcements) in the Inbox. Note: several senders have emails across multiple categories, so you cannot route by sender alone.\n\nSet up two message filters for ongoing case email management:\n1. \"Discovery Alerts\": If Subject contains \"Interrogatory\" OR Subject contains \"Deposition\" OR Subject contains \"Document Request\" then move to Meridian_v_Apex/Discovery and tag as Important.\n2. \"Billing Auto-File\": If From contains \"@legalcosts\" AND Subject does NOT contain \"URGENT\" then move to Meridian_v_Apex/Billing and mark as Read.\n\nAdd opposing counsel Rebecca Torres to the address book using the contact details found in her email signature (name, title, firm, email, and phone number).\n\nFinally, draft a reply to Torres's supplemental document request email, acknowledging receipt and confirming your team will provide the requested documents by the deadline stated in her email. Save the draft without sending.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/litigation_email_triage/setup_task.sh",
+    "post_task": "/workspace/tasks/litigation_email_triage/export_result.sh"
+  },
+  "metadata": {
+    "parent_folder": "Meridian_v_Apex",
+    "subfolders": [
+      "Pleadings",
+      "Discovery",
+      "Billing"
+    ],
+    "pleadings_email_count": 5,
+    "discovery_email_count": 5,
+    "billing_email_count": 3,
+    "non_case_email_count": 2,
+    "total_emails": 15,
+    "contact_name": "Rebecca Torres",
+    "contact_email": "r.torres@kline-harris.com",
+    "contact_firm": "Kline & Harris LLP",
+    "contact_title": "Senior Partner",
+    "contact_phone": "(555) 234-5678",
+    "filter_1_name": "Discovery Alerts",
+    "filter_1_type": "OR",
+    "filter_1_conditions": ["Interrogatory", "Deposition", "Document Request"],
+    "filter_2_name": "Billing Auto-File",
+    "filter_2_type": "AND",
+    "filter_2_conditions_from": "@legalcosts",
+    "filter_2_conditions_subject_not": "URGENT",
+    "draft_recipient": "r.torres@kline-harris.com",
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_litigation_email_triage"
+    }
+  }
+}

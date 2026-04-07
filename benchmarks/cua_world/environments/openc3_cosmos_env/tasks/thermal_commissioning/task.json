@@ -1,0 +1,34 @@
+{
+  "id": "thermal_commissioning@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a thermal subsystem engineer performing commissioning verification for the INST satellite's thermal monitoring system in OpenC3 COSMOS. The previous shift's commissioning attempt was interrupted and the system may be in a partially-configured state. Audit the full system state (interfaces, telemetry, and limit health across INST and INST2) and resolve any pre-existing issues you discover. Then empirically characterize all four temperature sensors (TEMP1, TEMP2, TEMP3, TEMP4) in the INST HEALTH_STATUS packet by collecting at least 20 temporally-spaced observations. From these observations, compute per-sensor statistics (min, max, mean, population standard deviation) and derive operational limits: YELLOW at mean +/- 3*stddev, RED at mean +/- 4*stddev. Apply the computed limits to all four sensors and verify no false alarms occur over at least 30 seconds of monitoring. Write the commissioning report to /home/ga/Desktop/commissioning_report.json following the schema in the commissioning briefing on the Desktop. OpenC3 password: Cosmos2024!",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/thermal_commissioning/setup_task.sh",
+    "pre_task_timeout": 180,
+    "post_task": "/workspace/tasks/thermal_commissioning/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/thermal_commissioning_result.json",
+    "output_file": "/home/ga/Desktop/commissioning_report.json",
+    "target": "INST",
+    "packet": "HEALTH_STATUS",
+    "sensors": ["TEMP1", "TEMP2", "TEMP3", "TEMP4"],
+    "min_observations": 20,
+    "limit_yellow_sigma": 3,
+    "limit_red_sigma": 4,
+    "temp3_override_value": 85.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_thermal_commissioning"
+    }
+  }
+}

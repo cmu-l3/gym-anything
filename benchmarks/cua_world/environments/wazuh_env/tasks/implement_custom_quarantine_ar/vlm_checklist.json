@@ -1,0 +1,59 @@
+{
+  "task_id": "implement_custom_quarantine_ar@1",
+  "task_completion": [
+    {
+      "id": "create_quarantine_script",
+      "description": "Create the Active Response script at the specified path with logic to move and rename files.",
+      "points": 20,
+      "visual_evidence": "Terminal showing a text editor (e.g., nano, vim) or 'cat' output of '/var/ossec/active-response/bin/quarantine.sh' containing script logic that moves files to '/home/ga/quarantine' and appends the '.suspect' extension."
+    },
+    {
+      "id": "set_script_permissions",
+      "description": "Set the permissions of the Active Response script to 750.",
+      "points": 10,
+      "visual_evidence": "Terminal showing the execution of 'chmod 750 /var/ossec/active-response/bin/quarantine.sh' or 'ls -l' output displaying '-rwxr-x---' for the script."
+    },
+    {
+      "id": "set_script_ownership",
+      "description": "Set the ownership of the Active Response script to root:wazuh.",
+      "points": 10,
+      "visual_evidence": "Terminal showing the execution of 'chown root:wazuh /var/ossec/active-response/bin/quarantine.sh' or 'ls -l' output displaying 'root wazuh' as the owner and group for the script."
+    },
+    {
+      "id": "configure_directory_monitoring",
+      "description": "Configure Wazuh to monitor the source directory in real-time.",
+      "points": 20,
+      "visual_evidence": "Terminal showing a text editor modifying a Wazuh configuration file (e.g., /var/ossec/etc/ossec.conf) to include a syscheck block like '<directories realtime=\"yes\">/home/ga/contracts</directories>'."
+    },
+    {
+      "id": "create_custom_rule",
+      "description": "Create a custom Wazuh rule with the specified ID to detect new files.",
+      "points": 20,
+      "visual_evidence": "Terminal showing a text editor modifying a Wazuh rules file (e.g., /var/ossec/etc/rules/local_rules.xml) to include a rule definition with 'id=\"100550\"'."
+    },
+    {
+      "id": "configure_active_response",
+      "description": "Configure the Wazuh Active Response to trigger the script based on the custom rule.",
+      "points": 20,
+      "visual_evidence": "Terminal showing a text editor modifying a Wazuh configuration file (e.g., ossec.conf) to include '<command>' and '<active-response>' blocks that explicitly reference the quarantine script and rule ID 100550."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_configuration",
+      "description": "Verify the agent actually edited the configuration files using a text editor or valid shell commands.",
+      "visual_evidence": "Look for genuine use of editors like nano/vim or commands like sed/echo appending to files, rather than just printing the expected XML to the terminal without saving it."
+    },
+    {
+      "id": "no_manual_quarantine",
+      "description": "Verify the agent did not manually move files to fake the active response.",
+      "visual_evidence": "Ensure there are no 'mv /home/ga/contracts/* /home/ga/quarantine/' commands executed directly in the terminal by the agent to simulate the automated system."
+    },
+    {
+      "id": "authentic_script_creation",
+      "description": "Verify the agent wrote a functional script for the active response.",
+      "visual_evidence": "The script contents shown in the terminal should contain actual programming logic (e.g., bash or python reading Wazuh JSON alerts) rather than just being an empty file or containing placeholder text."
+    }
+  ],
+  "privileged_info_for_vlm": "The monitored source directory is /home/ga/contracts. The destination quarantine directory is /home/ga/quarantine. The custom rule ID must be 100550. The Active Response script must be located at /var/ossec/active-response/bin/quarantine.sh and append the .suspect extension to quarantined files."
+}

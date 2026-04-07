@@ -1,0 +1,29 @@
+{
+  "id": "docker_dynamic_loadbalancer@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are a DevOps engineer responsible for the AcmeCorp proxy service. The current Nginx configuration is static and fails to route traffic to backend containers. Automate the configuration updates by creating and running a Python script at `~/projects/acme-proxy/sync_lb.py`. The script must detect all running containers with the label `role=backend` on the `acme-net` network, extract their internal IP addresses, and generate a valid `nginx.conf` at `nginx/nginx.conf` using the `nginx/nginx.conf.template` by replacing the `{{UPSTREAMS}}` placeholder with `server <IP>:5000;` entries. The script should also reload the Nginx container to apply the changes and be designed to handle dynamic changes in the container stack.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_dynamic_loadbalancer/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_dynamic_loadbalancer/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/acme-proxy",
+    "script_path": "/home/ga/projects/acme-proxy/sync_lb.py",
+    "nginx_conf_path": "/home/ga/projects/acme-proxy/nginx/nginx.conf",
+    "target_label": "role=backend",
+    "verification_probe_name": "acme-verification-probe"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dynamic_loadbalancer"
+    }
+  }
+}

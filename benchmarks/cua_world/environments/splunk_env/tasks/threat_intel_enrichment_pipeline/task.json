@@ -1,0 +1,37 @@
+{
+  "id": "threat_intel_enrichment_pipeline@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Your security team needs a threat intelligence enrichment pipeline in Splunk (http://localhost:8000, admin/SplunkAdmin1!). Analyze failed authentication attempts ('Failed password') in the security_logs index, aggregate by source IP, and classify each IP's threat level: 'critical' (count > 500), 'high' (count > 100), 'medium' (count > 20), or 'low' (otherwise). Save the results — with fields src_ip, attempt_count, and threat_level — as a CSV lookup file named threat_intel.csv. Create a file-based lookup definition named threat_intel_lookup in the search app pointing to threat_intel.csv. Create an automatic lookup named threat_auto_enrich on sourcetype linux_secure that uses threat_intel_lookup, matching src_ip as both input and lookup field, outputting threat_level and attempt_count. Build a Classic Dashboard named Threat_Intelligence_Monitor with a time range picker and at least three panels: a table of recent security_logs events enriched with threat_level and attempt_count, a timechart of event counts by threat_level over time, and a stats table showing top 10 source IPs ranked by attempt_count with their threat classification. Create a scheduled alert named Critical_Threat_Activity (cron: */15 * * * *) that triggers on events in security_logs from IPs classified as threat_level='critical'.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/threat_intel_enrichment_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/threat_intel_enrichment_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "lookup_filename": "threat_intel.csv",
+    "lookup_definition_name": "threat_intel_lookup",
+    "auto_lookup_name": "threat_auto_enrich",
+    "dashboard_name": "Threat_Intelligence_Monitor",
+    "alert_name": "Critical_Threat_Activity",
+    "target_index": "security_logs",
+    "target_sourcetype": "linux_secure",
+    "expected_cron": "*/15 * * * *",
+    "min_panels": 3,
+    "threat_levels": ["critical", "high", "medium", "low"],
+    "threat_thresholds": {"critical": 500, "high": 100, "medium": 20},
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_threat_intel_enrichment_pipeline"
+    }
+  }
+}

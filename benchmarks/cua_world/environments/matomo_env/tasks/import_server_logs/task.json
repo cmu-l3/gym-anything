@@ -1,0 +1,37 @@
+{
+  "id": "import_server_logs@1",
+  "version": "1.0",
+  "env_id": "matomo_env@0.1",
+  "description": "A server configuration issue caused JavaScript tracking to fail for the last week. Recover the lost traffic data by importing the Apache access logs (/home/ga/Documents/access_logs/apache_access.log) into Matomo Site ID 1 (http://localhost/) using the provided import tool (/home/ga/tools/import_logs.py) and auth token (/home/ga/tools/auth_token.txt). The import must include the recording of HTTP errors and redirects. Once the import is complete, trigger the archiving process so the data is visible in the dashboard. Record the total number of successfully imported visits in a text file at /home/ga/Documents/access_logs/import_result.txt.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/import_server_logs/setup_task.sh",
+    "post_task": "/workspace/tasks/import_server_logs/export_result.sh"
+  },
+  "metadata": {
+    "expected_min_visits": 100,
+    "expected_site_id": 1,
+    "log_file_path": "/home/ga/Documents/access_logs/apache_access.log",
+    "result_file_path": "/home/ga/Documents/access_logs/import_result.txt",
+    "scoring_weights": {
+      "visits_imported": 30,
+      "high_volume_bonus": 10,
+      "actions_created": 15,
+      "timestamps_correct": 15,
+      "tracking_fields_present": 10,
+      "result_file_exists": 10,
+      "result_file_accuracy": 10
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_import_server_logs"
+    }
+  }
+}

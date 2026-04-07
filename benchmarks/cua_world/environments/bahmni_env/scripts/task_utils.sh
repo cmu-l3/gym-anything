@@ -13,11 +13,9 @@ SEED_MANIFEST_FILE="/tmp/bahmni_seed_manifest.json"
 BAHMNI_ADMIN_USERNAME="superman"
 BAHMNI_ADMIN_PASSWORD="Admin123"
 
-# Use Epiphany browser (consistent with post_start warmup).
-# Epiphany renders Bahmni's Angular JS app correctly.
-# XAUTHORITY must be set to the GDM keyring path (not ~/.Xauthority which is empty).
-XAUTHORITY_PATH="/run/user/1000/gdm/Xauthority"
-BROWSER_CMD="epiphany-browser"
+# Use Firefox browser (consistent with post_start warmup and rancher_env pattern).
+# Firefox with certutil cert import reliably handles self-signed certs.
+BROWSER_CMD="firefox"
 
 log() {
   echo "[bahmni_task] $*"
@@ -61,7 +59,7 @@ wait_for_window() {
   local elapsed=0
 
   while [ "$elapsed" -lt "$timeout" ]; do
-    if DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -l 2>/dev/null | grep -qi "$window_pattern"; then
+    if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "$window_pattern"; then
       return 0
     fi
     sleep 0.5
@@ -72,18 +70,18 @@ wait_for_window() {
 }
 
 get_browser_window_id() {
-  # Get Epiphany browser window ID (exclude taskbar @!0,0)
-  # Look for Epiphany windows by title (Bahmni, Security, login, home, localhost)
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -l 2>/dev/null \
+  # Get browser window ID (exclude taskbar @!0,0)
+  # Look for browser windows by title (Firefox, Epiphany, Bahmni, etc.)
+  DISPLAY=:1 wmctrl -l 2>/dev/null \
     | awk '{title=""; for(i=4;i<=NF;i++) title=title " " $i; title=substr(title,2); print $1, title}' \
     | grep -iv '@!0,0' \
-    | grep -i 'epiphany\|bahmni\|security\|violation\|openmrs\|localhost\|home\|login' \
+    | grep -i 'firefox\|mozilla\|epiphany\|bahmni\|security\|violation\|openmrs\|localhost\|home\|login' \
     | awk '{print $1; exit}'
 }
 
 get_browser_window_id_any() {
   # Get any non-taskbar window ID (fallback)
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -l 2>/dev/null \
+  DISPLAY=:1 wmctrl -l 2>/dev/null \
     | awk '{title=""; for(i=4;i<=NF;i++) title=title " " $i; title=substr(title,2); print $1, title}' \
     | grep -iv '@!0,0' \
     | grep -v '^$' \
@@ -92,15 +90,15 @@ get_browser_window_id_any() {
 
 focus_window() {
   local window_id="$1"
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -ia "$window_id" 2>/dev/null \
-    || DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -a "$window_id" 2>/dev/null \
+  DISPLAY=:1 wmctrl -ia "$window_id" 2>/dev/null \
+    || DISPLAY=:1 wmctrl -a "$window_id" 2>/dev/null \
     || return 1
   sleep 0.3
   return 0
 }
 
 maximize_active_window() {
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+  DISPLAY=:1 wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
 }
 
 focus_browser() {
@@ -127,22 +125,23 @@ take_screenshot() {
     wid=$(get_browser_window_id_any)
   fi
   if [ -n "$wid" ]; then
-    DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" xwd -id "$wid" -out /tmp/_ss.xwd 2>/dev/null \
+    DISPLAY=:1 xwd -id "$wid" -out /tmp/_ss.xwd 2>/dev/null \
       && convert /tmp/_ss.xwd "$output_file" 2>/dev/null \
       && rm -f /tmp/_ss.xwd 2>/dev/null \
       && return 0
   fi
   # Fallback to root window
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" import -window root "$output_file" 2>/dev/null || \
-    DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" scrot "$output_file" 2>/dev/null || true
+  DISPLAY=:1 import -window root "$output_file" 2>/dev/null || \
+    DISPLAY=:1 scrot "$output_file" 2>/dev/null || true
 }
 
 stop_browser() {
+  pkill -TERM -f 'firefox' 2>/dev/null || true
   pkill -TERM -f 'epiphany' 2>/dev/null || true
 
   local i=0
-  while [ "$i" -lt 20 ]; do
-    if pgrep -f 'epiphany' >/dev/null 2>&1; then
+  while [ "$i" -lt 10 ]; do
+    if pgrep -f 'firefox\|epiphany' >/dev/null 2>&1; then
       sleep 0.5
     else
       break
@@ -150,55 +149,84 @@ stop_browser() {
     i=$((i + 1))
   done
 
-  if pgrep -f 'epiphany' >/dev/null 2>&1; then
-    pkill -KILL -f 'epiphany' 2>/dev/null || true
-    sleep 1
-  fi
+  pkill -KILL -f 'firefox' 2>/dev/null || true
+  pkill -KILL -f 'epiphany' 2>/dev/null || true
+  sleep 1
+
+  # Clean Firefox lock files
+  find /home/ga/.mozilla/firefox/ -name ".parentlock" -delete 2>/dev/null || true
+  find /home/ga/.mozilla/firefox/ -name "lock" -delete 2>/dev/null || true
+  find /home/ga/snap/firefox/ -name ".parentlock" -delete 2>/dev/null || true
+  find /home/ga/snap/firefox/ -name "lock" -delete 2>/dev/null || true
 }
 
 dismiss_ssl_warning() {
-  # Epiphany shows "Security Violation" for Bahmni's self-signed cert.
-  # This function detects and dismisses it by:
-  # 1. Clicking "Technical information" to expand
-  # 2. Clicking "Accept Risk and Proceed"
-  #
-  # Coordinates (for 1850x1053 window, measured via visual_grounding):
-  #   Technical information: actual (707, 706) [VG 489,483 at 1280x720]
-  #   Accept Risk and Proceed: actual (717, 770) [VG 496,527 at 1280x720]
+  # Dismiss Firefox SSL cert warning using mouse clicks.
+  # Coordinates measured from actual 1920x1080 maximized Firefox screenshot:
+  #   "Advanced..." button: center at (1000, 535)
+  #   "Accept the Risk and Continue": center at approximately (570, 670)
 
   local wid
-  wid=$(DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -l 2>/dev/null \
-    | grep -i "Security Violation" \
-    | awk '{print $1; exit}')
-
+  wid=$(get_browser_window_id)
   if [ -z "$wid" ]; then
-    return 0  # No SSL warning present
+    wid=$(get_browser_window_id_any)
+  fi
+  if [ -z "$wid" ]; then
+    return 0  # No browser window
   fi
 
-  log "SSL warning detected, dismissing..."
+  # Focus and maximize the browser
+  focus_window "$wid" || true
+  maximize_active_window
+  sleep 1
 
-  # Focus and maximize the warning window
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -ia "$wid" 2>/dev/null || true
-  sleep 0.3
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
-  sleep 0.5
+  # Get the window title
+  local win_title
+  win_title=$(DISPLAY=:1 wmctrl -l 2>/dev/null | grep -v '@!0,0' \
+    | awk '{for(i=4;i<=NF;i++) printf $i " "; print ""}' | head -1 | xargs)
 
-  # Click "Technical information" to expand (actual: 707, 706)
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" xdotool mousemove --window "$wid" 707 706 click 1 2>/dev/null || true
-  sleep 1.5
-
-  # Click "Accept Risk and Proceed" (actual: 717, 770)
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" xdotool mousemove --window "$wid" 717 770 click 1 2>/dev/null || true
-  sleep 5
-
-  # Verify SSL was dismissed
-  if DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -l 2>/dev/null | grep -qi "Security Violation"; then
-    log "WARNING: SSL warning still visible after dismissal attempt"
-    return 1
+  # If Firefox View is showing (from a previous failed dismiss), click the SSL warning tab
+  if echo "$win_title" | grep -qi "Firefox View"; then
+    log "Firefox View detected, switching to SSL warning tab..."
+    # Click on the first tab (the SSL warning tab) at approximately (160, 65)
+    DISPLAY=:1 xdotool mousemove 160 65 click 1 2>/dev/null || true
+    sleep 2
+    win_title=$(DISPLAY=:1 wmctrl -l 2>/dev/null | grep -v '@!0,0' \
+      | awk '{for(i=4;i<=NF;i++) printf $i " "; print ""}' | head -1 | xargs)
   fi
 
-  log "SSL warning dismissed"
-  return 0
+  # Check if the SSL warning is showing
+  if ! echo "$win_title" | grep -qi "security\|warning\|risk\|error"; then
+    return 0  # No SSL warning
+  fi
+
+  log "SSL warning detected: $win_title"
+  log "Dismissing with mouse clicks..."
+
+  # Coordinates from visual_grounding at 1280x720, scaled ×1.5 to 1920x1080:
+  #   "Advanced..." button: VG (879, 470) → actual (1319, 705)
+
+  # Step 1: Click "Advanced..." button at (1319, 705)
+  DISPLAY=:1 xdotool mousemove 1319 705 click 1 2>/dev/null || true
+  sleep 4
+
+  # Step 2: Click "Accept the Risk and Continue" — estimated ~80-100px below Advanced
+  DISPLAY=:1 xdotool mousemove 1319 800 click 1 2>/dev/null || true
+  sleep 3
+
+  # Verify - if still showing, try alternate positions
+  win_title=$(DISPLAY=:1 wmctrl -l 2>/dev/null | grep -v '@!0,0' \
+    | awk '{for(i=4;i<=NF;i++) printf $i " "; print ""}' | head -1 | xargs)
+  if echo "$win_title" | grep -qi "security\|warning\|risk\|error"; then
+    log "First accept click didn't work, trying alternates..."
+    DISPLAY=:1 xdotool mousemove 1200 790 click 1 2>/dev/null || true
+    sleep 2
+    DISPLAY=:1 xdotool mousemove 1100 810 click 1 2>/dev/null || true
+    sleep 2
+  fi
+
+  log "WARNING: SSL warning may not have been fully dismissed"
+  return 1
 }
 
 navigate_to_url() {
@@ -219,35 +247,47 @@ navigate_to_url() {
     sleep 0.3
   fi
 
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" xdotool key --clearmodifiers ctrl+l 2>/dev/null || true
+  DISPLAY=:1 xdotool key --clearmodifiers ctrl+l 2>/dev/null || true
   sleep 0.5
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" xdotool type --delay 20 --clearmodifiers "$url" 2>/dev/null || true
+  DISPLAY=:1 xdotool type --delay 20 --clearmodifiers "$url" 2>/dev/null || true
   sleep 0.2
-  DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" xdotool key --clearmodifiers Return 2>/dev/null || true
+  DISPLAY=:1 xdotool key --clearmodifiers Return 2>/dev/null || true
 }
 
 start_browser() {
-  # Launch Epiphany at the given URL.
-  # Epiphany does NOT persist SSL cert exceptions across restarts, so we
-  # detect and dismiss the SSL warning every time.
+  # Launch browser at the given URL.
+  # Try Firefox first (proven reliable across all envs), fall back to Epiphany.
   local url="$1"
-  local attempts="${2:-4}"
+  local attempts="${2:-3}"
+
+  # Wait for Bahmni/OpenMRS web service to be ready before launching browser
+  wait_for_bahmni 120 || log "WARNING: Bahmni may not be ready, attempting browser launch anyway"
 
   for attempt in $(seq 1 "$attempts"); do
-    log "Starting Epiphany browser (attempt ${attempt}/${attempts}): $url"
+    log "Starting browser (attempt ${attempt}/${attempts}): $url"
 
+    # Kill any existing browser processes
     stop_browser
-    sleep 1
+    pkill -9 -f firefox 2>/dev/null || true
+    sleep 3
+
+    # Clean Firefox lock files
+    find /home/ga/.mozilla/firefox/ -name ".parentlock" -delete 2>/dev/null || true
+    find /home/ga/.mozilla/firefox/ -name "lock" -delete 2>/dev/null || true
+    find /home/ga/snap/firefox/ -name ".parentlock" -delete 2>/dev/null || true
+    find /home/ga/snap/firefox/ -name "lock" -delete 2>/dev/null || true
+
     rm -f "$BROWSER_LOG_FILE" 2>/dev/null || true
 
-    # Launch Epiphany in the background.
-    # GDK_BACKEND=x11 is required for Epiphany to display on X11 from SSH.
-    bash -c "DISPLAY=:1 XAUTHORITY=${XAUTHORITY_PATH} GDK_BACKEND=x11 epiphany-browser '${url}' > '${BROWSER_LOG_FILE}' 2>&1 &"
+    # Use Firefox (matching proven rancher_env pattern)
+    log "Launching Firefox as ga user"
+    su - ga -c "DISPLAY=:1 setsid firefox '${url}' > '${BROWSER_LOG_FILE}' 2>&1 &"
 
-    # Wait for window to appear (up to 30s)
+    # Wait for window to appear (up to 60s — snap Firefox is slow)
+    sleep 10
     local elapsed=0
     local wid=""
-    while [ "$elapsed" -lt 30 ]; do
+    while [ "$elapsed" -lt 50 ]; do
       wid=$(get_browser_window_id_any)
       if [ -n "$wid" ]; then
         break
@@ -257,8 +297,13 @@ start_browser() {
     done
 
     if [ -z "$wid" ]; then
-      log "Epiphany window did not appear on attempt ${attempt}"
-      tail -5 "$BROWSER_LOG_FILE" 2>/dev/null || true
+      log "Firefox window did not appear on attempt ${attempt}"
+      log "Browser log:"
+      tail -10 "$BROWSER_LOG_FILE" 2>/dev/null || true
+      log "All windows:"
+      DISPLAY=:1 wmctrl -l 2>/dev/null || true
+      log "Firefox processes:"
+      ps aux | grep -i firefox 2>/dev/null | grep -v grep || true
       sleep 2
       continue
     fi
@@ -266,27 +311,57 @@ start_browser() {
     # Focus and maximize
     focus_window "$wid" || true
     maximize_active_window
-    sleep 0.5
+    sleep 2
 
-    # Dismiss SSL warning if present
+    # Check for and dismiss SSL warning if present
     dismiss_ssl_warning
+    sleep 2
 
-    # Wait for Bahmni page to load (up to 20s)
+    # After SSL dismissal, check if we ended up on Firefox View or wrong page
+    local cur_title
+    cur_title=$(DISPLAY=:1 wmctrl -l 2>/dev/null | grep -v '@!0,0' \
+      | awk '{for(i=4;i<=NF;i++) printf $i " "; print ""}' | head -1 | xargs)
+    if echo "$cur_title" | grep -qi "Firefox View\|New Tab\|about:"; then
+      log "On Firefox View/New Tab after SSL dismiss, navigating to $url..."
+      navigate_to_url "$url"
+      sleep 8
+      # May need to dismiss SSL warning again for the new navigation
+      dismiss_ssl_warning
+      sleep 2
+    fi
+
+    # Wait for page to load (up to 30s)
     local page_wait=0
-    while [ "$page_wait" -lt 20 ]; do
+    local ssl_dismiss_attempts=0
+    while [ "$page_wait" -lt 30 ]; do
       local title
-      title=$(DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -l 2>/dev/null \
+      title=$(DISPLAY=:1 wmctrl -l 2>/dev/null \
         | awk '{title=""; for(i=4;i<=NF;i++) title=title " " $i; print title}' \
         | grep -iv '@!0,0' | head -1)
-      if echo "$title" | grep -qi "bahmni\|home\|login\|openmrs"; then
+      # Accept any browser window showing Bahmni/OpenMRS content
+      if echo "$title" | grep -qi "bahmni\|home\|login\|openmrs\|admin"; then
         break
+      fi
+      # If SSL warning still showing, try dismiss (max 2 additional attempts)
+      if echo "$title" | grep -qi "security\|warning\|risk"; then
+        if [ "$ssl_dismiss_attempts" -lt 2 ]; then
+          dismiss_ssl_warning
+          ssl_dismiss_attempts=$((ssl_dismiss_attempts + 1))
+          sleep 3
+        fi
+      fi
+      # Firefox window exists with non-warning title — accept it
+      if echo "$title" | grep -qi "mozilla\|firefox\|localhost"; then
+        if ! echo "$title" | grep -qi "security\|warning\|risk\|error\|Firefox View\|New Tab"; then
+          break
+        fi
       fi
       sleep 1
       page_wait=$((page_wait + 1))
     done
 
     local win_title
-    win_title=$(DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" wmctrl -l 2>/dev/null \
+    win_title=$(DISPLAY=:1 wmctrl -l 2>/dev/null \
       | grep -v '@!0,0' \
       | awk '{for(i=4;i<=NF;i++) printf $i " "; print ""}' \
       | head -1 | xargs)
@@ -340,7 +415,7 @@ get_patient_uuid_by_identifier() {
 
 display_dimensions() {
   local dims
-  dims=$(DISPLAY=:1 XAUTHORITY="${XAUTHORITY_PATH}" xdpyinfo 2>/dev/null | awk '/dimensions:/ {print $2; exit}')
+  dims=$(DISPLAY=:1 xdpyinfo 2>/dev/null | awk '/dimensions:/ {print $2; exit}')
   if [ -z "$dims" ]; then
     echo "1920 1080"
     return 0

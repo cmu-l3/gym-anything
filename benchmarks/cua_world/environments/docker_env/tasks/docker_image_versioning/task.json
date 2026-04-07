@@ -1,0 +1,38 @@
+{
+  "id": "docker_image_versioning@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are a Release Engineer at AcmeCorp. The payment service at '~/projects/acme-payment-service/' fails to start because it expects version metadata missing from the Docker environment. Fix the build pipeline so that every build dynamically injects the current Git metadata into the container. The Dockerfile must be configured to accept build arguments 'BUILD_DATE', 'GIT_SHA', and 'GIT_BRANCH', persisting them as environment variables 'APP_BUILD_DATE', 'APP_REVISION', and 'APP_BRANCH', and as OCI labels 'org.opencontainers.image.created', 'org.opencontainers.image.revision', and 'org.opencontainers.image.source'. Ensure 'build.sh' extracts these values from the Git repository and passes them to the build process. The final image should be named 'acme-payment:latest' and the service should return the correct metadata at 'http://localhost:5000/version'. Login: user 'ga', password 'password123'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_image_versioning/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_image_versioning/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/acme-payment-service",
+    "image_tag": "acme-payment:latest",
+    "required_envs": [
+      "APP_REVISION",
+      "APP_BRANCH",
+      "APP_BUILD_DATE"
+    ],
+    "required_labels": [
+      "org.opencontainers.image.revision",
+      "org.opencontainers.image.source",
+      "org.opencontainers.image.created"
+    ],
+    "endpoint": "http://localhost:5000/version",
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_image_versioning"
+    }
+  }
+}

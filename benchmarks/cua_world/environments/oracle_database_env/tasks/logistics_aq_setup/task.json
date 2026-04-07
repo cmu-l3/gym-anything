@@ -1,0 +1,34 @@
+{
+  "id": "logistics_aq_setup@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A logistics hub needs an asynchronous order processing pipeline. Set up Oracle Advanced Queuing (AQ) in the HR schema (password: hr123) after granting EXECUTE on DBMS_AQ and DBMS_AQADM from SYSTEM (password: OraclePassword123). Define an object type 'ORDER_EVENT_T' with attributes ORDER_ID (NUMBER), CUSTOMER_CODE (VARCHAR2(20)), REGION (VARCHAR2(20)), and PRIORITY (NUMBER). Establish a queue table 'ORDER_EVT_QT' and a started queue 'ORDER_EVT_Q'. Implement a procedure 'ENQUEUE_ORDER' to populate the queue and use it to enqueue five specific orders: (1001, AMZN_PRIME, NA_EAST, 1), (1002, WALMART_US, NA_WEST, 2), (1003, TARGET_HQ, NA_MID, 3), (1004, DHL_EXPRESS, EU_GER, 1), and (1005, FEDEX_INTL, ASIA_JP, 1). Export the ORDER_ID and CUSTOMER_CODE from the 'AQ$ORDER_EVT_QT' view to /home/ga/Desktop/queue_dump.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/logistics_aq_setup/setup_task.sh",
+    "post_task": "/workspace/tasks/logistics_aq_setup/export_result.sh"
+  },
+  "metadata": {
+    "expected_type_name": "ORDER_EVENT_T",
+    "expected_queue_table": "ORDER_EVT_QT",
+    "expected_queue_name": "ORDER_EVT_Q",
+    "expected_procedure": "ENQUEUE_ORDER",
+    "expected_count": 5,
+    "test_data": {
+      "1001": "AMZN_PRIME",
+      "1004": "DHL_EXPRESS"
+    },
+    "output_file": "/home/ga/Desktop/queue_dump.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_logistics_aq_setup"
+    }
+  }
+}

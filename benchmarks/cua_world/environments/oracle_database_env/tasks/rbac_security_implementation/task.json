@@ -1,0 +1,64 @@
+{
+  "id": "rbac_security_implementation@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Implement a Role-Based Access Control (RBAC) security model for the HR schema on localhost:1521/XEPDB1 (system/OraclePassword123, hr/hr123). Create three roles: HR_READONLY with SELECT access on non-sensitive tables (DEPARTMENTS, JOBS, LOCATIONS, COUNTRIES, REGIONS) and the V_EMPLOYEE_PUBLIC view; HR_ANALYST which inherits HR_READONLY plus SELECT on EMPLOYEES, JOB_HISTORY, and V_DEPT_SUMMARY; and HR_MANAGER which inherits HR_ANALYST plus INSERT/UPDATE/DELETE on EMPLOYEES and DEPARTMENTS. Create application users APP_READER (Reader#2024), APP_ANALYST (Analyst#2024), and APP_MANAGER (Manager#2024) and assign them their corresponding roles. Define two secure views in the HR schema: V_EMPLOYEE_PUBLIC (containing EMPLOYEES columns excluding SALARY, COMMISSION_PCT, and MANAGER_ID) and V_DEPT_SUMMARY (containing aggregated department stats: EMPLOYEE_COUNT, MIN_SALARY, MAX_SALARY, and rounded AVG_SALARY). Generate a report listing all created objects at /home/ga/Desktop/security_report.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rbac_security_implementation/setup_task.sh",
+    "post_task": "/workspace/tasks/rbac_security_implementation/export_result.sh"
+  },
+  "metadata": {
+    "roles": [
+      "HR_READONLY",
+      "HR_ANALYST",
+      "HR_MANAGER"
+    ],
+    "users": [
+      {
+        "name": "APP_READER",
+        "pwd": "Reader#2024",
+        "role": "HR_READONLY"
+      },
+      {
+        "name": "APP_ANALYST",
+        "pwd": "Analyst#2024",
+        "role": "HR_ANALYST"
+      },
+      {
+        "name": "APP_MANAGER",
+        "pwd": "Manager#2024",
+        "role": "HR_MANAGER"
+      }
+    ],
+    "views": [
+      {
+        "name": "V_EMPLOYEE_PUBLIC",
+        "forbidden_cols": [
+          "SALARY",
+          "COMMISSION_PCT",
+          "MANAGER_ID"
+        ]
+      },
+      {
+        "name": "V_DEPT_SUMMARY",
+        "required_cols": [
+          "AVG_SALARY",
+          "EMPLOYEE_COUNT"
+        ]
+      }
+    ],
+    "report_path": "/home/ga/Desktop/security_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rbac_security"
+    }
+  }
+}

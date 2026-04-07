@@ -1,0 +1,31 @@
+{
+  "id": "file_size_anomaly_detection@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "A suspect in a corporate espionage case surrendered a USB drive, claiming it contained 'only a few personal notes.' You must analyze the file size distribution across the entire drive (both allocated and deleted files) to determine whether the storage usage pattern is consistent with this claim, or whether large volumes of data were stored and subsequently deleted — suggesting evidence destruction. Create a forensic case named 'Size_Anomaly_2024' (case number 'INV-SZA-007') in Autopsy using the disk image at /home/ga/evidence/ntfs_undel.dd and the 'File Type Identification' ingest module. Generate a pipe-delimited file inventory at /home/ga/Reports/file_size_inventory.csv with the header FILENAME|FULL_PATH|SIZE_BYTES|ALLOCATION_STATUS|FILE_TYPE. Include one row per file (excluding directories, $OrphanFiles, and special filesystem metadata like $MFT or $BadClus), marking ALLOCATION_STATUS as 'ALLOCATED' or 'DELETED'. Finally, write an analytical report to /home/ga/Reports/size_anomaly_report.txt containing sections for TOTAL_FILES, ALLOCATED_FILES, DELETED_FILES, TOTAL_ALLOCATED_BYTES, TOTAL_DELETED_BYTES, DELETED_TO_ALLOCATED_RATIO, ZERO_BYTE_FILES, SIZE_BRACKETS (0 bytes, 1-1023 bytes, 1KB-99KB, 100KB-999KB, 1MB+), LARGEST_FILE, SMALLEST_NONZERO_FILE, and a CONCLUSION assessing the suspect's claim based on the data.",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/file_size_anomaly_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/file_size_anomaly_detection/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Size_Anomaly_2024",
+    "case_number": "INV-SZA-007",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "inventory_file": "/home/ga/Reports/file_size_inventory.csv",
+    "report_file": "/home/ga/Reports/size_anomaly_report.txt",
+    "result_file": "/tmp/size_anomaly_result.json",
+    "gt_file": "/tmp/size_anomaly_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_file_size_anomaly_detection"
+    }
+  },
+  "difficulty": "hard"
+}

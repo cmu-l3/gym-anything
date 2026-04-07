@@ -1,0 +1,32 @@
+{
+  "id": "wind_turbine_power_curve@1",
+  "version": "1.0",
+  "env_id": "rstudio_env@0.1",
+  "difficulty": "hard",
+  "description": "You are a Performance Analyst at a renewable energy utility. You need to assess the operational performance of a 3.6 MW wind turbine using raw SCADA data and estimate its Annual Energy Production (AEP) for a new site.\n\nThe dataset is at /home/ga/RProjects/datasets/turbine_scada.csv with columns: `Date/Time`, `LV ActivePower (kW)`, `Wind Speed (m/s)`, `Theoretical_Power_Curve (KWh)`, and `Wind Direction (°)`. \n\nREQUIREMENTS:\n1. Load the data and clean it. You must filter out:\n   - Invalid data: `LV ActivePower (kW)` < 0\n   - Downtime: `Wind Speed (m/s)` > 3.5 AND `LV ActivePower (kW)` < 50\n   - Curtailment/Anomalies: `LV ActivePower (kW)` < (`Theoretical_Power_Curve (KWh)` - 500)\n\n2. Calculate the Empirical Power Curve using the \"Method of Bins\":\n   - Bin `Wind Speed (m/s)` into 0.5 m/s intervals (e.g., 0-0.5, 0.5-1.0... up to 25.0)\n   - Calculate the mean `LV ActivePower (kW)` for each bin using the cleaned data.\n   - Save this to /home/ga/RProjects/output/empirical_power_curve.csv with exactly two columns: `wind_bin_center` and `mean_power_kw`.\n\n3. Calculate the Estimated Annual Energy Production (AEP) in MWh:\n   - Assume the new site has a Rayleigh wind speed distribution with a mean (v_bar) of 7.0 m/s.\n   - The Rayleigh PDF is: f(v) = (pi * v / (2 * v_bar^2)) * exp(-pi/4 * (v / v_bar)^2)\n   - Calculate the probability of each wind bin.\n   - AEP (MWh) = Sum( Bin Mean Power * Bin Probability * 8760 hours ) / 1000\n   - Save ONLY the final numeric AEP value to /home/ga/RProjects/output/aep_estimation.txt\n\n4. Create a scatter plot showing the cleaned data points, overlaid with your empirical binned power curve as a line. Save it to /home/ga/RProjects/output/power_curve_comparison.png.\n\nWrite and run your R script in /home/ga/RProjects/turbine_analysis.R",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/wind_turbine_power_curve/setup_task.sh",
+    "post_task": "/workspace/tasks/wind_turbine_power_curve/export_result.sh"
+  },
+  "metadata": {
+    "dataset_path": "/home/ga/RProjects/datasets/turbine_scada.csv",
+    "expected_csv_path": "/home/ga/RProjects/output/empirical_power_curve.csv",
+    "expected_txt_path": "/home/ga/RProjects/output/aep_estimation.txt",
+    "expected_plot_path": "/home/ga/RProjects/output/power_curve_comparison.png",
+    "expected_aep_min": 8000,
+    "expected_aep_max": 16000,
+    "optimal_aep_min": 11000,
+    "optimal_aep_max": 13500
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_wind_turbine"
+    }
+  }
+}

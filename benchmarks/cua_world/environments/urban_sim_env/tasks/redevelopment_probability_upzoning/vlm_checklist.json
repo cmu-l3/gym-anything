@@ -1,0 +1,82 @@
+{
+  "task_id": "redevelopment_probability_upzoning@1",
+  "task_completion": [
+    {
+      "id": "open_jupyter_notebook",
+      "description": "Open the specified Jupyter notebook in the Jupyter Lab interface",
+      "points": 5,
+      "visual_evidence": "The Jupyter Lab interface is visible at localhost:8888 with the notebook '/home/ga/urbansim_projects/notebooks/redevelopment_model.ipynb' open."
+    },
+    {
+      "id": "load_and_join_data",
+      "description": "Load all required HDF5 tables and perform the multi-table join including the zoning_for_parcels bridge table",
+      "points": 15,
+      "visual_evidence": "Code cells showing pd.read_hdf loading buildings, parcels, zoning_for_parcels, zoning, and households tables. Join operations visible linking buildings to parcels (on parcel_id), parcels to zoning_for_parcels bridge table, and then to the zoning table to obtain max_far. Households joined through buildings to parcels to zones for zone_median_income."
+    },
+    {
+      "id": "feature_engineering",
+      "description": "Compute the three features: parcel_sqft, zoning_headroom, and zone_median_income",
+      "points": 15,
+      "visual_evidence": "Code computing parcel_sqft = shape_area * 10.764, zoning_headroom = (max_far * parcel_sqft - building_sqft) / (max_far * parcel_sqft) capped to [0,1], and zone_median_income aggregated from households. Code filtering out max_far <= 0, missing building_sqft, and NaN rows. recently_developed flag based on year_built >= 2000."
+    },
+    {
+      "id": "train_logistic_regression",
+      "description": "Train a logistic regression model with 70/30 train/test split and compute AUC",
+      "points": 15,
+      "visual_evidence": "Code cells showing train_test_split with test_size=0.3 and random_state=42, LogisticRegression fitting on parcel_sqft, zoning_headroom, zone_median_income features, and roc_auc_score computation. AUC value printed or displayed."
+    },
+    {
+      "id": "upzoning_scenario",
+      "description": "Create modified features with 50% max_far increase and predict new probabilities",
+      "points": 15,
+      "visual_evidence": "Code modifying max_far by multiplying by 1.5, recomputing zoning_headroom with the new max_far values, and using model.predict_proba on the modified feature set to get scenario predicted probabilities."
+    },
+    {
+      "id": "zone_impact_analysis",
+      "description": "Compute zone-level expected developments for baseline and scenario",
+      "points": 10,
+      "visual_evidence": "Code grouping predictions by zone_id and summing predicted probabilities to get expected_baseline_developments and expected_scenario_developments. development_uplift computed as the difference. Zone-level dataframe visible with these columns."
+    },
+    {
+      "id": "export_model_metrics_json",
+      "description": "Export model metrics to model_metrics.json with all required keys",
+      "points": 5,
+      "visual_evidence": "Code saving a JSON file to '/home/ga/urbansim_projects/output/model_metrics.json' containing auc_score, n_train, n_test, coefficients dictionary mapping feature names to values, and intercept."
+    },
+    {
+      "id": "export_csv",
+      "description": "Export zone development impact to CSV with required columns",
+      "points": 5,
+      "visual_evidence": "Code saving a CSV file to '/home/ga/urbansim_projects/output/zone_development_impact.csv' with columns zone_id, n_buildings, expected_baseline_developments, expected_scenario_developments, development_uplift, zone_median_income."
+    },
+    {
+      "id": "generate_scatter_plot",
+      "description": "Generate scatter plot comparing baseline vs scenario with y=x line and color by uplift",
+      "points": 15,
+      "visual_evidence": "A scatter plot visible in the notebook output showing expected_baseline_developments on one axis and expected_scenario_developments on the other. A diagonal y=x reference line is present. Points are colored by development_uplift magnitude. The plot is saved to '/home/ga/urbansim_projects/output/scenario_comparison_chart.png'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_jupyter_execution",
+      "description": "Verify the agent used Jupyter Lab to write and execute Python code",
+      "visual_evidence": "Execution counts (e.g., [1], [2]) next to code cells in the Jupyter notebook, indicating the code was actually run in the environment rather than mocked via terminal echo commands."
+    },
+    {
+      "id": "authentic_data_processing",
+      "description": "Verify the agent processed the actual UrbanSim dataset, not dummy data",
+      "visual_evidence": "Dataframe previews or shape outputs in the notebook should reflect a large dataset (tens of thousands of rows for buildings), proving the agent did not hardcode a small dummy dataset."
+    },
+    {
+      "id": "authentic_model_training",
+      "description": "Verify a real logistic regression was trained, not hardcoded coefficients",
+      "visual_evidence": "Code cells showing sklearn LogisticRegression import, fit call, and predict_proba calls. The AUC score should be between 0.5 and 1.0 and not a round number like 0.9 or 1.0."
+    },
+    {
+      "id": "authentic_scenario_analysis",
+      "description": "Verify the upzoning scenario modifies max_far and recomputes predictions",
+      "visual_evidence": "Code showing max_far being multiplied by 1.5 (or equivalent), zoning_headroom being recomputed with the new values, and predict_proba being called again on the modified features. The scenario predictions should differ from baseline predictions."
+    }
+  ],
+  "privileged_info_for_vlm": "The dataset at /home/ga/urbansim_projects/data/sanfran_public.h5 contains ~152,605 buildings, ~345,588 households, ~153,341 parcels, ~6,962 zoning records, and ~148,318 zoning_for_parcels bridge records. The zoning_for_parcels table has exactly 1 data column named 'zoning' (linking to the zoning table's index 'id') and its index is named 'parcel' (corresponding to parcels' parcel_id index). After filtering to residential buildings with max_far > 0, the eligible dataset should contain approximately 143,000 rows. The recently_developed flag (year_built >= 2000) identifies only ~2,200 buildings (~1.5%), creating an imbalanced classification. The AUC should be between 0.5 and 1.0 (expect roughly 0.63). The zoning_headroom coefficient in the logistic regression is negative (more headroom correlates with LESS recent development in SF), so the 50% upzoning scenario (max_far * 1.5) will produce negative development_uplift for most zones. The scatter plot should show most points BELOW the y=x line. This is an economically valid finding: in SF, development concentrates in already dense areas, not in areas with unused zoning capacity. The zone-level CSV should have approximately 189 rows. The model_metrics.json should contain 3 coefficient entries (parcel_sqft, zoning_headroom, zone_median_income)."
+}

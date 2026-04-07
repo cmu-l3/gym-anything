@@ -1,0 +1,29 @@
+{
+  "id": "hl7_fragment_aggregator@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a channel named 'Lipid_Panel_Aggregator' to aggregate fragmented HL7 laboratory results. The channel must collect three separate messages for a single order (Cholesterol, HDL, LDL) from '/home/ga/lab_fragments/' and combine them into a single message. Messages are correlated by Order ID (OBR-2) and sequenced via OBR-20. The final message containing all three OBX segments must be written to '/home/ga/aggregated_output/' only after the '3/3' fragment is received. Ensure the three sample files in the input directory result in exactly one aggregated output file.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_fragment_aggregator/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_fragment_aggregator/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Lipid_Panel_Aggregator",
+    "input_dir": "/home/ga/lab_fragments",
+    "output_dir": "/home/ga/aggregated_output",
+    "expected_obx_count": 3,
+    "order_id": "ORD123"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_fragment_aggregator"
+    }
+  }
+}

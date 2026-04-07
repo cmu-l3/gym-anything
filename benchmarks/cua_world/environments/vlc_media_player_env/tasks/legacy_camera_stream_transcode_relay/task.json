@@ -1,0 +1,29 @@
+{
+  "id": "legacy_camera_stream_transcode_relay@1",
+  "version": "1.0",
+  "env_id": "vlc_env@0.1",
+  "description": "You are a warehouse IT administrator. A legacy MPEG-2 IP camera monitoring the loading dock is continuously broadcasting a UDP stream on udp://@127.0.0.1:5000. Our new security system only accepts modern H.264 RTSP streams. Configure a headless VLC relay to ingest the UDP stream, transcode it to H.264 video (800 kbps) and AAC audio (128 kbps), and duplicate the stream to two simultaneous destinations: an RTSP stream hosted at rtsp://:8554/cam1 and a rolling backup saved to /home/ga/Videos/archive.mp4. Reference the syntax guide at /home/ga/Documents/vlc_streaming_cheatsheet.txt for VLC stream output (sout) parameters. Save the final command in a bash script at /home/ga/start_relay.sh and ensure the relay is running in the background.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 40,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/legacy_camera_stream_transcode_relay/setup_task.sh",
+    "post_task": "/workspace/tasks/legacy_camera_stream_transcode_relay/export_result.sh"
+  },
+  "metadata": {
+    "expected_rtsp_url": "rtsp://127.0.0.1:8554/cam1",
+    "expected_archive_path": "/home/ga/Videos/archive.mp4",
+    "expected_video_codec": "h264",
+    "expected_audio_codec": "aac",
+    "anti_gaming": "ffmpeg_disallowed_for_relay"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_transcode_relay"
+    }
+  }
+}

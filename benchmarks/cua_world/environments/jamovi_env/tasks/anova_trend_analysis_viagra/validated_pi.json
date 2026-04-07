@@ -1,0 +1,38 @@
+{
+    "task_id": "anova_trend_analysis_viagra@1",
+    "dataset": "Viagra.csv",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "dataset_path",
+            "metadata_value": "/home/ga/Documents/Jamovi/Viagra.csv",
+            "verified_value": "/home/ga/Documents/Jamovi/Viagra.csv",
+            "source": "setup_task.sh and export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "expected_omv",
+            "metadata_value": "/home/ga/Documents/Jamovi/Viagra_TrendAnalysis.omv",
+            "verified_value": "/home/ga/Documents/Jamovi/Viagra_TrendAnalysis.omv",
+            "source": "setup_task.sh, export_result.sh, and verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "expected_report",
+            "metadata_value": "/home/ga/Documents/Jamovi/trend_report.txt",
+            "verified_value": "/home/ga/Documents/Jamovi/trend_report.txt",
+            "source": "setup_task.sh, export_result.sh, and verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_tolerances",
+            "metadata_value": {"p_value": 0.01, "effect_size": 0.05},
+            "verified_value": {"p_value": {"linear": 0.05, "levene": 0.1, "quadratic": 0.1}, "effect_size": 0.1},
+            "source": "verifier.py",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The target dataset is Viagra.csv, a famous synthetic teaching dataset originally from Andy Field's textbook, downloaded directly from the JASP repository. The task accurately specifies output paths for the Jamovi omv file and text report which match the verifier logic. However, the claimed ground truth tolerances (p_value: 0.01, effect_size: 0.05) are contradicted by verifier.py, which actually evaluates linear_p with < 0.05 tolerance, and Levene/Quadratic/OmegaSq with < 0.1 tolerance. Additionally, a fatal defect exists in the verifier.py logic: the dataset contains 30 rows with unbalanced groups (n=9, 8, 13), but the verifier's ground truth calculation computes polynomial contrasts standard errors by incorrectly hardcoding 'n=5' per group. This computes an expected linear_p of ~0.180, while the statistically correct linear_p for the unbalanced dataset is ~0.055. Because abs(0.055 - 0.180) = 0.125 exceeds the verifier's < 0.05 tolerance, a perfectly executed Jamovi analysis will always be incorrectly scored as a failure.",
+    "pi_confidence": "high"
+}

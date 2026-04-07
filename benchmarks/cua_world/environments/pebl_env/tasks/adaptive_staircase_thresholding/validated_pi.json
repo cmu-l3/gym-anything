@@ -1,0 +1,31 @@
+{
+    "task_id": "adaptive_staircase_thresholding@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "corrupted_participants",
+            "metadata_value": "[\"sub-04\", \"sub-99\"]",
+            "verified_value": "[\"sub-04\", \"sub-99\"]",
+            "source": "setup_task.sh generates these two participants and applies specific corrupted response logics (random responding for sub-04, excessively fast RT for sub-99).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/pebl/analysis/staircase_report.json",
+            "verified_value": "/home/ga/pebl/analysis/staircase_report.json",
+            "source": "verifier.py checks for the agent's output at this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "algorithm",
+            "metadata_value": "2-down/1-up adaptive staircase reversal extraction",
+            "verified_value": "2-down/1-up adaptive staircase reversal extraction",
+            "source": "setup_task.sh implements a 2-down/1-up rule by decrementing contrast by 4.0 after 2 consecutive correct responses, and incrementing by 4.0 otherwise.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task generates a synthetic 2-down/1-up adaptive staircase dataset containing 22 participants. The corrupted participants are explicitly verified as sub-04 and sub-99. However, there is a major logical defect in the task design. The task instructions claim that participants failing to converge will have '< 6 reversals' and that the agent must exclude them. The author intended sub-04 to trigger this by simulating random responses. In reality, because the staircase is mathematically bounded at a contrast of 100, the random responses cause sub-04 to rapidly bounce against this ceiling, generating 16 reversals rather than fewer than 6. Consequently, sub-04 does not actually trigger the specified exclusion rule. The verifier.py script mistakenly hardcodes a 15-point reward for explicitly excluding sub-04, but its internal ground-truth generator calculates a group mean threshold that INCLUDES sub-04 (since 16 >= 6). This makes it mathematically impossible for an agent to achieve a perfect 100/100 score: manually excluding sub-04 earns 15 points but causes the group mean check to fail (losing 15 points), while correctly keeping sub-04 passes the group mean check but fails the hardcoded sub-04 exclusion check.",
+    "pi_confidence": "high"
+}

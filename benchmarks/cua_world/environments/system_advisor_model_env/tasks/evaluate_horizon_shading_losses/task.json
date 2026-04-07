@@ -1,0 +1,29 @@
+{
+  "id": "evaluate_horizon_shading_losses@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "medium",
+  "description": "Model a 10 kW residential PV system in Salt Lake City using PySAM.Pvwattsv8 to calculate the percentage of annual energy lost due to a mountainous horizon shading profile compared to a flat-horizon baseline.\n\nSystem Configuration:\n- Weather File: https://energyplus.net/weather-download/north_and_central_america_wmo_region_4/USA/UT/USA_UT_Salt.Lake.City.Intl.AP.725720_TMY3/USA_UT_Salt.Lake.City.Intl.AP.725720_TMY3.epw\n- Capacity: 10 kW DC\n- Array tilt: 30 degrees\n- Array azimuth: 180 degrees\n- DC to AC ratio: 1.2\n- Module type: Standard (0)\n- Array type: Fixed open rack (0)\n\nHorizon Profile (Azimuth/Elevation):\n- 0°: 10°\n- 45°: 15°\n- 90°: 25°\n- 135°: 20°\n- 180°: 12°\n- 225°: 15°\n- 270°: 22°\n- 315°: 15°\n\nExport the results to /home/ga/Documents/SAM_Projects/horizon_shading_impact.json, including the system_capacity_kw, weather_file path, baseline_annual_energy_kwh, shaded_annual_energy_kwh, and the energy_loss_percent calculated as ((Baseline - Shaded) / Baseline) * 100.",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_horizon_shading_losses/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_horizon_shading_losses/export_result.sh"
+  },
+  "metadata": {
+    "expected_filename": "horizon_shading_impact.json",
+    "expected_weather_str": "salt.lake.city",
+    "expected_capacity": 10.0,
+    "baseline_min_kwh": 13000,
+    "baseline_max_kwh": 18000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_evaluate_horizon_shading_losses"
+    }
+  }
+}

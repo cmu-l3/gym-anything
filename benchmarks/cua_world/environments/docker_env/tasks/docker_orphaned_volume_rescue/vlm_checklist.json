@@ -1,0 +1,53 @@
+{
+  "task_id": "docker_orphaned_volume_rescue@1",
+  "task_completion": [
+    {
+      "id": "list_dangling_volumes",
+      "description": "Agent searches for or lists dangling/orphaned Docker volumes.",
+      "points": 10,
+      "visual_evidence": "Terminal output showing commands like 'docker volume ls -f dangling=true' or inspection of existing volumes."
+    },
+    {
+      "id": "identify_target_volume",
+      "description": "Agent identifies the specific volume containing the 'uploads/critical_manifest.json' file.",
+      "points": 10,
+      "visual_evidence": "Terminal output showing the agent inspecting volume contents (e.g., using a temporary container like 'docker run --rm -v <vol>:/data alpine ls /data/uploads') and finding the target file."
+    },
+    {
+      "id": "start_recovery_container",
+      "description": "Agent starts a new container named 'recovery-service' using the 'nginx:alpine' image.",
+      "points": 20,
+      "visual_evidence": "Terminal showing the execution of 'docker run' with '--name recovery-service' and 'nginx:alpine', or 'docker ps' showing the container running with these exact parameters."
+    },
+    {
+      "id": "mount_volume_correctly",
+      "description": "The identified orphaned volume is mounted to the '/app/data' directory inside the new container.",
+      "points": 20,
+      "visual_evidence": "The 'docker run' command includes a volume mount flag like '-v <volume_name>:/app/data', or 'docker inspect recovery-service' shows the correct volume mounted at the Destination '/app/data'."
+    },
+    {
+      "id": "verify_file_accessibility",
+      "description": "The file is accessible at the exact path '/app/data/uploads/critical_manifest.json' inside the container and its content is unmodified.",
+      "points": 40,
+      "visual_evidence": "Terminal showing a command like 'docker exec recovery-service cat /app/data/uploads/critical_manifest.json' successfully outputting the JSON content."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_docker_execution",
+      "description": "The agent interacted with the actual Docker daemon rather than simulating output.",
+      "visual_evidence": "Presence of genuine Docker CLI output formatting, standard shell prompts, or interaction with the Docker Desktop GUI."
+    },
+    {
+      "id": "no_manual_file_creation",
+      "description": "The agent did not manually create or edit the manifest file to bypass finding the correct volume.",
+      "visual_evidence": "Absence of text editor commands (nano, vim) or echo/cat commands writing to a new 'critical_manifest.json' file on the host."
+    },
+    {
+      "id": "used_docker_volume_not_bind_mount",
+      "description": "The agent mounted the actual Docker volume rather than copying the file to the host and using a local bind mount.",
+      "visual_evidence": "The mount syntax in the docker run command uses a volume identifier (e.g., a long hash string) rather than a local host path (e.g., avoiding '-v ./mydata:/app/data')."
+    }
+  ],
+  "privileged_info_for_vlm": "The target container must be named exactly 'recovery-service'. The target file must be accessible inside this container at the exact path '/app/data/uploads/critical_manifest.json'. Scoring requires the container to be running (20pts), the file to exist in the correct location (40pts), and the file content to match the original setup-generated unique ID without modification (40pts)."
+}

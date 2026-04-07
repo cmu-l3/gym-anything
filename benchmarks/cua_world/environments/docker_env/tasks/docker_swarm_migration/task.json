@@ -1,0 +1,41 @@
+{
+  "id": "docker_swarm_migration@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "Migrate the legacy Docker Compose application located at `~/projects/acme-platform/` to Docker Swarm mode by deploying a stack named `acme-tools`. Initialize the Swarm cluster and build the `web` and `api` services as local images tagged `acme-web:1.0` and `acme-api:1.0`. Create a `docker-stack.yml` file that uses these pre-built images, utilizes an overlay network named `acme-net`, and removes `depends_on` directives. The deployment must configure 3 replicas for `web`, 2 for `api`, and 1 each for `db` and `cache`. Additionally, apply a rolling update policy to the `web` service (parallelism 1, delay 10s) and set a 256MB memory limit for both the `web` and `api` services. Verify the application is accessible at http://localhost:8080.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_swarm_migration/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_swarm_migration/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/acme-platform",
+    "stack_name": "acme-tools",
+    "images": [
+      "acme-web:1.0",
+      "acme-api:1.0"
+    ],
+    "replicas": {
+      "web": 3,
+      "api": 2,
+      "db": 1,
+      "cache": 1
+    },
+    "update_policy": {
+      "parallelism": 1,
+      "delay_seconds": 10
+    },
+    "memory_limit_mb": 256
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_swarm_migration"
+    }
+  }
+}

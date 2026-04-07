@@ -1,0 +1,51 @@
+{
+  "id": "configure_tiered_recording_policy@1",
+  "version": "1.0",
+  "env_id": "nx_witness_vms_env@0.1",
+  "description": "Implement a tiered recording quality policy for corporate security cameras using Nx Witness Web Admin (https://localhost:7001) or the REST API (Credentials: admin / Admin1234!). \n\nConfigure the recording schedules to be enabled 24/7 (Monday through Sunday) for the following cameras:\n- Tier 1 (Critical) - 'Entrance Camera': 25 FPS, 4096 kbps, High Quality, Always Recording.\n- Tier 2 (Standard) - 'Parking Lot Camera' and 'Lobby Camera': 15 FPS, 2048 kbps, Normal Quality, Always Recording.\n- Tier 3 (Economy) - 'Server Room Camera': 10 FPS, 1024 kbps, Low Quality, Always Recording.\n\nGenerate a compliance report at /home/ga/recording_policy_report.txt. The report must list each camera with its Name, Tier, FPS, Bitrate, and Stream Quality. The final line of the report must calculate the Total Daily Storage estimate in GB for all these cameras combined using the formula: (Bitrate_kbps * 86400 seconds) / 8 / 1024 / 1024 = GB/day.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_tiered_recording_policy/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_tiered_recording_policy/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/recording_policy_report.txt",
+    "tiers": {
+      "Entrance Camera": {
+        "fps": 25,
+        "bitrate": 4096,
+        "quality": "high",
+        "tier": "Tier 1"
+      },
+      "Parking Lot Camera": {
+        "fps": 15,
+        "bitrate": 2048,
+        "quality": "normal",
+        "tier": "Tier 2"
+      },
+      "Lobby Camera": {
+        "fps": 15,
+        "bitrate": 2048,
+        "quality": "normal",
+        "tier": "Tier 2"
+      },
+      "Server Room Camera": {
+        "fps": 10,
+        "bitrate": 1024,
+        "quality": "low",
+        "tier": "Tier 3"
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_recording_policy"
+    }
+  }
+}

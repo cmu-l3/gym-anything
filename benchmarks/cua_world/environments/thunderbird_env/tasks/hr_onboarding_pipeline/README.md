@@ -69,6 +69,6 @@ The agent acts as the HR Manager at TechVenture Corp. Q1 2025 hiring has conclud
 ## Testing
 
 ```bash
-python3 benchmarks/cua_world/environments/thunderbird_env/tasks/hr_onboarding_pipeline/verifier.py
+python3 examples/thunderbird_env/tasks/hr_onboarding_pipeline/verifier.py
 ```
 Expected: 4/4 tests passed

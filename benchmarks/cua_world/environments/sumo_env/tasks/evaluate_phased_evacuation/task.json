@@ -1,0 +1,27 @@
+{
+  "id": "evaluate_phased_evacuation@1",
+  "version": "1.0",
+  "env_id": "sumo_env@0.1",
+  "description": "Evaluate phased vs. uncoordinated evacuation strategies for the Bologna Pasubio network.\n\nYour task is to generate demand profiles, run simulations, and analyze the outputs to compare clearance times and travel durations.\n\nAll work must be done inside a new directory: `/home/ga/SUMO_Scenarios/evacuation/`\n\nStep 1: Generate Demand using `$SUMO_HOME/tools/randomTrips.py`\nThe network file is `/home/ga/SUMO_Scenarios/bologna_pasubio/pasubio_buslanes.net.xml`.\n- Uncoordinated scenario: Generate routes from 0 to 500 seconds, with a period of 0.5 seconds, using seed 42. Output to `uncoordinated.rou.xml`. (Make sure to use the `-r` flag to automatically run duarouter and generate valid paths, e.g., `-n <net> -b 0 -e 500 -p 0.5 --seed 42 -r uncoordinated.rou.xml`).\n- Phased scenario Wave 1: Generate routes from 0 to 500 seconds, with a period of 1.0 seconds, using seed 42. Output to `wave1.rou.xml` (also using `-r`).\n- Phased scenario Wave 2: Generate routes from 500 to 1000 seconds, with a period of 1.0 seconds, using seed 43. Output to `wave2.rou.xml` (also using `-r`).\n\nStep 2: Create SUMO Configurations\n- Create `uncoordinated.sumocfg` that loads the Pasubio network and `uncoordinated.rou.xml`. Set `<tripinfo-output value=\"tripinfo_uncoordinated.xml\"/>`.\n- Create `phased.sumocfg` that loads the Pasubio network and BOTH route files (`wave1.rou.xml,wave2.rou.xml`). Set `<tripinfo-output value=\"tripinfo_phased.xml\"/>`.\n\nStep 3: Run Simulations\nRun both configurations in headless mode using the `sumo` command-line tool (e.g., `sumo -c uncoordinated.sumocfg`). Let them run to completion.\n\nStep 4: Analyze Outputs\nParse the two tripinfo XML files to extract:\n- clearance_time: The maximum 'arrival' attribute value among all completed trips.\n- average_duration: The mean 'duration' attribute value of all completed trips (rounded to 2 decimal places).\n\nStep 5: Create Report\nCreate a JSON file exactly at `/home/ga/SUMO_Scenarios/evacuation/evacuation_metrics.json` with this exact structure:\n{\n  \"uncoordinated\": {\n    \"clearance_time\": 1234.56,\n    \"average_duration\": 123.45\n  },\n  \"phased\": {\n    \"clearance_time\": 1234.56,\n    \"average_duration\": 123.45\n  }\n}",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_phased_evacuation/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_phased_evacuation/export_result.sh"
+  },
+  "metadata": {
+    "work_dir": "/home/ga/SUMO_Scenarios/evacuation",
+    "network_file": "/home/ga/SUMO_Scenarios/bologna_pasubio/pasubio_buslanes.net.xml",
+    "metrics_json": "evacuation_metrics.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_evaluate_phased_evacuation"
+    }
+  }
+}

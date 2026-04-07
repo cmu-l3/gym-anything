@@ -1,0 +1,87 @@
+{
+    "task_id": "edit_medication_dosage@1",
+    "dataset": "Synthea synthetic patient data (Massachusetts cohort)",
+    "case_id": "PID 3 (Crysta Parisian, not Maria Gonzalez as stated in metadata)",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "patient_pid",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "setup_task.sh and task.json - task explicitly operates on PID 3",
+            "status": "verified"
+        },
+        {
+            "key": "patient_name",
+            "metadata_value": "Maria Gonzalez",
+            "verified_value": "Crysta Parisian",
+            "source": "patients.sql pre-loaded data shows PID 3 is 'Crysta Parisian' (DOB: 2005-03-26). The setup_task.sh attempts to insert Maria Gonzalez but the INSERT is skipped because PID 3 already exists in the database (INSERT IF COUNT=0 check fails). Database will contain Crysta Parisian, not Maria Gonzalez.",
+            "status": "contradicted"
+        },
+        {
+            "key": "patient_dob",
+            "metadata_value": "08/15/1962",
+            "verified_value": "2005-03-26",
+            "source": "patients.sql shows PID 3 has DOB 2005-03-26 for Crysta Parisian. The metadata DOB (1962-08-15) refers to the intended patient Maria Gonzalez, who will not be inserted due to database initialization order.",
+            "status": "contradicted"
+        },
+        {
+            "key": "medication_name",
+            "metadata_value": "Lisinopril",
+            "verified_value": "Lisinopril",
+            "source": "setup_task.sh line 29 inserts rxl_medication='Lisinopril' for PID 3. Verified against Drugs.com - Lisinopril is a real ACE inhibitor medication.",
+            "status": "verified"
+        },
+        {
+            "key": "initial_dosage",
+            "metadata_value": "10 mg",
+            "verified_value": "10 mg",
+            "source": "setup_task.sh line 29 inserts rxl_dosage='10 mg'. Drugs.com confirms 10 mg is a standard starting dose for Lisinopril in hypertension.",
+            "status": "verified"
+        },
+        {
+            "key": "initial_frequency",
+            "metadata_value": "once daily",
+            "verified_value": "once daily",
+            "source": "setup_task.sh line 29 inserts rxl_frequency='once daily' and rxl_sig='Take 10 mg by mouth once daily'. Drugs.com confirms this is standard dosing for Lisinopril.",
+            "status": "verified"
+        },
+        {
+            "key": "target_dosage",
+            "metadata_value": "20 mg",
+            "verified_value": "20 mg",
+            "source": "task.json metadata and description specify target_dosage='20 mg'. Drugs.com confirms 20-40 mg once daily is standard maintenance dose for hypertension. verifier.py line 60 checks for '20' in final_dosage string.",
+            "status": "verified"
+        },
+        {
+            "key": "target_frequency",
+            "metadata_value": "twice daily",
+            "verified_value": "twice daily",
+            "source": "task.json metadata and description specify target_frequency='twice daily'. Research shows Lisinopril BID dosing is used when QD dosing insufficient (PubMed studies found in WebSearch). verifier.py line 68 checks for 'twice', 'bid', '2 times', or 'two times' in sig/frequency fields.",
+            "status": "verified"
+        },
+        {
+            "key": "required_dosage_substring",
+            "metadata_value": "20",
+            "verified_value": "20",
+            "source": "task.json metadata and verifier.py line 60 - checks if '20' is substring of final_dosage for passing",
+            "status": "verified"
+        },
+        {
+            "key": "required_freq_substrings",
+            "metadata_value": ["twice", "bid", "2 times", "two times"],
+            "verified_value": ["twice", "bid", "2 times", "two times"],
+            "source": "task.json metadata and verifier.py line 43 - checks if any of these substrings appear in sig or frequency field",
+            "status": "verified"
+        },
+        {
+            "key": "environment_system",
+            "metadata_value": "NOSH ChartingSystem",
+            "verified_value": "NOSH ChartingSystem (open-source EHR built on Laravel/PHP)",
+            "source": "WebSearch confirmed NOSH is a real, open-source electronic health record system designed by Dr. Michael Chen. GitHub repos: shihjay2/nosh2 (Laravel version used here) and shihjay2/nosh3. This matches the Docker setup in setup_nosh.sh.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task edits a Lisinopril medication order for a patient at PID 3 from 10mg once daily to 20mg twice daily in a NOSH EHR system. Patient data is synthetic from Synthea (Massachusetts cohort). CRITICAL FINDING: The metadata claims the patient is 'Maria Gonzalez' (DOB 08/15/1962), but the actual patient in the database is 'Crysta Parisian' (DOB 2005-03-26, age 19) due to database initialization order - patients.sql loads PID 3 as Crysta Parisian during setup_nosh.sh, and the task's attempt to insert Maria Gonzalez is skipped by an IF condition. Lisinopril is a real medication; 10mg once daily and 20mg dosages are medically standard for hypertension; twice-daily (BID) dosing is clinically valid but less common than once-daily. The verifier checks for '20' in dosage and ['twice', 'bid', '2 times', 'two times'] in frequency fields.",
+    "pi_confidence": "high"
+}

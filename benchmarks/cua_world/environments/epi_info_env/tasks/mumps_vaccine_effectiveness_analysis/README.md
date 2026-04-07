@@ -106,5 +106,5 @@ The setup script:
 
 ## Evidence
 
-- Setup screenshot saved to evidence/
+- Setup screenshot saved to evidence_docs/
 - Do-nothing test: score=0, passed=False (HTML and CSV don't exist until agent creates them)

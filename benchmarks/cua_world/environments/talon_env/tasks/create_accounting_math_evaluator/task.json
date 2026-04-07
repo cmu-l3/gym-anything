@@ -1,0 +1,43 @@
+{
+  "id": "create_accounting_math_evaluator@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Create a Talon voice command module in C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\accounting_math\\ that evaluates inline mathematical expressions containing accounting notations. The module must consist of accounting_math.py and accounting_math.talon. In accounting_math.py, implement a parse_and_evaluate(expression: str) -> str function that removes spaces, dollar signs, and commas, converts accounting negatives (e.g., (1500.50) to -1500.50) by replacing only parentheses that enclose numbers, evaluates the math (+, -, *, /), and returns a string formatted to two decimal places. The file must include a Talon Module declaration and an @mod.action_class registering two actions: user.figure_replace() to replace selected text with the result using clipboard operations and brief pauses to avoid race conditions, and user.figure_append() to append ' = [result]' to the selection. In accounting_math.talon, define voice commands 'figure replace' and 'figure append' to trigger these actions.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_accounting_math_evaluator\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_accounting_math_evaluator\\export_result.ps1"
+  },
+  "metadata": {
+    "target_dir": "C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\accounting_math",
+    "test_cases": [
+      {
+        "expr": "$(1,200.00) + 500.00",
+        "expected": "-700.00"
+      },
+      {
+        "expr": "1,000 * 2.5",
+        "expected": "2500.00"
+      },
+      {
+        "expr": "(50.00) - (25.00)",
+        "expected": "-75.00"
+      },
+      {
+        "expr": " $ 10,000.50 / 2 ",
+        "expected": "5000.25"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_accounting_math"
+    }
+  }
+}

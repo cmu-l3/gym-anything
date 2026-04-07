@@ -1,0 +1,44 @@
+{
+  "id": "sakila_inventory_shrinkage_audit@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "You are a Retail Operations Manager performing the annual physical inventory reconciliation for Sakila Store 1. Reconcile the physical counts from /home/ga/Documents/imports/store1_physical_count.csv against the system inventory in the MySQL database (user: ga, password: password123). Create a staging table sakila.inventory_audit (film_id INT, actual_count INT) to hold the imported CSV data. Implement a stored function fn_get_shrinkage_status(p_system_count INT, p_actual_count INT) that returns 'MISSING' if system > actual, 'EXTRA' if system < actual, and 'MATCH' if equal, treating NULLs as 0. Generate a view v_store1_shrinkage_report showing film_id, title, system_count (for store_id=1), actual_count, variance (system - actual), and status for all records where a discrepancy exists (variance != 0). Export the resulting report to /home/ga/Documents/exports/shrinkage_report.csv.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_inventory_shrinkage_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_inventory_shrinkage_audit/export_result.sh"
+  },
+  "metadata": {
+    "input_csv": "/home/ga/Documents/imports/store1_physical_count.csv",
+    "output_csv": "/home/ga/Documents/exports/shrinkage_report.csv",
+    "staging_table": "inventory_audit",
+    "function_name": "fn_get_shrinkage_status",
+    "view_name": "v_store1_shrinkage_report",
+    "target_database": "sakila",
+    "injected_discrepancies": [
+      {
+        "film_id": 1,
+        "type": "MISSING",
+        "system": "auto",
+        "actual": "minus_1"
+      },
+      {
+        "film_id": 2,
+        "type": "EXTRA",
+        "system": "auto",
+        "actual": "plus_1"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_inventory_shrinkage_audit"
+    }
+  }
+}

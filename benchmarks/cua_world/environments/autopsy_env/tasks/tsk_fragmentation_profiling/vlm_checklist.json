@@ -1,0 +1,59 @@
+{
+  "task_id": "tsk_fragmentation_profiling@1",
+  "task_completion": [
+    {
+      "id": "analyze_disk_image",
+      "description": "The agent analyzes the disk image using forensic tools to determine file system type and layout.",
+      "points": 10,
+      "visual_evidence": "Terminal output showing the execution of tools like `fsstat`, `fls`, or `istat` on `/home/ga/evidence/jpeg_search.dd`."
+    },
+    {
+      "id": "create_csv_file",
+      "description": "The agent creates the fragment counts CSV file with the correct header.",
+      "points": 15,
+      "visual_evidence": "Visual evidence of `/home/ga/Reports/fragment_counts.csv` being created or viewed, containing the exact header 'INODE,FILENAME,RUN_COUNT'."
+    },
+    {
+      "id": "sort_csv_file",
+      "description": "The CSV file is populated with allocated files and correctly sorted.",
+      "points": 15,
+      "visual_evidence": "Contents of the CSV file show multiple entries sorted by RUN_COUNT in descending order, with ties resolved by INODE in ascending order."
+    },
+    {
+      "id": "create_analysis_txt",
+      "description": "The agent creates the most fragmented analysis text file with the required format.",
+      "points": 15,
+      "visual_evidence": "Visual evidence of `/home/ga/Reports/most_fragmented_analysis.txt` containing exactly four lines starting with 'MOST_FRAGMENTED_INODE:', 'MOST_FRAGMENTED_FILENAME:', 'TOTAL_RUNS:', and 'SECOND_RUN_START_SECTOR:'."
+    },
+    {
+      "id": "correct_analysis_content",
+      "description": "The analysis text file correctly identifies the most fragmented file based on the actual file system data.",
+      "points": 25,
+      "visual_evidence": "The text file or terminal output shows the agent correctly identifying INODE 44 with a TOTAL_RUNS of 6 as the most fragmented file."
+    },
+    {
+      "id": "extract_bin_file",
+      "description": "The agent extracts the raw binary of the starting sector of the second data run.",
+      "points": 20,
+      "visual_evidence": "Terminal commands (e.g., `dd`, `blkcat`) extracting a specific sector to `/home/ga/Reports/fragment_start.bin`, or an `ls` command showing the file was created."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "no_hallucinated_results",
+      "description": "The agent derived the fragmentation counts and sector numbers from actual forensic analysis, not by hallucinating or guessing values.",
+      "visual_evidence": "Terminal history shows the agent running commands to inspect inodes (e.g., `istat`) and parsing their output before writing to the CSV or TXT files."
+    },
+    {
+      "id": "genuine_extraction",
+      "description": "The agent used appropriate tools to extract the binary sector rather than creating a dummy file.",
+      "visual_evidence": "Use of block/sector extraction tools (like `blkcat` or `dd` with appropriate `skip`/`bs` arguments) targeting the disk image, rather than `touch` or `echo` to create the .bin file."
+    },
+    {
+      "id": "no_script_tampering",
+      "description": "The agent did not tamper with the evaluation scripts or ground truth files to bypass the task.",
+      "visual_evidence": "No commands editing or overwriting files in `/tmp/` (like `/tmp/tsk_fragmentation_gt.json`) or modifying `verifier.py`."
+    }
+  ],
+  "privileged_info_for_vlm": "The disk image `/home/ga/evidence/jpeg_search.dd` is actually an NTFS volume, not FAT32 as stated in the task description. The most fragmented file empirically is inode 44, which has 6 runs. The agent should correctly identify this file and its run count. The automated ground-truth script has a bug that assigns 0 runs to all files, but you should verify the agent's actual correct forensic findings (inode 44, 6 runs) rather than penalizing it for not mimicking the bug."
+}

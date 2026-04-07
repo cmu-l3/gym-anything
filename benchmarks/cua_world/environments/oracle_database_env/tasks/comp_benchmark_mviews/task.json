@@ -1,0 +1,59 @@
+{
+  "id": "comp_benchmark_mviews@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A compensation analyst needs a quarterly dashboard backend. Create three materialized views in the HR schema using 'BUILD IMMEDIATE' and 'REFRESH COMPLETE ON DEMAND' to pre-compute salary analytics. MV_DEPT_COMP_SUMMARY must group by department and include columns for DEPARTMENT_ID, DEPARTMENT_NAME, EMPLOYEE_COUNT, AVG_SALARY (2 decimal places), MIN_SALARY, MAX_SALARY, MEDIAN_SALARY, and TOTAL_PAYROLL. MV_JOB_SALARY_BANDS must group by job and include columns for JOB_ID, JOB_TITLE, EMPLOYEE_COUNT, AVG_SALARY (2 decimal places), MIN_SALARY, MAX_SALARY, and SALARY_SPREAD (max-min). MV_HIRE_DECADE_STATS must group by hire decade (e.g., '1990s', '2000s') and include columns for HIRE_DECADE, EMPLOYEE_COUNT, AVG_SALARY, MIN_SALARY, and MAX_SALARY. Additionally, create a PL/SQL procedure named REFRESH_COMP_VIEWS that refreshes all three views in the order listed. Export the contents of all three views to /home/ga/Desktop/compensation_benchmark.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/comp_benchmark_mviews/setup_task.sh",
+    "post_task": "/workspace/tasks/comp_benchmark_mviews/export_result.sh"
+  },
+  "metadata": {
+    "output_file": "/home/ga/Desktop/compensation_benchmark.txt",
+    "required_mvs": [
+      "MV_DEPT_COMP_SUMMARY",
+      "MV_JOB_SALARY_BANDS",
+      "MV_HIRE_DECADE_STATS"
+    ],
+    "required_procedure": "REFRESH_COMP_VIEWS",
+    "mv_dept_cols": [
+      "DEPARTMENT_ID",
+      "DEPARTMENT_NAME",
+      "EMPLOYEE_COUNT",
+      "AVG_SALARY",
+      "MIN_SALARY",
+      "MAX_SALARY",
+      "MEDIAN_SALARY",
+      "TOTAL_PAYROLL"
+    ],
+    "mv_job_cols": [
+      "JOB_ID",
+      "JOB_TITLE",
+      "EMPLOYEE_COUNT",
+      "AVG_SALARY",
+      "MIN_SALARY",
+      "MAX_SALARY",
+      "SALARY_SPREAD"
+    ],
+    "mv_decade_cols": [
+      "HIRE_DECADE",
+      "EMPLOYEE_COUNT",
+      "AVG_SALARY",
+      "MIN_SALARY",
+      "MAX_SALARY"
+    ],
+    "spot_check_dept_90_payroll": 58000,
+    "spot_check_job_sa_rep_count": 30
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_comp_benchmark_mviews"
+    }
+  }
+}

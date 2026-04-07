@@ -1,0 +1,45 @@
+{
+  "task_id": "scrub_image_secret_squash@1",
+  "dataset": null,
+  "case_id": null,
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "unsafe_image",
+      "metadata_value": "legacy-app:unsafe",
+      "verified_value": "legacy-app:unsafe",
+      "source": "setup_task.sh lines 76-90 (build tags the flawed image as legacy-app:unsafe after wiring secret)",
+      "status": "verified"
+    },
+    {
+      "key": "safe_image",
+      "metadata_value": "legacy-app:safe",
+      "verified_value": "legacy-app:safe",
+      "source": "export_result.sh lines 17-82 (verifier checks for legacy-app:safe and uses it for secret and metadata validation)",
+      "status": "verified"
+    },
+    {
+      "key": "secret_string",
+      "metadata_value": "AKIA_TEST_SECRET_DO_NOT_USE",
+      "verified_value": "AKIA_TEST_SECRET_DO_NOT_USE",
+      "source": "setup_task.sh lines 49-74 & export_result.sh lines 21-31 (secrets.txt creation and docker save grep for the string)",
+      "status": "verified"
+    },
+    {
+      "key": "expected_env",
+      "metadata_value": "APP_COLOR=blue",
+      "verified_value": "APP_COLOR=blue",
+      "source": "setup_task.sh lines 69-73 & export_result.sh lines 40-54 (Dockerfile enforces APP_COLOR=blue and verifier checks for Env entry)",
+      "status": "verified"
+    },
+    {
+      "key": "expected_port",
+      "metadata_value": "5000",
+      "verified_value": "5000",
+      "source": "setup_task.sh lines 69-73 & export_result.sh lines 40-54 (Dockerfile exposes/ENV PORT 5000 and verifier asserts 5000/tcp exposed port)",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "setup_task.sh generates the app, writes AWS_ACCESS_KEY_ID=AKIA_TEST_SECRET_DO_NOT_USE to secrets.txt, then builds the unsafe image as legacy-app:unsafe with ENV PORT=5000, ENV APP_COLOR=blue, EXPOSE 5000, and CMD [\"python\", \"app.py\"]. export_result.sh then expects and inspects legacy-app:safe to confirm it carries that metadata, runs on port 5000, and contains no AKIA_TEST_SECRET_DO_NOT_USE when docker save is grepped.",
+  "pi_confidence": "high"
+}

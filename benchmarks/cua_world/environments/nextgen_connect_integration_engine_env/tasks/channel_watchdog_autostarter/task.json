@@ -1,0 +1,29 @@
+{
+  "id": "channel_watchdog_autostarter@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Implement an automated self-healing mechanism in NextGen Connect. Create a target channel named 'Unstable_Service' (TCP Listener on port 7000) and a watchdog channel named 'System_Watchdog' (JavaScript Reader source, 10-second interval). The watchdog must use the ChannelUtil API to monitor 'Unstable_Service' and, if it is not in a STARTED state, programmatically restart the channel and append a timestamped log entry with the message 'Restarted Unstable_Service' to /home/ga/watchdog.log.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/channel_watchdog_autostarter/setup_task.sh",
+    "post_task": "/workspace/tasks/channel_watchdog_autostarter/export_result.sh"
+  },
+  "metadata": {
+    "target_channel_name": "Unstable_Service",
+    "watchdog_channel_name": "System_Watchdog",
+    "log_file_path": "/home/ga/watchdog.log",
+    "target_port": "7000",
+    "poll_interval_ms": 10000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_channel_watchdog_autostarter"
+    }
+  }
+}

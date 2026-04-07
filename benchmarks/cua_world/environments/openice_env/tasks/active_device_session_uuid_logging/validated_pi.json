@@ -1,0 +1,39 @@
+{
+    "task_id": "active_device_session_uuid_logging@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_output_file",
+            "metadata_value": "/home/ga/Desktop/active_device_inventory.csv",
+            "verified_value": "/home/ga/Desktop/active_device_inventory.csv",
+            "source": "Verified against export_result.sh and verifier.py logic.",
+            "status": "verified"
+        },
+        {
+            "key": "required_devices",
+            "metadata_value": [
+                "Multiparameter Monitor",
+                "Pulse Oximeter",
+                "Infusion Pump"
+            ],
+            "verified_value": [
+                "Multiparameter Monitor",
+                "Pulse Oximeter",
+                "Infusion Pump"
+            ],
+            "source": "Verified against verifier.py match logic which checks for these specific device types.",
+            "status": "verified"
+        },
+        {
+            "key": "log_file_path",
+            "metadata_value": "/home/ga/openice/logs/openice.log",
+            "verified_value": "/home/ga/openice/logs/openice.log",
+            "source": "Verified against setup_openice.sh which tees OpenICE output to this exact path.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates in a simulated OpenICE environment where medical devices are synthetically generated at runtime. The expected output file path, required device types, and the OpenICE system log file path exactly match the task scripts and verifier logic. However, an independent audit of the OpenICE (mdpnp) source code revealed severe defects in the task design: OpenICE does not log UUIDs in the standard dashed format (e.g. 8-4-4-4-12) expected by the verifier's regex `([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})`. Instead, OpenICE `DeviceIdentityBuilder.randomUDI()` generates a 36-character random alphanumeric string (using A-Z, a-z, 0-9) with no dashes. Furthermore, the supposed log pattern `DeviceConnectivityAdapter... Device connected` claimed by `export_result.sh` does not exist anywhere in the OpenICE codebase. Consequently, the verifier will perpetually fail to extract any ground truth UUIDs from the logs, rendering the task programmatically unsolvable.",
+    "pi_confidence": "high"
+}

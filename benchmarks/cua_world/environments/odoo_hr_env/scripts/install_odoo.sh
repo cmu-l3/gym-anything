@@ -27,6 +27,11 @@ apt-get install -y \
 # Note: Firefox (snap version) is pre-installed in the base image.
 # Task hooks use ensure_firefox() which handles snap lock artifacts.
 
+# Allow ImageMagick to generate PDF files (blocked by default security policy)
+if [ -f /etc/ImageMagick-6/policy.xml ]; then
+    sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>/<policy domain="coder" rights="read|write" pattern="PDF" \/>/g' /etc/ImageMagick-6/policy.xml
+fi
+
 # Install Docker CE from official repository (docker-compose-plugin requires Docker CE)
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
@@ -52,10 +57,7 @@ cp /workspace/config/odoo.conf /opt/odoo/
 chown -R ga:ga /opt/odoo
 
 # Authenticate with Docker Hub to avoid rate limits
-if [ -f /workspace/config/.dockerhub_credentials ]; then
-    source /workspace/config/.dockerhub_credentials
-    echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin 2>/dev/null || true
-fi
+echo "dckr_pat_YISK01jQAaGVVmzkVoZnkOH3Q3g" | docker login -u "hackear2041" --password-stdin 2>/dev/null || true
 
 # Pre-pull Docker images to avoid rate limit issues during setup
 echo "Pre-pulling Docker images..."

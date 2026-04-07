@@ -1,0 +1,46 @@
+{
+  "id": "inventory_replenishment_analysis@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are a supply chain coordinator. Management needs a system to monitor inventory health and generate replenishment orders based on historical demand in the AdventureWorks2022 database. Implement an inline Table-Valued Function named 'dbo.fn_ProductDemandStats' that accepts @StartDate and @EndDate parameters and returns ProductID, TotalUnitsSold (sum of OrderQty), NumOrderDays (count of distinct OrderDates), and AvgDailyDemand (TotalUnitsSold / days in range) using Sales.SalesOrderHeader and Sales.SalesOrderDetail. Create a view 'dbo.vw_InventoryHealthDashboard' that joins Production.Product, Production.ProductInventory (sum Quantity by ProductID), and the function (called for the range '2013-01-01' to '2014-01-01'). The view must include ProductID, ProductName, ProductNumber, TotalOnHand, SafetyStockLevel, ReorderPoint, AvgDailyDemand, EstimatedDaysOfSupply (TotalOnHand / AvgDailyDemand), and a StockoutRiskLevel column. The StockoutRiskLevel logic is: 'CRITICAL' if EstimatedDaysOfSupply < 30 OR TotalOnHand < SafetyStockLevel; 'WARNING' if EstimatedDaysOfSupply < 90 OR TotalOnHand < (ReorderPoint * 1.5); and 'HEALTHY' otherwise. Finally, create and populate a table 'Production.ReplenishmentQueue' containing all rows from the view where StockoutRiskLevel is 'CRITICAL' or 'WARNING', including a 'SuggestedOrderQty' column calculated as GREATEST(ReorderPoint * 2 - TotalOnHand, 0).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/inventory_replenishment_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/inventory_replenishment_analysis/export_result.sh"
+  },
+  "metadata": {
+    "database": "AdventureWorks2022",
+    "required_objects": [
+      "dbo.fn_ProductDemandStats",
+      "dbo.vw_InventoryHealthDashboard",
+      "Production.ReplenishmentQueue"
+    ],
+    "view_columns": [
+      "ProductID",
+      "ProductName",
+      "ProductNumber",
+      "TotalOnHand",
+      "SafetyStockLevel",
+      "ReorderPoint",
+      "AvgDailyDemand",
+      "EstimatedDaysOfSupply",
+      "StockoutRiskLevel"
+    ],
+    "risk_levels": [
+      "CRITICAL",
+      "WARNING",
+      "HEALTHY"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_inventory_replenishment_analysis"
+    }
+  }
+}

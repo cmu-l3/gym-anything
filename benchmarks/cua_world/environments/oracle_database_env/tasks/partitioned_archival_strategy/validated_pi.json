@@ -1,0 +1,66 @@
+{
+    "task_id": "partitioned_archival_strategy@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "archive_table",
+            "metadata_value": "EMPLOYEE_HISTORY_ARCHIVE",
+            "verified_value": "EMPLOYEE_HISTORY_ARCHIVE",
+            "source": "verifier.py and export_result.sh explicitly check for table 'EMPLOYEE_HISTORY_ARCHIVE'",
+            "status": "verified"
+        },
+        {
+            "key": "materialized_view",
+            "metadata_value": "MV_DEPT_TURNOVER",
+            "verified_value": "MV_DEPT_TURNOVER",
+            "source": "verifier.py and export_result.sh explicitly check for mview 'MV_DEPT_TURNOVER'",
+            "status": "verified"
+        },
+        {
+            "key": "source_table",
+            "metadata_value": "JOB_HISTORY",
+            "verified_value": "JOB_HISTORY",
+            "source": "setup_task.sh uses 'JOB_HISTORY' as the baseline table to calculate migrated rows",
+            "status": "verified"
+        },
+        {
+            "key": "required_partitions",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "verifier.py (line 74) awards full points if partition_count >= 4",
+            "status": "verified"
+        },
+        {
+            "key": "partition_column",
+            "metadata_value": "END_DATE",
+            "verified_value": "END_DATE",
+            "source": "Task description and Oracle HR schema (job_history table has end_date column), although verifier only checks table partition status broadly",
+            "status": "verified"
+        },
+        {
+            "key": "bitmap_index_columns",
+            "metadata_value": ["JOB_ID", "DEPARTMENT_ID"],
+            "verified_value": ["JOB_ID", "DEPARTMENT_ID"],
+            "source": "verifier.py explicitly checks for 'JOB_ID' and 'DEPARTMENT_ID' in the bitmap_indexes list returned by export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "/home/ga/Desktop/archive_analysis.txt",
+            "verified_value": "/home/ga/Desktop/archive_analysis.txt",
+            "source": "export_result.sh hardcodes '/home/ga/Desktop/archive_analysis.txt' as the expected file path",
+            "status": "verified"
+        },
+        {
+            "key": "expected_job_history_rows_min",
+            "metadata_value": 10,
+            "verified_value": 10,
+            "source": "setup_task.sh validates that JOB_HISTORY has >= 10 rows before starting the task (lines 18-20)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the synthetic Oracle HR sample schema. It requires creating a range-partitioned table named EMPLOYEE_HISTORY_ARCHIVE with at least 4 partitions (based on END_DATE), migrating all rows from JOB_HISTORY (at least 10 baseline rows). It also demands creating bitmap indexes on the JOB_ID and DEPARTMENT_ID columns of the archive table, generating a materialized view named MV_DEPT_TURNOVER, and outputting an analysis report to /home/ga/Desktop/archive_analysis.txt. All names and constraints are strictly evaluated by the verifier scripts.",
+    "pi_confidence": "high"
+}

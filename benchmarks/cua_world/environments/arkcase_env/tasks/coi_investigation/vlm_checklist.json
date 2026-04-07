@@ -1,0 +1,85 @@
+{
+  "task_completion": [
+    {
+      "item": "read_directive",
+      "points": 10,
+      "description": "Agent reads the regulatory directive file ~/Documents/coi_directive.txt to identify the target organization (Meridian Holdings Group) and the directive number (COI-2026-03).",
+      "visual_evidence": "Screenshots showing the agent opening and reading the directive file, either via a text editor, terminal (cat command), or file manager. The content of the directive should be visible on screen."
+    },
+    {
+      "item": "search_meridian_cases",
+      "points": 15,
+      "description": "Agent searches ArkCase for complaint cases mentioning 'Meridian Holdings' in their title and identifies all matching cases.",
+      "visual_evidence": "Screenshots showing the agent using the ArkCase global search bar or complaint module search with 'Meridian' or 'Meridian Holdings' as search terms, with search results visible showing the matching cases."
+    },
+    {
+      "item": "identify_analysts",
+      "points": 20,
+      "description": "Agent opens each Meridian-related case and reads the description to extract the Assigned Analyst names (see privileged_info_for_vlm for expected names).",
+      "visual_evidence": "Screenshots showing the agent viewing the description/details of multiple Meridian cases. The case descriptions must be visible showing analyst names. Agent should have viewed at least 3 of the 4 Meridian cases."
+    },
+    {
+      "item": "search_investigations",
+      "points": 15,
+      "description": "Agent searches ArkCase for internal investigation cases naming each discovered analyst (see privileged_info_for_vlm for expected analyst names). Should search for each analyst separately.",
+      "visual_evidence": "Screenshots showing the agent performing at least 2-3 separate searches in ArkCase using analyst names as search terms. Search results showing investigation cases should be visible for at least the conflicted analysts."
+    },
+    {
+      "item": "detect_conflicts",
+      "points": 10,
+      "description": "Agent correctly determines which analysts have conflicts of interest (assigned to Meridian cases AND subject of an investigation) and which are clean. See privileged_info_for_vlm for expected conflict/clean analysts.",
+      "visual_evidence": "Agent's reasoning or actions demonstrate awareness of the conflict status. This may be visible in the agent's chain of thought, in the content of ethics complaints created, or in the final report. The agent should NOT flag clean analysts as conflicted."
+    },
+    {
+      "item": "create_ethics_complaints",
+      "points": 20,
+      "description": "Agent creates new ethics review complaints in ArkCase for each conflicted analyst (see privileged_info_for_vlm for expected count and titles). Each complaint should have a title matching 'Ethics Review: [Name] - COI Directive 2026-03', category Government, priority High, and a description that references the relevant case numbers.",
+      "visual_evidence": "Screenshots showing the agent filling out the New Complaint form for at least one ethics review. The title field should contain 'Ethics Review' and an analyst name. The priority should be set to High. The saved complaint should be visible in the system."
+    },
+    {
+      "item": "write_report",
+      "points": 10,
+      "description": "Agent creates the investigation report file at ~/Documents/coi_report.json containing organization_name, analysts_reviewed array, total_conflicts_found, and ethics_complaints_created.",
+      "visual_evidence": "Screenshots showing the agent creating the JSON file, either via terminal commands (echo, cat, nano, vi) or a text editor. The file content or the act of writing it should be visible."
+    }
+  ],
+  "integrity": [
+    {
+      "item": "gui_interaction_arkcase",
+      "description": "Agent interacted with ArkCase through the web browser GUI, not via terminal API calls (curl/wget to the REST API). The agent should navigate ArkCase visually, clicking through the interface to search, view cases, and create complaints.",
+      "visual_evidence": "Trajectory shows the agent using Firefox to interact with the ArkCase web UI, clicking on search bars, opening cases, filling forms. Terminal usage should be limited to reading the directive file and writing the output report, not for querying or modifying ArkCase data."
+    },
+    {
+      "item": "no_ground_truth_access",
+      "description": "Agent did NOT access the hidden ground truth file at /root/validation/coi_ground_truth.json or any file under /root/. All analyst names and case numbers must be discovered through the ArkCase GUI.",
+      "visual_evidence": "No screenshots or terminal commands show the agent reading /root/ directory contents, /root/validation/, or the ground truth JSON. The agent discovers information through the ArkCase interface."
+    },
+    {
+      "item": "genuine_investigation",
+      "description": "Agent followed a genuine investigative workflow: read directive, searched for cases, read descriptions, performed cross-reference searches, then took action. The agent did not fabricate data or skip the discovery steps.",
+      "visual_evidence": "The trajectory shows a clear progression from reading the directive to searching to reading cases to creating complaints. The agent's actions are informed by what it discovered, not pre-known."
+    }
+  ],
+  "privileged_info_for_vlm": {
+    "admin_credentials": "arkcase-admin@dev.arkcase.com / ArkCase1234!",
+    "target_organization": "Meridian Holdings Group",
+    "directive_path": "~/Documents/coi_directive.txt",
+    "output_path": "~/Documents/coi_report.json",
+    "analysts_in_meridian_cases": {
+      "Elena Rodriguez": ["FOIA Request - Meridian Holdings Group Federal Contract Records", "FOIA Request - Meridian Holdings Subsidiary Financial Disclosures"],
+      "David Chen": ["Complaint - Meridian Holdings Environmental Violations"],
+      "Sarah Martinez": ["Records Request - Meridian Holdings Group Tax Compliance Review"]
+    },
+    "investigation_cases": {
+      "Elena Rodriguez": "Internal Investigation - Elena Rodriguez - Unauthorized Document Access",
+      "David Chen": "Misconduct Investigation - David Chen - Policy Violation Report"
+    },
+    "expected_conflicts": ["Elena Rodriguez", "David Chen"],
+    "clean_analysts": ["Sarah Martinez"],
+    "expected_ethics_complaint_titles": [
+      "Ethics Review: Elena Rodriguez - COI Directive 2026-03",
+      "Ethics Review: David Chen - COI Directive 2026-03"
+    ],
+    "note_on_case_numbers": "Case numbers are dynamically generated at task setup time and will vary between runs. The VLM should verify that the ethics complaint descriptions reference specific case numbers, not that they match exact values."
+  }
+}

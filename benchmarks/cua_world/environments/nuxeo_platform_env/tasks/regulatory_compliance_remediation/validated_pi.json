@@ -1,0 +1,185 @@
+{
+    "task_id": "regulatory_compliance_remediation@1",
+    "dataset": "Nuxeo ECM Platform test environment with seeded documents and sections",
+    "case_id": "CA-2025-0142",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "env_id",
+            "metadata_value": "nuxeo_platform_env@0.1",
+            "verified_value": "nuxeo_platform_env@0.1",
+            "source": "env.json id field confirms 'nuxeo_platform_env@0.1'; live testing confirmed environment boots Nuxeo 10.10 via Docker Compose with PostgreSQL backend",
+            "status": "verified"
+        },
+        {
+            "key": "version",
+            "metadata_value": "1.0",
+            "verified_value": "1.0",
+            "source": "task.json version field",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Compliance Officer",
+            "verified_value": "Compliance Officer",
+            "source": "task.json description: 'You are a compliance officer remediating findings from a regulatory audit'; legitimate role in enterprise document management",
+            "status": "verified"
+        },
+        {
+            "key": "companion_ref_doc",
+            "metadata_value": "Compliance-Audit-Findings",
+            "verified_value": "Compliance-Audit-Findings",
+            "source": "setup_task.sh lines 229-243 create a Note named 'Compliance-Audit-Findings' with dc:title='Compliance Audit Findings' in Projects workspace; live testing confirmed document visible in Nuxeo Web UI at /default-domain/workspaces/Projects/Compliance-Audit-Findings",
+            "status": "verified"
+        },
+        {
+            "key": "document_1_name",
+            "metadata_value": "Security-Policy-2024",
+            "verified_value": "Security-Policy-2024",
+            "source": "setup_task.sh lines 125-142 create File document with name='Security-Policy-2024', dc:title='Security Policy 2024'; live testing confirmed via Nuxeo REST API: document exists at /default-domain/workspaces/Projects/Security-Policy-2024 with non-zero PDF blob attached",
+            "status": "verified"
+        },
+        {
+            "key": "document_1_initial_description",
+            "metadata_value": "Enterprise information security policy for fiscal year 2024",
+            "verified_value": "Enterprise information security policy for fiscal year 2024",
+            "source": "setup_task.sh line 132 sets dc:description to this value; live testing confirmed via API GET that dc:description matches",
+            "status": "verified"
+        },
+        {
+            "key": "document_1_wrong_section",
+            "metadata_value": "General-Publications",
+            "verified_value": "General-Publications",
+            "source": "setup_task.sh lines 184-187 publish Security-Policy-2024 to /default-domain/sections/General-Publications via Document.Publish; lines 190-193 verify publish worked (proxy count logged); live testing confirmed proxy count = 1 in General-Publications",
+            "status": "verified"
+        },
+        {
+            "key": "document_1_correct_section",
+            "metadata_value": "Compliance > Regulatory-Filings",
+            "verified_value": "Compliance > Regulatory-Filings",
+            "source": "Audit findings note instructs: 'Publish the document to Compliance > Regulatory Filings'; setup_task.sh lines 90-91 create /default-domain/sections/Compliance and /default-domain/sections/Compliance/Regulatory-Filings; live testing confirmed both sections exist via API",
+            "status": "verified"
+        },
+        {
+            "key": "document_1_required_description",
+            "metadata_value": "SOX-2025-Q1 — Enterprise information security policy for fiscal year 2024",
+            "verified_value": "SOX-2025-Q1 — Enterprise information security policy for fiscal year 2024",
+            "source": "Audit findings note (setup_task.sh line 237) instructs: 'Update the Description field to SOX-2025-Q1 — Enterprise information security policy for fiscal year 2024'; verifier.py line 74 checks 'SOX-2025-Q1' substring in dc_description; export_result.sh line 52 collects dc:description",
+            "status": "verified"
+        },
+        {
+            "key": "document_1_required_coverage",
+            "metadata_value": "north-america",
+            "verified_value": "north-america",
+            "source": "Audit findings note instructs: 'Set the Coverage metadata to north-america'; verifier.py line 81 checks dc_coverage == 'north-america'; Nuxeo 10.10 Coverage field uses l10ncoverage vocabulary with values like 'north-america', 'europe', 'africa' (not free-text country names); live testing of Nuxeo edit form confirmed Coverage is a dropdown with geographic region values",
+            "status": "verified"
+        },
+        {
+            "key": "document_2_name",
+            "metadata_value": "Data-Processing-Agreement",
+            "verified_value": "Data-Processing-Agreement",
+            "source": "setup_task.sh lines 163-180 create File document with name='Data-Processing-Agreement', dc:title='Data Processing Agreement'; live testing confirmed document exists at /default-domain/workspaces/Projects/Data-Processing-Agreement with non-zero PDF blob",
+            "status": "verified"
+        },
+        {
+            "key": "document_2_replacement_file_path",
+            "metadata_value": "/home/ga/nuxeo/data/DPA_v3_signed.pdf",
+            "verified_value": "/home/ga/nuxeo/data/DPA_v3_signed.pdf",
+            "source": "setup_task.sh lines 202-212 generate a distinct PDF at /home/ga/nuxeo/data/DPA_v3_signed.pdf with different content from the original DPA (includes text 'Data Processing Agreement v3.0 - Signed 2025-01-15'); live testing confirmed file exists with size > 0 bytes and is owned by ga:ga with 644 permissions",
+            "status": "verified"
+        },
+        {
+            "key": "document_2_replacement_file_distinct",
+            "metadata_value": "DPA_v3_signed.pdf has different digest from original DPA",
+            "verified_value": "DPA_v3_signed.pdf has different digest from original DPA",
+            "source": "setup_task.sh lines 204-208 generate PDF with different content (MediaBox [0 0 612 792] + Contents stream with text) vs original DPA (MediaBox [0 0 595 842], no Contents stream); setup_task.sh lines 215-225 record original digest to /tmp/setup_state.json; verifier.py lines 111-119 compare digests to confirm file was replaced",
+            "status": "verified"
+        },
+        {
+            "key": "document_2_required_tag",
+            "metadata_value": "gdpr-compliant",
+            "verified_value": "gdpr-compliant",
+            "source": "Audit findings note instructs: 'Add the tag gdpr-compliant to the document'; verifier.py line 123 checks 'gdpr-compliant' in dpa_tags; export_result.sh lines 92-96 collect tags via @tagging endpoint",
+            "status": "verified"
+        },
+        {
+            "key": "privileged_user_to_remove",
+            "metadata_value": "external-reviewer",
+            "verified_value": "external-reviewer",
+            "source": "setup_task.sh lines 97-101 create user 'external-reviewer' (firstName='External', lastName='Reviewer', email='reviewer@external-vendor.com'); lines 196-198 grant Read via Document.AddACE on DPA; live testing confirmed ACE exists in DPA's local ACL; verifier.py lines 142-147 check external-reviewer access is removed",
+            "status": "verified"
+        },
+        {
+            "key": "document_2_target_section",
+            "metadata_value": "Legal > Legal-Archive",
+            "verified_value": "Legal > Legal-Archive",
+            "source": "Audit findings note instructs: 'Publish the document to Legal > Legal Archive'; setup_task.sh lines 92-93 create /default-domain/sections/Legal and /default-domain/sections/Legal/Legal-Archive; live testing confirmed both sections exist; verifier.py lines 149-155 and export_result.sh lines 109-117 check for proxy in Legal/Legal-Archive path",
+            "status": "verified"
+        },
+        {
+            "key": "required_summary_note",
+            "metadata_value": "Remediation-Summary",
+            "verified_value": "Remediation-Summary",
+            "source": "Audit findings note instructs: 'Create a Note titled Remediation-Summary in the Projects workspace'; verifier.py lines 160-168 check document exists at /default-domain/workspaces/Projects/Remediation-Summary; export_result.sh lines 120-131 verify existence and content",
+            "status": "verified"
+        },
+        {
+            "key": "required_collection_title",
+            "metadata_value": "Q1-2025-Compliance-Bundle",
+            "verified_value": "Q1-2025-Compliance-Bundle",
+            "source": "Audit findings note instructs: 'Create a collection named Q1-2025-Compliance-Bundle'; verifier.py lines 170-183 search via NXQL for Collection with this exact title and check 3 members; export_result.sh lines 134-149 collect collection state",
+            "status": "verified"
+        },
+        {
+            "key": "required_collection_member_count",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Audit findings note instructs adding 'both remediated documents plus the Remediation-Summary note' = Security-Policy-2024 + Data-Processing-Agreement + Remediation-Summary = 3 members; verifier.py line 174 checks member_count == 3",
+            "status": "verified"
+        },
+        {
+            "key": "required_version_label",
+            "metadata_value": ">=1.0 for both documents",
+            "verified_value": ">=1.0 for both documents",
+            "source": "Audit findings note instructs 'Create a major version' for both documents; in Nuxeo 10.10, creating a major version from 0.0 yields 1.0; verifier.py lines 89-97 and 131-139 check version_label major part >= 1",
+            "status": "verified"
+        },
+        {
+            "key": "section_hierarchy_depth",
+            "metadata_value": "Two-level: parent > child",
+            "verified_value": "Two-level: parent > child",
+            "source": "setup_task.sh creates Compliance/Regulatory-Filings (2 levels) and Legal/Legal-Archive (2 levels); General-Publications is single-level; live testing confirmed all sections exist at expected nesting depth. This is significant because the agent must navigate INTO sub-sections, which was a documented failure point (agent scored VLM=0 on existing unpublish_document task due to section navigation blindness)",
+            "status": "verified"
+        },
+        {
+            "key": "features_tested",
+            "metadata_value": ["unpublish", "publish_to_section", "metadata_editing", "versioning", "file_replacement", "tags", "permissions_acl", "collections", "note_creation", "section_navigation"],
+            "verified_value": ["unpublish", "publish_to_section", "metadata_editing", "versioning", "file_replacement", "tags", "permissions_acl", "collections", "note_creation", "section_navigation"],
+            "source": "Code analysis: unpublish (agent must remove proxy from General-Publications), publish_to_section (publish to Regulatory-Filings and Legal-Archive), metadata_editing (Description and Coverage fields), versioning (major version for both docs), file_replacement (replace DPA file), tags (@tagging gdpr-compliant), permissions_acl (remove external-reviewer ACE), collections (create Q1-2025-Compliance-Bundle with 3 members), note_creation (create Remediation-Summary Note), section_navigation (navigate into 2-level section hierarchies)",
+            "status": "verified"
+        },
+        {
+            "key": "nuxeo_coverage_vocabulary",
+            "metadata_value": "north-america is a valid l10ncoverage vocabulary value",
+            "verified_value": "north-america is a valid l10ncoverage vocabulary value",
+            "source": "Nuxeo 10.10 uses l10ncoverage vocabulary for dc:coverage field, with values like 'north-america', 'europe', 'south-america', 'africa', 'asia', 'oceania'. The Web UI Coverage dropdown presents these as selectable options, not free-text. Using 'USA' (original design) would have been incorrect as it is not a vocabulary entry. The value 'north-america' was verified during live testing by examining the Nuxeo edit form in the Web UI.",
+            "status": "verified"
+        },
+        {
+            "key": "initial_state_proxy_in_general_publications",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "setup_task.sh lines 190-193 verify via NXQL that proxy count in General-Publications = 1 after Document.Publish; live testing confirmed setup log output: 'Security-Policy-2024 published to General-Publications (proxy count: 1)'",
+            "status": "verified"
+        },
+        {
+            "key": "pdf_upload_requires_octet_stream",
+            "metadata_value": "Content-Type: application/octet-stream required for Nuxeo 10.10 batch upload",
+            "verified_value": "Content-Type: application/octet-stream required for Nuxeo 10.10 batch upload",
+            "source": "During live testing, initial setup produced 0-byte blobs when using default Content-Type. After adding Content-Type: application/octet-stream and X-File-Size headers (matching the pattern in setup_nuxeo.sh), PDFs were uploaded correctly with non-zero size. This is a Nuxeo 10.10-specific requirement for the batch upload endpoint.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task requires remediating two compliance audit findings in Nuxeo Platform. Finding 1: 'Security-Policy-2024' (a File document in Projects workspace) is currently published as a proxy to the 'General Publications' section and must be unpublished from there. Its Description field must be updated to 'SOX-2025-Q1 — Enterprise information security policy for fiscal year 2024' and its Coverage metadata set to 'north-america' (a Nuxeo l10ncoverage vocabulary value selectable from the Coverage dropdown). A major version must be created (version label becomes 1.0), then the document must be published to 'Compliance > Regulatory Filings' (a two-level section hierarchy). Finding 2: 'Data-Processing-Agreement' (a File document in Projects) must have its attached PDF replaced with /home/ga/nuxeo/data/DPA_v3_signed.pdf (a distinct file with different content/digest), the tag 'gdpr-compliant' must be added, a major version created (1.0), the 'external-reviewer' user's Read permission must be removed from the document's local ACL, and the document published to 'Legal > Legal Archive' (another two-level section hierarchy). Post-remediation: a Note titled 'Remediation-Summary' must be created in Projects listing both documents' titles, version numbers, and target sections. A collection titled 'Q1-2025-Compliance-Bundle' must contain exactly 3 members: Security-Policy-2024, Data-Processing-Agreement, and Remediation-Summary. All instructions are detailed in the 'Compliance-Audit-Findings' note pre-loaded in Projects workspace. All data is synthetic, generated by the setup script. The section hierarchies are two-level deep (Compliance > Regulatory-Filings, Legal > Legal-Archive), which is significant because agents have historically failed at navigating into sub-sections in Nuxeo's section tree.",
+    "pi_confidence": "high"
+}

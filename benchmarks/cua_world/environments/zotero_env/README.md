@@ -83,7 +83,7 @@ Start the environment:
 from gym_anything.api import from_config
 
 # Load environment with a specific task
-env = from_config("benchmarks/cua_world/environments/zotero_env", task_id="import_bibtex_library")
+env = from_config("examples/zotero_env", task_id="import_bibtex_library")
 obs = env.reset(seed=42)
 
 # Get SSH connection info
@@ -171,12 +171,12 @@ All tasks follow the standard two-part verification:
 7. ✅ All typos fixed (reinforcement pattern)
 
 See documentation:
-- `evidence/AUDIT_FIXES.md` - First audit response
-- `evidence/SECOND_AUDIT_FIXES.md` - Second audit response (window visibility fixes)
+- `evidence_docs/AUDIT_FIXES.md` - First audit response
+- `evidence_docs/SECOND_AUDIT_FIXES.md` - Second audit response (window visibility fixes)
 
 ## Evidence
 
-See `evidence/` directory for:
+See `evidence_docs/` directory for:
 - `AUDIT_FIXES.md`: Complete audit response with all fixes documented
 - `ENVIRONMENT_STATUS.md`: Detailed technical status report
 - `env_boot_with_task.png`: Screenshot showing Zotero running cleanly (no popups)
@@ -196,7 +196,7 @@ sudo -u ga bash -c 'DISPLAY=:1 /opt/zotero/zotero --no-remote > log 2>&1 &'
 **Registration in constants.py**:
 ```python
 try:
-    zotero_tasks = [f for f in os.listdir('benchmarks/cua_world/environments/zotero_env/tasks') if '.' not in f]
+    zotero_tasks = [f for f in os.listdir('examples/zotero_env/tasks') if '.' not in f]
 except FileNotFoundError:
     zotero_tasks = []
 

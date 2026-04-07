@@ -1,0 +1,33 @@
+{
+  "id": "cobot_ssm_validation@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Collaborative Robot Speed and Separation Monitoring",
+  "description": "Implement a Speed and Separation Monitoring (SSM) safety protocol for a robot in CoppeliaSim using a Python script via the ZMQ Remote API (port 23000). The protocol requires simulating a human intruder (dummy object) that starts at least 1.5m away and moves toward the robot while it is in motion. The script must calculate the 3D distance between the objects and modulate the robot's speed across three zones: Green (> 1.0m) for normal speed, Yellow (0.5m to 1.0m) for reduced speed, and Red (< 0.5m) for a protective stop. The process should conclude when the distance falls below 0.4m. Export all telemetry to /home/ga/Documents/CoppeliaSim/exports/ssm_telemetry.csv (columns: time_s, distance_m, active_zone, robot_speed) and a final summary to /home/ga/Documents/CoppeliaSim/exports/ssm_summary.json (fields: total_steps, start_distance_m, min_distance_m, green_steps, yellow_steps, red_steps, successful_stop).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cobot_ssm_validation/setup_task.sh",
+    "post_task": "/workspace/tasks/cobot_ssm_validation/export_result.sh"
+  },
+  "metadata": {
+    "output_csv": "/home/ga/Documents/CoppeliaSim/exports/ssm_telemetry.csv",
+    "output_json": "/home/ga/Documents/CoppeliaSim/exports/ssm_summary.json",
+    "thresholds": {
+      "green_min_m": 1.0,
+      "yellow_min_m": 0.5,
+      "stop_max_m": 0.4,
+      "start_min_m": 1.4
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cobot_ssm_validation"
+    }
+  }
+}

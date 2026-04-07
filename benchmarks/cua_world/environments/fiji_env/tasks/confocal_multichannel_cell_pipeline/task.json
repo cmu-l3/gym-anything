@@ -1,0 +1,50 @@
+{
+  "id": "confocal_multichannel_cell_pipeline@1",
+  "version": "1.0",
+  "env_id": "fiji_env@0.1",
+  "description": "Using ~/Fiji_Data/raw/confocal/FluorescentCells.tif (3-channel fluorescence image, 512×512, pixel size 0.32 µm), perform per-channel quantitative analysis and assemble a publication figure.\n\nSplit the image into its three channels and calibrate each at 0.32 µm/pixel.\n\nFor the blue channel (nuclei): apply flat-field correction using Gaussian blur division (sigma=50), then background subtraction (rolling ball 50px), Otsu thresholding with watershed separation, and particle analysis (100–5000 px², circularity 0.4–1.0, excluding edges). Record total cell count and mean nuclear area.\n\nFor the green channel (microtubules): apply background subtraction (rolling ball 30px), auto-threshold, skeletonize the binary image, and run skeleton analysis. Record total branch count and junction count.\n\nFor the red channel (F-actin): apply background subtraction (rolling ball 20px), auto-threshold, and particle analysis (20–2000 px², circularity 0.0–1.0, excluding edges). Record actin feature count and mean feature area.\n\nCreate an RGB composite by merging the three channels to their respective colors. Assemble a 2×3 publication montage showing: [Blue ch | Green ch | Red ch | Nuclear mask | Skeleton map | RGB composite] with a 10 µm scale bar.\n\nExport channel_measurements.csv with columns Channel, Metric_Name, Value (minimum 6 rows: nuclear_count, mean_nuclear_area_um2, branch_count, junction_count, actin_feature_count, mean_actin_feature_area_um2), and analysis_report.txt summarizing all metrics with units. All outputs to ~/Fiji_Data/results/cell_pipeline/.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/confocal_multichannel_cell_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/confocal_multichannel_cell_pipeline/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "input_image": "FluorescentCells.tif",
+    "pixel_size_um": 0.32,
+    "n_channels": 3,
+    "image_size": "512x512",
+    "channel_blue": "nuclei (DAPI)",
+    "channel_green": "microtubules (Bodipy FL anti-tubulin)",
+    "channel_red": "F-actin (Texas Red X-Phalloidin)",
+    "output_dir": "~/Fiji_Data/results/cell_pipeline/",
+    "output_csv": "~/Fiji_Data/results/cell_pipeline/channel_measurements.csv",
+    "output_figure": "~/Fiji_Data/results/cell_pipeline/analysis_figure.png",
+    "output_report": "~/Fiji_Data/results/cell_pipeline/analysis_report.txt",
+    "expected_nuclear_count_min": 5,
+    "expected_nuclear_count_max": 500,
+    "expected_branch_count_min": 10,
+    "expected_actin_feature_count_min": 10,
+    "expected_actin_feature_count_max": 5000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multichannel_pipeline"
+    }
+  },
+  "tags": [
+    "fluorescence",
+    "multichannel",
+    "segmentation",
+    "skeleton",
+    "montage",
+    "publication",
+    "long-horizon"
+  ]
+}

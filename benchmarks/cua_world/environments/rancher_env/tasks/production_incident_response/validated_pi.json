@@ -1,0 +1,65 @@
+{
+    "task_id": "production_incident_response@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_namespace",
+            "metadata_value": "ecommerce",
+            "verified_value": "ecommerce",
+            "source": "setup_task.sh explicitly creates and targets the 'ecommerce' namespace for all deployments. verifier.py strictly expects the namespace to be 'ecommerce'.",
+            "status": "verified"
+        },
+        {
+            "key": "num_failures",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "setup_task.sh explicitly injects exactly 4 separate deployment failures.",
+            "status": "verified"
+        },
+        {
+            "key": "failure_services",
+            "metadata_value": [
+                "api-gateway",
+                "web-frontend",
+                "cache-layer",
+                "batch-processor"
+            ],
+            "verified_value": [
+                "api-gateway",
+                "web-frontend",
+                "cache-layer",
+                "batch-processor"
+            ],
+            "source": "setup_task.sh creates deployments and services specifically named api-gateway, web-frontend, cache-layer, and batch-processor.",
+            "status": "verified"
+        },
+        {
+            "key": "injected_failures",
+            "metadata_value": [
+                "api-gateway uses a non-existent Docker image tag causing ImagePullBackOff",
+                "web-frontend Service selector does not match pod labels causing zero endpoints",
+                "cache-layer ConfigMap has wrong Redis port (6380 instead of 6379)",
+                "batch-processor has excessive memory request (32Gi) causing Pending state"
+            ],
+            "verified_value": [
+                "api-gateway uses a non-existent Docker image tag causing ImagePullBackOff",
+                "web-frontend Service selector does not match pod labels causing zero endpoints",
+                "cache-layer ConfigMap has wrong Redis port (6380 instead of 6379)",
+                "batch-processor has excessive memory request (32Gi) causing Pending state"
+            ],
+            "source": "setup_task.sh defines api-gateway with image 'nginx:broken-tag-xyz-nonexistent', web-frontend service selector 'app: web-frontend' against pod label 'app: frontend-app', cache-config ConfigMap REDIS_PORT='6380', and batch-processor memory request '32Gi'.",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 70,
+            "verified_value": 70,
+            "source": "verifier.py defines PASS_THRESHOLD = 70 and uses it to determine task success.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically generated Kubernetes resources in the 'ecommerce' namespace. It has been verified via the setup_task.sh script that exactly 4 microservices are injected with failures: 'api-gateway' uses a non-existent image ('nginx:broken-tag-xyz-nonexistent'), 'web-frontend' has a service selector mismatch ('app: frontend-app' pod labels vs 'app: web-frontend' selector), 'cache-layer' ConfigMap specifies an incorrect Redis port (6380 instead of 6379), and 'batch-processor' requests excessive memory ('32Gi') causing a Pending state. The verifier strictly enforces a minimum passing score of 70 points.",
+    "pi_confidence": "high"
+}

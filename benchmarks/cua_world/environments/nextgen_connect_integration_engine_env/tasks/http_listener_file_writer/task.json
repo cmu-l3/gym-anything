@@ -1,0 +1,28 @@
+{
+  "id": "http_listener_file_writer@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create, deploy, and test a NextGen Connect channel named 'ADT_Audit_HTTP' using the REST API (https://localhost:8443/api, credentials admin/admin, header X-Requested-With: OpenAPI, Content-Type: application/xml) or the Administrator dashboard. The channel must reach a STARTED state, receive HL7v2 ADT messages via an HTTP Listener on 0.0.0.0:6661, and write them to unique .hl7 files in /home/ga/output/. Test the channel by sending the following HL7 ADT^A01 message via HTTP POST to http://localhost:6661:\nMSH|^~\\&|HIS|HOSPITAL|CONNECT|AUDIT|20240115120000||ADT^A01|MSG00001|P|2.3|\nEVN|A01|20240115120000|\nPID|1||MRN12345^^^HOSPITAL||SMITH^JOHN^A||19800101|M|||123 MAIN ST^^BOSTON^MA^02101||5551234567|\nPV1|1|I|ICU^101^A|E|||1234^JONES^SARAH^M^MD|||MED||||1|||1234^JONES^SARAH^M^MD|IN||||||||||||||||||HOSPITAL|||20240115120000|",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/http_listener_file_writer/setup_task.sh",
+    "post_task": "/workspace/tasks/http_listener_file_writer/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "ADT_Audit_HTTP",
+    "expected_port": "6661",
+    "output_dir": "/home/ga/output",
+    "expected_file_ext": ".hl7"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_http_listener_file_writer"
+    }
+  }
+}

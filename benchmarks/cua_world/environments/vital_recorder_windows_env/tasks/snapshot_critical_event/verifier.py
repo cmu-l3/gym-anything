@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""
+"""
 Verifier for snapshot_critical_event task.
 
 Criteria:

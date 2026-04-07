@@ -1,0 +1,53 @@
+{
+  "task_id": "secure_build_with_buildkit_secrets@1",
+  "task_completion": [
+    {
+      "id": "dockerfile_secret_mount",
+      "description": "The Dockerfile is modified to include a RUN instruction with the --mount=type=secret flag.",
+      "points": 25,
+      "visual_evidence": "A text editor or terminal output showing the Dockerfile contents, specifically a line containing `RUN --mount=type=secret`."
+    },
+    {
+      "id": "dockerfile_header_usage",
+      "description": "The Dockerfile uses the mounted secret to pass the X-Auth-Token header for the download.",
+      "points": 25,
+      "visual_evidence": "In the Dockerfile, the download command (curl or wget) includes a header argument (e.g., `-H \"X-Auth-Token: $(cat /run/secrets/...)\"`) that reads the token directly from the mounted secret path."
+    },
+    {
+      "id": "dockerfile_artifact_destination",
+      "description": "The Dockerfile saves the downloaded artifact to the correct path.",
+      "points": 10,
+      "visual_evidence": "In the Dockerfile, the download command specifies the output path as `/app/proprietary_lib.tar.gz` (e.g., using `curl -o /app/proprietary_lib.tar.gz` or `wget -O /app/proprietary_lib.tar.gz`)."
+    },
+    {
+      "id": "docker_build_command",
+      "description": "The agent executes the docker build command with the required secret flag and image tag.",
+      "points": 20,
+      "visual_evidence": "Terminal showing a command like `docker build --secret id=...,src=auth_token.txt -t secure-app:latest .` being executed."
+    },
+    {
+      "id": "docker_build_success",
+      "description": "The Docker build completes successfully.",
+      "points": 20,
+      "visual_evidence": "Terminal output showing the successful completion of the docker build process (e.g., 'DONE', 'Successfully tagged secure-app:latest', or standard BuildKit success logs)."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_docker_build",
+      "description": "The agent actually executed the docker build command.",
+      "visual_evidence": "Terminal shows the actual execution and output logs of the docker build process, not just a mock or echo command."
+    },
+    {
+      "id": "no_hardcoded_token",
+      "description": "The agent did not hardcode the token into the Dockerfile.",
+      "visual_evidence": "The Dockerfile reads the token from the secret mount (e.g., `cat /run/secrets/...`) rather than containing a hardcoded 32-character hex string."
+    },
+    {
+      "id": "genuine_download",
+      "description": "The artifact was downloaded from the server during the build.",
+      "visual_evidence": "The Dockerfile uses curl or wget to fetch from `http://host.docker.internal:8090/proprietary_lib.tar.gz`, rather than copying a locally created dummy file into the image."
+    }
+  ],
+  "privileged_info_for_vlm": "The project directory is '/home/ga/secure-build'. The image must be tagged 'secure-app:latest'. The artifact server runs on port 8090 and requires the 'X-Auth-Token' header. The token is stored in 'auth_token.txt'. The artifact must be saved to '/app/proprietary_lib.tar.gz'. Using Docker BuildKit secrets (`RUN --mount=type=secret...`) is required to prevent token leakage in image history."
+}

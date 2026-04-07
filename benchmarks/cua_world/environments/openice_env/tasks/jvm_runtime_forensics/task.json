@@ -1,0 +1,85 @@
+{
+  "id": "jvm_runtime_forensics@1",
+  "version": "1.0",
+  "env_id": "openice_env@0.1",
+  "description": "Perform a JVM runtime performance analysis on the running OpenICE Supervisor application (identified by 'demo-apps' or 'supervisor'). Capture diagnostic artifacts to the directory /home/ga/Desktop/jvm_forensics/ including heap statistics (heap_stats.txt), a full thread dump (thread_dump.txt), VM flags and system properties (jvm_config.txt), and a heap memory usage summary (heap_summary.txt). Analyze the captured data and write a performance report to /home/ga/Desktop/jvm_forensics/performance_report.txt. The report must include the analyzed PID, current heap utilization, an observation about thread states, and at least two specific tuning recommendations. JDK 17 diagnostic tools are available in the system PATH.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/jvm_runtime_forensics/setup_task.sh",
+    "post_task": "/workspace/tasks/jvm_runtime_forensics/export_result.sh"
+  },
+  "metadata": {
+    "output_dir": "/home/ga/Desktop/jvm_forensics",
+    "required_files": [
+      "heap_stats.txt",
+      "thread_dump.txt",
+      "jvm_config.txt",
+      "heap_summary.txt",
+      "performance_report.txt"
+    ],
+    "patterns": {
+      "heap_stats": [
+        "S0",
+        "S1",
+        "E",
+        "O",
+        "M",
+        "CCS",
+        "YGC",
+        "YGCT"
+      ],
+      "thread_dump": [
+        "java.lang.Thread.State",
+        "at ",
+        "nid="
+      ],
+      "jvm_config": [
+        "-XX:",
+        "java.vm",
+        "user.dir"
+      ],
+      "heap_summary": [
+        "Heap Configuration",
+        "MinHeapFreeRatio",
+        "MaxHeapFreeRatio",
+        "Metaspace",
+        "class space"
+      ]
+    },
+    "report_keywords": {
+      "metrics": [
+        "MB",
+        "GB",
+        "%",
+        "utilization",
+        "usage"
+      ],
+      "threads": [
+        "RUNNABLE",
+        "WAITING",
+        "BLOCKED",
+        "TIMED_WAITING"
+      ],
+      "tuning": [
+        "-Xmx",
+        "-Xms",
+        "G1GC",
+        "ParallelGC",
+        "heap size",
+        "increase",
+        "decrease"
+      ]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_jvm_forensics"
+    }
+  }
+}

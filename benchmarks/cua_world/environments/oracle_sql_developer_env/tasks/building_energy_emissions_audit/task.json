@@ -1,0 +1,41 @@
+{
+  "id": "building_energy_emissions_audit@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Environmental Compliance Auditor at the municipal Department of Buildings. The ENV_AUDITOR schema (connected as env_auditor/EnvAudit2024 to XEPDB1 at localhost:1521) contains 2024 energy benchmarking data for large commercial buildings. Transform the raw utility meter data by creating a view named ANNUAL_ENERGY_PIVOT_VW that sums the 2024 usage_amount from the METER_READINGS table for each building (bbl_id), pivoting the fuel_type into three columns: electricity_kwh, natural_gas_therms, and steam_mlbs. Create a view named BUILDING_EMISSIONS_VW that joins the pivot view with the BUILDINGS and PROPERTY_EMISSION_LIMITS tables to calculate total_ghg_emissions ((electricity_kwh * 0.00028896) + (natural_gas_therms * 0.0053) + (steam_mlbs * 0.0449)), emissions_limit (gross_sqft * ghg_intensity_limit), is_compliant ('Y' if total_ghg_emissions <= emissions_limit, else 'N'), and penalty_amount (if non-compliant, $268 * (total_ghg_emissions - emissions_limit); if compliant, 0). Ensure NULL fuel usage is handled as 0. Implement and execute a PL/SQL procedure PROC_GENERATE_NOTICES that inserts records for all non-compliant buildings into the EMISSION_NOTICES table, using the NOTICE_SEQ sequence for notice_id, calculating the exceedance_amount, and setting the notice_date to SYSDATE. Export the top 50 buildings with the highest penalty_amount to /home/ga/Documents/top_50_penalties.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/building_energy_emissions_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/building_energy_emissions_audit/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/building_emissions_result.json",
+    "occupation": "Environmental Scientists and Specialists",
+    "industry": "Government / Real Estate Compliance",
+    "gdp_contribution": "$4.2B",
+    "oracle_features": [
+      "PIVOT",
+      "PL/SQL",
+      "Mathematical Functions",
+      "Analytical Views"
+    ],
+    "expected_csv_path": "/home/ga/Documents/top_50_penalties.csv",
+    "penalty_rate": 268,
+    "coefficients": {
+      "electricity": 0.00028896,
+      "natural_gas": 0.0053,
+      "district_steam": 0.0449
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_building_energy_emissions_audit"
+    }
+  }
+}

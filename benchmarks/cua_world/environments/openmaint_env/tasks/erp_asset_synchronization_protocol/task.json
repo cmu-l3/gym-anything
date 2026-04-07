@@ -1,0 +1,37 @@
+{
+  "id": "erp_asset_synchronization_protocol@1",
+  "version": "1.0",
+  "env_id": "openmaint_env@0.1",
+  "description": "The Finance Department has provided a 'Fixed Asset Register' export (CSV file on your Desktop) containing official ERP Asset IDs, Cost Centers, and Statuses. Synchronize the OpenMaint asset database with this file based on Serial Number matching. For unique matches, append ' | ERP-ID: [AssetID] | CC: [CostCenter]' to the existing description and update the asset status ('WRITTEN_OFF' to 'Retired' or 'Disposed'; 'ACTIVE' to 'Active'). If a Serial Number matches multiple assets, create a High priority Maintenance Request/Ticket with the description 'Data Integrity Conflict: Duplicate Serial [SerialNumber]' and do not update the assets. Ignore rows where no asset is found. Login: admin/admin at http://localhost:8090/cmdbuild/ui/",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/erp_asset_synchronization_protocol/setup_task.sh",
+    "post_task": "/workspace/tasks/erp_asset_synchronization_protocol/export_result.sh"
+  },
+  "metadata": {
+    "csv_path": "/home/ga/Desktop/finance_fixed_assets.csv",
+    "target_assets": [
+      "EQ-SYNC-001",
+      "EQ-SYNC-002",
+      "EQ-SYNC-003"
+    ],
+    "trap_serial": "SN-DUP-999",
+    "retired_status_keywords": [
+      "retired",
+      "disposed",
+      "inactive",
+      "written_off"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_erp_asset_synchronization_protocol"
+    }
+  }
+}

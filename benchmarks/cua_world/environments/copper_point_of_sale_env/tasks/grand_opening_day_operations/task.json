@@ -1,0 +1,77 @@
+{
+  "id": "grand_opening_day_operations@1",
+  "version": "1.0",
+  "env_id": "copper_point_of_sale_env@0.1",
+  "description": "You are the store manager of Riverside Electronics (3100 River Road, Austin TX 78741, (512) 555-0342), launching the store today in Copper Point of Sale. Complete the full grand opening workflow: Configure a sales tax named TX Sales Tax at 8.25%. Configure the receipt header with the store name, address, and phone number, and set the receipt footer to Thank you for shopping with us! Import products from C:\\Users\\Docker\\Desktop\\store_inventory.csv into the system. Add customer Jordan Hayes with email jordan.hayes@techstart.io, phone (512) 555-0199, company TechStart Inc. Process sales: Sale 1 sell Apple AirPods Pro and Apple Lightning Cable 1m, pay with Cash. Sale 2 create a coupon named GRAND10 for $10 off, then sell Samsung Galaxy Buds FE to customer Jordan Hayes with the coupon applied, pay with Credit Card. Sale 3 sell JBL Clip 4 Speaker with Cash, then void this entire transaction. Sale 4 sell Google Pixel Buds A-Series and USB-C to USB-C Cable 6ft, pay with Cash. Export today's Sales Report to C:\\Users\\Docker\\Desktop\\daily_sales_report.csv. Finally, create C:\\Users\\Docker\\Desktop\\opening_day_summary.txt containing the store name, the configured tax rate, the number of items imported, the number of completed sales, the number of voided sales, and the total pre-tax revenue from all completed sales.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\grand_opening_day_operations\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\grand_opening_day_operations\\export_result.ps1"
+  },
+  "metadata": {
+    "store_name": "Riverside Electronics",
+    "store_address": "3100 River Road, Austin TX 78741",
+    "store_phone": "(512) 555-0342",
+    "tax_rate": 8.25,
+    "tax_name": "TX Sales Tax",
+    "receipt_footer": "Thank you for shopping with us!",
+    "customer": {
+      "name": "Jordan Hayes",
+      "email": "jordan.hayes@techstart.io",
+      "phone": "(512) 555-0199",
+      "company": "TechStart Inc."
+    },
+    "coupon": {
+      "code": "GRAND10",
+      "discount": 10.00
+    },
+    "transactions": [
+      {
+        "label": "1",
+        "items": "Apple AirPods Pro x1, Apple Lightning Cable 1m x1",
+        "subtotal": 269.98,
+        "payment": "Cash"
+      },
+      {
+        "label": "2",
+        "items": "Samsung Galaxy Buds FE x1 (GRAND10 coupon applied)",
+        "subtotal": 89.99,
+        "payment": "Credit Card",
+        "customer": "Jordan Hayes"
+      },
+      {
+        "label": "3",
+        "items": "JBL Clip 4 Speaker x1",
+        "subtotal": 59.99,
+        "payment": "Cash",
+        "voided": true
+      },
+      {
+        "label": "4",
+        "items": "Google Pixel Buds A-Series x1, USB-C to USB-C Cable 6ft x1",
+        "subtotal": 92.98,
+        "payment": "Cash"
+      }
+    ],
+    "expected_total_revenue": 452.95,
+    "expected_completed_sales": 3,
+    "expected_voided_sales": 1,
+    "expected_item_count": 15,
+    "required_output_files": [
+      "C:\\Users\\Docker\\Desktop\\daily_sales_report.csv",
+      "C:\\Users\\Docker\\Desktop\\opening_day_summary.txt"
+    ],
+    "result_json_path": "C:\\Users\\Docker\\grand_opening_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_grand_opening_day_operations"
+    }
+  }
+}

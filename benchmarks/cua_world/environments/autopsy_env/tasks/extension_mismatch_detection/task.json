@@ -1,0 +1,31 @@
+{
+  "id": "extension_mismatch_detection@1",
+  "version": "1.0",
+  "env_id": "autopsy_env@0.1",
+  "description": "A corporate security team seized a laptop from an employee suspected of exfiltrating proprietary design files. Intelligence suggests the suspect renamed sensitive files (e.g., changing image or archive extensions to .txt, .dat, or .log) to disguise their true content. Your mission: (1) Create a new forensic case named 'Extension_Mismatch_2024' with case number 'INV-EXT-006' in Autopsy. (2) Add /home/ga/evidence/jpeg_search.dd as a Disk Image data source. During ingest configuration, enable ONLY the 'File Type Identification' and 'Extension Mismatch Detector' modules. Disable all others to speed up processing, then click Finish. (3) After ingest completes, navigate to 'Results -> Extension Mismatch Detected' in the left-hand tree panel to review flagged files. (4) Write a detailed mismatch catalog to /home/ga/Reports/extension_mismatches.txt. Include one line per mismatched file using exactly this pipe-delimited format and header: FILENAME|FULL_PATH|EXTENSION|DETECTED_MIME_TYPE|SIZE_BYTES|MD5_HASH (Use 'N/A' if MD5 is unavailable). (5) Write an investigative summary to /home/ga/Reports/mismatch_summary.txt containing exactly these sections on separate lines: 'CASE_NAME: Extension_Mismatch_2024', 'CASE_NUMBER: INV-EXT-006', 'IMAGE_ANALYZED: jpeg_search.dd', 'TOTAL_FILES_SCANNED: <N>', 'TOTAL_MISMATCHES_DETECTED: <N>', 'MISMATCH_CATEGORIES:' (followed by one line per category, e.g., '  txt -> image/jpeg: N files'), and 'CONCEALMENT_ASSESSMENT: <your 1-3 sentence assessment of whether this appears intentional>'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/extension_mismatch_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/extension_mismatch_detection/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Extension_Mismatch_2024",
+    "case_number": "INV-EXT-006",
+    "disk_image": "/home/ga/evidence/jpeg_search.dd",
+    "catalog_file": "/home/ga/Reports/extension_mismatches.txt",
+    "summary_file": "/home/ga/Reports/mismatch_summary.txt",
+    "result_file": "/tmp/extension_mismatch_result.json",
+    "gt_file": "/tmp/extension_mismatch_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_extension_mismatch_detection"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "id": "tissue_density_characterization@1",
+  "version": "1.0",
+  "env_id": "weasis_env@0.1",
+  "description": "Perform a quantitative tissue density characterization of the loaded chest CT phantom study. Find the slice where the central mediastinal structure has its widest cross-section and measure its maximum transverse diameter. Place an elliptical ROI on this structure to obtain its mean HU and standard deviation, and place another elliptical ROI on the posterior bony structure (vertebral body) to obtain its mean HU. Set up a 1x2 side-by-side layout displaying the same slice with soft tissue window (W:350, L:50) on one side and bone window (W:2000, L:300) on the other. Export the dual-window view with all annotations as density_analysis.png to /home/ga/DICOM/exports/tissue_char/. Write density_report.txt to the same directory containing: peak slice number, transverse diameter (mm), central structure mean HU and std dev, bone mean HU, central-to-bone HU ratio, and tissue density classification of the central structure (fat: HU below -30, water: -30 to 30, soft tissue: 30 to 100, dense: above 100).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tissue_density_characterization/setup_task.sh",
+    "post_task": "/workspace/tasks/tissue_density_characterization/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Radiologist",
+    "industry": "Healthcare / Medical Imaging",
+    "clinical_scenario": "Quantitative tissue density characterization with dual-window comparison",
+    "export_dir": "/home/ga/DICOM/exports/tissue_char",
+    "export_image": "/home/ga/DICOM/exports/tissue_char/density_analysis.png",
+    "export_report": "/home/ga/DICOM/exports/tissue_char/density_report.txt",
+    "data_dir": "/home/ga/DICOM/studies/tissue_phantom",
+    "expected_peak_slice_min": 13,
+    "expected_peak_slice_max": 19,
+    "expected_diameter_min_mm": 55,
+    "expected_diameter_max_mm": 125,
+    "expected_st_mean_hu_min": 15,
+    "expected_st_mean_hu_max": 95,
+    "expected_bone_mean_hu_min": 150,
+    "expected_bone_mean_hu_max": 450,
+    "expected_ratio_min": 0.03,
+    "expected_ratio_max": 0.80,
+    "expected_classification": "soft tissue",
+    "required_features": ["scroll_navigation", "line_measurement", "roi_statistics", "dual_window_layout", "window_level_presets", "export_image", "text_report"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tissue_density_characterization"
+    }
+  }
+}

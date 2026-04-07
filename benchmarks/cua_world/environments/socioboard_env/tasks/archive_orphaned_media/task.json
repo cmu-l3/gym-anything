@@ -1,0 +1,29 @@
+{
+  "id": "archive_orphaned_media@1",
+  "version": "1.0",
+  "env_id": "socioboard_env@0.1",
+  "description": "A monitoring alert indicates the /opt partition is nearing capacity due to orphaned media files in Socioboard. Due to an application bug, when users deleted old campaigns, their database records were dropped but the physical image files were left behind in /opt/socioboard/socioboard-api/publish/media_uploads/. Reconcile the physical files in that directory against the active user_media collection in the socioboard MongoDB database (using the file_name field) and move all orphaned physical files to an archive directory at /home/ga/archive_orphaned/. Leave all active files untouched in their original location. Create a plain-text report at /home/ga/orphan_report.txt containing a single integer representing the exact count of orphaned files moved.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/archive_orphaned_media/setup_task.sh",
+    "post_task": "/workspace/tasks/archive_orphaned_media/export_result.sh"
+  },
+  "metadata": {
+    "source_dir": "/opt/socioboard/socioboard-api/publish/media_uploads/",
+    "archive_dir": "/home/ga/archive_orphaned/",
+    "report_path": "/home/ga/orphan_report.txt",
+    "db_name": "socioboard",
+    "db_collection": "user_media"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_archive_orphaned"
+    }
+  }
+}

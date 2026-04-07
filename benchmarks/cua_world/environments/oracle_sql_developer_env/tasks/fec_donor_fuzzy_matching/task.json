@@ -1,0 +1,31 @@
+{
+  "id": "fec_donor_fuzzy_matching@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Compliance Data Analyst at a state election commission auditing campaign finance reports in the ELECTIONS_ADMIN schema (elections_admin/Elections2024, XEPDB1). Deduplicate donor records in the RAW_DONORS and CONTRIBUTIONS tables using Oracle fuzzy matching to identify contributors exceeding the $3,300 federal limit. Create a table DONOR_MATCH_PAIRS containing donor_id_1, donor_id_2, jaro_winkler_score, and zip_code for suspected duplicates sharing the same zip_code where UTL_MATCH.JARO_WINKLER_SIMILARITY(UPPER(name1), UPPER(name2)) >= 90 and donor_id_1 < donor_id_2. Map every donor_id to its ultimate canonical_id (the minimum donor_id in its linked cluster) in a view named DONOR_CANONICAL_MAP. Create a materialized view CONSOLIDATED_DONOR_FINANCIALS_MV joining the canonical map to CONTRIBUTIONS to calculate total_contributions and donation_count per canonical_id. Identify individuals whose consolidated total strictly exceeds $3,300 in a table named VIOLATION_ALERTS and export this table to /home/ga/Documents/exports/limit_violators.csv. Connection details: Host=localhost, Port=1521, Service=XEPDB1, User=elections_admin, Password=Elections2024.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/fec_donor_fuzzy_matching/setup_task.sh",
+    "post_task": "/workspace/tasks/fec_donor_fuzzy_matching/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/exports/limit_violators.csv",
+    "oracle_features": [
+      "UTL_MATCH",
+      "Recursive CTE / CONNECT BY",
+      "Materialized Views"
+    ],
+    "limit": 3300
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fec_donor_fuzzy_matching"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+    "task_id": "northwind_territory_performance@1",
+    "dataset": "Northwind Sample Database",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_db",
+            "metadata_value": "/home/ga/Documents/databases/northwind.db",
+            "verified_value": "/home/ga/Documents/databases/northwind.db",
+            "source": "setup_task.sh and task description confirm this is the intended database path.",
+            "status": "verified"
+        },
+        {
+            "key": "connection_name",
+            "metadata_value": "Northwind",
+            "verified_value": "Northwind",
+            "source": "verifier.py strictly enforces this connection name.",
+            "status": "verified"
+        },
+        {
+            "key": "output_csv",
+            "metadata_value": "/home/ga/Documents/exports/territory_report.csv",
+            "verified_value": "/home/ga/Documents/exports/territory_report.csv",
+            "source": "verifier.py and export_result.sh check for this exact output path.",
+            "status": "verified"
+        },
+        {
+            "key": "output_sql",
+            "metadata_value": "/home/ga/Documents/scripts/territory_analysis.sql",
+            "verified_value": "/home/ga/Documents/scripts/territory_analysis.sql",
+            "source": "verifier.py and export_result.sh check for this exact output path.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_min_territories",
+            "metadata_value": 40,
+            "verified_value": 40,
+            "source": "Running the ground truth query on the jpwhite3 Northwind database yields 49 territories, validating the >= 40 constraint.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_max_territories",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "Running the ground truth query on the jpwhite3 Northwind database yields 49 territories, validating the <= 60 constraint.",
+            "status": "verified"
+        },
+        {
+            "key": "northwind_source",
+            "metadata_value": "https://raw.githubusercontent.com/jpwhite3/northwind-SQLite3/main/Northwind_large.sql",
+            "verified_value": null,
+            "source": "The specified URL returns a 404 Not Found. The Northwind_large.sql file does not exist in the source repository.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "Completed PI audit for dbeaver_env northwind_territory_performance task by confirming that the Northwind data is synthetically generated (a standard Microsoft sample database). Discovered that the task is critically defective on multiple levels. The `setup_task.sh` script attempts to download the database from a non-existent URL (Northwind_large.sql), resulting in a 404 error and exiting with status 1. Furthermore, even if the database were successfully downloaded, the ground truth Python script hardcodes a join on the table `Region`, but the actual jpwhite3 database uses `Regions` (plural), causing a `sqlite3.OperationalError` and another guaranteed setup failure. The output file paths and expected parameters match the instructions and verifier logic.",
+    "pi_confidence": "high"
+}

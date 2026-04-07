@@ -69,5 +69,5 @@ The task explicitly specifies carbamazepine as "the antiepileptic drug being con
 
 ## Evidence
 
-Evidence files are stored in `benchmarks/cua_world/environments/liverpool_cancer_ichart_env/evidence/`:
+Evidence files are stored in `examples/liverpool_cancer_ichart_env/evidence_docs/`:
 - `olaparib_antiepileptic_interaction_consultation_evidence.json`

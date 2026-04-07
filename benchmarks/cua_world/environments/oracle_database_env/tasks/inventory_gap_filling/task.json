@@ -1,0 +1,33 @@
+{
+  "id": "inventory_gap_filling@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Create a view named DAILY_INVENTORY_FULL that transforms sparse inventory change events from the INVENTORY_LOG table (LOG_ID, PRODUCT_ID, CHANGE_DATE, NEW_QUANTITY) into a complete daily snapshot for January 2026. The view must include columns REPORT_DATE, PRODUCT_ID, and STOCK_LEVEL, generating a row for every day from 2026-01-01 to 2026-01-31 for every product found in the log. For days with no recorded changes, the STOCK_LEVEL should carry forward the last known value (Last Observation Carried Forward), defaulting to 0 if a product has no history before a specific date. If multiple changes occur on the same day, use the value associated with the highest LOG_ID.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/inventory_gap_filling/setup_task.sh",
+    "post_task": "/workspace/tasks/inventory_gap_filling/export_result.sh"
+  },
+  "metadata": {
+    "view_name": "DAILY_INVENTORY_FULL",
+    "source_table": "INVENTORY_LOG",
+    "target_month": "2026-01",
+    "expected_days": 31,
+    "products_to_check": [
+      500,
+      501,
+      502
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_inventory_gap_filling"
+    }
+  }
+}

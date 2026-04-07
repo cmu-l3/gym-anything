@@ -1,0 +1,35 @@
+{
+  "id": "transit_gtfs_bunching_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Transportation Planner at a regional transit authority. Passengers have been complaining about 'bus bunching'—when two buses on the same route arrive at a stop simultaneously after a long wait. You need to analyze the monthly telemetry data to detect these events and build a performance scorecard. The GTFS scheduling data and simulated vehicle telemetry are stored in the TRANSIT_ADMIN schema (Host=localhost, Port=1521, Service=XEPDB1, User=transit_admin, Password=Transit2024). Because transit operations continue past midnight, GTFS times are stored as VARCHAR2(8) in 'HH:MM:SS' format where hours can exceed 24 (e.g., '25:15:30' means 1:15:30 AM the next operational day).\n\nDevelop a system to process these records by creating a PL/SQL function GTFS_TO_MINUTES(p_time VARCHAR2) that returns total minutes since midnight. Use this function to create a view SCHEDULE_ADHERENCE_VW joining ROUTES, TRIPS, STOP_TIMES, and VEHICLE_TELEMETRY to calculate delay_minutes and categorize status as 'EARLY' (delay < -1), 'ON_TIME' (delay between -1 and 5 inclusive), or 'LATE' (delay > 5). Identify bunching events in a materialized view BUNCHING_EVENTS_MV where headway_minutes (calculated via the LAG window function partitioned by route, direction, and stop) is less than 3 minutes. Aggregate this data into a ROUTE_SCORECARD table (including route_id, route_short_name, total_stops_served, on_time_pct, and bunching_events_count) using a procedure named PROC_GENERATE_SCORECARD. Export the final ROUTE_SCORECARD table to /home/ga/Documents/exports/route_scorecard.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/transit_gtfs_bunching_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/transit_gtfs_bunching_analysis/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/transit_result.json",
+    "occupation": "Transportation Planners",
+    "industry": "Transit and Ground Passenger Transportation",
+    "gdp_contribution": "$45.1B",
+    "oracle_features": [
+      "PL/SQL Functions",
+      "LAG Window Function",
+      "Materialized Views",
+      "String Parsing",
+      "Data Export"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_transit_gtfs_bunching_analysis"
+    }
+  }
+}

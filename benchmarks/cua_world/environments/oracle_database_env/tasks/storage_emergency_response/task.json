@@ -1,0 +1,31 @@
+{
+  "id": "storage_emergency_response@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "You are the DBA for a hospital EMR system responding to a critical alert where the primary logging tablespace 'TS_EMR_LOGS' is 100% full, causing 'ORA-01653' errors for the 'EMR_ADMISSION_LOGS' table. Connect to the database (User: SYSTEM, Password: OraclePassword123, Host: localhost, Port: 1521, Service: XEPDB1) and resolve the capacity issue by adding at least 50MB to 'TS_EMR_LOGS'. Implement a storage tiering policy by creating a new tablespace named 'TS_ARCHIVE', moving the 'EMR_HISTORICAL_LOGS' table to it, and ensuring all associated indexes are VALID. Confirm system operation with a test record in 'EMR_ADMISSION_LOGS' and export a report of the final free space for both tablespaces to /home/ga/Desktop/storage_report.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/storage_emergency_response/setup_task.sh",
+    "post_task": "/workspace/tasks/storage_emergency_response/export_result.sh"
+  },
+  "metadata": {
+    "primary_tablespace": "TS_EMR_LOGS",
+    "archive_tablespace": "TS_ARCHIVE",
+    "active_table": "EMR_ADMISSION_LOGS",
+    "historical_table": "EMR_HISTORICAL_LOGS",
+    "table_owner": "SYSTEM",
+    "connection_user": "SYSTEM",
+    "connection_password": "OraclePassword123"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_storage_emergency"
+    }
+  }
+}

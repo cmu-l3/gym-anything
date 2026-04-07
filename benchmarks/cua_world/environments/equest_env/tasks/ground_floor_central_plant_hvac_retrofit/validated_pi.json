@@ -1,0 +1,185 @@
+{
+    "task_id": "ground_floor_central_plant_hvac_retrofit@1",
+    "dataset": "equest_env example models",
+    "case_id": "4StoreyBuilding",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "building_model",
+            "metadata_value": "4StoreyBuilding",
+            "verified_value": "4StoreyBuilding",
+            "source": "Live environment test confirmed file exists at C:\\Users\\Docker\\Desktop\\eQUEST_Projects\\4StoreyBuilding.inp (94,825 bytes). File is a valid DOE-2.2 BDL input file with 3,258 lines defining a 4-story commercial office building. Also verified in raw INP file read from the environment (stored in evidence as raw_4StoreyBuilding.inp).",
+            "status": "verified"
+        },
+        {
+            "key": "target_systems",
+            "metadata_value": "[\"G.S11\", \"G.E12\", \"G.N13\", \"G.W14\", \"G.C15\"]",
+            "verified_value": "[\"G.S11\" (South Perim Spc), \"G.E12\" (East Perim Spc), \"G.N13\" (North Perim Spc), \"G.W14\" (West Perim Spc), \"G.C15\" (Core Spc)]",
+            "source": "Grep of 4StoreyBuilding.inp confirmed all 5 zones and corresponding PSZ HVAC systems exist. Full system names: 'Sys1 (PSZ) (G.S11)' at line 2602, 'Sys1 (PSZ) (G.E12)' at line 2643, 'Sys1 (PSZ) (G.N13)' at line 2684, 'Sys1 (PSZ) (G.W14)' at line 2725, 'Sys1 (PSZ) (G.C15)' at line 2766. All have TYPE = PSZ. Live test regex parsing confirmed all 5 systems found (evidence: 08_export_regex_test.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "baseline_cool_source",
+            "metadata_value": "DX (implied by task description)",
+            "verified_value": "DX (implicit default)",
+            "source": "The keyword COOL-SOURCE does not appear in the baseline INP file (0 occurrences). In DOE-2.2, COOL-SOURCE defaults to DX for PSZ systems when not explicitly stated. Live environment regex test confirmed: 'COOL-SOURCE=DX(implicit)' for all 5 G.* systems. After the agent changes this to CHW via the GUI, eQUEST will write COOL-SOURCE = CHW explicitly to the saved INP. The existing system COOLING-EIR = 0.34565 confirms DX cooling is in effect.",
+            "status": "verified"
+        },
+        {
+            "key": "baseline_heat_source",
+            "metadata_value": "FURNACE (implied by task description)",
+            "verified_value": "FURNACE",
+            "source": "All 5 Ground Floor systems explicitly contain HEAT-SOURCE = FURNACE in the INP file. Confirmed at lines 2605 (G.S11), 2646 (G.E12), 2687 (G.N13), 2728 (G.W14), 2769 (G.C15). Live test confirmed: 'HEAT-SOURCE=FURNACE' for all 5 systems (evidence: 03_inp_baseline_systems.txt, 08_export_regex_test.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "baseline_no_chw_hw_loops",
+            "metadata_value": "No existing CHW or HW loops",
+            "verified_value": "Confirmed: only 1 CIRCULATION-LOOP exists (DHW type)",
+            "source": "Only one CIRCULATION-LOOP in the INP file: 'DHW Plant 1 Loop (1)' at line 2389 with TYPE = DHW. No loops of TYPE CHILLED-WATER or HOT-WATER exist. Live environment confirmed: 'CIRCULATION-LOOP count: 1' (evidence: 03_inp_baseline_systems.txt). Regex parsing confirmed: only DHW loop found (evidence: 08_export_regex_test.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "baseline_no_chillers_boilers",
+            "metadata_value": "No existing chillers or boilers",
+            "verified_value": "Confirmed: 0 CHILLER objects, 0 BOILER objects",
+            "source": "Grep for 'CHILLER' and 'BOILER' in the INP file returned 0 matches. Live environment confirmed: 'CHILLER count: 0, BOILER count: 0' (evidence: 03_inp_baseline_systems.txt, 08_export_regex_test.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "chw_loop.type",
+            "metadata_value": "CHILLED-WATER",
+            "verified_value": "CHILLED-WATER",
+            "source": "Standard DOE-2.2 BDL keyword for chilled water circulation loops. Confirmed in DOE-2.2 reference documentation and in the existing central_plant_chiller_setup task which uses TYPE = CHILLED-WATER (verifier.py line checking: loop_obj['props']['TYPE'] == 'CHILLED-WATER').",
+            "status": "verified"
+        },
+        {
+            "key": "chw_loop.supply_temp_f",
+            "metadata_value": 44.0,
+            "verified_value": 44.0,
+            "source": "44 F (6.7 C) is the ASHRAE standard chilled water supply temperature for commercial cooling systems. ASHRAE 90.1 efficiency tables reference 44 F as the test/baseline leaving chilled water temperature. The existing central_plant_chiller_setup task also uses 44 F (COOL-SET-T = 44.0 checked with tolerance 0.5 in its verifier.py).",
+            "status": "verified"
+        },
+        {
+            "key": "chiller.type",
+            "metadata_value": "AIR-COOLED",
+            "verified_value": "AIR-COOLED (DOE-2 keyword: ELEC-AIR-COOLED)",
+            "source": "Valid DOE-2 chiller type. The existing central_plant_chiller_setup task uses the same type and its verifier checks for 'AIR-COOLED' in the TYPE property. In DOE-2 BDL, the full keyword is ELEC-AIR-COOLED.",
+            "status": "verified"
+        },
+        {
+            "key": "chiller.capacity_tons",
+            "metadata_value": 75,
+            "verified_value": 75,
+            "source": "Task-specified value. 75 tons is a commercially available chiller size (e.g., Trane CGAM, Carrier 30RAP). For this ~5,000 sqft ground floor, 75 tons (180 BTU/hr/sqft) is oversized compared to typical offices (25-60 BTU/hr/sqft) but is a valid DOE-2 input. This is a task requirement, not a derived value.",
+            "status": "verified"
+        },
+        {
+            "key": "chiller.efficiency_kw_ton",
+            "metadata_value": 1.05,
+            "verified_value": 1.05,
+            "source": "1.05 kW/ton is a standard efficiency for air-cooled chillers per ASHRAE 90.1 Table 6.8.1C (minimum efficiency for air-cooled chillers is ~1.25 kW/ton; 1.05 represents a high-efficiency unit). The existing central_plant_chiller_setup task also specifies 1.05 kW/ton.",
+            "status": "verified"
+        },
+        {
+            "key": "chiller.eir",
+            "metadata_value": 0.2986,
+            "verified_value": 0.2986,
+            "source": "Independently calculated: EIR = kW/ton * 3412 / 12000 = 1.05 * 3412 / 12000 = 0.29855, which rounds to 0.2986 at 4 decimal places. This matches the standard DOE-2 conversion formula documented at energy-models.com and unmethours.com. The existing central_plant_chiller_setup task uses 0.29856 (5 decimal places) for the same 1.05 kW/ton input. NOTE: Original metadata value was 0.2993 which was INCORRECT and was corrected to 0.2986 during PI audit.",
+            "status": "verified"
+        },
+        {
+            "key": "hw_loop.type",
+            "metadata_value": "HOT-WATER",
+            "verified_value": "HOT-WATER",
+            "source": "Standard DOE-2.2 BDL keyword for hot water circulation loops. Confirmed in DOE-2.2 reference documentation and the existing hydronic_perimeter_heating_retrofit task (which creates a hot water loop).",
+            "status": "verified"
+        },
+        {
+            "key": "hw_loop.supply_temp_f",
+            "metadata_value": 180.0,
+            "verified_value": 180.0,
+            "source": "180 F is the ASHRAE 90.1 baseline hot water supply temperature per Section G3.1.3.3 (180 F supply / 130 F return for baseline Systems 1, 5, 7). The existing hydronic_perimeter_heating_retrofit task also uses 180 F, verified in its validated_pi.json as 'Industry standard for hydronic heating in North America.'",
+            "status": "verified"
+        },
+        {
+            "key": "boiler.capacity_mbh",
+            "metadata_value": 500,
+            "verified_value": 500,
+            "source": "Task-specified value. 500 MBH (500,000 BTU/hr) is a commercially available boiler size (e.g., Lochinvar Knight XL 500, NTI Trinity Lx500). This is a valid DOE-2 input for the task specification.",
+            "status": "verified"
+        },
+        {
+            "key": "boiler.hir",
+            "metadata_value": 1.25,
+            "verified_value": 1.25,
+            "source": "HIR (Heat Input Ratio) = 1/efficiency. HIR 1.25 = 80% thermal efficiency. This is the ASHRAE 90.1 Section G3.1.1 baseline for commercial gas-fired hot water boilers. Confirmed by energy-models.com forum discussion on 'Boiler HIR and Section G3.1.1.' The existing hydronic_perimeter_heating_retrofit task uses HIR 1.04 (96% condensing boiler), which is a different design point; 1.25 represents a standard non-condensing boiler.",
+            "status": "verified"
+        },
+        {
+            "key": "erv.recover_exhaust",
+            "metadata_value": "YES",
+            "verified_value": "YES",
+            "source": "Standard DOE-2.2 keyword for enabling exhaust air energy recovery on SYSTEM objects. Confirmed in DOE-2 documentation and the existing ventilation_erv_upgrade task which sets RECOVER-EXHAUST = YES.",
+            "status": "verified"
+        },
+        {
+            "key": "erv.recover_type",
+            "metadata_value": "ENTHALPY",
+            "verified_value": "ENTHALPY",
+            "source": "Standard DOE-2.2 keyword for total (sensible + latent) energy recovery. The existing ventilation_erv_upgrade task also specifies ERV-RECOVER-TYPE = ENTHALPY.",
+            "status": "verified"
+        },
+        {
+            "key": "erv.sensible_eff",
+            "metadata_value": 0.75,
+            "verified_value": 0.75,
+            "source": "75% sensible effectiveness is within the typical range for commercial ERV equipment (70-80% per NREL laboratory evaluation of ERVs, report NREL/TP-5500-66560). Exceeds ASHRAE 90.1 minimum of 50% total effectiveness. Standard value commonly specified in energy models.",
+            "status": "verified"
+        },
+        {
+            "key": "erv.latent_eff",
+            "metadata_value": 0.60,
+            "verified_value": 0.60,
+            "source": "60% latent effectiveness is within the typical range for commercial ERV equipment (50-70% per NREL laboratory evaluation). Consistent with enthalpy wheel or membrane-based ERV units. The existing ventilation_erv_upgrade task uses 0.65 (slightly higher but same order).",
+            "status": "verified"
+        },
+        {
+            "key": "chw_loop.name",
+            "metadata_value": "Primary CHW Loop",
+            "verified_value": "Naming convention - no contradicting evidence",
+            "source": "Task-specified naming convention. No external source to verify against. The name follows standard energy modeling practice (Primary/Secondary designation + fluid type + Loop).",
+            "status": "unverified"
+        },
+        {
+            "key": "chiller.name",
+            "metadata_value": "Ground Chiller",
+            "verified_value": "Naming convention - no contradicting evidence",
+            "source": "Task-specified naming convention. No external source to verify against. Name indicates the chiller serves the ground floor.",
+            "status": "unverified"
+        },
+        {
+            "key": "hw_loop.name",
+            "metadata_value": "Primary HW Loop",
+            "verified_value": "Naming convention - no contradicting evidence",
+            "source": "Task-specified naming convention. No external source to verify against. Follows same pattern as CHW loop naming.",
+            "status": "unverified"
+        },
+        {
+            "key": "boiler.name",
+            "metadata_value": "Ground Boiler",
+            "verified_value": "Naming convention - no contradicting evidence",
+            "source": "Task-specified naming convention. No external source to verify against.",
+            "status": "unverified"
+        },
+        {
+            "key": "simulation_required",
+            "metadata_value": true,
+            "verified_value": true,
+            "source": "Task description explicitly states 'Run the annual DOE-2.2 simulation and save the project.' VLM checklist item 'run_simulation_and_save' awards 20 points for this. Export script checks sim_file_is_new (timestamp-based verification that .SIM file was produced during the task session).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The ground_floor_central_plant_hvac_retrofit task uses the 4StoreyBuilding eQUEST model (verified .inp file, 94,825 bytes, 3,258 lines). The building has 5 Ground Floor conditioned zones served by PSZ systems: 'Sys1 (PSZ) (G.S11)' through 'Sys1 (PSZ) (G.C15)'. Baseline state: all 5 systems have HEAT-SOURCE = FURNACE (explicit in INP), COOL-SOURCE = DX (implicit default, not written in INP), COOLING-EIR = 0.34565, FURNACE-HIR = 1.24069. The model has NO existing chilled water or hot water circulation loops (only one DHW loop: 'DHW Plant 1 Loop (1)' of TYPE = DHW), NO chillers, and NO boilers. The agent must create 4 new Water-Side HVAC objects: (1) CHW loop with CIRCULATION-LOOP TYPE = CHILLED-WATER and COOL-SETPT-T = 44, (2) chiller with TYPE = ELEC-AIR-COOLED, CAPACITY = 75, ELEC-INPUT-RATIO = 0.2986 (from 1.05 kW/ton x 3412/12000), CHW-LOOP referencing the new loop, (3) HW loop with CIRCULATION-LOOP TYPE = HOT-WATER and HEAT-SETPT-T = 180, (4) boiler with HEAT-INPUT-RATIO = 1.25 (80% efficiency), HW-LOOP referencing the new loop. Then in Air-Side HVAC, each of the 5 G.* systems must be changed: COOL-SOURCE from DX to CHW with CHW-LOOP referencing the new CHW loop, HEAT-SOURCE from FURNACE to HOT-WATER with HW-LOOP referencing the new HW loop, plus RECOVER-EXHAUST = YES, ERV-RECOVER-TYPE = ENTHALPY, ERV-SENSIBLE-EFF = 0.75, ERV-LATENT-EFF = 0.60. A fresh .SIM file must be produced (timestamp newer than task start) and the project saved. Setup script uses Pattern 1 (launch_app_pretask.ps1) which opens eQUEST with the startup dialog visible — the agent must navigate to open 4StoreyBuilding.",
+    "pi_confidence": "high"
+}

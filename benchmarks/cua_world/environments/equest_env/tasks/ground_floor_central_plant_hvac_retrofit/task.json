@@ -1,0 +1,55 @@
+{
+  "id": "ground_floor_central_plant_hvac_retrofit@1",
+  "version": "1.0",
+  "env_id": "equest_env@0.1",
+  "description": "The ground floor of the 4StoreyBuilding currently uses five independent packaged single-zone rooftop units with direct-expansion (DX) cooling and gas furnaces. The building owner is retrofitting to a central hydronic plant with energy recovery for improved efficiency. In Water-Side HVAC, create a chilled water circulation loop named 'Primary CHW Loop' with a design supply temperature of 44 F. Add an air-cooled chiller named 'Ground Chiller' with a capacity of 75 tons and an efficiency of 1.05 kW/ton attached to the Primary CHW Loop. Create a hot water circulation loop named 'Primary HW Loop' with a design supply temperature of 180 F. Add a natural-gas hot water boiler named 'Ground Boiler' with a capacity of 500 MBH and a heating input ratio (HIR) of 1.25 attached to the Primary HW Loop. In Air-Side HVAC, reconfigure all five Ground Floor systems (G.S11 through G.C15): change cooling source to chilled water on the Primary CHW Loop, heating source to hot water on the Primary HW Loop, and enable enthalpy energy recovery ventilation with sensible effectiveness of 0.75 and latent effectiveness of 0.60. Run the annual DOE-2.2 simulation and save the project.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\ground_floor_central_plant_hvac_retrofit\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\ground_floor_central_plant_hvac_retrofit\\export_result.ps1"
+  },
+  "metadata": {
+    "building_model": "4StoreyBuilding",
+    "target_systems": ["G.S11", "G.E12", "G.N13", "G.W14", "G.C15"],
+    "chw_loop": {
+      "name": "Primary CHW Loop",
+      "type": "CHILLED-WATER",
+      "supply_temp_f": 44.0
+    },
+    "chiller": {
+      "name": "Ground Chiller",
+      "type": "AIR-COOLED",
+      "capacity_tons": 75,
+      "efficiency_kw_ton": 1.05,
+      "eir": 0.2986
+    },
+    "hw_loop": {
+      "name": "Primary HW Loop",
+      "type": "HOT-WATER",
+      "supply_temp_f": 180.0
+    },
+    "boiler": {
+      "name": "Ground Boiler",
+      "capacity_mbh": 500,
+      "hir": 1.25
+    },
+    "erv": {
+      "recover_exhaust": "YES",
+      "recover_type": "ENTHALPY",
+      "sensible_eff": 0.75,
+      "latent_eff": 0.60
+    },
+    "simulation_required": true
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_task"
+    }
+  }
+}

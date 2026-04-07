@@ -1,0 +1,51 @@
+{
+  "id": "multi_specialist_referral_workflow@1",
+  "version": "1.0",
+  "env_id": "nosh_charting_system_env@0.1",
+  "difficulty": "very_hard",
+  "description": "You are Dr. Martinez at Hillside Family Medicine. Log in as demo_provider (password: Provider1234!). Your patient Malka Hartmann (DOB: November 26, 1994) presents with fatigue, unexplained weight gain, and intermittent palpitations. Coordinate multi-specialty care by creating a new office visit encounter for today's visit. Within the encounter, order a TSH (Thyroid Stimulating Hormone) and a CBC (Complete Blood Count). Place a referral to Endocrinology with the reason 'Possible hypothyroidism — fatigue, weight gain, TSH pending' and a separate referral to Cardiology with the reason 'Intermittent palpitations — needs cardiac evaluation'. Send an internal message to Dr. Emily Brooks with the subject 'Cardiology Consult Request — Hartmann' and the body 'Please advise on Malka Hartmann (DOB 11/26/1994) — palpitations requiring cardiology evaluation. Referral has been placed.'",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 90,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multi_specialist_referral_workflow/setup_task.sh",
+    "post_task": "/workspace/tasks/multi_specialist_referral_workflow/export_result.sh"
+  },
+  "metadata": {
+    "patient_pid": 12,
+    "patient_name": "Malka Hartmann",
+    "patient_dob": "1994-11-26",
+    "patient_sex": "f",
+    "occupation_context": "Family Medicine Physician — multi-specialty coordination visit",
+    "messaging_recipient_id": 3,
+    "messaging_recipient_name": "Dr. Emily Brooks",
+    "features_used": [
+      "encounters",
+      "lab_orders",
+      "referrals",
+      "messaging"
+    ],
+    "required_actions": [
+      "Create office visit encounter",
+      "Order TSH lab test",
+      "Order CBC lab test",
+      "Place Endocrinology referral for possible hypothyroidism",
+      "Place Cardiology referral for palpitations",
+      "Send internal message to Dr. Emily Brooks about cardiology consult"
+    ],
+    "expected_db_state": {
+      "encounters": "1+ new encounter for pid=12",
+      "orders_labs": "TSH and CBC orders for pid=12",
+      "orders_referrals": "Endocrinology and Cardiology referrals for pid=12",
+      "messaging": "1+ message from user_id=2 to user_id=3 mentioning Hartmann"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multi_specialist_referral_workflow"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "id": "automate_asset_inventory_export@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Create an executable Python script named 'agent_reporter.py' in the home directory that queries the Wazuh API (https://localhost:55000) to retrieve all agents with 'status: active'. The script must authenticate using the JWT token endpoint with the provided credentials (User: wazuh-wui, Password: MyS3cr37P450r.*-) and export the results to 'active_agents.csv' with headers 'Agent ID,Hostname,IP Address,OS,Groups', joining multiple groups with a semicolon.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/automate_asset_inventory_export/setup_task.sh",
+    "post_task": "/workspace/tasks/automate_asset_inventory_export/export_result.sh"
+  },
+  "metadata": {
+    "script_name": "agent_reporter.py",
+    "output_csv": "active_agents.csv",
+    "expected_headers": [
+      "Agent ID",
+      "Hostname",
+      "IP Address",
+      "OS",
+      "Groups"
+    ],
+    "api_user": "wazuh-wui",
+    "api_pass": "MyS3cr37P450r.*-",
+    "target_agent_id": "000"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_automate_asset_inventory_export"
+    }
+  }
+}

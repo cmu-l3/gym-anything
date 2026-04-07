@@ -1,0 +1,52 @@
+{
+    "task_id": "identify_nearest_capital@1",
+    "dataset": "world_survey.gpkg",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_lat",
+            "metadata_value": 58.0,
+            "verified_value": 58.0,
+            "source": "task description and verifier.py logic.",
+            "status": "verified"
+        },
+        {
+            "key": "target_lon",
+            "metadata_value": 19.5,
+            "verified_value": 19.5,
+            "source": "task description and verifier.py logic.",
+            "status": "verified"
+        },
+        {
+            "key": "tolerance_degrees",
+            "metadata_value": 1.0,
+            "verified_value": 1.0,
+            "source": "verifier.py checks dist_sq < 1.0.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_capital",
+            "metadata_value": "Stockholm",
+            "verified_value": "Riga",
+            "source": "Queried 'world_capitals' table in world_survey.gpkg. The dataset is truncated alphabetically at 'Lithuania' (98 records), meaning Sweden/Stockholm is missing. Haversine distance calculations confirm Riga is the closest available capital to 58.0 N, 19.5 E on the provided map.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_name",
+            "metadata_value": "Relay Survey Site",
+            "verified_value": "Relay Survey Site",
+            "source": "task description and verifier.py script strings.",
+            "status": "verified"
+        },
+        {
+            "key": "gpkg_path",
+            "metadata_value": "/sdcard/Android/data/ch.opengis.qfield/files/Imported Datasets/world_survey.gpkg",
+            "verified_value": "/sdcard/Android/data/ch.opengis.qfield/files/Imported Datasets/world_survey.gpkg",
+            "source": "setup_task.sh GPKG_DEST variable and verifier.py path checks.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on a non-synthetic QField dataset ('world_survey.gpkg') containing real-world capital coordinates and field observations. The target coordinates (58.0 N, 19.5 E) point to Gotland, Sweden. The metadata claims 'Stockholm' is the nearest capital. However, the 'world_capitals' table is alphabetically truncated at 'Lithuania' (98 total records), meaning Sweden is absent. Distance calculations confirm that the nearest available capital on the map is actually Riga (Latvia). Furthermore, verifier.py contains fatal SQL bugs: it attempts to query 'name' and 'notes' columns from 'field_observations', which do not exist in its schema (observer_name, species, location, obs_date, quality_grade), and it uses SpatiaLite functions like ST_Y() and ST_X() via the standard sqlite3 library without loading spatial extensions. This will cause the verifier to perpetually crash.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,32 @@
+{
+  "id": "compare_itc_vs_ptc_incentives@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "A sustainability specialist at a large utility company is preparing a board presentation for a proposed 100 MW solar project in the Phoenix, AZ area. Under the Inflation Reduction Act, utility-scale PV projects can elect either a 30% Investment Tax Credit (ITC) or a Production Tax Credit (PTC) of $0.0275/kWh.\n\nUsing PySAM, model a 100 MW DC single-axis-tracking utility-scale PV system located near Phoenix, AZ. Run the system simulation with two separate financial scenarios to determine which yields a more favorable financial outcome.\n\nSystem Configuration:\n- DC system capacity: 100,000 kW (100 MW)\n- Array type: Single-axis tracking\n- DC-to-AC ratio: 1.2\n- Tilt: 0 degrees\n- Azimuth: 180 degrees\n- System losses: 14%\n- Weather data: Use a Phoenix, AZ TMY file from the SAM solar_resource directory\n\nScenario A (ITC):\n- Federal ITC: 30%\n- Federal PTC: $0/kWh\n- All other financial parameters: PySAM SingleOwner defaults\n\nScenario B (PTC):\n- Federal ITC: 0%\n- Federal PTC: $0.0275/kWh for the first 10 years\n- All other financial parameters: PySAM SingleOwner defaults\n\nSave results to /home/ga/Documents/SAM_Projects/itc_vs_ptc_comparison.json with the following structure:\n{\n  \"system\": {\n    \"capacity_kw\": 100000,\n    \"array_type\": \"single_axis_tracking\",\n    \"location\": \"<weather file name or location>\"\n  },\n  \"itc_scenario\": {\n    \"itc_percent\": 30,\n    \"ptc_per_kwh\": 0,\n    \"annual_energy_kwh\": <val>,\n    \"lcoe_real\": <val>,\n    \"npv\": <val>\n  },\n  \"ptc_scenario\": {\n    \"itc_percent\": 0,\n    \"ptc_per_kwh\": 0.0275,\n    \"annual_energy_kwh\": <val>,\n    \"lcoe_real\": <val>,\n    \"npv\": <val>\n  }\n}",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compare_itc_vs_ptc_incentives/setup_task.sh",
+    "post_task": "/workspace/tasks/compare_itc_vs_ptc_incentives/export_result.sh"
+  },
+  "metadata": {
+    "expected_filename": "itc_vs_ptc_comparison.json",
+    "expected_capacity_kw": 100000,
+    "expected_energy_min_kwh": 150000000,
+    "expected_energy_max_kwh": 300000000,
+    "expected_lcoe_min": 0.01,
+    "expected_lcoe_max": 15.0,
+    "expected_itc_pct": 30,
+    "expected_ptc_val": 0.0275
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compare_itc_vs_ptc"
+    }
+  }
+}

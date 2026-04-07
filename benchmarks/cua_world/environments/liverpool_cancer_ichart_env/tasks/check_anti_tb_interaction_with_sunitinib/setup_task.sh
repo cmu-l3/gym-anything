@@ -28,4 +28,9 @@ fi
 # 6. Ensure Download directory exists
 mkdir -p /sdcard/Download
 
+# 7. Launch the app using robust helper
+echo "Launching Cancer iChart..."
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
+
 echo "=== Task setup complete ==="

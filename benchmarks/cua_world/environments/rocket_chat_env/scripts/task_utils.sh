@@ -197,6 +197,9 @@ restart_firefox() {
   local attempts="${2:-3}"
   local browser_cmd=""
 
+  # Wait for Rocket.Chat web service to be ready before launching browser
+  wait_for_http "${ROCKETCHAT_BASE_URL}/api/info" 120 || log "WARNING: Rocket.Chat may not be ready, attempting browser launch anyway"
+
   if has_command epiphany-browser; then
     browser_cmd="epiphany-browser"
   elif has_command epiphany; then

@@ -1,0 +1,27 @@
+{
+  "id": "encrypted_c2_dns_exfiltration@1",
+  "version": "1.0",
+  "env_id": "example.wireshark_env@0.1",
+  "description": "A network capture at ~/Documents/captures/corporate_traffic.pcapng and a TLS session key log at ~/Documents/captures/tls_keys.log were collected during a data breach investigation. The capture contains legitimate browsing traffic intermixed with suspicious encrypted activity. Multiple HTTPS sessions to different hosts are present.\n\nConfigure TLS decryption using the key log file. One of the decrypted HTTPS sessions communicates with a command-and-control server. Its HTTP response body contains a JSON object specifying exfiltration parameters, including the target DNS domain and an obfuscation key. Using those parameters, locate the corresponding DNS tunneling queries in the capture, reconstruct the chunks in order, and decode the exfiltrated data.\n\nProduce ~/Documents/forensic_evidence.json:\n{\n  \"c2_server_sni\": \"Server Name Indication hostname of the C2 HTTPS connection\",\n  \"c2_command_text\": \"the exact JSON string from the C2 HTTP response body\",\n  \"exfil_domain\": \"base domain used for DNS tunneling\",\n  \"exfil_source_ip\": \"IP address that sent the DNS tunnel queries\",\n  \"decoded_sha256\": \"SHA-256 hex digest of the fully reconstructed and decoded stolen data\",\n  \"decoded_first_line\": \"the exact first line of the decoded stolen data\"\n}",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/encrypted_c2_dns_exfiltration/setup_task.sh",
+    "post_task": "/workspace/tasks/encrypted_c2_dns_exfiltration/export_result.sh"
+  },
+  "metadata": {
+    "pcap_path": "/home/ga/Documents/captures/corporate_traffic.pcapng",
+    "keylog_path": "/home/ga/Documents/captures/tls_keys.log",
+    "output_path": "/home/ga/Documents/forensic_evidence.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_task"
+    }
+  }
+}

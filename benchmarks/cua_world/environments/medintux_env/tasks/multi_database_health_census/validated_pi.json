@@ -1,0 +1,38 @@
+{
+    "task_id": "multi_database_health_census@1",
+    "dataset": "MedinTux demo databases",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Documents/medintux_data_census.txt",
+            "verified_value": "/home/ga/Documents/medintux_data_census.txt",
+            "source": "setup_task.sh line 64 explicitly sets REPORT_PATH to this value",
+            "status": "verified"
+        },
+        {
+            "key": "required_dbs",
+            "metadata_value": "[\"DrTuxTest\", \"MedicaTuxTest\", \"CIM10Test\", \"CCAMTest\"]",
+            "verified_value": "[\"DrTuxTest\", \"MedicaTuxTest\", \"CIM10Test\", \"CCAMTest\"]",
+            "source": "setup_medintux.sh lines 206-211 create exactly these 4 databases with CHARACTER SET utf8. setup_task.sh line 32 queries these exact database names. export_result.sh verifies table counts for these exact databases.",
+            "status": "verified"
+        },
+        {
+            "key": "key_tables",
+            "metadata_value": "[\"fchpat\", \"IndexNomPrenom\"]",
+            "verified_value": "[\"fchpat\", \"IndexNomPrenom\"]",
+            "source": "task_utils.sh lines 3, 167-171 confirm these are the real MedinTux schema tables. setup_medintux.sh lines 256-274 verify fchpat exists and insert test patients. setup_medintux.sh lines 292-304 insert into IndexNomPrenom and confirm it is the 'search index'. verifier.py line 144 checks for columns like FchPat_NomFille, FchPat_Nee, FchPat_Sexe, FchPat_Ville, FchPat_NumSS - all belonging to fchpat table.",
+            "status": "verified"
+        },
+        {
+            "key": "min_report_lines",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "task.json metadata field specifies this threshold. export_result.sh line 66 checks if content length > 50 characters (not lines specifically). verifier.py line 66 checks len(content.strip()) > 50 characters, not 20 lines. The threshold appears to be character-based in verification, not line-based.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The MedinTux task operates on four real MySQL databases (DrTuxTest, MedicaTuxTest, CIM10Test, CCAMTest) loaded from official MedinTux 2.16.012 SQL dumps downloaded from SourceForge. The main patient database DrTuxTest contains the real MedinTux schema with tables fchpat (patient file details) and IndexNomPrenom (search index). Task setup inserts 20 test patients with realistic French names and data. The task requires generating a text report at /home/ga/Documents/medintux_data_census.txt containing database statistics, table counts, patient demographics, and procedure/diagnostic code counts. CIM-10 (French: CIM10Test) is the international disease classification system used by MedinTux, and CCAM (CCAMTest) is the French medical procedure classification system.",
+    "pi_confidence": "high"
+}

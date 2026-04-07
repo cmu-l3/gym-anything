@@ -1,0 +1,33 @@
+{
+  "id": "docker_compose_wait_strategy@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "Configure a deterministic startup sequence for a Docker Compose application at ~/projects/ci-pipeline/ to eliminate race conditions between the 'db' (Postgres), 'seeder' (Python script), and 'backend' (Flask API) services. Modify the docker-compose.yml to include a HEALTHCHECK for the 'db' service using 'pg_isready -U postgres', ensuring the 'seeder' service depends on the 'db' being healthy and the 'backend' service depends on the 'seeder' completing successfully. Remove any existing sleep or wait scripts and verify the stack starts cleanly with the API at http://localhost:5000/health returning a 200 status. Login: user 'ga', password 'password123'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_compose_wait_strategy/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_compose_wait_strategy/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/ci-pipeline",
+    "compose_file": "docker-compose.yml",
+    "expected_services": [
+      "db",
+      "seeder",
+      "backend"
+    ],
+    "health_cmd_substring": "pg_isready",
+    "api_url": "http://localhost:5000/health"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_compose_wait_strategy"
+    }
+  }
+}

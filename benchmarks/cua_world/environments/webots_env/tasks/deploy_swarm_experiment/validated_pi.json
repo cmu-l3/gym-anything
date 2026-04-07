@@ -1,0 +1,81 @@
+{
+    "task_id": "deploy_swarm_experiment@1",
+    "dataset": "cyberbotics/webots/projects/samples/demos/worlds/soccer.wbt",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "output_path",
+            "metadata_value": "/home/ga/Desktop/swarm_ready.wbt",
+            "verified_value": "/home/ga/Desktop/swarm_ready.wbt",
+            "source": "Verified against verifier.py and setup_task.sh expectations.",
+            "status": "verified"
+        },
+        {
+            "key": "planted_errors",
+            "metadata_value": [
+                "All soccer player robots have controller set to 'soccer_player_broken' (non-existent controller)",
+                "All soccer player robots have same translation position (overlapping robots)",
+                "WorldInfo basicTimeStep set to 128 (too slow for soccer robot control frequency)"
+            ],
+            "verified_value": [
+                "All soccer player robots have controller set to 'soccer_player_broken' (non-existent controller)",
+                "WorldInfo basicTimeStep set to 128 (too slow for soccer robot control frequency)"
+            ],
+            "source": "Running the Python injection script from setup_task.sh against the actual soccer.wbt reveals that the 'overlapping robots' error fails to inject. The script searches for BLUE_PLAYER or YELLOW_PLAYER, but the robots in soccer.wbt are actually named B1 Robot, B2 Robot, etc., resulting in 0 position modifications.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_controller",
+            "metadata_value": "soccer_player",
+            "verified_value": "soccer_player",
+            "source": "Verified via setup_task.sh which explicitly replaces 'soccer_player' and verifier.py which checks for it.",
+            "status": "verified"
+        },
+        {
+            "key": "num_robots_to_fix",
+            "metadata_value": 4,
+            "verified_value": 6,
+            "source": "Executing the Python controller replacement script from setup_task.sh against the Webots soccer.wbt replaces exactly 6 instances of the 'soccer_player' controller, meaning there are 6 robots to fix, not 4.",
+            "status": "contradicted"
+        },
+        {
+            "key": "verification_thresholds",
+            "metadata_value": {
+                "min_robots_with_valid_controller": 3,
+                "min_distinct_positions": 2,
+                "timestep_max": 64
+            },
+            "verified_value": {
+                "min_robots_with_valid_controller": 3,
+                "min_distinct_positions": 2,
+                "timestep_max": 64
+            },
+            "source": "Verified by extracting the dictionary logic in verifier.py.",
+            "status": "verified"
+        },
+        {
+            "key": "base_world",
+            "metadata_value": "soccer.wbt",
+            "verified_value": "soccer.wbt",
+            "source": "Verified via setup_task.sh DEMO_WORLD path target.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Swarm Robotics Researcher / Multi-Robot Systems Engineer",
+            "verified_value": "Swarm Robotics Researcher / Multi-Robot Systems Engineer",
+            "source": "Matches the exact role assigned in the task description.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Academic Research / Warehouse Automation / Robotics",
+            "verified_value": "Academic Research / Warehouse Automation / Robotics",
+            "source": "Matches the robotics context.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on a synthetically modified Webots demo world (soccer.wbt). Analysis reveals two critical bugs in the task scripts: First, the setup script completely fails to inject the overlapping positions error because it searches for 'BLUE_PLAYER' and 'YELLOW_PLAYER', but the robots are actually named 'B1 Robot', etc. Consequently, verifier.py also fails to find any robots using its Regex, forever returning 0 valid distinct pairs and making the 30 position points unobtainable. Second, the setup script replaces all 6 robot controllers with 'soccer_player_broken', meaning there are 6 broken robots to fix, contradicting the metadata claim of 4. The timestep (128) and expected controller ('soccer_player') correctly match the task specifications.",
+    "pi_confidence": "high"
+}

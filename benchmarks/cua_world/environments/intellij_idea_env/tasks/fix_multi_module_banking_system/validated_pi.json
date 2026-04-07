@@ -1,0 +1,138 @@
+{
+    "task_id": "fix_multi_module_banking_system@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/IdeaProjects/bank-ledger-system",
+            "verified_value": "/home/ga/IdeaProjects/bank-ledger-system",
+            "source": "Live VM verification: 'find /home/ga/IdeaProjects/bank-ledger-system -type f' returned all 15 expected files. See evidence 02_project_file_listing.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "project_name",
+            "metadata_value": "bank-ledger-system",
+            "verified_value": "bank-ledger-system",
+            "source": "Confirmed from parent pom.xml artifactId 'bank-ledger-system', IntelliJ window title 'bank-ledger-system' in wmctrl output, and directory name. See evidence 24_intellij_windows.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_test_count",
+            "metadata_value": 18,
+            "verified_value": 18,
+            "source": "Independently counted @Test annotations: CommonsTest.java has 3, LedgerTest.java has 8, ProcessingTest.java has 7. Total = 3 + 8 + 7 = 18. Confirmed by live Maven run: 'Tests run: 3' + 'Tests run: 8' + 'Tests run: 7' = 18. See evidence 10_test_results_all_bugs_fixed.txt and 26_source_file_contents.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "modules",
+            "metadata_value": ["bank-commons", "bank-ledger", "bank-processing"],
+            "verified_value": ["bank-commons", "bank-ledger", "bank-processing"],
+            "source": "Confirmed from parent pom.xml <modules> section listing bank-commons, bank-ledger, bank-processing. Each module directory exists with its own pom.xml and src/ tree. Maven reactor output confirms 4-module build order: 'Bank Ledger System, Bank Commons, Bank Ledger, Bank Processing'. See evidence 02_project_file_listing.txt and 10_test_results_all_bugs_fixed.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "do_not_modify",
+            "metadata_value": ["CommonsTest.java", "LedgerTest.java", "ProcessingTest.java"],
+            "verified_value": ["CommonsTest.java", "LedgerTest.java", "ProcessingTest.java"],
+            "source": "All three test files exist at their expected paths within the project. MD5 checksums were recorded at setup time and match current values: CommonsTest=8b30fbc3b594895c41685319fa181aee, LedgerTest=c84bf7cc99342cee554c8dbd02aeb7cf, ProcessingTest=ab572e797837923b97b1a4e76e6700c6. See evidence 13_initial_test_checksums.txt and 16_export_result_json_validation.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "source_attribution",
+            "metadata_value": "Custom multi-module banking ledger system",
+            "verified_value": "Custom multi-module banking ledger system",
+            "source": "The code is custom-written for this benchmark. Package names (com.bank.commons, com.bank.ledger, com.bank.processing) and class names do not match any known open-source project. No Maven Central artifacts match groupId 'com.bank' with these artifact names.",
+            "status": "verified"
+        }
+    ],
+    "ground_truth_bugs": [
+        {
+            "bug_id": "Bug 1: POM version mismatch",
+            "file": "pom.xml (parent)",
+            "description": "Parent POM declares <version>1.0.0</version> on line 9, but all three child modules reference <parent><version>1.0-SNAPSHOT</version></parent>. This causes Maven reactor failure: 'Non-resolvable parent POM for com.bank:bank-commons:1.0-SNAPSHOT: Could not find artifact com.bank:bank-ledger-system:pom:1.0-SNAPSHOT'.",
+            "fix": "Change parent pom.xml version from 1.0.0 to 1.0-SNAPSHOT (or change all children to 1.0.0).",
+            "verified_from": "Live VM: 'mvn compile' fails with exact error. See evidence 04_initial_compile_failure.txt and 20_bug1_pom_version_mismatch.txt."
+        },
+        {
+            "bug_id": "Bug 2: BalanceCalculator missing accountId filter",
+            "file": "bank-ledger/src/main/java/com/bank/ledger/BalanceCalculator.java",
+            "description": "getBalance(String accountId) at line 30 accepts an accountId parameter but the loop at line 33-35 iterates ALL ledger entries without filtering: 'for (LedgerEntry entry : entries) { balance += entry.getCreditAmount() - entry.getDebitAmount(); }'. The accountId parameter is never used in the method body. This causes every account to show the global total instead of its own balance.",
+            "fix": "Add 'if (entry.getAccountId().equals(accountId))' filter inside the for loop before the balance accumulation.",
+            "test_impact": "Causes 4 LedgerTest failures (testSingleAccountBalanceWithOtherAccounts, testMultipleAccountsHaveIsolatedBalances, testBalanceWithManyEntriesAcrossAccounts, testSufficientFundsCheckWithMultipleAccounts) and cascades to 5 ProcessingTest failures. Example: testSingleAccountBalance expects 750.0 but gets 2750.0 (global sum).",
+            "verified_from": "Live VM: grep confirms no accountId comparison in method body. Test output shows inflated balances. See evidence 21_bug2_missing_filter.txt and 07_all_modules_failnever.txt."
+        },
+        {
+            "bug_id": "Bug 3: TransactionProcessor atomicity and validation failure",
+            "file": "bank-processing/src/main/java/com/bank/processing/TransactionProcessor.java",
+            "description": "processTransfer() at lines 47-71 has two issues: (a) It debits the source account at lines 53-55 BEFORE checking if the destination is valid at lines 58-62. If destination is frozen/null, the debit remains in the ledger but the credit never happens — money disappears. (b) Unlike processWithdrawal() which calls balanceCalculator.hasSufficientFunds(), processTransfer() has no balance check at all, allowing overdrafts.",
+            "fix": "Move the destination validation (lines 58-62) BEFORE the debit (lines 53-55). Add a hasSufficientFunds check after destination validation. Only create debit and credit entries after all validations pass.",
+            "test_impact": "After Bug 2 is fixed, causes 4 ProcessingTest failures: testTransferToFrozenAccountLeavesSourceUnchanged (expects 1000.0 but gets 900.0 — source debited 100 before checking frozen dest), testTransferToNonexistentAccountLeavesSourceUnchanged, testTransferExceedingBalanceIsRejected (transfer succeeds instead of failing), testBatchWithMixedResults.",
+            "verified_from": "Live VM: source code shows debit at line 54 before dest check at line 58. Test errors change from Bug-2-style (inflated global balances like 3000.0) to Bug-3-style (source debited by exact transfer amount like 900.0 instead of 1000.0). See evidence 22_bug3_atomicity_violation.txt and 08_test_results_after_bug2_fix.txt."
+        },
+        {
+            "bug_id": "Bug 4: Ledger missing double-entry invariant validation",
+            "file": "bank-ledger/src/main/java/com/bank/ledger/Ledger.java",
+            "description": "addEntry() at line 31-32 simply does 'entries.add(entry)' with no validation, despite the Javadoc at line 29 stating '@throws IllegalArgumentException if the entry violates the double-entry invariant'. Valid entries must have exactly one of debitAmount or creditAmount non-zero (not both, not neither).",
+            "fix": "Add validation before entries.add(): if both debitAmount and creditAmount are non-zero, throw IllegalArgumentException. If both are zero, throw IllegalArgumentException.",
+            "test_impact": "Causes 2 LedgerTest failures: testRejectEntryWithBothDebitAndCredit (expects IllegalArgumentException for entry with debit=100, credit=50) and testRejectEntryWithZeroAmounts (expects IllegalArgumentException for entry with debit=0, credit=0).",
+            "verified_from": "Live VM: source shows bare entries.add(entry) with no checks. Tests use @Test(expected = IllegalArgumentException.class) which fails because no exception is thrown. See evidence 23_bug4_missing_invariant.txt and 09_test_results_after_bug3_fix.txt."
+        }
+    ],
+    "cascade_progression": {
+        "phase_0_no_fixes": {
+            "tests_passing": 0,
+            "total_tests": 18,
+            "description": "Project fails to compile — Maven reports 'Non-resolvable parent POM' for all 3 modules."
+        },
+        "phase_1_bug1_fixed": {
+            "tests_passing": 6,
+            "total_tests": 18,
+            "description": "CommonsTest 3/3 pass. LedgerTest 2/8 pass (testAddValidDebitEntry, testEmptyAccountBalance — only tests that don't hit Bug 2 or Bug 4). ProcessingTest 1/7 pass (testDepositToClosedAccount — no balance dependency).",
+            "failing_tests": [
+                "testSingleAccountBalanceWithOtherAccounts: expected 750.0, got 2750.0",
+                "testMultipleAccountsHaveIsolatedBalances: expected 1000.0, got 2250.0",
+                "testBalanceWithManyEntriesAcrossAccounts: expected 500.0, got 1500.0",
+                "testSufficientFundsCheckWithMultipleAccounts: balance inflated from Bug 2",
+                "testRejectEntryWithBothDebitAndCredit: no IllegalArgumentException thrown",
+                "testRejectEntryWithZeroAmounts: no IllegalArgumentException thrown",
+                "testDepositAndCheckBalance: expected 500.0, got 3500.0",
+                "testSuccessfulTransfer: expected 700.0, got 3000.0",
+                "testTransferToFrozenAccountLeavesSourceUnchanged: expected 1000.0, got 2900.0",
+                "testTransferToNonexistentAccountLeavesSourceUnchanged: expected 1000.0, got 2800.0",
+                "testTransferExceedingBalanceIsRejected: balance inflated, transfer succeeds",
+                "testBatchWithMixedResults: expected 900.0, got 3050.0"
+            ]
+        },
+        "phase_2_bugs_1_2_fixed": {
+            "tests_passing": 12,
+            "total_tests": 18,
+            "description": "CommonsTest 3/3, LedgerTest 6/8 (balance tests now pass, only invariant tests fail), ProcessingTest 3/7 (deposit, successful transfer, and deposit-to-closed pass; atomicity tests fail with NEW error patterns).",
+            "failing_tests": [
+                "testRejectEntryWithBothDebitAndCredit: no IllegalArgumentException thrown",
+                "testRejectEntryWithZeroAmounts: no IllegalArgumentException thrown",
+                "testTransferToFrozenAccountLeavesSourceUnchanged: expected 1000.0, got 900.0",
+                "testTransferToNonexistentAccountLeavesSourceUnchanged: expected 1000.0, got 800.0",
+                "testTransferExceedingBalanceIsRejected: transfer succeeds (no balance check)",
+                "testBatchWithMixedResults: expected 900.0, got 850.0"
+            ]
+        },
+        "phase_3_bugs_1_2_3_fixed": {
+            "tests_passing": 16,
+            "total_tests": 18,
+            "description": "CommonsTest 3/3, LedgerTest 6/8, ProcessingTest 7/7 (all pass). Only 2 ledger invariant tests remain.",
+            "failing_tests": [
+                "testRejectEntryWithBothDebitAndCredit: no IllegalArgumentException thrown",
+                "testRejectEntryWithZeroAmounts: no IllegalArgumentException thrown"
+            ]
+        },
+        "phase_4_all_fixed": {
+            "tests_passing": 18,
+            "total_tests": 18,
+            "description": "All tests pass. BUILD SUCCESS."
+        }
+    },
+    "privileged_info_summary": "This is a multi-module Maven project (bank-commons, bank-ledger, bank-processing) at ~/IdeaProjects/bank-ledger-system/ that has 4 bugs causing 12 of 18 test failures. Bug 1: Parent pom.xml has version '1.0.0' but child modules reference '1.0-SNAPSHOT' — fix by making versions consistent (change parent to '1.0-SNAPSHOT'). Bug 2: BalanceCalculator.getBalance(accountId) in bank-ledger sums ALL ledger entries instead of filtering by accountId — add 'if (entry.getAccountId().equals(accountId))' inside the for loop. Bug 3: TransactionProcessor.processTransfer() in bank-processing debits the source account BEFORE validating the destination and has no balance check — move destination validation before the debit and add a hasSufficientFunds() call. Bug 4: Ledger.addEntry() in bank-ledger accepts any entry without validation — add checks that throw IllegalArgumentException when both debitAmount and creditAmount are non-zero, or when both are zero. The bugs cascade: Bug 1 blocks compilation entirely (0/18 pass). After Bug 1 fix, 6/18 pass. After Bug 2 fix, 12/18 pass (and Bug 3 errors change character from inflated-balance errors to atomicity errors). After Bug 3 fix, 16/18 pass. After Bug 4 fix, 18/18 pass. The test files CommonsTest.java, LedgerTest.java, and ProcessingTest.java must not be modified. The export script uses 'mvn test -fn' (fail-never) to ensure all modules run even when upstream modules fail.",
+    "pi_confidence": "high"
+}

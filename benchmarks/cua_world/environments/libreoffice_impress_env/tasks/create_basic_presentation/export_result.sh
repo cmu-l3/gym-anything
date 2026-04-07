@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -e
 
 # Source shared utilities
 source /workspace/scripts/task_utils.sh
@@ -7,26 +7,28 @@ source /workspace/scripts/task_utils.sh
 echo "=== Exporting Basic Presentation Result ==="
 
 # Focus Impress window
-wid=$(get_impress_window_id)
-if [ -n "$wid" ]; then
-    focus_window "$wid"
-fi
+focus_window "Impress" || focus_window "impress" || true
+sleep 1
 
 # Save file (Ctrl+S)
 echo "Saving file..."
-safe_xdotool ga :1 key --delay 200 ctrl+s
+su - ga -c "DISPLAY=:1 xdotool key --delay 200 ctrl+s" || true
+sleep 3
 
-# Wait for file to be saved
-if wait_for_file "/home/ga/Documents/Presentations/basic_presentation.odp" 5; then
-    echo "✅ File saved: /home/ga/Documents/Presentations/basic_presentation.odp"
-    ls -lh /home/ga/Documents/Presentations/basic_presentation.odp
-else
-    echo "⚠️ Warning: File not found or not recently modified"
-fi
+# Check for save dialog and handle it
+su - ga -c "DISPLAY=:1 xdotool key Return" || true
+sleep 2
 
-# Close Impress (Ctrl+Q)
+# List what was saved
+echo "Files in Presentations directory:"
+ls -lh /home/ga/Documents/Presentations/ 2>/dev/null || true
+
+# Close Impress
 echo "Closing LibreOffice Impress..."
-safe_xdotool ga :1 key --delay 200 ctrl+q
-sleep 0.5
+su - ga -c "DISPLAY=:1 xdotool key --delay 200 ctrl+q" || true
+sleep 2
+# Dismiss any "save changes" dialog
+su - ga -c "DISPLAY=:1 xdotool key Return" || true
+sleep 1
 
 echo "=== Export Complete ==="

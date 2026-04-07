@@ -1,0 +1,28 @@
+{
+  "id": "crd_rbac_aggregation_integration@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "Configure Kubernetes RBAC to grant the `pipeline-operator` permission to update the `status` subresource of `datapipelines.etl.data.com`, and use RBAC Aggregation to automatically extend the cluster's default `view` and `edit` roles for developer access. \n\nA custom CRD `datapipelines.etl.data.com` is installed, but the operator deployment in the `data-system` namespace is failing to update the `status` subresource due to missing permissions in the `pipeline-operator-role` ClusterRole. Additionally, developers provisioned via the default `view` and `edit` roles currently receive `Forbidden` errors when attempting to read or create `datapipelines`.\n\nUpdate the `pipeline-operator-role` ClusterRole to grant `update` and `patch` verbs specifically on the `datapipelines/status` resource. Create and label new ClusterRoles (e.g., `datapipeline-viewer` and `datapipeline-editor`) to aggregate permissions into the default `view` and `edit` roles. The viewer role must grant `get`, `list`, and `watch` verbs, while the editor role must grant `create`, `update`, `patch`, `delete`, and `deletecollection` verbs. Ensure the principle of least privilege is maintained: standard developers using the `edit` role must not be able to modify the `status` subresource.\n\nLogin to Rancher at https://localhost with credentials admin / Admin12345678!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/crd_rbac_aggregation_integration/setup_task.sh",
+    "post_task": "/workspace/tasks/crd_rbac_aggregation_integration/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Platform Engineer",
+    "target_crd": "datapipelines.etl.data.com",
+    "operator_namespace": "data-system",
+    "operator_sa": "pipeline-operator"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_crd_rbac_aggregation"
+    }
+  }
+}

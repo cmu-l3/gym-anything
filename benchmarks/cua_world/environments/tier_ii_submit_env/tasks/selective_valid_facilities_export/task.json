@@ -1,0 +1,37 @@
+{
+  "id": "selective_valid_facilities_export@1",
+  "version": "1.0",
+  "env_id": "tier_ii_submit_env@0.1",
+  "name": "Selective Valid Facilities Batch Export",
+  "description": "The state portal is closing for maintenance, and you must batch-export the facilities that are 100% complete. \n\n1) Open EPA Tier2 Submit 2025.\n2) Import the facility database from C:\\Users\\Docker\\Desktop\\5_facilities_database.t2s (File > Import).\n3) Run the Check Data / Validation tool across all facilities to identify which ones have errors.\n4) Navigate to the Export tool (File > Export > Tier2 Submit File).\n5) Select and export ONLY the facilities with zero (0) validation errors. Uncheck the ones that fail validation.\n6) Save the exported batch file to C:\\Users\\Docker\\Desktop\\ready_submissions.t2s.\n\nDo not attempt to fix the errors in the invalid facilities.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\selective_valid_facilities_export\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\selective_valid_facilities_export\\export_result.ps1"
+  },
+  "metadata": {
+    "output_file": "C:\\Users\\Docker\\Desktop\\ready_submissions.t2s",
+    "result_file": "C:\\Users\\Docker\\Desktop\\selective_export_result.json",
+    "pass_threshold": 100,
+    "valid_facilities": [
+      "Oak Creek Distribution",
+      "Pine Valley Manufacturing",
+      "Cedar Ridge Logistics"
+    ],
+    "invalid_facilities": [
+      "Maple Street Storage",
+      "Elm Processing Plant"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_selective_export"
+    }
+  }
+}

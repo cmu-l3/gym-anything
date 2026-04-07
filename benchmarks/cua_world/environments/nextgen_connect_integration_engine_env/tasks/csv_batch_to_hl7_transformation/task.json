@@ -1,0 +1,29 @@
+{
+  "id": "csv_batch_to_hl7_transformation@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Configure a NextGen Connect channel named 'CSV_Appt_Ingest' in the 'nextgen-connect' Docker container to ingest batch CSV files of patient appointments and transform them into HL7 v2.5.1 ADT^A04 messages. The channel must process CSV files from '/tmp/csv_input' (ignoring headers) with the columns MRN, FirstName, LastName, DOB, Sex, VisitDate, and ClinicCode. Map these fields to HL7 segments as follows: MRN to PID-3.1, LastName to PID-5.1, FirstName to PID-5.2, DOB (YYYY-MM-DD) to PID-7 (YYYYMMDD), Sex to PID-8, VisitDate (YYYY-MM-DD HH:MM) to PV1-44 (YYYYMMDDHHMM), and ClinicCode to PV1-3.1. Set MSH-9 to 'ADT^A04^ADT_A01'. Export the individual HL7 messages to '/tmp/hl7_output' inside the container using the filename format '${message.messageId}.hl7'. Trigger the channel by moving the host file '/home/ga/appointments.csv' into the container's input directory.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/csv_batch_to_hl7_transformation/setup_task.sh",
+    "post_task": "/workspace/tasks/csv_batch_to_hl7_transformation/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "CSV_Appt_Ingest",
+    "input_path_container": "/tmp/csv_input",
+    "output_path_container": "/tmp/hl7_output",
+    "source_file_host": "/home/ga/appointments.csv",
+    "expected_message_count": 5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_csv_batch_to_hl7_transformation"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "freight_rail_consist_safety_audit@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a terminal trainmaster for a Class I railroad. The RAIL_OPS schema in Oracle (connected as rail_admin/Railroad2024 to XEPDB1) contains manifest data for departing trains.\n\nYou must audit these trains for safety compliance before departure:\n\n1. DETECT OVERLOADED CARS: Create a view OVERLOADED_CARS_VW that flags any railcar where its total weight (tare_weight_tons + cargo_weight_tons) strictly exceeds its max_gross_weight_tons. Required columns: train_symbol, position_num, car_number, total_weight_tons, max_gross_weight_tons.\n\n2. AUDIT TRAIN POWER: Create a view TRAIN_POWER_AUDIT_VW that identifies underpowered trains. A train is underpowered if its total trailing tonnage (sum of tare+cargo for all CARs) strictly exceeds its total locomotive pulling capacity (sum of max_trailing_tons for all LOCOs). Required columns: train_symbol, trailing_tons, power_limit_tons, deficit_tons.\n\n3. DETECT HAZMAT BUFFER VIOLATIONS: Create a view HAZMAT_VIOLATIONS_VW using LAG and LEAD window functions. FRA rules state that a locomotive (LOCO) cannot be placed immediately adjacent to a railcar carrying hazardous materials that require a buffer. Flag any CAR position where requires_buffer_flag = 'Y' AND the immediately preceding OR immediately following position is a LOCO. Partition by train_symbol and order by position_num. Required columns: train_symbol, position_num, car_number, un_number.\n\n4. CREATE MANIFEST SUMMARY: Create a materialized view TRAIN_MANIFEST_SUMMARY_MV that aggregates the total physical weight (tare+cargo for CARs, loco weight for LOCOs). Group by train_symbol and equipment_type, and use the ROLLUP or CUBE extension to provide subtotals per train and a grand total.\n\n5. EXPORT: Export the contents of HAZMAT_VIOLATIONS_VW to a CSV file at /home/ga/Documents/exports/hazmat_audit.csv.\n\nConnection details: Host=localhost, Port=1521, Service=XEPDB1, User=rail_admin, Password=Railroad2024\n\nAll work must be performed through the SQL Developer GUI.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/freight_rail_consist_safety_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/freight_rail_consist_safety_audit/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/exports/hazmat_audit.csv",
+    "occupation": "Transportation Managers",
+    "industry": "Rail Transport",
+    "oracle_features": ["Window Functions (LAG/LEAD)", "ROLLUP/CUBE", "Materialized Views", "Complex Aggregations"],
+    "ground_truth_counts": {
+      "overloaded_cars": 3,
+      "underpowered_trains": 2,
+      "hazmat_violations": 4
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_freight_rail_consist_safety_audit"
+    }
+  }
+}

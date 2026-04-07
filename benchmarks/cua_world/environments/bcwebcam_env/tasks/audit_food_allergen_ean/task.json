@@ -1,0 +1,28 @@
+{
+  "id": "audit_food_allergen_ean@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "You are auditing a newly delivered food product for a cafeteria to ensure it is safe for students with peanut allergies. The bcWebCam application is open and scanning a live camera feed of a product barcode. \n\nYour tasks are:\n1. Focus bcWebCam so it reads the barcode from the camera feed (the product is a Reese's Peanut Butter Cup).\n2. Note the decoded barcode value. *Important: The database stores all barcodes as 13-digit EANs. If bcWebCam outputs a 12-digit UPC-A, you must pad it with a leading zero (e.g., 123456789012 becomes 0123456789012) to query the database successfully.*\n3. Query the local SQLite database located at `C:\\workspace\\data\\food_database.db`. The database has a table named `products` with columns `barcode` (TEXT), `product_name` (TEXT), `ingredients_text` (TEXT), and `allergens` (TEXT).\n4. Determine if the scanned product contains peanuts based on its DB record.\n5. Create a text file at `C:\\Users\\Docker\\Documents\\allergen_report.txt` containing exactly three lines:\n   Line 1: `Barcode: [The 13-digit barcode]`\n   Line 2: `Product: [The exact product_name from the database]`\n   Line 3: `Status: [SAFE or UNSAFE]` (Use UNSAFE if peanuts are present, SAFE otherwise).\n\nDo not use external internet resources; all required data is in the local SQLite database.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\audit_food_allergen_ean\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\audit_food_allergen_ean\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_barcode": "0034000402063",
+    "expected_product": "Reese's Milk Chocolate Peanut Butter Cups",
+    "expected_status": "UNSAFE",
+    "report_path": "C:\\Users\\Docker\\Documents\\allergen_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_food_allergen_ean"
+    }
+  }
+}

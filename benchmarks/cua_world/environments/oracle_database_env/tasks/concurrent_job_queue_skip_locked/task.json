@@ -1,0 +1,32 @@
+{
+  "id": "concurrent_job_queue_skip_locked@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "You are a Lead Database Engineer at a Fintech startup. Your payment processing engine is suffering from severe lock contention during high-load periods because the current job dequeueing logic blocks workers when they try to claim the same pending jobs.\n\nImplement a PL/SQL stored procedure named `CLAIM_NEXT_JOB` in the HR schema that allows workers to claim the highest-priority pending job without blocking if other jobs are currently locked. The procedure must accept an input `p_worker_id` (VARCHAR2) and provide `o_job_id` (NUMBER) and `o_payload` (VARCHAR2) as outputs. The logic should identify the 'PENDING' job in the `PAYMENT_JOBS` table with the highest `PRIORITY` (using the oldest `CREATED_AT` or lowest `JOB_ID` as a tie-breaker), utilizing the `FOR UPDATE SKIP LOCKED` feature to ensure the transaction does not wait. The procedure must update the selected row's `STATUS` to 'PROCESSING' and `WORKER_ID` to `p_worker_id`, then commit the transaction. If no jobs are available or all are locked, return NULL for the outputs.\n\nThe `PAYMENT_JOBS` table consists of `JOB_ID` (NUMBER, PK), `PRIORITY` (NUMBER), `STATUS` (VARCHAR2), `WORKER_ID` (VARCHAR2), `PAYLOAD` (VARCHAR2), and `CREATED_AT` (DATE). Connection details: `localhost:1521/XEPDB1`, User: `hr`, Password: `hr123`.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/concurrent_job_queue_skip_locked/setup_task.sh",
+    "post_task": "/workspace/tasks/concurrent_job_queue_skip_locked/export_result.sh"
+  },
+  "metadata": {
+    "procedure_name": "CLAIM_NEXT_JOB",
+    "table_name": "PAYMENT_JOBS",
+    "required_keywords": [
+      "SKIP LOCKED",
+      "FOR UPDATE"
+    ],
+    "connection_user": "hr",
+    "connection_password": "hr123"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_concurrent_job_queue"
+    }
+  }
+}

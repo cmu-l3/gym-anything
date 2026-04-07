@@ -1,0 +1,29 @@
+{
+  "id": "hl7_latency_monitoring_router@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a channel named 'Latency_Monitor' that listens on TCP port 6661 and routes HL7 ADT messages based on the latency between the event occurrence (EVN-2) and the message generation (MSH-7). Calculate latency in minutes using the 'yyyyMMddHHmmss' timestamp format. Route messages with latency greater than 10 minutes to /home/ga/latency_high/ and all other messages to /home/ga/latency_normal/. The REST API is available at https://localhost:8443/api (admin/admin).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_latency_monitoring_router/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_latency_monitoring_router/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Latency_Monitor",
+    "high_latency_dir": "/home/ga/latency_high",
+    "normal_latency_dir": "/home/ga/latency_normal",
+    "port": "6661",
+    "threshold_minutes": 10
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_latency_monitoring_router"
+    }
+  }
+}

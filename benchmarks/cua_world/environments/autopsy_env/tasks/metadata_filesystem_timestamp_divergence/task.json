@@ -1,0 +1,32 @@
+{
+  "id": "metadata_filesystem_timestamp_divergence@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "A suspect claims photographs on their USB drive were automatically downloaded by malware yesterday. Investigators suspect the photos were taken much earlier. You must perform a Temporal Divergence Analysis by comparing EXIF 'Date Taken' timestamps against the filesystem 'Modified' timestamps. Your mission:\n\n1. Create a forensic case named 'Temporal_Divergence_2026' with case number 'INV-TDA-008' in /home/ga/Cases/.\n2. Add /home/ga/evidence/jpeg_search.dd as a Disk Image data source.\n3. Enable the 'EXIF Parser' and 'File Type Identification' ingest modules (you can disable others for speed). Wait for ingest to complete.\n4. Locate all JPEG files (allocated and unallocated) that contain embedded EXIF 'Date Taken' or 'Date/Time Original' metadata.\n5. For each file, determine the absolute difference in days (rounded to the nearest whole integer) between its embedded EXIF date and its File System Modified Date (mtime). You may use Autopsy's GUI to export data and use a Python script, or query the Autopsy SQLite database directly.\n6. Write your findings to a pipe-delimited CSV at /home/ga/Reports/timestamp_divergence.csv with exactly this header: FILENAME|FS_MTIME|EXIF_DATE|DELTA_DAYS\n7. Write an investigative summary to /home/ga/Reports/temporal_summary.txt containing these exact keys (colon-separated):\n   INVESTIGATION: Temporal Divergence Analysis\n   TOTAL_JPEGS_WITH_EXIF: <count>\n   MAX_DIVERGENCE_DAYS: <largest delta_days>\n   FILES_EXCEEDING_24H: <count of files where delta_days >= 1>\n   CONCLUSION: <1-2 sentences assessing if photos were taken long before being placed on the drive>",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/metadata_filesystem_timestamp_divergence/setup_task.sh",
+    "post_task": "/workspace/tasks/metadata_filesystem_timestamp_divergence/export_result.sh",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "case_name": "Temporal_Divergence_2026",
+    "case_number": "INV-TDA-008",
+    "disk_image": "/home/ga/evidence/jpeg_search.dd",
+    "csv_report": "/home/ga/Reports/timestamp_divergence.csv",
+    "summary_report": "/home/ga/Reports/temporal_summary.txt",
+    "result_file": "/tmp/temporal_divergence_result.json",
+    "gt_file": "/tmp/temporal_divergence_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_metadata_filesystem_timestamp_divergence"
+    }
+  }
+}

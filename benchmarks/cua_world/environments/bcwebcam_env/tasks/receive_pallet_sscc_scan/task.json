@@ -1,0 +1,31 @@
+{
+  "id": "receive_pallet_sscc_scan@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "You are a warehouse receiving dock worker. A new pallet has arrived with a GS1-128 physical label containing its Serial Shipping Container Code (SSCC). \n\n1. Copy the physical pallet label from 'C:\\workspace\\data\\incoming\\pallet_label_774.png' to 'C:\\workspace\\data\\virtual_cam_input.png' so the OBS Virtual Camera can see it.\n2. Launch bcWebCam and ensure it scans the barcode using the OBS Virtual Camera feed.\n3. Take a screenshot of the bcWebCam window displaying the successfully decoded barcode and save it to 'C:\\workspace\\tasks\\scan_evidence.png'.\n4. Extract the decoded SSCC string.\n5. Query the SQLite database at 'C:\\workspace\\data\\manifest.db' (table: 'pallets') for the row matching this exact SSCC.\n6. Export the matching database row as a JSON file to 'C:\\workspace\\tasks\\pallet_receipt.json'. The JSON must contain the keys: 'sscc', 'contents', 'weight_kg', and 'supplier'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\receive_pallet_sscc_scan\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\receive_pallet_sscc_scan\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_sscc": "00108846200000392815",
+    "expected_contents": "Industrial Servers",
+    "expected_weight_kg": 450,
+    "expected_supplier": "TechCorp Inc.",
+    "db_path": "C:\\workspace\\data\\manifest.db",
+    "evidence_path": "C:\\workspace\\tasks\\scan_evidence.png",
+    "receipt_path": "C:\\workspace\\tasks\\pallet_receipt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_receive_pallet_sscc_scan"
+    }
+  }
+}

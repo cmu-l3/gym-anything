@@ -1,0 +1,171 @@
+{
+    "task_id": "chefs_table_experience_launch@1",
+    "dataset": "Floreant POS 1.4 (build 1707) embedded Apache Derby database",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "manager_pin",
+            "metadata_value": "1111",
+            "verified_value": "1111",
+            "source": "Confirmed in task_utils.sh line 8: FLOREANT_PIN=\"1111\". Verified by live testing — entering 1111 on the on-screen keypad successfully opened the Back Office (evidence: 04_back_office_entered.png, 08_bo_window_maximized.png).",
+            "status": "verified"
+        },
+        {
+            "key": "floor_name",
+            "metadata_value": "CHEFS TABLE",
+            "verified_value": "CHEFS TABLE",
+            "source": "Task requirement — agent must create this floor. Verified the clean DB has 0 floors (SHOP_FLOOR count=0, evidence: 03_db_schema_and_state.txt line 228). Verified the Floor Plan menu exists with Floors/Tables sub-items (evidence: 14_floor_plan_menu.png). The export script queries SHOP_FLOOR WHERE UPPER(NAME) LIKE '%CHEF%TABLE%' which will match this name.",
+            "status": "verified"
+        },
+        {
+            "key": "tables",
+            "metadata_value": {"C1": 4, "C2": 6},
+            "verified_value": {"C1": 4, "C2": 6},
+            "source": "Task requirement — agent must create tables named C1 (capacity 4) and C2 (capacity 6). Verified SHOP_TABLE schema: TABLE_NUMBER is VARCHAR (supports 'C1'/'C2'), CAPACITY is INTEGER, FLOOR_ID is INTEGER FK to SHOP_FLOOR (evidence: 03_db_schema_and_state.txt lines 10-20). Clean DB has 0 tables (line 231).",
+            "status": "verified"
+        },
+        {
+            "key": "tax_name",
+            "metadata_value": "PREMIUM TAX",
+            "verified_value": "PREMIUM TAX",
+            "source": "Task requirement — agent must create this tax. Verified the clean DB has only 1 tax: ID=1, NAME='US', RATE=6.0 (evidence: 03_db_schema_and_state.txt line 234). TAX table has columns ID (INTEGER), NAME (VARCHAR NOT NULL), RATE (DOUBLE) — schema supports creation. Admin > Tax menu item exists in Back Office (evidence: 11_admin_dropdown.png).",
+            "status": "verified"
+        },
+        {
+            "key": "tax_rate",
+            "metadata_value": 10.0,
+            "verified_value": 10.0,
+            "source": "Task requirement — the PREMIUM TAX must be set to 10%. TAX.RATE column is DOUBLE type (evidence: 03_db_schema_and_state.txt line 25), which supports this value. The existing US tax is at 6.0%, confirming the RATE column stores percentage values directly (not decimals like 0.10).",
+            "status": "verified"
+        },
+        {
+            "key": "category_name",
+            "metadata_value": "CHEFS TABLE MENU",
+            "verified_value": "CHEFS TABLE MENU",
+            "source": "Task requirement. Verified the clean DB has 10 existing categories (IDs 1-10): APPETIZERS, BEER & WINE, BEVERAGE & DRINKS, BREAKFAST, BUFFET, DESSERT & ICECRM, FAVORITES, KIDS, LUNCH N DINNER, SIDES (evidence: 03_db_schema_and_state.txt lines 237-246). None match 'CHEFS TABLE MENU'. Explorers > Menu Categories menu item exists (evidence: 15_explorers_full.png).",
+            "status": "verified"
+        },
+        {
+            "key": "menu_item",
+            "metadata_value": "Wagyu Tasting",
+            "verified_value": "Wagyu Tasting",
+            "source": "Task requirement. Verified the clean DB has 52 menu items, none named 'Wagyu Tasting' (evidence: 03_db_schema_and_state.txt lines 267-273, sample items shown). Explorers > Menu Items menu exists (evidence: 15_explorers_full.png).",
+            "status": "verified"
+        },
+        {
+            "key": "menu_item_price",
+            "metadata_value": 85.0,
+            "verified_value": 85.0,
+            "source": "Task requirement. MENU_ITEM.PRICE column is DOUBLE NOT NULL (evidence: 03_db_schema_and_state.txt line 53). Existing items show prices like 1.0, 2.0, 3.0 confirming the column stores dollar values. $85.00 is a valid price.",
+            "status": "verified"
+        },
+        {
+            "key": "inventory_item",
+            "metadata_value": "Wagyu Beef A5",
+            "verified_value": "Wagyu Beef A5",
+            "source": "Task requirement. Verified the clean DB has 0 inventory items (INVENTORY_ITEM count=0, evidence: 03_db_schema_and_state.txt line 276). Explorers > Inventory Items menu exists (evidence: 15_explorers_full.png). INVENTORY_ITEM.NAME is VARCHAR (line 70).",
+            "status": "verified"
+        },
+        {
+            "key": "initial_stock",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "Task requirement. INVENTORY_ITEM.TOTAL_PACKAGES is INTEGER (evidence: 03_db_schema_and_state.txt line 79). The value 20 is a reasonable stock quantity. The export script reads this column via r.getInt('TOTAL_PACKAGES').",
+            "status": "verified"
+        },
+        {
+            "key": "recipe_quantity",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Task requirement — 1 unit of Wagyu Beef A5 per Wagyu Tasting order. MENU_ITEM.RECEPIE column exists (INTEGER, evidence: 03_db_schema_and_state.txt line 63). The existing launch_tracked_product task uses the same recipe pattern (1 inventory item per menu item order), confirming this feature works.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_stock_after",
+            "metadata_value": 19,
+            "verified_value": 19,
+            "source": "Derived value: initial_stock (20) - recipe_quantity (1) * number_of_orders (1) = 19. Arithmetic verified. The export script checks INVENTORY_ITEM.TOTAL_PACKAGES after order processing. The existing launch_tracked_product task uses the same verification pattern (100 - 1 = 99).",
+            "status": "verified"
+        },
+        {
+            "key": "modifier_group",
+            "metadata_value": "Preparation",
+            "verified_value": "Preparation",
+            "source": "Task requirement. The clean DB has 9 modifier groups: APPLE SLICE, BACON & SAUSAGE, BISCUITS, BUTTER, CHEESE, EGGS, MEAT, POTATO, WHEAT (evidence: 03_db_schema_and_state.txt lines 278-287). None named 'Preparation'. Explorers > Menu Modifier Groups menu exists (evidence: 15_explorers_full.png).",
+            "status": "verified"
+        },
+        {
+            "key": "modifiers",
+            "metadata_value": {"Rare": 0.0, "Medium": 0.0, "Well Done": 5.0},
+            "verified_value": {"Rare": 0.0, "Medium": 0.0, "Well Done": 5.0},
+            "source": "Task requirement. MENU_MODIFIER table has NAME (VARCHAR), PRICE (DOUBLE), GROUP_ID (INTEGER) columns (evidence: 03_db_schema_and_state.txt). The export script queries WHERE UPPER(NAME) IN ('RARE', 'MEDIUM', 'WELL DONE'). Existing modifiers show prices like 0.0 and 0.5, confirming the PRICE column format. Explorers > Menu Modifiers menu exists (evidence: 15_explorers_full.png).",
+            "status": "verified"
+        },
+        {
+            "key": "modifier_min",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Task requirement. MENUITEM_MODIFIERGROUP.MIN_QUANTITY is INTEGER (evidence: 03_db_schema_and_state.txt). Default value is 0 (confirmed by agent trajectory analysis of verify_menu_order_workflow where both runs missed the default-0 trap). Setting to 1 forces the agent to select exactly one modifier during ordering.",
+            "status": "verified"
+        },
+        {
+            "key": "modifier_max",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Task requirement. MENUITEM_MODIFIERGROUP.MAX_QUANTITY is INTEGER (evidence: 03_db_schema_and_state.txt). Default value is 0 (which paradoxically blocks ALL modifier selection — this is a known Floreant POS quirk confirmed by agent trajectory analysis). Agent must set to 1.",
+            "status": "verified"
+        },
+        {
+            "key": "modifier_linked_item",
+            "metadata_value": "Wagyu Tasting",
+            "verified_value": "Wagyu Tasting",
+            "source": "Task requirement — cross-reference with menu_item field (consistent). The export script checks MENUITEM_MODIFIERGROUP joined with MENU_ITEM WHERE UPPER(MI.NAME) LIKE '%WAGYU%TASTING%'.",
+            "status": "verified"
+        },
+        {
+            "key": "order_type",
+            "metadata_value": "DINE IN",
+            "verified_value": "DINE IN",
+            "source": "Verified by live testing — DINE IN button is visible on the main terminal screen (evidence: 01_initial_main_screen.png). TICKET.TICKET_TYPE is VARCHAR (evidence: 03_db_schema_and_state.txt). The export script checks WHERE TICKET_TYPE contains 'DINE IN'.",
+            "status": "verified"
+        },
+        {
+            "key": "order_floor",
+            "metadata_value": "CHEFS TABLE",
+            "verified_value": "CHEFS TABLE",
+            "source": "Cross-reference with floor_name (consistent). The agent must select the CHEFS TABLE floor when initiating the DINE IN order.",
+            "status": "verified"
+        },
+        {
+            "key": "order_table",
+            "metadata_value": "C1",
+            "verified_value": "C1",
+            "source": "Cross-reference with tables field (C1 has capacity 4). SHOP_TABLE.TABLE_NUMBER is VARCHAR (evidence: 03_db_schema_and_state.txt line 14).",
+            "status": "verified"
+        },
+        {
+            "key": "order_item",
+            "metadata_value": "Wagyu Tasting",
+            "verified_value": "Wagyu Tasting",
+            "source": "Cross-reference with menu_item (consistent). TICKET_ITEM.ITEM_NAME is VARCHAR (evidence: 03_db_schema_and_state.txt). The export script checks WHERE UPPER(TI.ITEM_NAME) LIKE '%WAGYU%TASTING%'.",
+            "status": "verified"
+        },
+        {
+            "key": "order_modifier",
+            "metadata_value": "Medium",
+            "verified_value": "Medium",
+            "source": "Cross-reference with modifiers field (Medium at $0.00). The Medium modifier adds $0.00 to the order, so the pre-tax subtotal should be $85.00. With PREMIUM TAX at 10%, the total should be $93.50.",
+            "status": "verified"
+        },
+        {
+            "key": "payment_method",
+            "metadata_value": "CASH",
+            "verified_value": "CASH",
+            "source": "Verified CASH is a standard payment type in Floreant POS. TRANSACTIONS.PAYMENT_TYPE is VARCHAR (evidence: 03_db_schema_and_state.txt). Existing tasks (process_retail_order, verify_menu_order_workflow) successfully use CASH payment, confirming this payment method works.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires configuring Floreant POS 1.4 from scratch and validating with a test order. The Back Office PIN is 1111. The clean database starts with 0 floors, 0 tables, 0 inventory items, and only 1 tax (US at 6.0%). The agent must navigate the Back Office window (which opens as a SEPARATE window from the main POS terminal) using the menu bar: Admin (for Tax), Explorers (for Menu Categories, Menu Items, Menu Modifier Groups, Menu Modifiers, Inventory Items), and Floor Plan (for Floors and Tables). Key configuration values: floor named 'CHEFS TABLE' with tables C1 (capacity 4) and C2 (capacity 6); tax named 'PREMIUM TAX' at rate 10.0; category named 'CHEFS TABLE MENU'; menu item 'Wagyu Tasting' at price $85.00 assigned to PREMIUM TAX; inventory item 'Wagyu Beef A5' with initial stock of 20 and recipe quantity 1 per order; modifier group 'Preparation' with modifiers Rare ($0.00), Medium ($0.00), and Well Done ($5.00) linked to Wagyu Tasting with min_quantity=1 and max_quantity=1. CRITICAL: The modifier link dialog defaults min and max to 0 — the agent must explicitly set both to 1. If max=0, modifier selection is blocked entirely during ordering. The validation order is DINE IN at Table C1 on CHEFS TABLE floor, adding Wagyu Tasting with Medium modifier, settled with CASH. After the order, Wagyu Beef A5 stock should be 19 (20 minus 1). The expected ticket total is approximately $93.50 ($85.00 subtotal + 10% PREMIUM TAX = $8.50 tax). The export script verifies via JDBC against the embedded Derby database at /opt/floreantpos/database/derby-server/posdb, checking tables SHOP_FLOOR, SHOP_TABLE, TAX, MENU_CATEGORY, MENU_ITEM (with TAX_ID cross-reference), INVENTORY_ITEM (TOTAL_PACKAGES column), MENU_MODIFIER_GROUP, MENU_MODIFIER (GROUP_ID column), MENUITEM_MODIFIERGROUP (MIN_QUANTITY, MAX_QUANTITY), TICKET (SETTLED=1, TOTAL_PRICE), TICKET_ITEM (ITEM_NAME), and TRANSACTIONS (PAYMENT_TYPE).",
+    "pi_confidence": "high"
+}

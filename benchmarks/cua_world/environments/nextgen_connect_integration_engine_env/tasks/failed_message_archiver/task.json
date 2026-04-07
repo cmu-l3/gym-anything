@@ -1,0 +1,31 @@
+{
+  "id": "failed_message_archiver@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a channel named 'Fail_Safe_Archiver' that handles message delivery failures by immediately archiving the raw message to a file. The channel must listen on TCP port 6661 (MLLP) and attempt to send messages to localhost:9999. It must be configured to 'Fail Fast' (no queuing, 0 retries). Use a JavaScript Post-Processor script to detect destination failures (Status: ERROR or FAILURE) and write the raw message content to /tmp/failed_messages/ using the message ID as the filename with a .hl7 extension. Process the sample HL7 message from /home/ga/sample.hl7 to verify the archival of the failed delivery.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/failed_message_archiver/setup_task.sh",
+    "post_task": "/workspace/tasks/failed_message_archiver/export_result.sh",
+    "pre_task_timeout": 600
+  },
+  "metadata": {
+    "channel_name": "Fail_Safe_Archiver",
+    "source_port": 6661,
+    "dest_port": 9999,
+    "archive_dir": "/tmp/failed_messages",
+    "expected_queue_setting": "NO_QUEUE",
+    "sample_file": "/home/ga/sample.hl7"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_failed_message_archiver"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "warehouse_transfer_api@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A logistics system needs a robust PL/SQL API for warehouse transfers. Connect to the Oracle HR database (localhost:1521/XEPDB1, user: hr, pass: hr123) to implement the inventory management system. Ensure the INVENTORY table has a check constraint named 'CHK_INV_QTY_NONNEG' preventing negative quantities. Develop a package named 'INV_MANAGER' containing a procedure 'TRANSFER_STOCK(p_sku, p_from_wh, p_to_wh, p_qty)' that performs atomic stock transfers between warehouses, handles non-existent destination rows via insertion, logs all transactions to the TRANSFER_LOG table, and implements proper transaction control (COMMIT/ROLLBACK) with custom error raising (-20001 to -20999). Verify the implementation by executing a transfer of 5 units of 'SKU-LOGI-MX3' from Warehouse 1 to Warehouse 2.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/warehouse_transfer_api/setup_task.sh",
+    "post_task": "/workspace/tasks/warehouse_transfer_api/export_result.sh"
+  },
+  "metadata": {
+    "package_name": "INV_MANAGER",
+    "procedure_name": "TRANSFER_STOCK",
+    "constraint_name": "CHK_INV_QTY_NONNEG",
+    "log_table": "TRANSFER_LOG",
+    "inventory_table": "INVENTORY",
+    "test_sku": "SKU-LOGI-MX3",
+    "db_config": {
+      "user": "hr",
+      "password": "hr123",
+      "dsn": "localhost:1521/XEPDB1"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_warehouse_transfer"
+    }
+  }
+}

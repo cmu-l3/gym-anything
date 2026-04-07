@@ -15,7 +15,7 @@ import json
 import logging
 import os
 import tempfile
-from difflib import SequenceMatcher
+import Levenshtein  # python-Levenshtein usually available, else fallback to strict
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ def verify_bulk_csv_import_requirements(traj, env_info, task_info):
             act_title = clean(actual.get('title', ''))
             
             # Use Levenshtein ratio for slight title mismatches
-            ratio = SequenceMatcher(None, exp_title, act_title).ratio()
+            ratio = Levenshtein.ratio(exp_title, act_title)
             if ratio > best_score:
                 best_score = ratio
                 best_match_idx = idx

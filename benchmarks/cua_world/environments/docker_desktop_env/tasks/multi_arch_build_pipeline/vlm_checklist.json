@@ -1,0 +1,53 @@
+{
+  "task_id": "multi_arch_build_pipeline@1",
+  "task_completion": [
+    {
+      "id": "start_local_registry",
+      "description": "Verify a local Docker registry is started on port 5000.",
+      "points": 15,
+      "visual_evidence": "Terminal showing a command like 'docker run -d -p 5000:5000 registry' or 'docker ps' displaying a registry container with port 5000 mapped."
+    },
+    {
+      "id": "create_buildx_builder",
+      "description": "Verify a new Docker Buildx builder instance is created using the 'docker-container' driver.",
+      "points": 20,
+      "visual_evidence": "Terminal showing 'docker buildx create --driver docker-container' (possibly with network flags) or 'docker buildx ls' listing a builder with the docker-container driver."
+    },
+    {
+      "id": "bootstrap_buildx_builder",
+      "description": "Verify the new Buildx builder is bootstrapped and active.",
+      "points": 15,
+      "visual_evidence": "Terminal showing 'docker buildx inspect --bootstrap' or 'docker buildx use' followed by output confirming the builder endpoint is running/active."
+    },
+    {
+      "id": "build_multi_arch_image",
+      "description": "Verify the Go application is built for both 'linux/amd64' and 'linux/arm64' platforms.",
+      "points": 25,
+      "visual_evidence": "Terminal showing a 'docker buildx build' command with the flag '--platform linux/amd64,linux/arm64' and standard Docker build output (e.g., resolving layers, building steps)."
+    },
+    {
+      "id": "push_to_local_registry",
+      "description": "Verify the resulting multi-arch image is pushed to 'localhost:5000/edge-app:latest'.",
+      "points": 25,
+      "visual_evidence": "Terminal showing the '--push' flag in the build command and output indicating a successful push to 'localhost:5000/edge-app:latest' (e.g., '=> pushing manifest for localhost:5000/edge-app:latest')."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_terminal_usage",
+      "description": "Verify the agent used actual terminal commands to configure Docker and build the image.",
+      "visual_evidence": "Look for standard shell prompts, typed Docker commands, and authentic Docker daemon/buildx output rather than a text editor mocking the output."
+    },
+    {
+      "id": "no_mocked_build_logs",
+      "description": "Verify the agent did not just echo or print success messages to fake the build.",
+      "visual_evidence": "Ensure the output contains standard Docker build logs (e.g., '=> [internal] load build definition', '=> exporting to image') and not just a simple printed string."
+    },
+    {
+      "id": "correct_app_directory",
+      "description": "Verify the agent built the application from the correct directory.",
+      "visual_evidence": "The build command should reference '/home/ga/edge-app/' or the terminal prompt should show the agent is inside '~/edge-app' or '/home/ga/edge-app' during the build."
+    }
+  ],
+  "privileged_info_for_vlm": "The application directory is /home/ga/edge-app. The Docker registry must run on port 5000. The target image is 'localhost:5000/edge-app:latest'. The target platforms are 'linux/amd64' and 'linux/arm64'. A successful multi-arch push will result in a manifest list with media type 'application/vnd.docker.distribution.manifest.list.v2+json' or 'application/vnd.oci.image.index.v1+json'."
+}

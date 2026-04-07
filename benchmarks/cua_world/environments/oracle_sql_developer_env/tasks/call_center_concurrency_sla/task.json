@@ -1,0 +1,28 @@
+{
+  "id": "call_center_concurrency_sla@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Workforce Management (WFM) Analyst for a telecommunications provider. Management needs data to justify hiring new agents to handle concurrent volume spikes and Service Level Agreement (SLA) breaches. Using the CALL_LOGS table in the WFM_ANALYST schema (User: wfm_analyst, Pass: Wfm2024, Service: XEPDB1, Host: localhost, Port: 1521), create a view named INTERVAL_SUMMARY_VW that groups calls into 15-minute intervals by start_time and queue_name. This view must include interval_start (formatted 'YYYY-MM-DD HH24:MI:SS'), queue_name, total_calls, abandoned_calls (where call_status is 'ABANDONED'), sla_breach_count (calls where wait time exceeded 60 seconds, calculated as answered_time - start_time, or end_time - start_time for abandoned calls), and service_level_pct. Additionally, create a view named PEAK_CONCURRENCY_VW that calculates the maximum simultaneous active calls for each day and queue (active from start_time to end_time), outputting call_date (truncated to day), queue_name, and max_concurrent_calls. Identify frustrated callers by creating a view named REPEAT_ABANDON_CALLERS_VW for instances where a caller abandoned a call and started a new call within 120 minutes of the first call's start_time; include caller_phone, abandoned_call_id, abandoned_time, callback_call_id, callback_time, and minutes_between_calls. Export the contents of INTERVAL_SUMMARY_VW to /home/ga/Documents/exports/wfm_interval_summary.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/call_center_concurrency_sla/setup_task.sh",
+    "post_task": "/workspace/tasks/call_center_concurrency_sla/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/wfm_result.json",
+    "occupation": "Operations Research Analysts",
+    "industry": "Telecommunications",
+    "expected_csv_path": "/home/ga/Documents/exports/wfm_interval_summary.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_call_center_concurrency_sla"
+    }
+  }
+}

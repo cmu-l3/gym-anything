@@ -1,0 +1,38 @@
+{
+  "id": "supply_chain_model_simulation@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A logistics manager needs a dynamic inventory simulation to predict stockouts. Connect to the Oracle database (User: logistics, Password: logistics123, PDB: XEPDB1) and create a view named 'INVENTORY_FORECAST' that simulates inventory for products over a 10-week horizon using the SQL MODEL clause. The simulation, using data from 'INVENTORY_PARAMS' and 'WEEKLY_DEMAND', must calculate arrivals (orders from the previous week), opening stock (starting inventory for week 1 or previous closing stock for subsequent weeks), closing stock (opening plus arrivals minus demand), and order quantity (reorder quantity if closing stock is below safety stock, otherwise zero). The view must include columns for PRODUCT_ID, WEEK_NO, OPENING_STOCK, ARRIVALS, DEMAND_QTY, CLOSING_STOCK, and ORDER_QTY. Export the view results with headers to /home/ga/Desktop/forecast_results.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/supply_chain_model_simulation/setup_task.sh",
+    "post_task": "/workspace/tasks/supply_chain_model_simulation/export_result.sh"
+  },
+  "metadata": {
+    "db_user": "logistics",
+    "db_pass": "logistics123",
+    "connection_string": "localhost:1521/XEPDB1",
+    "output_file": "/home/ga/Desktop/forecast_results.csv",
+    "view_name": "INVENTORY_FORECAST",
+    "required_columns": [
+      "PRODUCT_ID",
+      "WEEK_NO",
+      "OPENING_STOCK",
+      "ARRIVALS",
+      "DEMAND_QTY",
+      "CLOSING_STOCK",
+      "ORDER_QTY"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_supply_chain_simulation"
+    }
+  }
+}

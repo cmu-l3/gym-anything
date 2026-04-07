@@ -1,0 +1,28 @@
+{
+  "id": "process_warehouse_bin_relocation@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "Play the provided warehouse bodycam video (C:\\workspace\\data\\warehouse_scans.mp4) through OBS Virtual Camera into bcWebCam, capture the sequence of scanned barcodes, and generate a JSON file mapping items to their new bins. The video shows a Bin label (starting with 'BIN-'), followed by one or more Item labels, then another Bin label, etc. Extract this continuous stream using bcWebCam and parse it to create a structured JSON file at C:\\workspace\\inventory_relocation.json where keys are Bin labels and values are arrays of Item barcodes. You MUST use bcWebCam to decode the video; you may write a script to parse the resulting text output, but using cv2/pyzbar to decode the video directly is forbidden.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\process_warehouse_bin_relocation\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\process_warehouse_bin_relocation\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_mapping": {
+      "BIN-A1-05": ["0123456789012", "4006381333931"],
+      "BIN-C3-12": ["0987654321098"]
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_process_warehouse_bin_relocation"
+    }
+  }
+}

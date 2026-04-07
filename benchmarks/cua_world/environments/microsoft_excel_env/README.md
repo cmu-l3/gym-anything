@@ -11,7 +11,7 @@ This environment provides a Windows 11 VM with Microsoft Excel installed for spr
 
 ## Data Files (Real Sources)
 
-The environment mounts these XLSX files from `benchmarks/cua_world/environments/microsoft_excel_env/data/` and copies them to the Desktop on boot:
+The environment mounts these XLSX files from `examples/microsoft_excel_env/data/` and copies them to the Desktop on boot:
 
 - `us_census_population.xlsx`
   - Source: US Census Bureau API (2010 SF1 + 2020 PL 94-171)
@@ -46,7 +46,7 @@ os.environ["GYM_ANYTHING_RUNNER"] = "qemu"
 
 from gym_anything.api import from_config
 
-env = from_config("benchmarks/cua_world/environments/microsoft_excel_env", task_id="sum_formula")
+env = from_config("examples/microsoft_excel_env", task_id="sum_formula")
 obs = env.reset(seed=42, use_cache=True, cache_level="pre_start", use_savevm=True)
 print("SSH:", env._runner.ssh_port)
 ```

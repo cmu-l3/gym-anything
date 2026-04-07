@@ -1,0 +1,73 @@
+{
+    "task_id": "thermal_commissioning@1",
+    "dataset": "OpenC3 COSMOS INST/INST2 Demo Targets",
+    "case_id": "INST_HEALTH_STATUS_TEMP1_TEMP2_TEMP3_TEMP4",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/thermal_commissioning_result.json",
+            "verified_value": "/tmp/thermal_commissioning_result.json",
+            "source": "Live-tested: export_result.sh produces valid JSON at this path. Evidence: 14_export_result_test.txt shows successful execution with file_exists=true, file_is_new=true, inst2_state=DISCONNECTED, temp3=85.0. JSON validated with python3 json.load().",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "/home/ga/Desktop/commissioning_report.json",
+            "verified_value": "/home/ga/Desktop/commissioning_report.json",
+            "source": "Live-tested: setup_task.sh deletes stale file at this path (evidence: 03_stale_files_cleared.txt confirms 'No such file or directory' after cleanup). export_result.sh checks existence/freshness at this path. File write permissions confirmed for ga user (evidence: 13_file_permissions.txt). Briefing file references this path in report schema.",
+            "status": "verified"
+        },
+        {
+            "key": "target",
+            "metadata_value": "INST",
+            "verified_value": "INST",
+            "source": "Live-tested: telemetry API calls to 'INST HEALTH_STATUS TEMP1/TEMP2/TEMP3/TEMP4' all return valid data (evidence: 09_live_telemetry.txt, 07_fault2_temp3_override.txt). Packet Viewer screenshot confirms INST target with HEALTH_STATUS packet (evidence: 03_packet_viewer_temp_values.png, 04_packet_viewer_health_status.png). CmdTlmServer shows INST_INT interface connected (evidence: 01_initial_cosmos_state.png).",
+            "status": "verified"
+        },
+        {
+            "key": "packet",
+            "metadata_value": "HEALTH_STATUS",
+            "verified_value": "HEALTH_STATUS",
+            "source": "Live-tested: HEALTH_STATUS packet readable with 32 items including TEMP1-4, COLLECTS, CMD_ACPT_CNT, COLLECT_TYPE, DURATION (evidence: 19_full_telemetry_snapshot.txt). Packet Viewer screenshot shows HEALTH_STATUS selected with item count (evidence: 04_packet_viewer_health_status.png).",
+            "status": "verified"
+        },
+        {
+            "key": "sensors",
+            "metadata_value": ["TEMP1", "TEMP2", "TEMP3", "TEMP4"],
+            "verified_value": ["TEMP1", "TEMP2", "TEMP3", "TEMP4"],
+            "source": "Live-tested: all 4 sensors readable via cosmos_tlm API. TEMP1=84.83, TEMP2=-36.823, TEMP3=85.0 (overridden), TEMP4=10.361 at one snapshot (evidence: 09_live_telemetry.txt). All 4 have default limits configured (evidence: 08_original_limits.txt). All 4 visible in Packet Viewer (evidence: 03_packet_viewer_temp_values.png). TEMP1 confirmed fluctuating across 5 readings: -66.877, -76.991, -87.105, -92.162, -90.112 (evidence: 07_fault2_temp3_override.txt).",
+            "status": "verified"
+        },
+        {
+            "key": "min_observations",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "Task parameter (not data claim). Consistent across task.json description ('collect at least 20 temporally-spaced observations') and briefing file ('Collect >= 20 temporally-spaced observations'). Evidence: 05_briefing_file.txt, 18_task_mounted.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "limit_yellow_sigma",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Task parameter. Consistent across task.json description ('YELLOW_LOW = mean - 3*stddev, YELLOW_HIGH = mean + 3*stddev') and briefing file ('YELLOW_LOW = mean - 3 * stddev, YELLOW_HIGH = mean + 3 * stddev'). Evidence: 05_briefing_file.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "limit_red_sigma",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "Task parameter. Consistent across task.json description ('RED_LOW = mean - 4*stddev, RED_HIGH = mean + 4*stddev') and briefing file ('RED_LOW = mean - 4 * stddev, RED_HIGH = mean + 4 * stddev'). Evidence: 05_briefing_file.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "temp3_override_value",
+            "metadata_value": 85.0,
+            "verified_value": 85.0,
+            "source": "Live-tested: 5 consecutive TEMP3 API reads all returned exactly 85.0 while TEMP1 fluctuated between -66.877 and -92.162 (evidence: 07_fault2_temp3_override.txt). Ground truth JSON confirms override_value=85.0 (evidence: 04_ground_truth.txt). Round-trip test: TEMP3=85.0 -> normalize_tlm -> -8.686 (live) -> re-override -> 85.0 (evidence: 11_normalize_tlm_test.txt). Packet Viewer screenshot shows TEMP3=85.0 (evidence: 03_packet_viewer_temp_values.png).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task injects two faults that the agent must discover and resolve before completing thermal commissioning. Fault 1: INST2_INT interface is disconnected (confirmed via get_interface API returning state=DISCONNECTED and CmdTlmServer UI). The agent must reconnect it using connect_interface. Fault 2: INST HEALTH_STATUS TEMP3 is overridden to a constant 85.0 via override_tlm (confirmed with 5 consecutive identical readings while TEMP1 fluctuated -66 to -92). The agent must notice TEMP3 never changes, discover the override, and call normalize_tlm to restore live values (verified: normalize returns TEMP3 to live value like -8.686). Default limits: TEMP1 [-80,-70,60,80] with TVAC [-80,-30,30,80]; TEMP2 [-60,-60,35,35]; TEMP3 [-25,-10,50,55]; TEMP4 [-80,-70,60,80]. Observed TEMP ranges: TEMP1 approx -95 to +95 C (sinusoidal), TEMP2 approx -37 to +47 C (occasionally returns Infinity/NaN in CONVERTED mode; FORMATTED mode is reliable), TEMP3 normal approx -10 to +65 C, TEMP4 approx 1 to 10 C. The set_limits API creates a CUSTOM limit set in OpenC3 6.x (not modifying DEFAULT). The get_limits API returns a dict keyed by limit set name (e.g. DEFAULT, TVAC, CUSTOM) with arrays [red_low, yellow_low, yellow_high, red_high, green_low, green_high]. Auth token is Cosmos2024! at /home/ga/.cosmos_token. API endpoint: http://localhost:2900/openc3-api/api. CLI utilities: cosmos-api, cosmos-tlm, cosmos-cmd at /usr/local/bin. The agent should write the commissioning report to /home/ga/Desktop/commissioning_report.json following the schema in /home/ga/Desktop/commissioning_briefing.txt. Report must include pre_commissioning_issues (INST2_INT disconnect + TEMP3 override), observations with per-sensor min/max/mean/stddev for all 4 sensors, limits_applied computed as mean +/- 3*stddev (YELLOW) and mean +/- 4*stddev (RED), and verification section confirming no false alarms after 30s monitoring. EXAMPLE_INT and TEMPLATED_INT are also disconnected by default (only INST_INT is connected). 7 Docker containers should be running.",
+    "pi_confidence": "high"
+}

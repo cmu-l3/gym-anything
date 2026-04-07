@@ -1,0 +1,32 @@
+{
+  "id": "legacy_shipment_sqlloader@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A legacy mainframe system has provided a shipment log file at /home/ga/Desktop/shipment_logs.dat. Load this data into the Oracle HR database (User: hr, Pass: hr123, PDB: XEPDB1) into a new table named SHIPMENT_HISTORY. The file is Fixed Width text with this layout: Lines 1-2 are headers to be skipped; Pos 1-10: Shipment ID (Integer); Pos 11-13: Origin Airport (3-char); Pos 14-16: Destination Airport (3-char); Pos 17-24: Date (YYYYMMDD); Pos 25-30: Weight kg (Integer); Pos 31-40: Cost (Implied 2 decimals); Pos 41-42: Status Code ('00'=Pending, '10'=Shipped, '99'=Void). Create the table with appropriate data types and use SQL*Loader to load the data, converting the Date string to an Oracle DATE, dividing Cost by 100, and filtering out records with Status '99'. Save the control file to /home/ga/Desktop/load_shipments.ctl.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/legacy_shipment_sqlloader/setup_task.sh",
+    "post_task": "/workspace/tasks/legacy_shipment_sqlloader/export_result.sh"
+  },
+  "metadata": {
+    "data_file_path": "/home/ga/Desktop/shipment_logs.dat",
+    "control_file_path": "/home/ga/Desktop/load_shipments.ctl",
+    "table_name": "SHIPMENT_HISTORY",
+    "db_user": "hr",
+    "expected_row_count": 45,
+    "expected_cost_sum": 36622.35,
+    "void_status_code": "99",
+    "void_count": 5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_legacy_shipment_sqlloader"
+    }
+  }
+}

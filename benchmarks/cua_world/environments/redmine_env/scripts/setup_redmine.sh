@@ -52,9 +52,6 @@ chown -R ga:ga "$REDMINE_DIR"
 
 cd "$REDMINE_DIR"
 
-echo "Pulling Redmine images..."
-docker compose pull
-
 echo "Starting Redmine containers..."
 docker compose up -d
 
@@ -177,8 +174,17 @@ USERJS
 setup_firefox_profile
 
 # ============================================================
-# 6. Warm-up Firefox (initialises snap profile so pre_task hooks work)
+# 6. Re-verify Redmine and warm-up Firefox
 # ============================================================
+echo "Re-verifying Redmine is responsive before launching Firefox..."
+for i in $(seq 1 60); do
+    if curl -s -o /dev/null -w "%{http_code}" "$REDMINE_LOGIN_URL" 2>/dev/null | grep -qE "200|302|303"; then
+        echo "Redmine web service ready"
+        break
+    fi
+    sleep 2
+done
+
 echo "Launching Firefox warm-up..."
 su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus firefox '$REDMINE_LOGIN_URL' > /tmp/firefox_warmup.log 2>&1 &"
 

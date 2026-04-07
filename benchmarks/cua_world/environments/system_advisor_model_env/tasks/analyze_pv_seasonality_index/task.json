@@ -1,0 +1,28 @@
+{
+  "id": "analyze_pv_seasonality_index@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "medium",
+  "description": "A Financial Analyst needs to structure debt for a proposed 20 MW DC solar project in Phoenix, AZ. Because solar generation drops in winter, they need to know the 'Seasonality Index' and summer revenue fraction to size the Debt Service Reserve Account (DSRA).\n\nWrite a PySAM script to model this system, extract the monthly energy production, and calculate the required financial metrics.\n\nSystem Parameters:\n- Capacity: 20,000 kW DC\n- Module Type: Standard (0)\n- Array Type: Fixed open rack (0)\n- Tilt: 20 degrees\n- Azimuth: 180 degrees\n- System Losses: 14.08 %\n- DC/AC Ratio: 1.2\n- Inverter Efficiency: 96.0 %\n- Weather Data: Use the Phoenix TMY file included in the SAM solar_resource directory.\n\nCalculations to perform:\n1. Seasonality Index: The ratio of the maximum producing month to the minimum producing month (`max(monthly) / min(monthly)`).\n2. Summer Generation Percentage: The percentage of the total annual energy that is generated during the summer months of June, July, and August (`(sum(summer_months) / annual_energy) * 100`).\n\nSave the complete results as a JSON file at:\n/home/ga/Documents/SAM_Projects/seasonality_report.json\n\nThe JSON must exactly include these keys: 'system_capacity_kw', 'annual_energy_kwh', 'monthly_energy_kwh' (a list of 12 values), 'seasonality_index', and 'summer_generation_percentage'.",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/analyze_pv_seasonality_index/setup_task.sh",
+    "post_task": "/workspace/tasks/analyze_pv_seasonality_index/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/SAM_Projects/seasonality_report.json",
+    "expected_capacity_kw": 20000,
+    "expected_annual_kwh_min": 32000000,
+    "expected_annual_kwh_max": 40000000
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_seasonality_index"
+    }
+  }
+}

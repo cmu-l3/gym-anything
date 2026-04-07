@@ -1,0 +1,108 @@
+{
+    "task_id": "object_erase@1",
+    "dataset": "Unsplash (photo-1441986300917-64674bd600d8)",
+    "case_id": "red_circle_removal_task",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "task_description",
+            "metadata_value": "Use GIMP's eraser tool to remove a small object from an image, creating transparency",
+            "verified_value": "Task setup creates a test image with a red circle object; verifier checks for transparency creation and object removal; export is to PNG format which supports transparency",
+            "source": "Code analysis of setup_erase_task.sh, verifier.py, and export_erase.sh",
+            "status": "verified"
+        },
+        {
+            "key": "source_image_dimensions",
+            "metadata_value": "800x600 pixels",
+            "verified_value": "ImageMagick command creates 800x600 base image; Unsplash URL requests 800x600 but returns unmodified 7360x4912 image when downloaded directly",
+            "source": "ImageMagick command in setup_erase_task.sh line 15-20; direct download verification from Unsplash URL",
+            "status": "contradicted"
+        },
+        {
+            "key": "source_image_content",
+            "metadata_value": "Landscape image with removable red circle object",
+            "verified_value": "ImageMagick creates plasma background (lightblue-lightgreen) with 80x80 overlay containing red circle (R>150, G<100, B<100); positioned at southeast with +150+100 offset; circle radius approximately 30 pixels",
+            "source": "ImageMagick convert command in setup_erase_task.sh: 'circle 40,40 40,10' defines circle at (40,40) with radius 30",
+            "status": "verified"
+        },
+        {
+            "key": "fallback_image_source",
+            "metadata_value": "Unsplash photo-1441986300917-64674bd600d8 with URL parameters w=800&h=600&q=80",
+            "verified_value": "URL is valid and returns JPEG image; Unsplash photo ID confirmed real; however direct download returns 7360x4912 resolution instead of requested 800x600",
+            "source": "WebFetch tool downloaded image from Unsplash URL; file analysis shows JPEG 7360x4912 pixels",
+            "status": "contradicted"
+        },
+        {
+            "key": "transparency_requirement",
+            "metadata_value": "At least 100 transparent pixels required for success",
+            "verified_value": "verifier.py line 213: transparency_created = transparency_analysis['fully_transparent'] >= 100",
+            "source": "Direct code analysis of verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "object_removal_criteria",
+            "metadata_value": "Red reduction > 50 pixels OR change_percentage > 2.0%",
+            "verified_value": "verifier.py line 219-220: object_removed = (removal_analysis['red_reduction'] > 50 or removal_analysis['change_percentage'] > 2.0)",
+            "source": "Direct code analysis of verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "transparency_percentage_bounds",
+            "metadata_value": "0.5% to 25% transparency required",
+            "verified_value": "verifier.py line 226: appropriate_location = 0.5 <= transparency_analysis['transparency_percentage'] <= 25.0",
+            "source": "Direct code analysis of verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "surrounding_preservation_threshold",
+            "metadata_value": "At least 85% similarity in non-transparent areas",
+            "verified_value": "verifier.py line 232: surrounding_preserved = preservation_score >= 0.85",
+            "source": "Direct code analysis of verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": "Requires 4 out of 5 criteria met (80% score)",
+            "verified_value": "verifier.py line 244: passed = score >= 75; where score = int((criteria_met / total_criteria) * 100) with total_criteria = 5; requires criteria_met >= 4 for 80+ score, but pass threshold is >= 75 (3/5)",
+            "source": "Direct code analysis of verifier.py lines 209-244",
+            "status": "contradicted"
+        },
+        {
+            "key": "timeout_sec",
+            "metadata_value": "120 seconds",
+            "verified_value": "task.json init.timeout_sec = 120",
+            "source": "task.json line 7",
+            "status": "verified"
+        },
+        {
+            "key": "max_steps",
+            "metadata_value": "10 steps",
+            "verified_value": "task.json init.max_steps = 10",
+            "source": "task.json line 8",
+            "status": "verified"
+        },
+        {
+            "key": "reward_type",
+            "metadata_value": "sparse",
+            "verified_value": "task.json init.reward_type = 'sparse'",
+            "source": "task.json line 9",
+            "status": "verified"
+        },
+        {
+            "key": "environment_id",
+            "metadata_value": "example.gimp_env@0.1",
+            "verified_value": "task.json env_id = 'example.gimp_env@0.1'; env.json id = 'example.gimp_env@0.1'",
+            "source": "task.json line 4 and env.json line 2",
+            "status": "verified"
+        },
+        {
+            "key": "export_format",
+            "metadata_value": "PNG format with transparency support",
+            "verified_value": "export_erase.sh exports to 'object_removed.png'; PNG supports alpha channel for transparency",
+            "source": "export_erase.sh line 29",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The object_erase task uses real data from Unsplash (photo ID photo-1441986300917-64674bd600d8) or generates synthetic test images with ImageMagick. The task requires agents to use GIMP's eraser tool to remove a red circle object from an image while creating transparency and preserving surrounding areas. Verification criteria include: at least 100 transparent pixels, object removal detection via red pixel reduction or >2% pixel changes, transparency between 0.5-25%, 85% preservation of surrounding areas, and >1% image modification. The pass threshold is 75% score (at least 3/5 criteria met, not 4/5 as claimed in some documentation). The timeout is 120 seconds with maximum 10 steps.",
+    "pi_confidence": "high"
+}

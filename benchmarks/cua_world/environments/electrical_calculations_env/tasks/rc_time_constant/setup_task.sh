@@ -16,7 +16,10 @@ sleep 1
 input keyevent KEYCODE_HOME
 sleep 2
 
-# Verify we are at home (simple check not easily doable in shell, but input keyevent is reliable)
+# Launch the app using robust helper
+echo "Launching Electrical Calculations..."
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
 
 # Take initial screenshot for evidence
 screencap -p /sdcard/task_initial_state.png 2>/dev/null || true

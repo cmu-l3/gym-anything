@@ -48,11 +48,27 @@ try {
         $fileSize = (Get-Item $installerPath).Length / 1MB
         Write-Host "Download complete: $([math]::Round($fileSize, 1)) MB"
 
+        if ($fileSize -lt 50) {
+            Write-Host "WARNING: Installer file is suspiciously small ($([math]::Round($fileSize, 1)) MB). Retrying with curl..."
+            Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+            curl.exe -L -o $installerPath $installerUrl --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 600
+            if (Test-Path $installerPath) {
+                $fileSize = (Get-Item $installerPath).Length / 1MB
+                Write-Host "Retry download: $([math]::Round($fileSize, 1)) MB"
+            }
+            if (-not (Test-Path $installerPath) -or $fileSize -lt 50) {
+                throw "Power BI Desktop installer download failed (file too small or missing)"
+            }
+        }
+
         # Install silently
         Write-Host "Installing Power BI Desktop silently..."
         $installArgs = "-quiet -norestart ACCEPT_EULA=1 INSTALLDESKTOPSHORTCUT=0 DISABLE_UPDATE_NOTIFICATION=1 ENABLECXP=0"
         $proc = Start-Process $installerPath -ArgumentList $installArgs -PassThru -Wait
         Write-Host "Installer exit code: $($proc.ExitCode)"
+
+        # Wait for background MSI operations to complete
+        Start-Sleep -Seconds 10
 
         # Verify installation
         $installed = $false

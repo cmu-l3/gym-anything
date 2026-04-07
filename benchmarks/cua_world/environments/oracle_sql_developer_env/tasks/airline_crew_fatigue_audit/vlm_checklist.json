@@ -1,0 +1,59 @@
+{
+  "task_id": "airline_crew_fatigue_audit@1",
+  "task_completion": [
+    {
+      "id": "create_rest_periods_view",
+      "description": "Create the CREW_REST_PERIODS_VW view",
+      "points": 15,
+      "visual_evidence": "Look for a SQL client or terminal showing the successful execution of a 'CREATE VIEW CREW_REST_PERIODS_VW' statement, or a SELECT query showing its columns (crew_id, flight_id, next_flight_id, check_out_time, next_check_in_time, rest_hours)."
+    },
+    {
+      "id": "create_rolling_hours_view",
+      "description": "Create the ROLLING_FLIGHT_HOURS_VW view",
+      "points": 15,
+      "visual_evidence": "Look for a SQL client or terminal showing the successful execution of a 'CREATE VIEW ROLLING_FLIGHT_HOURS_VW' statement, or a SELECT query showing its columns (crew_id, flight_id, actual_dep, flight_hours, rolling_28d_hours)."
+    },
+    {
+      "id": "create_violation_report_table",
+      "description": "Create the FAA_VIOLATION_REPORT table",
+      "points": 10,
+      "visual_evidence": "Look for a SQL client or terminal showing the successful execution of a 'CREATE TABLE FAA_VIOLATION_REPORT' statement with the required columns (violation_id, crew_id, violation_type, flight_id, event_date, details)."
+    },
+    {
+      "id": "create_and_execute_procedure",
+      "description": "Develop and execute the PL/SQL procedure PROC_AUDIT_VIOLATIONS",
+      "points": 20,
+      "visual_evidence": "Look for a SQL client or terminal showing 'Procedure created' (or similar success message) for 'PROC_AUDIT_VIOLATIONS', followed by evidence of its execution (e.g., 'EXEC PROC_AUDIT_VIOLATIONS;' or 'PL/SQL procedure successfully completed')."
+    },
+    {
+      "id": "verify_violation_records",
+      "description": "Verify the populated violations in the report table",
+      "points": 20,
+      "visual_evidence": "Look for a SELECT query on FAA_VIOLATION_REPORT or the contents of the final CSV showing exactly two rows: one 'INSUFFICIENT_REST' violation (Crew 101) and one 'EXCEEDED_28D_LIMIT' violation (Crew 102)."
+    },
+    {
+      "id": "export_csv_file",
+      "description": "Export the FAA_VIOLATION_REPORT table to a CSV file",
+      "points": 20,
+      "visual_evidence": "Look for a terminal command (like sqlplus spooling or a csv export command), a GUI export action, or a file manager/text editor showing the file 'faa_audit_report.csv' located in '/home/ga/Documents/'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_db_interaction",
+      "description": "Agent interacted with the actual Oracle database",
+      "visual_evidence": "Check that the agent used a genuine database client (e.g., sqlplus in the terminal, DBeaver, or SQL Developer) connected to the Oracle DB, rather than just typing SQL into a text file without executing it."
+    },
+    {
+      "id": "no_hardcoded_inserts",
+      "description": "Agent did not hardcode the expected violations",
+      "visual_evidence": "Examine the PL/SQL procedure code. It should use logic (e.g., INSERT INTO ... SELECT ... FROM the views WHERE rest_hours < 10) rather than hardcoded INSERT statements for Crew 101 and Crew 102."
+    },
+    {
+      "id": "genuine_csv_export",
+      "description": "Agent exported the CSV from the database rather than manually creating it",
+      "visual_evidence": "Look for evidence of an automated export process (e.g., SQL spooling, a Python script, or a DB client export feature) rather than the agent manually typing the CSV contents into a text editor."
+    }
+  ],
+  "privileged_info_for_vlm": "The final exported CSV file must be located at '/home/ga/Documents/faa_audit_report.csv'. The FAA_VIOLATION_REPORT table (and the resulting CSV) should contain exactly 2 violations: exactly 1 'INSUFFICIENT_REST' violation (for Crew 101 with 7.5 hours rest) and exactly 1 'EXCEEDED_28D_LIMIT' violation (for Crew 102 with 108 rolling hours). The views must use Oracle window functions (LEAD and RANGE BETWEEN)."
+}

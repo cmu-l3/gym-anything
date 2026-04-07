@@ -1,0 +1,73 @@
+{
+  "id": "collision_avoidance_investigation@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "You are a marine safety investigator at the UK MAIB examining a collision between two vessels in the Solent approaches. Evidence from Voyage Data Recorders and VTS radar is at /home/ga/Documents/Investigation/ (vessel_a_vdr.csv, vessel_b_vdr.csv, vts_traffic_snapshot.csv, weather_conditions.txt).\n\nExtrapolate Ships A and B's VDR tracks to determine the collision point coordinates, collision time, and COLREGS encounter classification (head-on, crossing, or overtaking). Identify the give-way vessel. Compute CPA and TCPA for all vessel pairs based on their recorded tracks. Design a COLREGS-compliant avoidance maneuver for the give-way vessel achieving CPA >= 1.0nm from the collision partner AND CPA >= 0.5nm from all other traffic simultaneously, using the minimum course alteration that satisfies all constraints.\n\nCreate a reconstruction scenario at /opt/bridgecommand/Scenarios/n) Collision Reconstruction/ reproducing all four vessels' tracks from the evidence using waypoint legs. Create an avoidance scenario at /opt/bridgecommand/Scenarios/o) Avoidance Demonstration/ identical to the reconstruction except with the give-way vessel's altered course.\n\nWrite a formal investigation report at /home/ga/Documents/Investigation/collision_report.txt covering collision coordinates and time, encounter classification citing COLREGS rules, all CPA/TCPA values, the avoidance maneuver details, and achieved CPAs.\n\nUpdate bc5.ini with full_radar=1, arpa_on=1, max_radar_range=24.\n\nLogin: ga / password123",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/collision_avoidance_investigation/setup_task.sh",
+    "post_task": "/workspace/tasks/collision_avoidance_investigation/export_result.sh"
+  },
+  "metadata": {
+    "reconstruction_scenario_dir": "/opt/bridgecommand/Scenarios/n) Collision Reconstruction",
+    "avoidance_scenario_dir": "/opt/bridgecommand/Scenarios/o) Avoidance Demonstration",
+    "report_path": "/home/ga/Documents/Investigation/collision_report.txt",
+    "radar_config": {
+      "arpa_on": 1,
+      "full_radar": 1,
+      "max_radar_range": 24
+    },
+    "vessel_a": {
+      "name": "MV Pacific Grace",
+      "final_lat": 50.7467,
+      "final_lon": -0.9700,
+      "cog": 0.0,
+      "sog": 12.0
+    },
+    "vessel_b": {
+      "name": "MT Solent Star",
+      "final_lat": 50.7800,
+      "final_lon": -0.9349,
+      "cog": 270.0,
+      "sog": 8.0
+    },
+    "traffic_c": {
+      "name": "HSC Solent Express",
+      "lat": 50.7900,
+      "lon": -0.9600,
+      "cog": 180.0,
+      "sog": 15.0
+    },
+    "traffic_d": {
+      "name": "FV Morning Catch",
+      "lat": 50.7550,
+      "lon": -0.9350,
+      "cog": 315.0,
+      "sog": 5.0
+    },
+    "ground_truth": {
+      "collision_lat": 50.780,
+      "collision_lon": -0.970,
+      "collision_tcpa_min": 10.0,
+      "encounter_type": "crossing",
+      "give_way_vessel": "A",
+      "cpa_ab_original_nm": 0.0,
+      "optimal_avoidance_heading_min": 73,
+      "optimal_avoidance_heading_max": 120,
+      "avoidance_cpa_b_min": 1.0,
+      "avoidance_cpa_c_min": 0.5,
+      "avoidance_cpa_d_min": 0.5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_collision_avoidance_investigation"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "sec_edgar_xml_shredding@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Financial Intelligence Analyst working with the EDGAR_ADMIN schema in Oracle (connected as edgar_admin/Edgar2024 to XEPDB1). Your objective is to process SEC Form 13F-HR XML filings from RAW_13F_FILINGS and quarter-end stock prices from QUARTERLY_PRICES to identify and correct reporting errors. Extract the XML data (using namespace 'http://www.sec.gov/edgar/document/thirteenf/informationtable') into a table named EXTRACTED_HOLDINGS with columns for accession_number, issuer_name, cusip, reported_value, and shares. Using this data and QUARTERLY_PRICES, generate a view named VW_HOLDINGS_CORRECTED that identifies scale errors—defined as cases where the implied price ((reported_value * 1000) / shares) is strictly greater than 50 times the closing_price. The view must include accession_number, issuer_name, cusip, shares, closing_price, reported_value, an anomaly_flag ('YES' or 'NO'), and a corrected_value (reported_value divided by 1000 if an anomaly is flagged, otherwise the original reported_value). Export a CSV report of Apple Inc. holders (CUSIP: '037833100') from this view, ordered descending by corrected_value, to /home/ga/Documents/exports/aapl_top_holders.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sec_edgar_xml_shredding/setup_task.sh",
+    "post_task": "/workspace/tasks/sec_edgar_xml_shredding/export_result.sh"
+  },
+  "metadata": {
+    "expected_csv_path": "/home/ga/Documents/exports/aapl_top_holders.csv",
+    "anomaly_threshold": 50,
+    "target_cusip": "037833100",
+    "target_company": "Apple Inc."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sec_edgar_xml_shredding"
+    }
+  }
+}

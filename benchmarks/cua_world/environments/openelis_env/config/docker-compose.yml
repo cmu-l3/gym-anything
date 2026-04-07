@@ -1,0 +1,155 @@
+version: '3.3'
+
+services:
+    certs:
+        container_name: oe-certs
+        image: itechuw/certgen:main
+        platform: linux/amd64
+        restart: "no"
+        environment:
+            - KEYSTORE_PW="kspass"
+            - TRUSTSTORE_PW="tspass"
+        networks:
+            - openelis-network
+        volumes:
+            - key_trust-store-volume:/etc/openelis-global
+            - keys-vol:/etc/ssl/private/
+            - certs-vol:/etc/ssl/certs/
+
+    db.openelis.org:
+        container_name: openelisglobal-database
+        image: itechuw/openelis-global-2-database:develop
+        platform: linux/amd64
+        ports:
+            - "15432:5432"
+        restart: always
+        env_file:
+            - ./volume/database/database.env
+        environment:
+            - DB_PASSWORD=clinlims
+            - DB_SUPERUSER_PASSWORD=superuser
+        volumes:
+            - db-data:/var/lib/postgresql/data
+        networks:
+            - openelis-network
+        healthcheck:
+            test: ["CMD", "pg_isready", "-q", "-d", "clinlims", "-U", "clinlims"]
+            timeout: 45s
+            interval: 10s
+            retries: 10
+
+    oe.openelis.org:
+        container_name: openelisglobal-webapp
+        image: itechuw/openelis-global-2:develop
+        platform: linux/amd64
+        depends_on:
+            - db.openelis.org
+            - certs
+        ports:
+            - "8080:8080"
+            - "8443:8443"
+        restart: always
+        networks:
+            openelis-network:
+                ipv4_address: 172.20.1.121
+        environment:
+            - DEFAULT_PW=adminADMIN!
+            - TZ=America/New_York
+            - CATALINA_OPTS=-Ddatasource.url=jdbc:postgresql://db.openelis.org:5432/clinlims -Ddatasource.username=clinlims -Ddatasource.password=clinlims -Doe.ssl.truststorepath=/etc/openelis-global/truststore -Doe.ssl.truststorepassword=tspass -Doe.ssl.keystorepath=/etc/openelis-global/keystore -Doe.ssl.keystorepassword=kspass
+        volumes:
+            - key_trust-store-volume:/etc/openelis-global
+            - ./volume/plugins/:/var/lib/openelis-global/plugins
+            - ./volume/lucene:/var/lib/lucene_index
+            - ./volume/properties/SystemConfiguration.properties:/var/lib/openelis-global/properties/SystemConfiguration.properties
+            - ./volume/analyzer/analyzer-test-map.csv:/var/lib/openelis-global/analyzer/analyzer-test-map.csv
+            - ./volume/odoo/odoo-test-product-mapping.csv:/var/lib/openelis-global/odoo/odoo-test-product-mapping.csv
+            - ./volume/configuration:/var/lib/openelis-global/configuration
+            - ./volume/properties/common.properties:/run/secrets/common.properties:ro
+
+    fhir.openelis.org:
+        container_name: external-fhir-api
+        image: itechuw/openelis-global-2-fhir:develop
+        platform: linux/amd64
+        depends_on:
+            - db.openelis.org
+            - certs
+        ports:
+            - "8081:8080"
+            - "8444:8443"
+        networks:
+            - openelis-network
+        restart: always
+        environment:
+            TZ: America/New_York
+            JAVA_OPTS: >-
+                -Djavax.net.ssl.trustStore=/etc/openelis-global/truststore
+                -Djavax.net.ssl.trustStorePassword=tspass
+                -Djavax.net.ssl.trustStoreType=pkcs12
+                -Djavax.net.ssl.keyStore=/etc/openelis-global/keystore
+                -Djavax.net.ssl.keyStorePassword=kspass
+                -Djavax.net.ssl.keyStoreType=pkcs12
+            CATALINA_OPTS: >-
+                -Dhapi.ssl.truststorepath=/etc/openelis-global/truststore
+                -Dhapi.ssl.truststorepassword=tspass
+                -Dhapi.ssl.keystorepath=/etc/openelis-global/keystore
+                -Dhapi.ssl.keystorepassword=kspass
+            FHIR_DATASOURCE_URL: "jdbc:postgresql://db.openelis.org:5432/clinlims?currentSchema=clinlims"
+            FHIR_DATASOURCE_USERNAME: "clinlims"
+            FHIR_DATASOURCE_PASSWORD: "clinlims"
+            FHIR_SERVER_ADRESS: "http://fhir.openelis.org:8080/fhir/"
+        volumes:
+            - key_trust-store-volume:/etc/openelis-global
+
+    frontend.openelis.org:
+        image: itechuw/openelis-global-2-frontend:develop
+        container_name: openelisglobal-front-end
+        platform: linux/amd64
+        networks:
+            - openelis-network
+        environment:
+            - CHOKIDAR_USEPOLLING=true
+        tty: true
+
+    proxy:
+        image: itechuw/openelis-global-2-proxy:develop
+        container_name: openelisglobal-proxy
+        platform: linux/amd64
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            - certs-vol:/etc/nginx/certs/
+            - keys-vol:/etc/nginx/keys/
+            - ./volume/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+        networks:
+            - openelis-network
+        restart: unless-stopped
+        depends_on:
+            - certs
+
+    autoheal:
+        container_name: autoheal-oe
+        image: willfarrell/autoheal:1.2.0
+        tty: true
+        restart: always
+        networks:
+            - openelis-network
+        environment:
+            AUTOHEAL_CONTAINER_LABEL: all
+            TZ: America/New_York
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+
+networks:
+    openelis-network:
+        name: openelis-network
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.20.1.0/24
+
+volumes:
+    db-data:
+    key_trust-store-volume:
+    certs-vol:
+    keys-vol:

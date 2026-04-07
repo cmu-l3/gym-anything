@@ -1,0 +1,27 @@
+{
+  "id": "openvsp_planar_slice_area_distribution@1",
+  "version": "1.0",
+  "env_id": "openvsp_env@0.1",
+  "description": "Run OpenVSP's Planar Slice analysis on the eCRM-001 wing-body-tail model with at least 25 longitudinal (X-axis) cuts, export/locate the results, and write a summary report to '/home/ga/Desktop/area_ruling_report.txt'.\n\n1. With the eCRM-001 model loaded, navigate to Analysis -> Planar Slice.\n2. Configure the Planar Slice analysis with Axis: X and Number of slices: 25 (minimum), covering the full aircraft bounds.\n3. Execute the analysis.\n4. Locate the generated slice output file (typically a .slc file or text output saved in the model's directory or exports folder) and optionally copy it to '/home/ga/Documents/OpenVSP/exports/eCRM001_slices.slc'.\n5. Parse the slice data to extract the maximum cross-sectional area, the X-location where it occurs, the total length, and approximate volume.\n6. Write a report to '/home/ga/Desktop/area_ruling_report.txt' in exactly this format:\n\nArea Ruling Assessment - eCRM-001\n==================================\nTotal Aircraft Length  :  [Value] m\nMaximum Cross-Sectional Area:  [Value] m^2\nX-Location of Max Area :  [Value] m\nApproximate Volume     :  [Value] m^3\n\nEnsure all values are numeric.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/openvsp_planar_slice_area_distribution/setup_task.sh",
+    "post_task": "/workspace/tasks/openvsp_planar_slice_area_distribution/export_result.sh"
+  },
+  "metadata": {
+    "report_path": "/home/ga/Desktop/area_ruling_report.txt",
+    "model_file": "/home/ga/Documents/OpenVSP/eCRM-001_wing_tail.vsp3",
+    "expected_min_slices": 15
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_planar_slice"
+    }
+  }
+}

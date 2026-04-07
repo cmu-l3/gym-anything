@@ -1,0 +1,41 @@
+{
+  "id": "convert_run_to_compose@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "Convert the legacy shell script at /home/ga/monitoring-stack/run_commands.sh into a valid docker-compose.yml file in the same directory, faithfully translating all flags (networks, ports, volumes, environment variables, restart policies, and bind mounts) for Prometheus, Grafana, and Node Exporter. The monitoring stack must be running via Docker Compose and accessible at ports 9090 (Prometheus), 3000 (Grafana), and 9100 (Node Exporter).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/convert_run_to_compose/setup_task.sh",
+    "post_task": "/workspace/tasks/convert_run_to_compose/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/monitoring-stack",
+    "compose_file": "docker-compose.yml",
+    "services": [
+      "prometheus",
+      "grafana",
+      "node-exporter"
+    ],
+    "ports": {
+      "prometheus": 9090,
+      "grafana": 3000,
+      "node-exporter": 9100
+    },
+    "images": {
+      "prometheus": "prom/prometheus:v2.53.0",
+      "grafana": "grafana/grafana:11.0.0",
+      "node-exporter": "prom/node-exporter:v1.8.1"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_convert_run_to_compose"
+    }
+  }
+}

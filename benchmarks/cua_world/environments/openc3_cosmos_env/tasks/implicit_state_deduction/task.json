@@ -1,0 +1,29 @@
+{
+  "id": "implicit_state_deduction@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a mission data analyst. Spacecraft telemetry bandwidth is strictly limited, meaning the vehicle does not downlink an explicit 'State' or 'Mode' variable. You must dynamically deduce the spacecraft's operational mode by analyzing combinations of other telemetry items in real-time.\n\nWrite and execute an automation script in OpenC3 COSMOS that sends an INST COLLECT command (TYPE NORMAL) and collects at least 10 consecutive telemetry samples for TEMP1, TEMP2, and COLLECTS from the INST HEALTH_STATUS packet. For each sample, deduce the operational mode using the following state deduction matrix, evaluated in this exact order of precedence:\n1. 'INITIALIZATION': If COLLECTS < 10\n2. 'ASYMMETRIC_HEATING': If |TEMP1 - TEMP2| >= 15.0\n3. 'HIGH_THERMAL': If TEMP1 >= 30.0 AND TEMP2 >= 30.0\n4. 'NOMINAL': If no other conditions are met\n\nSave a structured JSON report documenting the raw data and deduced modes for at least 10 samples to /home/ga/Desktop/state_deduction.json. The JSON must follow this schema:\n{\n  \"target\": \"INST\",\n  \"evaluations\": [\n    {\n      \"sample_id\": 1,\n      \"temp1\": 35.2,\n      \"temp2\": 36.1,\n      \"collects\": 12,\n      \"deduced_mode\": \"HIGH_THERMAL\"\n    }\n  ]\n}\nEnsure all telemetry values in the evaluations array are numeric types. OpenC3 password: Cosmos2024!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/implicit_state_deduction/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/implicit_state_deduction/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/implicit_state_deduction_result.json",
+    "output_file": "/home/ga/Desktop/state_deduction.json",
+    "target": "INST",
+    "occupation": "Mission Data Analyst"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_implicit_state_deduction"
+    }
+  }
+}

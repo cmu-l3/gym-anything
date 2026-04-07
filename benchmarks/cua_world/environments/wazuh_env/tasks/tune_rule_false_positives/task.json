@@ -1,0 +1,29 @@
+{
+  "id": "tune_rule_false_positives@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Tune Wazuh's detection rules in /var/ossec/etc/rules/local_rules.xml to suppress false positives. Override rule 5402 ('Successful sudo to ROOT executed') to level 0 using the overwrite=\"yes\" attribute while preserving the original rule logic (if_sid: 5401, match: '; USER=root ; COMMAND='). Additionally, create a child rule with ID 100100 for rule 5501 ('Login session opened') that suppresses alerts (level 0) for the 'backup_svc' user. Apply the changes to the Wazuh manager.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tune_rule_false_positives/setup_task.sh",
+    "post_task": "/workspace/tasks/tune_rule_false_positives/export_result.sh"
+  },
+  "metadata": {
+    "target_rule_override": 5402,
+    "target_rule_child": 100100,
+    "target_user": "backup_svc",
+    "target_parent_sid": 5501,
+    "rules_file": "/var/ossec/etc/rules/local_rules.xml"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tune_rule_false_positives"
+    }
+  }
+}

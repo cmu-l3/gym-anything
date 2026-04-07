@@ -1,0 +1,32 @@
+{
+  "id": "docker_hardening_readonly@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You are a DevSecOps engineer hardening the 'acme-ingest' service located at ~/projects/acme-ingest/. The service currently has a writable root filesystem, which is a security violation. Your goal is to enable the read-only root filesystem security feature in the docker-compose.yml while ensuring the application remains functional. The application requires write access to a PID file (/run/acme/app.pid), a cache directory (/var/lib/acme/cache/), and a log file (/var/log/acme/server.log). Configure the necessary tmpfs mounts for ephemeral data and a named volume for persistent logs so the service starts successfully and remains healthy. Login: user ga, password password123.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 40
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_hardening_readonly/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_hardening_readonly/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/acme-ingest",
+    "container_name": "acme-ingest",
+    "required_paths": {
+      "pid": "/run/acme",
+      "cache": "/var/lib/acme/cache",
+      "logs": "/var/log/acme"
+    },
+    "health_endpoint": "http://localhost:8080/health",
+    "pass_threshold": 75
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_hardening_readonly"
+    }
+  }
+}

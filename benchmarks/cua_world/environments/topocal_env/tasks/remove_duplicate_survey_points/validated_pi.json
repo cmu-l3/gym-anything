@@ -1,0 +1,45 @@
+{
+    "task_id": "remove_duplicate_survey_points@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "raw_file",
+            "metadata_value": "C:\\Users\\Docker\\Documents\\raw_survey_with_duplicates.csv",
+            "verified_value": null,
+            "source": "Task directory inspection shows that setup_task.ps1 is missing, meaning this file is never created in the environment.",
+            "status": "unverified"
+        },
+        {
+            "key": "expected_csv",
+            "metadata_value": "C:\\Users\\Docker\\Documents\\cleaned_survey_points.csv",
+            "verified_value": "C:\\Users\\Docker\\Documents\\cleaned_survey_points.csv",
+            "source": "verifier.py uses this exact path for copy_from_env ('C:\\\\Users\\\\Docker\\\\Documents\\\\cleaned_survey_points.csv').",
+            "status": "verified"
+        },
+        {
+            "key": "expected_tcl",
+            "metadata_value": "C:\\Users\\Docker\\Documents\\cleaned_project.tcl",
+            "verified_value": null,
+            "source": "verifier.py relies on a missing export_result.ps1 script to check for the .tcl file, so the exact path is unverified in code.",
+            "status": "unverified"
+        },
+        {
+            "key": "expected_count",
+            "metadata_value": 387,
+            "verified_value": 387,
+            "source": "verifier.py explicitly checks if the exported point count equals this value (falling back to 387 if missing).",
+            "status": "verified"
+        },
+        {
+            "key": "tolerance_m",
+            "metadata_value": 0.05,
+            "verified_value": 0.045,
+            "source": "verifier.py checks for a pairwise minimum distance of 0.045m (to account for float precision/rounding).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "I discovered a critical defect: both 'setup_task.ps1' and 'export_result.ps1' are entirely missing from the task directory. Because setup_task.ps1 is missing, the raw input file with duplicate points is never generated in the environment. Furthermore, because export_result.ps1 is missing, task_result.json is never created, causing the verifier.py script to fail unconditionally. Although the verifier logic does strictly expect the cleaned CSV path (C:\\Users\\Docker\\Documents\\cleaned_survey_points.csv), exactly 387 points, and a pairwise minimum distance of 0.045m, the task itself is entirely unscorable and broken.",
+    "pi_confidence": "high"
+}

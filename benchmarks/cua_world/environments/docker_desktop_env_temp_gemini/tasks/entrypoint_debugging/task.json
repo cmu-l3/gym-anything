@@ -1,0 +1,33 @@
+{
+  "id": "entrypoint_debugging@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "Diagnose and fix startup failures in a three-service Docker Compose stack (Gateway, API, Worker) located at /home/ga/entrypoint-debug/. Resolve the issues where the Gateway container crashes immediately, the API container is unreachable from the host or other containers, and the Worker container ignores configuration arguments passed in the compose file. Fix the Dockerfiles and entrypoint scripts so that all services run correctly: the Gateway must respond at http://localhost:8080, the API at http://localhost:5000/health, and the Worker must process jobs with the configured 5-second interval.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/entrypoint_debugging/setup_task.sh",
+    "post_task": "/workspace/tasks/entrypoint_debugging/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/entrypoint-debug",
+    "gateway_port": 8080,
+    "api_port": 5000,
+    "worker_expected_interval": 5,
+    "expected_services": [
+      "gateway",
+      "api",
+      "worker"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_entrypoint_debugging"
+    }
+  }
+}

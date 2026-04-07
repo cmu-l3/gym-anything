@@ -1,0 +1,108 @@
+{
+    "task_id": "adt_census_lab_validation_pipeline@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "census_channel_name",
+            "metadata_value": "ADT_Census_Manager",
+            "verified_value": "ADT_Census_Manager",
+            "source": "Cross-referenced task description ('Channel 1: ADT_Census_Manager'), setup_task.sh terminal instructions, and export_result.sh search pattern (LIKE '%census%' OR '%adt%' AND '%manager%'). All three reference the same name consistently.",
+            "status": "verified"
+        },
+        {
+            "key": "validator_channel_name",
+            "metadata_value": "Lab_Results_Validator",
+            "verified_value": "Lab_Results_Validator",
+            "source": "Cross-referenced task description ('Channel 2: Lab_Results_Validator'), setup_task.sh terminal instructions, and export_result.sh search pattern (LIKE '%lab%validat%'). Consistent across all files.",
+            "status": "verified"
+        },
+        {
+            "key": "processor_channel_name",
+            "metadata_value": "Critical_Value_Processor",
+            "verified_value": "Critical_Value_Processor",
+            "source": "Cross-referenced task description ('Channel 3: Critical_Value_Processor'), setup_task.sh terminal instructions, and export_result.sh search pattern (LIKE '%critical%value%'). Consistent across all files.",
+            "status": "verified"
+        },
+        {
+            "key": "census_port",
+            "metadata_value": "6661",
+            "verified_value": "6661",
+            "source": "Confirmed in task description ('TCP Listener on port 6661'), setup_task.sh terminal diagram, export_result.sh MLLP send target, and live environment test showing port 6661 listening via docker-proxy (ss -tlnp output).",
+            "status": "verified"
+        },
+        {
+            "key": "validator_port",
+            "metadata_value": "6662",
+            "verified_value": "6662",
+            "source": "Confirmed in task description ('TCP Listener on port 6662'), setup_task.sh terminal diagram, export_result.sh MLLP send target, and live environment test showing port 6662 listening via docker-proxy.",
+            "status": "verified"
+        },
+        {
+            "key": "census_table",
+            "metadata_value": "active_census",
+            "verified_value": "active_census",
+            "source": "Confirmed in task description ('insert into the active_census table'), setup_task.sh terminal schema, export_result.sh DB queries (information_schema check for 'active_census'), and verifier.py criterion 5. Live test verified CREATE TABLE active_census and INSERT/SELECT work on PostgreSQL via docker exec.",
+            "status": "verified"
+        },
+        {
+            "key": "results_table",
+            "metadata_value": "lab_results",
+            "verified_value": "lab_results",
+            "source": "Confirmed in task description ('Insert ALL results into lab_results table'), setup_task.sh terminal schema, export_result.sh queries (WHERE mrn='MRN-3001' FROM lab_results), and verifier.py criterion 7.",
+            "status": "verified"
+        },
+        {
+            "key": "alerts_table",
+            "metadata_value": "critical_alerts",
+            "verified_value": "critical_alerts",
+            "source": "Confirmed in task description ('insert into critical_alerts table'), setup_task.sh terminal schema, export_result.sh queries (SELECT physician FROM critical_alerts), and verifier.py criterion 9.",
+            "status": "verified"
+        },
+        {
+            "key": "rejected_table",
+            "metadata_value": "rejected_results",
+            "verified_value": "rejected_results",
+            "source": "Confirmed in task description ('insert into rejected_results table'), setup_task.sh terminal schema, export_result.sh queries (SELECT COUNT(*) FROM rejected_results WHERE mrn='MRN-9999'), and verifier.py criterion 8.",
+            "status": "verified"
+        },
+        {
+            "key": "alerts_dir",
+            "metadata_value": "/tmp/critical_alerts",
+            "verified_value": "/tmp/critical_alerts",
+            "source": "Confirmed in task description ('write a JSON alert file to /tmp/critical_alerts/'), export_result.sh check (docker exec nextgen-connect sh -c 'ls /tmp/critical_alerts/'), and live test confirming file write/read works at this path inside the Docker container.",
+            "status": "verified"
+        },
+        {
+            "key": "test_mrn_known",
+            "metadata_value": "MRN-3001",
+            "verified_value": "MRN-3001",
+            "source": "Verified by parsing sample HL7 files created by setup_task.sh. PID-3.1 field in sample_adt_a01_admit.hl7 = 'MRN-3001^^^MercyGeneral^MR'. Same MRN appears in sample_oru_critical.hl7, sample_oru_normal.hl7, and sample_adt_a03_discharge.hl7. Live test confirmed Python parsing extracts 'MRN-3001' from PID-3.1.",
+            "status": "verified"
+        },
+        {
+            "key": "test_mrn_unknown",
+            "metadata_value": "MRN-9999",
+            "verified_value": "MRN-9999",
+            "source": "Verified by parsing sample_oru_unknown.hl7 created by setup_task.sh. PID-3.1 = 'MRN-9999^^^RegionalHealth^MR'. Export_result.sh queries rejected_results WHERE mrn='MRN-9999' and lab_results WHERE mrn='MRN-9999' (should be 0). Consistent across all files.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Senior Integration Engineer",
+            "verified_value": "Senior Integration Engineer",
+            "source": "Matches task description opening: 'You are a Senior Integration Engineer'. This is a role-play label, not a technical claim.",
+            "status": "verified"
+        },
+        {
+            "key": "soc_code",
+            "metadata_value": "15-1299.09",
+            "verified_value": "15-1299.09",
+            "source": "SOC 15-1299 = 'Computer Occupations, All Other' per U.S. Bureau of Labor Statistics (bls.gov/soc). The .09 suffix is non-standard BLS notation but is used consistently across all 70 tasks in this environment. Same code used in enterprise_hl7_router, siu_to_adt_bridge, and other tasks.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task requires building a three-channel integration pipeline in NextGen Connect 4.5.0. Channel 1 'ADT_Census_Manager' must listen on TCP port 6661 (MLLP) and process ADT messages: ADT^A01 events should INSERT into the 'active_census' table with status='active', and ADT^A03 events should UPDATE the patient's status to 'discharged'. Channel 2 'Lab_Results_Validator' must listen on TCP port 6662 (MLLP), query the active_census table by MRN extracted from PID-3.1, and if the patient has status='active', enrich with department and attending_physician from the census, then route to Channel 3 via Channel Writer. If the patient is not found or discharged, the message must be inserted into the 'rejected_results' table and a NACK response with MSA|AR returned. Channel 2's Response Transformer must return MSA|AA with the patient's department in MSA-6 for accepted messages. Channel 3 'Critical_Value_Processor' receives from Channel 2 and inserts ALL results into the 'lab_results' table. If any OBX-8 field contains 'HH' or 'LL' (HL7 v2.5 critically high/low abnormal flags), it must also insert into the 'critical_alerts' table and write a JSON alert file to /tmp/critical_alerts/ inside the Docker container. The test data uses patient MRN-3001 (VASQUEZ, ELENA M) admitted to ICU with attending physician FOSTER, AMANDA L (from PV1-3.1 and PV1-7). The critical ORU message for MRN-3001 contains Potassium=6.9 mEq/L (LOINC 2823-3, flag HH, normal 3.5-5.5) and Creatinine=7.2 mg/dL (LOINC 2160-0, flag HH, normal 0.7-1.3). MRN-9999 should be REJECTED as it does not exist in the census. The REST API is at https://localhost:8443/api with credentials admin/admin and required header X-Requested-With: OpenAPI. PostgreSQL is at jdbc:postgresql://nextgen-postgres:5432/mirthdb with credentials postgres/postgres. All database tables (active_census, lab_results, critical_alerts, rejected_results) must be created by the agent. Channels must be built in dependency order: Critical_Value_Processor first (to get its UUID), then Lab_Results_Validator (which references Processor's UUID in its Channel Writer), then ADT_Census_Manager (independent). The export script sends the ADT A01 first to port 6661, waits 8 seconds, then sends ORU messages to port 6662 in order: critical (MRN-3001), unknown (MRN-9999), normal (MRN-3001).",
+    "pi_confidence": "high"
+}

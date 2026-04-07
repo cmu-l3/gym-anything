@@ -69,4 +69,8 @@ PYEOF
 
 chown ga:ga "$EMPLOYEE_FILE" 2>/dev/null || true
 
+# Launch WPS Spreadsheet with the employee sales file
+source /workspace/scripts/launch_wps_for_task.sh
+launch_wps_with_file "$EMPLOYEE_FILE"
+
 echo "=== Task setup complete ==="

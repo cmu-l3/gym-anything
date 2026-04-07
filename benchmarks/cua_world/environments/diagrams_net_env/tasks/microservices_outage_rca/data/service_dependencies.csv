@@ -1,0 +1,13 @@
+source,target,type,protocol,timeout_ms,retry_policy,notes
+api-gateway,product-catalog,sync,HTTP/REST,5000,3x-exponential-backoff,Product listing and search queries
+api-gateway,shopping-cart,sync,HTTP/REST,5000,3x-exponential-backoff,Cart CRUD and checkout initiation
+api-gateway,order-processing,sync,HTTP/REST,10000,2x-linear-backoff,Order placement and order status queries
+api-gateway,user-auth,sync,HTTP/REST,3000,no-retry,JWT validation on every authenticated request
+order-processing,payment-service,sync,HTTP/REST,30000,2x-linear-backoff,Payment charge and refund — long timeout for bank processing
+order-processing,inventory-service,async,RabbitMQ/AMQP,N/A,persistent-queue,Stock reservation via domain events
+order-processing,orders-db,sync,PostgreSQL,5000,no-retry,Order record persistence
+shopping-cart,order-processing,sync,HTTP/REST,10000,2x-linear-backoff,Order status verification during checkout
+shopping-cart,redis-cache,sync,Redis,1000,no-retry,Session state and cart contents
+payment-service,payments-db,sync,PostgreSQL,5000,no-retry,Transaction record persistence
+notification-service,rabbitmq,async,AMQP,N/A,persistent-queue,Consumes payment-confirmed and order-placed events
+product-catalog,rabbitmq,async,AMQP,N/A,persistent-queue,Publishes catalog-updated events for search indexing

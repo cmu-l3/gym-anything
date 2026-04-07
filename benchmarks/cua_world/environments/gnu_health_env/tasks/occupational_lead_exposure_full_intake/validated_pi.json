@@ -1,0 +1,129 @@
+{
+    "task_id": "occupational_lead_exposure_full_intake@1",
+    "dataset": "GNU Health 5.0 demo database (gnuhealth-50-demo.sql from gnuhealth.org)",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_patient_firstname",
+            "metadata_value": "Marcus",
+            "verified_value": "Marcus",
+            "source": "Design choice. Live DB query confirmed no pre-existing 'Marcus Torres' in party_party (evidence: 07_patient_absence.log). Agent must register this new patient.",
+            "status": "verified"
+        },
+        {
+            "key": "target_patient_lastname",
+            "metadata_value": "Torres",
+            "verified_value": "Torres",
+            "source": "Design choice. Live DB query confirmed no pre-existing 'Torres' in party_party. Patient must be created by the agent.",
+            "status": "verified"
+        },
+        {
+            "key": "test_type_code",
+            "metadata_value": "BLL_PANEL",
+            "verified_value": "BLL_PANEL",
+            "source": "Design choice. Live DB query confirmed no pre-existing BLL_PANEL in gnuhealth_lab_test_type (evidence: 04_lab_test_types.log shows empty result). Agent must create this lab test type.",
+            "status": "verified"
+        },
+        {
+            "key": "test_type_name",
+            "metadata_value": "Blood Lead Level Panel",
+            "verified_value": "Blood Lead Level Panel",
+            "source": "Design choice for the lab test type name. No pre-existing record. Agent creates it.",
+            "status": "verified"
+        },
+        {
+            "key": "analytes_required",
+            "metadata_value": ["BLL", "ZPP", "FEP"],
+            "verified_value": ["BLL", "ZPP", "FEP"],
+            "source": "Web search confirmed: BLL (Blood Lead Level), ZPP (Zinc Protoporphyrin), FEP (Free Erythrocyte Protoporphyrin) are universally standard abbreviations used by CDC, OSHA, NIOSH. Sources: CDC NIOSH BLL Reference, OSHA Lead Standards 1910.1025 Appendix C.",
+            "status": "verified"
+        },
+        {
+            "key": "required_icd10_codes",
+            "metadata_value": ["T56", "D64", "I10"],
+            "verified_value": ["T56", "D64", "I10"],
+            "source": "Live DB verification (evidence: 03_icd10_codes.log): T56.0 (id=9506, 'Toxic effect: Lead and its compounds'), D64.9 (id=1845, 'Anaemia, unspecified'), I10 (id=3676, 'Essential (primary) hypertension'). All confirmed present in gnuhealth_pathology table. ICD-10-CM codes cross-verified via icd10data.com.",
+            "status": "verified"
+        },
+        {
+            "key": "family_history_codes",
+            "metadata_value": ["I25", "E11"],
+            "verified_value": ["I25", "E11"],
+            "source": "Live DB verification (evidence: 03_icd10_codes.log): I25.1 (id=3727, 'Atherosclerotic heart disease') and E11 (id=2012, 'Type 2 diabetes mellitus') both confirmed present in gnuhealth_pathology. ICD-10-CM codes cross-verified via icd10data.com.",
+            "status": "verified"
+        },
+        {
+            "key": "allergy_drug",
+            "metadata_value": "Penicillin",
+            "verified_value": "Penicillin",
+            "source": "Standard drug name. IMPORTANT SCHEMA QUIRK: In GNU Health 5.0, allergies are NOT stored in a separate gnuhealth_patient_allergy table. They are stored in gnuhealth_patient_disease with the is_allergy=true flag. Live schema verification confirmed columns: is_allergy (boolean), allergy_type, disease_severity all exist on gnuhealth_patient_disease (evidence: 12_schema_verification.log).",
+            "status": "verified"
+        },
+        {
+            "key": "prescription_drugs",
+            "metadata_value": ["Succimer", "DMSA", "Ferrous Sulfate"],
+            "verified_value": ["Succimer", "DMSA", "Ferrous Sulfate"],
+            "source": "Live DB verification (evidence: 05_medications.log, 05b_medication_details.log): 'succimer' exists as medicament id=43; 'Ferrous Sulfate' exists as medicament id=452. DMSA is an alias for Succimer (dimercaptosuccinic acid). Web search confirmed Succimer is FDA-approved chelation for lead poisoning. Ferrous Sulfate is standard iron supplementation for lead-related anemia.",
+            "status": "verified"
+        },
+        {
+            "key": "lab_orders_required",
+            "metadata_value": ["BLL_PANEL", "CBC", "CMP"],
+            "verified_value": ["BLL_PANEL", "CBC", "CMP"],
+            "source": "Live DB verification (evidence: 04_lab_test_types.log): CBC (id=2, 'COMPLETE BLOOD COUNT') and CMP (id=28, 'COMPREHENSIVE METABOLIC PANEL') both confirmed present in gnuhealth_lab_test_type. BLL_PANEL does not pre-exist (agent creates it). NOTE: Lab test types require a product_id (NOT NULL FK to product_product) — setup_task.sh creates service products for CBC and CMP if they don't exist.",
+            "status": "verified"
+        },
+        {
+            "key": "eval_systolic",
+            "metadata_value": 145,
+            "verified_value": 145,
+            "source": "Design choice for vitals the agent should enter. Clinically plausible: lead exposure causes hypertension. DB column confirmed as 'systolic' (integer) in gnuhealth_patient_evaluation (evidence: 12_schema_verification.log).",
+            "status": "verified"
+        },
+        {
+            "key": "eval_diastolic",
+            "metadata_value": 92,
+            "verified_value": 92,
+            "source": "Design choice. DB column confirmed as 'diastolic' (integer) in gnuhealth_patient_evaluation (evidence: 12_schema_verification.log).",
+            "status": "verified"
+        },
+        {
+            "key": "eval_heart_rate",
+            "metadata_value": 78,
+            "verified_value": 78,
+            "source": "Design choice. CRITICAL SCHEMA QUIRK: The metadata key says 'eval_heart_rate' but the actual DB column in gnuhealth_patient_evaluation is 'bpm' (NOT 'heart_rate'). Live schema verification confirmed this (evidence: 12_schema_verification.log shows 'gnuhealth_patient_evaluation.bpm: OK'). The export_result.sh correctly queries 'bpm'. The task description says 'HR 78' which the agent enters into the 'Heart Rate' or 'BPM' field in the GUI.",
+            "status": "verified"
+        },
+        {
+            "key": "followup_min_days",
+            "metadata_value": 7,
+            "verified_value": 7,
+            "source": "Design choice for lenient verification window. Task description says '14 days'; metadata allows 7-21 day window for partial credit. This is consistent with clinical follow-up flexibility.",
+            "status": "verified"
+        },
+        {
+            "key": "followup_max_days",
+            "metadata_value": 21,
+            "verified_value": 21,
+            "source": "Design choice for lenient verification window (7-21 days around the 14-day target).",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Occupational Health Physician",
+            "verified_value": "Occupational Health Physician",
+            "source": "Descriptive label for the clinical role performing this task. Not a data claim requiring verification.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Occupational Medicine / Industrial Toxicology",
+            "verified_value": "Occupational Medicine / Industrial Toxicology",
+            "source": "Descriptive label for the industry context. Not a data claim requiring verification.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task requires the agent to perform a complete occupational health intake in GNU Health 5.0 (Tryton Sao web client). The agent must create a new patient (Marcus Torres, DOB 1985-06-14, Male) who does NOT pre-exist in the demo database, and a new lab test type (BLL_PANEL) that also does NOT pre-exist. Key ground truth for verification: (1) Lab test type: code BLL_PANEL with 3 analytes — BLL (Blood Lead Level, ref <5 ug/dL), ZPP (Zinc Protoporphyrin, ref <40 ug/dL), FEP (Free Erythrocyte Protoporphyrin, ref <35 ug/dL). (2) Patient: Marcus Torres registered with DOB 1985-06-14, Male. (3) Three ICD-10 diagnoses: T56.0 (lead toxicity, confirmed in DB as id=9506), D64.9 (anemia, id=1845), I10 (hypertension, id=3676). (4) Allergy to Penicillin — IMPORTANT: in GNU Health 5.0, allergies are stored in the gnuhealth_patient_disease table with is_allergy=true flag, NOT in a separate allergy table. (5) Family history: father with I25.1 (id=3727, atherosclerotic heart disease, deceased age 62), mother with E11 (id=2012, type 2 diabetes, alive). The family disease table is named gnuhealth_patient_family_diseases (plural). (6) Health evaluation with vitals: systolic=145, diastolic=92, bpm=78 (NOTE: the DB column is 'bpm' not 'heart_rate'), temperature=37.0. Chief complaint: chronic fatigue, headaches, abdominal pain for 3 weeks. (7) Three lab orders: BLL_PANEL (custom, agent-created), CBC (pre-exists as id=2), CMP (pre-exists as id=28). (8) Two prescriptions: Succimer/DMSA (medicament id=43) and Ferrous Sulfate (medicament id=452). Prescription lines are in gnuhealth_prescription_line (FK presc_order), and medicament FK to product is 'product' not 'name'. (9) Follow-up appointment in 14 days (acceptable window: 7-21 days). (10) Contamination/decoy: Ana Isabel Betz already has a T56.0 diagnosis — this was injected as an anti-cheat trap. The agent must create records for Marcus Torres specifically, not modify Ana Betz. Login credentials: admin / gnusolidario.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,59 @@
+{
+  "task_id": "optimize_fim_noise_reduction@1",
+  "task_completion": [
+    {
+      "id": "access_and_edit_config",
+      "description": "Access the Wazuh manager container and open the configuration file.",
+      "points": 10,
+      "visual_evidence": "Terminal shows the agent executing a command to enter the 'wazuh-wazuh.manager-1' container (e.g., docker exec) and opening '/var/ossec/etc/ossec.conf' in a text editor like nano or vim."
+    },
+    {
+      "id": "configure_fim_target",
+      "description": "Configure FIM to monitor the target directory in real-time.",
+      "points": 20,
+      "visual_evidence": "The opened 'ossec.conf' file shows a configuration line like '<directories realtime=\"yes\">/var/ossec/etc</directories>' added within the '<syscheck>' section."
+    },
+    {
+      "id": "configure_ignore_rules",
+      "description": "Add sregex ignore rules for temporary editor files.",
+      "points": 20,
+      "visual_evidence": "The opened 'ossec.conf' file shows an ignore rule using 'sregex' for '.swp' and '.tmp' files, such as '<ignore type=\"sregex\">.swp$|.tmp$</ignore>', within the '<syscheck>' section."
+    },
+    {
+      "id": "apply_configuration",
+      "description": "Apply the configuration changes by restarting the Wazuh manager.",
+      "points": 15,
+      "visual_evidence": "Terminal shows a command being executed to restart the Wazuh manager service (e.g., '/var/ossec/bin/wazuh-control restart' inside the container, or 'docker restart wazuh-wazuh.manager-1' on the host)."
+    },
+    {
+      "id": "create_test_files",
+      "description": "Create the positive and negative test files in the monitored directory.",
+      "points": 15,
+      "visual_evidence": "Terminal shows commands (like 'touch' or 'echo') creating '/var/ossec/etc/test_alert.xml' and '/var/ossec/etc/vim_noise.swp' inside the container."
+    },
+    {
+      "id": "verify_alert_logs",
+      "description": "Verify that the positive test file triggered an alert and the negative test file did not.",
+      "points": 20,
+      "visual_evidence": "Terminal shows the agent querying '/var/ossec/logs/alerts/alerts.json' (e.g., using grep, tail, or cat) and the output displays a syscheck alert for 'test_alert.xml'. The agent should also demonstrate that 'vim_noise.swp' does not appear in the recent alerts."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "container_execution",
+      "description": "Verify that configuration and file creation commands are executed inside the actual Docker container.",
+      "visual_evidence": "The terminal prompt should indicate the agent is inside the container (e.g., root@<container_id>), or commands should be explicitly prefixed with 'docker exec -it wazuh-wazuh.manager-1'."
+    },
+    {
+      "id": "genuine_service_restart",
+      "description": "Verify the agent actually restarted the Wazuh service to apply changes.",
+      "visual_evidence": "Look for the actual output of the restart command (e.g., 'Killing wazuh-modulesd... OK', 'Starting wazuh-modulesd... OK') rather than just a typed command that was never executed."
+    },
+    {
+      "id": "authentic_log_output",
+      "description": "Verify the log output checked by the agent looks like genuine Wazuh JSON alert logs.",
+      "visual_evidence": "The output from checking 'alerts.json' should be in JSON format containing standard Wazuh fields (e.g., 'rule', 'syscheck', 'path'), not manually typed or echoed text."
+    }
+  ],
+  "privileged_info_for_vlm": "Container: wazuh-wazuh.manager-1. Config file: /var/ossec/etc/ossec.conf. Target FIM directory: /var/ossec/etc. Positive test file: test_alert.xml. Negative test file: vim_noise.swp. Alerts log path: /var/ossec/logs/alerts/alerts.json."
+}

@@ -1,0 +1,34 @@
+{
+  "id": "redact_inventory_metadata_scml@1",
+  "version": "1.0",
+  "env_id": "seiscomp_env@0.1",
+  "description": "The Gym Seismology Lab is sharing its GE network station inventory, but landowner agreements require us to hide the exact locations of stations SANI and BKB. Extract the SeisComP network inventory from the database at mysql://sysop:sysop@localhost/seiscomp and redact the latitude, longitude, and elevation for stations SANI and BKB by setting these values to 0.0 in both the <station> and <sensorLocation> elements. Ensure the coordinates for other stations (TOLI, GSI, KWP) remain unchanged. Save the resulting valid SCML XML file to ~/exports/redacted_inventory.scml.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/redact_inventory_metadata_scml/setup_task.sh",
+    "post_task": "/workspace/tasks/redact_inventory_metadata_scml/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/exports/redacted_inventory.scml",
+    "redact_stations": [
+      "SANI",
+      "BKB"
+    ],
+    "keep_stations": [
+      "TOLI",
+      "GSI",
+      "KWP"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_redacted_inventory"
+    }
+  }
+}

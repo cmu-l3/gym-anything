@@ -1,0 +1,60 @@
+{
+  "id": "scheduled_bed_census_csv_export@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a 'Bed_Census_Reporter' channel in NextGen Connect using a Database Reader source (jdbc:postgresql://nextgen-postgres:5432/mirthdb) and a File Writer destination. The channel must poll the 'bed_census' table every 5 seconds, aggregate all records (unit_name, total_beds, occupied_beds) into a single message, and save a CSV report to /home/ga/reports/census_report.csv. The report must include the header 'Unit,Occupancy,Status'. Calculate 'Occupancy' as a percentage (rounded to 1 decimal) and determine 'Status' ('CRITICAL' if occupancy >= 90.0%, otherwise 'NORMAL').",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/scheduled_bed_census_csv_export/setup_task.sh",
+    "post_task": "/workspace/tasks/scheduled_bed_census_csv_export/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Bed_Census_Reporter",
+    "output_path": "/home/ga/reports/census_report.csv",
+    "db_table": "bed_census",
+    "critical_threshold": 90.0,
+    "ground_truth_data": {
+      "ICU": {
+        "total": 20,
+        "occupied": 18,
+        "pct": 90.0,
+        "status": "CRITICAL"
+      },
+      "ER": {
+        "total": 50,
+        "occupied": 48,
+        "pct": 96.0,
+        "status": "CRITICAL"
+      },
+      "MEDSURG": {
+        "total": 100,
+        "occupied": 75,
+        "pct": 75.0,
+        "status": "NORMAL"
+      },
+      "PEDS": {
+        "total": 30,
+        "occupied": 5,
+        "pct": 16.7,
+        "status": "NORMAL"
+      },
+      "NICU": {
+        "total": 15,
+        "occupied": 14,
+        "pct": 93.3,
+        "status": "CRITICAL"
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_scheduled_bed_census_csv_export"
+    }
+  }
+}

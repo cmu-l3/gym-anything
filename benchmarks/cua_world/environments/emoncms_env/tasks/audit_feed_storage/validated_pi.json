@@ -1,0 +1,57 @@
+{
+    "task_id": "audit_feed_storage@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/feed_storage_audit.csv",
+            "verified_value": "/home/ga/feed_storage_audit.csv",
+            "source": "Explicitly defined in the task description and perfectly aligned with the file path checked in export_result.sh and verifier.py.",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": [
+                "id",
+                "name",
+                "tag",
+                "engine",
+                "engine_name",
+                "interval",
+                "npoints",
+                "start_time",
+                "size"
+            ],
+            "verified_value": [
+                "id",
+                "name",
+                "tag",
+                "engine",
+                "engine_name",
+                "interval",
+                "npoints",
+                "start_time",
+                "size"
+            ],
+            "source": "Explicitly defined in the task description and exactly enforced by the CSV validation logic in verifier.py.",
+            "status": "verified"
+        },
+        {
+            "key": "engine_mapping",
+            "metadata_value": {
+                "5": "PHPFina",
+                "2": "PHPTimeseries"
+            },
+            "verified_value": {
+                "5": "PHPFina",
+                "2": "PHPTimeseries"
+            },
+            "source": "Checked against Emoncms source code (Lib/enum.php and Modules/feed/engine/Engine.php) which defines Engine::PHPTIMESERIES = 2 and Engine::PHPFINA = 5.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The Emoncms environment is populated with synthetically generated feed data using a Python seed script in setup_emoncms.sh. The expected output path, required CSV columns, and Emoncms engine ID mappings (5 for PHPFina, 2 for PHPTimeseries) correctly align with the explicit task instructions and the underlying Emoncms Engine class definitions. However, there is a critical bug in the export_result.sh ground truth generation: the script queries the 'feed/list.json' endpoint without the '?meta=1' query parameter. Without this parameter, the Emoncms API omits the 'interval', 'npoints', and 'start_time' fields, causing the verifier's ground truth to perpetually record them as 0. If an agent correctly identifies and retrieves the true metrics (e.g. by querying '?meta=1'), the verifier will incorrectly fail the agent for 'Content Accuracy' because the true values do not equal 0.",
+    "pi_confidence": "high"
+}

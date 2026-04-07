@@ -1,0 +1,63 @@
+{
+  "id": "multi_team_governance_audit@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "A previous platform administrator partially configured the Rancher local cluster for multi-team access but left the setup incomplete and misconfigured before leaving the company. Using the target governance specification at /home/ga/Desktop/governance_spec.md, audit the current state, fix all misconfigurations, and complete the missing setup. The specification defines two Rancher Projects (platform-infra and team-alpha) with differentiated resource quotas, two custom Role Templates (a cluster-level Infrastructure Operator and a project-level Release Manager) with specific fine-grained permissions, and three users (ops-lead, alpha-lead, alpha-dev) with designated role assignments. Currently: the platform-infra project exists but has incorrect quota values, the team-alpha project is missing entirely, the Infrastructure Operator role template exists but is missing critical storage and event permissions, the Release Manager role template does not exist, user ops-lead exists but has an overly permissive Cluster Owner binding instead of Infrastructure Operator, and users alpha-lead and alpha-dev do not exist. Remediate all issues so the governance setup exactly matches the specification. Login to Rancher at https://localhost with credentials admin / Admin12345678!",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 3600,
+    "max_steps": 400,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multi_team_governance_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/multi_team_governance_audit/export_result.sh"
+  },
+  "metadata": {
+    "spec_file": "/home/ga/Desktop/governance_spec.md",
+    "expected_projects": {
+      "platform-infra": {
+        "cpu_limit": "6000m",
+        "memory_limit": "12Gi",
+        "ns_default_cpu": "2000m",
+        "ns_default_memory": "4Gi"
+      },
+      "team-alpha": {
+        "cpu_limit": "4000m",
+        "memory_limit": "8Gi",
+        "ns_default_cpu": "2000m",
+        "ns_default_memory": "4Gi"
+      }
+    },
+    "expected_role_templates": {
+      "Infrastructure Operator": {
+        "context": "cluster",
+        "resource_count": 6
+      },
+      "Release Manager": {
+        "context": "project",
+        "resource_count": 8,
+        "forbidden_resources": ["secrets"],
+        "forbidden_verbs_on_secrets": ["create", "update", "delete", "patch"],
+        "forbidden_resources_full": ["pods/exec"]
+      }
+    },
+    "expected_users": [
+      {"username": "ops-lead", "password": "OpsLead2024!#"},
+      {"username": "alpha-lead", "password": "AlphaLead2024!#"},
+      {"username": "alpha-dev", "password": "AlphaDev2024!#"}
+    ],
+    "expected_bindings": {
+      "ops-lead": {"role": "Infrastructure Operator", "scope": "cluster"},
+      "alpha-lead": {"role": "Release Manager", "scope": "project", "project": "team-alpha"},
+      "alpha-dev": {"role": "project-member", "scope": "project", "project": "team-alpha"}
+    },
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multi_team_governance_audit"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "regex_data_quality_router@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a channel named 'MRN_Quality_Firewall' that filters HL7 ADT messages based on Patient ID format. The channel must listen on TCP port 6661. Route messages with a 6-digit numerical Patient ID (PID-3.1) to '/home/ga/valid', prefixing the ID with 'MRN-' (e.g., '123456' -> 'MRN-123456'). Route messages with any other ID format to '/home/ga/quarantine' as a plain text file containing the error string: 'Invalid MRN detected: <Original_ID>'. Test messages are provided in '/home/ga/test_messages/'. Use the NextGen Connect Administrator or the REST API. The dashboard at https://localhost:8443 is monitoring-only.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/regex_data_quality_router/setup_task.sh",
+    "post_task": "/workspace/tasks/regex_data_quality_router/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "MRN_Quality_Firewall",
+    "valid_dir": "/home/ga/valid",
+    "quarantine_dir": "/home/ga/quarantine",
+    "listen_port": 6661,
+    "regex_pattern": "^\\d{6}$"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_regex_router"
+    }
+  }
+}

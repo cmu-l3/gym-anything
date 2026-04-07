@@ -1,0 +1,73 @@
+{
+    "task_id": "docker_container_forensics@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "containers",
+            "metadata_value": "[\"acme-webapp\", \"acme-gateway\", \"acme-monitor\"]",
+            "verified_value": "[\"acme-webapp\", \"acme-gateway\", \"acme-monitor\"]",
+            "source": "docker-compose.yml service definitions (lines 17, 32, 52)",
+            "status": "verified"
+        },
+        {
+            "key": "fixed_containers",
+            "metadata_value": "[\"acme-webapp-fixed\", \"acme-gateway-fixed\", \"acme-monitor-fixed\"]",
+            "verified_value": "[\"acme-webapp-fixed\", \"acme-gateway-fixed\", \"acme-monitor-fixed\"]",
+            "source": "setup_task.sh line 39, task description, and export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "report_path",
+            "metadata_value": "/home/ga/Desktop/incident_report.txt",
+            "verified_value": "/home/ga/Desktop/incident_report.txt",
+            "source": "task.json description, export_result.sh line 96",
+            "status": "verified"
+        },
+        {
+            "key": "security_issues.acme-webapp",
+            "metadata_value": "excessive Linux capabilities (SYS_ADMIN, NET_ADMIN, SYS_PTRACE)",
+            "verified_value": "excessive Linux capabilities (SYS_ADMIN, NET_ADMIN, SYS_PTRACE)",
+            "source": "docker-compose.yml lines 20-23 cap_add directives",
+            "status": "verified"
+        },
+        {
+            "key": "security_issues.acme-gateway",
+            "metadata_value": "hardcoded secrets in environment variables",
+            "verified_value": "hardcoded secrets in environment variables: DATABASE_PASSWORD='Sup3rS3cr3t_ProdDB_2024!', AWS_ACCESS_KEY_ID='AKIAIOSFODNN7EXAMPLE', AWS_SECRET_ACCESS_KEY='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', STRIPE_SECRET_KEY='sk_live_51EXAMPLEKEYNOTREAL000000', INTERNAL_API_TOKEN='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.EXAMPLE'",
+            "source": "docker-compose.yml lines 35-44 environment variables",
+            "status": "verified"
+        },
+        {
+            "key": "security_issues.acme-monitor",
+            "metadata_value": "dangerous bind mount of /etc from host",
+            "verified_value": "dangerous bind mount of /etc from host: /etc:/host-etc:ro",
+            "source": "docker-compose.yml lines 55-57 volume mount",
+            "status": "verified"
+        },
+        {
+            "key": "admin_user",
+            "metadata_value": "ga",
+            "verified_value": "ga",
+            "source": "task.json description, setup_task.sh lines 8-9",
+            "status": "verified"
+        },
+        {
+            "key": "admin_password",
+            "metadata_value": "password123",
+            "verified_value": "password123",
+            "source": "task.json description line 'Login: user ga, password password123' and metadata field",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "task.json metadata line 26 and verifier.py line 22 PASS_THRESHOLD = 60",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The docker_container_forensics task sets up three intentionally misconfigured production containers. acme-webapp (nginx:1.24-alpine) runs with excessive Linux capabilities (SYS_ADMIN, NET_ADMIN, SYS_PTRACE) that are not required for a web server. acme-gateway (python:3.11-slim) contains hardcoded production secrets in environment variables including database credentials, AWS keys, Stripe API keys, and JWT tokens. acme-monitor (alpine:3.18) has a dangerous bind mount of the host /etc directory (mounted read-only to /host-etc), exposing all host configuration to the container. The task requires agents to identify these security issues, create fixed replacement containers, stop the originals, and write an incident report. The agent must use docker inspect, docker exec, and docker logs to discover issues. Login credentials are user 'ga' with password 'password123'. Report must be written to ~/Desktop/incident_report.txt. Pass threshold is 60 points out of 100.",
+    "pi_confidence": "high"
+}

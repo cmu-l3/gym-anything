@@ -34,6 +34,55 @@ function Find-MultiecuscanExe {
     return $null
 }
 
+# =====================================================================
+# PyAutoGUI TCP Communication (for Session 1 GUI automation)
+# =====================================================================
+
+function Send-PyAutoGUI {
+    param(
+        [Parameter(Mandatory=$true)]
+        [hashtable]$Command,
+        [int]$Port = 5555,
+        [int]$TimeoutMs = 10000
+    )
+    try {
+        $client = New-Object System.Net.Sockets.TcpClient
+        $client.Connect("127.0.0.1", $Port)
+        $stream = $client.GetStream()
+        $stream.ReadTimeout = $TimeoutMs
+        $json = ($Command | ConvertTo-Json -Compress) + "`n"
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+        $stream.Write($bytes, 0, $bytes.Length)
+        $stream.Flush()
+        $buffer = New-Object byte[] 4096
+        $read = $stream.Read($buffer, 0, $buffer.Length)
+        $response = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $read)
+        $stream.Close()
+        $client.Close()
+        return $response
+    } catch {
+        return $null
+    }
+}
+
+function PyAutoGUI-Press {
+    param([string]$Key)
+    Send-PyAutoGUI -Command @{action="press"; key=$Key} | Out-Null
+    Start-Sleep -Milliseconds 200
+}
+
+function PyAutoGUI-Hotkey {
+    param([string[]]$Keys)
+    Send-PyAutoGUI -Command @{action="hotkey"; keys=$Keys} | Out-Null
+    Start-Sleep -Milliseconds 200
+}
+
+function PyAutoGUI-Write {
+    param([string]$Text, [double]$Interval = 0.02)
+    Send-PyAutoGUI -Command @{action="write"; text=$Text; interval=$Interval} | Out-Null
+    Start-Sleep -Milliseconds 300
+}
+
 function Launch-MultiecuscanInteractive {
     <#
     .SYNOPSIS
@@ -57,6 +106,80 @@ function Launch-MultiecuscanInteractive {
 
     $logFile = "$tempDir\mes_launch.log"
     "$(Get-Date) - Launch-MultiecuscanInteractive starting for: $MesExe" | Out-File $logFile -Append
+
+    # Ensure Task Scheduler service is running
+    try {
+        $svc = Get-Service -Name "Schedule" -ErrorAction SilentlyContinue
+        if ($svc -and $svc.Status -ne "Running") {
+            Write-Host "Starting Task Scheduler service..."
+            Start-Service -Name "Schedule" -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 3
+        }
+    } catch { }
+
+    # ── Strategy 0: PyAutoGUI Win+R (most reliable, runs in Session 1) ────
+    Write-Host "Attempt 0: Win+R via PyAutoGUI..."
+    $pyguiOk = Send-PyAutoGUI -Command @{action="ping"}
+    if ($pyguiOk) {
+        $launchBat = "$tempDir\launchmes.cmd"
+        [System.IO.File]::WriteAllText($launchBat, "@echo off`r`nstart `"`" `"$MesExe`"")
+
+        PyAutoGUI-Press -Key "escape"
+        Start-Sleep -Seconds 1
+        PyAutoGUI-Hotkey -Keys @("win", "r")
+        Start-Sleep -Seconds 2
+        PyAutoGUI-Write -Text $launchBat
+        Start-Sleep -Seconds 1
+        PyAutoGUI-Press -Key "enter"
+
+        # Poll for process
+        $elapsed = 0
+        $running = $null
+        while ($elapsed -lt $WaitSeconds) {
+            Start-Sleep -Seconds 2
+            $elapsed += 2
+            $running = Get-Process | Where-Object { $_.ProcessName -match "Multiecuscan" -or $_.ProcessName -match "b-mes" }
+            if ($running) {
+                Write-Host "Multiecuscan detected via Win+R after ${elapsed}s (PID: $($running.Id -join ', '))"
+                "$(Get-Date) - Win+R launch succeeded (PID: $($running.Id -join ', '))" | Out-File $logFile -Append
+                return $true
+            }
+        }
+        Write-Host "  Win+R attempt: process not detected."
+        "$(Get-Date) - Win+R attempt failed" | Out-File $logFile -Append
+    } else {
+        Write-Host "  PyAutoGUI not available, skipping Win+R."
+    }
+
+    # ── Strategy 0b: schtasks with simple CMD batch (fewer moving parts) ──
+    Write-Host "Attempt 0b: schtasks CMD batch..."
+    $launchBat2 = "$tempDir\launchmes_cmd.cmd"
+    [System.IO.File]::WriteAllText($launchBat2, "@echo off`r`nstart `"`" `"$MesExe`"")
+    $taskNameCmd = "LaunchMES_cmd_$(Get-Random)"
+    $prevEAP2 = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    schtasks /Create /TN $taskNameCmd /TR "cmd /c `"$launchBat2`"" /SC ONCE /SD 01/01/2099 /ST 00:00 /RL HIGHEST /IT /F 2>&1 | Out-Null
+    schtasks /Run /TN $taskNameCmd 2>&1 | Out-Null
+    $ErrorActionPreference = $prevEAP2
+
+    $elapsed = 0
+    $running = $null
+    while ($elapsed -lt $WaitSeconds) {
+        Start-Sleep -Seconds 2
+        $elapsed += 2
+        $running = Get-Process | Where-Object { $_.ProcessName -match "Multiecuscan" -or $_.ProcessName -match "b-mes" }
+        if ($running) {
+            Write-Host "Multiecuscan detected via CMD batch after ${elapsed}s (PID: $($running.Id -join ', '))"
+            "$(Get-Date) - CMD batch launch succeeded (PID: $($running.Id -join ', '))" | Out-File $logFile -Append
+            schtasks /Delete /TN $taskNameCmd /F 2>$null
+            Remove-Item $launchBat2 -Force -ErrorAction SilentlyContinue
+            return $true
+        }
+    }
+    schtasks /Delete /TN $taskNameCmd /F 2>$null
+    Remove-Item $launchBat2 -Force -ErrorAction SilentlyContinue
+    Write-Host "  CMD batch attempt: process not detected."
+    "$(Get-Date) - CMD batch attempt failed" | Out-File $logFile -Append
 
     # Create a PowerShell launch script that runs in the interactive session.
     # This uses the same proven pattern as dismiss_dialogs (CMD -> PowerShell),

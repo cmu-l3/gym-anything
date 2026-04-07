@@ -1,0 +1,53 @@
+{
+  "id": "chemical_inventory_update@1",
+  "version": "1.0",
+  "env_id": "cameo_data_manager_env@0.1",
+  "description": "Green Valley Water Facility has completed its annual chemical inventory reconciliation for the 2024 Tier II report. Update the chemical records for Green Valley Water Facility in CAMEO Data Manager with the following changes. Update the maximum daily amount for Chlorine (CAS 7782-50-5) to 60,000 lbs and the average daily amount for Fluorosilic Acid (CAS 16961-83-4) to 55,000 lbs. Add Sodium Hypochlorite (CAS 7681-52-9) as a new liquid, non-EHS chemical with an average daily amount of 8,500 lbs, maximum daily amount of 15,000 lbs, storage location 'Chemical Injection Room', storage type 'Above ground tank', pressure 'Ambient pressure', and temperature 'Ambient temperature'. Export the updated Tier II dataset as XML to C:\\Users\\Docker\\Documents\\CAMEO\\green_valley_2024.xml.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\chemical_inventory_update\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\chemical_inventory_update\\export_result.ps1"
+  },
+  "metadata": {
+    "facility": "Green Valley Water Facility",
+    "updates": [
+      {
+        "chemical": "Chlorine",
+        "cas": "7782-50-5",
+        "field": "maxAmount",
+        "new_value": 60000,
+        "new_amount_code": "07"
+      },
+      {
+        "chemical": "Fluorosilic Acid",
+        "cas": "16961-83-4",
+        "field": "aveAmount",
+        "new_value": 55000,
+        "new_amount_code": "07"
+      },
+      {
+        "chemical": "Sodium Hypochlorite",
+        "cas": "7681-52-9",
+        "action": "add",
+        "ehs": false,
+        "physical_state": "liquid",
+        "ave_amount": 8500,
+        "max_amount": 15000,
+        "storage_location": "Chemical Injection Room"
+      }
+    ],
+    "expected_export_file": "C:\\Users\\Docker\\Documents\\CAMEO\\green_valley_2024.xml",
+    "source_data_file": "C:\\workspace\\data\\epcra_tier2_data.xml"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chemical_inventory_update"
+    }
+  }
+}

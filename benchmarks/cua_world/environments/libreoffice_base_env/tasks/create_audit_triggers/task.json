@@ -2,7 +2,7 @@
   "id": "create_audit_triggers@1",
   "version": "1.0",
   "env_id": "libreoffice_base_env@0.1",
-  "description": "Create an audit logging system for the Chinook database in LibreOffice Base.\n\nUse 'Tools > SQL...' to execute the following SQL commands exactly as provided:\n\n1. Create the audit table:\n   CREATE TABLE PUBLIC.\"CustomerAuditLog\" (\n       \"AuditId\" INTEGER IDENTITY PRIMARY KEY,\n       \"CustomerId\" INTEGER,\n       \"ActionType\" VARCHAR(10) NOT NULL,\n       \"ActionTimestamp\" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n       \"Details\" VARCHAR(200)\n   )\n\n2. Create an AFTER INSERT trigger:\n   CREATE TRIGGER \"trg_customer_insert\" AFTER INSERT ON PUBLIC.\"Customer\"\n   REFERENCING NEW ROW AS newrow\n   FOR EACH ROW\n   INSERT INTO PUBLIC.\"CustomerAuditLog\" (\"CustomerId\",\"ActionType\",\"Details\")\n   VALUES (newrow.\"CustomerId\", 'INSERT', newrow.\"FirstName\" || ' ' || newrow.\"LastName\")\n\n3. Create an AFTER DELETE trigger:\n   CREATE TRIGGER \"trg_customer_delete\" AFTER DELETE ON PUBLIC.\"Customer\"\n   REFERENCING OLD ROW AS oldrow\n   FOR EACH ROW\n   INSERT INTO PUBLIC.\"CustomerAuditLog\" (\"CustomerId\",\"ActionType\",\"Details\")\n   VALUES (oldrow.\"CustomerId\", 'DELETE', oldrow.\"FirstName\" || ' ' || oldrow.\"LastName\")\n\n4. Test the system by inserting this record:\n   INSERT INTO PUBLIC.\"Customer\" (\"CustomerId\",\"FirstName\",\"LastName\",\"Email\")\n   VALUES (60, 'Audit', 'TestUser', 'audit.test@example.com')\n\nFinally, SAVE the database file (File > Save) to ensure changes are persisted to disk.",
+  "description": "Create an audit logging system for the Chinook database in LibreOffice Base. Execute the following SQL commands to create the audit table, the insert trigger, the delete trigger, and a test record. Save the database file to persist the changes.\n\nCREATE TABLE PUBLIC.\"CustomerAuditLog\" (\n    \"AuditId\" INTEGER IDENTITY PRIMARY KEY,\n    \"CustomerId\" INTEGER,\n    \"ActionType\" VARCHAR(10) NOT NULL,\n    \"ActionTimestamp\" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    \"Details\" VARCHAR(200)\n)\n\nCREATE TRIGGER \"trg_customer_insert\" AFTER INSERT ON PUBLIC.\"Customer\"\nREFERENCING NEW ROW AS newrow\nFOR EACH ROW\nINSERT INTO PUBLIC.\"CustomerAuditLog\" (\"CustomerId\",\"ActionType\",\"Details\")\nVALUES (newrow.\"CustomerId\", 'INSERT', newrow.\"FirstName\" || ' ' || newrow.\"LastName\")\n\nCREATE TRIGGER \"trg_customer_delete\" AFTER DELETE ON PUBLIC.\"Customer\"\nREFERENCING OLD ROW AS oldrow\nFOR EACH ROW\nINSERT INTO PUBLIC.\"CustomerAuditLog\" (\"CustomerId\",\"ActionType\",\"Details\")\nVALUES (oldrow.\"CustomerId\", 'DELETE', oldrow.\"FirstName\" || ' ' || oldrow.\"LastName\")\n\nINSERT INTO PUBLIC.\"Customer\" (\"CustomerId\",\"FirstName\",\"LastName\",\"Email\")\nVALUES (60, 'Audit', 'TestUser', 'audit.test@example.com')",
   "difficulty": "medium",
   "init": {
     "timeout_sec": 600,
@@ -16,7 +16,10 @@
   "metadata": {
     "odb_path": "/home/ga/chinook.odb",
     "expected_table": "CustomerAuditLog",
-    "expected_triggers": ["trg_customer_insert", "trg_customer_delete"],
+    "expected_triggers": [
+      "trg_customer_insert",
+      "trg_customer_delete"
+    ],
     "test_customer_id": 60,
     "test_customer_name": "Audit TestUser"
   },

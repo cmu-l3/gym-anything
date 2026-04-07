@@ -4,6 +4,9 @@ echo "=== Setting up critical_issue_triage_and_escalation ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 MAILDIR="/home/ga/Maildir"
 ASSETS_HAM="/workspace/assets/emails/ham"
 
@@ -73,8 +76,8 @@ chown -R ga:ga "${MAILDIR}"
 date +%s > /tmp/task_start_timestamp
 echo "${IDX}" > /tmp/initial_inbox_count
 
-# Force Dovecot re-index
-doveadm index -u ga INBOX 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # 5. Launch BlueMail
 if ! is_bluemail_running; then

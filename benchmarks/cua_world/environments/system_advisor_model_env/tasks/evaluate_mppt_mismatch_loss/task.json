@@ -1,0 +1,28 @@
+{
+  "id": "evaluate_mppt_mismatch_loss@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "description": "A Solar Energy Systems Engineer at a residential solar installation company is designing a PV system for a home with East and West-facing roof planes. The procurement team wants to use a cheaper inverter that only has a single MPPT, meaning both the East and West strings must be wired in parallel to the same input. The engineer needs to calculate the annual energy penalty (voltage mismatch loss) caused by this compromise to determine if the hardware savings outweigh the lifetime energy loss.\n\nWrite a PySAM script using the Detailed PV model to simulate an East/West split PV system in Phoenix, AZ. Run the simulation twice—once with the arrays on separate MPPTs and once on a shared MPPT—and calculate the mismatch energy loss percentage.\n\nSystem Configuration Parameters:\n- Model: Detailed PV (Pvsamv1)\n- Weather File: /home/ga/SAM_Weather_Data/phoenix_az_tmy.csv\n- Base Configuration: Load a default residential or commercial configuration to populate valid default PV modules and inverters (e.g., PySAM.Pvsamv1.default(\"FlatPlatePVSingleOwner\") or equivalent).\n- Subarray 1 (East):\n  - Enable: Yes\n  - Strings: 1\n  - Modules per string: 12\n  - Tilt: 20 degrees\n  - Azimuth: 90 degrees\n- Subarray 2 (West):\n  - Enable: Yes\n  - Strings: 1\n  - Modules per string: 12\n  - Tilt: 20 degrees\n  - Azimuth: 270 degrees\n- Other Subarrays: Ensure Subarrays 3 and 4 are disabled.\n\nExpected Actions:\n1. Create a Python script to perform the analysis using PySAM.\n2. Configure the model with the two subarrays as specified above.\n3. Run 1 (Dual MPPT): Assign Subarray 1 to MPPT input 1, and Subarray 2 to MPPT input 2. Execute the model and record the annual energy.\n4. Run 2 (Single MPPT): Assign both Subarray 1 and Subarray 2 to MPPT input 1. Execute the model and record the annual energy.\n5. Calculate the mismatch loss percentage: (Dual_Energy - Single_Energy) / Dual_Energy * 100.\n6. Save the analysis script to /home/ga/Documents/SAM_Projects/mismatch_analysis.py.\n7. Save the results as a JSON file to /home/ga/Documents/SAM_Projects/mppt_mismatch_results.json.\n\nThe JSON file should have the following structure:\n{\n  \"system_capacity_kw\": <float, total DC capacity of the system>,\n  \"dual_mppt_annual_energy_kwh\": <float>,\n  \"single_mppt_annual_energy_kwh\": <float>,\n  \"mismatch_loss_percentage\": <float>\n}",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_mppt_mismatch_loss/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_mppt_mismatch_loss/export_result.sh"
+  },
+  "metadata": {
+    "expected_json_filename": "mppt_mismatch_results.json",
+    "expected_py_filename": "mismatch_analysis.py",
+    "expected_mismatch_min": 0.1,
+    "expected_mismatch_max": 10.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_evaluate_mppt_mismatch_loss"
+    }
+  }
+}

@@ -23,7 +23,12 @@ echo "Returning to Home Screen..."
 input keyevent KEYCODE_HOME
 sleep 2
 
-# 5. Take initial screenshot (evidence of starting state)
+# 5. Launch the app using robust helper
+echo "Launching Cancer iChart..."
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
+
+# 6. Take initial screenshot (evidence of starting state)
 screencap -p /sdcard/task_initial_state.png
 
 echo "=== Setup complete ==="

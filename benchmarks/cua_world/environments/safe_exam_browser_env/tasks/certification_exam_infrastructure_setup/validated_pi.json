@@ -1,0 +1,80 @@
+{
+    "task_id": "certification_exam_infrastructure_setup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "occupation",
+            "metadata_value": "IT Systems Manager",
+            "verified_value": "Network and Computer Systems Administrators",
+            "source": "O*NET OnLine (onetonline.org) confirms 15-1244.00 is 'Network and Computer Systems Administrators'. The metadata uses 'IT Systems Manager' which is a common synonym but not the exact O*NET title.",
+            "status": "verified"
+        },
+        {
+            "key": "onet_soc",
+            "metadata_value": "15-1244.00",
+            "verified_value": "15-1244.00",
+            "source": "O*NET OnLine confirms this SOC code maps to Network and Computer Systems Administrators.",
+            "status": "verified"
+        },
+        {
+            "key": "industry",
+            "metadata_value": "Professional Testing / Certification",
+            "verified_value": "Professional Testing / Certification",
+            "source": "Task context involves a professional certification board deploying exam infrastructure, consistent with professional testing industry.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_exam_config_name",
+            "metadata_value": "Professional Certification Lockdown",
+            "verified_value": "Professional Certification Lockdown",
+            "source": "export_result.sh queries configuration_node WHERE name='Professional Certification Lockdown' AND type='EXAM_CONFIG'. Verified by reading export_result.sh line by line.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_template_name",
+            "metadata_value": "Proctored Certification Template",
+            "verified_value": "Proctored Certification Template",
+            "source": "export_result.sh queries exam_template WHERE name='Proctored Certification Template'. Verified by reading export_result.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_connection_config_name",
+            "metadata_value": "Certification Center Link",
+            "verified_value": "Certification Center Link",
+            "source": "export_result.sh queries seb_client_configuration WHERE name='Certification Center Link'. Verified by reading export_result.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_username",
+            "metadata_value": "lead.proctor",
+            "verified_value": "lead.proctor",
+            "source": "export_result.sh queries user WHERE username='lead.proctor'. Verified by reading export_result.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_indicators",
+            "metadata_value": ["Connection Watchdog", "Security Event Monitor"],
+            "verified_value": ["Connection Watchdog", "Security Event Monitor"],
+            "source": "export_result.sh queries indicators by name matching 'Connection Watchdog' and 'Security Event Monitor' on the exam template. Connection Watchdog should be type LAST_PING_TIME; Security Event Monitor should be type ERROR_LOG_COUNTER. Verified by reading export_result.sh and cross-referencing with SEB Server indicator types.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_browser_view_mode",
+            "metadata_value": "fullscreen",
+            "verified_value": "1",
+            "source": "The browserViewMode attribute (id=8) in the SEB Server EAV schema is a RADIO_SELECTION. Value 0 = 'Use Browser Window' (default), value 1 = 'Use Full Screen Mode'. Verified by querying the live database: configuration_attribute WHERE name='browserViewMode' returns type=RADIO_SELECTION, default_value=0. The task requires changing to value 1 (Full Screen Mode). The metadata says 'fullscreen' which maps to value '1' in the database.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_uploads_enabled",
+            "metadata_value": true,
+            "verified_value": true,
+            "source": "The allowUploads attribute in the SEB Server EAV schema is a CHECKBOX with default_value=false. Verified by querying configuration_attribute WHERE name='allowUploads': returns type=CHECKBOX, default_value=false. The task requires changing to true. The Down/Upload tab in the SEB Settings editor shows 'Allow uploading files' checkbox as unchecked by default - confirmed via live screenshot.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task requires setting up a complete exam infrastructure in SEB Server v2.2-stable. All entity names are explicitly enforced in the export_result.sh script via exact SQL name matching. The exam configuration must be named 'Professional Certification Lockdown' (type=EXAM_CONFIG in configuration_node table). Within its SEB Settings, the browserViewMode must be changed from default value 0 (Use Browser Window) to 1 (Use Full Screen Mode) in the User Interface tab, and allowUploads must be changed from default false to true in the Down/Upload tab. The exam template must be named 'Proctored Certification Template' and must have two indicators attached via exam_template_id: 'Connection Watchdog' of type LAST_PING_TIME with warning threshold 2500 and danger threshold 8000, and 'Security Event Monitor' of type ERROR_LOG_COUNTER with warning threshold 3 and danger threshold 10. Thresholds are stored in the threshold table linked by indicator_id with color values for warning and danger levels. The connection configuration must be named 'Certification Center Link' in seb_client_configuration table, must have active=1, and fallback_start_url containing 'metroboard.gov'. The user must have username='lead.proctor' in the user table, active=1, and user_role='EXAM_SUPPORTER' in the user_role table. The baseline state has 1 exam config ('test'), 1 connection config ('test'), 2 users (super-admin, sebserver-admin), 0 exam templates, 2 exams, and 1 indicator.",
+    "pi_confidence": "high"
+}

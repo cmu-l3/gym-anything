@@ -1,0 +1,38 @@
+{
+  "id": "ext_table_cost_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A Cost Estimator needs to integrate external vendor CSV data with the Oracle HR database. Create two Oracle external tables named 'EXT_COUNTRY_COSTS' and 'EXT_MARKET_SALARIES' to read 'country_cost_indices.csv' and 'market_salary_benchmarks.csv' from the 'EXT_DATA_DIR' directory object using the ORACLE_LOADER driver (files have no header rows). Develop a view named 'EMPLOYEE_COST_ANALYSIS' joining the 'EMPLOYEES' table with these external tables on Country ID and Job ID, calculating 'SALARY_VS_MARKET_PCT' ((salary/market_median)*100) and 'COST_ADJUSTED_SALARY' (salary * (100/cost_index)). Export the view's data to '/home/ga/Desktop/cost_analysis_report.txt'. Database Connection: localhost:1521/XEPDB1, User: hr, Password: hr123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ext_table_cost_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/ext_table_cost_analysis/export_result.sh"
+  },
+  "metadata": {
+    "directory_object_name": "EXT_DATA_DIR",
+    "csv_files": [
+      "country_cost_indices.csv",
+      "market_salary_benchmarks.csv"
+    ],
+    "expected_tables": [
+      "EXT_COUNTRY_COSTS",
+      "EXT_MARKET_SALARIES"
+    ],
+    "expected_view": "EMPLOYEE_COST_ANALYSIS",
+    "output_file": "/home/ga/Desktop/cost_analysis_report.txt",
+    "min_view_rows": 80,
+    "csv1_rows": 25,
+    "csv2_rows": 19
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ext_table_cost_analysis"
+    }
+  }
+}

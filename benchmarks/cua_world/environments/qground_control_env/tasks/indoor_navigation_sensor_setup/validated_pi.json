@@ -1,0 +1,80 @@
+{
+    "task_id": "indoor_navigation_sensor_setup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "work_order",
+            "metadata_value": "/home/ga/Documents/QGC/integration_work_order.txt",
+            "verified_value": "/home/ga/Documents/QGC/integration_work_order.txt",
+            "source": "setup_task.sh explicitly writes to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/task_result.json",
+            "verified_value": "/tmp/task_result.json",
+            "source": "export_result.sh outputs the param values to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.RNGFND1_TYPE",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "ArduPilot documentation confirms RNGFND1_TYPE = 20 corresponds to BenewakeTFmini-Serial.",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.RNGFND1_MAX_CM",
+            "metadata_value": 800,
+            "verified_value": null,
+            "source": "ArduPilot source code and documentation confirm the parameter RNGFND1_MAX_CM was renamed to RNGFND1_MAX with units changed to meters. The correct parameter is RNGFND1_MAX = 8.0.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_params.RNGFND1_MIN_CM",
+            "metadata_value": 10,
+            "verified_value": null,
+            "source": "ArduPilot documentation states the Benewake TFmini has a minimum range of 0.3 meters (30cm), not 10cm. Furthermore, the parameter was renamed to RNGFND1_MIN in meters.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_params.SERIAL2_PROTOCOL",
+            "metadata_value": 9,
+            "verified_value": 9,
+            "source": "ArduPilot documentation states SERIAL2_PROTOCOL = 9 is used for Rangefinders.",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.SERIAL2_BAUD",
+            "metadata_value": 115,
+            "verified_value": 115,
+            "source": "ArduPilot documentation states SERIAL2_BAUD = 115 corresponds to 115200 baud, correct for TFmini.",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.FLOW_TYPE",
+            "metadata_value": 2,
+            "verified_value": 4,
+            "source": "ArduPilot documentation states FLOW_TYPE = 4 is for CXOF sensors. FLOW_TYPE = 2 is for Pixart sensors.",
+            "status": "contradicted"
+        },
+        {
+            "key": "required_params.EK3_SRC1_VELXY",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "ArduPilot documentation states EK3_SRC1_VELXY = 5 corresponds to OpticalFlow.",
+            "status": "verified"
+        },
+        {
+            "key": "required_params.EK3_SRC1_POSZ",
+            "metadata_value": 2,
+            "verified_value": 2,
+            "source": "ArduPilot documentation states EK3_SRC1_POSZ = 2 corresponds to RangeFinder.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task relies on a synthetically generated integration work order and queries a live ArduPilot SITL simulator. Three critical metadata claims regarding the required parameters are contradicted by authoritative ArduPilot documentation. First, the FLOW_TYPE for a CX-OF sensor should be 4, whereas the task incorrectly requires 2 (which is for Pixart sensors). Second, the legacy parameters RNGFND1_MAX_CM and RNGFND1_MIN_CM no longer exist in modern ArduPilot firmwares; they have been renamed to RNGFND1_MAX and RNGFND1_MIN with units in meters rather than centimeters. Consequently, the requested values of 800 and 10 are structurally invalid. Third, the true minimum range for a Benewake TFmini is 0.3m (30cm), contradicting the 10cm claim. Because export_result.sh strictly queries the nonexistent _CM parameter names, they will fail to register in the SITL, making the verifier perpetually fail and rendering the task defective.",
+    "pi_confidence": "high"
+}

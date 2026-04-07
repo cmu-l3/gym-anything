@@ -1,0 +1,52 @@
+{
+  "id": "duplicate_sku_consolidation_cleanup@1",
+  "version": "1.0",
+  "env_id": "odoo_inventory_env@0.1",
+  "description": "Log in to Odoo as admin/admin. Consolidate three duplicate janitorial supply products identified by the internal note 'Duplicate of [Master Internal Reference]. Please consolidate.' into their respective master products. Transfer the on-hand stock from each duplicate to its master product using inventory adjustments and archive the three duplicate records. Do not modify, adjust, or archive any unflagged products in the catalog.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/duplicate_sku_consolidation_cleanup/setup_task.sh",
+    "post_task": "/workspace/tasks/duplicate_sku_consolidation_cleanup/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/janitorial_cleanup_result.json",
+    "master_codes": [
+      "JAN-001",
+      "JAN-002",
+      "JAN-003"
+    ],
+    "duplicate_codes": [
+      "JAN-001-DUP",
+      "JAN-002-DUP",
+      "JAN-003-DUP"
+    ],
+    "unrelated_codes": [
+      "JAN-004",
+      "JAN-005",
+      "JAN-006",
+      "JAN-007"
+    ],
+    "pairs": {
+      "JAN-001-DUP": "JAN-001",
+      "JAN-002-DUP": "JAN-002",
+      "JAN-003-DUP": "JAN-003"
+    },
+    "expected_combined_stock": {
+      "JAN-001": 25,
+      "JAN-002": 15,
+      "JAN-003": 32
+    },
+    "pass_threshold": 80
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_duplicate_sku_consolidation"
+    }
+  }
+}

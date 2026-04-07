@@ -1,0 +1,40 @@
+{
+  "id": "recursive_demand_forecasting@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A Logistician needs a 5-week demand forecast for inventory planning. The ERP system is down, so you must calculate it directly in the Oracle database using the WEEKLY_SALES table in the HR schema. Create a new table named DEMAND_FORECAST containing the actual history (Weeks 1-10) and a forecast for Weeks 11-15 for all 5 products. The forecast for any week n (where n > 10) must be calculated using the recursive 3-week weighted moving average formula: Qty(n) = ROUND( (0.5 * Qty(n-1)) + (0.3 * Qty(n-2)) + (0.2 * Qty(n-3)), 2 ). Ensure the result is rounded to 2 decimal places at each step of the recursion. The DEMAND_FORECAST table must include columns PRODUCT_NAME (VARCHAR2), WEEK_NUM (NUMBER), QTY (NUMBER), and DATA_TYPE (VARCHAR2 - 'ACTUAL' or 'FORECAST'), totaling 75 rows.\n\nConnection:\n- Host: localhost\n- Port: 1521\n- Service: XEPDB1\n- User: hr\n- Password: hr123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/recursive_demand_forecasting/setup_task.sh",
+    "post_task": "/workspace/tasks/recursive_demand_forecasting/export_result.sh"
+  },
+  "metadata": {
+    "source_table": "WEEKLY_SALES",
+    "target_table": "DEMAND_FORECAST",
+    "products": [
+      "Ceramic_Bearing_50mm",
+      "Hydraulic_Seal_X2",
+      "Linear_Actuator_v1",
+      "Stepper_Motor_NEMA23",
+      "Timing_Belt_GT2"
+    ],
+    "history_weeks": 10,
+    "forecast_weeks": 5,
+    "weights": [
+      0.5,
+      0.3,
+      0.2
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_recursive_forecast"
+    }
+  }
+}

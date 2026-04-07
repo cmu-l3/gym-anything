@@ -1,0 +1,115 @@
+{
+    "task_id": "remediate_pharma_scan_station@1",
+    "dataset": "synthetic (setup_task.ps1 generates scan_log.txt and approved_medications.csv)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "ini_path",
+            "metadata_value": "C:\\Users\\Docker\\AppData\\Local\\bcWebCam\\bcWebCam.ini",
+            "verified_value": "C:\\Users\\Docker\\AppData\\Local\\bcWebCam\\bcWebCam.ini",
+            "source": "Live environment test: file confirmed at this path via 'type' command. Get-BcWebCamIniPath in task_utils.ps1 returns this path. setup_task.ps1 writes to this exact path at line 66.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_barcode_d_type_nonzero",
+            "metadata_value": true,
+            "verified_value": true,
+            "source": "Task description requires enabling GS1 DataMatrix scanning via [BarcodeD] Type=1. EU FMD (Directive 2011/62/EU) mandates GS1 DataMatrix for medication verification. Any nonzero value enables the barcode type in bcWebCam. Starting state has Type=0 (disabled). Verifier checks bd != '0'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_barcode_l_type",
+            "metadata_value": "0",
+            "verified_value": "0",
+            "source": "Task description requires disabling all linear barcodes. Starting state has Type=8416887 (all linear types enabled as bitmask). Setting to 0 disables all linear barcode reading. Verifier checks exact string match '0'. Live test confirmed starting value was '8416887' in INI.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_barcode_p_type",
+            "metadata_value": "0",
+            "verified_value": "0",
+            "source": "Task description requires disabling QR Code. IMPORTANT: [BarcodeP] controls QR Code, NOT PDF417 (which is [BarcodePN]). Starting state has Type=256 (QR enabled). Setting to 0 disables QR. Verifier checks exact string match '0'. Confirmed via live INI read.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_barcode_a_type",
+            "metadata_value": "0",
+            "verified_value": "0",
+            "source": "Task description requires disabling Aztec codes. Starting state already has Type=0 (disabled). No change needed but agent should verify. Live test confirmed starting value '0'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_barcode_pn_type",
+            "metadata_value": "0",
+            "verified_value": "0",
+            "source": "Task description requires disabling PDF417. [BarcodePN] controls PDF417 (NOT QR Code). Starting state already has Type=0. No change needed. Live test confirmed starting value '0'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_beep",
+            "metadata_value": "False",
+            "verified_value": "False",
+            "source": "Task description requires Beep=False for silent clinical environment. Starting state has Beep=True. Verifier checks case-insensitive match. Live INI read confirmed starting value 'True'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_bc_grace_period",
+            "metadata_value": "5",
+            "verified_value": "5",
+            "source": "Task description requires BcGracePeriod=5 (5-second duplicate suppression). Starting state has BcGracePeriod=0. Verifier checks exact string match '5'. Live INI read confirmed starting value '0'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_send_keys_postfix",
+            "metadata_value": "",
+            "verified_value": "",
+            "source": "Task description requires SendKeysPostfix= (empty, remove default {ENTER}). Starting state has SendKeysPostfix={ENTER}. Verifier checks exact string match against empty string ''. Read-IniFile parser returns '' for 'Key=' (empty right-hand side). Live export_result.ps1 confirmed this works: unconfigured state shows '{ENTER}', empty value shows ''.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_opacity",
+            "metadata_value": "0,65",
+            "verified_value": "0,65",
+            "source": "Task description requires Opacity=0,65 (65% opacity, comma as decimal separator). bcWebCam uses German locale decimal convention (comma not period). Starting state has Opacity=0,8 (80%). Verifier checks EXACT string match '0,65' — writing '0.65' (period) will FAIL. Live INI read confirmed starting value '0,8' with comma. This is the key challenge: agent must use comma decimal format.",
+            "status": "verified"
+        },
+        {
+            "key": "audit_report_path",
+            "metadata_value": "C:\\Users\\Docker\\Documents\\ScanStation\\audit_report.csv",
+            "verified_value": "C:\\Users\\Docker\\Documents\\ScanStation\\audit_report.csv",
+            "source": "ScanStation directory confirmed existing in live test. Write permissions confirmed (created and deleted test file). export_result.ps1 checks this exact path. Setup script deletes any pre-existing audit_report.csv.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_row_count",
+            "metadata_value": 10,
+            "verified_value": 10,
+            "source": "scan_log.txt contains exactly 10 lines (verified by live 'type' command showing all 10 entries and consistency check script). Each line = one scan entry = one audit report row.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_actions",
+            "metadata_value": ["ACCEPT", "REJECT", "ACCEPT", "REJECT", "ACCEPT", "REJECT", "INVESTIGATE", "INVESTIGATE", "REJECT", "ACCEPT"],
+            "verified_value": ["ACCEPT", "REJECT", "ACCEPT", "REJECT", "ACCEPT", "REJECT", "INVESTIGATE", "INVESTIGATE", "REJECT", "ACCEPT"],
+            "source": "Independently computed by classifying each scan_log.txt entry: Entry 0 (GTIN 00300010633215, in DB, expires 2026-05-31 > ref date) = ACCEPT. Entry 1 (EAN-13 5449000000996) = REJECT. Entry 2 (GTIN 00357111370104, in DB, expires 2027-02-28) = ACCEPT. Entry 3 (URL) = REJECT. Entry 4 (GTIN 00363391312393, in DB, expires 2026-09-30) = ACCEPT. Entry 5 (EAN-13 4006381333931) = REJECT. Entry 6 (GTIN 00312547698521, in DB as Amoxicillin, BUT expires 2025-01-15 < 2026-03-21 = EXPIRED) = INVESTIGATE. Entry 7 (GTIN 00398765432109, NOT in approved DB) = INVESTIGATE. Entry 8 (EAN-13 7622210449283) = REJECT. Entry 9 (GTIN 00346587231092, in DB, expires 2026-08-15) = ACCEPT. Verified by Python script running full classification logic.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_barcode_types",
+            "metadata_value": ["DATAMATRIX", "EAN13", "DATAMATRIX", "QR_URL", "DATAMATRIX", "EAN13", "DATAMATRIX", "DATAMATRIX", "EAN13", "DATAMATRIX"],
+            "verified_value": ["DATAMATRIX", "EAN13", "DATAMATRIX", "QR_URL", "DATAMATRIX", "EAN13", "DATAMATRIX", "DATAMATRIX", "EAN13", "DATAMATRIX"],
+            "source": "Independently classified: entries starting with (01)+14digits = DATAMATRIX (entries 0,2,4,6,7,9 = 6 DataMatrix). Entries matching exactly 13 digits = EAN13 (entries 1,5,8 = 3 EAN-13). Entry starting with 'http' = QR_URL (entry 3 = 1 URL). Total: 6 DataMatrix + 3 EAN-13 + 1 QR_URL = 10 entries. Confirmed by Python classification script.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_gtins",
+            "metadata_value": ["00300010633215", "", "00357111370104", "", "00363391312393", "", "00312547698521", "00398765432109", "", "00346587231092"],
+            "verified_value": ["00300010633215", "", "00357111370104", "", "00363391312393", "", "00312547698521", "00398765432109", "", "00346587231092"],
+            "source": "GTINs extracted by regex r'\\(01\\)(\\d{14})' from each DataMatrix entry in scan_log.txt. Non-DataMatrix entries have empty GTIN. All 6 DataMatrix GTINs independently extracted and cross-referenced against approved_medications.csv: 5 found (entries 0,2,4,6,9), 1 not found (entry 7: GTIN 00398765432109). Verified by Python script.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The bcWebCam INI file at C:\\Users\\Docker\\AppData\\Local\\bcWebCam\\bcWebCam.ini starts misconfigured with linear barcodes enabled (BarcodeL Type=8416887), QR enabled (BarcodeP Type=256), DataMatrix disabled (BarcodeD Type=0), Beep=True, Opacity=0,8, SendKeysPostfix={ENTER}, BcGracePeriod=0. The agent must change: BarcodeD Type to nonzero (e.g. 1), BarcodeL Type to 0, BarcodeP Type to 0, Beep to False, SendKeysPostfix to empty (keep key with no value after =), BcGracePeriod to 5, and Opacity to 0,65 (MUST use comma not period as decimal separator). BarcodeA and BarcodePN are already 0. The scan log at C:\\Users\\Docker\\Documents\\ScanStation\\scan_log.txt has exactly 10 entries. The correct audit report CSV at C:\\Users\\Docker\\Documents\\ScanStation\\audit_report.csv should have columns Timestamp,RawData,BarcodeType,GTIN,ProductName,Action with 10 data rows. Classification: Entry 1 is DataMatrix GTIN 00300010633215 = Lisinopril, ACCEPT. Entry 2 is EAN13 (5449000000996), REJECT. Entry 3 is DataMatrix GTIN 00357111370104 = Metformin, ACCEPT. Entry 4 is QR_URL, REJECT. Entry 5 is DataMatrix GTIN 00363391312393 = Omeprazole, ACCEPT. Entry 6 is EAN13 (4006381333931), REJECT. Entry 7 is DataMatrix GTIN 00312547698521 = Amoxicillin but EXPIRED (expiry 2025-01-15 before reference date 2026-03-21), INVESTIGATE. Entry 8 is DataMatrix GTIN 00398765432109 which is NOT in the approved medications database, INVESTIGATE. Entry 9 is EAN13 (7622210449283), REJECT. Entry 10 is DataMatrix GTIN 00346587231092 = Atorvastatin, ACCEPT. The approved_medications.csv has 5 drugs: Lisinopril (00300010633215), Metformin (00357111370104), Omeprazole (00363391312393), Amoxicillin (00312547698521), Atorvastatin (00346587231092).",
+    "pi_confidence": "high"
+}

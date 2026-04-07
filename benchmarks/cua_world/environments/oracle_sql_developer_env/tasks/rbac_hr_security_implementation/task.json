@@ -1,0 +1,30 @@
+{
+  "id": "rbac_hr_security_implementation@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Database Administrator responding to a security audit. The HR schema in Oracle (connected as hr/hr123 to XEPDB1) currently has no role-based access control, exposing sensitive salary data to all users.\n\nYou must implement a complete RBAC model, create secure data-masking views, provision test users, and configure a unified audit policy. All work should be performed through the Oracle SQL Developer GUI.\n\nYour tasks:\n\n1. CREATE ROLES (as SYSTEM):\n   Create four database roles: HR_FULL_ACCESS, HR_ANALYST, DEPT_VIEWER, and HR_READONLY.\n\n2. CREATE SECURE VIEWS (as HR):\n   - Create a view called EMPLOYEES_PUBLIC_VW based on HR.EMPLOYEES that includes all columns EXCEPT 'SALARY' and 'COMMISSION_PCT'. Grant SELECT on this view to PUBLIC.\n   - Create a view called COMPENSATION_AUDIT_VW that joins EMPLOYEES, DEPARTMENTS, and JOBS to show: EMPLOYEE_ID, FIRST_NAME, LAST_NAME, DEPARTMENT_NAME, JOB_TITLE, SALARY, and COMMISSION_PCT. Grant SELECT on this view to the HR_FULL_ACCESS and HR_ANALYST roles.\n\n3. GRANT PRIVILEGES (as SYSTEM or HR):\n   - HR_FULL_ACCESS: Grant SELECT, INSERT, UPDATE, DELETE on all 7 main HR tables (EMPLOYEES, DEPARTMENTS, JOBS, JOB_HISTORY, LOCATIONS, COUNTRIES, REGIONS).\n   - HR_ANALYST: Grant SELECT on all 7 main HR tables. Grant INSERT and UPDATE on HR.EMPLOYEES and HR.JOBS only.\n   - DEPT_VIEWER: Grant SELECT on HR.EMPLOYEES_PUBLIC_VW and HR.DEPARTMENTS.\n   - HR_READONLY: Grant SELECT on HR.EMPLOYEES_PUBLIC_VW only.\n\n4. CREATE TEST USERS (as SYSTEM):\n   Create four users with the password 'Test2024#', grant them CREATE SESSION, and assign them their respective roles:\n   - TEST_HR_MANAGER (assign HR_FULL_ACCESS)\n   - TEST_HR_ANALYST (assign HR_ANALYST)\n   - TEST_DEPT_MGR (assign DEPT_VIEWER)\n   - TEST_READONLY (assign HR_READONLY)\n\n5. CONFIGURE UNIFIED AUDIT POLICY (as SYSTEM):\n   - Create a Unified Audit Policy named SALARY_ACCESS_AUDIT that audits SELECT statements on HR.EMPLOYEES specifically when accessing the SALARY column.\n   - Enable this audit policy for all users.\n\nConnection Details:\nHost: localhost | Port: 1521 | Service: XEPDB1\nSYSTEM Credentials: system / OraclePassword123\nHR Credentials: hr / hr123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rbac_hr_security_implementation/setup_task.sh",
+    "post_task": "/workspace/tasks/rbac_hr_security_implementation/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/rbac_result.json",
+    "occupation": "Database Administrators",
+    "industry": "Healthcare / Corporate HR",
+    "oracle_features": ["Roles", "System Privileges", "Object Privileges", "Views", "Unified Auditing", "Data Masking"],
+    "expected_roles": ["HR_FULL_ACCESS", "HR_ANALYST", "DEPT_VIEWER", "HR_READONLY"],
+    "expected_users": ["TEST_HR_MANAGER", "TEST_HR_ANALYST", "TEST_DEPT_MGR", "TEST_READONLY"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rbac_hr_security_implementation"
+    }
+  }
+}

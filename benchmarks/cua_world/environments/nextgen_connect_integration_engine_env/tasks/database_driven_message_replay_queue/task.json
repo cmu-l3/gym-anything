@@ -1,0 +1,30 @@
+{
+  "id": "database_driven_message_replay_queue@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a channel named 'Staging_Table_Processor' that polls the integration_queue table in the PostgreSQL database (jdbc:postgresql://nextgen-postgres:5432/mirthdb, User: postgres, Pass: postgres) every 10 seconds for records where status = 'PENDING'. Write the HL7 message from the hl7_data column to /tmp/processed_hl7/${id}.hl7 using the record's ID as the filename. Configure the channel to update the processed record by setting status = 'PROCESSED' and processed_at = NOW() for the specific row ID. The database table integration_queue currently contains 3 'PENDING' records and 2 historical 'PROCESSED' records. Output files are written inside the Docker container filesystem.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/database_driven_message_replay_queue/setup_task.sh",
+    "post_task": "/workspace/tasks/database_driven_message_replay_queue/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Staging_Table_Processor",
+    "db_url": "jdbc:postgresql://nextgen-postgres:5432/mirthdb",
+    "table_name": "integration_queue",
+    "output_dir": "/tmp/processed_hl7",
+    "expected_processed_count": 5,
+    "initial_pending_count": 3
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_database_replay"
+    }
+  }
+}

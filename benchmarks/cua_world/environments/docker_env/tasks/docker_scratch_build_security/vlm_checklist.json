@@ -1,0 +1,53 @@
+{
+  "task_id": "docker_scratch_build_security@1",
+  "task_completion": [
+    {
+      "id": "dockerfile_scratch_and_cgo",
+      "description": "Dockerfile is refactored to use a multi-stage build, disable CGO, and use 'scratch' as the final base image.",
+      "points": 20,
+      "visual_evidence": "Visible Dockerfile contents (in an editor or via 'cat') showing 'CGO_ENABLED=0' in the go build command and 'FROM scratch' as the final stage."
+    },
+    {
+      "id": "dockerfile_certs_and_user",
+      "description": "Dockerfile includes CA certificates for HTTPS support and configures a non-root user.",
+      "points": 20,
+      "visual_evidence": "Visible Dockerfile contents showing a COPY command for ca-certificates (e.g., 'COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/') and a 'USER' directive specifying a non-root user (e.g., 'USER 1000' or 'USER appuser') in the final scratch stage."
+    },
+    {
+      "id": "image_built_secure_tag",
+      "description": "The Docker image is successfully built and tagged as 'payment-validator:secure'.",
+      "points": 20,
+      "visual_evidence": "Terminal output showing the execution of 'docker build -t payment-validator:secure .' (or similar) ending with a successful build and tagging message."
+    },
+    {
+      "id": "image_size_verification",
+      "description": "The final Docker image size is under 20MB, verifying the successful use of the scratch image.",
+      "points": 20,
+      "visual_evidence": "Terminal output of 'docker images' or 'docker image ls' showing the 'payment-validator' repository with the 'secure' tag and a size of less than 20MB (typically 5-15MB)."
+    },
+    {
+      "id": "https_connectivity_log",
+      "description": "The container runs successfully and demonstrates HTTPS functionality.",
+      "points": 20,
+      "visual_evidence": "Terminal output showing the execution of 'docker run payment-validator:secure' (or similar) and the resulting application log explicitly printing 'HTTPS check passed'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_docker_build",
+      "description": "Verify the agent actually built the image from the refactored Dockerfile.",
+      "visual_evidence": "Look for the actual build steps executing in the terminal (e.g., downloading Go modules, compiling, exporting layers) rather than just renaming/tagging an existing pre-built image."
+    },
+    {
+      "id": "genuine_container_execution",
+      "description": "Verify the HTTPS success log comes from the actual container execution.",
+      "visual_evidence": "Ensure the 'HTTPS check passed' string is outputted as a result of a 'docker run' command, not simply printed to the terminal using 'echo'."
+    },
+    {
+      "id": "actual_file_modification",
+      "description": "Verify the Dockerfile was genuinely edited.",
+      "visual_evidence": "Look for the use of a text editor (nano, vim) or valid shell commands (sed, echo) modifying the Dockerfile at /home/ga/projects/payment-validator/Dockerfile."
+    }
+  ],
+  "privileged_info_for_vlm": "The task requires refactoring an insecure Dockerfile at /home/ga/projects/payment-validator into a multi-stage build. The final image must use 'FROM scratch', compile the Go binary with 'CGO_ENABLED=0', copy CA certificates for HTTPS, and run as a non-root user (using the USER directive). The final image must be tagged 'payment-validator:secure' and have a size under 20MB. When run, the container must successfully execute and print 'HTTPS check passed', proving that the CA certificates were properly included to allow external HTTPS requests."
+}

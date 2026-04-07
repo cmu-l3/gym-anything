@@ -1,0 +1,80 @@
+{
+    "task_id": "babysit_coop_timebank@1",
+    "dataset": "babysitting_coop_timebank_ledger",
+    "case_id": "babysit_coop_transactions.csv",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "number_of_families",
+            "metadata_value": "6 families participating in time-bank",
+            "verified_value": "6 families (Chen, Davis, Johnson, Martinez, Rodriguez, Smith)",
+            "source": "CSV parsing and family name normalization from setup_task.sh",
+            "status": "verified"
+        },
+        {
+            "key": "number_of_transactions",
+            "metadata_value": "26 transactions over 3 months",
+            "verified_value": "26 transactions spanning 65 days (Jan 5 - Mar 10, 2024)",
+            "source": "CSV line count from setup_task.sh",
+            "status": "verified"
+        },
+        {
+            "key": "time_period_duration",
+            "metadata_value": "3 months",
+            "verified_value": "~2 months 5 days (65 days; spans 3 calendar months but does not cover 3 full months)",
+            "source": "Date range analysis: 2024-01-05 to 2024-03-10",
+            "status": "contradicted"
+        },
+        {
+            "key": "name_inconsistencies",
+            "metadata_value": "Intentional name inconsistencies (e.g., 'Johnson' vs 'Johnsons' vs 'Johnson Family')",
+            "verified_value": "Confirmed inconsistencies exist: Johnson appears as 'Johnson', 'Johnsons', 'Johnson Family'; similar patterns for Martinez, Chen, Davis, Rodriguez, Smith",
+            "source": "CSV data inspection from setup_task.sh",
+            "status": "verified"
+        },
+        {
+            "key": "balance_distribution",
+            "metadata_value": "Mix of positive/negative balances (not all zeros)",
+            "verified_value": "3 positive balances, 3 negative balances, 0 zero balances. Positive: Chen (4.0), Davis (3.5), Smith (1.5). Negative: Johnson (-1.5), Martinez (-2.5), Rodriguez (-5.0)",
+            "source": "Balance calculation from CSV transactions using SUMIF logic",
+            "status": "verified"
+        },
+        {
+            "key": "families_with_balance_less_than_minus_5",
+            "metadata_value": "At least one family with balance < -5 (for highlighting criterion)",
+            "verified_value": "Zero families have balance < -5. Closest is Rodriguez with exactly -5.0 (does not satisfy < -5)",
+            "source": "Balance calculation: Rodriguez = 9.5 earned - 14.5 spent = -5.0 (not < -5)",
+            "status": "contradicted"
+        },
+        {
+            "key": "negative_balance_threshold",
+            "metadata_value": "Conditional formatting rule for balance < -5 should flag families owning more than 5 hours",
+            "verified_value": "No families own more than 5 hours to the co-op. Rodriguez owes exactly 5 hours (-5.0), not more than 5",
+            "source": "Verifier.py line 418 checks 'if balance < -5'; README line 34 also specifies '< -5'",
+            "status": "contradicted"
+        },
+        {
+            "key": "minimum_families_in_summary",
+            "metadata_value": "At least 3 families should appear in summary table",
+            "verified_value": "Data supports 6 families; verifier requires minimum 3 at line 336-337",
+            "source": "Verifier.py logic and available family count",
+            "status": "verified"
+        },
+        {
+            "key": "csv_file_location",
+            "metadata_value": "Transaction log path: /home/ga/Documents/babysit_coop_transactions.csv",
+            "verified_value": "Confirmed in setup_task.sh (line 13: cat > /home/ga/Documents/babysit_coop_transactions.csv)",
+            "source": "setup_task.sh script",
+            "status": "verified"
+        },
+        {
+            "key": "data_creation_method",
+            "metadata_value": "Synthetic CSV created by setup_task.sh heredoc",
+            "verified_value": "Data is hardcoded in setup_task.sh lines 13-40, not from external source",
+            "source": "Direct inspection of setup_task.sh",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The babysit_coop_timebank task uses synthetic data with 6 families, 26 transactions spanning ~2 months (Jan 5 - Mar 10, 2024). Data intentionally includes name inconsistencies (Johnson/Johnsons/Johnson Family, etc.). Balance distribution shows 3 positive and 3 negative balances with no family owing more than 5 hours to the co-op (Rodriguez owes exactly 5.0 hours, not > 5). This creates a critical contradiction: the verifier criterion 7 requires 'at least one family with balance < -5' but the provided data has no such family, making this criterion impossible to satisfy without data modification. The CSV is generated deterministically in setup_task.sh and does not derive from real-world data.",
+    "pi_confidence": "high"
+}

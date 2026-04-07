@@ -1,0 +1,30 @@
+{
+  "id": "detect_app_password_spraying@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure Wazuh to ingest and analyze logs from a legacy custom application named 'MegaCorpERP'. Monitor /var/log/megacorp.log and create a decoder in local_decoder.xml to extract 'dstuser' and 'srcip' from logs (Example: 2024-05-20 14:30:01 [MegaCorpERP] Auth: FAILED | User: jdoe | SrcIP: 192.168.1.55). Implement Rule 100501 for single failed logins and Rule 100502 (level 12) for password spraying in local_rules.xml. Rule 100502 must trigger on 5 occurrences of Rule 100501 within 60 seconds from the same source IP across different target users. Use /home/ga/generate_logs.sh to verify that Rule 100502 appears in the alerts.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/detect_app_password_spraying/setup_task.sh",
+    "post_task": "/workspace/tasks/detect_app_password_spraying/export_result.sh"
+  },
+  "metadata": {
+    "log_file": "/var/log/megacorp.log",
+    "target_rule_id": "100502",
+    "base_rule_id": "100501",
+    "required_frequency": 5,
+    "required_timeframe": 60,
+    "simulation_script": "/home/ga/generate_logs.sh"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_detect_app_password_spraying"
+    }
+  }
+}

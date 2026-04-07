@@ -1,0 +1,30 @@
+{
+  "id": "configure_command_wodle_port_audit@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure the Wazuh manager in the `wazuh.manager` container to periodically audit listening network ports using the Command Monitoring Wodle subsystem. The configuration in `/var/ossec/etc/ossec.conf` must execute the command `ss -tlnp` every 300 seconds with the tag `port-audit`. Ensure the module is configured to run on start, has a 30-second timeout, does not ignore output, and that the manager service is restarted to apply the changes.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_command_wodle_port_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_command_wodle_port_audit/export_result.sh"
+  },
+  "metadata": {
+    "target_container": "wazuh-wazuh.manager-1",
+    "config_path": "/var/ossec/etc/ossec.conf",
+    "expected_command": "ss -tlnp",
+    "expected_tag": "port-audit",
+    "expected_interval": "300",
+    "log_pattern": "wmodules-command"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_command_wodle"
+    }
+  }
+}

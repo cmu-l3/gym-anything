@@ -1,0 +1,27 @@
+{
+  "id": "create_pcap_triage@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Create a Talon module in C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\pcap_triage consisting of protocols.talon-list, pcap_triage.py, and pcap_triage.talon. The module must implement a voice command 'block protocol <user.network_protocol>' that invokes an action 'user.generate_blocklist(port: str)'. The list 'user.network_protocol' should map the phrases 'secure shell' (22), 'web' (80), 'secure web' (443), 'remote desktop' (3389), 'domain name' (53), and 'file transfer' (21) to their port numbers. The action must read C:\\workspace\\data\\network_traffic.csv (headers: Timestamp,SourceIP,DestinationIP,DestinationPort,Protocol,Bytes), extract unique SourceIPs where the DestinationPort matches the input port, and append them to C:\\workspace\\data\\firewall_rules.txt in the format 'deny in from <SourceIP> to any'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_pcap_triage\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_pcap_triage\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_folder": "C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\pcap_triage",
+    "csv_source_path": "C:\\workspace\\data\\network_traffic.csv",
+    "rules_output_path": "C:\\workspace\\data\\firewall_rules.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_pcap_triage"
+    }
+  }
+}

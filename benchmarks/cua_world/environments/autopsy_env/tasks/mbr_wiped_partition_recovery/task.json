@@ -1,0 +1,32 @@
+{
+  "id": "mbr_wiped_partition_recovery@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "A suspect has attempted to destroy digital evidence by wiping the Master Boot Record (MBR) and partition table of a USB drive, rendering the drive 'unformatted' to standard operating systems. Locate the hidden NTFS partition within the raw disk image at /home/ga/evidence/wiped_drive.raw and extract the volume to /home/ga/evidence/recovered_volume.dd. Create a forensic case named 'MBR_Recovery_2026' (case number 'INV-MBR-001') to analyze the recovered volume. Document the findings in a recovery report at /home/ga/Reports/partition_recovery_report.txt containing the evidence file name, the calculated partition offset in sectors, the partition type, the recovered image filename, and the total count of all allocated and deleted files found. Additionally, export a pipe-delimited inventory of the root directory to /home/ga/Reports/root_inventory.csv with the header: FILENAME|FILE_TYPE|SIZE_BYTES|ALLOCATION_STATUS.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mbr_wiped_partition_recovery/setup_task.sh",
+    "post_task": "/workspace/tasks/mbr_wiped_partition_recovery/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "MBR_Recovery_2026",
+    "case_number": "INV-MBR-001",
+    "wiped_image": "/home/ga/evidence/wiped_drive.raw",
+    "recovered_image": "/home/ga/evidence/recovered_volume.dd",
+    "report_file": "/home/ga/Reports/partition_recovery_report.txt",
+    "inventory_file": "/home/ga/Reports/root_inventory.csv",
+    "result_file": "/tmp/mbr_recovery_result.json",
+    "expected_offset": 2048
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mbr_recovery"
+    }
+  }
+}

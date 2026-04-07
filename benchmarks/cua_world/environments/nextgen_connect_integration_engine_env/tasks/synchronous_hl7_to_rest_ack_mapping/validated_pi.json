@@ -1,0 +1,52 @@
+{
+    "task_id": "synchronous_hl7_to_rest_ack_mapping@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "channel_name",
+            "metadata_value": "MPI_Facade",
+            "verified_value": "MPI_Facade",
+            "source": "task.json description (line 5) and setup_task.sh (line 98)",
+            "status": "verified"
+        },
+        {
+            "key": "api_url",
+            "metadata_value": "http://localhost:9000/patients",
+            "verified_value": "http://localhost:9000/patients",
+            "source": "setup_task.sh lines 19-24: mock server created on PORT=9000 listening to /patients endpoint; task.json description confirms target URL",
+            "status": "verified"
+        },
+        {
+            "key": "listen_port",
+            "metadata_value": "6661",
+            "verified_value": "6661",
+            "source": "task.json description (line 5) states 'TCP Listener on port 6661'; export_result.sh line 17 confirms test uses 'nc localhost 6661'",
+            "status": "verified"
+        },
+        {
+            "key": "test_mrn",
+            "metadata_value": "MRN12345",
+            "verified_value": "MRN<timestamp>",
+            "source": "export_result.sh line 12 shows TEST_MRN=\"MRN$(date +%s)\" - a dynamically generated timestamp-based value, not the static 'MRN12345' claimed in metadata",
+            "status": "contradicted"
+        },
+        {
+            "key": "test_first",
+            "metadata_value": "John",
+            "verified_value": "John",
+            "source": "export_result.sh line 13 contains hardcoded HL7 message with 'Doe^John' (PID segment format with lastName^firstName)",
+            "status": "verified"
+        },
+        {
+            "key": "test_last",
+            "metadata_value": "Doe",
+            "verified_value": "Doe",
+            "source": "export_result.sh line 13 contains hardcoded HL7 message with 'Doe^John' (PID segment format with lastName^firstName)",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task creates a synchronous HL7-to-REST integration channel called MPI_Facade. The mock REST API server is created dynamically on port 9000 and accepts POST requests to the /patients endpoint. The TCP listener source is configured to listen on port 6661. The functional test in export_result.sh uses hardcoded test data with last name 'Doe' and first name 'John', but the MRN is dynamically generated using a timestamp (MRN<timestamp>) rather than the static value 'MRN12345' claimed in metadata. All data is synthetic and created within the task setup scripts.",
+    "pi_confidence": "high"
+}

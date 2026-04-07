@@ -1,0 +1,59 @@
+{
+    "task_id": "trust_safety_reviewer_suspension@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "db_name",
+            "metadata_value": "demodb",
+            "verified_value": "demodb",
+            "source": "seed_demodb.py line 52 creates database 'demodb' via API call. setup_task.sh uses 'demodb' throughout. All SQL commands target demodb.",
+            "status": "verified"
+        },
+        {
+            "key": "bot_emails",
+            "metadata_value": ["bot.alpha@spamnet.com", "bot.beta@spamnet.com"],
+            "verified_value": ["bot.alpha@spamnet.com", "bot.beta@spamnet.com"],
+            "source": "setup_task.sh line 29 inserts bot.alpha@spamnet.com. Line 37 inserts bot.beta@spamnet.com. Both emails used consistently throughout setup script.",
+            "status": "verified"
+        },
+        {
+            "key": "innocent_email",
+            "metadata_value": "innocent.user@normal.com",
+            "verified_value": "innocent.user@normal.com",
+            "source": "setup_task.sh line 44 inserts profile with Email='innocent.user@normal.com'. Used in subsequent queries on lines 48 and 52.",
+            "status": "verified"
+        },
+        {
+            "key": "target_status",
+            "metadata_value": "Suspended",
+            "verified_value": "Suspended",
+            "source": "task.json description states 'Update these Profiles by setting their AccountStatus to Suspended'. verifier.py lines 73 and 81 check if bot statuses == 'Suspended'.",
+            "status": "verified"
+        },
+        {
+            "key": "log_class",
+            "metadata_value": "SuspensionLog",
+            "verified_value": "SuspensionLog",
+            "source": "task.json description states 'Create a new Vertex class SuspensionLog'. verifier.py line 58 checks has_suspension_log_class by verifying 'SuspensionLog' in classes list.",
+            "status": "verified"
+        },
+        {
+            "key": "edge_class",
+            "metadata_value": "HasSuspensionLog",
+            "verified_value": "HasSuspensionLog",
+            "source": "task.json description states 'Create a new Edge class HasSuspensionLog'. verifier.py line 64 checks has_edge_class by verifying 'HasSuspensionLog' in classes list.",
+            "status": "verified"
+        },
+        {
+            "key": "reason_text",
+            "metadata_value": "Review Bombing",
+            "verified_value": "Review Bombing",
+            "source": "task.json description states 'create a new SuspensionLog vertex with a property Reason set to Review Bombing'. verifier.py lines 100 and 111 check if 'Review Bombing' is in alpha_reasons and beta_reasons respectively.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The trust_safety_reviewer_suspension task operates on a synthetic demodb database. Two bot accounts (bot.alpha@spamnet.com with 3 one-star reviews and bot.beta@spamnet.com with 4 one-star reviews) must be suspended and linked to SuspensionLog entries with reason 'Review Bombing'. An innocent user (innocent.user@normal.com with 2 one-star reviews) must not be suspended. The suspension threshold is 3 or more one-star reviews. The task requires adding an AccountStatus property to Profiles, creating SuspensionLog vertices and HasSuspensionLog edges for each suspended user.",
+    "pi_confidence": "high"
+}

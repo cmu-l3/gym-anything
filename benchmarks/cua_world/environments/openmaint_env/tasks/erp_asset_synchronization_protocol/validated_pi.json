@@ -1,0 +1,38 @@
+{
+    "task_id": "erp_asset_synchronization_protocol@1",
+    "dataset": "OpenMaint Asset Database",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "csv_path",
+            "metadata_value": "/home/ga/Desktop/finance_fixed_assets.csv",
+            "verified_value": "/home/ga/Desktop/finance_fixed_assets.csv",
+            "source": "setup_task.sh line 121-122 creates CSV at this exact path",
+            "status": "verified"
+        },
+        {
+            "key": "target_assets",
+            "metadata_value": ["EQ-SYNC-001", "EQ-SYNC-002", "EQ-SYNC-003"],
+            "verified_value": ["EQ-SYNC-001", "EQ-SYNC-002", "EQ-SYNC-003"],
+            "source": "setup_task.sh lines 72, 77, 82 create these 3 assets with matching serial numbers to CSV entries. Additionally, EQ-SYNC-DUP-A and EQ-SYNC-DUP-B are created for the trap test.",
+            "status": "verified"
+        },
+        {
+            "key": "trap_serial",
+            "metadata_value": "SN-DUP-999",
+            "verified_value": "SN-DUP-999",
+            "source": "setup_task.sh lines 89, 94 assign this serial to both EQ-SYNC-DUP-A and EQ-SYNC-DUP-B; line 134 confirms 'trap_serial': 'SN-DUP-999'",
+            "status": "verified"
+        },
+        {
+            "key": "retired_status_keywords",
+            "metadata_value": ["retired", "disposed", "inactive", "written_off"],
+            "verified_value": ["retired", "disposed", "written", "inactive", "off"],
+            "source": "verifier.py line 54 defines the keywords used for status checking: retired_kws = ['retired', 'disposed', 'written', 'inactive', 'off']. Metadata keywords are semantically equivalent but use different tokenization (e.g., 'written_off' vs 'written' + 'off'). The verifier's substring matching at line 56 will correctly match both versions.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task involves synchronizing an OpenMaint asset database with a Finance Department CSV export. The CSV file is located at /home/ga/Desktop/finance_fixed_assets.csv and contains 5 rows: 3 mappable assets (FA-100201→EQ-SYNC-001, FA-100202→EQ-SYNC-002, FA-100203→EQ-SYNC-003), 1 duplicate-serial trap (FA-100204 with serial SN-DUP-999 shared by EQ-SYNC-DUP-A and EQ-SYNC-DUP-B), and 1 ghost asset (FA-100299 with non-existent serial SN-MISSING). The task includes a data integrity trap where duplicate serial numbers (SN-DUP-999) must not be updated; instead a maintenance request must be created. The WRITTEN_OFF status for FA-100202 triggers retirement status. All data is synthetically generated within the setup script.",
+    "pi_confidence": "high"
+}

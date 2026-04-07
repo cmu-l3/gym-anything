@@ -1,0 +1,28 @@
+{
+  "id": "simulate_vehicle_breakdown_traci@1",
+  "version": "1.0",
+  "env_id": "sumo_env@0.1",
+  "description": "Write a TraCI Python script at /home/ga/SUMO_Output/simulate_breakdown.py to dynamically simulate a vehicle breakdown and measure the resulting traffic shockwave in the Bologna Pasubio scenario using the configuration at /home/ga/SUMO_Scenarios/bologna_pasubio/run.sumocfg. The script must read critical_edge and upstream_edge IDs from /home/ga/SUMO_Scenarios/bologna_pasubio/target_edges.json. Starting at step 150, identify the first vehicle to appear on the critical_edge, change its color to red, and force it to remain stopped for exactly 300 simulation steps before restoring its normal speed behavior. Throughout the simulation from step 0 to at least step 600, record the number of halted vehicles on both the critical_edge and the upstream_edge. Export this data to /home/ga/SUMO_Output/breakdown_queue.csv with the header step,target_vehicle_id,critical_edge_halted,upstream_edge_halted, using the string NONE for the vehicle ID in steps prior to its identification. Execute the script to generate the CSV file.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/simulate_vehicle_breakdown_traci/setup_task.sh",
+    "post_task": "/workspace/tasks/simulate_vehicle_breakdown_traci/export_result.sh"
+  },
+  "metadata": {
+    "expected_script": "/home/ga/SUMO_Output/simulate_breakdown.py",
+    "expected_csv": "/home/ga/SUMO_Output/breakdown_queue.csv",
+    "scenario_dir": "/home/ga/SUMO_Scenarios/bologna_pasubio",
+    "min_sim_steps": 600
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_simulate_vehicle_breakdown"
+    }
+  }
+}

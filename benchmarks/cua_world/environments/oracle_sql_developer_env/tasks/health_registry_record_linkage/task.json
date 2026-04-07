@@ -1,0 +1,32 @@
+{
+  "id": "health_registry_record_linkage@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Health Informatics Specialist merging patient registries from two recently consolidated hospital networks (CLINIC_A_PATIENTS and CLINIC_B_PATIENTS) in the 'hie_admin' schema (Password: Health2024). Create a Master Patient Index (MPI) by developing a view named PROBABLE_MATCHES_VW that joins the tables based on exact matches for 'date_of_birth' and 'gender', fuzzy first and last name matches (UTL_MATCH.JARO_WINKLER_SIMILARITY >= 85), and fuzzy SSN matches (UTL_MATCH.EDIT_DISTANCE <= 2). The view must return a_pat_id, b_pat_id, a_first_name, b_first_name, fname_score, a_ssn, b_ssn, and ssn_distance. Additionally, create a sequence named MPI_SEQ starting at 1000000 (increment 1) and a table named MPI_CROSSWALK with columns golden_mpi_id (NUMBER), clinic_a_pat_id (VARCHAR2), and clinic_b_pat_id (VARCHAR2). Populate MPI_CROSSWALK with the results from the view using MPI_SEQ.NEXTVAL for the golden_mpi_id and export the table to /home/ga/Documents/exports/mpi_crosswalk.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/health_registry_record_linkage/setup_task.sh",
+    "post_task": "/workspace/tasks/health_registry_record_linkage/export_result.sh"
+  },
+  "metadata": {
+    "expected_matches": 45,
+    "sequence_start": 1000000,
+    "export_path": "/home/ga/Documents/exports/mpi_crosswalk.csv",
+    "oracle_features": [
+      "UTL_MATCH.JARO_WINKLER_SIMILARITY",
+      "UTL_MATCH.EDIT_DISTANCE",
+      "SEQUENCES"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_health_registry_record_linkage"
+    }
+  }
+}

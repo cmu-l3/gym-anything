@@ -1,0 +1,94 @@
+{
+    "task_id": "configure_report_card_comments@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "db_user",
+            "metadata_value": "opensis_user",
+            "verified_value": "opensis_user",
+            "source": "setup_opensis.sh and direct_db_setup.sh, also export_result.sh - all use DB_USER='opensis_user'",
+            "status": "verified"
+        },
+        {
+            "key": "db_pass",
+            "metadata_value": "opensis_password_123",
+            "verified_value": "opensis_password_123",
+            "source": "setup_opensis.sh and direct_db_setup.sh, also export_result.sh - all use DB_PASS='opensis_password_123'",
+            "status": "verified"
+        },
+        {
+            "key": "db_name",
+            "metadata_value": "opensis",
+            "verified_value": "opensis",
+            "source": "setup_opensis.sh and direct_db_setup.sh - both create and use DB_NAME='opensis'",
+            "status": "verified"
+        },
+        {
+            "key": "admin_username",
+            "metadata_value": "admin",
+            "verified_value": "admin",
+            "source": "setup_opensis.sh line 172: INSERT INTO login_authentication (user_id, profile_id, username, password...) VALUES (1, 1, 'admin'...)",
+            "status": "verified"
+        },
+        {
+            "key": "admin_password",
+            "metadata_value": "Admin@123",
+            "verified_value": "Admin@123",
+            "source": "setup_opensis.sh lines 157-158 and direct_db_setup.sh lines 65-68 - both use 'Admin@123' as the password for admin user",
+            "status": "verified"
+        },
+        {
+            "key": "opensis_version",
+            "metadata_value": "9.2",
+            "verified_value": "9.2",
+            "source": "install_opensis.sh line 159: OPENSIS_VERSION='V9.2' and line 162: 'https://github.com/OS4ED/openSIS-Classic/archive/refs/tags/V9.2.tar.gz'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_comment_1_code_field_exists",
+            "metadata_value": "PLE (expecting 'code' field)",
+            "verified_value": null,
+            "source": "Actual OpenSIS V9.2 schema from https://raw.githubusercontent.com/OS4ED/openSIS-Classic/master/install/OpensisSchemaMysqlInc.sql shows report_card_comments table has columns: id, syear, school_id, course_id, sort_order, title, last_updated, updated_by. NO 'code' field exists.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_comments_data_feasibility",
+            "metadata_value": "Task expects to create comments with code 'PLE' and 'MHW' with titles and sort_order",
+            "verified_value": "Field 'code' does not exist in schema; task scripts attempt to query SELECT title, code, sort_order from report_card_comments WHERE code IN ('PLE', 'MHW')",
+            "source": "export_result.sh line 33 queries non-existent 'code' field; OpenSIS schema verification shows this field is not part of standard schema",
+            "status": "contradicted"
+        },
+        {
+            "key": "comment_title_1",
+            "metadata_value": "Pleasure to have in class",
+            "verified_value": "Unverifiable due to missing 'code' field",
+            "source": "Task metadata expects this as title for code 'PLE', but cannot be verified without working code field",
+            "status": "unverified"
+        },
+        {
+            "key": "comment_title_2",
+            "metadata_value": "Missing homework assignments",
+            "verified_value": "Unverifiable due to missing 'code' field",
+            "source": "Task metadata expects this as title for code 'MHW', but cannot be verified without working code field; however 'missing homework' is a standard educational report card comment topic",
+            "status": "unverified"
+        },
+        {
+            "key": "sort_order_1",
+            "metadata_value": 1,
+            "verified_value": "Unverifiable due to missing 'code' field",
+            "source": "Would be sort_order for 'PLE' comment, but cannot verify without code field",
+            "status": "unverified"
+        },
+        {
+            "key": "sort_order_2",
+            "metadata_value": 2,
+            "verified_value": "Unverifiable due to missing 'code' field",
+            "source": "Would be sort_order for 'MHW' comment, but cannot verify without code field",
+            "status": "unverified"
+        }
+    ],
+    "privileged_info_summary": "The OpenSIS environment uses verified credentials: db_user=opensis_user, db_pass=opensis_password_123, db_name=opensis (from setup scripts). Admin login is admin/Admin@123. OpenSIS version is 9.2. However, the task expects to manipulate a 'code' field in the report_card_comments table that does not exist in the standard OpenSIS V9.2 schema. The actual schema includes columns: id, syear, school_id, course_id, sort_order, title, last_updated, updated_by. The task setup and verification scripts attempt to query this non-existent 'code' field, which represents a critical schema mismatch between the task specification and actual OpenSIS database structure.",
+    "pi_confidence": "medium"
+}

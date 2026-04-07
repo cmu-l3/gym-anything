@@ -1,0 +1,53 @@
+{
+  "task_id": "downward_api_telemetry_injection@1",
+  "task_completion": [
+    {
+      "id": "access_target_deployment",
+      "description": "Navigate to or open the configuration for the 'payment-gateway' deployment in the 'ecommerce' namespace.",
+      "points": 10,
+      "visual_evidence": "Screenshots showing the Rancher UI logged in and viewing the 'payment-gateway' deployment in the 'ecommerce' namespace, or a terminal showing a command like 'kubectl edit deployment payment-gateway -n ecommerce'."
+    },
+    {
+      "id": "inject_fieldref_env_vars",
+      "description": "Replace static environment variables with Downward API fieldRefs for APP_POD_NAME, APP_POD_NAMESPACE, HOST_IP, and POD_IP in the 'audit-logger' container.",
+      "points": 25,
+      "visual_evidence": "YAML editor or Rancher UI showing the 'audit-logger' container's environment variables configured with 'valueFrom: fieldRef: fieldPath:' pointing to 'metadata.name', 'metadata.namespace', 'status.hostIP', and 'status.podIP' respectively."
+    },
+    {
+      "id": "inject_resourcefieldref_env_var",
+      "description": "Replace MAIN_CPU_LIMIT with a resourceFieldRef pointing to the 'gateway-app' container's CPU limits.",
+      "points": 20,
+      "visual_evidence": "YAML editor or Rancher UI showing the MAIN_CPU_LIMIT environment variable in the 'audit-logger' container configured with 'valueFrom: resourceFieldRef:' where 'containerName' is 'gateway-app', 'resource' is 'limits.cpu', and 'divisor' is '1m'."
+    },
+    {
+      "id": "create_downward_api_volume",
+      "description": "Add a downwardAPI volume named 'pod-metadata' mapping labels and annotations.",
+      "points": 25,
+      "visual_evidence": "YAML editor or Rancher UI showing a new volume under 'volumes' named 'pod-metadata' of type 'downwardAPI'. It should contain 'items' mapping 'fieldRef: fieldPath: metadata.labels' to path 'labels' and 'fieldRef: fieldPath: metadata.annotations' to path 'annotations'."
+    },
+    {
+      "id": "mount_downward_api_volume",
+      "description": "Mount the 'pod-metadata' volume in the 'audit-logger' container at '/etc/podinfo'.",
+      "points": 20,
+      "visual_evidence": "YAML editor or Rancher UI showing a 'volumeMounts' entry in the 'audit-logger' container with 'name: pod-metadata' and 'mountPath: /etc/podinfo'."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "changes_applied_successfully",
+      "description": "The agent must actually apply and save the changes to the cluster.",
+      "visual_evidence": "Screenshots showing the agent clicking 'Save' in the Rancher UI, a 'Deployment updated' success notification, or successfully saving and exiting a 'kubectl edit' terminal session."
+    },
+    {
+      "id": "correct_target_resource",
+      "description": "The modifications must be made to the actual 'payment-gateway' deployment in the 'ecommerce' namespace.",
+      "visual_evidence": "UI breadcrumbs, URL, or terminal commands confirming the edits are being applied to 'payment-gateway' in the 'ecommerce' namespace, rather than a similarly named mock file."
+    },
+    {
+      "id": "genuine_environment_interaction",
+      "description": "The agent interacted with the genuine Rancher UI or a real Kubernetes terminal.",
+      "visual_evidence": "Presence of the Rancher web interface (browser address bar showing https://localhost) or a standard terminal emulator running kubectl, not a standalone local text editor with a disconnected YAML file."
+    }
+  ],
+  "privileged_info_for_vlm": "Target namespace: 'ecommerce'. Target deployment: 'payment-gateway'. The task requires modifying the 'audit-logger' container to use Downward API fieldRefs for APP_POD_NAME (metadata.name), APP_POD_NAMESPACE (metadata.namespace), HOST_IP (status.hostIP), and POD_IP (status.podIP). It also requires a resourceFieldRef for MAIN_CPU_LIMIT pointing to 'gateway-app' limits.cpu with divisor '1m'. A downwardAPI volume named 'pod-metadata' must be created mapping metadata.labels to 'labels' and metadata.annotations to 'annotations', and this volume must be mounted at /etc/podinfo in the 'audit-logger' container."
+}

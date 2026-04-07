@@ -1,0 +1,29 @@
+{
+  "id": "conditional_sourcetype_routing@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Your organization is consolidating legacy application logs to a single UDP port. Configure Splunk to listen on UDP port 5140 and route incoming data to the 'system_logs' index with a default sourcetype of 'legacy_app'. Implement index-time routing rules in /opt/splunk/etc/system/local/ using inputs.conf, props.conf, and transforms.conf to override the sourcetype based on payload content: logs containing the exact string '[CRITICAL]' must be assigned the sourcetype 'legacy_app_critical', and logs containing '[WARN]' must be assigned 'legacy_app_warn'. Splunk is installed at /opt/splunk. The Splunk web interface is available at http://localhost:8000 (admin / SplunkAdmin1!).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/conditional_sourcetype_routing/setup_task.sh",
+    "post_task": "/workspace/tasks/conditional_sourcetype_routing/export_result.sh"
+  },
+  "metadata": {
+    "target_port": 5140,
+    "target_index": "system_logs",
+    "base_sourcetype": "legacy_app",
+    "critical_sourcetype": "legacy_app_critical",
+    "warn_sourcetype": "legacy_app_warn"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_conditional_sourcetype_routing"
+    }
+  }
+}

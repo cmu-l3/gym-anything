@@ -1,0 +1,29 @@
+{
+  "id": "normalize_audit_ack@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a channel named 'LIS_ACK_Normalizer' that relays HL7 ADT messages from TCP port 6661 to a legacy system on localhost port 6662. The legacy system returns ACKs missing required text descriptions in MSA-3 (e.g., 'MSA|AA|ID|'). The channel must log every raw, unmodified response from the destination to /home/ga/ack_audit.log (one per line) and normalize the ACK returned to the source. If MSA-1 is 'AA' and MSA-3 is missing, append 'Processed Successfully' to the field; if MSA-1 is 'AE' or 'AR' and MSA-3 is missing, append 'Remote Error'. A sample ADT message is available at /home/ga/documents/sample_adt.hl7 and the legacy system is active on port 6662.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/normalize_audit_ack/setup_task.sh",
+    "post_task": "/workspace/tasks/normalize_audit_ack/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "LIS_ACK_Normalizer",
+    "source_port": 6661,
+    "dest_port": 6662,
+    "audit_file": "/home/ga/ack_audit.log",
+    "sample_file": "/home/ga/documents/sample_adt.hl7"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_normalize_audit_ack"
+    }
+  }
+}

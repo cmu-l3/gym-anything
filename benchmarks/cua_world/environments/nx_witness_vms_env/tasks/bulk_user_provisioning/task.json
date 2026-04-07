@@ -1,0 +1,54 @@
+{
+  "id": "bulk_user_provisioning@1",
+  "version": "1.0",
+  "env_id": "nx_witness_vms_env@0.1",
+  "description": "Automate the provisioning of user accounts in the Nx Witness VMS system (https://localhost:7001, admin/Admin1234!) using the roster file at ~/Documents/security_roster.csv. Create new users based on the CSV data (Username, FullName, Email, RoleName, Password), ensuring that 'RoleName' is mapped to the correct system Role ID (e.g., 'Shift Supervisor' or 'Viewer') and input data is cleaned of surrounding whitespace. The process must be idempotent: skip any records where the username already exists in the system.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/bulk_user_provisioning/setup_task.sh",
+    "post_task": "/workspace/tasks/bulk_user_provisioning/export_result.sh"
+  },
+  "metadata": {
+    "roster_path": "/home/ga/Documents/security_roster.csv",
+    "expected_users": [
+      {
+        "username": "b.wayne",
+        "fullName": "Bruce Wayne",
+        "email": "b.wayne@gotham.sec",
+        "roleName": "Shift Supervisor",
+        "should_exist": true
+      },
+      {
+        "username": "d.prince",
+        "fullName": "Diana Prince",
+        "email": "d.prince@gotham.sec",
+        "roleName": "Advanced Viewer",
+        "should_exist": true
+      },
+      {
+        "username": "a.curry",
+        "fullName": "Arthur Curry",
+        "email": "a.curry@atlantis.net",
+        "roleName": "Viewer",
+        "should_exist": true
+      },
+      {
+        "username": "c.kent",
+        "should_exist": true,
+        "is_existing": true,
+        "original_email": "c.kent@dailyplanet.com"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bulk_user_provisioning"
+    }
+  }
+}

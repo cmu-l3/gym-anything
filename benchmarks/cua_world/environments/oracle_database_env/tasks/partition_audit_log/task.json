@@ -1,0 +1,36 @@
+{
+  "id": "partition_audit_log@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "The 'EMPLOYEE_AUDIT_LOG' table contains over 100,000 records spanning 4 years (2021-2024) and is currently unpartitioned, causing slow performance for date-range queries. Convert this table into a range-partitioned table named 'EMPLOYEE_AUDIT_LOG' organized by 'ACTION_DATE' with columns LOG_ID, EMPLOYEE_ID, ACTION_TYPE, ACTION_DATE, OLD_VALUE, NEW_VALUE, CHANGED_BY, and IP_ADDRESS. Define range partitions P_2021 (Dates < 2022-01-01), P_2022 (Dates < 2023-01-01), P_2023 (Dates < 2024-01-01), P_2024 (Dates < 2025-01-01), and P_FUTURE (MAXVALUE). Ensure all data is migrated from the original table and create LOCAL indexes on 'EMPLOYEE_ID' and 'ACTION_TYPE'. Save a summary of the partition structure and row counts to '/home/ga/Desktop/partition_summary.txt'. Connect using: Host=localhost, Port=1521, Database=XEPDB1, User=hr, Password=hr123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/partition_audit_log/setup_task.sh",
+    "post_task": "/workspace/tasks/partition_audit_log/export_result.sh"
+  },
+  "metadata": {
+    "target_table": "EMPLOYEE_AUDIT_LOG",
+    "expected_min_rows": 100000,
+    "required_partition_count": 5,
+    "required_index_type": "LOCAL",
+    "partition_names": [
+      "P_2021",
+      "P_2022",
+      "P_2023",
+      "P_2024",
+      "P_FUTURE"
+    ],
+    "summary_file": "/home/ga/Desktop/partition_summary.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_partition_audit_log"
+    }
+  }
+}

@@ -92,7 +92,7 @@ vscode_env/
 import gym_anything as ga
 
 # Load the VSCode environment
-env = ga.from_config("benchmarks/cua_world/environments/vscode_env")
+env = ga.from_config("examples/vscode_env")
 
 # Reset the environment
 obs = env.reset(seed=42)
@@ -105,13 +105,13 @@ obs = env.reset(seed=42)
 
 ```bash
 # Run a specific task
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --task install_extension
+python -m gym_anything.cli run examples/vscode_env --task install_extension
 
 # Validate task configuration
-python -m gym_anything.cli validate benchmarks/cua_world/environments/vscode_env --task install_extension
+python -m gym_anything.cli validate examples/vscode_env --task install_extension
 
 # Run all tasks sequentially
-python -m gym_anything.cli run benchmarks/cua_world/environments/vscode_env --all-tasks
+python -m gym_anything.cli run examples/vscode_env --all-tasks
 ```
 
 ### Creating Custom Tasks

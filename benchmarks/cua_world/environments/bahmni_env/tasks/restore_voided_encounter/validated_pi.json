@@ -1,0 +1,31 @@
+{
+    "task_id": "restore_voided_encounter@1",
+    "dataset": "Bahmni patient seed dataset",
+    "case_id": "Sarah Johnson (patient from seeded dataset)",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_patient_name",
+            "metadata_value": "Sarah Johnson",
+            "verified_value": "Sarah Johnson",
+            "source": "seed_bahmni.py line 33: PATIENT_DATA array shows ('Sarah', 'Johnson', 'F', 1990) as the 3rd patient entry",
+            "status": "verified"
+        },
+        {
+            "key": "target_patient_identifier",
+            "metadata_value": "BAH000003",
+            "verified_value": "BAH000004",
+            "source": "seed_bahmni.py lines 265-269: identifier generation uses enumerate(PATIENT_DATA, 1) with formula f'BAH{i+1:06d}'. Sarah Johnson is patient #3 (i=3), so identifier = BAH{3+1:06d} = BAH000004. Maria Gonzalez (2nd patient, i=2) gets BAH000003.",
+            "status": "contradicted"
+        },
+        {
+            "key": "encounter_type",
+            "metadata_value": "Vitals",
+            "verified_value": "Vitals",
+            "source": "Vitals is a standard OpenMRS/Bahmni encounter type for recording vital signs. Confirmed by: (1) setup_task.sh line 37 queries encountertype?q=Vitals, (2) seed_bahmni.py CONCEPT_UUIDS includes vital sign concepts (weight, height, BP, pulse, temperature), (3) Bahmni documentation confirms Vitals is a standard encounter type and concept-set for vital signs recording",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetic patient data created by seed_bahmni.py using US Census Bureau real-world name distributions. The target patient Sarah Johnson is a female patient born in 1990 with encounter type Vitals for recording vital signs. However, the metadata contains a factual error: Sarah Johnson's correct identifier is BAH000004, not BAH000003 as claimed. The setup script (setup_task.sh) will initially fail to find BAH000003 but contains a fallback mechanism to search for the patient by name, so the task will likely recover from this error.",
+    "pi_confidence": "high"
+}

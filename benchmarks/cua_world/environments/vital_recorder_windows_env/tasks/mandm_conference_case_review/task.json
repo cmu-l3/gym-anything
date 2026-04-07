@@ -1,0 +1,72 @@
+{
+  "id": "mandm_conference_case_review@1",
+  "version": "1.0",
+  "env_id": "vital_recorder_windows_env@0.1",
+  "description": "You are an anesthesiologist preparing a case for the department's Morbidity & Mortality conference. Vital Recorder is open with surgical case 0001.vital loaded in Track mode. The output folder C:\\Users\\Docker\\Desktop\\MandM\\ already exists. Save all deliverables into that folder.\n\nAdd parameter tracks Solar8000/HR, Solar8000/PLETH_SPO2, and Primus/ETCO2 to the display with clinical Y-axis ranges (HR: 40-160 bpm, SpO2: 85-100%, ETCO2: 0-60 mmHg). Capture a full recording timeline screenshot showing these tracks alongside the existing waveforms as full_timeline.png. Capture a zoomed screenshot of the first 15 minutes after the 'Surgery started' event marker as induction_detail.png, and of the last 15 minutes before 'Surgery finished' as emergence_detail.png. Export the intraoperative segment (between those two event markers) as intraop_data.csv. Write case_report.txt documenting total recording duration, surgical phase duration, all monitoring devices with their track counts, and whether invasive arterial blood pressure monitoring and volatile anesthetic (sevoflurane) monitoring were used.\n\n(Login: Windows Desktop user; no Vital Recorder login required.)",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\mandm_conference_case_review\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\mandm_conference_case_review\\export_result.ps1"
+  },
+  "metadata": {
+    "case_file": "0001.vital",
+    "case_duration": "3h 12m 22s",
+    "case_duration_seconds": 11542,
+    "surgery_started": "00:27:48",
+    "surgery_started_seconds": 1668,
+    "surgery_finished": "02:52:48",
+    "surgery_finished_seconds": 10368,
+    "intraop_duration_approx_min": 145,
+    "intraop_duration_seconds": 8700,
+    "surgical_midpoint_seconds": 6018,
+    "data_dir": "C:\\Users\\Docker\\Desktop\\VitalRecorderData",
+    "output_dir": "C:\\Users\\Docker\\Desktop\\MandM",
+    "expected_outputs": {
+      "full_timeline": "C:\\Users\\Docker\\Desktop\\MandM\\full_timeline.png",
+      "induction_detail": "C:\\Users\\Docker\\Desktop\\MandM\\induction_detail.png",
+      "emergence_detail": "C:\\Users\\Docker\\Desktop\\MandM\\emergence_detail.png",
+      "intraop_csv": "C:\\Users\\Docker\\Desktop\\MandM\\intraop_data.csv",
+      "case_report": "C:\\Users\\Docker\\Desktop\\MandM\\case_report.txt"
+    },
+    "parameter_tracks_to_add": [
+      "Solar8000/HR",
+      "Solar8000/PLETH_SPO2",
+      "Primus/ETCO2"
+    ],
+    "yaxis_ranges": {
+      "HR": {"min": 40, "max": 160},
+      "SpO2": {"min": 85, "max": 100},
+      "ETCO2": {"min": 0, "max": 60}
+    },
+    "waveform_tracks": ["SNUADC/ART", "SNUADC/ECG_II", "SNUADC/ECG_V5", "SNUADC/PLETH"],
+    "total_tracks_excl_event": 78,
+    "devices": {
+      "SNUADC": {"count": 4, "key_tracks": ["ART", "ECG_II", "ECG_V5", "PLETH"]},
+      "Solar8000": {"count": 34, "key_tracks": ["HR", "ART_SBP", "ART_DBP", "ART_MBP", "PLETH_SPO2", "PLETH_HR", "ETCO2", "BT", "VENT_RR", "VENT_MV", "VENT_TV", "FIO2"]},
+      "Primus": {"count": 32, "key_tracks": ["CO2", "AWP", "INSP_SEVO", "EXP_SEVO", "ETCO2", "MAC", "COMPLIANCE", "PPLAT_MBAR", "PEEP_MBAR", "TV", "MV"]},
+      "BIS": {"count": 8, "key_tracks": ["EEG1_WAV", "EEG2_WAV", "BIS", "SQI", "EMG", "SR", "SEF", "TOTPOW"]}
+    },
+    "has_invasive_arterial": true,
+    "has_volatile_anesthetic": true,
+    "physiological_columns": [
+      "ART", "ECG", "PLETH", "CO2", "AWP", "BIS", "SEVO", "HR", "SPO2"
+    ],
+    "intraop_row_fraction_min": 0.40,
+    "intraop_row_fraction_max": 0.95,
+    "full_case_approx_rows": 11542,
+    "result_json_path": "C:\\tmp\\task_result_mandm.json",
+    "baseline_json_path": "C:\\tmp\\task_baseline_mandm.json",
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mandm_conference_case_review"
+    }
+  }
+}

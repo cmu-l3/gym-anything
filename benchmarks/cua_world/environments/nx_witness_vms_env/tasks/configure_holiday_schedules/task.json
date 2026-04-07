@@ -1,0 +1,54 @@
+{
+  "id": "configure_holiday_schedules@1",
+  "version": "1.0",
+  "env_id": "nx_witness_vms_env@0.1",
+  "description": "Configure recording schedules for five cameras using the Nx Witness REST API (https://localhost:7001) with credentials admin/Admin1234!. For 'Entrance Camera' and 'Lobby Camera', implement a 24-hour daily schedule in 'always' mode at 'high' quality and 25 FPS. For 'Parking Lot Camera' and 'Loading Dock Camera', set 'always' mode at 'high' quality and 15 FPS for business hours (08:00-22:00) and 'motionOnly' mode at 'normal' quality and 10 FPS for overnight hours (22:00-08:00). For 'Server Room Camera', configure 'always' mode at 'low' quality and 5 FPS on weekdays (Mon-Fri) and 'motionOnly' mode at 'low' quality and 5 FPS on weekends (Sat-Sun). Ensure all schedules are enabled and export a summary report of the configurations to /home/ga/recording_schedule_report.txt.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_holiday_schedules/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_holiday_schedules/export_result.sh"
+  },
+  "metadata": {
+    "api_base": "https://localhost:7001",
+    "credentials": "admin:Admin1234!",
+    "report_path": "/home/ga/recording_schedule_report.txt",
+    "camera_specs": {
+      "Entrance Camera": {
+        "groups": [
+          "high_traffic"
+        ]
+      },
+      "Lobby Camera": {
+        "groups": [
+          "high_traffic"
+        ]
+      },
+      "Parking Lot Camera": {
+        "groups": [
+          "perimeter"
+        ]
+      },
+      "Loading Dock Camera": {
+        "groups": [
+          "perimeter"
+        ]
+      },
+      "Server Room Camera": {
+        "groups": [
+          "low_priority"
+        ]
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_schedules"
+    }
+  }
+}

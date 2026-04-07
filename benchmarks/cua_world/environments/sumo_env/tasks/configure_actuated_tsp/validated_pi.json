@@ -1,0 +1,45 @@
+{
+    "task_id": "configure_actuated_tsp@1",
+    "dataset": "Bologna Pasubio (iTETRIS)",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "work_dir",
+            "metadata_value": "/home/ga/SUMO_Scenarios/bologna_pasubio",
+            "verified_value": "/home/ga/SUMO_Scenarios/bologna_pasubio",
+            "source": "Verified via static analysis of setup_task.sh and setup_sumo.sh",
+            "status": "verified"
+        },
+        {
+            "key": "output_dir",
+            "metadata_value": "/home/ga/SUMO_Output",
+            "verified_value": "/home/ga/SUMO_Output",
+            "source": "Verified via static analysis of setup_task.sh and setup_sumo.sh",
+            "status": "verified"
+        },
+        {
+            "key": "tls_file",
+            "metadata_value": "pasubio_tls.add.xml",
+            "verified_value": "pasubio_tls.add.xml",
+            "source": "Verified via static analysis of setup_task.sh and environment data",
+            "status": "verified"
+        },
+        {
+            "key": "tripinfo_file",
+            "metadata_value": "tripinfos.xml",
+            "verified_value": "tripinfos.xml",
+            "source": "Verified via static analysis of run.sumocfg output settings",
+            "status": "verified"
+        },
+        {
+            "key": "report_file",
+            "metadata_value": "bus_travel_times.txt",
+            "verified_value": "bus_travel_times.txt",
+            "source": "Verified via static analysis of verifier.py expectations",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on the real-world Bologna Pasubio traffic scenario dataset (from the iTETRIS project). The provided metadata paths and filenames are accurate according to the environment's setup scripts. Code analysis revealed a critical flaw in the task design: both the task instructions and `verifier.py` dictate calculating statistics for trips where the vehicle ID contains 'bus'. However, parsing the dataset's `tripinfos.xml` reveals that no vehicle ID contains 'bus' (they are structured as '11_0', etc.); rather, the string 'bus' is located in the `vType` attribute (yielding 112 bus trips). As a result, the verifier computes a `bus_count` of 0, which inherently fails its strict `bus_count > 0` scoring condition, making it impossible for an agent to achieve full points for the report generation step. Furthermore, the starting `pasubio_tls.add.xml` file already possesses predefined `minDur` and `maxDur` attributes on one of its `tlLogic` components, which the agent must explicitly overwrite to satisfy the 50% / 150% duration criteria.",
+    "pi_confidence": "high"
+}

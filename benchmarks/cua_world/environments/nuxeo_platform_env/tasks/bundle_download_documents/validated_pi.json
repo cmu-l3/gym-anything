@@ -1,0 +1,59 @@
+{
+    "task_id": "bundle_download_documents@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_output_path",
+            "metadata_value": "/home/ga/Downloads/vendor_package.zip",
+            "verified_value": "/home/ga/Downloads/vendor_package.zip",
+            "source": "Verified in setup_task.sh (line 11 clears /home/ga/Downloads), export_result.sh (line 8 sets OUTPUT_PATH), and verifier.py (line 27 uses metadata value with same default)",
+            "status": "verified"
+        },
+        {
+            "key": "required_content",
+            "metadata_value": "[\"Annual\", \"Report\", \"Contract\", \"Template\"]",
+            "verified_value": "Verifier checks for filenames containing: (\"annual\" AND \"report\" AND \".pdf\") OR (\"contract\" AND \"template\" AND \".pdf\"). Actual filenames are \"Annual-Report-2023.pdf\" and \"Contract-Template.pdf\" which match the verifier logic but not the stated required_content format.",
+            "source": "verifier.py lines 68 and 76 show hardcoded checks for these keywords in lowercase filenames, not in the metadata.required_content list which is never used",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_zip_size_bytes",
+            "metadata_value": 1000,
+            "verified_value": "Approximately 9024 bytes (8.8 KB)",
+            "source": "Test ZIP created with the two actual PDFs (annual_report_2023.pdf: 9.6K uncompressed, quarterly_report.pdf: 6.4K uncompressed renamed as Contract-Template.pdf) using ZIP_DEFLATED compression yields ~9KB ZIP file. The claimed 1000 bytes (1 KB) is significantly lower than the actual expected size.",
+            "status": "contradicted"
+        },
+        {
+            "key": "source_documents_actual_content",
+            "metadata_value": "Annual Report 2023 and Contract Template are legitimate business documents",
+            "verified_value": "annual_report_2023.pdf contains actual ACME Corporation annual report with 'Annual Report 2023' title and financial data. quarterly_report.pdf (used as Contract-Template.pdf) contains Q3 2023 quarterly financial report, NOT contract or template information. The quarterly_report.pdf was verified to contain 'report' keyword but NOT 'contract' or 'template' keywords.",
+            "source": "PDF content extraction using PyPDF2 library on /workspace/data/annual_report_2023.pdf and /workspace/data/quarterly_report.pdf. setup_nuxeo.sh lines 125-140 show that quarterly_report.pdf is copied and renamed as Contract_Template.pdf.",
+            "status": "contradicted"
+        },
+        {
+            "key": "document_naming_in_nuxeo",
+            "metadata_value": "Not explicitly stated in metadata, but task description implies 'Annual Report 2023' and 'Contract Template'",
+            "verified_value": "In Nuxeo setup (setup_nuxeo.sh lines 217-230): Document is uploaded with name 'Annual-Report-2023' to /default-domain/workspaces/Projects/ with title 'Annual Report 2023', and name 'Contract-Template' to /default-domain/workspaces/Templates/ with title 'Contract Template'",
+            "source": "setup_nuxeo.sh lines 217-230 and verifier.py lines 68,76 which check for these names in filenames with 'annual', 'report', 'contract', 'template' keywords",
+            "status": "verified"
+        },
+        {
+            "key": "zip_file_path_created_by_agent",
+            "metadata_value": "/home/ga/Downloads/vendor_package.zip",
+            "verified_value": "/home/ga/Downloads/vendor_package.zip",
+            "source": "Task description explicitly states 'Save the downloaded file to /home/ga/Downloads/vendor_package.zip'. export_result.sh line 8 checks for this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_required_conditions",
+            "metadata_value": "ZIP must contain files matching 'annual' AND 'report' AND '.pdf' patterns and 'contract' AND 'template' AND '.pdf' patterns (case-insensitive)",
+            "verified_value": "Based on verifier.py lines 68-81: Needs valid ZIP file (20 points), Annual Report match (35 points), Contract Template match (35 points), file created during task (10 points). Total 90+ points required to pass. The metadata.required_content list is never used by the verifier.",
+            "source": "verifier.py lines 58-91 show explicit scoring logic and filename pattern checks",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task 'bundle_download_documents' requires downloading two PDF documents from a Nuxeo platform and saving them as a ZIP archive to /home/ga/Downloads/vendor_package.zip. The two documents are: (1) Annual Report 2023 from the Projects workspace, stored as annual_report_2023.pdf (9.6K, real ACME Corporation annual report), and (2) Contract Template from the Templates workspace, actually stored as quarterly_report.pdf (6.4K, Q3 financial report, not a contract). When downloaded as a ZIP, the files would be named Annual-Report-2023.pdf and Contract-Template.pdf. The verifier checks that the ZIP contains valid files with filenames matching these patterns (case-insensitive keywords). The actual ZIP file size would be approximately 9KB, not the claimed minimum of 1000 bytes. The metadata contains contradictions: the required_content field is not used by the verifier, the min_zip_size_bytes claim is significantly underestimated, and the Contract Template document is actually a quarterly report mislabeled in setup.",
+    "pi_confidence": "high"
+}

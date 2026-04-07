@@ -1,0 +1,29 @@
+{
+  "id": "steganography_eof_triage@1",
+  "version": "1.0",
+  "env_id": "autopsy_env@0.1",
+  "description": "A suspect in a corporate espionage case is believed to be exfiltrating intellectual property by appending encrypted archives to the end of standard family photographs on a USB drive. Triage the images within the disk image /home/ga/evidence/jpeg_search.dd to identify files containing hidden appended data. Create an Autopsy case named 'Steganography_Triage_2024' with case number 'INV-STEG-001'. Extract all identified JPEGs to /home/ga/Reports/extracted_jpegs/ and analyze their binary structure to locate the last occurrence of the JPEG End of Image (EOI) marker (\\xFF\\xD9) and calculate any extraneous appended data. Generate a pipe-delimited CSV report at /home/ga/Reports/steg_analysis.csv with the header FILENAME|FILE_SIZE|LAST_EOI_OFFSET|EXTRANEOUS_BYTES; if a file lacks an EOI marker, record the offset as -1 and extraneous bytes as 0. Additionally, write a summary report to /home/ga/Reports/steg_summary.txt containing the total JPEGs analyzed, the count of JPEGs with appended data, and a list of suspicious filenames that contain extraneous bytes.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/steganography_eof_triage/setup_task.sh",
+    "post_task": "/workspace/tasks/steganography_eof_triage/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Steganography_Triage_2024",
+    "disk_image": "/home/ga/evidence/jpeg_search.dd",
+    "extracted_dir": "/home/ga/Reports/extracted_jpegs",
+    "csv_report": "/home/ga/Reports/steg_analysis.csv",
+    "summary_report": "/home/ga/Reports/steg_summary.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_steganography_eof_triage"
+    }
+  }
+}

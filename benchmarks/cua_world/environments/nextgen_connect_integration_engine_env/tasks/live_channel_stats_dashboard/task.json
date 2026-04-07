@@ -1,0 +1,36 @@
+{
+  "id": "live_channel_stats_dashboard@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a self-monitoring channel named 'Ops_Dashboard_Generator' that generates a live HTML status report of all channels. The channel must poll the NextGen Connect REST API (https://localhost:8443/api/channels/statistics) every 30 seconds using the credentials admin/admin and required headers ('X-Requested-With: OpenAPI', 'Accept: application/json'). Transform the JSON statistics into an HTML table containing columns for 'Channel Name', 'Received', 'Queued', and 'Error' counts, ensuring data for the running simulation channels 'Sim_ADT_Inbound' and 'Sim_Lab_Results' is included. Write the final HTML output to /var/www/html/dashboard.html.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/live_channel_stats_dashboard/setup_task.sh",
+    "post_task": "/workspace/tasks/live_channel_stats_dashboard/export_result.sh"
+  },
+  "metadata": {
+    "api_url": "https://localhost:8443/api/channels/statistics",
+    "output_file": "/var/www/html/dashboard.html",
+    "sim_channels": [
+      "Sim_ADT_Inbound",
+      "Sim_Lab_Results"
+    ],
+    "required_columns": [
+      "Name",
+      "Received",
+      "Queued",
+      "Error"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_live_channel_stats_dashboard"
+    }
+  }
+}

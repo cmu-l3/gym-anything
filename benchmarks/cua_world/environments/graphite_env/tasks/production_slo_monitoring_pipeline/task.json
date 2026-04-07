@@ -1,0 +1,40 @@
+{
+  "id": "production_slo_monitoring_pipeline@1",
+  "version": "1.0",
+  "env_id": "graphite_env@0.1",
+  "description": "You are a Site Reliability Engineer bootstrapping SLO monitoring for a payment processing microservice. A telemetry data file at /opt/graphite_real_data/payment_service_metrics.txt contains 3 days of realistic application metrics in Graphite plaintext format. Feed it to Carbon (port 2003 inside the graphite Docker container) and verify that the three metrics apps.payment.requests_per_sec, apps.payment.error_rate, and apps.payment.latency_p99_ms appear in Graphite's metric index.\n\nThen create and save a Graphite dashboard named exactly 'Payment Service SLO' with 5 graphs:\n\n1. 'Request Rate': alias(summarize(apps.payment.requests_per_sec,\"1h\",\"avg\"),\"Hourly Avg RPS\") and alias(color(threshold(800),\"red\"),\"Capacity Limit\")\n\n2. 'Error Budget Burn': alias(integral(removeBelowValue(scale(apps.payment.error_rate,100),1.0)),\"Cumulative SLO Violations\") and alias(color(dashed(threshold(100)),\"red\"),\"Error Budget\")\n\n3. 'Latency SLI': alias(apps.payment.latency_p99_ms,\"P99 Raw\"), alias(color(movingAverage(apps.payment.latency_p99_ms,12),\"blue\"),\"1h Smoothed\"), and alias(color(threshold(500),\"red\"),\"SLA Target\")\n\n4. 'Service Health Correlation': alias(scale(apps.payment.error_rate,100),\"Error %\") and alias(secondYAxis(divideSeries(apps.payment.latency_p99_ms,apps.payment.requests_per_sec)),\"Latency per Request\")\n\n5. 'Incident Detection': alias(diffSeries(apps.payment.requests_per_sec,movingAverage(apps.payment.requests_per_sec,30)),\"Traffic Anomaly\"), alias(color(drawAsInfinite(removeBelowValue(scale(apps.payment.error_rate,100),5)),\"orange\"),\"Error Spikes\"), and alias(color(stdev(apps.payment.latency_p99_ms,12),\"green\"),\"Latency Volatility\")",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 200,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/production_slo_monitoring_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/production_slo_monitoring_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "expected_dashboard_name": "Payment Service SLO",
+    "expected_graphs": [
+      "Request Rate",
+      "Error Budget Burn",
+      "Latency SLI",
+      "Service Health Correlation",
+      "Incident Detection"
+    ],
+    "custom_metrics": [
+      "apps.payment.requests_per_sec",
+      "apps.payment.error_rate",
+      "apps.payment.latency_p99_ms"
+    ],
+    "occupation": "Site Reliability Engineer",
+    "industry": "Cloud Infrastructure",
+    "result_file": "/tmp/production_slo_monitoring_pipeline_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_production_slo_monitoring_pipeline"
+    }
+  }
+}

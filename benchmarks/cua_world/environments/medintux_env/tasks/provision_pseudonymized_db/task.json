@@ -1,0 +1,32 @@
+{
+  "id": "provision_pseudonymized_db@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Create a pseudonymized copy of the 'DrTuxTest' MySQL database named 'DrTuxResearch' for research purposes. Clone the 'IndexNomPrenom' and 'fchpat' tables into the new database while ensuring the original 'DrTuxTest' remains unmodified. In 'DrTuxResearch', mask patient identity by setting IndexNomPrenom.FchGnrl_NomDos and fchpat.FchPat_NomFille to 'ANONYMOUS', setting IndexNomPrenom.FchGnrl_Prenom to 'Subject', and clearing the address, telephone, and social security number fields (FchPat_Adresse, FchPat_Tel1, FchPat_Tel2, FchPat_NumSS). Statistical fields including Date of Birth, Sex, Zip Code, and City must be preserved. You have root access to MySQL (no password).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/provision_pseudonymized_db/setup_task.sh",
+    "post_task": "/workspace/tasks/provision_pseudonymized_db/export_result.sh"
+  },
+  "metadata": {
+    "source_db": "DrTuxTest",
+    "target_db": "DrTuxResearch",
+    "required_tables": [
+      "IndexNomPrenom",
+      "fchpat"
+    ],
+    "masked_name_value": "ANONYMOUS",
+    "masked_firstname_value": "Subject"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_provision_pseudonymized_db"
+    }
+  }
+}

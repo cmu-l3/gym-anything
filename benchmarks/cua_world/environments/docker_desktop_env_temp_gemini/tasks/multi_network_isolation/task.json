@@ -1,0 +1,63 @@
+{
+  "id": "multi_network_isolation@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "Secure a multi-tier application by implementing network isolation using Docker. Create two custom bridge networks named 'frontend' and 'backend'. Deploy three containers with specific network assignments: 'web-proxy' (image: nginx:alpine) connected only to the 'frontend' network with host port 8081 mapped to container port 80; 'app-server' (image: httpd:alpine) connected to both 'frontend' and 'backend' networks; and 'data-store' (image: redis:alpine) connected only to the 'backend' network with host port 6380 mapped to container port 6379. The goal is to ensure 'web-proxy' cannot directly communicate with 'data-store' while 'app-server' can communicate with both.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multi_network_isolation/setup_task.sh",
+    "post_task": "/workspace/tasks/multi_network_isolation/export_result.sh"
+  },
+  "metadata": {
+    "networks": [
+      "frontend",
+      "backend"
+    ],
+    "containers": [
+      {
+        "name": "web-proxy",
+        "image": "nginx",
+        "expected_networks": [
+          "frontend"
+        ],
+        "forbidden_networks": [
+          "backend",
+          "bridge"
+        ]
+      },
+      {
+        "name": "app-server",
+        "image": "httpd",
+        "expected_networks": [
+          "frontend",
+          "backend"
+        ],
+        "forbidden_networks": [
+          "bridge"
+        ]
+      },
+      {
+        "name": "data-store",
+        "image": "redis",
+        "expected_networks": [
+          "backend"
+        ],
+        "forbidden_networks": [
+          "frontend",
+          "bridge"
+        ]
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multi_network_isolation"
+    }
+  }
+}

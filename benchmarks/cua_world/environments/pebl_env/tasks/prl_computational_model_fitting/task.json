@@ -1,0 +1,28 @@
+{
+  "id": "prl_computational_model_fitting@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "very_hard",
+  "description": "A computational psychiatry researcher collected data from 15 participants who completed a Probabilistic Reversal Learning (PRL) experiment on PEBL. On each of 200 trials, participants chose stimulus A or B. One stimulus was rewarded with 80% probability (the other 20%); after reaching a learning criterion (8 correct in the last 10 trials), contingencies reversed. Data is at ~/pebl/data/prl_model_data.csv (columns: participant_id, trial, choice, outcome, rewarded_stimulus).\n\nOne participant (PRL-999) is a bot that chose randomly regardless of feedback. Identify and exclude this participant using data-driven criteria.\n\nFor each valid participant, fit two Rescorla-Wagner reinforcement learning models via maximum-likelihood grid search.\n\nSINGLE-RATE MODEL:\nInitialize Q(A)=Q(B)=0.5. Each trial update Q(chosen) += alpha * (outcome - Q(chosen)). Choice probability: P(A) = exp(beta*Q(A)) / [exp(beta*Q(A)) + exp(beta*Q(B))]. Log-likelihood = sum over all trials of log(P(observed_choice)). Grid search: alpha in {0.05, 0.10, ..., 1.00} (20 values), beta in {0.5, 1.0, ..., 20.0} (40 values). Find the (alpha, beta) pair that maximizes total log-likelihood.\n\nDUAL-RATE MODEL:\nSame as single-rate, but use alpha_pos when prediction error (outcome - Q(chosen)) >= 0, and alpha_neg when prediction error < 0. Grid search over alpha_pos, alpha_neg (same range as alpha), and beta.\n\nMODEL COMPARISON:\nAIC = 2*k - 2*log_likelihood, where k = number of free parameters (k=2 for single-rate, k=3 for dual-rate). The model with lower AIC is preferred.\n\nOUTPUT FORMAT:\nWrite valid JSON to ~/pebl/analysis/prl_model_report.json with a 'participants' list where each entry has 'id', 'single_rate' object {alpha, beta, log_likelihood, aic}, 'dual_rate' object {alpha_pos, alpha_neg, beta, log_likelihood, aic}, and 'preferred_model' ('single_rate' or 'dual_rate'). For excluded participants: 'excluded' set to true with a 'reason'. Include a 'group_summary' object with mean_alpha, mean_beta (from single-rate fits of valid participants), n_prefer_single_rate, and n_prefer_dual_rate.",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 200,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/prl_computational_model_fitting/setup_task.sh",
+    "post_task": "/workspace/tasks/prl_computational_model_fitting/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "PRL-999",
+    "output_file": "/home/ga/pebl/analysis/prl_model_report.json",
+    "data_file": "/home/ga/pebl/data/prl_model_data.csv",
+    "reference": "Rescorla-Wagner (1972), Akaike Information Criterion"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_prl_computational_model_fitting"
+    }
+  }
+}

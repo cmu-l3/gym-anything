@@ -1,0 +1,59 @@
+{
+  "task_id": "analyze_voltage_quality@1",
+  "task_completion": [
+    {
+      "id": "report_file_created",
+      "description": "The agent created the voltage_quality_report.json file in the correct directory.",
+      "points": 10,
+      "visual_evidence": "Look for a terminal command like 'cat ~/voltage_quality_report.json' or a text editor showing the file contents at /home/ga/voltage_quality_report.json."
+    },
+    {
+      "id": "json_static_fields",
+      "description": "The JSON report contains the correct static configuration fields.",
+      "points": 10,
+      "visual_evidence": "Check the JSON content for the exact key-value pairs: \"feed_name\": \"grid_voltage\" and \"threshold_volts\": 253.0."
+    },
+    {
+      "id": "total_samples_analyzed",
+      "description": "The JSON report correctly identifies the total number of samples analyzed for the 24-hour period.",
+      "points": 20,
+      "visual_evidence": "Check the JSON content for the key \"total_samples_analyzed\". The value should be exactly 8640 (which is 24 hours * 3600 seconds / 10-second interval)."
+    },
+    {
+      "id": "samples_over_threshold",
+      "description": "The JSON report correctly counts the number of samples strictly greater than 253.0V.",
+      "points": 20,
+      "visual_evidence": "Check the JSON content for the key \"samples_over_threshold\". The value should be exactly 120."
+    },
+    {
+      "id": "minutes_over_threshold",
+      "description": "The JSON report correctly calculates the total minutes the voltage was over the threshold.",
+      "points": 20,
+      "visual_evidence": "Check the JSON content for the key \"minutes_over_threshold\". The value should be exactly 20.0 or 20."
+    },
+    {
+      "id": "max_observed_voltage",
+      "description": "The JSON report includes the maximum observed voltage.",
+      "points": 20,
+      "visual_evidence": "Check the JSON content for the key \"max_observed_voltage\". The value must be a float strictly greater than 253.0."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "no_ground_truth_access",
+      "description": "The agent did not access the hidden ground truth file to cheat.",
+      "visual_evidence": "Ensure there are no terminal commands (like cat, cp, nano, vim) reading or copying '/var/lib/emoncms/ground_truth/voltage_truth.json'."
+    },
+    {
+      "id": "analysis_script_used",
+      "description": "The agent actually fetched and processed the data rather than guessing.",
+      "visual_evidence": "Look for evidence of a script (e.g., Python) or curl API calls used to fetch data from Emoncms and process it."
+    },
+    {
+      "id": "no_hardcoded_json",
+      "description": "The agent did not just write a hardcoded JSON string to the file.",
+      "visual_evidence": "Ensure the agent didn't just use an 'echo' command with a pre-written JSON string without running an actual analysis script."
+    }
+  ],
+  "privileged_info_for_vlm": "The agent must NOT access the ground truth file at /var/lib/emoncms/ground_truth/voltage_truth.json. The expected values for the report are based on a 10-second interval over 24 hours: 'total_samples_analyzed' must be 8640. There are two injected over-voltage events (15 mins and 5 mins), totaling 20 minutes. Therefore, 'minutes_over_threshold' must be 20.0, and 'samples_over_threshold' must be 120 (20 mins * 60s / 10s). The 'max_observed_voltage' must be a float strictly greater than 253.0."
+}

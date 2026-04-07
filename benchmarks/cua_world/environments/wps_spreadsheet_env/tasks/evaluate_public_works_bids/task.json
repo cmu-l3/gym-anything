@@ -1,0 +1,38 @@
+{
+  "id": "evaluate_public_works_bids@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Evaluate a construction bid tabulation in WPS Spreadsheet by processing the raw data from /home/ga/Documents/raw_bid_tabulation.csv into a three-sheet workbook saved as /home/ga/Documents/bid_evaluation.xlsx. The 'Bid Tab' sheet must contain the source data and extended costs for the Engineer and bidders (Apex, Titan, Horizon) in columns 'Eng_Extended', 'Apex_Extended', 'Titan_Extended', and 'Horizon_Extended'. The 'Summary' sheet must include a table for all parties showing 'Total Bid', 'Variance from Eng ($)', and 'Variance (%)', with the lowest bidder's name in cell B8 and the label 'Apparent Low Bidder:' in cell A8. The 'Unbalanced Analysis' sheet must include 'Item_No', 'Description', 'Unit Price Ratio' (Low Bidder/Engineer), and an 'Audit Flag' column marking items 'UNBALANCED' if the ratio is > 1.5 or < 0.5, and 'OK' otherwise.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_public_works_bids/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_public_works_bids/export_result.sh"
+  },
+  "metadata": {
+    "expected_file": "/home/ga/Documents/bid_evaluation.xlsx",
+    "expected_sheets": [
+      "Bid Tab",
+      "Summary",
+      "Unbalanced Analysis"
+    ],
+    "lowest_bidder": "Titan",
+    "unbalanced_flags_count": 2,
+    "totals": {
+      "Eng": 756500,
+      "Apex": 876000,
+      "Titan": 708300,
+      "Horizon": 815300
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_bid_evaluation"
+    }
+  }
+}

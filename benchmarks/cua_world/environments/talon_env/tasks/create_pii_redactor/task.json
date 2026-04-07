@@ -1,0 +1,30 @@
+{
+  "id": "create_pii_redactor@1",
+  "version": "1.0",
+  "env_id": "talon_env@0.1",
+  "description": "Create a multi-file Talon module named 'pii_redactor' in C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\pii_redactor\\ that provides voice commands to automatically regex-scrub specific types of PII (Emails, Phone Numbers, SSNs) from the current clipboard and paste the sanitized text. The module requires a redact_types.talon-list file declaring the user.redact_types list with mapped entries for 'emails' (email), 'phones' (phone), and 'socials' (ssn). It also requires a pii_redactor.py file (importing re, Module, actions, and clip) defining a Talon action class with redact_text(text: str, pii_type: str)—using regex to replace standard emails, US phone numbers (555-555-5555), and 9-digit SSNs (XXX-XX-XXXX) with placeholders like [EMAIL REDACTED], [PHONE REDACTED], and [SSN REDACTED]—and redact_clipboard(pii_type: str) to update the clipboard and paste. The voice command redact {user.redact_types}: must be defined in pii_redactor.talon to execute the clipboard redaction action.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_pii_redactor\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\create_pii_redactor\\export_result.ps1"
+  },
+  "metadata": {
+    "target_dir": "C:\\Users\\Docker\\AppData\\Roaming\\talon\\user\\pii_redactor",
+    "test_strings": {
+      "email": "Contact me at test.user@example.com today.",
+      "phone": "Call 555-123-4567 now.",
+      "ssn": "My SSN is 123-45-6789."
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_create_pii_redactor"
+    }
+  }
+}

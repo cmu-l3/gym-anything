@@ -1,0 +1,122 @@
+{
+  "id": "boiler_drum_3element_control@1",
+  "version": "1.0",
+  "env_id": "crimson_env@0.1",
+  "description": "Red Lion Crimson 3.0 is open. You are configuring a three-element boiler drum level control system for a 150 MW coal-fired power plant. Two reference documents are open in Notepad on the Desktop: boiler_instrument_schedule.csv (tag register with types, ranges, units, and alarm limits) and asme_ptc4_control_narrative.txt (pressure compensation formulas, control algorithm, data logging requirements, and display layout). Create the ACTIVE sensor tags from the instrument schedule (LT_100, FT_100, FT_101, PT_100, CV_100) as Float with the ranges, units, and alarm limits specified. Create the three pressure-compensated Formula tags (FT_100_COMP, FT_101_COMP, MASS_BAL) using the equations in the control narrative. Write a User Program named 'DrumLevelControl' assigned to Background 1 at 100ms tick rate implementing the control algorithm from the narrative with the output clamped to 0-100%. On Page 1, build an operator display with numeric indicators for the four sensor tags, a bar graph for CV_100, and a trend viewer for MASS_BAL. Create a data logger named 'DrumLevelLog' per the narrative's logging section. Do NOT configure the DECOMMISSIONED tag TT_100. Save as boiler_drum_3element.c3 in C:\\Users\\Docker\\Documents\\CrimsonProjects\\. Login: Docker / GymAnything123!",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 250,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\boiler_drum_3element_control\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\boiler_drum_3element_control\\export_result.ps1"
+  },
+  "metadata": {
+    "task_name": "boiler_drum_3element_control",
+    "project_filename": "boiler_drum_3element.c3",
+    "project_path": "C:\\Users\\Docker\\Documents\\CrimsonProjects\\boiler_drum_3element.c3",
+    "industry": "Power Generation",
+    "occupation": "Controls Engineer / SCADA Automation Engineer",
+    "standard": "ASME PTC 4 / ISA-77.44.01 / NFPA 85 / NERC CIP",
+    "tags": [
+      {
+        "name": "LT_100",
+        "description": "Drum Level Transmitter - Differential Pressure",
+        "data_type": "Float",
+        "unit": "% level",
+        "min_value": 0.0,
+        "max_value": 100.0,
+        "alarm_ll": 25.0,
+        "alarm_l": 35.0,
+        "alarm_h": 65.0,
+        "alarm_hh": 75.0
+      },
+      {
+        "name": "FT_100",
+        "description": "Feedwater Flow Transmitter - Orifice Plate",
+        "data_type": "Float",
+        "unit": "klb/hr",
+        "min_value": 0.0,
+        "max_value": 500.0,
+        "alarm_h": 400.0
+      },
+      {
+        "name": "FT_101",
+        "description": "Main Steam Flow Transmitter - Annubar",
+        "data_type": "Float",
+        "unit": "klb/hr",
+        "min_value": 0.0,
+        "max_value": 600.0,
+        "alarm_h": 480.0
+      },
+      {
+        "name": "PT_100",
+        "description": "Drum Pressure Transmitter - Gauge Type",
+        "data_type": "Float",
+        "unit": "psig",
+        "min_value": 0.0,
+        "max_value": 2000.0,
+        "alarm_h": 1800.0,
+        "alarm_hh": 1900.0
+      },
+      {
+        "name": "CV_100",
+        "description": "Feedwater Control Valve Output",
+        "data_type": "Float",
+        "unit": "%",
+        "min_value": 0.0,
+        "max_value": 100.0
+      },
+      {
+        "name": "FT_100_COMP",
+        "description": "Pressure-Compensated Feedwater Flow",
+        "data_type": "Float",
+        "unit": "klb/hr",
+        "min_value": 0.0,
+        "max_value": 500.0,
+        "source": "Formula",
+        "formula": "FT_100 * sqrt(PT_100 / 900)"
+      },
+      {
+        "name": "FT_101_COMP",
+        "description": "Pressure-Compensated Steam Flow",
+        "data_type": "Float",
+        "unit": "klb/hr",
+        "min_value": 0.0,
+        "max_value": 600.0,
+        "source": "Formula",
+        "formula": "FT_101 * sqrt(PT_100 / 900)"
+      },
+      {
+        "name": "MASS_BAL",
+        "description": "Feedwater-Steam Mass Balance",
+        "data_type": "Float",
+        "unit": "klb/hr",
+        "min_value": -200.0,
+        "max_value": 200.0,
+        "source": "Formula",
+        "formula": "FT_100_COMP - FT_101_COMP"
+      }
+    ],
+    "decommissioned_tags": ["TT_100"],
+    "program_name": "DrumLevelControl",
+    "program_task": "Background 1",
+    "program_tick_ms": 100,
+    "logger_name": "DrumLevelLog",
+    "logger_interval_ms": 1000,
+    "logger_retention_days": 90,
+    "logger_tags": ["LT_100", "FT_100_COMP", "FT_101_COMP", "CV_100"],
+    "display_page_title": "Boiler Drum",
+    "tolerance_pct": 2.0,
+    "archetype": "integrated_multi_feature",
+    "archetype_note": "Requires tags + formula expressions + user program + display page + data logger. Agent must navigate 5 distinct UI sections with cross-referential dependencies."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_boiler_drum_3element_control"
+    }
+  }
+}

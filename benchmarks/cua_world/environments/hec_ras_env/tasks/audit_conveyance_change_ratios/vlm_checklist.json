@@ -1,0 +1,53 @@
+{
+  "task_id": "audit_conveyance_change_ratios@1",
+  "task_completion": [
+    {
+      "id": "read_hdf5_results",
+      "description": "Verify the agent accesses the specified HEC-RAS unsteady flow simulation results.",
+      "points": 10,
+      "visual_evidence": "Screenshots showing a script (e.g., Python using h5py) or tool opening the file 'Muncie.p04.hdf' located in '~/Documents/hec_ras_projects/Muncie/'."
+    },
+    {
+      "id": "extract_required_variables",
+      "description": "Verify the agent extracts Total Flow and Friction Slope at the time step of maximum flow.",
+      "points": 20,
+      "visual_evidence": "Screenshots of code or queries specifically targeting 'Total Flow' (Q) and 'Friction Slope' (Sf) variables from the HDF5 file, including logic to identify the peak flow time step for each cross-section."
+    },
+    {
+      "id": "calculate_conveyance_and_ratio",
+      "description": "Verify the agent calculates effective conveyance (K) and the upstream/downstream ratio (R).",
+      "points": 20,
+      "visual_evidence": "Screenshots of code implementing the formulas: K = Q / sqrt(Sf) (with a condition setting K = 0 if Sf < 0.0001) and Ratio = K_upstream / K_downstream for adjacent pairs."
+    },
+    {
+      "id": "apply_status_logic",
+      "description": "Verify the agent applies the correct Status classification logic.",
+      "points": 20,
+      "visual_evidence": "Screenshots of code showing conditional logic for the 'Status' column: 'Warning' if ratio < 0.7 or > 1.4, 'Skipped' if K == 0, and 'OK' otherwise."
+    },
+    {
+      "id": "generate_csv_report",
+      "description": "Verify the agent generates the final sorted CSV report with the correct columns and path.",
+      "points": 30,
+      "visual_evidence": "Screenshots of the terminal, file explorer, or text editor showing the creation of 'conveyance_audit.csv' at '~/Documents/hec_ras_results/'. The file or code must show the columns: Upstream_River_Station, Downstream_River_Station, K_Upstream, K_Downstream, Ratio, Status, and evidence of sorting by River Station (upstream to downstream)."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "script_based_execution",
+      "description": "Verify the agent used a script or data processing tool to compute the results rather than manually typing a fake CSV.",
+      "visual_evidence": "Presence of a Python script, R script, or similar code that reads the HDF5 file and performs the math, rather than a manually constructed text file."
+    },
+    {
+      "id": "no_hardcoded_values",
+      "description": "Verify the agent dynamically calculated the values instead of hardcoding expected answers.",
+      "visual_evidence": "The code should contain variables and mathematical operations for Q, Sf, K, and Ratio, with no hardcoded numerical answers for specific river stations."
+    },
+    {
+      "id": "genuine_file_creation",
+      "description": "Verify the CSV file was genuinely saved to the correct directory.",
+      "visual_evidence": "Terminal commands like 'ls ~/Documents/hec_ras_results/' or a file explorer window confirming the file exists at the exact requested path."
+    }
+  ],
+  "privileged_info_for_vlm": "Expected output path: /home/ga/Documents/hec_ras_results/conveyance_audit.csv. Project directory: /home/ga/Documents/hec_ras_projects/Muncie. Thresholds: Warning if Ratio < 0.7 or > 1.4. CRITICAL NOTE: The 'Friction Slope' variable is not enabled by default in the Muncie project's HDF5 output. A successful agent will likely need to open the HEC-RAS GUI, enable Friction Slope in the output options, and re-run the simulation (Plan 04) before extracting the data. Scripts failing to find 'Friction Slope' initially are encountering a genuine environment constraint, not hallucinating."
+}

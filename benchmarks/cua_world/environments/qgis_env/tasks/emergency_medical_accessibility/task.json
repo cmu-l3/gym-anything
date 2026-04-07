@@ -1,0 +1,40 @@
+{
+  "id": "emergency_medical_accessibility@1",
+  "version": "1.0",
+  "env_id": "qgis_env@0.1",
+  "description": "You are a logistics planner for M\u00e9decins Sans Fronti\u00e8res (MSF) assessing emergency healthcare accessibility in the East African Community. Your goal is to identify communities that are critically underserved \u2014 far from both health facilities and major roads \u2014 to prioritize mobile clinic deployment.\n\nUsing the datasets in /home/ga/GIS_Data/east_africa/:\n- communities.geojson \u2014 populated places with population data\n- health_facilities.geojson \u2014 hospitals and major clinics\n- major_roads.geojson \u2014 primary road network\n\nFor each community, determine its distance (in km) to the nearest health facility (nearest_facility_km) and to the nearest major road (nearest_road_km). Use EPSG:32737 (WGS 84 / UTM zone 37S) for accurate distance calculations in meters.\n\nCompute isolation_score = nearest_facility_km \u00d7 nearest_road_km and classify each community's priority_class:\n- \"critical\": nearest_facility_km > 30 AND population > 10000\n- \"high\": isolation_score > 50\n- \"moderate\": isolation_score > 5\n- \"low\": otherwise\n\nExport to:\n- /home/ga/GIS_Data/exports/community_accessibility.geojson \u2014 fields: name, country, population, nearest_facility_km, nearest_road_km, isolation_score, priority_class\n- /home/ga/GIS_Data/exports/priority_summary.csv \u2014 columns: priority_class, community_count, total_population",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/emergency_medical_accessibility/setup_task.sh",
+    "post_task": "/workspace/tasks/emergency_medical_accessibility/export_result.sh"
+  },
+  "metadata": {
+    "communities_source": "/home/ga/GIS_Data/east_africa/communities.geojson",
+    "facilities_source": "/home/ga/GIS_Data/east_africa/health_facilities.geojson",
+    "roads_source": "/home/ga/GIS_Data/east_africa/major_roads.geojson",
+    "expected_geojson": "/home/ga/GIS_Data/exports/community_accessibility.geojson",
+    "expected_csv": "/home/ga/GIS_Data/exports/priority_summary.csv",
+    "expected_fields": [
+      "name",
+      "country",
+      "population",
+      "nearest_facility_km",
+      "nearest_road_km",
+      "isolation_score",
+      "priority_class"
+    ],
+    "target_crs": "EPSG:32737",
+    "gt_file": "/tmp/gt_accessibility.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_emergency_medical_accessibility"
+    }
+  }
+}

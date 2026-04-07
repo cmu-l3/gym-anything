@@ -1,0 +1,38 @@
+{
+    "task_id": "relink_offline_media_render@1",
+    "dataset": "opentoonz_sample",
+    "case_id": "dwanko_run",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "scene_path",
+            "metadata_value": "/home/ga/OpenToonz/projects/broken_scene/missing_link.tnz",
+            "verified_value": "/home/ga/OpenToonz/projects/broken_scene/missing_link.tnz",
+            "source": "setup_task.sh correctly creates the project root and copies the sample scene dwanko_run.tnz to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "missing_asset_path",
+            "metadata_value": "/home/ga/OpenToonz/assets/restored_media/",
+            "verified_value": "/home/ga/OpenToonz/samples/",
+            "source": "Code analysis of setup_task.sh reveals a bug: it fails to copy the '.pli' and '.tlv' files to assets/restored_media/ because the find command looks for non-existent 'dwanko*.pli' files and 'cp' does not recurse into subdirectories. As a result, the restored_media directory is empty, and the actual assets remain in their original sample subdirectories (e.g., /home/ga/OpenToonz/samples/dwanko/).",
+            "status": "contradicted"
+        },
+        {
+            "key": "output_path",
+            "metadata_value": "/home/ga/OpenToonz/output/relink_test/fixed_frame.png",
+            "verified_value": "/home/ga/OpenToonz/output/relink_test/fixed_frame.png",
+            "source": "export_result.sh checks for the output file at this exact location and exports its metadata for verifier.py.",
+            "status": "verified"
+        },
+        {
+            "key": "min_file_size_kb",
+            "metadata_value": 10,
+            "verified_value": null,
+            "source": "Neither verifier.py nor export_result.sh checks the file size. The verifier only checks if the image exists and if its color variance is greater than 50. The 10 KB minimum file size is unenforced and fabricated.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task requires relinking offline media in an OpenToonz scene file. However, there is a bug in setup_task.sh: the script fails to copy the assets into the intended '/home/ga/OpenToonz/assets/restored_media/' folder, leaving it empty. The agent must instead find and relink the actual assets located in their original subdirectories under '/home/ga/OpenToonz/samples/'. The verifier ensures an image was rendered with a color variance greater than 50 to confirm media visibility, but completely ignores the claimed 10 KB minimum file size. The data is real, utilizing the official 'dwanko_run' sample from OpenToonz.",
+    "pi_confidence": "high"
+}

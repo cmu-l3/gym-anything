@@ -1,0 +1,43 @@
+{
+    "task_id": "model_mhk_wave_energy@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_filename",
+            "metadata_value": "wave_energy_results.json",
+            "verified_value": "wave_energy_results.json",
+            "source": "Task export script export_result.sh specifically targets this output path and file name for evaluation.",
+            "status": "verified"
+        },
+        {
+            "key": "system_capacity_kw",
+            "metadata_value": 300,
+            "verified_value": 300,
+            "source": "Task instructions enforce a 300 kW system capacity. verifier.py asserts this exact numerical value against the exported result JSON.",
+            "status": "verified"
+        },
+        {
+            "key": "losses",
+            "metadata_value": {
+                "loss_array_spacing_pct": 0,
+                "loss_resource_overprediction_pct": 5,
+                "loss_transmission_pct": 2,
+                "loss_downtime_pct": 5,
+                "loss_additional_pct": 0
+            },
+            "verified_value": {
+                "loss_array_spacing_pct": 0,
+                "loss_resource_overprediction_pct": 5,
+                "loss_transmission_pct": 2,
+                "loss_downtime_pct": 5,
+                "loss_additional_pct": 0
+            },
+            "source": "Task instructions enumerate these loss configurations explicitly, and verifier.py iterates over expected_losses to check for exact numerical matches in the output JSON.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task relies entirely on a synthetic model execution via the PySAM.MhkWave module's default configuration. All metadata claims (output filename, a 300 kW system capacity, and a precise 5-parameter loss dictionary) perfectly match the explicit task instructions and are identically verified in the evaluation script. A crucial logical defect exists in the verifier: PySAM's default configuration comprises 100 devices producing ~56 million kWh annually, yet the verifier rigidly demands that the total Annual Energy Production (AEP) must not exceed 2.6 million kWh (300 kW * 8760 h) and must equal the energy of a *single* device (device_average_power * 8760). Furthermore, it expects the Capacity Factor to strictly equal (device_average_power / 300) * 100. Any naive PySAM execution perfectly adhering to the prompt will perpetually fail Checks 6, 8, and 9. To pass, the agent must creatively deviate—either by manually altering internal PySAM parameters (e.g., restricting 'number_devices' to 1) or by mathematically fabricating the exported JSON values to satisfy the verifier's flawed scaling logic.",
+    "pi_confidence": "high"
+}

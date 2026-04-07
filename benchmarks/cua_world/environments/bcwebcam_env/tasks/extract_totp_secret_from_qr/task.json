@@ -1,0 +1,26 @@
+{
+  "id": "extract_totp_secret_from_qr@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "Extract the TOTP secret from a 2FA setup QR code using bcWebCam.\n\nSteps:\n1. A standard TOTP setup QR code is located at `C:\\Users\\Docker\\Documents\\totp_setup.png`.\n2. Configure OBS Studio (or use any other method) to display this image to the OBS Virtual Camera.\n3. Use bcWebCam to scan the QR code from the Virtual Camera feed.\n4. The scanned text will be an `otpauth://` URI. Extract ONLY the Base32 secret value from the `secret` parameter (e.g., if it says `?secret=ABCDEF...`, extract `ABCDEF...`).\n5. Open PowerShell or Command Prompt and run the authenticator script to save the secret: `python C:\\Users\\Docker\\Documents\\authenticator.py add CorpVPN <EXTRACTED_SECRET>`\n\nNote: You MUST use bcWebCam to perform the scan. The final secret must not contain any other parts of the URI.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\extract_totp_secret_from_qr\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\extract_totp_secret_from_qr\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_secret": "JBSWY3DPEHPK3PXP",
+    "expected_account": "CorpVPN"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_extract_totp_secret"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "ecommerce_catalog_transformation@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Transform raw vendor data into a standardized e-commerce format in WPS Spreadsheet using /home/ga/Documents/retail_catalog.xlsx. In the 'Raw_Products' sheet, populate Column F (SKU) by combining the first 3 uppercase letters of the Department with the numerical part of the Vendor_ID (everything after the hyphen). Populate Column G (Margin_Pct) using the target margins from the 'Margin_Rules' sheet based on Department. Calculate Column H (Retail_Price) as Unit_Cost / (1 - Margin_Pct) rounded to 2 decimal places, and Column I (Stock_Value) as Unit_Cost * Stock_Level. In Column J (Status), label items as 'High Value Low Stock' if Stock_Level is less than 20 and Retail_Price is greater than 50, otherwise label as 'Standard'. Create a new sheet named 'Catalog_Summary' that displays the 'Total Stock Value' (sum of Column I), 'Average Retail Price' (average of Column H), and 'High Value Alerts' (count of 'High Value Low Stock' items). Save the completed workbook to /home/ga/Documents/retail_catalog.xlsx.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ecommerce_catalog_transformation/setup_task.sh",
+    "post_task": "/workspace/tasks/ecommerce_catalog_transformation/export_result.sh"
+  },
+  "metadata": {
+    "data_source": "Simulated E-commerce Catalog",
+    "expected_sheets": [
+      "Raw_Products",
+      "Margin_Rules",
+      "Catalog_Summary"
+    ],
+    "target_file": "/home/ga/Documents/retail_catalog.xlsx"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_catalog_transformation"
+    }
+  }
+}

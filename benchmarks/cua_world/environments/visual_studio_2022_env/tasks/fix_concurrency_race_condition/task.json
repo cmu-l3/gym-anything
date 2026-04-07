@@ -1,0 +1,31 @@
+{
+  "id": "fix_concurrency_race_condition@1",
+  "version": "1.0",
+  "env_id": "visual_studio_2022_env@0.1",
+  "description": "Visual Studio 2022 is open with the 'TaxiFareProcessor' solution. The application reads a large dataset (taxi-fare-train.csv) and aggregates the total fare and fares grouped by payment type using 'Parallel.ForEach'. The current implementation contains race conditions involving a 'decimal totalFare' and a standard 'Dictionary<string, decimal> fareByPaymentType' being updated concurrently. Fix the thread-safety issues in Program.cs so the application consistently completes without errors and produces deterministic totals in out/results.json. Retain the 'Parallel.ForEach' loop structure for performance, ensuring that synchronization is applied only to shared-state updates.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\fix_concurrency_race_condition\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\fix_concurrency_race_condition\\export_result.ps1",
+    "pre_task_timeout": 300
+  },
+  "metadata": {
+    "dataset_source": "https://raw.githubusercontent.com/microsoft/ML-NET/master/test/data/taxi-fare-train.csv",
+    "required_constructs": [
+      "Parallel.ForEach",
+      "ConcurrentDictionary",
+      "lock"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_fix_concurrency_race_condition"
+    }
+  }
+}

@@ -14,7 +14,17 @@ sleep 5
 echo "Initializing 32-bit Wine prefix for ga user..."
 su - ga -c "rm -rf /home/ga/.wine" 2>/dev/null || true
 su - ga -c "WINEARCH=win32 WINEDEBUG=-all DISPLAY=:1 wineboot --init" 2>&1 | tail -5 || true
+# Wait for wineserver to finish all initialization tasks
+su - ga -c "WINEDEBUG=-all wineserver -w" 2>/dev/null || true
 sleep 10
+
+# Retry wineboot if prefix wasn't created properly
+if [ ! -d "/home/ga/.wine/drive_c/windows" ]; then
+    echo "Wine prefix incomplete, retrying wineboot..."
+    su - ga -c "WINEARCH=win32 WINEDEBUG=-all DISPLAY=:1 wineboot --init" 2>&1 | tail -5 || true
+    su - ga -c "WINEDEBUG=-all wineserver -w" 2>/dev/null || true
+    sleep 10
+fi
 
 echo "Wine prefix created:"
 su - ga -c "ls /home/ga/.wine/drive_c/" 2>/dev/null || true

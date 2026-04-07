@@ -4,6 +4,14 @@
 
 echo "=== Setting up ArkCase (post_start) ==="
 
+# CRITICAL: Restore iptables FORWARD to ACCEPT so QEMU SSH port forwarding works.
+# K3s/flannel from pre_start may have set FORWARD to DROP.
+iptables -P FORWARD ACCEPT 2>/dev/null || true
+echo "iptables FORWARD policy set to ACCEPT"
+
+# Ensure swap is active
+swapon /swapfile 2>/dev/null || true
+
 # ── 0. Ensure kubeconfig is accessible ───────────────────────────────────────
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 export HELM_CACHE_HOME=/tmp/helm-cache
@@ -286,6 +294,21 @@ FIREFOXEOF
         certutil -A -n "ArkCase-localhost" -t "CT,C,C" -i /tmp/arkcase.crt \
             -d sql:"$FIREFOX_SNAP_PROFILE" 2>/dev/null || true
         echo "ArkCase cert imported into Firefox NSS database"
+
+        # Also generate cert_override.txt (most reliable Firefox bypass for self-signed certs)
+        # This permanently accepts the certificate without the interstitial warning
+        CERT_HASH=$(openssl x509 -in /tmp/arkcase.crt -fingerprint -sha256 -noout 2>/dev/null | \
+            sed 's/.*=//; s/://g')
+        if [ -n "$CERT_HASH" ]; then
+            # Format: host:port\tOID.2.16.840.1.101.3.4.2.1\thash\tflags
+            # MU = Mismatch + Untrusted override
+            echo "localhost:${SVC_PORT}	OID.2.16.840.1.101.3.4.2.1	${CERT_HASH}	MU" \
+                > "$FIREFOX_SNAP_PROFILE/cert_override.txt"
+            echo "cert_override.txt created for localhost:${SVC_PORT}"
+        fi
+    else
+        echo "WARNING: Could not extract cert (port-forward may not be active yet)"
+        echo "Will rely on handle_ssl_warning() at task time"
     fi
     chown -R ga:ga "$(dirname "$FIREFOX_SNAP_PROFILE")" 2>/dev/null || true
 else
@@ -297,15 +320,15 @@ echo "Launching Firefox on ArkCase login page..."
 sleep 5
 
 if [ -n "$FIREFOX_SNAP_PROFILE" ]; then
-    su - ga -c "DISPLAY=:1 firefox -profile '$FIREFOX_SNAP_PROFILE' '${ARKCASE_BASE_URL}/login' &>/dev/null &" &
+    su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority firefox -profile '$FIREFOX_SNAP_PROFILE' '${ARKCASE_BASE_URL}/login' &>/dev/null &" &
 else
-    su - ga -c "DISPLAY=:1 firefox '${ARKCASE_BASE_URL}/login' &>/dev/null &" &
+    su - ga -c "DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority firefox '${ARKCASE_BASE_URL}/login' &>/dev/null &" &
 fi
 
 sleep 20
 
 # Maximize Firefox
-DISPLAY=:1 wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
 
 echo "=== ArkCase setup complete ==="
 echo "URL: ${ARKCASE_BASE_URL}/login"

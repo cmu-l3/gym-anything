@@ -3,6 +3,9 @@ echo "=== Setting up key_account_isolation_and_reporting ==="
 
 source /workspace/scripts/task_utils.sh
 
+# Stop BlueMail before modifying Maildir to avoid stale IMAP cache
+close_bluemail
+
 MAILDIR="/home/ga/Maildir"
 DOCS_DIR="/home/ga/Documents"
 VIP_LIST_FILE="$DOCS_DIR/vip_list.txt"
@@ -26,8 +29,8 @@ for eml in "$ASSETS_HAM"/*.eml; do
     count=$((count + 1))
 done
 
-# Force Dovecot index
-doveadm index -u ga INBOX 2>/dev/null || true
+# Reset Dovecot indexes (forces new UIDVALIDITY so BlueMail re-syncs)
+reset_dovecot_indexes
 
 # 2. Generate VIP List dynamically based on loaded emails
 # We parse the emails to find frequent senders or just random ones

@@ -1,0 +1,36 @@
+{
+  "id": "sidecar_packet_capture_security@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "A production authentication service at /home/ga/debug-auth/ is experiencing network issues. Deploy a packet capture sidecar named 'sniffer' using the 'alpine' image by modifying the docker-compose.yml. The sniffer service must use tcpdump to capture traffic, share the network namespace of the 'auth-service' container, and save the capture to /data/capture.pcap (mapped to the host directory ./captures). The container must not run in privileged mode; use Linux capabilities (such as NET_ADMIN and NET_RAW) to allow packet capture. Verify that the capture file is being populated.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sidecar_packet_capture_security/setup_task.sh",
+    "post_task": "/workspace/tasks/sidecar_packet_capture_security/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/debug-auth",
+    "expected_service_name": "sniffer",
+    "target_service": "auth-service",
+    "pcap_file": "captures/capture.pcap",
+    "required_caps": [
+      "NET_ADMIN",
+      "NET_RAW"
+    ],
+    "forbidden_caps": [
+      "ALL"
+    ],
+    "min_pcap_size_bytes": 100
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sidecar_packet_capture"
+    }
+  }
+}

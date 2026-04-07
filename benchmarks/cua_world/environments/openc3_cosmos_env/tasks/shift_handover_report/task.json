@@ -1,0 +1,28 @@
+{
+  "id": "shift_handover_report@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a satellite operator completing your shift. Perform shift-end operational actions against the INST target and produce a comprehensive structured JSON handover report documenting the current satellite state. Required actions include sending the command 'INST COLLECT' with 'TYPE NORMAL', reading INST HEALTH_STATUS telemetry values (TEMP1, TEMP2, TEMP3, TEMP4, COLLECT_TYPE, and CMD_ACPT_CNT), determining the connection state of all INST-related interfaces (at minimum INST_INT), and checking for active limit violations on INST telemetry items. Save the handover report to /home/ga/Desktop/handover_report.json.\n\nThe JSON must contain the following top-level keys:\n- 'shift_end_time': string, ISO 8601 datetime\n- 'operator': string, your name or callsign\n- 'satellite_health': object containing keys 'temp1', 'temp2', 'temp3', 'temp4' (floats), 'collect_type' (string), and 'cmd_acpt_cnt' (integer)\n- 'interfaces': array of objects with 'name' (string) and 'state' (string)\n- 'limit_violations': array of objects with 'item' (string) and 'state' (string)\n- 'commands_sent': array of strings documenting commands sent during shift\n- 'next_shift_recommendations': string\n\nOpenC3 password: Cosmos2024!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/shift_handover_report/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/shift_handover_report/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/shift_handover_report_result.json",
+    "output_file": "/home/ga/Desktop/handover_report.json",
+    "target": "INST"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_shift_handover_report"
+    }
+  }
+}

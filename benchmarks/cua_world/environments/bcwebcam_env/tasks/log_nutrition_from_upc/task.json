@@ -1,0 +1,30 @@
+{
+  "id": "log_nutrition_from_upc@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "You need to log the nutritional information for a product by scanning its barcode.\n\n1. A web browser is open on your screen displaying a product barcode.\n2. Launch bcWebCam (if not already running) and position/configure it to scan the barcode visible on the screen. (bcWebCam can capture barcodes from the screen if placed over them).\n3. Read the decoded 12-digit UPC number.\n4. Open the local database at 'C:\\workspace\\openfoodfacts_subset.csv'. This file contains three columns: code, product_name, and energy-kcal_100g.\n5. Find the row matching the scanned UPC and extract its product_name and energy-kcal_100g.\n6. Append a single line to the daily diary file at 'C:\\workspace\\daily_diary.txt'. The line MUST be in exactly this format:\n   [UPC] - [product_name] - [energy-kcal_100g] kcal\n   (Example: 012345678901 - Sample Product - 100 kcal)\n\nEnsure the final text file is saved correctly.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\log_nutrition_from_upc\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\log_nutrition_from_upc\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_upc": "049000000443",
+    "expected_name": "Coca-Cola Original Taste",
+    "expected_calories": "42",
+    "diary_path": "C:\\workspace\\daily_diary.txt",
+    "csv_path": "C:\\workspace\\openfoodfacts_subset.csv",
+    "expected_format": "049000000443 - Coca-Cola Original Taste - 42 kcal"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_log_nutrition"
+    }
+  }
+}

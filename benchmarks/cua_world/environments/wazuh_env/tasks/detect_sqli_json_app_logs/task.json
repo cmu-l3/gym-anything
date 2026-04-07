@@ -1,0 +1,29 @@
+{
+  "id": "detect_sqli_json_app_logs@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure the Wazuh manager in the `wazuh-wazuh.manager-1` container to ingest the custom JSON application log located at `/var/log/custom_webapp/app.json`. Create a custom detection rule (ID 100100, Level 12) to identify SQL injection patterns, including `UNION SELECT` and `OR 1=1`, within the `http_query` field. Verify that the system successfully triggers and records an alert when a matching malicious entry is present in the log file.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/detect_sqli_json_app_logs/setup_task.sh",
+    "post_task": "/workspace/tasks/detect_sqli_json_app_logs/export_result.sh"
+  },
+  "metadata": {
+    "container_name": "wazuh-wazuh.manager-1",
+    "log_file_path": "/var/log/custom_webapp/app.json",
+    "rule_id": 100100,
+    "min_level": 12,
+    "sqli_pattern": "UNION SELECT|OR 1=1"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_detect_sqli"
+    }
+  }
+}

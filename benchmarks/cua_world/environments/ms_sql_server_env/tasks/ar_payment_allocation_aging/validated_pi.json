@@ -1,0 +1,171 @@
+{
+    "task_id": "ar_payment_allocation_aging@1",
+    "dataset": "AdventureWorks2022",
+    "case_id": "AR_PaymentLedger_FIFO_Allocation",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "domain",
+            "metadata_value": "Accounts Receivable / Financial Analysis",
+            "verified_value": "Accounts Receivable / Financial Analysis",
+            "source": "The task requires building a FIFO payment allocation system and AR aging report, which are core AR/financial analysis tasks performed by accountants and financial analysts in every business with receivables",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Accounts Receivable Analyst",
+            "verified_value": "Accounts Receivable Analyst",
+            "source": "AR aging reports and payment allocation are primary responsibilities of AR analysts. BLS confirms this role exists within the Accountants and Auditors classification",
+            "status": "verified"
+        },
+        {
+            "key": "soc_code",
+            "metadata_value": "13-2011.01",
+            "verified_value": "13-2011.01 (Accountants and Auditors)",
+            "source": "BLS SOC code 13-2011 confirmed as 'Accountants and Auditors' via https://www.bls.gov/soc/ and https://www.bls.gov/oes/current/oes_stru.htm. The .01 suffix is an O*NET detailed occupation level within this code. SOC major group 13 is 'Business and Financial Operations Occupations', which matches the soc_major_group claim",
+            "status": "verified"
+        },
+        {
+            "key": "soc_major_group",
+            "metadata_value": "Business and Financial Operations Occupations",
+            "verified_value": "Business and Financial Operations Occupations",
+            "source": "BLS SOC major group 13-0000 is confirmed as 'Business and Financial Operations Occupations' via https://www.bls.gov/soc/2018/major_groups.htm",
+            "status": "verified"
+        },
+        {
+            "key": "application",
+            "metadata_value": "Azure Data Studio + Microsoft SQL Server 2022",
+            "verified_value": "Azure Data Studio + Microsoft SQL Server 2022 (RTM-CU17, build 16.0.4175.1)",
+            "source": "Live environment test confirmed: docker exec mssql-server sqlcmd returned 'Microsoft SQL Server 2022 (RTM-CU17) ... 16.0.4175.1'. Azure Data Studio confirmed running via pgrep and wmctrl window detection. Evidence file: 11_docker_sql_state.txt",
+            "status": "verified"
+        },
+        {
+            "key": "database",
+            "metadata_value": "AdventureWorks2022",
+            "verified_value": "AdventureWorks2022",
+            "source": "Live environment confirmed AdventureWorks2022 database exists and is accessible. setup_mssql.sh downloads from https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak. Queries against Sales.SalesOrderHeader, Sales.Customer returned valid results. Evidence file: 13_salesorderheader_check.txt",
+            "status": "verified"
+        },
+        {
+            "key": "dataset",
+            "metadata_value": "AdventureWorks2022 Sales (31K orders, 19K customers) + seeded AR.PaymentLedger (~34.6K rows)",
+            "verified_value": "AdventureWorks2022 Sales (31,465 orders, 19,820 distinct customers in Sales.Customer, 18,522 distinct customers with payments) + seeded AR.PaymentLedger (34,610 rows). The 34,610 breaks down as: 22,026 full payments + 9,438 split payments (4,719 orders x 2 rows) + 3,146 partial payments",
+            "source": "Live testing: SELECT COUNT(*) FROM Sales.SalesOrderHeader = 31,465; SELECT COUNT(DISTINCT CustomerID) FROM AR.PaymentLedger = 18,522. PaymentLedger actual row count is 34,610. Evidence files: 05_reference_values.txt, 15_payment_categories.txt, 13_salesorderheader_check.txt. (Note: original metadata claimed ~25K rows, which was corrected to ~34.6K after live verification)",
+            "status": "verified"
+        },
+        {
+            "key": "key_tables[0]",
+            "metadata_value": "Sales.SalesOrderHeader",
+            "verified_value": "Sales.SalesOrderHeader (31,465 rows, 26 columns including SalesOrderID, CustomerID, OrderDate, TotalDue)",
+            "source": "Live environment query confirmed table exists with 31,465 rows and all required columns (SalesOrderID INT, CustomerID INT, OrderDate DATETIME, TotalDue MONEY). Sample data: first order SalesOrderID=43659, CustomerID=29825, OrderDate=2011-05-31, TotalDue=23153.2339. Evidence file: 13_salesorderheader_check.txt",
+            "status": "verified"
+        },
+        {
+            "key": "key_tables[1]",
+            "metadata_value": "Sales.Customer",
+            "verified_value": "Sales.Customer (table exists in AdventureWorks2022, used as FK target for CustomerID in both SalesOrderHeader and PaymentLedger)",
+            "source": "AdventureWorks2022 schema documentation confirms Sales.Customer table. The star_schema_sales_etl task's setup_task.sh queries COUNT(*) FROM Sales.Customer as REF_CUSTOMERS. Live PaymentLedger seeding uses CustomerID values from SalesOrderHeader which FK to Sales.Customer",
+            "status": "verified"
+        },
+        {
+            "key": "key_tables[2]",
+            "metadata_value": "AR.PaymentLedger",
+            "verified_value": "AR.PaymentLedger (34,610 rows, 5 columns: PaymentID INT IDENTITY, CustomerID INT, PaymentDate DATE, Amount DECIMAL(18,2), PaymentMethod VARCHAR(20))",
+            "source": "Live environment verified: table created by setup_task.sh with exact schema. 34,610 rows seeded from Sales.SalesOrderHeader using deterministic SalesOrderID % 20 formula. Total payment amount: $111,954,748.41. Distribution: Check=$31,828,740.98, Wire=$36,025,996.55, CreditCard=$18,415,033.33, ACH=$25,684,977.55. Evidence files: 02_payment_ledger_schema.txt, 03_payment_ledger_sample.txt, 04_payment_distribution.txt",
+            "status": "verified"
+        },
+        {
+            "key": "required_objects[0]",
+            "metadata_value": "AR.PaymentAllocation table",
+            "verified_value": "AR.PaymentAllocation table (AllocationID INT IDENTITY PK, PaymentID INT NOT NULL, SalesOrderID INT NOT NULL, AllocatedAmount DECIMAL(18,2) NOT NULL, AllocatedAt DATETIME2 DEFAULT GETDATE())",
+            "source": "Task description specifies exact schema. export_result.sh checks for this table and its columns. verifier.py awards points for existence (5 pts) and correct columns (7 pts)",
+            "status": "verified"
+        },
+        {
+            "key": "required_objects[1]",
+            "metadata_value": "AR.usp_AllocatePayments stored procedure",
+            "verified_value": "AR.usp_AllocatePayments stored procedure implementing FIFO payment-to-invoice allocation with customer boundaries and overpayment credit balance handling",
+            "source": "Task description specifies FIFO oldest-invoice-first logic per customer. export_result.sh checks sys.procedures for name='usp_AllocatePayments' AND schema_id=SCHEMA_ID('AR'). verifier.py awards 10 pts for existence",
+            "status": "verified"
+        },
+        {
+            "key": "required_objects[2]",
+            "metadata_value": "AR.vw_InvoiceOpenBalance view",
+            "verified_value": "AR.vw_InvoiceOpenBalance view showing SalesOrderID, CustomerID, OrderDate, TotalDue, TotalAllocated, OpenBalance for all 31,465 invoices",
+            "source": "Task description specifies columns and requirement to include all invoices (LEFT JOIN pattern). export_result.sh checks sys.views and validates row count against SalesOrderHeader count. verifier.py awards 7 pts for existence+columns, 5 pts for coverage",
+            "status": "verified"
+        },
+        {
+            "key": "required_objects[3]",
+            "metadata_value": "AR.fn_AgingBuckets inline TVF",
+            "verified_value": "AR.fn_AgingBuckets(@AsOfDate DATE) inline TVF returning CustomerID, Current_0_30, Days31_60, Days61_90, Days91_120, Days121Plus, TotalOpenAR",
+            "source": "Task description specifies aging bucket ranges and columns. export_result.sh checks sys.objects for type IN ('IF','TF','FN') and tests with parameter '2014-06-30'. verifier.py awards 5 pts for existence, 3 pts for data",
+            "status": "verified"
+        },
+        {
+            "key": "output_csv_path",
+            "metadata_value": "/home/ga/Documents/exports/ar_aging_report.csv",
+            "verified_value": "/home/ga/Documents/exports/ar_aging_report.csv",
+            "source": "Consistent across task.json description, export_result.sh CSV_PATH variable, and verifier.py csv_header check. Output directory /home/ga/Documents/exports/ confirmed writable by ga user in live test. Evidence file: 07_output_directory.txt",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/ar_aging_result.json",
+            "verified_value": "/tmp/ar_aging_result.json (also copied to /tmp/task_result.json for framework compatibility)",
+            "source": "export_result.sh writes to /tmp/ar_aging_result.json and copies to /tmp/task_result.json. verifier.py reads from /tmp/ar_aging_result.json with /tmp/task_result.json fallback. Live test confirmed valid JSON produced. Evidence file: 09_export_result_output.txt",
+            "status": "verified"
+        },
+        {
+            "key": "reconciliation_tolerance",
+            "metadata_value": 0.01,
+            "verified_value": 0.01,
+            "source": "verifier.py line: 'if recon_diff <= 0.01: score += 15; reconciliation_passed = True'. export_result.sh computes RECONCILIATION_DIFF as ABS difference between SUM(AllocatedAmount) and SUM(PaymentLedger.Amount). The $0.01 tolerance is the threshold for full points; $1.00 still passes the gate with reduced points",
+            "status": "verified"
+        },
+        {
+            "key": "total_payments_amount",
+            "metadata_value": "Not explicitly in metadata (computed at runtime)",
+            "verified_value": "$111,954,748.41",
+            "source": "Live environment query: SELECT CAST(SUM(Amount) AS DECIMAL(18,2)) FROM AR.PaymentLedger = 111954748.41. This is the reconciliation target — SUM(AllocatedAmount) in PaymentAllocation must match this within $0.01. Evidence file: 05_reference_values.txt",
+            "status": "verified"
+        },
+        {
+            "key": "total_invoices_totaldue",
+            "metadata_value": "Not explicitly in metadata (computed at runtime)",
+            "verified_value": "$123,216,786.12",
+            "source": "Live environment query: SELECT CAST(SUM(TotalDue) AS DECIMAL(18,2)) FROM Sales.SalesOrderHeader = 123216786.12. The difference ($123,216,786.12 - $111,954,748.41 = $11,262,037.71) represents unpaid and partially paid invoice balances. Evidence file: 05_reference_values.txt",
+            "status": "verified"
+        },
+        {
+            "key": "payment_distribution",
+            "metadata_value": "Not explicitly in metadata (derived from seeding formula)",
+            "verified_value": "34,610 total payment rows: 22,026 full payments (70% of 31,465 orders with TotalDue>0), 9,438 split payments (4,719 orders x 2 rows, 15%), 3,146 late partial payments (10%), 0 rows for 1,574 unpaid orders (5%). Distribution by method: Check=9,439 rows, Wire=11,012 rows, CreditCard=4,720 rows, ACH=9,439 rows",
+            "source": "Live environment queries confirmed all counts. Seeding formula: SalesOrderID % 20 determines category (0-13=full, 14-16=split, 17-18=partial, 19=unpaid). Evidence files: 04_payment_distribution.txt, 15_payment_categories.txt",
+            "status": "verified"
+        },
+        {
+            "key": "overpaying_customers",
+            "metadata_value": "Not explicitly in metadata (data property)",
+            "verified_value": "5 customers have overpayments (total paid > total invoiced): CustomerID 11698 ($0.02 over), 12308 ($0.02), 29498 ($0.02), 12094 ($0.01), 16316 ($0.01). These occur due to rounding in split payment calculations (ROUND(TotalDue * 0.6, 2) + (TotalDue - ROUND(TotalDue * 0.6, 2)) can exceed TotalDue by $0.01-$0.02). The agent's FIFO procedure must create SalesOrderID=-1 credit balance rows for these customers",
+            "source": "Live environment query: customers where SUM(PaymentLedger.Amount) > SUM(SalesOrderHeader.TotalDue) grouped by CustomerID. Evidence file: 06_customer_relationships.txt",
+            "status": "verified"
+        },
+        {
+            "key": "fully_unpaid_invoices",
+            "metadata_value": "Not explicitly in metadata (data property)",
+            "verified_value": "611 invoices have zero payments (no matching CustomerID in PaymentLedger OR from the 5% unpaid category). These invoices will have OpenBalance = TotalDue in vw_InvoiceOpenBalance and will appear in aging buckets",
+            "source": "Live environment query: SELECT COUNT(*) from SalesOrderHeader WHERE CustomerID NOT IN (SELECT DISTINCT CustomerID FROM AR.PaymentLedger) OR SalesOrderID % 20 = 19 logic. Evidence file: 06_customer_relationships.txt shows 611 fully unpaid invoices",
+            "status": "verified"
+        },
+        {
+            "key": "difficulty_rationale",
+            "metadata_value": "FIFO payment-to-invoice allocation requires stateful row-by-row processing...",
+            "verified_value": "Rationale is accurate. The FIFO allocation over 34,610 payments and 31,465 invoices across 18,522 distinct customers requires nested cursor logic (~80-110 lines T-SQL). Key challenges: (1) customer boundary handling — payments must only match same-customer invoices, (2) partial allocation splitting — a single payment may span multiple invoices, (3) overpayment credit balances — 5 customers have payments exceeding their invoices, requiring SalesOrderID=-1 rows, (4) reconciliation to the penny — $111,954,748.41 total must match within $0.01",
+            "source": "Analysis of task requirements against actual data properties. The nested cursor pattern (outer: customers, inner: payments per customer matching to invoices per customer) is the standard approach for this type of FIFO allocation. Verified data scale and edge cases in live environment",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the real AdventureWorks2022 SQL Server sample database (Microsoft SQL Server 2022 RTM-CU17, build 16.0.4175.1) containing 31,465 sales orders across 19,820 customers. The AR.PaymentLedger table is pre-seeded with 34,610 payment rows (~34.6K as stated in the task description; split payments generate 2 rows per order, inflating from ~25K orders to 34.6K payment rows). Total payment amount is $111,954,748.41. Total invoice amount (SUM of TotalDue) is $123,216,786.12, meaning $11,262,037.71 remains as open receivables. Payment distribution: 22,026 full payments (70%), 9,438 split payments from 4,719 orders (15%), 3,146 late partial payments at 50% (10%), and 1,574 orders with zero payments (5%). Payment methods: Check=9,439, Wire=11,012, CreditCard=4,720, ACH=9,439. There are exactly 5 customers with overpayments (CustomerIDs 11698, 12308, 29498, 12094, 16316) — each overpays by $0.01-$0.02 due to rounding in the 60/40 split payment formula. The FIFO allocation procedure must create SalesOrderID=-1 credit balance rows for these 5 customers. There are 611 fully unpaid invoices that will appear in aging buckets. The reconciliation gate requires SUM(PaymentAllocation.AllocatedAmount) = $111,954,748.41 within $0.01. The aging function must be called with @AsOfDate='2014-06-30'. CSV export goes to /home/ga/Documents/exports/ar_aging_report.csv. The verifier scores 105 points maximum across 16 criteria with a pass threshold of 70 points AND reconciliation within $1.00. Database credentials: server=localhost, user=sa, password=GymAnything#2024, database=AdventureWorks2022.",
+    "pi_confidence": "high"
+}

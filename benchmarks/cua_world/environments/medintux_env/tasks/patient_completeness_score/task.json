@@ -1,0 +1,44 @@
+{
+  "id": "patient_completeness_score@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "Analyze patient record completeness in the DrTuxTest database (user: root, no password). For every patient in the 'fchpat' table joined with 'IndexNomPrenom', calculate a completeness score based on nine fields: FchPat_NomFille, FchPat_Nee, FchPat_Sexe, FchPat_Titre, FchPat_Adresse, FchPat_CP, FchPat_Ville, FchPat_Tel1, and FchPat_NumSS. The score is the percentage of these fields that are non-NULL and non-empty, calculated as (count_present / 9) * 100 rounded to one decimal place. Export a CSV file to '~/patient_completeness_report.csv' sorted by 'completeness_pct' in ascending order. The CSV must include the columns: guid, nom, prenom, fields_populated (count 0-9), completeness_pct, and missing_fields (pipe-separated list of empty field names).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/patient_completeness_score/setup_task.sh",
+    "post_task": "/workspace/tasks/patient_completeness_score/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/patient_completeness_report.csv",
+    "required_columns": [
+      "guid",
+      "nom",
+      "prenom",
+      "fields_populated",
+      "completeness_pct",
+      "missing_fields"
+    ],
+    "fields_to_check": [
+      "FchPat_NomFille",
+      "FchPat_Nee",
+      "FchPat_Sexe",
+      "FchPat_Titre",
+      "FchPat_Adresse",
+      "FchPat_CP",
+      "FchPat_Ville",
+      "FchPat_Tel1",
+      "FchPat_NumSS"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_patient_completeness_score"
+    }
+  }
+}

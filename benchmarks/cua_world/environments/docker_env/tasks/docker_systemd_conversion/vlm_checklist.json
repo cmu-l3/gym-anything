@@ -1,0 +1,65 @@
+{
+  "task_id": "docker_systemd_conversion@1",
+  "task_completion": [
+    {
+      "id": "unit_files_created",
+      "description": "Create three systemd unit files for the services.",
+      "points": 36,
+      "visual_evidence": "Screenshots showing the creation or existence of 'acme-db.service', 'acme-api.service', and 'acme-frontend.service' in '/etc/systemd/system/' (e.g., via 'ls', 'cat', or a text editor)."
+    },
+    {
+      "id": "service_dependencies",
+      "description": "Configure correct start order dependencies between services.",
+      "points": 16,
+      "visual_evidence": "Screenshots of the unit files showing 'After=acme-db.service' in the API service and 'After=acme-api.service' in the Frontend service."
+    },
+    {
+      "id": "docker_dependency",
+      "description": "Configure services to require docker.service.",
+      "points": 5,
+      "visual_evidence": "Screenshots of the unit files showing 'Requires=docker.service' or 'After=docker.service'."
+    },
+    {
+      "id": "restart_policy",
+      "description": "Configure services for automatic restarts on failure.",
+      "points": 5,
+      "visual_evidence": "Screenshots of the unit files showing a restart policy like 'Restart=on-failure' or 'Restart=always'."
+    },
+    {
+      "id": "services_enabled",
+      "description": "Enable the systemd services to start on boot.",
+      "points": 10,
+      "visual_evidence": "Terminal output showing 'systemctl enable' commands creating symlinks, or 'systemctl status' showing the services as 'enabled'."
+    },
+    {
+      "id": "services_active",
+      "description": "Start the systemd services.",
+      "points": 15,
+      "visual_evidence": "Terminal output showing 'systemctl start' commands, or 'systemctl status' showing the services as 'active (running)'."
+    },
+    {
+      "id": "application_accessible",
+      "description": "Verify the final application is accessible and functional.",
+      "points": 13,
+      "visual_evidence": "A successful 'curl localhost:8080' command returning the application's response, or a web browser displaying the frontend at localhost:8080."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_systemd_usage",
+      "description": "The agent used systemd to manage the containers rather than running them manually.",
+      "visual_evidence": "Look for 'systemctl' commands being executed. The agent should not just run 'docker run' commands directly in the terminal to bypass systemd."
+    },
+    {
+      "id": "no_manual_script_execution",
+      "description": "The agent did not simply execute the old manual deployment script.",
+      "visual_evidence": "Ensure the agent did not just run '~/projects/acme-services/run_services.sh' to start the services and pretend they are managed by systemd."
+    },
+    {
+      "id": "actual_file_creation",
+      "description": "The agent genuinely created the unit files.",
+      "visual_evidence": "Look for the use of text editors (nano, vim) or shell redirection (echo >) to create the .service files, rather than just copying pre-existing files if they weren't supposed to exist."
+    }
+  ],
+  "privileged_info_for_vlm": "The task requires converting a manual Docker deployment to systemd. Three unit files must be created in /etc/systemd/system/: acme-db.service, acme-api.service, and acme-frontend.service. Dependencies: API starts after DB, Frontend starts after API. All must require docker.service and have a restart policy (e.g., Restart=on-failure). The services must be enabled and active via systemctl. The final application must be accessible at localhost:8080. The underlying containers are acme-db (postgres:14), acme-api (Flask on port 5000), and acme-frontend (nginx on port 8080)."
+}

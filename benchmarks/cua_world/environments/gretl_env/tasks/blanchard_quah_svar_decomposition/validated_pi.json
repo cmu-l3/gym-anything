@@ -1,0 +1,178 @@
+{
+    "task_id": "blanchard_quah_svar_decomposition@1",
+    "dataset": "usa.gdt",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "dataset",
+            "metadata_value": "usa.gdt",
+            "verified_value": "usa.gdt",
+            "source": "Live test: file exists at /home/ga/Documents/gretl_data/usa.gdt. GDT XML format with 103 quarterly observations (1984:1-2009:3), 2 variables (gdp, inf). Original source: Federal Reserve Bank of St. Louis FRED database (GDPC96, CPIAUCSL), bundled with Principles of Econometrics (Hill, Griffiths, Lim) Chapter 12 / POE5 textbook data.",
+            "status": "verified"
+        },
+        {
+            "key": "dataset_path",
+            "metadata_value": "/home/ga/Documents/gretl_data/usa.gdt",
+            "verified_value": "/home/ga/Documents/gretl_data/usa.gdt",
+            "source": "Live test: confirmed file exists at this path. setup_task.sh copies from /opt/gretl_data/poe5/usa.gdt or /usr/share/gretl/data/poe5/usa.gdt, with embedded XML fallback.",
+            "status": "verified"
+        },
+        {
+            "key": "script_output_path",
+            "metadata_value": "/home/ga/Documents/gretl_output/bq_svar.inp",
+            "verified_value": "/home/ga/Documents/gretl_output/bq_svar.inp",
+            "source": "Live test: confirmed directory /home/ga/Documents/gretl_output/ is writable by user ga. File creation tested successfully during live export_result.sh validation.",
+            "status": "verified"
+        },
+        {
+            "key": "report_output_path",
+            "metadata_value": "/home/ga/Documents/gretl_output/bq_results.txt",
+            "verified_value": "/home/ga/Documents/gretl_output/bq_results.txt",
+            "source": "Live test: file creation and writing tested successfully. export_result.sh correctly checks this path.",
+            "status": "verified"
+        },
+        {
+            "key": "output_dir",
+            "metadata_value": "/home/ga/Documents/gretl_output",
+            "verified_value": "/home/ga/Documents/gretl_output",
+            "source": "Live test: directory exists, owned by ga:ga, starts empty after setup_task.sh cleanup. Permissions: drwxr-xr-x.",
+            "status": "verified"
+        },
+        {
+            "key": "required_vars",
+            "metadata_value": ["gdp_growth", "inf"],
+            "verified_value": ["gdp_growth", "inf"],
+            "source": "Live test via gretlcli: 'inf' is variable 2 in usa.gdt (CPI inflation rate, annualized %). 'gdp_growth' must be created by agent using 'series gdp_growth = 100 * diff(log(gdp))'. Both confirmed to work — gdp_growth generated as ID 3 with 102 valid observations (first obs is NA from differencing). gdp summary: mean=11536, range 7285-14774. inf summary: mean=2.81, range -6.3 to 5.6.",
+            "status": "verified"
+        },
+        {
+            "key": "var_ordering",
+            "metadata_value": ["gdp_growth", "inf"],
+            "verified_value": ["gdp_growth", "inf"],
+            "source": "Live test: VAR estimated with 'var 2 gdp_growth inf' — gretl produces Equation 1: gdp_growth, Equation 2: inf. This ordering means variable 1 = gdp_growth, variable 2 = inf, which is consistent with the BQ restriction that shock 2 (demand) has zero long-run effect on variable 1 (output). Standard BQ convention confirmed via AER paper and textbook references.",
+            "status": "verified"
+        },
+        {
+            "key": "identification",
+            "metadata_value": "blanchard_quah_long_run",
+            "verified_value": "blanchard_quah_long_run",
+            "source": "Web search: Blanchard, O.J. and Quah, D. (1989), 'The Dynamic Effects of Aggregate Demand and Supply Disturbances,' American Economic Review, 79(4), 655-673. The BQ identification uses long-run restrictions on the structural impact matrix, specifically that the (1,2) element of the long-run structural matrix C(1)*S equals zero. Note: original paper used GNP growth + unemployment, not GDP growth + inflation, but the identification principle is identical and the GDP+inflation adaptation is widely used in textbooks.",
+            "status": "verified"
+        },
+        {
+            "key": "long_run_restriction",
+            "metadata_value": "demand shock has zero cumulative effect on gdp_growth",
+            "verified_value": "demand shock has zero cumulative effect on gdp_growth",
+            "source": "Live test computation: C(1)*S matrix = [[1.6996, -3.3307e-16], [6.6721, 2.5631]]. Element [1,2] = -3.3307e-16 which is numerically zero (machine precision). This confirms the BQ long-run restriction holds: the second structural shock (demand) has zero cumulative long-run effect on the first variable (gdp_growth). Also confirmed via web search of the original BQ(1989) paper.",
+            "status": "verified"
+        },
+        {
+            "key": "keywords",
+            "metadata_value": ["structural", "Blanchard-Quah", "long-run", "companion", "cholesky", "supply shock", "demand shock", "impulse response"],
+            "verified_value": ["structural", "Blanchard-Quah", "long-run", "companion", "cholesky", "supply shock", "demand shock", "impulse response"],
+            "source": "All keywords verified as relevant to the task. 'companion' refers to gretl's $compan matrix accessor (confirmed in live test: 'matrix Comp = $compan' works). 'cholesky' refers to the Cholesky decomposition of the long-run covariance matrix (confirmed: 'matrix P = cholesky(LR_cov)' works in gretl). 'structural', 'Blanchard-Quah', 'long-run', 'supply shock', 'demand shock' are all standard BQ SVAR terminology.",
+            "status": "verified"
+        }
+    ],
+    "ground_truth_values": {
+        "dataset_properties": {
+            "n_observations": 103,
+            "frequency": "quarterly",
+            "start": "1984:1",
+            "end": "2009:3",
+            "variables": ["gdp", "inf"],
+            "gdp_mean": 11536,
+            "gdp_range": [7285.0, 14774],
+            "inf_mean": 2.8068,
+            "inf_range": [-6.3, 5.6],
+            "source": "FRED (GDPC96, CPIAUCSL)"
+        },
+        "gdp_growth_creation": {
+            "formula": "100 * diff(log(gdp))",
+            "valid_observations": 102,
+            "first_valid_obs": "1984:2",
+            "note": "First observation (1984:1) is NA due to differencing"
+        },
+        "adf_tests_4lags_with_constant": {
+            "gdp_growth": {
+                "tau_c": -2.34206,
+                "p_value": 0.1588,
+                "sample_size": 97,
+                "interpretation": "DOES NOT reject unit root at 5% (p=0.16). Borderline — GDP growth is theoretically stationary but the ADF test lacks power with this sample. Agent should note this but proceed."
+            },
+            "inf": {
+                "tau_c": -3.9311,
+                "p_value": 0.001824,
+                "sample_size": 98,
+                "interpretation": "Strongly rejects unit root at 1%. Inflation is stationary in this sample."
+            }
+        },
+        "var_lag_selection": {
+            "aic_optimal_lag": 2,
+            "aic_value_at_lag2": 3.284031,
+            "bic_optimal_lag": 1,
+            "bic_value_at_lag1": 3.466317,
+            "hqc_optimal_lag": 1,
+            "hqc_value_at_lag1": 3.369552,
+            "note": "AIC selects lag 2, BIC and HQC select lag 1. Task says to use AIC, so correct answer is lag 2."
+        },
+        "var2_estimation": {
+            "sample": "1984:4-2009:3 (T=100)",
+            "log_likelihood": -148.48781,
+            "determinant_cov": 0.066803619,
+            "aic": 3.1698,
+            "bic": 3.4303,
+            "equation1_gdp_growth": {
+                "const": 0.104554,
+                "gdp_growth_1": 0.456683,
+                "gdp_growth_2": 0.243610,
+                "inf_1": 0.0315129,
+                "inf_2": 0.00241578,
+                "R_squared": 0.577986,
+                "SE_regression": 0.303763
+            },
+            "equation2_inf": {
+                "const": 0.297723,
+                "gdp_growth_1": -0.366228,
+                "gdp_growth_2": 0.978394,
+                "inf_1": 0.910758,
+                "inf_2": -0.178025,
+                "R_squared": 0.724122,
+                "SE_regression": 1.036690
+            },
+            "granger_causality": {
+                "gdp_growth_causes_inf": {
+                    "F_stat": 3.1494,
+                    "p_value": 0.0474,
+                    "significant_5pct": true
+                },
+                "inf_causes_gdp_growth": {
+                    "F_stat": 1.0319,
+                    "p_value": 0.3603,
+                    "significant_5pct": false
+                }
+            }
+        },
+        "blanchard_quah_decomposition": {
+            "long_run_multiplier_C1": [[4.5046, 0.57184], [10.318, 5.0514]],
+            "structural_impact_matrix_S": [[0.28301, -0.086961], [0.74279, 0.68502]],
+            "long_run_structural_C1_times_S": [[1.6996, 0.0], [6.6721, 2.5631]],
+            "verification": "C(1)*S element [1,2] = -3.3307e-16 (numerically zero), confirming BQ restriction holds.",
+            "method": "S = inv(C1) * cholesky(C1 * Sigma * C1') where C1 = inv(I - A1 - A2)"
+        },
+        "gretl_specific": {
+            "version": "2022a",
+            "companion_matrix_accessor": "$compan",
+            "covariance_accessor": "$sigma",
+            "companion_matrix_structure": "For VAR(p) with n=2 variables, companion is (2p x 2p). Lag coefficient matrices A_i are in rows 1:n, columns ((i-1)*n+1):(i*n).",
+            "cholesky_function": "cholesky() — returns lower-triangular factor",
+            "qform_function": "qform(A, B) = A * B * A' — used for C1 * Sigma * C1'",
+            "svar_addon_status": "SVAR addon v2.0 bundled but INCOMPATIBLE with gretl 2022a (requires newer API). Task uses built-in matrix algebra instead.",
+            "menu_path_var": "Model > Multivariate time series > Vector Autoregression (VAR)",
+            "menu_path_lag_selection": "Model > Multivariate time series > VAR lag selection"
+        }
+    },
+    "privileged_info_summary": "Dataset usa.gdt contains 103 quarterly observations (1984:1-2009:3) of real GDP (billions chained 2005 dollars, FRED: GDPC96) and CPI inflation rate (annualized %, FRED: CPIAUCSL). The agent must create gdp_growth = 100*diff(log(gdp)), yielding 102 valid observations starting 1984:2. ADF tests (4 lags, constant): gdp_growth tau_c = -2.342 (p=0.159, does NOT reject at 5%); inf tau_c = -3.931 (p=0.002, rejects). AIC-optimal VAR lag order is 2 (AIC=3.284); BIC and HQC both favor lag 1. VAR(2) sample is 1984:4-2009:3 (T=100). Key VAR(2) coefficients: gdp_growth equation has gdp_growth_1=0.457, gdp_growth_2=0.244; inf equation has inf_1=0.911, inf_2=-0.178. Granger causality: GDP growth Granger-causes inflation (F=3.15, p=0.047) but inflation does NOT Granger-cause GDP growth (F=1.03, p=0.360). For the BQ decomposition, the long-run multiplier matrix C(1) = inv(I - A1 - A2) = [[4.505, 0.572], [10.318, 5.051]]. The structural impact matrix S = [[0.283, -0.087], [0.743, 0.685]]. The long-run structural matrix C(1)*S = [[1.700, ~0], [6.672, 2.563]], confirming element [1,2] is zero (BQ restriction verified). The SVAR addon is bundled but incompatible with gretl 2022a; the agent must use built-in matrix algebra ($compan, $sigma, inv(), cholesky(), qform()). The VAR menu is at Model > Multivariate time series > Vector Autoregression.",
+    "pi_confidence": "high"
+}

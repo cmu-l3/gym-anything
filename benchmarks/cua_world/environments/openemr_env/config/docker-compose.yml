@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mariadb:10.11
+    container_name: openemr-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: openemr
+      MYSQL_USER: openemr
+      MYSQL_PASSWORD: openemr
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  openemr:
+    image: openemr/openemr:7.0.2
+    container_name: openemr-app
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_ROOT_PASS: root
+      MYSQL_USER: openemr
+      MYSQL_PASS: openemr
+      MYSQL_DATABASE: openemr
+      OE_USER: admin
+      OE_PASS: pass
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+volumes:
+  mysql_data:

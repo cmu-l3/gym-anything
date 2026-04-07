@@ -1,0 +1,39 @@
+{
+  "id": "configure_motion_detection@1",
+  "version": "1.0",
+  "env_id": "nx_witness_vms_env@0.1",
+  "description": "Configure software motion detection and recording schedules for the Entrance Camera, Server Room Camera, and Loading Dock Camera using the Nx Witness REST API. For these specific cameras, set 'motionType' to 'software' and update the recording schedule to 'motionOnly' for all existing time periods. Ensure the Parking Lot Camera and Lobby Camera remain unchanged. Generate a JSON configuration report for all cameras at /home/ga/motion_detection_config.json using the following structure:\n\n{\n  \"generated_by\": \"agent\",\n  \"cameras\": [\n    {\n      \"name\": \"Camera Name\",\n      \"id\": \"UUID\",\n      \"motionType\": \"software|default\",\n      \"recordingType\": \"motionOnly|always\",\n      \"motionDetectionEnabled\": true|false\n    }\n  ]\n}",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_motion_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_motion_detection/export_result.sh"
+  },
+  "metadata": {
+    "target_cameras": [
+      "Entrance Camera",
+      "Server Room Camera",
+      "Loading Dock Camera"
+    ],
+    "ignored_cameras": [
+      "Parking Lot Camera",
+      "Lobby Camera"
+    ],
+    "report_path": "/home/ga/motion_detection_config.json",
+    "api_base": "https://localhost:7001",
+    "credentials": {
+      "user": "admin",
+      "pass": "Admin1234!"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_motion_detection"
+    }
+  }
+}

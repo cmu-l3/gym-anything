@@ -1,0 +1,35 @@
+{
+  "id": "audit_patient_eligibility@1",
+  "version": "1.0",
+  "env_id": "vista_env@0.1",
+  "description": "Audit the eligibility and service history for patient 'ZZZRETFIVEFIFTYONE,PATIENT' (DFN 1). You must identify the resolved text names for their 'Period of Service' and 'Primary Eligibility Code'.\n\nContext:\nRaw patient data often contains internal ID numbers (pointers) rather than human-readable text. To verify a patient's status, you must trace these pointers to their reference files.\n\nSteps:\n1. Open YDBGui (Global Viewer).\n2. Navigate to the Patient file `^DPT` and find DFN 1.\n3. Identify the 'Period of Service' pointer in node `.32` (3rd piece) and the 'Primary Eligibility Code' pointer in node `.36` (1st piece).\n4. Navigate to the Period of Service file `^DIC(21)` to resolve the service pointer to a name (e.g., 'WORLD WAR II').\n5. Navigate to the Eligibility Code file `^DIC(8)` to resolve the eligibility pointer to a name (e.g., 'SC LESS THAN 50%').\n\nGoal:\nDisplay the resolved names for both Period of Service and Eligibility Code on screen. You can use the Global Viewer to browse these files manually or use the Octo SQL tab to join the tables.\n\nExpected Output:\nThe final screen should show the human-readable names for the patient's service period and eligibility code.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_patient_eligibility/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_patient_eligibility/export_result.sh"
+  },
+  "metadata": {
+    "target_dfn": 1,
+    "target_patient_name": "ZZZRETFIVEFIFTYONE,PATIENT",
+    "patient_global": "^DPT",
+    "service_file": "^DIC(21)",
+    "eligibility_file": "^DIC(8)",
+    "scoring_weights": {
+      "vista_running": 10,
+      "ydbgui_accessible": 10,
+      "browser_open": 5,
+      "vlm_verification": 75
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_patient_eligibility"
+    }
+  }
+}

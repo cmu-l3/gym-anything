@@ -1,0 +1,29 @@
+{
+  "id": "dynamic_threat_intel_pipeline@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Build a two-stage threat detection pipeline in Splunk (http://localhost:8000, admin/SplunkAdmin1!). Create a scheduled report named 'Generate_Threat_Intel' to run hourly ('0 * * * *') that identifies failed SSH authentication events in the 'security_logs' index and exports the source IPs to a lookup file named 'local_threat_intel.csv'. Additionally, create a report named 'Web_Threat_Correlation' that correlates 'web_logs' data with the 'local_threat_intel.csv' lookup to identify web traffic originating from the identified attacker IPs. Both the Splunk UI and REST API are acceptable approaches.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dynamic_threat_intel_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/dynamic_threat_intel_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!",
+    "stage1_name": "Generate_Threat_Intel",
+    "stage2_name": "Web_Threat_Correlation",
+    "lookup_file": "local_threat_intel.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dynamic_threat_intel_pipeline"
+    }
+  }
+}

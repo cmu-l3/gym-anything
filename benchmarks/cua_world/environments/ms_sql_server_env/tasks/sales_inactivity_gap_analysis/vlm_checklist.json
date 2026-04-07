@@ -1,0 +1,53 @@
+{
+  "task_id": "sales_inactivity_gap_analysis@1",
+  "task_completion": [
+    {
+      "id": "connect_database",
+      "description": "Verify the agent connects to the AdventureWorks2022 database.",
+      "points": 10,
+      "visual_evidence": "A SQL client (like Azure Data Studio, DBeaver, or terminal sqlcmd) is open and shows an active connection to the 'AdventureWorks2022' database, or a 'USE AdventureWorks2022' command is executed."
+    },
+    {
+      "id": "create_tvf",
+      "description": "Verify the creation of the Table-Valued Function Sales.tvf_GetSalesPersonMaxGap.",
+      "points": 30,
+      "visual_evidence": "A SQL script containing 'CREATE FUNCTION Sales.tvf_GetSalesPersonMaxGap' with parameters '@StartDate DATE' and '@EndDate DATE' is visible, along with an execution success message in the output/messages pane."
+    },
+    {
+      "id": "create_view",
+      "description": "Verify the creation of the View Sales.vw_2013_InactivityReport.",
+      "points": 30,
+      "visual_evidence": "A SQL script containing 'CREATE VIEW Sales.vw_2013_InactivityReport' that joins the new TVF (passing 2013 dates) with 'Person.Person' is visible, along with an execution success message."
+    },
+    {
+      "id": "query_top_5",
+      "description": "Verify the agent queries the top 5 salespeople with the longest gaps from the view.",
+      "points": 10,
+      "visual_evidence": "A query selecting from 'Sales.vw_2013_InactivityReport' using 'TOP 5' (or equivalent limit) and 'ORDER BY MaxGapDays DESC' is executed, with the results visible in a data grid."
+    },
+    {
+      "id": "export_csv",
+      "description": "Verify the results are exported to the specified CSV file path with headers.",
+      "points": 20,
+      "visual_evidence": "A file explorer, terminal (e.g., 'cat' or 'ls' command), or text editor showing the file '/home/ga/Documents/inactivity_report_2013.csv' containing headers (including name and gap details) and 5 rows of data."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "sql_execution_verified",
+      "description": "Ensure the SQL commands were actually executed against the database.",
+      "visual_evidence": "Look for execution success messages, row counts, execution times, or populated result grids in the SQL client, rather than just unexecuted text in an editor."
+    },
+    {
+      "id": "logic_not_hardcoded",
+      "description": "Ensure the function and view use actual SQL logic to calculate gaps rather than hardcoding answers.",
+      "visual_evidence": "The SQL scripts should show date math (e.g., DATEDIFF) and window functions (e.g., LAG, LEAD) or self-joins to find consecutive orders, not hardcoded salesperson IDs or gap numbers."
+    },
+    {
+      "id": "authentic_export",
+      "description": "Ensure the CSV file was generated via a genuine export process or script.",
+      "visual_evidence": "The CSV file should be the result of a 'Save As CSV' action in the SQL client, a command-line export tool (like bcp or sqlcmd), or a script, rather than manually typed out in a text editor."
+    }
+  ],
+  "privileged_info_for_vlm": "The agent must create a Table-Valued Function named 'Sales.tvf_GetSalesPersonMaxGap' and a View named 'Sales.vw_2013_InactivityReport'. The final output must be exported exactly to '/home/ga/Documents/inactivity_report_2013.csv'. The gap calculation logic should measure the days between two consecutive orders (e.g., orders on Jan 1 and Jan 10 have an 8-day gap)."
+}

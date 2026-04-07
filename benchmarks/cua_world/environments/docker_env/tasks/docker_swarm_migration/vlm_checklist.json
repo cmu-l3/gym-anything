@@ -1,0 +1,59 @@
+{
+  "task_id": "docker_swarm_migration@1",
+  "task_completion": [
+    {
+      "id": "swarm_initialized",
+      "description": "Initialize the Docker Swarm cluster",
+      "points": 10,
+      "visual_evidence": "Terminal showing the execution of `docker swarm init` with a success message like 'Swarm initialized: current node... is now a manager', or `docker node ls` showing an active swarm node."
+    },
+    {
+      "id": "images_built",
+      "description": "Build local images for web and api services",
+      "points": 10,
+      "visual_evidence": "Terminal showing `docker build` commands tagging images as `acme-web:1.0` and `acme-api:1.0`, or `docker images` listing these specific tags."
+    },
+    {
+      "id": "docker_stack_yml_content",
+      "description": "Create docker-stack.yml with required configurations",
+      "points": 30,
+      "visual_evidence": "A text editor or terminal output (`cat docker-stack.yml`) showing the file content. It must include: images `acme-web:1.0` and `acme-api:1.0`, an overlay network `acme-net`, `replicas: 3` for web, `replicas: 2` for api, `replicas: 1` for db and cache, `update_config` with `parallelism: 1` and `delay: 10s` for web, `limits` with `memory: 256M` for web and api, and NO `depends_on` directives."
+    },
+    {
+      "id": "stack_deployed",
+      "description": "Deploy the stack named acme-tools",
+      "points": 20,
+      "visual_evidence": "Terminal showing the execution of `docker stack deploy -c docker-stack.yml acme-tools` and a success message indicating services are created."
+    },
+    {
+      "id": "services_running",
+      "description": "Verify the correct number of replicas are running",
+      "points": 15,
+      "visual_evidence": "Terminal showing `docker service ls` or `docker stack ps acme-tools` with the correct replica counts (3/3 for web, 2/2 for api, 1/1 for db and cache)."
+    },
+    {
+      "id": "app_accessible",
+      "description": "Verify the application is accessible at http://localhost:8080",
+      "points": 15,
+      "visual_evidence": "A web browser showing the application loaded at `http://localhost:8080` (containing 'AcmeCorp'), or a `curl http://localhost:8080` command returning the HTML content."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_deployment",
+      "description": "The agent actually deployed the stack using Docker commands",
+      "visual_evidence": "Look for genuine Docker CLI output for `docker stack deploy` and `docker service ls`. The output should not look manually typed or echoed."
+    },
+    {
+      "id": "genuine_browser_access",
+      "description": "The agent genuinely accessed the application",
+      "visual_evidence": "Look for a real web browser window navigating to localhost:8080 or a genuine `curl` command execution, rather than just printing a hardcoded string."
+    },
+    {
+      "id": "no_depends_on_cheat",
+      "description": "The agent did not leave depends_on directives in the stack file",
+      "visual_evidence": "Ensure the `docker-stack.yml` file shown in the editor or terminal does not contain any `depends_on` keys, as Swarm ignores them but the task explicitly requires their removal."
+    }
+  ],
+  "privileged_info_for_vlm": "Project directory: /home/ga/projects/acme-platform. Stack name: acme-tools. Required images: acme-web:1.0, acme-api:1.0. Replicas: web=3, api=2, db=1, cache=1. Web update policy: parallelism=1, delay=10s. Memory limit: 256MB for web and api. App URL: http://localhost:8080 serving HTML containing 'AcmeCorp'."
+}

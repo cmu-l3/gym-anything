@@ -1,0 +1,106 @@
+# Redis deployment based on the official Kubernetes redis example
+# Source: https://kubernetes.io/docs/tutorials/configuration/configure-redis-using-configmap/
+# Uses real redis:7-alpine image from Docker Hub
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: staging
+  labels:
+    app: redis
+    component: primary
+    tier: backend
+data:
+  redis.conf: |
+    maxmemory 128mb
+    maxmemory-policy allkeys-lru
+    save 60 1000
+    appendonly yes
+    appendfsync everysec
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+    databases 16
+    loglevel notice
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-primary
+  namespace: staging
+  labels:
+    app: redis
+    component: primary
+    tier: backend
+    version: "7.2"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      component: primary
+  template:
+    metadata:
+      labels:
+        app: redis
+        component: primary
+        tier: backend
+        version: "7.2"
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+          protocol: TCP
+        command: ["redis-server", "/etc/redis/redis.conf"]
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        volumeMounts:
+        - name: redis-config
+          mountPath: /etc/redis
+        - name: redis-data
+          mountPath: /data
+        livenessProbe:
+          tcpSocket:
+            port: redis
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          exec:
+            command: ["redis-cli", "ping"]
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config
+      - name: redis-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-primary
+  namespace: staging
+  labels:
+    app: redis
+    component: primary
+    tier: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: redis
+    protocol: TCP
+    name: redis
+  selector:
+    app: redis
+    component: primary

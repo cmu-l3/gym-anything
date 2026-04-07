@@ -1,0 +1,212 @@
+{
+  "id": "end_of_quarter_pipeline_restructure@1",
+  "version": "1.0",
+  "env_id": "odoo_crm_env@0.1",
+  "description": "You are the CRM administrator preparing for the end-of-quarter pipeline restructure. Execute the following directive from the VP of Sales. Login at http://localhost:8069 with admin / admin.\n\nInfrastructure:\n- Create a pipeline stage 'Negotiation' positioned between 'Proposition' and 'Won' with 75% default probability.\n- Create a sales team 'Strategic Accounts' with Mitchell Admin as team leader.\n- Create a lost reason 'Gone Dark - No Response'.\n\nProcess ALL opportunities in the pipeline according to these rules. Apply every matching rule to each opportunity:\n(a) Expected revenue >= $100,000: assign to 'Strategic Accounts' team, add tag 'Key Deal'.\n(b) Expected revenue >= $100,000 AND currently in 'Proposition' stage with probability >= 60%: additionally advance to 'Negotiation' stage.\n(c) Expected revenue < $50,000 AND in 'New' stage with probability <= 10%: mark as Lost with reason 'Gone Dark - No Response'.\n(d) Internal notes mention 'RivalSoft': add tag 'Competitive'.\n(e) Internal notes indicate the deal champion is leaving or departing: set priority to 3 stars (Urgent), add tag 'At Risk', and schedule a 'Call' activity for April 15, 2026 with summary 'Urgent: find new deal sponsor' assigned to Mitchell Admin.\n\nAfter all processing, tag every non-lost opportunity with 'Q1-Reviewed'.\n\nData cleanup:\n- Consolidate the duplicate company records for Caspian Technologies. The duplicate is named 'Caspian Tech'. Transfer all its opportunities to 'Caspian Technologies' and archive the duplicate.\n- For the 'Employee Portal Development' opportunity: rename it to 'Employee Portal - Phase 1', update expected revenue to $40,000 (the original quote mentioned in its internal notes), and log an internal note: 'Revenue and scope corrected per Q1 review.'",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 400,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/end_of_quarter_pipeline_restructure/setup_task.sh",
+    "post_task": "/workspace/tasks/end_of_quarter_pipeline_restructure/export_result.sh"
+  },
+  "metadata": {
+    "infrastructure": {
+      "new_stage": "Negotiation",
+      "new_stage_probability": 75,
+      "lost_reason": "Gone Dark - No Response",
+      "sales_team": "Strategic Accounts",
+      "sales_team_leader": "Mitchell Admin"
+    },
+    "opportunities": {
+      "opp01": {
+        "name": "Enterprise Data Platform",
+        "company": "Apex Global Industries",
+        "revenue": 180000,
+        "stage": "Proposition",
+        "probability": 65,
+        "rules": ["a", "b"],
+        "expected_stage": "Negotiation",
+        "expected_team": "Strategic Accounts",
+        "expected_tags": ["Key Deal", "Q1-Reviewed"],
+        "expected_priority": "0",
+        "expected_lost": false
+      },
+      "opp02": {
+        "name": "Cloud Security Assessment",
+        "company": "Apex Global Industries",
+        "revenue": 45000,
+        "stage": "New",
+        "probability": 8,
+        "rules": ["c", "d"],
+        "expected_stage": null,
+        "expected_team": null,
+        "expected_tags": ["Competitive"],
+        "expected_priority": "0",
+        "expected_lost": true,
+        "expected_lost_reason": "Gone Dark - No Response"
+      },
+      "opp03": {
+        "name": "IT Infrastructure Modernization",
+        "company": "Boreal Systems Ltd",
+        "revenue": 220000,
+        "stage": "Qualified",
+        "probability": 40,
+        "rules": ["a", "e"],
+        "expected_stage": "Qualified",
+        "expected_team": "Strategic Accounts",
+        "expected_tags": ["Key Deal", "At Risk", "Q1-Reviewed"],
+        "expected_priority": "3",
+        "expected_lost": false,
+        "expected_activity": {
+          "type": "Call",
+          "date": "2026-04-15",
+          "summary": "Urgent: find new deal sponsor"
+        }
+      },
+      "opp04": {
+        "name": "Annual Support Renewal",
+        "company": "Boreal Systems Ltd",
+        "revenue": 32000,
+        "stage": "Won",
+        "probability": 100,
+        "rules": [],
+        "expected_stage": "Won",
+        "expected_team": null,
+        "expected_tags": ["Q1-Reviewed"],
+        "expected_priority": "0",
+        "expected_lost": false
+      },
+      "opp05": {
+        "name": "AI/ML Pipeline Integration",
+        "company": "Caspian Technologies",
+        "revenue": 95000,
+        "stage": "Qualified",
+        "probability": 55,
+        "rules": [],
+        "expected_stage": "Qualified",
+        "expected_team": null,
+        "expected_tags": ["Q1-Reviewed"],
+        "expected_priority": "0",
+        "expected_lost": false
+      },
+      "opp06": {
+        "name": "API Gateway Setup",
+        "company_before_merge": "Caspian Tech",
+        "company_after_merge": "Caspian Technologies",
+        "revenue": 38000,
+        "stage": "New",
+        "probability": 10,
+        "rules": ["c"],
+        "expected_stage": null,
+        "expected_team": null,
+        "expected_tags": [],
+        "expected_priority": "0",
+        "expected_lost": true,
+        "expected_lost_reason": "Gone Dark - No Response"
+      },
+      "opp07": {
+        "name": "Marketing Automation Platform",
+        "company": "Dawnlight Digital",
+        "revenue": 150000,
+        "stage": "Proposition",
+        "probability": 70,
+        "rules": ["a", "b", "d"],
+        "expected_stage": "Negotiation",
+        "expected_team": "Strategic Accounts",
+        "expected_tags": ["Key Deal", "Competitive", "Q1-Reviewed"],
+        "expected_priority": "0",
+        "expected_lost": false
+      },
+      "opp08": {
+        "name": "ERP System Upgrade",
+        "company": "Evergreen Solutions",
+        "revenue": 310000,
+        "stage": "Qualified",
+        "probability": 35,
+        "rules": ["a", "d"],
+        "expected_stage": "Qualified",
+        "expected_team": "Strategic Accounts",
+        "expected_tags": ["Key Deal", "Competitive", "Q1-Reviewed"],
+        "expected_priority": "0",
+        "expected_lost": false
+      },
+      "opp09": {
+        "name_before": "Employee Portal Development",
+        "name_after": "Employee Portal - Phase 1",
+        "company": "Evergreen Solutions",
+        "revenue_before": 55000,
+        "revenue_after": 40000,
+        "stage": "Proposition",
+        "probability": 50,
+        "rules": [],
+        "expected_stage": "Proposition",
+        "expected_team": null,
+        "expected_tags": ["Q1-Reviewed"],
+        "expected_priority": "0",
+        "expected_lost": false,
+        "expected_note": "Revenue and scope corrected per Q1 review."
+      },
+      "opp10": {
+        "name": "IoT Fleet Management",
+        "company": "Falcon Dynamics",
+        "revenue": 125000,
+        "stage": "New",
+        "probability": 25,
+        "rules": ["a"],
+        "expected_stage": "New",
+        "expected_team": "Strategic Accounts",
+        "expected_tags": ["Key Deal", "Q1-Reviewed"],
+        "expected_priority": "0",
+        "expected_lost": false
+      },
+      "opp11": {
+        "name": "DevOps Pipeline Automation",
+        "company": "Granite Peak Software",
+        "revenue": 88000,
+        "stage": "Qualified",
+        "probability": 45,
+        "rules": ["d"],
+        "expected_stage": "Qualified",
+        "expected_team": null,
+        "expected_tags": ["Competitive", "Q1-Reviewed"],
+        "expected_priority": "0",
+        "expected_lost": false
+      },
+      "opp12": {
+        "name": "Business Intelligence Dashboard",
+        "company": "Highland Analytics",
+        "revenue": 72000,
+        "stage": "Proposition",
+        "probability": 60,
+        "rules": ["e"],
+        "expected_stage": "Proposition",
+        "expected_team": null,
+        "expected_tags": ["At Risk", "Q1-Reviewed"],
+        "expected_priority": "3",
+        "expected_lost": false,
+        "expected_activity": {
+          "type": "Call",
+          "date": "2026-04-15",
+          "summary": "Urgent: find new deal sponsor"
+        }
+      }
+    },
+    "duplicate_merge": {
+      "canonical_company": "Caspian Technologies",
+      "duplicate_company": "Caspian Tech",
+      "duplicate_should_be_archived": true
+    },
+    "common_tag": "Q1-Reviewed",
+    "pass_threshold": 50
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_end_of_quarter_pipeline_restructure"
+    }
+  }
+}

@@ -1,0 +1,143 @@
+{
+    "task_id": "multi_currency_sales_cycle_with_returns@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "task_name",
+            "metadata_value": "multi_currency_sales_cycle_with_returns",
+            "verified_value": "multi_currency_sales_cycle_with_returns",
+            "source": "Matches task.json id field (without @1 suffix). Consistent across all scripts.",
+            "status": "verified"
+        },
+        {
+            "key": "customer",
+            "metadata_value": "Deutsche Windkraft GmbH",
+            "verified_value": "Deutsche Windkraft GmbH",
+            "source": "Live API query confirmed: Customer exists with customer_name='Deutsche Windkraft GmbH', default_currency='EUR'. Party account 'Debtors EUR - WP' configured for Wind Power LLC.",
+            "status": "verified"
+        },
+        {
+            "key": "currency",
+            "metadata_value": "EUR",
+            "verified_value": "EUR",
+            "source": "Live API confirmed customer default_currency='EUR'. Currency Exchange record exists: 1 EUR = 1.10 USD. Test Sales Order created in EUR with conversion_rate=1.1.",
+            "status": "verified"
+        },
+        {
+            "key": "item",
+            "metadata_value": "Wind Turbine",
+            "verified_value": "Wind Turbine",
+            "source": "Live API confirmed: Item 'Wind Turbine' exists, is_stock_item=1, stock_uom='Nos'. 150 units stocked in Stores - WP warehouse.",
+            "status": "verified"
+        },
+        {
+            "key": "item_rate_eur",
+            "metadata_value": 20.0,
+            "verified_value": 20.0,
+            "source": "This is the per-unit EUR selling price specified in the task description. Live test created SO with rate=20.0 EUR, confirmed grand_total=100.0 EUR for qty=5. The item's standard_rate in the system is $21 USD, but this task uses EUR pricing at 20.0. Arithmetic check: 100 * 20 = 2000 matches so_total_eur.",
+            "status": "verified"
+        },
+        {
+            "key": "so_qty",
+            "metadata_value": 100,
+            "verified_value": 100,
+            "source": "Task description explicitly states '100 Wind Turbines'. Arithmetic: first_delivery(60) + second_delivery(40) = 100 = so_qty. Confirmed consistent.",
+            "status": "verified"
+        },
+        {
+            "key": "so_total_eur",
+            "metadata_value": 2000.0,
+            "verified_value": 2000.0,
+            "source": "Arithmetic: so_qty(100) * item_rate_eur(20.0) = 2000.0. Task description states '\u20ac2,000 total'. Live test: SO with 5 units at \u20ac20 = \u20ac100 confirmed, scales to 100 * 20 = 2000.",
+            "status": "verified"
+        },
+        {
+            "key": "advance_amount_eur",
+            "metadata_value": 800.0,
+            "verified_value": 800.0,
+            "source": "Task description states '\u20ac800 advance payment'. This is 40% of the SO total, a reasonable advance ratio. The advance must be created as an unlinked Payment Entry (type=Receive) before the first invoice.",
+            "status": "verified"
+        },
+        {
+            "key": "first_delivery_qty",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "Task description states 'Deliver 60 units via Delivery Note'. Live test confirmed DN with qty=5 works; 60 is within stock of 150. Arithmetic: 60 + 40 = 100 = so_qty.",
+            "status": "verified"
+        },
+        {
+            "key": "first_invoice_eur",
+            "metadata_value": 1200.0,
+            "verified_value": 1200.0,
+            "source": "Arithmetic: first_delivery_qty(60) * item_rate_eur(20.0) = 1200.0. Task description states '\u20ac1,200'. Confirmed consistent.",
+            "status": "verified"
+        },
+        {
+            "key": "first_balance_eur",
+            "metadata_value": 400.0,
+            "verified_value": 400.0,
+            "source": "Arithmetic: first_invoice_eur(1200.0) - advance_amount_eur(800.0) = 400.0. Task description states '\u20ac400 balance'. This is the amount outstanding on the first invoice after advance allocation.",
+            "status": "verified"
+        },
+        {
+            "key": "return_qty",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Task description states '5 defective turbines'. Live test confirmed Return DN with qty=-2 works (is_return=1, linked to original DN). Return qty of 5 is well within the 60 delivered in first shipment.",
+            "status": "verified"
+        },
+        {
+            "key": "credit_note_eur",
+            "metadata_value": 100.0,
+            "verified_value": 100.0,
+            "source": "Arithmetic: return_qty(5) * item_rate_eur(20.0) = 100.0. Task description states '\u20ac100'. Live test confirmed Credit Note (is_return=1 SINV) creation works in EUR.",
+            "status": "verified"
+        },
+        {
+            "key": "second_delivery_qty",
+            "metadata_value": 40,
+            "verified_value": 40,
+            "source": "Arithmetic: so_qty(100) - first_delivery_qty(60) = 40 remaining. Task description states '40 units'. Stock sufficient: 150 - 60 + 5(return) = 95 available, 40 needed.",
+            "status": "verified"
+        },
+        {
+            "key": "second_invoice_eur",
+            "metadata_value": 800.0,
+            "verified_value": 800.0,
+            "source": "Arithmetic: second_delivery_qty(40) * item_rate_eur(20.0) = 800.0. Task description states '\u20ac800'. Confirmed consistent.",
+            "status": "verified"
+        },
+        {
+            "key": "final_payment_eur",
+            "metadata_value": 700.0,
+            "verified_value": 700.0,
+            "source": "Arithmetic: second_invoice_eur(800.0) - credit_note_eur(100.0) = 700.0. Task description states '\u20ac700'. Total payments (800+400+700=1900) equals net revenue (1200+800-100=1900), confirming zero outstanding. Live test outstanding tracking confirmed correct.",
+            "status": "verified"
+        },
+        {
+            "key": "original_exchange_rate",
+            "metadata_value": 1.10,
+            "verified_value": 1.10,
+            "source": "Live API confirmed Currency Exchange record: from_currency=EUR, to_currency=USD, exchange_rate=1.1. Live test SO conversion_rate=1.1 confirmed. Setup script creates this rate for today's date.",
+            "status": "verified"
+        },
+        {
+            "key": "final_payment_exchange_rate",
+            "metadata_value": 1.12,
+            "verified_value": 1.12,
+            "source": "This is the rate the agent must manually enter on the final Payment Entry. Task description states 'manually updated exchange rate of 1.12 USD/EUR'. Not pre-loaded in system - agent must change it. Exchange gain = \u20ac700 * (1.12 - 1.10) = $14 USD gain. The existing multi_currency_purchase_payment task uses the same pattern (1.10 invoice rate, 1.08 payment rate).",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/multi_currency_sales_cycle_with_returns_result.json",
+            "verified_value": "/tmp/multi_currency_sales_cycle_with_returns_result.json",
+            "source": "export_result.sh writes to this exact path. Live test confirmed: script executed successfully, valid JSON produced at this path with all expected fields (sales_orders, delivery_notes, sales_invoices, payment_entries, customer_total_outstanding, wind_turbine_stock_stores).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Customer 'Deutsche Windkraft GmbH' is pre-configured with default_currency=EUR and a EUR receivable account (Debtors EUR - WP). The exchange rate 1 EUR = 1.10 USD is pre-loaded. Item 'Wind Turbine' has 150 units stocked in 'Stores - WP'. The correct workflow is: (1) Sales Order for 100 Wind Turbines at \u20ac20 = \u20ac2,000 total. (2) Advance Payment Entry (Receive) for \u20ac800 with no invoice reference. (3) Delivery Note for 60 units. (4) Sales Invoice for \u20ac1,200 with the \u20ac800 advance allocated via 'Get Advances Received' button in the Payments section, leaving \u20ac400 outstanding. (5) Payment Entry for \u20ac400. (6) Return Delivery Note for -5 units (is_return=1, created via 'Create > Sales Return' from the original DN). (7) Credit Note for -\u20ac100 (is_return=1, created via 'Create > Return / Credit Note' from the original SINV). (8) Second Delivery Note for 40 units. (9) Second Sales Invoice for \u20ac800. (10) Final Payment Entry for \u20ac700 (net of \u20ac800 invoice minus \u20ac100 credit) with exchange rate manually changed to 1.12 USD/EUR, producing approximately $14 exchange gain. Total payments (800+400+700=1900) equal net invoiced (1200+800-100=1900), resulting in zero customer outstanding. Net units delivered = 95 (100 shipped minus 5 returned). The EUR Sales Invoice auto-routes to 'Debtors EUR - WP' when Deutsche Windkraft GmbH is selected as customer.",
+    "pi_confidence": "high"
+}

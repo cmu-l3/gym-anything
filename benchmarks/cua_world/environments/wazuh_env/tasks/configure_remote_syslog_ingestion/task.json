@@ -1,0 +1,30 @@
+{
+  "id": "configure_remote_syslog_ingestion@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure the Wazuh manager to ingest Syslog messages on UDP port 514 by enabling a remote listener in ossec.conf restricted to the '172.16.0.0/12' network. Implement a custom detection rule (ID 100100, level 5 or higher) in local_rules.xml to identify Cisco ASA 'Deny' events containing the string '%ASA-4-106023'. Ensure the configuration is active and the syslog port is listening.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_remote_syslog_ingestion/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_remote_syslog_ingestion/export_result.sh"
+  },
+  "metadata": {
+    "target_port": 514,
+    "target_protocol": "udp",
+    "allowed_ips": "172.16.0.0/12",
+    "rule_id": 100100,
+    "rule_match_string": "%ASA-4-106023",
+    "test_log": "<134>Mar 15 10:00:00 cisco-asa %ASA-4-106023: Deny tcp src outside:198.51.100.1/443 dst inside:10.0.0.5/80"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_remote_syslog_ingestion"
+    }
+  }
+}

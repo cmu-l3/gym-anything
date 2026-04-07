@@ -1,0 +1,56 @@
+{
+  "id": "asset_integrity_quarantine@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "You are a simulator technician responsible for maintaining the Bridge Command asset library. Several custom vessel models are causing the simulator to crash or throw errors during startup. Analyze the diagnostic log at '/home/ga/Documents/bc_startup_errors.log' to identify the three specific vessel assets causing critical errors. Move all files associated with these three corrupt assets from '/opt/bridgecommand/Models/' to a new quarantine directory at '/home/ga/Desktop/Quarantined_Assets'. Assets typically consist of definition files, 3D meshes, and textures, and may be stored as loose files sharing a filename prefix or as self-contained folders. Create a report listing the names of the removed assets at '/home/ga/Desktop/Quarantined_Assets/report.txt'.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/asset_integrity_quarantine/setup_task.sh",
+    "post_task": "/workspace/tasks/asset_integrity_quarantine/export_result.sh"
+  },
+  "metadata": {
+    "log_path": "/home/ga/Documents/bc_startup_errors.log",
+    "quarantine_path": "/home/ga/Desktop/Quarantined_Assets",
+    "bad_assets": [
+      {
+        "name": "BadShip_v1",
+        "files": [
+          "BadShip_v1.x",
+          "BadShip_v1.ini",
+          "BadShip_v1_diffuse.png"
+        ],
+        "type": "loose"
+      },
+      {
+        "name": "RustyBuoy",
+        "files": [
+          "RustyBuoy"
+        ],
+        "type": "folder"
+      },
+      {
+        "name": "CorruptTankerC",
+        "files": [
+          "CorruptTankerC.x",
+          "CorruptTankerC.ini"
+        ],
+        "type": "loose"
+      }
+    ],
+    "good_assets": [
+      "ValidShip",
+      "GoodBuoy"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_asset_quarantine"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "id": "docker_compose_reverseengineer@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "You have joined a project where the source docker-compose.yml has been lost, but the application is currently running in Docker. Reconstruct a fully functional docker-compose.yml file at ~/projects/inventory-tracker/docker-compose.yml by reverse-engineering the configuration of the four running containers: inv-db, inv-cache, inv-api, and inv-web. The configuration must explicitly define the discovered images, environment variables, networks, volumes, ports, and start commands, ensuring the custom inv-api image is correctly referenced. After creating the file, stop the original containers and restart the application using the new compose file so that it is accessible at http://localhost:8080/api/items.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_compose_reverseengineer/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_compose_reverseengineer/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/inventory-tracker",
+    "compose_file": "docker-compose.yml",
+    "service_names": [
+      "inv-db",
+      "inv-cache",
+      "inv-api",
+      "inv-web"
+    ],
+    "expected_endpoints": [
+      "http://localhost:8080/api/items",
+      "http://localhost:8080/api/status"
+    ],
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_reverse_engineering"
+    }
+  }
+}

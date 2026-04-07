@@ -1,0 +1,27 @@
+{
+  "id": "tmt_executive_cost_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "difficulty": "hard",
+  "description": "A clinical neuropsychologist is evaluating cognitive decline using PEBL Trail Making Test (TMT) data located at ~/pebl/data/tmt_click_log.csv. Analyze the click-level logs (columns: 'participant_id', 'test_part', 'error_flag', 'rt_ms') to calculate Total Time (sum of 'rt_ms' converted to seconds) and Total Errors (sum of 'error_flag') for Parts A and B, as well as derived metrics: B-A Cost (Total Time B - Total Time A) and B/A Ratio (Total Time B / Total Time A). Identify and exclude the automated UI testing artifact (participant 'P99') from the group analysis. Export the results to ~/pebl/analysis/tmt_report.json. The JSON must include a 'participants' list where each object contains 'id', 'tmt_a_time_s', 'tmt_b_time_s', 'tmt_a_errors', 'tmt_b_errors', 'b_minus_a_cost_s', and 'b_over_a_ratio' (or 'excluded': true and a 'reason' for P99). Additionally, include top-level keys 'group_mean_b_minus_a_cost_s' and 'group_mean_b_over_a_ratio' calculated across all valid participants.",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tmt_executive_cost_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/tmt_executive_cost_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "P99",
+    "contamination_type": "ui_macro_impossibly_fast_rt",
+    "output_file": "/home/ga/pebl/analysis/tmt_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tmt_executive_cost_analysis"
+    }
+  }
+}

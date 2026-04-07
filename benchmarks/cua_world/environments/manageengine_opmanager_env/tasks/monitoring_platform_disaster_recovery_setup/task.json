@@ -1,0 +1,30 @@
+{
+  "id": "monitoring_platform_disaster_recovery_setup@1",
+  "version": "1.0",
+  "env_id": "manageengine_opmanager_env@0.1",
+  "description": "The network monitoring platform currently lacks a disaster recovery plan. You must configure automated database backups in ManageEngine OpManager to ensure continuity.\n\nFirst, open a terminal and create a secure local backup directory at `/var/opt/opmanager_backups`. Set its permissions exactly to `750` (e.g., `sudo chmod 750 /var/opt/opmanager_backups`) so only authorized users can access the archives.\n\nNext, log in to the OpManager web interface at http://localhost:8060 (credentials: admin / Admin@123). Navigate to the Database Backup settings (typically under Settings -> General Settings -> Database Backup, or Settings -> Basic Settings -> Database Backup). Enable the Schedule Backup option with the following exact parameters:\n- Frequency: Daily\n- Execution Time: 01:30 (1:30 AM)\n- Destination Directory: /var/opt/opmanager_backups\n- Maintain Backup files (Retention): 14 days\n\nSave your configuration.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/monitoring_platform_disaster_recovery_setup/setup_task.sh",
+    "post_task": "/workspace/tasks/monitoring_platform_disaster_recovery_setup/export_result.sh"
+  },
+  "metadata": {
+    "expected_backup_dir": "/var/opt/opmanager_backups",
+    "expected_permissions": "750",
+    "expected_retention": "14",
+    "expected_time_1": "01:30",
+    "expected_time_2": "1:30",
+    "result_file": "/tmp/dr_setup_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_monitoring_platform_disaster_recovery_setup"
+    }
+  }
+}

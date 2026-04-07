@@ -1,0 +1,34 @@
+{
+  "id": "align_time_series@1",
+  "version": "1.0",
+  "env_id": "astroimagej_env@0.1",
+  "description": "Align a sequence of drifting time-series FITS images using AstroImageJ.\n\nContext: Due to imperfect telescope tracking, the star field in these observations has drifted diagonally across the CCD sensor. You must align them so the target stars remain at the exact same pixel coordinates before photometry can be performed.\n\nSteps:\n1. Import the sequence of 10 FITS images located in `~/AstroImages/raw/time_series/` (named `frame_01.fits` to `frame_10.fits`) into a single image stack.\n2. Open the AstroImageJ alignment tool (Process > Align stack using WCS or apertures).\n3. Use the 'Apertures' alignment mode. Select a clear, non-saturated reference star, and execute the alignment to correct the drift.\n4. Save the perfectly aligned result as a multi-frame FITS cube exactly at `~/AstroImages/processed/aligned_stack.fits`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/align_time_series/setup_task.sh",
+    "post_task": "/workspace/tasks/align_time_series/export_result.sh"
+  },
+  "metadata": {
+    "raw_dir": "/home/ga/AstroImages/raw/time_series",
+    "expected_output_path": "/home/ga/AstroImages/processed/aligned_stack.fits",
+    "expected_frames": 10,
+    "drift_x_per_frame": 3.5,
+    "drift_y_per_frame": -2.0,
+    "total_drift_magnitude": 36.1,
+    "tolerances": {
+      "perfect_alignment_px": 2.0,
+      "partial_alignment_px": 15.0
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_align_time_series"
+    }
+  }
+}

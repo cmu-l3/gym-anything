@@ -1,0 +1,30 @@
+{
+  "id": "gravity_torque_map@1",
+  "version": "1.0",
+  "env_id": "coppeliasim_env@0.1",
+  "name": "Robot Arm Gravity Torque Mapping",
+  "description": "A robotics engineer needs to perform a static load analysis on a 6-DOF industrial robot arm in CoppeliaSim to ensure the shoulder and elbow motors won't exceed continuous torque ratings when holding extended poses. Connect to the ZMQ Remote API (port 23000) and load the UR5 model (/opt/CoppeliaSim/models/robots/non-mobile/UR5.ttm). Using stepping mode, analyze the steady-state holding torque for the shoulder (2nd joint) and elbow (3rd joint) across a 2D grid of at least 25 configurations, using a minimum of 5 distinct angles per joint spanning at least 90 degrees each. Export the configuration data and measured torques in Newton-meters to /home/ga/Documents/CoppeliaSim/exports/torque_map.csv with columns: config_id, shoulder_deg, elbow_deg, shoulder_torque_nm, elbow_torque_nm. Generate a summary report at /home/ga/Documents/CoppeliaSim/exports/torque_report.json including total_configs, max_shoulder_torque_nm, max_elbow_torque_nm, max_shoulder_config_deg ([shoulder_deg, elbow_deg]), and max_elbow_config_deg.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/gravity_torque_map/setup_task.sh",
+    "post_task": "/workspace/tasks/gravity_torque_map/export_result.sh"
+  },
+  "metadata": {
+    "min_configs": 25,
+    "min_angles": 5,
+    "min_span_deg": 90,
+    "output_csv": "/home/ga/Documents/CoppeliaSim/exports/torque_map.csv",
+    "output_json": "/home/ga/Documents/CoppeliaSim/exports/torque_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_gravity_torque_map"
+    }
+  }
+}

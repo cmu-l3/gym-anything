@@ -1,0 +1,32 @@
+{
+  "id": "export_polyglot_audit_report@1",
+  "version": "1.0",
+  "env_id": "socioboard_env@0.1",
+  "description": "Socioboard uses a polyglot persistence architecture where user accounts are stored in MariaDB and published social media posts are stored in MongoDB. Generate a unified social media audit report by joining these datasets on the user ID.\n\nMariaDB (Database: socioboard, User: socioboard, Password: SocioPass2024!) contains the 'user_details' table with fields 'user_id' (INT) and 'email' (VARCHAR). MongoDB (localhost:27017, no auth, Database: socioboard) contains the 'published_posts' collection with fields 'userId' (INT), 'network' (String), 'publishedDate' (String), 'postContent' (String), and 'postUrl' (String).\n\nJoin all records from the MongoDB collection with the user data in MariaDB where userId equals user_id. Export the joined data to a properly escaped CSV file at /workspace/audit_report.csv using the exact headers: User_Email, Network, Publish_Date, Post_Content, Post_URL.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/export_polyglot_audit_report/setup_task.sh",
+    "post_task": "/workspace/tasks/export_polyglot_audit_report/export_result.sh"
+  },
+  "metadata": {
+    "output_file": "/workspace/audit_report.csv",
+    "required_headers": [
+      "User_Email",
+      "Network",
+      "Publish_Date",
+      "Post_Content",
+      "Post_URL"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_report"
+    }
+  }
+}

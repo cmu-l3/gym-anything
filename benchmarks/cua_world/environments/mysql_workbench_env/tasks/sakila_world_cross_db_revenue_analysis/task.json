@@ -1,0 +1,39 @@
+{
+  "id": "sakila_world_cross_db_revenue_analysis@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "Perform a cross-database analysis in MySQL Workbench to correlate DVD rental revenue from the 'sakila' database with country demographics from the 'world' database. Create a mapping table named sakila.country_xref to link countries between the two databases with columns sakila_country_id (INT), world_country_code (CHAR(3)), and country_name (VARCHAR), populated by matching sakila.country.country with world.country.Name. Establish a view named sakila.v_revenue_demographics that joins Sakila revenue data with World demographics to return country_name, continent, region, population, gnp, total_revenue, and customer_count. Implement a stored procedure sakila.sp_continent_report(IN p_continent VARCHAR(50)) that returns the view's data filtered by continent and ordered by total_revenue descending. Call this procedure for 'Asia' and export the result to /home/ga/Documents/exports/asia_revenue_report.csv. Additionally, calculate revenue_per_million_pop (total_revenue / population * 1,000,000) for all matched countries, ranking them descending, and export the top 20 rows to /home/ga/Documents/exports/revenue_per_capita_ranking.csv. Database Login: user=ga, password=password123, host=localhost.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_world_cross_db_revenue_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_world_cross_db_revenue_analysis/export_result.sh"
+  },
+  "metadata": {
+    "expected_table": "country_xref",
+    "expected_view": "v_revenue_demographics",
+    "expected_procedure": "sp_continent_report",
+    "min_matched_countries": 40,
+    "asia_report_path": "/home/ga/Documents/exports/asia_revenue_report.csv",
+    "ranking_report_path": "/home/ga/Documents/exports/revenue_per_capita_ranking.csv",
+    "required_columns_view": [
+      "country_name",
+      "continent",
+      "region",
+      "population",
+      "gnp",
+      "total_revenue",
+      "customer_count"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_world_analysis"
+    }
+  }
+}

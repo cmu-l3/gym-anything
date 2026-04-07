@@ -1,0 +1,55 @@
+{
+  "id": "sla_business_hours_calc@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "An IT Service Manager needs an SLA compliance report where standard SQL timestamp subtraction is insufficient because it includes weekends, holidays, and non-business hours. Using the HR database (localhost:1521/XEPDB1, user: hr, pass: hr123), analyze the SUPPORT_TICKETS and PUBLIC_HOLIDAYS tables to create a view named SLA_PERFORMANCE_VW. This view must calculate the business minutes elapsed between OPENED_AT and CLOSED_AT for each ticket, adhering to business hours of Monday-Friday, 09:00 to 17:00, excluding weekends and dates in the PUBLIC_HOLIDAYS table. Tickets opening after 17:00 should start counting at 09:00 the next business day, and those opening before 09:00 should start at 09:00 that day. The view must include columns for TICKET_ID, PRIORITY, OPENED_AT, CLOSED_AT, TOTAL_HOURS (wall clock), BUSINESS_MINUTES (calculated), and SLA_STATUS (defined as 'MET' if <= 480 mins, otherwise 'BREACHED'). Export the resulting view content to /home/ga/Desktop/sla_report.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sla_business_hours_calc/setup_task.sh",
+    "post_task": "/workspace/tasks/sla_business_hours_calc/export_result.sh"
+  },
+  "metadata": {
+    "connection": {
+      "host": "localhost",
+      "port": "1521",
+      "service": "XEPDB1",
+      "user": "hr",
+      "password": "hr123"
+    },
+    "expected_view": "SLA_PERFORMANCE_VW",
+    "output_file": "/home/ga/Desktop/sla_report.csv",
+    "trap_tickets": {
+      "weekend_spanner": {
+        "id": 1001,
+        "desc": "Fri 16:00 -> Mon 10:00",
+        "expected_mins": 120
+      },
+      "holiday_hit": {
+        "id": 1002,
+        "desc": "Fri 16:30 -> Tue 09:30 (Mon is holiday)",
+        "expected_mins": 60
+      },
+      "late_start": {
+        "id": 1003,
+        "desc": "Tue 20:00 -> Wed 09:15",
+        "expected_mins": 15
+      },
+      "same_day": {
+        "id": 1004,
+        "desc": "Wed 10:00 -> Wed 11:30",
+        "expected_mins": 90
+      }
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sla_business_hours_calc"
+    }
+  }
+}

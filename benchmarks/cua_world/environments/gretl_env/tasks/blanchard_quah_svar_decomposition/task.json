@@ -1,0 +1,43 @@
+{
+  "id": "blanchard_quah_svar_decomposition@1",
+  "version": "1.0",
+  "env_id": "gretl_env@0.1",
+  "description": "Perform a Blanchard-Quah (1989) structural VAR decomposition on US macroeconomic data to identify supply and demand shocks using gretl's VAR estimation and matrix algebra.",
+  "difficulty": "very_hard",
+  "natural_language": {
+    "prompt": "Using usa.gdt (quarterly US data, 1984:1-2009:3), perform a Blanchard-Quah (1989) structural VAR decomposition to identify supply and demand shocks in the US economy.\n\nCreate GDP growth as the annualized log-difference of GDP (gdp_growth = 100 * diff(log(gdp))). Confirm both gdp_growth and inf are stationary via ADF tests (4 lags).\n\nSelect the VAR lag order that minimizes AIC (test lags 1-8) and estimate the reduced-form VAR with the ordering (gdp_growth, inf).\n\nApply the Blanchard-Quah long-run identification: the second structural shock (demand) must have zero cumulative long-run effect on GDP growth. Compute and report the structural impact matrix and the long-run impact matrix, verifying the zero restriction holds.\n\nSave a reproducible Gretl script to bq_svar.inp and all numerical output (structural matrices, ADF results) to bq_results.txt in /home/ga/Documents/gretl_output/.",
+    "context_hint": "After estimating a VAR in gretl, the companion matrix is available as $compan and the residual covariance as $sigma. The companion matrix for a VAR(p) with n variables is (np x np); the lag coefficient matrices A_i are in rows 1:n, columns ((i-1)*n+1):(i*n). Use the hansl matrix functions inv(), cholesky(), and standard matrix arithmetic."
+  },
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/blanchard_quah_svar_decomposition/setup_task.sh",
+    "post_task": "/workspace/tasks/blanchard_quah_svar_decomposition/export_result.sh"
+  },
+  "metadata": {
+    "dataset": "usa.gdt",
+    "dataset_path": "/home/ga/Documents/gretl_data/usa.gdt",
+    "script_output_path": "/home/ga/Documents/gretl_output/bq_svar.inp",
+    "report_output_path": "/home/ga/Documents/gretl_output/bq_results.txt",
+    "output_dir": "/home/ga/Documents/gretl_output",
+    "required_vars": ["gdp_growth", "inf"],
+    "var_ordering": ["gdp_growth", "inf"],
+    "identification": "blanchard_quah_long_run",
+    "long_run_restriction": "demand shock has zero cumulative effect on gdp_growth",
+    "keywords": [
+      "structural", "Blanchard-Quah",
+      "long-run", "companion", "cholesky",
+      "supply shock", "demand shock",
+      "impulse response"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_blanchard_quah_svar"
+    }
+  }
+}

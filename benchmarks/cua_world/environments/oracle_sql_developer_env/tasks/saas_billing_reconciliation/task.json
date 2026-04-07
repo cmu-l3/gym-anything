@@ -1,0 +1,36 @@
+{
+  "id": "saas_billing_reconciliation@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Billing Operations Analyst at CloudScale Inc. Following a platform migration, the billing database has drifted from the subscription management system. Perform a quarterly billing reconciliation using Oracle SQL Developer.\n\nConnect to the BILLING_OPS schema (billing_ops / Billing2024, Host=localhost, Port=1521, Service=XEPDB1). The schema contains: CUSTOMERS (with segment: STARTUP/SMB/ENTERPRISE), SUBSCRIPTION_PLANS (with plan_type: FLAT/PER_SEAT/USAGE_BASED/HYBRID; base_rate; per_seat_rate), SUBSCRIPTIONS (tracking plan changes via start_date/end_date and seat_count), USAGE_METERS (monthly usage per customer per meter_type), INVOICES, INVOICE_LINE_ITEMS, PRICING_TIERS (graduated volume brackets \u2014 each tier's rate applies only to usage within that band), and PROMOTIONAL_CREDITS (with expiry_date).\n\nCreate a PL/SQL function CALC_EXPECTED_BILLING(p_customer_id NUMBER, p_billing_month DATE) RETURN NUMBER that computes the correct monthly billing considering base subscription rate, per-seat charges, graduated tiered usage pricing, active (non-expired) promotional credits, and mid-cycle plan-change proration (pro-rated by calendar days). Create a view VW_BILLING_DISCREPANCIES comparing expected vs actual invoiced amounts for each customer-month, with each row including a discrepancy_type: MISSED_INVOICE, DUPLICATE_INVOICE, WRONG_TIER, PRORATION_ERROR, EXPIRED_PROMO, or POST_CANCEL_BILLING. Create and populate a table BILLING_ADJUSTMENTS with correction entries: customer_id, invoice_id, discrepancy_type, original_amount, correct_amount, adjustment_amount, explanation. Create a materialized view MV_REVENUE_IMPACT aggregating net adjustment impact by customer_segment, plan_name, and billing_month. Export MV_REVENUE_IMPACT to /home/ga/Documents/exports/billing_reconciliation.csv",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 3600,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/saas_billing_reconciliation/setup_task.sh",
+    "post_task": "/workspace/tasks/saas_billing_reconciliation/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/billing_reconciliation_result.json",
+    "occupation": "Financial and Investment Analysts",
+    "industry": "Information / Software as a Service",
+    "oracle_features": [
+      "PL/SQL Functions",
+      "Complex Views",
+      "Materialized Views",
+      "Graduated Tier Pricing",
+      "Date Arithmetic",
+      "UNION ALL"
+    ],
+    "expected_csv_path": "/home/ga/Documents/exports/billing_reconciliation.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_saas_billing_reconciliation"
+    }
+  }
+}

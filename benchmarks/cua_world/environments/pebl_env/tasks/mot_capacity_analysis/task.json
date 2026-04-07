@@ -1,0 +1,28 @@
+{
+  "id": "mot_capacity_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "description": "A Vision Scientist has collected Multiple Object Tracking (MOT) data from 15 participants for an attentional capacity study. The data is located at ~/pebl/data/mot_tracking_data.csv and includes subject_id, trial, target_count, distractor_count, speed_deg_sec, targets_clicked, and rt_sec.\n\nCompute the chance-adjusted tracking capacity (K) for each trial, defined as the target count multiplied by the adjusted accuracy. Adjusted accuracy is calculated as (observed accuracy - chance) / (1 - chance), where observed accuracy is targets_clicked/target_count and chance is target_count/(target_count + distractor_count). Any negative adjusted accuracy values must be set to zero.\n\nAggregate the results to find the mean K capacity for each participant per target_count condition (2, 3, 4, 5, 6) and their overall mean reaction time in milliseconds. Exclude any participant whose mean K capacity at target_count 6 is strictly greater than 5.5.\n\nExport the results to ~/pebl/analysis/mot_capacity_report.json. The file must include a 'participants' list (containing ID, mean K values, and mean reaction time, or exclusion details for the cheater) and a 'group_mean_capacity' dictionary for target counts 2 through 6, excluding the cheater's data. Finally, save a line plot visualizing the Group Mean Capacity vs. Target Count to ~/pebl/analysis/capacity_plot.png.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mot_capacity_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/mot_capacity_analysis/export_result.sh"
+  },
+  "metadata": {
+    "expected_json_output": "/home/ga/pebl/analysis/mot_capacity_report.json",
+    "expected_png_output": "/home/ga/pebl/analysis/capacity_plot.png",
+    "cheater_threshold_k": 5.5,
+    "cheater_target_condition": 6
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mot_capacity_analysis"
+    }
+  }
+}

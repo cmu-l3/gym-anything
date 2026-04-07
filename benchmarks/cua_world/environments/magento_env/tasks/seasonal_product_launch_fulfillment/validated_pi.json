@@ -1,0 +1,248 @@
+{
+    "task_id": "seasonal_product_launch_fulfillment@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "attribute_code",
+            "metadata_value": "shirt_size",
+            "verified_value": "shirt_size",
+            "source": "Task specification — agent creates this. Confirmed no pre-existing attribute with this code via live DB query (Check 15: COUNT=0). export_result.sh queries eav_attribute WHERE attribute_code='shirt_size' AND entity_type_id=4.",
+            "status": "verified"
+        },
+        {
+            "key": "attribute_label",
+            "metadata_value": "Shirt Size",
+            "verified_value": "Shirt Size",
+            "source": "Task specification — agent creates this label. Not directly verified by export_result.sh (only checks attribute_code and frontend_input type). Label is standard for clothing size attributes.",
+            "status": "verified"
+        },
+        {
+            "key": "attribute_options",
+            "metadata_value": ["S", "M", "L", "XL"],
+            "verified_value": ["S", "M", "L", "XL"],
+            "source": "Task specification. export_result.sh checks each option individually via grep -qx 'S', grep -qx 'M', etc. on eav_attribute_option_value rows. Standard US clothing sizes.",
+            "status": "verified"
+        },
+        {
+            "key": "product_sku",
+            "metadata_value": "SHIRT-LINEN-001",
+            "verified_value": "SHIRT-LINEN-001",
+            "source": "Task specification — agent creates this. Confirmed no pre-existing product with this SKU via live DB query (Check 16: COUNT=0). export_result.sh queries catalog_product_entity WHERE LOWER(TRIM(sku))='shirt-linen-001'.",
+            "status": "verified"
+        },
+        {
+            "key": "product_name",
+            "metadata_value": "Linen Resort Shirt",
+            "verified_value": "Linen Resort Shirt",
+            "source": "Task specification. verifier.py line 125 checks 'linen resort shirt' in name.lower() (case-insensitive substring match).",
+            "status": "verified"
+        },
+        {
+            "key": "product_price",
+            "metadata_value": "79.99",
+            "verified_value": 79.99,
+            "source": "Task specification. verifier.py line 129 checks abs(price - 79.99) < 0.10, allowing $0.10 tolerance.",
+            "status": "verified"
+        },
+        {
+            "key": "category_name",
+            "metadata_value": "Clothing",
+            "verified_value": "Clothing",
+            "source": "PRE-EXISTING in environment. Live DB query (Check 14) confirmed: category_id=4, name='Clothing'. Also confirmed in setup_magento.sh line 260 which seeds this category via REST API. Database state: entity_id=4, parent_id=2 (under Default Category), level=2.",
+            "status": "verified"
+        },
+        {
+            "key": "variant_count",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "Task specification — 4 variants for 4 size options (S, M, L, XL). Logically consistent with attribute_options array length. export_result.sh counts rows in catalog_product_super_link WHERE parent_id=product_id.",
+            "status": "verified"
+        },
+        {
+            "key": "variant_qty",
+            "metadata_value": 50,
+            "verified_value": 50,
+            "source": "Task specification. export_result.sh checks cataloginventory_stock_item WHERE qty >= 45 AND qty <= 55 (±5 tolerance). verifier.py awards full points if variant_qty_ok >= 4.",
+            "status": "verified"
+        },
+        {
+            "key": "cart_rule_name",
+            "metadata_value": "Summer Checkout Bonus",
+            "verified_value": "Summer Checkout Bonus",
+            "source": "Task specification. export_result.sh queries salesrule WHERE LOWER(name) LIKE '%summer checkout bonus%'. Confirmed no pre-existing cart rules in environment (Check 17: COUNT=0).",
+            "status": "verified"
+        },
+        {
+            "key": "coupon_code",
+            "metadata_value": "SUMMER25",
+            "verified_value": "SUMMER25",
+            "source": "Task specification. export_result.sh queries salesrule_coupon WHERE UPPER(code)='SUMMER25'. verifier.py line 250 checks order_coupon == 'SUMMER25' (case-insensitive via .upper()).",
+            "status": "verified"
+        },
+        {
+            "key": "discount_amount",
+            "metadata_value": 25,
+            "verified_value": 25,
+            "source": "Task specification — $25 flat discount. verifier.py line 194 checks abs(discount_amount - 25.0) < 0.01.",
+            "status": "verified"
+        },
+        {
+            "key": "discount_type",
+            "metadata_value": "by_fixed",
+            "verified_value": "cart_fixed",
+            "source": "CONTRADICTED. Task description says 'flat $25 discount on orders' = whole-cart discount. In Magento 2, 'by_fixed' = 'Fixed amount discount' (per item), while 'cart_fixed' = 'Fixed amount discount for whole cart'. Per Adobe Commerce docs (https://experienceleague.adobe.com/en/docs/commerce-admin/marketing/promotions/cart-rules/price-rules-cart-create), the correct action for a flat discount on the whole order is 'cart_fixed'. However, verifier.py line 193 accepts BOTH: discount_type in ('by_fixed', 'cart_fixed'), so agents are not penalized for either choice.",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_subtotal",
+            "metadata_value": 200,
+            "verified_value": 200,
+            "source": "Task specification — orders must have subtotal >= $200. export_result.sh checks conditions_serialized for 'base_subtotal' and value '200'. verifier.py line 195 checks subtotal_value == '200'.",
+            "status": "verified"
+        },
+        {
+            "key": "uses_per_customer",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Task specification. verifier.py line 214 checks uses_per_customer == '1'. export_result.sh reads uses_per_customer from salesrule table.",
+            "status": "verified"
+        },
+        {
+            "key": "usage_limit",
+            "metadata_value": 500,
+            "verified_value": 500,
+            "source": "Task specification — 500 total uses for the coupon. export_result.sh reads usage_limit from salesrule_coupon table. Not directly scored by verifier (only coupon existence and uses_per_customer are scored).",
+            "status": "verified"
+        },
+        {
+            "key": "order_customer_email",
+            "metadata_value": "john.doe@example.com",
+            "verified_value": "john.doe@example.com",
+            "source": "PRE-EXISTING customer. Live DB query (Check 13) confirmed: entity_id=1, email=john.doe@example.com, firstname=John, lastname=Doe, group_id=1 (General). Seeded by setup_magento.sh line 321 via REST API.",
+            "status": "verified"
+        },
+        {
+            "key": "order_items[0].sku",
+            "metadata_value": "SHIRT-LINEN-001",
+            "verified_value": "SHIRT-LINEN-001",
+            "source": "References the configurable product created by the agent in Phase 2. export_result.sh checks order items via grep -qi 'shirt-linen'. Note: in admin order, agent must search for this SKU and select size M variant.",
+            "status": "verified"
+        },
+        {
+            "key": "order_items[0].qty",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "Task specification — 3 units of Linen Resort Shirt (size M). Not directly quantity-verified by verifier (only checks SKU presence in order items, not exact qty).",
+            "status": "verified"
+        },
+        {
+            "key": "order_items[1].sku",
+            "metadata_value": "JACKET-001",
+            "verified_value": "JACKET-001",
+            "source": "PRE-EXISTING product. Live DB query (Check 12) confirmed: SKU=JACKET-001, type=simple, qty=150, is_in_stock=1. Seeded by setup_magento.sh line 286 as 'Winter Jacket' at $129.99 in Clothing category.",
+            "status": "verified"
+        },
+        {
+            "key": "order_items[1].qty",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Task specification — 1 unit of Jacket. Not directly quantity-verified by verifier (only checks SKU presence).",
+            "status": "verified"
+        },
+        {
+            "key": "order_items[1].price",
+            "metadata_value": null,
+            "verified_value": 129.99,
+            "source": "Not in metadata. Verified from setup_magento.sh line 286: JACKET-001 price is $129.99. Also confirmed via live DB query in database_state_raw.txt.",
+            "status": "verified"
+        },
+        {
+            "key": "shipping_address.firstname",
+            "metadata_value": "John",
+            "verified_value": "John",
+            "source": "Task specification. export_result.sh reads firstname from sales_order_address. Not directly verified by verifier.py (verifier only checks order existence and items, not address).",
+            "status": "verified"
+        },
+        {
+            "key": "shipping_address.lastname",
+            "metadata_value": "Doe",
+            "verified_value": "Doe",
+            "source": "Task specification. Same as firstname — read by export but not scored by verifier.",
+            "status": "verified"
+        },
+        {
+            "key": "shipping_address.city",
+            "metadata_value": "Austin",
+            "verified_value": "Austin",
+            "source": "Task specification. Austin is a real city in Texas.",
+            "status": "verified"
+        },
+        {
+            "key": "shipping_address.region",
+            "metadata_value": "Texas",
+            "verified_value": "Texas",
+            "source": "Task specification. Texas is the correct state for Austin.",
+            "status": "verified"
+        },
+        {
+            "key": "shipping_address.postcode",
+            "metadata_value": "78701",
+            "verified_value": "78701",
+            "source": "Web search confirmed: ZIP 78701 is a valid Austin, TX zip code (downtown Austin, Travis County). Source: unitedstateszipcodes.org/78701/",
+            "status": "verified"
+        },
+        {
+            "key": "payment_method",
+            "metadata_value": "checkmo",
+            "verified_value": "checkmo",
+            "source": "Magento internal code for 'Check / Money Order' payment method. Confirmed by existing admin_phone_order task (validated_pi.json line 94) and Magento 2 core codebase. Check/Money Order is enabled by default in Magento 2.4.7 installation.",
+            "status": "verified"
+        },
+        {
+            "key": "tracking_number",
+            "metadata_value": "UPS1Z2025SUMMER0001",
+            "verified_value": "UPS1Z2025SUMMER0001",
+            "source": "Task specification — agent enters this as tracking number. verifier.py line 270 checks exact match: tracking == 'UPS1Z2025SUMMER0001'. Format follows UPS tracking convention (1Z prefix).",
+            "status": "verified"
+        },
+        {
+            "key": "expected_order_subtotal",
+            "metadata_value": null,
+            "verified_value": 369.96,
+            "source": "Calculated: 3 x $79.99 (Linen Resort Shirt) + 1 x $129.99 (JACKET-001) = $239.97 + $129.99 = $369.96. This exceeds the $200 minimum subtotal threshold for the SUMMER25 coupon.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_discount_applied",
+            "metadata_value": null,
+            "verified_value": 25.00,
+            "source": "If cart_fixed: flat $25 off the cart. If by_fixed: $25 off per qualifying item (could be more than $25 total). The verifier does not check the order total — only checks coupon_code presence on the order.",
+            "status": "verified"
+        },
+        {
+            "key": "magento_version",
+            "metadata_value": null,
+            "verified_value": "2.4.7",
+            "source": "Live environment check (Check 6): 'Magento CLI 2.4.7' in developer mode. Confirmed in setup_magento.sh Composer install command.",
+            "status": "verified"
+        },
+        {
+            "key": "initial_product_count",
+            "metadata_value": null,
+            "verified_value": 10,
+            "source": "Live DB query (Check 2 and baseline JSON): 10 products seeded. Products: LAPTOP-001, PHONE-001, HEADPHONES-001, TSHIRT-001, JEANS-001, JACKET-001, LAMP-001, PILLOW-001, YOGA-001, BOTTLE-001.",
+            "status": "verified"
+        },
+        {
+            "key": "default_attribute_set_id",
+            "metadata_value": null,
+            "verified_value": 4,
+            "source": "Live DB query: Default attribute set has attribute_set_id=4. Agent must use this set when creating the configurable product unless they create a new one.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a multi-phase Magento 2.4.7 admin task with 5 sequential phases. Phase 1: Create dropdown attribute 'shirt_size' (attribute_code: shirt_size, frontend_input: select) with exactly 4 options: S, M, L, XL. Phase 2: Create configurable product 'Linen Resort Shirt' (SKU: SHIRT-LINEN-001, price: $79.99, type: configurable) in the pre-existing Clothing category (category_id=4), with 4 simple product variants linked via catalog_product_super_link, each with stock qty of 50. The Default attribute set (ID=4) should be used. Phase 3: Create cart price rule 'Summer Checkout Bonus' (is_active=1) with specific coupon code 'SUMMER25'. The discount should be $25 flat — in Magento admin UI select 'Fixed amount discount for whole cart' (simple_action=cart_fixed, discount_amount=25.0000). Add condition: subtotal >= $200. Set uses_per_customer=1, usage_limit=500 on the coupon. Phase 4: Place admin phone order for pre-existing customer john.doe@example.com (entity_id=1, John Doe, General group). Order must contain the newly created SHIRT-LINEN-001 (3 units, size M) and pre-existing JACKET-001 (1 unit, price $129.99). Expected subtotal: $369.96 (3x$79.99 + $129.99), exceeding the $200 coupon threshold. Apply coupon SUMMER25. Ship to 100 Commerce Drive, Austin, TX 78701 (valid zip code). Payment: Check/Money Order (internal code: checkmo). Phase 5: Create invoice for full order, then create shipment with tracking number UPS1Z2025SUMMER0001 using Custom Value carrier. Environment starts with 10 products, 4 categories, 3 customers, 0 cart rules, 0 orders. Admin credentials: admin/Admin1234!. All entities referenced by the task that are not created by the agent (Clothing category, john.doe customer, JACKET-001 product) have been verified to exist in the live environment.",
+    "pi_confidence": "high"
+}

@@ -161,8 +161,79 @@ take_screenshot() {
     [ -f "$outfile" ] && echo "Screenshot: $outfile" || echo "WARNING: screenshot failed"
 }
 
+# ── Ensure OpenMRS Docker services are running ───────────────────────────
+# Critical when loading from QEMU checkpoint — Docker containers that were
+# running during checkpoint creation are NOT running when restored.
+ensure_openmrs_running() {
+    # Quick check: is OpenMRS already responding?
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "http://localhost/openmrs/spa" 2>/dev/null || echo "000")
+    if [ "$http_code" = "200" ] || [ "$http_code" = "302" ] || [ "$http_code" = "301" ]; then
+        echo "OpenMRS already running (HTTP $http_code)"
+        return 0
+    fi
+
+    echo "OpenMRS not responding (HTTP $http_code). Starting services..."
+
+    # Ensure Docker daemon is running
+    systemctl is-active docker >/dev/null 2>&1 || {
+        echo "Starting Docker daemon..."
+        systemctl start docker
+        sleep 5
+    }
+
+    # Start containers
+    local OMRS_DIR="/home/ga/openmrs"
+    if [ -f "$OMRS_DIR/docker-compose.yml" ]; then
+        echo "Starting OpenMRS containers..."
+        cd "$OMRS_DIR"
+        docker compose up -d 2>&1 || docker-compose up -d 2>&1 || true
+        cd - >/dev/null
+    else
+        echo "ERROR: docker-compose.yml not found at $OMRS_DIR"
+        return 1
+    fi
+
+    # Wait for backend health (longest to start)
+    echo "Waiting for OpenMRS backend..."
+    local timeout=300
+    local elapsed=0
+    while [ "$elapsed" -lt "$timeout" ]; do
+        local health
+        health=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "http://localhost/openmrs/ws/rest/v1/session" -u "$AUTH" 2>/dev/null || echo "000")
+        if [ "$health" = "200" ] || [ "$health" = "302" ]; then
+            echo "OpenMRS backend ready after ${elapsed}s"
+            break
+        fi
+        sleep 5
+        elapsed=$((elapsed + 5))
+        if [ $((elapsed % 30)) -eq 0 ]; then
+            echo "  Still waiting for OpenMRS backend... ${elapsed}s (HTTP $health)"
+        fi
+    done
+
+    # Wait for frontend/gateway
+    echo "Waiting for OpenMRS frontend..."
+    elapsed=0
+    while [ "$elapsed" -lt 120 ]; do
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "http://localhost/openmrs/spa" 2>/dev/null || echo "000")
+        if [ "$http_code" = "200" ] || [ "$http_code" = "302" ] || [ "$http_code" = "301" ]; then
+            echo "OpenMRS frontend ready after ${elapsed}s (HTTP $http_code)"
+            return 0
+        fi
+        sleep 5
+        elapsed=$((elapsed + 5))
+    done
+
+    echo "WARNING: OpenMRS may not be fully ready"
+    return 0
+}
+
+# Auto-start services when task_utils.sh is sourced
+ensure_openmrs_running
+
 # Export all functions
 export -f omrs_get omrs_post omrs_delete omrs_db_query
 export -f get_patient_uuid get_person_uuid
 export -f wait_for_window get_firefox_window_id focus_firefox ensure_firefox_on_url ensure_openmrs_logged_in
-export -f take_screenshot
+export -f take_screenshot ensure_openmrs_running

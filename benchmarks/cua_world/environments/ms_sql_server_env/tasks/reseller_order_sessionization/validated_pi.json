@@ -1,0 +1,101 @@
+{
+    "task_id": "reseller_order_sessionization@1",
+    "dataset": "AdventureWorks2022",
+    "case_id": "Sales.SalesOrderHeader - reseller orders (OnlineOrderFlag = 0)",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "environment_id",
+            "metadata_value": "ms_sql_server_env@0.1",
+            "verified_value": "ms_sql_server_env@0.1",
+            "source": "env.json at examples/ms_sql_server_env/env.json confirms id and version match",
+            "status": "verified"
+        },
+        {
+            "key": "database_name",
+            "metadata_value": "AdventureWorks2022",
+            "verified_value": "AdventureWorks2022",
+            "source": "Microsoft Learn official documentation (https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure) and GitHub releases (https://github.com/Microsoft/sql-server-samples/releases/tag/adventureworks) confirm AdventureWorks2022 is the official SQL Server 2022 sample database",
+            "status": "verified"
+        },
+        {
+            "key": "database_type",
+            "metadata_value": "SQL Server 2022 sample database",
+            "verified_value": "AdventureWorks2022 is Microsoft's official OLTP (Online Transaction Processing) sample database for SQL Server 2022",
+            "source": "Microsoft Learn documentation and setup_mssql.sh which downloads from Microsoft's official releases",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_table",
+            "metadata_value": "Sales.SalesOrderHeader with OnlineOrderFlag = 0 for reseller orders",
+            "verified_value": "Sales.SalesOrderHeader exists with 26 columns including CustomerID, OrderDate, TotalDue, OnlineOrderFlag (bit, default=1, where 0=sales person order/reseller, 1=online customer order)",
+            "source": "Dataedo AdventureWorks documentation and search results confirm table structure and OnlineOrderFlag semantics",
+            "status": "verified"
+        },
+        {
+            "key": "source_columns",
+            "metadata_value": "CustomerID, OrderDate, TotalDue are used by the task",
+            "verified_value": "All three columns exist in Sales.SalesOrderHeader: CustomerID (int), OrderDate (datetime), TotalDue (money)",
+            "source": "Sales.SalesOrderHeader schema confirmed via Dataedo documentation and multiple SQL Server documentation sources",
+            "status": "verified"
+        },
+        {
+            "key": "online_order_flag_column",
+            "metadata_value": "OnlineOrderFlag = 0 indicates reseller/sales person orders",
+            "verified_value": "OnlineOrderFlag is a bit column where: 0 = Order placed by sales person (reseller), 1 = Order placed online by customer. Default = 1.",
+            "source": "Web search results confirm OnlineOrderFlag semantics in AdventureWorks documentation",
+            "status": "verified"
+        },
+        {
+            "key": "salesorderheader_row_count",
+            "metadata_value": "Total orders in SalesOrderHeader table",
+            "verified_value": "31,465 total orders in Sales.SalesOrderHeader table",
+            "source": "Web search confirmed that AdventureWorks SalesOrderHeader contains 31,465 rows",
+            "status": "verified"
+        },
+        {
+            "key": "test_gap_days",
+            "metadata_value": 7,
+            "verified_value": 7,
+            "source": "Task configuration parameter in task.json - used to test stored procedure with 7-day gap threshold",
+            "status": "verified"
+        },
+        {
+            "key": "validation_gap_days",
+            "metadata_value": 21,
+            "verified_value": 21,
+            "source": "Task configuration parameter in task.json - used for dynamic verification that stored procedure correctly accepts different gap values",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": "[SessionID, CustomerID, SessionStartDate, SessionEndDate, OrderCount, TotalSessionValue, GapUsed]",
+            "verified_value": "[SessionID, CustomerID, SessionStartDate, SessionEndDate, OrderCount, TotalSessionValue, GapUsed] - 7 columns specified in task",
+            "source": "Task specification in task.json metadata field; these are agent-created columns for the ResellerRestockingSessions table",
+            "status": "verified"
+        },
+        {
+            "key": "application_stack",
+            "metadata_value": "Azure Data Studio + Microsoft SQL Server 2022",
+            "verified_value": "Azure Data Studio + Microsoft SQL Server 2022 (via Docker container mcr.microsoft.com/mssql/server:2022-latest)",
+            "source": "setup_mssql.sh confirms Docker image '2022-latest' and Azure Data Studio configuration",
+            "status": "verified"
+        },
+        {
+            "key": "backup_download_url",
+            "metadata_value": "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak",
+            "verified_value": "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak",
+            "source": "setup_mssql.sh line 15 and Microsoft Learn official documentation confirm this exact URL for AdventureWorks2022.bak",
+            "status": "verified"
+        },
+        {
+            "key": "backup_size",
+            "metadata_value": "Approximate size of AdventureWorks2022 backup file",
+            "verified_value": "Approximately 883 MB when backed up",
+            "source": "Verified from backup_database task's validated_pi.json which confirmed AdventureWorks2022.bak is approximately 883 MB",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses AdventureWorks2022, Microsoft's official OLTP sample database for SQL Server 2022. The database contains the Sales.SalesOrderHeader table with 31,465 total orders, including a mix of reseller orders (OnlineOrderFlag=0) and online customer orders (OnlineOrderFlag=1). The task requires analyzing reseller-only orders using a 7-day gap threshold for initial testing and a 21-day threshold for dynamic validation. The underlying source columns (CustomerID, OrderDate, TotalDue) exist in the SalesOrderHeader table with correct data types (int, datetime, money). The agent must create a new 'Logistics' schema with a stored procedure 'usp_GenerateRestockingSessions' that accepts a @MaxGapDays parameter to control the sessionization logic. All metadata task parameters (test_gap_days=7, validation_gap_days=21, required columns) are consistent with the task requirements. The data is synthetic (Microsoft sample data) but properly structured for this analysis task.",
+    "pi_confidence": "high"
+}

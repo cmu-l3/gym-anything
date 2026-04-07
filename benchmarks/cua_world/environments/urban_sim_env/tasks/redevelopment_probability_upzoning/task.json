@@ -1,0 +1,45 @@
+{
+  "id": "redevelopment_probability_upzoning@1",
+  "version": "1.0",
+  "env_id": "urban_sim_env@0.1",
+  "difficulty": "very_hard",
+  "description": "As a development analyst, build a residential redevelopment probability model and use it to project housing development under a proposed upzoning scenario. Use /home/ga/urbansim_projects/data/sanfran_public.h5, working in /home/ga/urbansim_projects/notebooks/redevelopment_model.ipynb.\n\nFor each residential building (residential_units >= 1), compute three features: parcel_sqft (shape_area * 10.764 from the parcels table), zoning_headroom ((max_far * parcel_sqft - building_sqft) / (max_far * parcel_sqft), capped to [0, 1]) obtained via the zoning_for_parcels bridge table and the zoning table, and zone_median_income from the households table joined through buildings to parcels to zones. Exclude buildings where max_far <= 0 or building_sqft is missing, and drop rows with any NaN features. Flag buildings with year_built >= 2000 as recently_developed=1, else 0.\n\nTrain a logistic regression predicting recently_developed from parcel_sqft, zoning_headroom, and zone_median_income using a 70/30 train/test split with random_state=42. Report the AUC score. Then simulate a 50% upzoning scenario by increasing max_far by 50%, recomputing zoning_headroom, and predicting new redevelopment probabilities with the trained model. For each zone, compute expected_baseline_developments and expected_scenario_developments (sums of predicted probabilities) and development_uplift (scenario minus baseline).\n\nExport /home/ga/urbansim_projects/output/model_metrics.json containing auc_score, n_train, n_test, coefficients (feature name to value dict), and intercept. Export /home/ga/urbansim_projects/output/zone_development_impact.csv with columns zone_id, n_buildings, expected_baseline_developments, expected_scenario_developments, development_uplift, and zone_median_income. Save a scatter plot of baseline vs scenario expected developments per zone with a y=x reference line and points colored by development_uplift magnitude to /home/ga/urbansim_projects/output/scenario_comparison_chart.png.",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 300
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/redevelopment_probability_upzoning/setup_task.sh",
+    "post_task": "/workspace/tasks/redevelopment_probability_upzoning/export_result.sh"
+  },
+  "metadata": {
+    "task_name": "redevelopment_probability_upzoning",
+    "notebook_path": "/home/ga/urbansim_projects/notebooks/redevelopment_model.ipynb",
+    "csv_path": "/home/ga/urbansim_projects/output/zone_development_impact.csv",
+    "json_path": "/home/ga/urbansim_projects/output/model_metrics.json",
+    "chart_path": "/home/ga/urbansim_projects/output/scenario_comparison_chart.png",
+    "gt_path": "/tmp/redev_upzoning_gt.json",
+    "required_csv_columns": [
+      "zone_id",
+      "n_buildings",
+      "expected_baseline_developments",
+      "expected_scenario_developments",
+      "development_uplift",
+      "zone_median_income"
+    ],
+    "required_json_keys": [
+      "auc_score",
+      "n_train",
+      "n_test",
+      "coefficients",
+      "intercept"
+    ],
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_redevelopment_upzoning"
+    }
+  }
+}

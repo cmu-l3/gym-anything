@@ -1,0 +1,37 @@
+{
+  "id": "review_immunization_records@1",
+  "version": "1.0",
+  "env_id": "vista_env@0.1",
+  "description": "Review immunization records in the VistA database using the YDBGui web interface. Immunization tracking is a core EHR capability. The VistA system splits this data into two main globals: ^AUTNIMM (Immunization File #9999999.14), which defines the types of vaccines, and ^AUPNVIMM (V Immunization File #9000010.11), which stores the actual vaccination events for patients. The VistA VEHU server is running in a Docker container and Firefox is open with the YDBGui Dashboard. Navigate to both the Immunization Type global (^AUTNIMM) and the Vaccination Event global (^AUPNVIMM) to browse the data and verify that vaccine definitions and patient vaccination records are visible.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/review_immunization_records/setup_task.sh",
+    "post_task": "/workspace/tasks/review_immunization_records/export_result.sh"
+  },
+  "metadata": {
+    "interface": "ydbgui",
+    "globals_to_check": [
+      "^AUTNIMM",
+      "^AUPNVIMM"
+    ],
+    "scoring_weights": {
+      "vista_running": 10,
+      "ydbgui_accessible": 10,
+      "immunization_types_navigated": 25,
+      "vaccine_names_visible": 20,
+      "vaccination_events_navigated": 20,
+      "event_details_visible": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_review_immunization_records"
+    }
+  }
+}

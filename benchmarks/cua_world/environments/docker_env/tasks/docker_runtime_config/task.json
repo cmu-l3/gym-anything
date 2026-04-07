@@ -1,0 +1,33 @@
+{
+  "id": "docker_runtime_config@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "Refactor the 'acme-dashboard:legacy' Docker image to support runtime configuration via environment variables for 'apiUrl' in 'app/config.js' and 'worker_processes' in 'nginx/nginx.conf'. The updated image, tagged 'acme-dashboard:dynamic', must utilize 'envsubst' within a 'docker-entrypoint.sh' script to replace '${API_URL}' and '${WORKER_PROCESSES}' placeholders in configuration templates at runtime. Ensure the implementation installs 'gettext', sets the correct ENTRYPOINT in the Dockerfile, and prevents 'envsubst' from overwriting internal Nginx variables like '$uri' or '$host'. When executed with environment variables, the container must reflect the provided values in its active configuration files.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_runtime_config/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_runtime_config/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/acme-dashboard",
+    "image_tag": "acme-dashboard:dynamic",
+    "required_packages": [
+      "gettext"
+    ],
+    "target_files": [
+      "/usr/share/nginx/html/config.js",
+      "/etc/nginx/nginx.conf"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_runtime_config"
+    }
+  }
+}

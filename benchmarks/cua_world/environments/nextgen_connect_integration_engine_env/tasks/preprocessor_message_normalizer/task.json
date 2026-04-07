@@ -1,0 +1,28 @@
+{
+  "id": "preprocessor_message_normalizer@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a channel named 'Pharmacy_Message_Normalizer' to normalize malformed HL7 messages from a legacy system that sends Unix-style newlines (LF) and trailing whitespace. The channel must receive HL7 v2.x data via a TCP Listener on port 6661, use a preprocessor to replace all '\\n' characters with '\\r' and trim trailing whitespace from the raw message string, and write the output to /tmp/normalized_messages/ using the filename pattern 'output_${date:yyyyMMddHHmmss}.hl7'. Verify the configuration by processing the test message from /home/ga/test_message.hl7 through the listener port.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/preprocessor_message_normalizer/setup_task.sh",
+    "post_task": "/workspace/tasks/preprocessor_message_normalizer/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Pharmacy_Message_Normalizer",
+    "test_message_path": "/home/ga/test_message.hl7",
+    "output_dir": "/tmp/normalized_messages",
+    "listen_port": "6661"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_preprocessor_message_normalizer"
+    }
+  }
+}

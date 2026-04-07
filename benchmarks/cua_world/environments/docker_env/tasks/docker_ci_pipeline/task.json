@@ -1,0 +1,35 @@
+{
+  "id": "docker_ci_pipeline@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "Create and execute a containerized CI/CD pipeline for the Python Flask application located at ~/projects/webapp/. The pipeline must be orchestrated via an executable bash script named 'pipeline.sh' and include a production Dockerfile using 'python:3.11-slim' that runs as a non-root user with an image size under 200MB. The pipeline must perform linting (flake8 and bandit), testing (pytest with coverage), security scanning (Trivy), and final packaging of a 'webapp:production' image (listening on port 8000) verified via its /health endpoint. Ensure all artifacts are generated in the 'ci-output/' directory, including 'lint-report.txt', 'test-results.txt', 'coverage.txt', 'security-scan.txt', and 'pipeline-summary.txt'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_ci_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_ci_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/webapp",
+    "output_dir": "/home/ga/projects/webapp/ci-output",
+    "image_tag": "webapp:production",
+    "max_image_size_mb": 200,
+    "required_files": [
+      "lint-report.txt",
+      "test-results.txt",
+      "coverage.txt",
+      "security-scan.txt",
+      "pipeline-summary.txt"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_ci_pipeline"
+    }
+  }
+}

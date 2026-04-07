@@ -1,0 +1,53 @@
+{
+  "task_id": "thermal_commissioning@1",
+  "task_completion": [
+    {
+      "id": "inst2_interface_connected",
+      "description": "The INST2_INT interface is reconnected.",
+      "points": 15,
+      "visual_evidence": "Look for the OpenC3 CmdTlmServer window showing 'INST2_INT' with a green 'CONNECTED' status, or a terminal window showing successful execution of a script/command connecting the 'INST2_INT' interface."
+    },
+    {
+      "id": "temp3_normalized",
+      "description": "The TEMP3 sensor telemetry is normalized (override removed).",
+      "points": 15,
+      "visual_evidence": "Look for the OpenC3 Packet Viewer or Telemetry Viewer showing 'INST HEALTH_STATUS TEMP3' with a value other than exactly '85.0' (e.g., a live value like -8.686), or a terminal window showing the 'normalize_tlm' API being called for TEMP3."
+    },
+    {
+      "id": "sensor_data_collected",
+      "description": "At least 20 temporally-spaced observations are collected for all four temperature sensors.",
+      "points": 20,
+      "visual_evidence": "Look for a terminal window running a script, or a text file/spreadsheet showing a loop or list of at least 20 temperature readings collected over time for TEMP1, TEMP2, TEMP3, and TEMP4."
+    },
+    {
+      "id": "limits_applied",
+      "description": "New operational limits are applied to the four sensors based on the computed statistics.",
+      "points": 20,
+      "visual_evidence": "Look for terminal output showing 'set_limits' API calls for TEMP1, TEMP2, TEMP3, and TEMP4 with calculated RED and YELLOW limits, or the OpenC3 Limits Monitor/TlmViewer showing updated limit thresholds for these sensors."
+    },
+    {
+      "id": "commissioning_report_written",
+      "description": "The commissioning report is written to /home/ga/Desktop/commissioning_report.json with the required schema.",
+      "points": 30,
+      "visual_evidence": "Look for a text editor or terminal displaying the contents of 'commissioning_report.json' on the Desktop. It must be valid JSON and include 'pre_commissioning_issues' (mentioning INST2_INT and TEMP3), 'observations' (with min, max, mean, stddev for all 4 sensors), 'limits_applied', and a 'verification' section confirming no false alarms."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_interaction",
+      "description": "The agent interacted with the OpenC3 COSMOS UI or used the provided CLI/API tools.",
+      "visual_evidence": "Check that the agent actually opened OpenC3 tools (CmdTlmServer, Packet Viewer) or wrote/executed scripts using cosmos-api/cosmos-tlm, rather than just hallucinating the steps."
+    },
+    {
+      "id": "genuine_statistics",
+      "description": "The statistics and limits in the report appear to be calculated from actual collected data.",
+      "visual_evidence": "Check that the min, max, mean, and stddev values in the report correspond to the observed data ranges (e.g., TEMP1 around -95 to +95, TEMP4 around 1 to 10) and are not arbitrary or hardcoded numbers."
+    },
+    {
+      "id": "report_format_followed",
+      "description": "The report is written as a proper JSON file following the requested schema.",
+      "visual_evidence": "Check that the final report is formatted as JSON, not plain text, and contains the specific keys requested in the briefing."
+    }
+  ],
+  "privileged_info_for_vlm": "Fault 1: INST2_INT interface is disconnected by default. Fault 2: INST HEALTH_STATUS TEMP3 is overridden to a constant 85.0. The agent must reconnect INST2_INT and normalize TEMP3. Expected live TEMP ranges: TEMP1 approx -95 to +95 C, TEMP2 approx -37 to +47 C, TEMP3 approx -10 to +65 C, TEMP4 approx 1 to 10 C. The report must be at /home/ga/Desktop/commissioning_report.json and include pre_commissioning_issues, observations (min/max/mean/stddev for 4 sensors), limits_applied (YELLOW at mean +/- 3*stddev, RED at mean +/- 4*stddev), and verification."
+}

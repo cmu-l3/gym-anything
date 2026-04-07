@@ -56,5 +56,22 @@ usermod -aG docker ga
 systemctl enable docker
 systemctl start docker
 
+# Authenticate with Docker Hub to avoid rate limits during pull
+echo "dckr_pat_YISK01jQAaGVVmzkVoZnkOH3Q3g" | docker login -u "hackear2041" --password-stdin \
+    && echo "Docker Hub auth successful" \
+    || echo "Docker Hub auth failed (continuing anyway)"
+
+# Pre-pull Docker images during install phase (faster setup later)
+WGER_DIR="/home/ga/wger"
+mkdir -p "$WGER_DIR"
+if [ -f /workspace/config/docker-compose.yml ]; then
+    cp /workspace/config/docker-compose.yml "$WGER_DIR/"
+    cp /workspace/config/prod.env "$WGER_DIR/" 2>/dev/null || true
+    cp /workspace/config/nginx.conf "$WGER_DIR/" 2>/dev/null || true
+    chown -R ga:ga "$WGER_DIR"
+    cd "$WGER_DIR"
+    docker compose pull || echo "Warning: docker compose pull failed (will retry in setup)"
+fi
+
 echo "=== Docker installed: $(docker --version) ==="
 echo "=== wger dependencies installation complete ==="

@@ -1,0 +1,52 @@
+{
+    "task_id": "complete_offline_caching_feature@1",
+    "dataset": "StudyPlannerApp (custom Android project with intentional bugs)",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/AndroidStudioProjects/StudyPlannerApp",
+            "verified_value": "/home/ga/AndroidStudioProjects/StudyPlannerApp",
+            "source": "setup_task.sh line 11 sets PROJECT_DIR to this exact path; line 19 copies data source to it",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "StudyPlannerApp",
+            "verified_value": "StudyPlannerApp",
+            "source": "Directory examples/android_studio_env/data/StudyPlannerApp/ exists with 43 files forming a valid Android project (build.gradle.kts, settings.gradle.kts, AndroidManifest.xml, 20+ Kotlin source files, 11 XML resources)",
+            "status": "verified"
+        },
+        {
+            "key": "package_path",
+            "metadata_value": "com/example/studyplanner",
+            "verified_value": "com/example/studyplanner",
+            "source": "app/build.gradle.kts declares namespace='com.example.studyplanner'; physical directory app/src/main/java/com/example/studyplanner/ contains all source files; all .kt files declare 'package com.example.studyplanner.*'",
+            "status": "verified"
+        },
+        {
+            "key": "num_issues",
+            "metadata_value": 9,
+            "verified_value": 9,
+            "source": "Independent audit of all 20+ source files found exactly 9 distinct issues: (1) KSP plugin missing from app/build.gradle.kts plugins block, (2) converter-gson dependency missing, (3) Converters.kt missing timestampToDate() reverse TypeConverter, (4) Migrations.kt MIGRATION_1_2 missing sync_status column ALTER, (5) OfflineCacheRepository.kt calls apiService.getStudySessions() but interface defines getSessionsBySubject(), (6) FlashCardDto.kt toDomainModel() swaps question and answer fields, (7) OfflineCacheRepository.kt isCacheStale() compares System.currentTimeMillis() (ms) with seconds-based values, (8) SubjectListViewModel.kt uses InMemoryStudyRepository instead of OfflineCacheRepository, (9) SessionLogViewModel.kt assigns Flow<List<StudySession>> to LiveData<List<StudySession>> property",
+            "status": "verified"
+        },
+        {
+            "key": "compile_errors",
+            "metadata_value": 5,
+            "verified_value": 5,
+            "source": "Issues causing build failure: (1) ksp() config not found without KSP plugin, (2) GsonConverterFactory unresolved without converter-gson, (3) Room annotation processor fails without reverse TypeConverter, (5) getStudySessions() is unresolved reference, (9) Flow cannot be assigned to LiveData type. Issue (4) missing migration column is a runtime error not compile-time with exportSchema=false.",
+            "status": "verified"
+        },
+        {
+            "key": "logic_errors",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "Issues that compile but are logically wrong: (4) Migrations.kt missing sync_status column causes runtime Room schema validation failure, (6) FlashCardDto question/answer swap produces inverted flashcards, (7) isCacheStale() ms-vs-seconds mismatch makes cache always appear stale, (8) SubjectListViewModel uses in-memory data instead of Room/Retrofit cached data",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The StudyPlannerApp project has exactly 9 intentional bugs that the agent must fix. Five are compile errors: (1) In app/build.gradle.kts, the KSP plugin id('com.google.devtools.ksp') is missing from the plugins block but ksp() is used in dependencies — fix by adding the plugin declaration; (2) In app/build.gradle.kts, the dependency implementation('com.squareup.retrofit2:converter-gson:2.9.0') is missing — ApiClient.kt uses GsonConverterFactory.create() which requires it; (3) In Converters.kt, the reverse @TypeConverter function timestampToDate(value: Long?): Date? is missing — only dateToTimestamp exists; (4-compile) In OfflineCacheRepository.kt line 65, the code calls apiService.getStudySessions(subjectId) but the StudyApiService interface defines the method as getSessionsBySubject(subjectId: String); (5) In SessionLogViewModel.kt, the sessions property is declared as LiveData<List<StudySession>> but the getter returns repository.getSessionsBySubject() which returns Flow<List<StudySession>> — needs .asLiveData() conversion. Four are logic errors: (6) In Migrations.kt MIGRATION_1_2, only last_synced_at column is added but the StudySession entity also requires a sync_status INTEGER NOT NULL DEFAULT 0 column; (7) In FlashCardDto.kt toDomainModel(), question is mapped to answer and answer is mapped to question (fields swapped); (8) In OfflineCacheRepository.kt isCacheStale(), System.currentTimeMillis() returns milliseconds but lastSyncedAt is stored in seconds and maxAge is 3600 seconds — the comparison mixes units so cache always appears stale — fix by dividing currentTimeMillis by 1000 or multiplying maxAge by 1000; (9) In SubjectListViewModel.kt, the repository is InMemoryStudyRepository() but should be OfflineCacheRepository. The reference pattern for DTO-to-domain mappings is SubjectDto.kt which correctly maps id=id, name=name, colorHex=colorHex. The correct API method name is getSessionsBySubject (defined in StudyApiService.kt). The project uses AGP 8.2.0, Kotlin 1.9.22, Room 2.6.1, Retrofit 2.9.0, KSP 1.9.22-1.0.17, Navigation 2.7.7, Lifecycle 2.7.0, Coroutines 1.7.3. Build success requires ./gradlew assembleDebug to exit with code 0.",
+    "pi_confidence": "high"
+}

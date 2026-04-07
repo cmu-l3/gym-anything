@@ -162,7 +162,8 @@ def check_threshold_conversion(traj, env_info, task_info):
         "/home/ga/Desktop/color_photo_bw.png",
         "/home/ga/Desktop/color_photo_threshold.png"
     ]
-
+    breakpoint()
+    
     success, file_info = setup_verification_environment(
         "/home/ga/Desktop/color_photo.jpg",
         possible_results,

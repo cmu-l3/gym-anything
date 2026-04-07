@@ -1,0 +1,68 @@
+{
+  "id": "serc_audit_response@1",
+  "version": "1.0",
+  "env_id": "cameo_data_manager_env@0.1",
+  "description": "The Vermont SERC has issued audit findings for Lakeside Chemical Supply identifying four data quality deficiencies in their Tier II records. Using the audit report at C:\\workspace\\data\\serc_audit_report.txt, correct the facility's Tier II data (imported from C:\\workspace\\data\\lakeside_chemical.xml) within CAMEO Data Manager. Export the corrected Tier II dataset as XML to C:\\Users\\Docker\\Documents\\CAMEO\\lakeside_corrected.xml.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\serc_audit_response\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\serc_audit_response\\export_result.ps1"
+  },
+  "metadata": {
+    "facility": "Lakeside Chemical Supply",
+    "audit_report_file": "C:\\workspace\\data\\serc_audit_report.txt",
+    "source_data_file": "C:\\workspace\\data\\lakeside_chemical.xml",
+    "expected_export_file": "C:\\Users\\Docker\\Documents\\CAMEO\\lakeside_corrected.xml",
+    "corrections": [
+      {
+        "finding": 1,
+        "chemical": "Hydrogen Peroxide",
+        "cas": "7722-84-1",
+        "field": "aveAmount",
+        "original": 8500,
+        "corrected": 4200,
+        "corrected_amount_code": "04"
+      },
+      {
+        "finding": 2,
+        "chemical": "Sulfuric Acid",
+        "cas": "7664-93-9",
+        "field": "storageLocation",
+        "original": "Chemical Storage A",
+        "corrected": "Drum Storage Building B"
+      },
+      {
+        "finding": 3,
+        "action": "replace_contact",
+        "remove_contact": "David Nguyen",
+        "add_contact": {
+          "first_name": "Patricia",
+          "last_name": "Okonkwo",
+          "title": "Emergency Response Coordinator",
+          "phone": "802-555-0293",
+          "contact_types": [
+            "Fac. Emergency Coordinator",
+            "Emergency Contact"
+          ]
+        }
+      },
+      {
+        "finding": 4,
+        "field": "fireDistrict",
+        "original": "Station 4 - Montpelier South",
+        "corrected": "Station 12 - Montpelier Central"
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_serc_audit_response"
+    }
+  }
+}

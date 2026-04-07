@@ -1,0 +1,30 @@
+{
+  "id": "comp_reconciliation_merge@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Reconcile an external salary survey against the HR employee database (localhost:1521/XEPDB1, user: hr, pass: hr123) by synchronizing the EMPLOYEES table with the MARKET_SALARY_SURVEY staging table. Create an audit table named SALARY_CHANGE_LOG with columns: CHANGE_ID (PK), EMPLOYEE_ID, OLD_SALARY, NEW_SALARY, MARKET_SALARY, CHANGE_DATE, and CHANGE_TYPE. Use an Oracle MERGE statement to update salaries in EMPLOYEES to MARKET_SALARY only if the current salary is more than 10% below market (current < market * 0.9), logging these actions as 'MARKET_ADJUSTMENT'. For records in MARKET_SALARY_SURVEY not matched in EMPLOYEES, insert new employee records (email as uppercase last name, hire_date as SYSDATE, department_id as 270) and log as 'NEW_POSITION'. Generate a text report summarizing the total records processed, number of updates, and number of new inserts at /home/ga/Desktop/reconciliation_report.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/comp_reconciliation_merge/setup_task.sh",
+    "post_task": "/workspace/tasks/comp_reconciliation_merge/export_result.sh"
+  },
+  "metadata": {
+    "expected_updates": 15,
+    "expected_inserts": 8,
+    "expected_no_changes": 17,
+    "audit_table": "SALARY_CHANGE_LOG",
+    "staging_table": "MARKET_SALARY_SURVEY",
+    "report_path": "/home/ga/Desktop/reconciliation_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_comp_reconciliation"
+    }
+  }
+}

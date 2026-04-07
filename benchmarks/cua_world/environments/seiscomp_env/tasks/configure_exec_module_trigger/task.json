@@ -1,0 +1,28 @@
+{
+  "id": "configure_exec_module_trigger@1",
+  "version": "1.0",
+  "env_id": "seiscomp_env@0.1",
+  "description": "Configure the SeisComP 'exec' module to automatically trigger a custom shell script whenever a new seismic Origin is received. Create an executable bash script at /home/ga/scripts/log_origin.sh that accepts the Origin PublicID as its first argument and appends a line to /home/ga/origin_audit.log in the format '[Timestamp] New Origin: [PublicID]'. The 'exec' module must be configured to subscribe to the 'LOCATION' messaging group, trigger on messages of class 'Origin', and be enabled and running in the background.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_exec_module_trigger/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_exec_module_trigger/export_result.sh"
+  },
+  "metadata": {
+    "target_script_path": "/home/ga/scripts/log_origin.sh",
+    "target_log_path": "/home/ga/origin_audit.log",
+    "required_subscription": "LOCATION",
+    "required_message_type": "Origin"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_configure_exec_module"
+    }
+  }
+}

@@ -33,9 +33,31 @@ try {
         if ($odrProc) { $odrProc.WaitForExit(30000) }
     }
 
-    # Disable OneDrive auto-start
+    # Disable OneDrive auto-start and prevent OneDrive setup dialogs
     Remove-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name "OneDrive" -Force -ErrorAction SilentlyContinue
     taskkill /F /IM OneDrive.exe 2>$null
+    taskkill /F /IM OneDriveSetup.exe 2>$null
+
+    # Remove OneDrive scheduled tasks to prevent re-launch
+    schtasks /Delete /TN "OneDrive Reporting Task-S-1-5-21*" /F 2>$null
+    schtasks /Delete /TN "OneDrive Standalone Update Task-S-1-5-21*" /F 2>$null
+    Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -like "*OneDrive*" } | ForEach-Object {
+        Unregister-ScheduledTask -TaskName $_.TaskName -Confirm:$false -ErrorAction SilentlyContinue
+    }
+
+    # Prevent OneDrive setup from running on login
+    $oneDriveSetupKey = "HKLM:\SOFTWARE\Policies\Microsoft\OneDrive"
+    if (-not (Test-Path $oneDriveSetupKey)) { New-Item -Path $oneDriveSetupKey -Force 2>$null | Out-Null }
+    New-ItemProperty -Path $oneDriveSetupKey -Name "KFMSilentOptIn" -Value "" -PropertyType String -Force 2>$null | Out-Null
+    New-ItemProperty -Path $oneDriveSetupKey -Name "PreventNetworkTrafficPreUserSignIn" -Value 1 -PropertyType DWord -Force 2>$null | Out-Null
+
+    # Remove OneDrive from startup in HKLM as well
+    Remove-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name "OneDrive" -Force -ErrorAction SilentlyContinue
+    Remove-ItemProperty -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run" -Name "OneDrive" -Force -ErrorAction SilentlyContinue
+
+    # Delete OneDriveSetup.exe to prevent it from ever running again
+    Remove-Item "$env:SystemRoot\SysWOW64\OneDriveSetup.exe" -Force -ErrorAction SilentlyContinue
+    Remove-Item "$env:SystemRoot\System32\OneDriveSetup.exe" -Force -ErrorAction SilentlyContinue
 
     # Disable Windows startup notifications
     $toastPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications"
@@ -100,7 +122,7 @@ try {
     }
 
     if (-not $downloaded) {
-        throw "ERROR: AttendHRM installer could not be downloaded. Download manually from https://lenvica.com/download-attendhrm/ and place at benchmarks/cua_world/environments/attendhrm_env/data/AttendHRM-Attendance-Lite-Setup.exe"
+        throw "ERROR: AttendHRM installer could not be downloaded. Download manually from https://lenvica.com/download-attendhrm/ and place at examples/attendhrm_env/data/AttendHRM-Attendance-Lite-Setup.exe"
     }
 
     # -------------------------------------------------------------------
@@ -204,7 +226,26 @@ try {
     $ErrorActionPreference = $prevEAP3
 
     # -------------------------------------------------------------------
-    # Phase 7: Cleanup installer to free disk space
+    # Phase 7: Add Firebird client DLLs to system PATH
+    # AttendHRM needs fbclient.dll / gds32.dll on PATH to connect to Firebird.
+    # -------------------------------------------------------------------
+    Write-Host "--- Adding Firebird to system PATH ---"
+    $fbBinDirs = @(
+        "C:\Program Files (x86)\Firebird\Firebird_5_0",
+        "C:\Program Files (x86)\Firebird\Firebird_5_0\bin",
+        "C:\Program Files (x86)\Attend HRM\Firebird"
+    )
+    $currentPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    foreach ($dir in $fbBinDirs) {
+        if ((Test-Path $dir) -and ($currentPath -notlike "*$dir*")) {
+            $currentPath = "$currentPath;$dir"
+            Write-Host "Added to PATH: $dir"
+        }
+    }
+    [System.Environment]::SetEnvironmentVariable("Path", $currentPath, "Machine")
+
+    # -------------------------------------------------------------------
+    # Phase 8: Cleanup installer to free disk space
     # -------------------------------------------------------------------
     Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
     Write-Host "Installer cleaned up"

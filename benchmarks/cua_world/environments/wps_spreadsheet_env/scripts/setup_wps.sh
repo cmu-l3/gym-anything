@@ -108,8 +108,8 @@ LAUNCHEOF
         echo "  - Copied templates"
     fi
 
-    # Mark the desktop shortcut as trusted (GNOME)
-    gio set "$home_dir/Desktop/WPS-Spreadsheet.desktop" metadata::trusted true 2>/dev/null || true
+    # Mark the desktop shortcut as trusted (GNOME) - must run as the user with dbus
+    su - "$username" -c "dbus-launch gio set $home_dir/Desktop/WPS-Spreadsheet.desktop metadata::trusted true" 2>/dev/null || true
 }
 
 # Setup for ga user (the main VNC user)
@@ -150,16 +150,20 @@ GETWINEOF
 chmod +x /usr/local/bin/get-wps-et-window
 
 # ================================================================
-# First-run: Launch WPS to accept EULA and dismiss System Check
+# First-run: Launch WPS to accept EULA and dismiss all startup dialogs
 # ================================================================
-echo "Performing first-run EULA acceptance..."
+echo "Performing first-run warm-up launch..."
+
+# Helper: run a command as ga with DISPLAY and XAUTHORITY
+run_as_ga() {
+    su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; $*"
+}
 
 # Wait for desktop session to be ready (GDM auto-login)
 echo "  - Waiting for desktop session..."
 DESKTOP_TIMEOUT=60
 DESKTOP_ELAPSED=0
 while [ $DESKTOP_ELAPSED -lt $DESKTOP_TIMEOUT ]; do
-    # Check if user session is active by looking for gnome-shell
     if pgrep -u ga gnome-shell >/dev/null 2>&1; then
         echo "  - Desktop session ready after ${DESKTOP_ELAPSED}s"
         break
@@ -169,7 +173,6 @@ while [ $DESKTOP_ELAPSED -lt $DESKTOP_TIMEOUT ]; do
 done
 
 # Set up X11 authentication for the ga user
-# Copy GDM's Xauthority cookie so ga can access DISPLAY=:1
 GDM_XAUTH=$(ps aux | grep Xorg | grep -oP '(?<=-auth )\S+' | head -1)
 if [ -n "$GDM_XAUTH" ] && [ -f "$GDM_XAUTH" ]; then
     cp "$GDM_XAUTH" /home/ga/.Xauthority
@@ -177,50 +180,94 @@ if [ -n "$GDM_XAUTH" ] && [ -f "$GDM_XAUTH" ]; then
     echo "  - X11 auth configured from GDM ($GDM_XAUTH)"
 fi
 
-# Also try xhost for permissive access
-su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; xhost +local:" 2>/dev/null || true
+run_as_ga "xhost +local:" 2>/dev/null || true
 
-# Launch WPS Spreadsheet as ga user
-su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; et &"
-sleep 8
+# Launch WPS Spreadsheet for warm-up (first-run clears dialogs)
+run_as_ga "et &"
+
+# Wait for WPS window to appear
+echo "  - Waiting for WPS to load..."
+for i in $(seq 1 30); do
+    if run_as_ga "wmctrl -l" 2>/dev/null | grep -qi "Spreadsheets\|\.xlsx\|\.et"; then
+        echo "  - WPS window detected after ${i}s"
+        break
+    fi
+    sleep 2
+done
+
+# Additional wait for dialogs to fully render
+sleep 5
 
 # Check if EULA dialog appeared
-EULA_WIN=$(su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; wmctrl -l" | grep -i "License Agreement" | awk '{print $1}')
+EULA_WIN=$(run_as_ga "wmctrl -l" 2>/dev/null | grep -i "License Agreement" | awk '{print $1}')
 if [ -n "$EULA_WIN" ]; then
     echo "  - EULA dialog detected, auto-accepting..."
     # Click the "agree" checkbox (scaled 430,432 from 1280x720 -> 645,648 at 1920x1080)
-    su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; xdotool mousemove 645 648 click 1"
+    run_as_ga "xdotool mousemove 645 648 click 1"
     sleep 1
     # Click "I confirm" button (scaled 860,432 -> 1290,648)
-    su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; xdotool mousemove 1290 648 click 1"
+    run_as_ga "xdotool mousemove 1290 648 click 1"
     sleep 3
     echo "  - EULA accepted"
 else
-    echo "  - No EULA dialog (already accepted or config pre-set)"
+    echo "  - No EULA dialog (config pre-set)"
 fi
 
-# Wait for WPS to fully load and save EULA acceptance to config
-sleep 8
+# Wait for any remaining dialogs to appear
+sleep 5
 
-# Close System Check dialog if present
-SYSCHECK_WIN=$(su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; wmctrl -l" | grep -i "System Check" | awk '{print $1}')
-if [ -n "$SYSCHECK_WIN" ]; then
-    echo "  - Closing System Check dialog..."
-    su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; wmctrl -c 'System Check'"
+# ----------------------------------------------------------------
+# Dismiss all startup dialogs with retry loop (front-to-back order)
+# Dialogs: "WPS Office" (default app), "Checking completed!", "System Check"
+# ----------------------------------------------------------------
+echo "  - Dismissing startup dialogs..."
+for _attempt in 1 2 3 4 5; do
+    WINDOWS=$(run_as_ga "wmctrl -l" 2>/dev/null)
+
+    # 1. Close "WPS Office" default-app dialog (activate + press Enter on OK button)
+    WPS_DIALOG=$(echo "$WINDOWS" | grep -i "WPS Office$" | awk '{print $1}')
+    if [ -n "$WPS_DIALOG" ]; then
+        echo "    Dismissing 'WPS Office' dialog (attempt $_attempt)..."
+        run_as_ga "wmctrl -ia '$WPS_DIALOG'" 2>/dev/null || true
+        sleep 0.5
+        run_as_ga "xdotool key Return" 2>/dev/null || true
+        sleep 2
+    fi
+
+    # 2. Close "System Check" dialog (activate + Alt+F4)
+    SYSCHECK_WIN=$(echo "$WINDOWS" | grep -i "System Check" | awk '{print $1}')
+    if [ -n "$SYSCHECK_WIN" ]; then
+        echo "    Dismissing 'System Check' dialog (attempt $_attempt)..."
+        run_as_ga "wmctrl -ia '$SYSCHECK_WIN'" 2>/dev/null || true
+        sleep 0.5
+        run_as_ga "xdotool key alt+F4" 2>/dev/null || true
+        sleep 2
+    fi
+
+    # 3. Close any "Checking completed" sub-dialog
+    CHECK_WIN=$(echo "$WINDOWS" | grep -i "Checking completed" | awk '{print $1}')
+    if [ -n "$CHECK_WIN" ]; then
+        echo "    Dismissing 'Checking completed' dialog (attempt $_attempt)..."
+        run_as_ga "wmctrl -ia '$CHECK_WIN'" 2>/dev/null || true
+        sleep 0.5
+        run_as_ga "xdotool key Return" 2>/dev/null || true
+        sleep 2
+    fi
+
+    # Check if all dialogs are gone
+    REMAINING=$(run_as_ga "wmctrl -l" 2>/dev/null | grep -ciE "System Check|WPS Office$|Checking completed")
+    if [ "$REMAINING" -eq 0 ]; then
+        echo "  - All dialogs dismissed after $_attempt attempt(s)"
+        break
+    fi
     sleep 2
-fi
+done
 
-# Close WPS Office dialog if present
-WPS_DIALOG=$(su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; wmctrl -l" | grep -i "WPS Office$" | awk '{print $1}')
-if [ -n "$WPS_DIALOG" ]; then
-    echo "  - Closing WPS Office dialog..."
-    su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; xdotool key Escape"
-    sleep 1
-fi
+# Final fallback: press Escape to close any remaining modal dialogs
+run_as_ga "xdotool key Escape" 2>/dev/null || true
+sleep 1
 
-# Close all WPS windows
-su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; wmctrl -c 'Spreadsheets'" 2>/dev/null || true
-su - ga -c "export DISPLAY=:1; export XAUTHORITY=/home/ga/.Xauthority; wmctrl -c 'WPS Spreadsheets'" 2>/dev/null || true
+# Let WPS save its config (suppresses dialogs on future launches)
 sleep 3
 
 # Kill WPS processes specifically (NOT pkill -f "et" which kills gnome-settings-daemon etc.)
@@ -232,11 +279,20 @@ pkill -f "/office6/et" 2>/dev/null || true
 pkill -f "/office6/wps" 2>/dev/null || true
 sleep 2
 
-# Update config to prevent future EULA/System Check dialogs
-if [ -f "/home/ga/.config/Kingsoft/Office.conf" ]; then
-    # Append additional suppression settings if not already present
-    if ! grep -q "AcceptedEULA" /home/ga/.config/Kingsoft/Office.conf; then
-        cat >> "/home/ga/.config/Kingsoft/Office.conf" << 'APPENDEOF'
+# Update config to suppress future dialogs
+WPS_CONF="/home/ga/.config/Kingsoft/Office.conf"
+if [ -f "$WPS_CONF" ]; then
+    # Add SystemCheck suppression if not present
+    if ! grep -q "common\\\\SystemCheck" "$WPS_CONF"; then
+        sed -i '/^\[6\.0\]/a common\\SystemCheck\\DontShowAgain=true' "$WPS_CONF" 2>/dev/null || true
+    fi
+    # Add default office suppression if not present
+    if ! grep -q "common\\\\DefaultOffice" "$WPS_CONF"; then
+        sed -i '/^\[6\.0\]/a common\\DefaultOffice\\DontAsk=true' "$WPS_CONF" 2>/dev/null || true
+    fi
+    # Ensure EULA accepted
+    if ! grep -q "AcceptedEULA" "$WPS_CONF"; then
+        cat >> "$WPS_CONF" << 'APPENDEOF'
 
 [6.0]
 common\AcceptedEULA=true
@@ -246,16 +302,10 @@ common\autoSwitchSkin=false
 [kdcsdk]
 NotFirstOpen=true
 APPENDEOF
-        chown ga:ga /home/ga/.config/Kingsoft/Office.conf
     fi
+    chown ga:ga "$WPS_CONF"
 fi
 
 echo "  - First-run setup complete"
 
 echo "=== WPS Office Spreadsheet configuration completed ==="
-
-echo "WPS Office Spreadsheet is ready! Users can:"
-echo "  - Launch from desktop shortcut"
-echo "  - Run 'et' from terminal"
-echo "  - Run '~/launch_wps_et.sh <file>' for optimized launch"
-echo "  - Use 'wps' for writer, 'wpp' for presentations"

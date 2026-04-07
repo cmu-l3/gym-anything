@@ -1,0 +1,185 @@
+{
+    "task_id": "devtools_cascading_debug@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "webapp_dir",
+            "metadata_value": "/home/ga/webapp",
+            "verified_value": "/home/ga/webapp",
+            "source": "Live VM inspection: `ls -la /home/ga/webapp/` confirmed directory exists with index.html (1628 bytes), app.js (3074 bytes), style.css (2646 bytes), and data/employees.json (2470 bytes). All owned by ga:ga.",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "/home/ga/Documents/incident_report.json",
+            "verified_value": "/home/ga/Documents/incident_report.json",
+            "source": "Live VM inspection: ~/Documents/ exists with ga:ga ownership mode 755. Write test confirmed ga user can create files there. Export script checks this exact path.",
+            "status": "verified"
+        },
+        {
+            "key": "http_server_port",
+            "metadata_value": 8080,
+            "verified_value": 8080,
+            "source": "Live VM inspection: `curl -s -o /dev/null -w '%{http_code}' http://localhost:8080` returned 200. Process list confirms `python3 -m http.server 8080` running as user ga (PID 1821). HTTP server log shows requests being served on port 8080.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_employee_count",
+            "metadata_value": 10,
+            "verified_value": 10,
+            "source": "Parsed data/employees.json: top-level key is 'staff' containing exactly 10 objects with IDs 1001-1010. Names: Sarah Chen, Marcus Johnson, Priya Patel, James O'Brien, Yuki Tanaka, David Kim, Elena Rodriguez, Robert Nguyen, Aisha Williams, Thomas Mueller. After all bugs fixed, screenshot confirms 'Showing 10 of 10 employees' and search for 'Engineering' shows 'Showing 4 of 10 employees' (Sarah Chen, Priya Patel, David Kim, Thomas Mueller).",
+            "status": "verified"
+        },
+        {
+            "key": "bookmark_folder_name",
+            "metadata_value": "Development",
+            "verified_value": "Development",
+            "source": "Cross-referenced with task description which says 'Bookmark the working application URL in a \"Development\" bookmark folder.' Export script queries SQLite for folder with title='Development' and type=2. Verifier checks same string. Consistent.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug1_script_src.file",
+            "metadata_value": "index.html",
+            "verified_value": "index.html",
+            "source": "Inspected actual index.html from VM: line 52 contains `<script src=\"app.jss\"></script>`. The typo 'app.jss' is in index.html, not app.js.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug1_script_src.buggy",
+            "metadata_value": "app.jss",
+            "verified_value": "app.jss",
+            "source": "Verified in index.html line 52: `<script src=\"app.jss\">`. HTTP server returns 404 for /app.jss (confirmed via curl). Firefox Console shows 'Loading failed for the <script> with source \"http://localhost:8080/app.jss\"' (confirmed via screenshot 10_devtools_console_error.png). This causes the loading spinner to stay forever (confirmed via screenshot 01_initial_state.png).",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug1_script_src.fixed",
+            "metadata_value": "app.js",
+            "verified_value": "app.js",
+            "source": "HTTP server returns 200 for /app.js (confirmed via curl). After sed fix `s/app.jss/app.js/`, page progresses to Bug 2 error (confirmed via screenshot 02_after_fix_bug1.png showing 'Error loading data: HTTP 404: File not found').",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug1_script_src.panel",
+            "metadata_value": "Console/Network",
+            "verified_value": "Console/Network",
+            "source": "Screenshot 10_devtools_console_error.png shows Console tab with 'Loading failed for the <script>' warning. Screenshot 11_devtools_network_404.png shows Console displaying 'GET http://localhost:8080/app.jss HTTP/1 404 File not found'. Both Console and Network display the error.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug2_fetch_url.file",
+            "metadata_value": "app.js",
+            "verified_value": "app.js",
+            "source": "Inspected actual app.js from VM: line 5 contains `var API_URL = 'data/employee.json';`. The buggy URL string is in app.js.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug2_fetch_url.buggy",
+            "metadata_value": "data/employee.json",
+            "verified_value": "data/employee.json",
+            "source": "app.js line 5: `var API_URL = 'data/employee.json';`. HTTP server returns 404 for /data/employee.json (confirmed via curl). The actual file on disk is data/employees.json (with 's'). After Bug 1 fix, page shows red error 'Error loading data: HTTP 404: File not found' (screenshot 02_after_fix_bug1.png).",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug2_fetch_url.fixed",
+            "metadata_value": "data/employees.json",
+            "verified_value": "data/employees.json",
+            "source": "HTTP server returns 200 for /data/employees.json (confirmed via curl). File exists at /home/ga/webapp/data/employees.json (2470 bytes). After sed fix, page progresses to Bug 3 error (screenshot 03_after_fix_bug2.png showing 'Expected an array of employees but got: undefined').",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug2_fetch_url.panel",
+            "metadata_value": "Console/Network",
+            "verified_value": "Console/Network",
+            "source": "The fetch 404 appears in both Console (as error logged by catch block) and Network tab (as 404 status on the request). Verified by code analysis of the catch handler at app.js line 29-33.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug3_data_property.file",
+            "metadata_value": "app.js",
+            "verified_value": "app.js",
+            "source": "Inspected actual app.js from VM: line 20 contains `var employees = data.employees;`. The buggy property access is in app.js.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug3_data_property.buggy",
+            "metadata_value": "data.employees",
+            "verified_value": "data.employees",
+            "source": "app.js line 20: `var employees = data.employees;`. The JSON file uses key 'staff' (verified by parsing employees.json: top-level key is 'staff'), so `data.employees` evaluates to undefined. The guard at line 21 throws TypeError. Screenshot 03_after_fix_bug2.png confirms 'Expected an array of employees but got: undefined'.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug3_data_property.fixed",
+            "metadata_value": "data.staff",
+            "verified_value": "data.staff",
+            "source": "Parsed employees.json: top-level key is 'staff' containing array of 10 employee objects. After sed fix `s/data.employees/data.staff/`, page progresses to Bug 4 state — table renders with data but unstyled rows (screenshot 04_after_fix_bug3.png).",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug3_data_property.panel",
+            "metadata_value": "Console/Network",
+            "verified_value": "Console/Network",
+            "source": "The TypeError is logged to Console via console.error at app.js line 32. The Network tab shows the successful 200 response for employees.json (useful for cross-referencing the response body against the JS code). Diagnosing this bug requires comparing Network response body with JS property access.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug4_css_class.file",
+            "metadata_value": "app.js",
+            "verified_value": "app.js",
+            "source": "Inspected actual app.js from VM: line 42 contains `row.className = 'emp-row';`. The buggy class assignment is in app.js (the JS generates the DOM elements with the wrong class).",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug4_css_class.buggy",
+            "metadata_value": "emp-row",
+            "verified_value": "emp-row",
+            "source": "app.js line 42: `row.className = 'emp-row';`. CSS file (style.css) has NO rules for '.emp-row' — confirmed by `grep 'emp-row' style.css` returning empty. CSS defines '.employee-row' at lines 120-136 with border-bottom, hover effect, td padding 12px 16px, and blue bold first-child. Without these rules, rows are unstyled (screenshot 04_after_fix_bug3.png shows cramped rows with no borders).",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug4_css_class.fixed",
+            "metadata_value": "employee-row",
+            "verified_value": "employee-row",
+            "source": "CSS defines '.employee-row' at lines 120-136 of style.css with: border-bottom: 1px solid #e2e8f0, hover background-color, td padding: 12px 16px, and first-child color: #2b6cb0 + font-weight: 600. After sed fix, screenshot 05_after_fix_bug4.png shows fully styled table with blue bold IDs, visible row borders, and generous padding.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug4_css_class.panel",
+            "metadata_value": "Inspector",
+            "verified_value": "Inspector",
+            "source": "The class mismatch is diagnosable via Inspector panel: inspecting a table row shows class='emp-row' on the element, and the CSS rules pane shows no matching styles. The agent must compare the element's class with the CSS rules defined in style.css. Screenshot 09_devtools_console.png confirms Inspector panel is accessible.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug5_handler_name.file",
+            "metadata_value": "index.html",
+            "verified_value": "index.html",
+            "source": "Inspected actual index.html from VM: line 16 contains `<form onsubmit=\"return filterTable()\">`. The buggy event handler reference is in index.html.",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug5_handler_name.buggy",
+            "metadata_value": "filterTable",
+            "verified_value": "filterTable",
+            "source": "index.html line 16: `onsubmit=\"return filterTable()\"`. The function `filterTable` does not exist in app.js — verified by `grep 'filterTable' app.js` returning empty. The actual function is `window.searchTable` at app.js line 60. Clicking Search throws ReferenceError in Console but produces no visible page change (screenshot 06_search_broken_bug5.png shows all 10 employees still displayed after search attempt).",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug5_handler_name.fixed",
+            "metadata_value": "searchTable",
+            "verified_value": "searchTable",
+            "source": "app.js line 60: `window.searchTable = function() {...}`. After sed fix `s/filterTable/searchTable/` in index.html, search works correctly. Screenshot 08_search_works_engineering.png confirms: typing 'Engineering' and clicking Search shows 'Showing 4 of 10 employees' with exactly Sarah Chen (1001), Priya Patel (1003), David Kim (1006), Thomas Mueller (1010).",
+            "status": "verified"
+        },
+        {
+            "key": "cascading_bugs.bug5_handler_name.panel",
+            "metadata_value": "Console/Inspector",
+            "verified_value": "Console/Inspector",
+            "source": "Clicking Search produces a ReferenceError in Console ('filterTable is not defined'). Inspector shows the form's onsubmit attribute contains 'filterTable()'. Both panels are needed: Console reveals the error exists, Inspector reveals what function name is being called. The agent must then cross-reference with app.js to find the correct function name.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The employee directory web application at http://localhost:8080 has exactly 5 cascading bugs that must be fixed in sequence. Bug 1: index.html line 52 has `<script src=\"app.jss\">` — the correct filename is `app.js`. This causes a 404 and the loading spinner stays forever. The Console shows 'Loading failed for the <script> with source http://localhost:8080/app.jss'. Bug 2: app.js line 5 has `var API_URL = 'data/employee.json'` — the correct path is `data/employees.json` (with an 's'). This causes a 404 displayed as red 'Error loading data: HTTP 404: File not found'. Bug 3: app.js line 20 has `var employees = data.employees` — the JSON file uses the key `staff` not `employees`, so the correct access is `data.staff`. This causes 'Error loading data: Expected an array of employees but got: undefined'. Bug 4: app.js line 42 has `row.className = 'emp-row'` — the CSS file (style.css) defines rules only for `.employee-row` (with border-bottom, hover, padding 12px 16px, and blue bold first-child). Changing to `employee-row` makes the table fully styled. Bug 5: index.html line 16 has `onsubmit=\"return filterTable()\"` — the actual function in app.js is `window.searchTable`. Clicking Search silently fails (ReferenceError in Console). After all 5 fixes, the app displays a styled table of 10 employees (IDs 1001-1010) across 6 departments (Engineering: 4 employees, Sales: 2, Marketing: 1, Design: 1, Human Resources: 1, Finance: 1). Search for 'Engineering' should filter to 4 results: Sarah Chen, Priya Patel, David Kim, Thomas Mueller. The data file is at data/employees.json with top-level key 'staff'. The agent must create ~/Documents/incident_report.json (array of objects with fields: symptom, root_cause, file_modified, fix_applied, devtools_panel) and bookmark http://localhost:8080 in a 'Development' folder.",
+    "pi_confidence": "high"
+}

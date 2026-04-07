@@ -3,36 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gym-Anything — Paper in Short</title>
+<title>Gym-Anything — Interactive Paper</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   --bg: #fafafa;
   --bg-card: #ffffff;
+  --bg-dark: #1a1a1e;
   --border: #e2e2e8;
+  --border-hover: #c8c8d0;
   --text: #1a1a1e;
   --text-muted: #5a5a63;
   --text-dim: #8a8a96;
   --accent: #0891b2;
-  --accent-dim: rgba(8, 145, 178, 0.08);
+  --accent-light: rgba(8, 145, 178, 0.08);
+  --accent-mid: rgba(8, 145, 178, 0.15);
   --purple: #7c3aed;
+  --purple-light: rgba(124, 58, 237, 0.06);
+  --purple-mid: rgba(124, 58, 237, 0.15);
   --green: #16a34a;
+  --green-light: rgba(22, 163, 74, 0.08);
   --amber: #d97706;
+  --amber-light: rgba(217, 119, 6, 0.08);
   --red: #dc2626;
+  --red-light: rgba(220, 38, 38, 0.08);
   --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
   --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --tooltip-bg: #1a1a1e;
-  --tooltip-text: #f0f0f2;
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-xl: 0 8px 24px rgba(0,0,0,0.12);
+  --radius: 10px;
+  --radius-lg: 14px;
 }
 
 html { scroll-behavior: smooth; }
-
 body {
   background: var(--bg);
   color: var(--text);
@@ -40,784 +50,1597 @@ body {
   line-height: 1.75;
   -webkit-font-smoothing: antialiased;
 }
-
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-/* ─── LAYOUT ─── */
-.page {
-  max-width: min(900px, 90vw);
-  margin: 0 auto;
-  padding: 2rem 1.5rem 6rem;
+/* ── PROGRESS BAR ── */
+.progress-bar {
+  position: fixed; top: 0; left: 0; height: 3px; z-index: 200;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  width: 0%; transition: width 0.1s linear;
 }
 
-/* ─── HEADER ─── */
-.header {
-  text-align: center;
-  padding: 3rem 0 2rem;
-}
+/* ── LAYOUT ── */
+.page { max-width: min(920px, 92vw); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
 
+/* ── HEADER ── */
+.header { text-align: center; padding: 3rem 0 1.5rem; }
 .header h1 {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.5rem;
+  font-family: var(--font-display); font-size: 2.1rem; font-weight: 700;
+  letter-spacing: -0.025em; margin-bottom: 0.4rem;
+}
+.header .subtitle { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 0.5rem; }
+.header .back-link { font-size: 0.85rem; color: var(--text-dim); }
+.header .meta-line {
+  display: flex; align-items: center; justify-content: center; gap: 1rem;
+  margin-top: 0.6rem; flex-wrap: wrap;
+}
+.reading-badge {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.78rem; color: var(--text-dim); background: var(--accent-light);
+  padding: 0.25rem 0.7rem; border-radius: 100px;
+}
+.reading-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+/* ── READING MODE TOGGLE ── */
+.mode-toggle {
+  display: flex; justify-content: center; gap: 0; margin: 1.5rem auto 0;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 3px; max-width: 520px;
+  box-shadow: var(--shadow-sm);
+}
+.mode-btn {
+  flex: 1; padding: 0.5rem 0.75rem; border: none; background: transparent;
+  font-family: var(--font-display); font-size: 0.78rem; font-weight: 500;
+  color: var(--text-muted); cursor: pointer; border-radius: 8px;
+  transition: all 0.25s ease; white-space: nowrap;
+}
+.mode-btn:hover { color: var(--text); background: var(--bg); }
+.mode-btn.active {
+  background: var(--accent); color: white; box-shadow: var(--shadow-sm);
 }
 
-.header .subtitle {
-  color: var(--text-muted);
-  font-size: 1.05rem;
-  margin-bottom: 0.75rem;
-}
-
-.header .back-link {
-  font-size: 0.85rem;
-  color: var(--text-dim);
-}
-
-.reading-time {
-  display: inline-block;
-  font-size: 0.8rem;
-  color: var(--text-dim);
-  background: var(--accent-dim);
-  padding: 0.2rem 0.7rem;
-  border-radius: 100px;
-  margin-top: 0.5rem;
-}
-
-/* ─── FLOW GRAPH ─── */
+/* ── FLOW NAV ── */
 .flow-nav {
-  margin: 2rem 0 2.5rem;
-  padding: 1.25rem 1.5rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  position: sticky; top: 3px; z-index: 50;
+  margin: 1.5rem 0 2rem; padding: 0.75rem 1rem;
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
-
-.flow-nav-label {
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-  margin-bottom: 0.75rem;
-}
-
 .flow-nodes {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: flex; align-items: center; gap: 0; flex-wrap: wrap; justify-content: center;
 }
-
 .flow-node {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  font-family: var(--font-display);
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-decoration: none;
-  white-space: nowrap;
+  display: inline-block; padding: 0.3rem 0.6rem;
+  font-family: var(--font-display); font-size: 0.73rem; font-weight: 500;
+  color: var(--text-dim); background: var(--bg);
+  border: 1px solid transparent; border-radius: 6px;
+  cursor: pointer; transition: all 0.2s; text-decoration: none; white-space: nowrap;
 }
-
-.flow-node:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-dim);
+.flow-node:hover, .flow-node.active {
+  color: var(--accent); border-color: var(--accent); background: var(--accent-light);
   text-decoration: none;
 }
+.flow-arrow { color: var(--border); font-size: 0.7rem; margin: 0 0.1rem; user-select: none; }
 
-.flow-node.active {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-dim);
-  font-weight: 600;
-}
-
-.flow-arrow {
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  margin: 0 0.2rem;
-  user-select: none;
-}
-
-/* ─── SECTIONS ─── */
-.section {
-  margin-bottom: 2rem;
-  padding-top: 0.5rem;
-}
-
-.section-title {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 0.6rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.section-title .num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: var(--accent);
-  color: white;
-  border-radius: 6px;
-  flex-shrink: 0;
-}
-
-.section p {
-  font-size: 0.95rem;
-  margin-bottom: 0.6rem;
-  color: var(--text);
-}
-
-.section p strong { color: var(--text); }
-
-/* ─── TOOLTIPS ─── */
-.tip {
-  position: relative;
-  border-bottom: 1.5px dotted var(--accent);
-  color: var(--accent);
-  cursor: help;
-  font-weight: 500;
-}
-
-.tip .tip-content {
-  display: none;
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 340px;
-  padding: 0.85rem 1rem;
-  background: var(--tooltip-bg);
-  color: var(--tooltip-text);
-  font-size: 0.82rem;
-  font-weight: 400;
-  line-height: 1.55;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-  z-index: 100;
-  pointer-events: none;
-}
-
-.tip .tip-content::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-top-color: var(--tooltip-bg);
-}
-
-.tip:hover .tip-content,
-.tip.tip-active .tip-content {
-  display: block;
-}
-
-.tip .tip-content strong {
-  color: #22d3ee;
-}
-
-.tip .tip-content .tip-img {
-  width: 100%;
-  border-radius: 6px;
-  margin-top: 0.5rem;
-  border: 1px solid rgba(255,255,255,0.1);
-}
-
-/* ─── EXPANDABLE READ MORE ─── */
-details.read-more {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-details.read-more summary {
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--accent);
-  cursor: pointer;
-  list-style: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0;
-}
-
-details.read-more summary::-webkit-details-marker { display: none; }
-
-details.read-more summary::before {
-  content: '▸';
-  font-size: 0.75rem;
-  transition: transform 0.2s;
-}
-
-details.read-more[open] summary::before {
-  transform: rotate(90deg);
-}
-
-details.read-more .detail-body {
-  margin-top: 0.5rem;
-  padding: 0.85rem 1rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.88rem;
-  line-height: 1.65;
-  color: var(--text-muted);
-}
-
-details.read-more .detail-body p {
-  font-size: 0.88rem;
-  color: var(--text-muted);
-  margin-bottom: 0.5rem;
-}
-
-details.read-more .detail-body p:last-child { margin-bottom: 0; }
-
-.detail-body code {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  background: rgba(0,0,0,0.04);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-}
-
-.detail-body strong { color: var(--text); }
-
-.detail-body .inline-fig {
-  width: 100%;
-  border-radius: 8px;
-  margin: 0.75rem 0;
-  border: 1px solid var(--border);
-}
-
-/* ─── FIGURE CARDS ─── */
-details.fig-card {
-  margin-top: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-details.fig-card summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.85rem;
-  font-family: var(--font-display);
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--purple);
-  background: rgba(124, 58, 237, 0.06);
-  border: 1px solid rgba(124, 58, 237, 0.18);
-  border-radius: 8px;
-  cursor: pointer;
-  list-style: none;
-  transition: all 0.2s;
-}
-
-details.fig-card summary::-webkit-details-marker { display: none; }
-
-details.fig-card summary:hover {
-  background: rgba(124, 58, 237, 0.12);
-  border-color: rgba(124, 58, 237, 0.3);
-}
-
-details.fig-card[open] summary {
-  border-radius: 8px 8px 0 0;
-  border-bottom-color: transparent;
-}
-
-details.fig-card .fig-body {
-  padding: 0.75rem;
-  background: var(--bg-card);
-  border: 1px solid rgba(124, 58, 237, 0.18);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-}
-
-details.fig-card .fig-body img {
-  width: 100%;
-  border-radius: 6px;
-}
-
-details.fig-card .fig-body .fig-caption {
-  font-size: 0.8rem;
-  color: var(--text-dim);
-  margin-top: 0.4rem;
-  line-height: 1.5;
-}
-
-/* ─── RESULT CARDS ─── */
-.result-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
-  margin-bottom: 0.75rem;
-  box-shadow: var(--shadow-card);
-}
-
-.result-card .result-headline {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 0.92rem;
-  margin-bottom: 0.35rem;
-  color: var(--text);
-}
-
-.result-card p {
-  font-size: 0.88rem;
-  color: var(--text-muted);
-  margin-bottom: 0.35rem;
-}
-
-.result-card p:last-child { margin-bottom: 0; }
-
-.stat {
-  font-family: var(--font-mono);
-  font-weight: 500;
-  color: var(--accent);
-}
-
-/* ─── SEPARATOR ─── */
-.sep {
-  border: none;
-  border-top: 1px solid var(--border);
+/* ── HERO STATS ── */
+.hero-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;
   margin: 1.5rem 0;
 }
-
-/* ─── COMPARISON TABLE ─── */
-.mini-table {
-  width: 100%;
-  font-size: 0.82rem;
-  border-collapse: collapse;
-  margin: 0.5rem 0;
+.hero-stat {
+  text-align: center; padding: 1.2rem 0.75rem;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-card);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
-.mini-table th, .mini-table td {
-  padding: 0.3rem 0.5rem;
-  text-align: left;
+.hero-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.hero-stat .stat-num {
+  font-family: var(--font-display); font-size: 1.8rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-stat .stat-label {
+  font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;
+}
+
+/* ── CONTRIBUTION CARDS ── */
+.contrib-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;
+  margin: 1.25rem 0;
+}
+.contrib-card {
+  padding: 0.85rem 1rem;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s;
+}
+.contrib-card:hover { border-color: var(--accent); }
+.contrib-card .cc-icon {
+  font-size: 1.1rem; margin-bottom: 0.3rem;
+}
+.contrib-card .cc-title {
+  font-family: var(--font-display); font-size: 0.82rem; font-weight: 600;
+  color: var(--text); margin-bottom: 0.2rem;
+}
+.contrib-card .cc-desc {
+  font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;
+}
+
+/* ── SECTIONS ── */
+.section { margin-bottom: 0; padding-top: 1rem; }
+.section-title {
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 600;
+  color: var(--text); margin-bottom: 0.6rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.section-title .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem; font-size: 0.75rem; font-weight: 700;
+  background: var(--accent); color: white; border-radius: 6px; flex-shrink: 0;
+}
+.section p { font-size: 0.93rem; margin-bottom: 0.5rem; }
+.section p strong { color: var(--text); }
+
+.sep { border: none; border-top: 1px solid var(--border); margin: 1.75rem 0; }
+
+/* ── TOOLTIPS ── */
+.tip {
+  position: relative; border-bottom: 1.5px dotted var(--accent);
+  color: var(--accent); cursor: help; font-weight: 500;
+}
+.tip .tip-content {
+  display: none; position: absolute; bottom: calc(100% + 8px);
+  left: 50%; transform: translateX(-50%); width: 360px;
+  padding: 0.9rem 1rem; background: var(--bg-dark); color: #f0f0f2;
+  font-size: 0.82rem; font-weight: 400; line-height: 1.55;
+  border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  z-index: 100; pointer-events: none;
+}
+.tip .tip-content::after {
+  content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 6px solid transparent; border-top-color: var(--bg-dark);
+}
+.tip:hover .tip-content, .tip.tip-active .tip-content { display: block; }
+.tip .tip-content strong { color: #22d3ee; }
+
+/* ── EXPANDABLE SECTIONS ── */
+details.expand-l2, details.expand-l3 { margin: 0.6rem 0; }
+details.expand-l2 > summary, details.expand-l3 > summary {
+  font-size: 0.82rem; font-weight: 500; cursor: pointer;
+  list-style: none; display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.4rem 0.9rem; border-radius: 8px; transition: all 0.2s;
+}
+details.expand-l2 > summary::-webkit-details-marker,
+details.expand-l3 > summary::-webkit-details-marker { display: none; }
+details.expand-l2 > summary::before, details.expand-l3 > summary::before {
+  content: '\25B8'; font-size: 0.7rem; transition: transform 0.2s;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+
+details.expand-l2 > summary {
+  color: var(--accent); background: var(--accent-light);
+  border: 1px solid rgba(8,145,178,0.12);
+}
+details.expand-l2 > summary:hover { background: var(--accent-mid); }
+
+details.expand-l3 > summary {
+  color: var(--purple); background: var(--purple-light);
+  border: 1px solid rgba(124,58,237,0.12);
+}
+details.expand-l3 > summary:hover { background: var(--purple-mid); }
+
+.expand-body {
+  margin-top: 0.6rem; padding: 1rem 1.1rem;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 0.88rem; line-height: 1.7;
+  color: var(--text-muted); animation: slideDown 0.25s ease;
+}
+.expand-body p { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+.expand-body p:last-child { margin-bottom: 0; }
+.expand-body strong { color: var(--text); }
+.expand-body code {
+  font-family: var(--font-mono); font-size: 0.8rem;
+  background: rgba(0,0,0,0.04); padding: 0.1rem 0.35rem; border-radius: 4px;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── FIGURE BUTTONS ── */
+.fig-btn {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.5rem 1rem; margin: 0.5rem 0.4rem 0.5rem 0;
+  font-family: var(--font-display); font-size: 0.8rem; font-weight: 500;
+  color: var(--purple); background: var(--purple-light);
+  border: 1px solid rgba(124,58,237,0.18); border-radius: 8px;
+  cursor: pointer; transition: all 0.2s;
+}
+.fig-btn:hover {
+  background: var(--purple-mid); border-color: rgba(124,58,237,0.3);
+  transform: translateY(-1px); box-shadow: var(--shadow-sm);
+}
+.fig-btn .fig-icon { font-size: 0.9rem; }
+
+/* ── LIGHTBOX ── */
+.lightbox {
+  display: none; position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  align-items: center; justify-content: center; flex-direction: column;
+  padding: 2rem; cursor: pointer;
+  animation: fadeIn 0.2s ease;
+}
+.lightbox.open { display: flex; }
+.lightbox img {
+  max-width: 90vw; max-height: 78vh; border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.4); cursor: default;
+}
+.lightbox .lb-caption {
+  color: rgba(255,255,255,0.8); font-size: 0.85rem; margin-top: 1rem;
+  max-width: 700px; text-align: center; line-height: 1.5;
+}
+.lightbox .lb-close {
+  position: absolute; top: 1.5rem; right: 1.5rem;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); border: none; color: white;
+  font-size: 1.3rem; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: background 0.2s;
+}
+.lightbox .lb-close:hover { background: rgba(255,255,255,0.3); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── CODE BLOCKS ── */
+.code-block {
+  margin: 0.6rem 0; border-radius: var(--radius);
+  border: 1px solid var(--border); overflow: hidden;
+}
+.code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.4rem 0.85rem; background: #f0f0f3;
   border-bottom: 1px solid var(--border);
 }
-.mini-table th {
-  font-weight: 600;
-  color: var(--text);
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+.code-lang {
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500;
+  color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;
 }
-.mini-table td { color: var(--text-muted); }
-.mini-table tr.ours td { color: var(--accent); font-weight: 500; }
+.code-copy {
+  padding: 0.2rem 0.5rem; font-size: 0.7rem; font-family: var(--font-display);
+  font-weight: 500; color: var(--text-dim); background: white;
+  border: 1px solid var(--border); border-radius: 5px; cursor: pointer;
+  transition: all 0.2s;
+}
+.code-copy:hover { color: var(--accent); border-color: var(--accent); }
+.code-copy.copied { color: var(--green); border-color: var(--green); }
+.code-body {
+  padding: 0.85rem 1rem; background: #fafafe; overflow-x: auto;
+}
+.code-body pre {
+  font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.65;
+  color: var(--text); white-space: pre; margin: 0;
+}
+.code-body .kw { color: #7c3aed; } /* keyword */
+.code-body .fn { color: #0891b2; } /* function */
+.code-body .str { color: #16a34a; } /* string */
+.code-body .cm { color: #9ca3af; } /* comment */
+.code-body .num { color: #d97706; } /* number */
+.code-body .key { color: #0891b2; } /* json key */
 
-/* ─── FOOTER ─── */
+/* ── TAB PANELS ── */
+.tab-panel { margin: 0.75rem 0; }
+.tab-bar {
+  display: flex; gap: 0; border-bottom: 2px solid var(--border);
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.tab-btn {
+  padding: 0.55rem 1rem; border: none; background: none;
+  font-family: var(--font-display); font-size: 0.8rem; font-weight: 500;
+  color: var(--text-dim); cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: all 0.2s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; padding: 1rem 0; animation: fadeIn 0.25s ease; }
+.tab-content.active { display: block; }
+
+/* ── INTERACTIVE TABLES ── */
+.i-table {
+  width: 100%; font-size: 0.82rem; border-collapse: collapse; margin: 0.6rem 0;
+}
+.i-table th, .i-table td {
+  padding: 0.5rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border);
+}
+.i-table th {
+  font-weight: 600; color: var(--text); font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  background: var(--bg); position: sticky; top: 0;
+}
+.i-table td { color: var(--text-muted); transition: background 0.15s; }
+.i-table tbody tr { transition: background 0.15s; }
+.i-table tbody tr:hover { background: var(--accent-light); }
+.i-table tbody tr:hover td { color: var(--text); }
+.i-table tr.highlight td {
+  color: var(--accent); font-weight: 600;
+  background: var(--accent-light);
+}
+.i-table tr.highlight:hover td { background: var(--accent-mid); }
+.i-table .best { font-weight: 700; color: var(--accent); }
+
+/* ── RESULT CARDS ── */
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 0.75rem 0; }
+.result-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1rem;
+  box-shadow: var(--shadow-card); transition: transform 0.2s, box-shadow 0.2s;
+  cursor: default;
+}
+.result-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.result-card .rc-num {
+  font-family: var(--font-display); font-size: 1.6rem; font-weight: 700;
+  color: var(--accent);
+}
+.result-card .rc-label {
+  font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;
+}
+.result-card .rc-detail {
+  font-size: 0.75rem; color: var(--text-dim); margin-top: 0.35rem;
+  line-height: 1.45; border-top: 1px solid var(--border); padding-top: 0.35rem;
+}
+
+/* ── CALLOUT BOXES ── */
+.callout {
+  padding: 0.85rem 1rem; border-radius: var(--radius);
+  margin: 0.6rem 0; font-size: 0.85rem; line-height: 1.6;
+  display: flex; gap: 0.6rem; align-items: flex-start;
+}
+.callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
+.callout-body { flex: 1; }
+.callout-body strong { font-weight: 600; }
+.callout.insight { background: var(--accent-light); border: 1px solid rgba(8,145,178,0.15); color: var(--text); }
+.callout.warning { background: var(--amber-light); border: 1px solid rgba(217,119,6,0.15); color: var(--text); }
+.callout.finding { background: var(--green-light); border: 1px solid rgba(22,163,74,0.15); color: var(--text); }
+
+/* ── INLINE FIGURES ── */
+.inline-fig {
+  width: 100%; border-radius: 8px; margin: 0.75rem 0;
+  border: 1px solid var(--border); cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.inline-fig:hover { box-shadow: var(--shadow-lg); }
+.fig-caption {
+  font-size: 0.78rem; color: var(--text-dim); margin-top: 0.3rem;
+  line-height: 1.45; text-align: center;
+}
+
+/* ── SOFTWARE GALLERY GRID ── */
+.sw-gallery {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.5rem; margin: 0.75rem 0;
+}
+.sw-thumb {
+  border-radius: 6px; border: 1px solid var(--border); overflow: hidden;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+  aspect-ratio: 16/10;
+}
+.sw-thumb:hover { transform: scale(1.04); box-shadow: var(--shadow-lg); }
+.sw-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── STAT INLINE ── */
+.stat {
+  font-family: var(--font-mono); font-weight: 600; color: var(--accent);
+}
+
+/* ── FORMULA ── */
+.formula {
+  display: block; text-align: center; padding: 0.75rem;
+  margin: 0.6rem 0; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px;
+  font-family: var(--font-mono); font-size: 0.82rem; color: var(--text);
+  overflow-x: auto;
+}
+.formula .var { color: var(--purple); }
+.formula .op { color: var(--text-dim); }
+
+/* ── FOOTER ── */
 .footer {
-  text-align: center;
-  padding: 2rem 0;
-  border-top: 1px solid var(--border);
+  text-align: center; padding: 2rem 0; border-top: 1px solid var(--border);
   margin-top: 2rem;
 }
+.footer a { font-size: 0.85rem; margin: 0 0.75rem; }
 
-.footer a {
-  font-size: 0.85rem;
-  margin: 0 0.75rem;
-}
-
-/* ─── RESPONSIVE ─── */
+/* ── RESPONSIVE ── */
 @media (max-width: 700px) {
   .page { padding: 1rem 1rem 4rem; }
   .header h1 { font-size: 1.5rem; }
-  .flow-nodes { gap: 0.25rem; }
+  .hero-stats { grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+  .hero-stat { padding: 0.75rem 0.4rem; }
+  .hero-stat .stat-num { font-size: 1.3rem; }
+  .contrib-grid { grid-template-columns: 1fr; }
+  .result-grid { grid-template-columns: 1fr; }
+  .flow-nodes { gap: 0.15rem; }
   .flow-arrow { display: none; }
-  .flow-node { margin-bottom: 0.35rem; font-size: 0.72rem; padding: 0.3rem 0.6rem; }
+  .flow-node { margin-bottom: 0.25rem; font-size: 0.68rem; padding: 0.25rem 0.45rem; }
   .tip .tip-content { width: 280px; left: 0; transform: none; }
+  .mode-toggle { flex-direction: column; max-width: 280px; }
+  .mode-btn { text-align: center; }
+  .tab-bar { gap: 0; }
+  .tab-btn { font-size: 0.72rem; padding: 0.45rem 0.6rem; }
+  .sw-gallery { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
 }
-
-@media (min-width: 1400px) {
-  .page { max-width: 960px; }
-}
+@media (min-width: 1400px) { .page { max-width: 960px; } }
 </style>
 </head>
 <body>
-<div class="page">
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="back-link"><a href="index.html">&larr; Gym-Anything Project Page</a></div>
-    <h1>Gym-Anything: Paper in Short</h1>
-    <p class="subtitle">An interactive summary of the full paper</p>
-    <span class="reading-time">~3 min read &middot; expand sections for more</span>
-  </div>
+<!-- PROGRESS BAR -->
+<div class="progress-bar" id="progress-bar"></div>
 
-  <!-- FLOW NAVIGATION -->
-  <nav class="flow-nav">
-    <div class="flow-nav-label">Paper overview</div>
-    <div class="flow-nodes">
-      <a class="flow-node" href="#problem">The Problem</a>
-      <span class="flow-arrow">&rarr;</span>
-      <a class="flow-node" href="#library">Library</a>
-      <span class="flow-arrow">&rarr;</span>
-      <a class="flow-node" href="#creation-audit">Creation-Audit</a>
-      <span class="flow-arrow">&rarr;</span>
-      <a class="flow-node" href="#selection">GDP Selection</a>
-      <span class="flow-arrow">&rarr;</span>
-      <a class="flow-node" href="#tasks">Tasks</a>
-      <span class="flow-arrow">&rarr;</span>
-      <a class="flow-node" href="#verification">Verification</a>
-      <span class="flow-arrow">&rarr;</span>
-      <a class="flow-node" href="#benchmark">CUA-World</a>
-      <span class="flow-arrow">&rarr;</span>
-      <a class="flow-node" href="#results">Results</a>
-    </div>
-  </nav>
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- 1. THE PROBLEM -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <div class="section" id="problem">
-    <h2 class="section-title"><span class="num">1</span> The Problem</h2>
-    <p>
-      Computer-use agents (CUAs) promise to automate digitally intensive occupations that collectively represent trillions of dollars in GDP. But current benchmarks test agents on short-horizon tasks (changing wallpapers, filling web forms) over a narrow set of consumer apps, revealing little about whether agents can handle real professional work. Existing interactive benchmarks cover at most 20 software applications and a handful of occupation groups.
-    </p>
-    <p>
-      The root cause: creating realistic environments requires installing software, configuring it with domain-appropriate data, designing tasks, and verifying everything works. This demands weeks of expert effort per application, naturally limiting benchmark scale. As a result, both <strong>evaluation is unfaithful</strong> (high scores say little about real-world capability) and <strong>training signal is limited</strong> (short tasks over few apps cannot produce the diverse trajectories needed for real work).
-    </p>
-    <details class="read-more">
-      <summary>Read more: why existing benchmarks fall short</summary>
-      <div class="detail-body">
-        <p>Real-world workflows are <em>long-horizon</em> and take place in <em>heterogeneous environments</em>, often requiring hundreds of steps across diverse software configured with domain-specific data. For instance, end-to-end analysis of a medical imaging dataset requires a radiology tool set up with annotated clinical CT scans, while reconciling financial records across an ERP system requires software populated with transaction histories and vendor accounts. No existing benchmark provides this kind of realistic, domain-grounded evaluation.</p>
-        <p>Existing benchmarks fall into two categories, each with fundamental limitations. <strong>Static datasets</strong> (Mind2Web, AITW, AndroidControl, OmniACT) collect thousands of episodes but evaluate via action-matching rather than execution, penalizing valid alternative strategies. An agent that accomplishes the same goal through a different but equally correct sequence of actions would be marked as wrong.</p>
-        <p><strong>Interactive benchmarks</strong> provide execution-based evaluation but cover narrow slices of the software landscape. Web benchmarks (MiniWob++, WebArena, VisualWebArena, WorkArena) are restricted to a few websites. Desktop benchmarks span at most a handful of applications with manually authored environments: OSWorld covers 9 software with 369 tasks, WindowsAgentArena covers 11 software with 154 tasks, and others like Spider2-V, AssistGUI, TheAgentCompany, and ScienceBoard are similarly limited. AndroidWorld covers 20 apps.</p>
-        <p>Critically, all interactive benchmarks rely on manual environment creation, which inherently limits their scale. None simultaneously provides training data, long-horizon tasks, or broad occupational coverage. This leads to two consequences. First, <strong>evaluation is unfaithful</strong>: high scores on these narrow benchmarks reveal little about whether an agent can handle real-world professional work. Second, <strong>training signal is limited</strong>: short-horizon tasks over a small number of applications cannot produce the diverse, long-horizon trajectories needed to train capable agents.</p>
-        <p>The root cause behind all of these limitations is that each software application requires installation, configuration with domain-appropriate data, task design, and verification. This process often demands weeks of expert effort per application, creating a fundamental bottleneck that manual approaches cannot overcome.</p>
-      </div>
-    </details>
-  </div>
-
-  <hr class="sep">
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- 2. LIBRARY -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <div class="section" id="library">
-    <h2 class="section-title"><span class="num">2</span> The Gym-Anything Library</h2>
-    <p>
-      Our key idea is that <strong>creating computer-use environments is itself a coding and computer-use agent task</strong>. Setting up software requires writing installation and configuration scripts (a coding task). Verifying the running environment through
-      <span class="tip">screenshots<span class="tip-content"><strong>Visual grounding as verification.</strong> The creation agent uses visual grounding to check each screenshot against the expected application state, catching discrepancies that text-based logs miss (e.g., a login screen still visible, placeholder data in fields, or a crash dialog). This is the same observation modality that evaluation agents will later use, ensuring consistency between creation and evaluation.</span></span>
-      and checking the screen is a computer-use agent task.
-    </p>
-    <p>
-      Scaling this to hundreds of software applications requires handling substantial heterogeneity: different applications need different operating systems, databases, and network configurations. The Gym-Anything library addresses this by reducing every environment to a
-      <span class="tip">standardized specification<span class="tip-content"><strong>Three setup scripts + a config file.</strong> The scripts are staged: <em>install</em> (software + dependencies), <em>configure</em> (realistic data + settings), and <em>task setup</em> (starting state for a specific task). Multiple tasks share the same install/configure scripts, varying only the task setup. The config file specifies OS image, resource limits, and interfaces.</span></span>:
-      a small set of setup scripts and a configuration file. This enables an AI agent to create environments by writing only software-specific scripts, while the library handles container orchestration, display forwarding, and multi-OS support across Linux, Windows, and Android.
-    </p>
-    <details class="fig-card">
-      <summary>&#x1F4CA; View: Gym-Anything pipeline overview</summary>
-      <div class="fig-body">
-        <img src="assets/figures/final_teaser_v3.svg" alt="Gym-Anything pipeline overview">
-        <div class="fig-caption">The full pipeline: GDP-grounded software selection, creation-audit loop for environment construction, propose-and-amplify for task generation, and checklist-based VLM verification.</div>
-      </div>
-    </details>
-    <details class="read-more">
-      <summary>Read more: library architecture and parallelization</summary>
-      <div class="detail-body">
-        <p>Previous works (OSWorld, VisualWebArena) constructed environments manually by interacting with an actual operating system and then taking VM snapshots. These snapshots cannot be inspected, version-controlled, or partially reused across tasks. Modifying anything requires repeating the entire manual setup from scratch, limiting modularity, reproducibility, and scalability.</p>
-        <p>In the Gym-Anything library, each environment is defined by three sequential setup scripts and a declarative configuration file. The scripts progress from general to task-specific: <strong>install</strong> (software and dependencies), <strong>configure</strong> (realistic data and settings), and <strong>task setup</strong> (specific starting state for a given task). Multiple tasks for the same software share the same install and configure scripts, varying only the task setup. For example, creating a LibreOffice Calc environment requires only an install script (e.g., <code>apt-get install libreoffice</code>), a configure script that downloads a sample spreadsheet, and a config file specifying the OS image and resource limits. The library handles container orchestration, display forwarding, and checkpoint management automatically.</p>
-        <p>Users and AI agents interact with any environment through a standard gymnasium-style API that provides a unified observation space (screenshots) and action space (keyboard and mouse inputs). The library handles display forwarding and input translation across operating systems, abstracting away the differences between Linux, Windows, and Android. It also supports multiple compute backends, including Docker for standard deployments and Apptainer for rootless systems such as SLURM clusters.</p>
-        <p>The staged design enables caching at each stage boundary, so creating new tasks for an already-configured application only requires re-running the task-specific setup script. Combined with network-process-file isolation between containers, this enables massive parallelization: in our experiments we run <strong>400+ concurrent environments across 1,600 CPUs</strong>.</p>
-        <p>The specification is simple enough that an LLM agent can author environments autonomously, yet expressive enough to capture complex, production-grade software configured with realistic data, from desktop image editors to multi-container enterprise systems.</p>
-      </div>
-    </details>
-  </div>
-
-  <hr class="sep">
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- 3. CREATION-AUDIT LOOP -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <div class="section" id="creation-audit">
-    <h2 class="section-title"><span class="num">3</span> Creation-Audit Loop</h2>
-    <p>
-      Without external verification, current agents (including frontier models) prompted to create environments frequently produce incorrect setups: using placeholder data instead of real datasets, leaving software at installation wizards, or claiming the environment is ready without ever launching it. The common thread is that <strong>the agent's claims about what it has done are not reliable, but the actual state of the environment is</strong>: a screenshot reveals whether the software is running or stuck on a crash screen, regardless of what the agent claims.
-    </p>
-    <p>
-      We exploit this through a
-      <span class="tip">creation-audit loop<span class="tip-content"><strong>Two agents, adversarial separation.</strong> A creation agent (Claude Opus 4.5/4.6 via Claude Code) writes setup scripts, downloads real-world data (public medical datasets, email corpora, financial schemas), launches the software, and produces evidence (screenshots, logs). An independent audit agent then inspects this evidence against quality checklists and reports issues. The loop runs for multiple iterations.</span></span>:
-      a creation agent builds the environment and produces evidence of correct setup, then an independent audit agent verifies this evidence against a quality checklist and reports issues for iterative correction. The creation agent also maintains a
-      <span class="tip">shared memory<span class="tip-content"><strong>A growing directory of reusable knowledge.</strong> Contains both software-specific notes (e.g., "LibreOffice needs headless mode disabled for GUI tasks") and general patterns (e.g., "always poll service readiness before launching multi-container web stacks"). Every L environments, a summarization agent condenses common patterns to keep memory manageable. This enables sublinear growth in creation time: later environments benefit from lessons learned on earlier ones.</span></span>
-      of common fixes and patterns, enabling sublinear growth in creation time as more environments are built.
-    </p>
-    <details class="read-more">
-      <summary>Read more: why separate agents, and cross-model auditing</summary>
-      <div class="detail-body">
-        <p>The creation agent is a coding agent equipped with bash, python, and computer-use tools, with complete access to the library and all previously created environments. Given a new software name, it first researches how the software should be configured, finds and downloads real-world data (e.g., public medical imaging datasets for radiology software, published email corpora for messaging clients), studies similar previously created environments, then implements setup scripts, launches the environment, takes screenshots, uses visual grounding to check the application reached the expected state, and iteratively debugs failures. Crucially, the agent must produce evidence: screenshots of the running software, execution logs, and other verifiable artifacts.</p>
-        <p>Separating the creation and audit roles offers three key benefits: (a) it removes self-confirmation bias, (b) the written audits ensure interpretability, letting humans independently verify quality, and (c) the adversarial framing catches cases where the creation agent made self-misleading claims. The audit agent acts as an adversary: it analyzes screenshots and logs, inspects actual config and script files, and if necessary actually runs the environment. It outputs a structured audit detailing what is correctly implemented and what the critical issues are.</p>
-        <p>We tested this empirically with a cross-model auditing experiment. Both self-audit and cross-model audits detect all critical issues, but <strong>cross-model audits identify on average 2.1 additional issues per environment</strong>. For example, on OpenELIS (a lab information system), the self-audit accepted patient data as realistic, while the cross-model audit inspected the seeding script and discovered the data was a hardcoded Python list, directly contradicting inline comments claiming real-world WHO/CDC sourcing. On Visallo (a link analysis platform), the cross-model audit caught a file path mismatch: a CSV file claimed to be "on the desktop" was actually placed in <code>/home/ga/Documents/</code>.</p>
-        <p>A recurring challenge is <strong>context fatigue</strong>. After processing hundreds of thousands of tokens, the creation agent often declares the task done prematurely because it loses track of remaining requirements. To address this, whenever the agent stops, we re-prompt it to reread the setup guidelines and checklists and complete any requirements it may have skipped. This simple nudge recovers many omissions that would otherwise go undetected.</p>
-        <p>The <strong>shared memory</strong> is effectively a directory of files that grows over time, initialized with the hand-written prompt. After each environment, the agent documents what worked and what failed, updating software-specific notes and general notes. For example, one agent discovered that a multi-service web platform needed readiness polling before the GUI could launch; this became the default pattern for all subsequent web stacks. Every L environments, a memory summarization agent reads through all memory files, identifies common patterns, and condenses them to keep the memory manageable.</p>
-      </div>
-    </details>
-  </div>
-
-  <hr class="sep">
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- 4. GDP SELECTION -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <div class="section" id="selection">
-    <h2 class="section-title"><span class="num">4</span> GDP-Grounded Software Selection</h2>
-    <p>
-      Which software should we build environments for? We use a simple principle: <strong>prioritize software that drives more economic activity</strong>. Starting from U.S. occupational data (~900 occupations from
-      <span class="tip">O*NET + BLS<span class="tip-content"><strong>U.S. occupational databases.</strong> O*NET (Occupational Information Network) is a comprehensive U.S. Department of Labor database describing ~900 standardized occupations with detailed information on tasks, skills, work activities, and work context. BLS (Bureau of Labor Statistics) provides corresponding employment counts and average annual wages, which we use to estimate each occupation's GDP contribution.</span></span>),
-      we estimate GDP per occupation, discover software used by each occupation via an LLM with web-search access, attribute GDP to individual software, filter to
-      <span class="tip">sandboxable candidates<span class="tip-content"><strong>Four requirements: self-hostable, free/open-source, GUI-based, no specialized hardware.</strong> This filter eliminates ~80% of catalogued software. Non-sandboxable high-GDP software is systematically substituted: for example, Bloomberg Terminal ($79.5B attributed GDP) is replaced with the closest free financial analysis tool in the same category. Similarly, Salesforce and Epic EHR are replaced with open-source CRM and EHR alternatives.</span></span>,
-      and apply
-      <span class="tip">tiered selection<span class="tip-content"><strong>Five tiers with explicit budgets totaling ~500.</strong> (1) Highest-GDP overall: 100 slots, (2a) Strategic domains (Healthcare, Education, Protective Services, Transportation): 100 slots, (2b) STEM fields: 100 slots, (3) Round-robin ~5 per SOC group: 116 slots, (4) Niche occupation-specific: 44 slots, (5) Uncovered categories by GDP: 40 slots. Of ~500 selected, 200 are built based on compute budget.</span></span>
-      to yield <strong>200 software applications covering all 22 SOC major occupation groups</strong>.
-    </p>
-    <details class="read-more">
-      <summary>Read more: GDP attribution formula and top software</summary>
-      <div class="detail-body">
-        <p>The full pipeline proceeds in seven steps. First, we estimate GDP per occupation using employment count multiplied by mean wage, scaled to national GDP. Second, we discover software used per occupation using an LLM with web search, producing approximately 16,600 software entries across roughly 1,400 categories. Third, we clean the catalog by deduplicating categories and removing hallucinated entries via web-grounded verification. Fourth, we attribute GDP to individual software.</p>
-        <p>GDP is attributed to individual software via: <code>GDP_software = &Sigma; GDP_occ &times; p_computer &times; s_category &times; s_software</code>, where <code>p_computer</code> is the fraction of the occupation's work involving computers (from occupational surveys), <code>s_category</code> is the share attributed to a software category (e.g., "spreadsheets" for an accountant), and <code>s_software</code> is the individual software's share within its category.</p>
-        <p><strong>Top software by attributed GDP:</strong> Microsoft Excel ($1.81T, used by 582 occupations), Microsoft Word ($1.27T), Google Chrome ($1.05T), Microsoft Outlook ($0.94T), and Visual Studio Code ($50.4B). Since these are commercial and cannot be self-hosted, we substitute them with the closest free alternative from the same category.</p>
-        <p>The fifth step filters to sandboxable candidates: self-hostable, free, GUI-based, and requiring no specialized hardware. Of the approximately 16,600 catalogued software, only about 3,400 pass this filter. In the sixth step, high-GDP software that cannot be sandboxed (e.g., Bloomberg Terminal at $79.5B, Salesforce, Epic EHR) is substituted with the closest sandboxable alternative from the same category.</p>
-        <p>Finally, we apply <strong>tiered selection</strong> across five tiers to balance economic impact and diversity: (1) highest-GDP software overall (100 budget), (2a) strategic domains including Healthcare, Education, Protective Services, and Transportation (100 budget), (2b) STEM fields including Architecture/Engineering, Computer/Math, and Life/Physical/Social Science (100 budget), (3) round-robin across all 22 SOC groups for approximately 5 per group (116 budget), (4) niche occupation-specific software (44 budget), and (5) uncovered software categories ranked by GDP (40 budget). The output is approximately 500 selected software, of which 200 are built based on the available compute budget.</p>
-      </div>
-    </details>
-  </div>
-
-  <hr class="sep">
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- 5. TASK GENERATION -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <div class="section" id="tasks">
-    <h2 class="section-title"><span class="num">5</span> Task Generation</h2>
-    <p>
-      An LLM can generate reasonable task descriptions, but without actually running the software, the generated environment configurations are often incorrect. To address this, we follow a
-      <span class="tip">propose-and-amplify<span class="tip-content"><strong>5 expensive seeds + 75 cheap amplifications per software.</strong> The proposer (Claude Opus via Claude Code) creates ~5 seeds by actually running the software, downloading real data, interacting through the GUI, and verifying results. The amplifier (Gemini 3 Pro) then generates ~75 more, receiving all previously generated tasks as context to enforce diversity. A VLM filter launches each generated task and checks whether the starting state matches the description, discarding failures. This yields 12,103 tasks total.</span></span>
-      strategy: an agentic model first proposes a small number of seed tasks per software by actually running it and verifying the results. A non-agentic LLM then amplifies these seeds into a larger set using the seed implementations as in-context examples, followed by automated VLM-based filtering. Tasks amplified from seeds achieve an <strong>88.9% setup success rate vs. 55.2% without seeds</strong>.
-    </p>
-    <details class="read-more">
-      <summary>Read more: task quality guidelines and what happens without seeds</summary>
-      <div class="detail-body">
-        <p>The proposer follows guidelines across three dimensions: <strong>realism</strong> (does the instruction reflect a genuine, real-world use case?), <strong>difficulty</strong> (does the task require a long-horizon, multi-step trajectory to solve?), and <strong>diversity</strong> (do the tasks cover varied functionalities of the software?). These guidelines ensure that generated tasks reflect the kind of work professionals actually do, rather than toy demonstrations of software features.</p>
-        <p>The agentic loop in the proposer is necessary because the model must actively run the software, search for and download or generate realistic data, interact via the GUI, and verify the resulting state. This expensive step occurs only once per software but is essential for producing high-quality seed tasks. The proposer generates approximately 5 seed tasks per software.</p>
-        <p>To enforce diversity during the amplification phase, tasks are generated sequentially: the model receives all previously generated instructions 1, ..., t as context when producing task t+1. Semantic similarity filtering then discards duplicates. The amplifier generates approximately 75 tasks per software using the seed implementations as in-context examples.</p>
-        <p>After generation, automated filtering launches each generated task, captures the starting state observation, and passes it alongside the instruction to a VLM. The VLM checks whether the starting state matches the expectation from the task description. Tasks that fail this check are discarded. After filtering, the pipeline yields <strong>12,103 tasks</strong> across all 200 software applications.</p>
-        <p>Qualitative analysis on three representative software (Firefox, AstroImageJ, and Moodle) reveals that <strong>without seeds, the model defaults to demonstrating software features</strong> rather than generating realistic professional workflows. In particular, it produces shorter-horizon tasks and writes less thorough setup scripts. The seed examples effectively anchor the LLM toward the right level of complexity and realism, which is why the seed-based approach achieves an 88.9% setup success rate compared to 55.2% without seeds.</p>
-      </div>
-    </details>
-  </div>
-
-  <hr class="sep">
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- 6. VERIFICATION -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <div class="section" id="verification">
-    <h2 class="section-title"><span class="num">6</span> Verification</h2>
-    <p>
-      To evaluate long-horizon tasks, we use a
-      <span class="tip">checklist-based VLM verifier<span class="tip-content"><strong>Formal scoring: V(&tau;) = &Sigma; w_i &middot; VLM(&tau;, c_i, I).</strong> A separate coding agent generates a checklist C = {(c_i, w_i)} of subtasks with point values. For each item, the VLM receives the full trajectory &tau;, the subtask description c_i, and privileged information I, then judges whether that subtask was completed. This decomposition achieves <strong>93.3% task-level agreement</strong> and <strong>90.9% per-item agreement</strong> with human annotations.</span></span>
-      that breaks each task into weighted subtasks for partial credit. These checklists leverage
-      <span class="tip">privileged information<span class="tip-content"><strong>Automatically extracted ground truth: I = Extract(S, p).</strong> A separate coding agent parses the setup scripts S, retrieves or searches online for the relevant ground truth. For example, in a medical imaging task, the correct tumor location comes from the downloaded dataset metadata. In a clinical decision support task, expected drug interactions come from the loaded formulary. This fully automated extraction eliminates the need for manual annotation.</span></span>:
-      ground-truth data already embedded in the environment's setup scripts, allowing the verifier to check agent outputs against known answers without manual annotation.
-    </p>
-    <p>
-      A separate
-      <span class="tip">integrity checklist<span class="tip-content"><strong>Three conditions to prevent workflow shortcuts.</strong> (a) The intended software was actually used to complete the task, (b) the required application state was reached through the software's own GUI rather than by directly editing config or data files, and (c) the agent did not exploit environment artifacts to shortcut the work. Failing any condition zeroes the entire score.</span></span>
-      ensures agents did not bypass the intended workflow (e.g., editing config files directly instead of using the GUI, or fabricating outputs). Failing any integrity item zeroes the score regardless of task completion.
-    </p>
-    <details class="read-more">
-      <summary>Read more: verifier comparison and integrity check statistics</summary>
-      <div class="detail-body">
-        <p>The VLM verifier uses privileged information alongside the task instruction to generate a granular checklist C = {(c_i, w_i)}, where each c_i defines a specific subtask to verify and w_i is its point value. The verification score is computed as V(&tau;) = &Sigma; w_i &middot; VLM(&tau;, c_i, I), yielding a score from 0-100 rather than binary pass/fail. This enables partial credit for tasks where the agent completes some steps correctly but not others.</p>
-        <p>The privileged information I is extracted automatically by a separate coding agent that parses the setup scripts and retrieves or searches online for the relevant ground truth. For example, in a medical imaging task, the correct tumor location is known from the downloaded dataset. In a financial task, the expected account balances are determined by the initialization data. In a clinical decision support task, the expected drug interactions are known from the loaded formulary. This eliminates the need for manual annotation of ground-truth answers.</p>
-        <p>We compared three verifier designs on 60 randomly sampled Gemini-3-Flash trajectories:</p>
-        <table class="mini-table">
-          <tr><th>Verifier</th><th>Human Agreement</th></tr>
-          <tr class="ours"><td>Checklist + privileged info</td><td>93.3%</td></tr>
-          <tr><td>Direct VLM judgment</td><td>81.7%</td></tr>
-          <tr><td>Auto-generated programmatic</td><td>43.3%</td></tr>
-        </table>
-        <p>The programmatic approach performs poorly primarily because the model writes incorrect scripts that fail to parse the data formats present in the end state. Per-item checklist agreement with human annotations is 90.9%, confirming that the granular decomposition into subtasks is well-calibrated.</p>
-        <p>The <strong>integrity checklist</strong> evaluates three conditions: (a) the intended software was used, (b) the required state was reached through the software's own interface rather than by directly editing config or data files, and (c) the agent did not exploit environment artifacts. Failing any integrity item sets V(&tau;) = 0 regardless of how many task subtasks were completed.</p>
-        <p>Across approximately 3,000 Gemini-3-Flash trajectories, integrity checks flag only ~1.5% of high-scoring runs (score >75), producing 21 flags total, of which 15 are true positives. Two representative cases illustrate the subtlety of these violations. On Autopsy (digital forensics software), the agent followed the correct forensic workflow but fabricated hash values in its final report rather than copying the values actually visible in the application. On Epi Info (epidemiology software), the agent mistyped an input parameter, causing the tool to display an incorrect result, but then wrote the mathematically correct answer in its output, a value that was never shown by the tool.</p>
-      </div>
-    </details>
-  </div>
-
-  <hr class="sep">
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- 7. CUA-WORLD -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <div class="section" id="benchmark">
-    <h2 class="section-title"><span class="num">7</span> CUA-World</h2>
-    <p>
-      The result is <strong>CUA-World</strong>: <span class="stat">12,103</span> tasks across <span class="stat">200</span> software applications spanning domains from medical science and astronomy to engineering and enterprise systems, each configured with realistic data, across three operating systems, with train and test splits. It is the first benchmark to simultaneously provide interactive environments at scale, support long-horizon evaluation, cover all 22 SOC occupation groups, offer automated environment creation, and include a training split.
-    </p>
-    <p>
-      We also construct <strong>CUA-World-Long</strong>: <span class="stat">200</span> particularly challenging tasks (one per software) designed through
-      <span class="tip">trajectory-guided analysis<span class="tip-content"><strong>Failure-driven task design.</strong> For each software, we generate trajectories from a strong agent on existing tasks, then analyze why certain tasks have lower pass rates and what the common failure modes are. For instance, on 3D Slicer (medical imaging), we discovered agents get stuck in a "scrolling loop", endlessly scrolling through image slices looking for the "perfect" anatomical level without ever committing to placing a measurement. The generated Long task specifically exploits this weakness.</span></span>
-      of agent failure modes. These tasks often require over 500 steps, far exceeding existing benchmarks. All 200 tasks are manually verified against 8 quality criteria.
-    </p>
-    <details class="fig-card">
-      <summary>&#x1F5BC; View: 200+ software environments</summary>
-      <div class="fig-body">
-        <img src="assets/figures/softwares_mosaic_v7b_final.png" alt="Software mosaic showing diverse environments">
-        <div class="fig-caption">Representative screenshots from 200+ software environments spanning astronomy (KStars), satellite remote sensing (SNAP), medical imaging (InVesalius), molecular biology (PyMOL), 3D modeling (Blender), financial trading (NinjaTrader), interior design (Sweet Home 3D), climate science (Panoply), robotics (CoppeliaSim), and more.</div>
-      </div>
-    </details>
-    <details class="fig-card">
-      <summary>&#x1F5BC; View: sample agent trajectories</summary>
-      <div class="fig-body">
-        <img src="assets/trajectories/gimp.png" alt="Agent trajectory on GIMP">
-        <div class="fig-caption">Agent trajectory on GIMP (image editor): the agent navigates menus, applies filters, and verifies results across multiple steps. See the <a href="index.html#explore">project page</a> for more trajectory examples across all 200 software applications.</div>
-      </div>
-    </details>
-    <details class="read-more">
-      <summary>Read more: benchmark comparison and contamination filtering</summary>
-      <div class="detail-body">
-        <p>How CUA-World compares to prior interactive benchmarks:</p>
-        <table class="mini-table">
-          <tr><th>Benchmark</th><th>#Software</th><th>#Tasks</th><th>Long-Horizon</th><th>SOC Groups</th><th>Train Split</th></tr>
-          <tr><td>OSWorld</td><td>9</td><td>369</td><td>&cross;</td><td>3/22</td><td>&cross;</td></tr>
-          <tr><td>WebArena</td><td>6</td><td>812</td><td>&cross;</td><td>5/22</td><td>&cross;</td></tr>
-          <tr><td>AndroidWorld</td><td>20</td><td>116</td><td>&cross;</td><td>2/22</td><td>&cross;</td></tr>
-          <tr><td>WindowsAgentArena</td><td>11</td><td>154</td><td>&cross;</td><td>3/22</td><td>&cross;</td></tr>
-          <tr class="ours"><td><strong>CUA-World</strong></td><td><strong>200+</strong></td><td><strong>10,000+</strong></td><td><strong>&check;</strong></td><td><strong>22/22</strong></td><td><strong>&check;</strong></td></tr>
-        </table>
-        <p><strong>Contamination filtering:</strong> To prevent data leakage between train and test splits, we treat tasks as nodes in a similarity graph, with LLM-graded similarity scores (on a 1-8 scale) as edges. Any pair scoring 4 or higher ("very similar") is flagged. We compute connected components and assign entire components to a single split, ensuring no contaminated pairs cross the boundary. Manual verification shows the pipeline is conservative: it flags several non-contaminated pairs but misses very few true contaminations.</p>
-        <p><strong>CUA-World-Long generation</strong> follows a trajectory-guided strategy. For each software, we generate k trajectories from a strong agent on existing tasks, then analyze those trajectories to identify failure patterns and generate harder tasks that specifically exploit discovered weaknesses. The agent receives 8 quality guidelines covering real-world relevance, objective evaluability, realistic data, and other criteria. All 200 Long tasks are manually verified against these quality criteria, and tasks that fail verification are iteratively refined through further agent interaction.</p>
-        <p>For example, on 3D Slicer (medical imaging software), analysis of 34 agent trajectories showed a 0% pass rate. The primary failure mode was a "scrolling loop" where the model gets stuck endlessly scrolling through image slices looking for the "perfect" anatomical level, never committing to placing measurements. The highest-scoring existing task (tumor_ventricle_proximity, scoring 31/100 points) succeeded only because data was pre-loaded with structures already visible, so the model immediately placed a measurement without extensive scrolling. The generated Long task specifically exploits this weakness.</p>
-        <p>These Long tasks often require more than 200 steps for human completion. Current models frequently fail even after 500 steps, and the overall mean across all Long trajectories is 425 steps, far exceeding the typical step counts in existing benchmarks.</p>
-      </div>
-    </details>
-  </div>
-
-  <hr class="sep">
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- 8. RESULTS -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <div class="section" id="results">
-    <h2 class="section-title"><span class="num">8</span> Key Results</h2>
-
-    <!-- Result 1: Main performance + tables -->
-    <div class="result-card">
-      <div class="result-headline">Distillation yields a strong 2B model</div>
-      <p>Distilling Kimi-K 2.5 trajectories from CUA-World-Train into Qwen3-VL-2B boosts pass rate from <span class="stat">1.6% &rarr; 4.4%</span>, outperforming the base Qwen3-VL-4B (3.9%), a model 2&times; its size.</p>
-      <table class="mini-table">
-        <tr><th>Model</th><th>Avg. Score</th><th>Pass Rate</th></tr>
-        <tr><td>Gemini 3 Flash</td><td><strong>50.1</strong></td><td><strong>22.6%</strong></td></tr>
-        <tr><td>Kimi-K 2.5</td><td>37.1</td><td>12.8%</td></tr>
-        <tr><td>Qwen3-VL-4B</td><td>19.3</td><td>3.9%</td></tr>
-        <tr class="ours"><td>Ours (2B distilled)</td><td>22.5</td><td>4.4%</td></tr>
-      </table>
-    </div>
-
-    <!-- Result 2: CUA-World-Long -->
-    <div class="result-card">
-      <div class="result-headline">Frontier models struggle on CUA-World-Long</div>
-      <p>Even the strongest frontier model achieves only <span class="stat">7.5%</span> pass rate on the 200 long-horizon tasks. GPT-5.4 frequently gives up early or cites incapability.</p>
-      <table class="mini-table">
-        <tr><th>Model</th><th>Avg. Score</th><th>Pass Rate</th></tr>
-        <tr><td>Gemini 3 Flash</td><td><strong>36.2</strong></td><td><strong>7.5%</strong></td></tr>
-        <tr><td>Kimi-K 2.5</td><td>33.9</td><td>5.5%</td></tr>
-        <tr><td>Claude Sonnet 4.6</td><td>20.5</td><td>6.0%</td></tr>
-        <tr><td>GPT-5.4</td><td>22.7</td><td>3.0%</td></tr>
-      </table>
-    </div>
-
-    <!-- Result 3: Scaling -->
-    <div class="result-card">
-      <div class="result-headline">Performance scales log-linearly with data</div>
-      <p>Scaling training data along two axes (number of software: 50, 100, 200; fraction of tasks: 25%, 50%, 100%), both show consistent improvements following a roughly <span class="stat">~3.5 point increase per doubling</span> of data. This suggests further scaling the Gym-Anything pipeline could yield even stronger models. See the <a href="index.html#results">interactive charts on the project page</a>.</p>
-    </div>
-
-    <!-- Result 4: Generalization -->
-    <div class="result-card">
-      <div class="result-headline">Generalization to unseen software is limited</div>
-      <p>Models trained on 25-50% of the 200 software recover <span class="stat">65-87%</span> of full-training gains on software seen during training (IID), but only <span class="stat">22-27%</span> on unseen software (OOD). This means training on a specific software helps substantially, but training on other software also contributes. The gap underscores the need for scalable environment creation across diverse software.</p>
-    </div>
-
-    <!-- Result 5: TTA -->
-    <div class="result-card">
-      <div class="result-headline">Test-Time Auditing improves long-horizon performance</div>
-      <p>Pass rate on CUA-World-Long scales with step budget: 2.0% at 50 steps, 6.5% at ~200 steps, 11.5% at ~1,300 steps. Adding
-        <span class="tip">Test-Time Auditing<span class="tip-content"><strong>Mirrors the creation-audit loop at inference time.</strong> Whenever the agent signals task completion, an independent VLM reviews the full trajectory without seeing the agent's chain-of-thought. It provides structured feedback on what remains incomplete, and the agent resumes work. This catches premature stops, a common failure mode where agents declare "done" despite unfinished subtasks. Under this scheme, agents sometimes work continuously for over 12 hours on a single task.</span></span>
-        further improves pass rate to <span class="stat">14.0%</span> under the same 2,000-step cap by catching premature stops.
-      </p>
-    </div>
-
-    <!-- Result 6: Behavioral -->
-    <div class="result-card">
-      <div class="result-headline">Why agents fail: retry loops and missing verification</div>
-      <p>Analysis of ~3,000 trajectories reveals that failed trajectories spend <span class="stat">78%</span> of their steps in retry loops (vs. 39% for passed). Verification checks, where the agent re-inspects its work, are present in <span class="stat">91%</span> of passed trajectories but only 70% of failed ones. This provides empirical motivation for Test-Time Auditing.</p>
-    </div>
-
-    <details class="read-more">
-      <summary>Read more: ablations and behavioral analysis</summary>
-      <div class="detail-body">
-        <p><strong>Teacher selection paradox:</strong> Opus 4.6 is the strongest teacher model with a 53.5 average score, while Kimi-K 2.5 is one of the weakest at 39.8. Yet Kimi-K 2.5 produces the best student models: 25.3 vs. 19.3 (Opus) for Qwen3-VL-4B, and 15.8 vs. 9.8 (Sonnet) for Qwen2.5-3B. A possible explanation is that Kimi-K 2.5 is open-source and provides full reasoning chains in its trajectories, giving the student model richer learning signal despite the teacher's lower raw performance.</p>
-        <p><strong>Trajectory length curriculum:</strong> We compared training on 50-step vs. 200-step trajectories under the same $25/software budget. On average the results are similar (22.7 vs. 23.8), but the optimal length varies by software: 50-step trajectories perform better on GIMP and 3D Slicer, while 200-step trajectories are better on OpenEMR, which has longer-horizon tasks. Based on these findings, we adopt a two-stage curriculum: first train on 50-step trajectories, then continue on full 200-step trajectories.</p>
-        <p><strong>Visual complexity bottleneck:</strong> Large models (Gemini, Kimi) maintain consistent pass rates across visual complexity levels (25.3%, 20.9%, 21.6% for Gemini across low, medium, and high complexity). In contrast, small models show steep declines: Qwen3-VL-2B drops from 3.2% on low-complexity to 0.0% on high-complexity software. Distillation improves performance at all visual complexity levels but does not close the gap, suggesting that visual understanding remains a fundamental bottleneck for smaller architectures.</p>
-        <p><strong>Domain knowledge:</strong> All models decline in performance from general to specialized software. The decline is steeper for small models (roughly 3x: 6.4% to 2.2%) than for large models (roughly 1.3x: 25.6% to 19.9%). This indicates that domain-specific knowledge presents a greater challenge at smaller scales, where the model has less capacity to retain specialized information.</p>
-        <p><strong>Behavioral patterns:</strong> Automated analysis of approximately 3,000 trajectories reveals 15 canonical behavior patterns. The largest gap between passed and failed trajectories appears in <em>retry loops</em>: failed trajectories spend 78% of their steps retrying actions compared to only 39% for passed trajectories. <em>UI exploration</em> (navigating menus, searching for the right interface element) dominates for both outcomes at 67-76% of steps, indicating that most agent effort is spent locating the right interface elements rather than executing the core task. Notably, <em>verification checks</em> (where the agent pauses to confirm its progress) are present in 91% of passed trajectories but only 70% of failed ones.</p>
-        <p><strong>Step distribution and difficulty:</strong> Failed tasks spike sharply at the 500-step cap, indicating agents exhaust their budget without completing the task. Passed tasks, by contrast, spread across a wide range of step counts. The difficulty distribution shows a large spike in the 0-10 score bin: roughly a quarter of Gemini tasks and a third of Kimi tasks receive near-zero scores, suggesting a substantial fraction of tasks are currently beyond the reach of even frontier models.</p>
-        <p><strong>Test-Time Auditing (TTA) in detail:</strong> Pass rate on CUA-World-Long stays low at 50-100 steps (2.0% to 2.5%), then rises steeply: 6.5% at approximately 200 steps, 7.5% at approximately 400, and 11.5% at approximately 1,300 steps. This sharp jump suggests that most Long tasks require a minimum of 100 steps before any meaningful progress is possible. TTA adds further uplift to 14.0% under the same 2,000-step cap by catching premature stops, where the agent declares it is done but has not actually completed the task.</p>
-      </div>
-    </details>
-  </div>
-
-  <!-- FOOTER -->
-  <div class="footer">
-    <a href="index.html">Project Page</a>
-    <a href="#">Paper (PDF)</a>
-    <a href="#">Code</a>
-  </div>
-
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lb-close" onclick="closeLightbox(event)" aria-label="Close">&times;</button>
+  <img id="lb-img" alt="">
+  <div class="lb-caption" id="lb-caption"></div>
 </div>
 
+<div class="page">
+
+<!-- ════════════════════════════════════════ -->
+<!-- HEADER -->
+<!-- ════════════════════════════════════════ -->
+<div class="header">
+  <div class="back-link"><a href="index.html">&larr; Gym-Anything Project Page</a></div>
+  <h1>Gym-Anything: Interactive Paper</h1>
+  <p class="subtitle">Turn any software into a computer-use agent environment</p>
+  <div class="meta-line">
+    <span class="reading-badge">Pranjal Aggarwal, Graham Neubig, Sean Welleck</span>
+    <span class="reading-badge">Carnegie Mellon University</span>
+  </div>
+
+  <!-- READING MODE -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" data-mode="quick" onclick="setMode('quick')">Quick &middot; 5 min</button>
+    <button class="mode-btn" data-mode="standard" onclick="setMode('standard')">Standard &middot; 15 min</button>
+    <button class="mode-btn" data-mode="deep" onclick="setMode('deep')">Full Paper</button>
+  </div>
+</div>
+
+<!-- FLOW NAVIGATION -->
+<nav class="flow-nav">
+  <div class="flow-nodes">
+    <a class="flow-node" href="#tldr">TL;DR</a>
+    <span class="flow-arrow">&rarr;</span>
+    <a class="flow-node" href="#problem">Problem</a>
+    <span class="flow-arrow">&rarr;</span>
+    <a class="flow-node" href="#selection">GDP Selection</a>
+    <span class="flow-arrow">&rarr;</span>
+    <a class="flow-node" href="#library">Library</a>
+    <span class="flow-arrow">&rarr;</span>
+    <a class="flow-node" href="#creation-audit">Creation-Audit</a>
+    <span class="flow-arrow">&rarr;</span>
+    <a class="flow-node" href="#tasks">Tasks</a>
+    <span class="flow-arrow">&rarr;</span>
+    <a class="flow-node" href="#verification">Verification</a>
+    <span class="flow-arrow">&rarr;</span>
+    <a class="flow-node" href="#benchmark">CUA-World</a>
+    <span class="flow-arrow">&rarr;</span>
+    <a class="flow-node" href="#results">Results</a>
+    <span class="flow-arrow">&rarr;</span>
+    <a class="flow-node" href="#limitations">Limits</a>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TL;DR -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="tldr">
+  <h2 class="section-title"><span class="num" style="background:linear-gradient(135deg,var(--accent),var(--purple))">!</span> TL;DR</h2>
+  <p>Computer-use agents need to work with real professional software, but current benchmarks evaluate them on short-horizon tasks across a limited set of applications. We build <strong>Gym-Anything</strong>, a framework that lets AI agents autonomously convert any software into a training and evaluation environment, and use it to produce <strong>CUA-World</strong> &mdash; the largest interactive benchmark to date.</p>
+
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="stat-num" data-target="200">200+</div>
+      <div class="stat-label">Software Applications</div>
+    </div>
+    <div class="hero-stat">
+      <div class="stat-num">10K+</div>
+      <div class="stat-label">Diverse Tasks</div>
+    </div>
+    <div class="hero-stat">
+      <div class="stat-num">22/22</div>
+      <div class="stat-label">SOC Occupation Groups</div>
+    </div>
+  </div>
+
+  <div class="contrib-grid">
+    <div class="contrib-card">
+      <div class="cc-title">Gym-Anything Library</div>
+      <div class="cc-desc">Modular framework to wrap any software as a Gym-style agent environment across Linux, Windows, and Android.</div>
+    </div>
+    <div class="contrib-card">
+      <div class="cc-title">CUA-World Benchmark</div>
+      <div class="cc-desc">10,000+ tasks across 200 GDP-grounded software with train/test splits and long-horizon evaluation.</div>
+    </div>
+    <div class="contrib-card">
+      <div class="cc-title">Training &amp; Scaling</div>
+      <div class="cc-desc">Distilled 2B model that outperforms models 2&times; its size, with log-linear data scaling.</div>
+    </div>
+    <div class="contrib-card">
+      <div class="cc-title">Test-Time Auditing</div>
+      <div class="cc-desc">Inference-time audit loop that catches premature stops and improves long-horizon pass rate to 14%.</div>
+    </div>
+  </div>
+
+  <button class="fig-btn" onclick="openLightbox('assets/figures/final_teaser_v3.svg', 'The Gym-Anything pipeline: GDP-grounded software selection, creation-audit loop for environment construction, propose-and-amplify for task generation, and checklist-based VLM verification.')">
+    <span class="fig-icon">&#128202;</span> View: Full Pipeline Overview
+  </button>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════════════════════════ -->
+<!-- 1. THE PROBLEM -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="problem">
+  <h2 class="section-title"><span class="num">1</span> The Problem</h2>
+  <p>
+    Computer-use agents promise to automate digitally intensive occupations representing trillions of dollars in GDP. But current benchmarks test agents on <strong>short-horizon tasks</strong> (changing wallpapers, filling web forms) over a <strong>narrow set of consumer apps</strong>, revealing little about real professional capability. The root cause: creating realistic environments requires weeks of expert effort per application, naturally limiting benchmark scale.
+  </p>
+
+  <button class="fig-btn" onclick="openLightbox('assets/figures/panel_bar.png', 'Quantitative comparison of CUA-World against existing benchmarks across four dimensions (log scale): number of software, number of tasks, long-horizon support, and occupational coverage.')">
+    <span class="fig-icon">&#128202;</span> View: Benchmark Comparison
+  </button>
+
+  <details class="expand-l2">
+    <summary>Read more &mdash; limitations of current approaches</summary>
+    <div class="expand-body">
+      <p>Real-world workflows are <em>long-horizon</em> and take place in <em>heterogeneous environments</em>, often requiring hundreds of steps across diverse software configured with domain-specific data. Analysing a medical imaging dataset requires a radiology tool set up with annotated clinical CT scans. Reconciling financial records requires an ERP system populated with transaction histories. No existing benchmark provides this kind of domain-grounded evaluation.</p>
+      <p>Existing benchmarks fall into two categories, each addressing the problem from a different angle but with different trade-offs:</p>
+      <p><strong>Static datasets</strong> (Mind2Web, AITW, AndroidControl, OmniACT) collect thousands of episodes but evaluate via action-matching, penalizing valid alternative strategies. An agent that accomplishes the same goal through a different but equally correct sequence of actions is marked as wrong.</p>
+      <p><strong>Interactive benchmarks</strong> such as OSWorld, WebArena, WindowsAgentArena, and AndroidWorld pioneered execution-based evaluation in realistic environments, but are constrained in scale: OSWorld covers 9 software with 369 tasks, WebArena covers 6 websites with 812 tasks, WindowsAgentArena covers 11 software with 154 tasks, and AndroidWorld covers 20 apps with 116 tasks. No single existing benchmark provides training data, long-horizon tasks, and broad occupational coverage simultaneously.</p>
+
+      <table class="i-table">
+        <thead>
+          <tr><th>Benchmark</th><th>Platform</th><th>#Software</th><th>#Tasks</th><th>Long-Horizon</th><th>Train Split</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>MiniWoB++</td><td>Web</td><td>100</td><td>~12K</td><td>&cross;</td><td>&check;</td></tr>
+          <tr><td>WebArena</td><td>Web</td><td>6</td><td>812</td><td>&cross;</td><td>&cross;</td></tr>
+          <tr><td>VisualWebArena</td><td>Web</td><td>3</td><td>910</td><td>&cross;</td><td>&cross;</td></tr>
+          <tr><td>WorkArena</td><td>Web</td><td>1</td><td>~30K</td><td>&cross;</td><td>&check;</td></tr>
+          <tr><td>OSWorld</td><td>Desktop</td><td>9</td><td>369</td><td>&cross;</td><td>&cross;</td></tr>
+          <tr><td>WindowsAgentArena</td><td>Windows</td><td>11</td><td>154</td><td>&cross;</td><td>&cross;</td></tr>
+          <tr><td>AndroidWorld</td><td>Android</td><td>20</td><td>116</td><td>&cross;</td><td>&cross;</td></tr>
+          <tr><td>Spider2-V</td><td>Desktop</td><td>14</td><td>494</td><td>&cross;</td><td>&cross;</td></tr>
+          <tr><td>TheAgentCompany</td><td>Web</td><td>7</td><td>175</td><td>&check;</td><td>&cross;</td></tr>
+          <tr class="highlight"><td><strong>CUA-World</strong></td><td><strong>All 3</strong></td><td><strong>200+</strong></td><td><strong>10K+</strong></td><td><strong>&check;</strong></td><td><strong>&check;</strong></td></tr>
+        </tbody>
+      </table>
+
+      <details class="expand-l3">
+        <summary>Deep dive &mdash; consequences and root cause</summary>
+        <div class="expand-body">
+          <p>The limited scale leads to two consequences. First, <strong>evaluation is unfaithful</strong>: high scores on narrow benchmarks reveal little about whether an agent can handle real-world professional work. An agent that can change a desktop wallpaper and navigate a web shopping site may still fail entirely when asked to analyse satellite imagery in QGIS or set up a patient record in OpenMRS.</p>
+          <p>Second, <strong>training signal is limited</strong>: short-horizon tasks over a small number of applications cannot produce the diverse, long-horizon trajectories needed to train capable agents. Models trained on such data may not develop the diverse, long-horizon capabilities needed for real-world professional work.</p>
+          <p>The root cause behind all of these limitations is that each software application requires installation, configuration with domain-appropriate data, task design, and verification. This process often demands <strong>weeks of expert effort per application</strong>, creating a fundamental bottleneck that manual approaches cannot overcome. Our approach exploits the key observation that this bottleneck is itself a coding and computer-use task &mdash; making it amenable to AI agent automation.</p>
+        </div>
+      </details>
+    </div>
+  </details>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════════════════════════ -->
+<!-- 2. GDP SELECTION -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="selection">
+  <h2 class="section-title"><span class="num">2</span> GDP-Grounded Software Selection</h2>
+  <p>
+    Which software should we build environments for? We use a simple principle: <strong>prioritize software that drives more economic activity</strong>. Starting from U.S. occupational data (~900 occupations from
+    <span class="tip">O*NET + BLS<span class="tip-content"><strong>U.S. occupational databases.</strong> O*NET describes ~900 standardized occupations with detailed task/skill information. BLS provides employment counts and average annual wages. Together they let us estimate each occupation's GDP contribution.</span></span>),
+    we discover software used by each occupation, attribute GDP to individual software, filter to sandboxable candidates, and apply tiered selection &mdash; yielding <strong>200 software covering all 22 SOC major occupation groups</strong>.
+  </p>
+
+  <button class="fig-btn" onclick="openLightbox('assets/figures/gdp_selection.png', 'The GDP-grounded software selection pipeline: estimate GDP per occupation, discover software, clean and attribute GDP, filter to sandboxable candidates, substitute non-sandboxable software, and apply tiered selection.')">
+    <span class="fig-icon">&#128202;</span> View: GDP Selection Pipeline
+  </button>
+  <button class="fig-btn" onclick="openLightbox('assets/figures/soc_distribution.png', 'Distribution of selected software across all 22 SOC (Standard Occupational Classification) major occupation groups, from Management and Business to Arts and Transportation.')">
+    <span class="fig-icon">&#128202;</span> View: SOC Coverage
+  </button>
+  <button class="fig-btn" onclick="openLightbox('assets/figures/task_umap_soc.png', 'UMAP visualization of all tasks colored by SOC occupation group, showing broad coverage across all 22 major groups with natural clustering by domain.')">
+    <span class="fig-icon">&#128202;</span> View: Task Distribution by Occupation (UMAP)
+  </button>
+
+  <details class="expand-l2">
+    <summary>Read more &mdash; the 7-step pipeline and GDP formula</summary>
+    <div class="expand-body">
+      <p>The pipeline proceeds in seven steps:</p>
+      <p><strong>1. Estimate GDP per occupation</strong> using employment count &times; mean wage, scaled to national GDP. <strong>2. Discover software</strong> used per occupation using an LLM with web search, producing ~16,600 software across ~1,400 categories. <strong>3. Clean the catalog</strong> by deduplicating and removing hallucinated entries via web-grounded verification. <strong>4. Attribute GDP to individual software</strong> via the formula below.</p>
+
+      <div class="formula">
+        <span class="var">GDP<sub>software</sub></span> <span class="op">=</span>
+        <span class="op">&Sigma;</span> <span class="var">GDP<sub>occ</sub></span>
+        <span class="op">&times;</span> <span class="var">p<sub>computer</sub></span>
+        <span class="op">&times;</span> <span class="var">s<sub>category</sub></span>
+        <span class="op">&times;</span> <span class="var">s<sub>software</sub></span>
+      </div>
+
+      <p>Where <code>p_computer</code> is the fraction of work involving computers (from occupational surveys), <code>s_category</code> is the share attributed to a software category (e.g., "spreadsheets" for an accountant), and <code>s_software</code> is the individual software's share within its category.</p>
+      <p><strong>5. Filter to sandboxable</strong>: self-hostable, free, GUI-based, no specialized hardware. Only ~3,400 of ~16,600 pass. <strong>6. Substitute</strong>: high-GDP non-sandboxable software (e.g., Bloomberg Terminal at $79.5B, Salesforce, Epic EHR) is replaced with the closest free alternative. <strong>7. Tiered selection</strong> across five tiers to balance economic impact and diversity.</p>
+
+      <div class="callout insight">
+        <span class="callout-icon">&#128161;</span>
+        <div class="callout-body"><strong>Top software by attributed GDP:</strong> Microsoft Excel, Microsoft Word, Google Chrome, Microsoft Outlook, and Visual Studio Code dominate by sheer breadth of occupational use. Since these are commercial and cannot be self-hosted, each is systematically substituted with the closest free alternative from the same software category (e.g., LibreOffice Calc for Excel, Firefox for Chrome).</div>
+      </div>
+
+      <details class="expand-l3">
+        <summary>Deep dive &mdash; tiered selection and SOC examples</summary>
+        <div class="expand-body">
+          <p><strong>Five tiers with explicit budgets:</strong></p>
+          <p><strong>Tier 1</strong> (100 slots): Highest-GDP software overall. <strong>Tier 2a</strong> (100 slots): Strategic domains &mdash; Healthcare, Education, Protective Services, Transportation. <strong>Tier 2b</strong> (100 slots): STEM fields &mdash; Architecture/Engineering, Computer/Math, Life/Physical/Social Science. <strong>Tier 3</strong> (116 slots): Round-robin ~5 per SOC group for breadth. <strong>Tier 4</strong> (44 slots): Niche occupation-specific software. <strong>Tier 5</strong> (40 slots): Uncovered software categories ranked by GDP.</p>
+          <p>This produces ~500 selected software, of which <strong>200 are built based on compute budget</strong>. The resulting benchmark covers domains from medical science (GNU Health, OpenMRS, Slicer3D) and astronomy (KStars, AstroImageJ) to engineering (FreeCAD, OpenVSP), enterprise systems (Odoo, SuiteCRM), and even traffic simulation (SUMO) and underwater exploration (BridgeCommand).</p>
+
+          <table class="i-table">
+            <thead><tr><th>SOC Group</th><th>Example Software</th><th>Example Task</th></tr></thead>
+            <tbody>
+              <tr><td>Healthcare</td><td>OpenMRS</td><td>Register patient, prescribe medication, run utilization report</td></tr>
+              <tr><td>Architecture/Engineering</td><td>FreeCAD</td><td>Model a mechanical part with precise dimensions and export STL</td></tr>
+              <tr><td>Life Sciences</td><td>PyMOL</td><td>Visualize protein binding site and measure inter-atomic distances</td></tr>
+              <tr><td>Education</td><td>Moodle</td><td>Create a course, enroll students, set up a graded quiz</td></tr>
+              <tr><td>Computer/Math</td><td>RStudio</td><td>Load dataset, run regression analysis, generate publication plot</td></tr>
+              <tr><td>Arts/Media</td><td>Blender</td><td>Model a 3D scene with multiple objects, materials, and lighting</td></tr>
+              <tr><td>Transportation</td><td>SUMO</td><td>Configure traffic network and run congestion simulation</td></tr>
+              <tr><td>Finance</td><td>Portfolio Performance</td><td>Import transactions, analyze portfolio allocation, compute returns</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  </details>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════════════════════════ -->
+<!-- 3. LIBRARY -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="library">
+  <h2 class="section-title"><span class="num">3</span> The Gym-Anything Library</h2>
+  <p>
+    Our key idea: <strong>creating computer-use environments is itself a coding and computer-use agent task</strong>. The Gym-Anything library reduces every environment to a
+    <span class="tip">standardized specification<span class="tip-content"><strong>Three setup scripts + a config file.</strong> Install (software + dependencies), Configure (realistic data + settings), Task Setup (specific starting state). Multiple tasks share the same install/configure scripts, varying only the task setup. The config file specifies OS image, resource limits, and interfaces.</span></span>:
+    three setup scripts and a configuration file. This enables AI agents to create environments by writing only software-specific scripts, while the library handles container orchestration, display forwarding, and checkpoint management across Linux, Windows, and Android.
+  </p>
+
+  <button class="fig-btn" onclick="openLightbox('assets/figures/final_teaser_v3.svg', 'Gym-Anything pipeline overview: GDP selection, creation-audit loop, propose-and-amplify task generation, and checklist-based VLM verification.')">
+    <span class="fig-icon">&#128202;</span> View: Pipeline Overview
+  </button>
+
+  <details class="expand-l2">
+    <summary>View code &mdash; environment spec and Python API</summary>
+    <div class="expand-body">
+      <p>Each environment is defined by a simple JSON spec:</p>
+      <!-- Code example: env.json -->
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">env.json &mdash; Environment Specification</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <div class="code-body"><pre>{
+  <span class="key">"env_id"</span>: <span class="str">"moodle_env"</span>,
+  <span class="key">"name"</span>: <span class="str">"Moodle LMS"</span>,
+  <span class="key">"base"</span>: <span class="str">"ubuntu-gnome-systemd"</span>,
+  <span class="key">"resources"</span>: { <span class="key">"cpus"</span>: <span class="num">4</span>, <span class="key">"memory"</span>: <span class="str">"4G"</span> },
+  <span class="key">"hooks"</span>: {
+    <span class="key">"pre_start"</span>: <span class="str">"scripts/install.sh"</span>,
+    <span class="key">"post_start"</span>: <span class="str">"scripts/configure.sh"</span>
+  },
+  <span class="key">"observations"</span>: [<span class="str">"rgb_screen"</span>],
+  <span class="key">"actions"</span>: [<span class="str">"mouse"</span>, <span class="str">"keyboard"</span>]
+}</pre></div>
+      </div>
+
+      <p>Agents interact through a standard Gymnasium-style API:</p>
+      <!-- Code example: Python API -->
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">Python &mdash; Standard Gymnasium API</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <div class="code-body"><pre><span class="kw">import</span> gym_anything
+
+<span class="cm"># Create environment with a specific task</span>
+env = gym_anything.<span class="fn">make</span>(<span class="str">"moodle_env"</span>, task=<span class="str">"enroll_student"</span>)
+obs = env.<span class="fn">reset</span>()
+
+<span class="kw">for</span> step <span class="kw">in</span> <span class="fn">range</span>(<span class="num">200</span>):
+    actions = agent.<span class="fn">step</span>(obs)  <span class="cm"># Your agent decides actions</span>
+    obs, reward, done, info = env.<span class="fn">step</span>(actions)
+    <span class="kw">if</span> done:
+        <span class="kw">break</span>
+
+result = info[<span class="str">"verification"</span>]
+<span class="fn">print</span>(<span class="str">f"Score: <span class="kw">{</span>result['score']<span class="kw">}</span>, Passed: <span class="kw">{</span>result['passed']<span class="kw">}</span>"</span>)
+env.<span class="fn">close</span>()</pre></div>
+      </div>
+    </div>
+  </details>
+
+  <details class="expand-l2">
+    <summary>Read more &mdash; runners, caching, and parallelization</summary>
+    <div class="expand-body">
+      <p>Previous works such as OSWorld and VisualWebArena demonstrated the value of interactive evaluation by manually constructing environments through direct OS interaction and VM snapshots. While this approach produces high-quality setups, the resulting snapshots are difficult to inspect, version-control, or partially reuse, making it challenging to scale to hundreds of applications.</p>
+      <p>In Gym-Anything, the staged design enables <strong>caching at each stage boundary</strong>: creating new tasks for an already-configured application only requires re-running the task-specific setup script. Combined with network-process-file isolation between containers, this enables massive parallelization: in our experiments we run <strong>400+ concurrent environments across 1,600 CPUs</strong>.</p>
+      <p>The library supports multiple compute backends. <strong>Docker</strong> for standard deployments. <strong>Apptainer</strong> for rootless systems like SLURM clusters. <strong>QEMU</strong> (with and without Apptainer) for full OS virtualization including Windows, with support for QEMU savevm for instant VM state restoration. <strong>AVD</strong> (Android Virtual Device) for Android environments. <strong>AVF</strong> (Apple Virtualization Framework) for macOS with Rosetta translation.</p>
+
+      <table class="i-table">
+        <thead><tr><th>Runner</th><th>Platform</th><th>Caching</th><th>Savevm</th><th>GPU</th><th>Use Case</th></tr></thead>
+        <tbody>
+          <tr><td>Docker</td><td>Linux</td><td>&check;</td><td>&cross;</td><td>&cross;</td><td>Standard deployment</td></tr>
+          <tr><td>QEMU + Apptainer</td><td>Linux</td><td>&check;</td><td>&check;</td><td>&cross;</td><td>SLURM clusters, Windows</td></tr>
+          <tr><td>QEMU Native</td><td>macOS/Linux</td><td>&check;</td><td>&check;</td><td>&cross;</td><td>macOS with HVF</td></tr>
+          <tr><td>Apptainer Direct</td><td>Linux</td><td>&check;</td><td>&cross;</td><td>&check;</td><td>GPU-enabled envs</td></tr>
+          <tr><td>AVD</td><td>Linux</td><td>&check;</td><td>&cross;</td><td>&cross;</td><td>Android apps</td></tr>
+          <tr><td>AVF</td><td>macOS</td><td>&check;</td><td>&cross;</td><td>&cross;</td><td>Apple Silicon + Rosetta</td></tr>
+        </tbody>
+      </table>
+
+      <details class="expand-l3">
+        <summary>Deep dive &mdash; task folder structure and verifier contract</summary>
+        <div class="expand-body">
+          <p>Each task follows an invariant folder structure:</p>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">Task Folder Structure</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+            <div class="code-body"><pre>moodle_env/
+  env.json            <span class="cm"># Environment specification</span>
+  scripts/
+    install.sh        <span class="cm"># Software + dependencies</span>
+    configure.sh      <span class="cm"># Realistic data + settings</span>
+  tasks/
+    enroll_student/
+      task.json       <span class="cm"># Task description + success criteria</span>
+      setup_task.sh   <span class="cm"># Set specific starting state</span>
+      export_result.sh<span class="cm"># Post-task data export</span>
+      verifier.py     <span class="cm"># Programmatic verification</span>
+    create_course/
+      ...</pre></div>
+          </div>
+
+          <p>Verifiers are Python functions receiving <code>(traj, env_info, task_info)</code> and returning a standardized result:</p>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">Python &mdash; verifier.py</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+            <div class="code-body"><pre><span class="kw">def</span> <span class="fn">verify</span>(traj, env_info, task_info):
+    <span class="cm"># Pull data from running container</span>
+    result = env_info[<span class="str">'copy_from_env'</span>](<span class="str">'/tmp/enrollment.json'</span>)
+    data = json.<span class="fn">loads</span>(result)
+    enrolled = <span class="fn">any</span>(s[<span class="str">'name'</span>] == <span class="str">'Jane Smith'</span> <span class="kw">for</span> s <span class="kw">in</span> data[<span class="str">'students'</span>])
+    <span class="kw">return</span> {
+        <span class="str">"passed"</span>: enrolled,
+        <span class="str">"score"</span>: <span class="num">100</span> <span class="kw">if</span> enrolled <span class="kw">else</span> <span class="num">0</span>,
+        <span class="str">"feedback"</span>: <span class="str">"Student enrolled"</span> <span class="kw">if</span> enrolled <span class="kw">else</span> <span class="str">"Not found"</span>
+    }</pre></div>
+          </div>
+
+          <p>The specification is simple enough that an LLM agent can author environments autonomously, yet expressive enough to capture complex production-grade software &mdash; from desktop image editors to multi-container enterprise systems requiring databases, message queues, and network configuration.</p>
+        </div>
+      </details>
+    </div>
+  </details>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════════════════════════ -->
+<!-- 4. CREATION-AUDIT LOOP -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="creation-audit">
+  <h2 class="section-title"><span class="num">4</span> Creation-Audit Loop</h2>
+  <p>
+    Without external verification, frontier models frequently produce incorrect setups: placeholder data instead of real datasets, software stuck at installation wizards, or false claims of completion. Our insight: <strong>the agent's claims are not reliable, but the actual environment state is</strong>. A screenshot reveals whether the software is running regardless of what the agent claims.
+  </p>
+  <p>
+    We exploit this through a
+    <span class="tip">creation-audit loop<span class="tip-content"><strong>Two agents, adversarial separation.</strong> A creation agent (Claude Opus via Claude Code) writes scripts, downloads real-world data, launches the software, and produces evidence. An independent audit agent verifies evidence against quality checklists. The loop runs for multiple iterations until the audit passes.</span></span>:
+    a creation agent builds the environment and produces evidence, then an independent audit agent verifies this evidence. A
+    <span class="tip">shared memory<span class="tip-content"><strong>A growing directory of reusable knowledge.</strong> Software-specific notes (e.g., "LibreOffice needs headless mode disabled for GUI tasks") and general patterns (e.g., "always poll service readiness before launching multi-container web stacks"). Summarized every L environments to keep memory manageable.</span></span>
+    of common fixes enables <strong>sublinear growth in creation time</strong> as more environments are built.
+  </p>
+
+  <button class="fig-btn" onclick="openLightbox('assets/figures/full_pipeline_gemini_2.png', 'The creation-audit loop: Creation Agent researches software, writes scripts, launches environments, and captures evidence. Audit Agent independently verifies against quality checklists. Shared Memory grows over time with reusable patterns. Summarization Agent periodically condenses common patterns.')">
+    <span class="fig-icon">&#128202;</span> View: Creation-Audit Loop Diagram
+  </button>
+
+  <details class="expand-l2">
+    <summary>Read more &mdash; agent roles, shared memory, and context fatigue</summary>
+    <div class="expand-body">
+      <p>The <strong>creation agent</strong> is a coding agent (Claude Opus 4.5/4.6 via Claude Code) equipped with bash, python, and computer-use tools. Given a new software name, it: researches how the software should be configured; finds and downloads real-world data (e.g., public medical imaging datasets for radiology software, published email corpora for messaging clients); studies similar previously created environments; implements setup scripts; launches the environment; takes screenshots; uses visual grounding to verify the application reached the expected state; and iteratively debugs failures.</p>
+      <p>Separating creation and audit roles provides three benefits: (a) removes self-confirmation bias, (b) the written audits ensure interpretability, and (c) the adversarial framing catches self-misleading claims. The <strong>audit agent</strong> analyses screenshots and logs, inspects script files, and if necessary actually runs the environment. It outputs a structured audit detailing what is correct and what the critical issues are.</p>
+      <p>A recurring challenge is <strong>context fatigue</strong>: after processing hundreds of thousands of tokens, the creation agent often declares the task done prematurely. We address this with a re-prompting technique &mdash; whenever the agent stops, we re-prompt it to reread the setup guidelines and checklists and complete any requirements it may have skipped.</p>
+
+      <div class="callout insight">
+        <span class="callout-icon">&#128161;</span>
+        <div class="callout-body"><strong>Shared memory works.</strong> After each environment, the agent documents what worked and what failed. One agent discovered that multi-service web platforms need readiness polling before the GUI can launch &mdash; this became the default pattern for all subsequent web stacks, saving significant debugging time.</div>
+      </div>
+
+      <details class="expand-l3">
+        <summary>Deep dive &mdash; cross-model auditing and examples</summary>
+        <div class="expand-body">
+          <p><strong>Cross-model auditing:</strong> We compared self-audits (same model) against cross-model audits across 10 software. Both detect all critical issues, but <strong>cross-model audits identify on average 2.1 additional issues per environment</strong>.</p>
+          <p><strong>Example 1 &mdash; OpenELIS (lab information system):</strong> The self-audit accepted patient data as realistic. The cross-model audit inspected the seeding script and discovered the data was a hardcoded Python list, directly contradicting inline comments claiming real-world WHO/CDC sourcing.</p>
+          <p><strong>Example 2 &mdash; Visallo (link analysis platform):</strong> The cross-model audit caught a file path mismatch: a CSV file claimed to be "on the desktop" was actually placed in <code>/home/ga/Documents/</code>, which would confuse any agent following the task instructions.</p>
+          <p>The <strong>summarization agent</strong> runs every L environments, reads through all memory files, identifies common patterns, and condenses them. This keeps memory manageable while preserving the most useful knowledge. The result is that later environments are created faster than earlier ones, achieving sublinear time scaling.</p>
+
+          <!-- BEFORE/AFTER AUDIT EXAMPLES -->
+          <h4 style="font-family:var(--font-display);font-size:0.95rem;font-weight:600;margin:1.2rem 0 0.4rem;">Cross-Round Audit: How the Loop Fixes Issues</h4>
+          <p>Three cases where Round 1 audits caught problems and Round 2 confirmed fixes:</p>
+
+          <div class="tab-panel">
+            <div class="tab-bar">
+              <button class="tab-btn active" onclick="switchTab(this, 'audit-pebl')">PEBL</button>
+              <button class="tab-btn" onclick="switchTab(this, 'audit-seiscomp')">SeisComP</button>
+              <button class="tab-btn" onclick="switchTab(this, 'audit-graphite')">Graphite</button>
+            </div>
+
+            <div class="tab-content active" id="tab-audit-pebl">
+              <div class="callout warning" style="margin-bottom:0.5rem">
+                <span class="callout-icon">&#9888;</span>
+                <div class="callout-body"><strong>PEBL</strong> &mdash; Psychology experiment platform. Audit criterion: <strong>Task Description Quality</strong>.</div>
+              </div>
+              <table class="i-table">
+                <thead><tr><th style="width:50%">Round 1 &mdash; Issues Found</th><th style="width:50%">Round 2 &mdash; Fixed</th></tr></thead>
+                <tbody><tr>
+                  <td style="border-left:3px solid var(--red);padding-left:0.8rem">
+                    <strong style="color:var(--red)">CRITICAL: Wrong Key Instructions</strong><br>
+                    Task said: <em>"press the left or right arrow key."</em> But the experiment screen shows <em>"LEFT-SHIFT for LEFT"</em> and <em>"RIGHT-SHIFT for RIGHT."</em> Arrow keys are not registered. Agent <strong>cannot complete any trial</strong>.<br><strong>Verdict: FAIL</strong>
+                  </td>
+                  <td style="border-left:3px solid var(--green);padding-left:0.8rem">
+                    <strong style="color:var(--green)">Description Rewritten</strong><br>
+                    New: <em>"Read the instructions carefully and complete practice trials by pressing the appropriate response keys as indicated on screen."</em> No longer specifies which keys &mdash; the agent must read on-screen instructions.<br><strong>Verdict: PASS</strong>
+                  </td>
+                </tr></tbody>
+              </table>
+            </div>
+
+            <div class="tab-content" id="tab-audit-seiscomp">
+              <div class="callout warning" style="margin-bottom:0.5rem">
+                <span class="callout-icon">&#9888;</span>
+                <div class="callout-body"><strong>SeisComP</strong> &mdash; Seismological monitoring with real USGS earthquake data. Audit criterion: <strong>Evidence Verification</strong>.</div>
+              </div>
+              <table class="i-table">
+                <thead><tr><th style="width:50%">Round 1 &mdash; Issues Found</th><th style="width:50%">Round 2 &mdash; Fixed</th></tr></thead>
+                <tbody><tr>
+                  <td style="border-left:3px solid var(--red);padding-left:0.8rem">
+                    <strong style="color:var(--red)">CRITICAL: evidence_docs/ is completely empty</strong><br>
+                    Zero screenshots demonstrating that <code>scconfig</code> or <code>scolv</code> GUI apps actually launch, that FDSN data downloads succeeded, or that the task start state is reachable.<br><strong>Verdict: CRITICAL EVIDENCE FAILURE</strong>
+                  </td>
+                  <td style="border-left:3px solid var(--green);padding-left:0.8rem">
+                    <strong style="color:var(--green)">Full Evidence Produced</strong><br>
+                    Screenshots confirm: <code>scconfig</code> shows station list (5 Indonesian stations), <code>scolv</code> shows the 2024 Noto Peninsula M7.5 earthquake with phase picks. Data independently verified against USGS FDSN catalog.<br><strong>Verdict: PASS</strong>
+                  </td>
+                </tr></tbody>
+              </table>
+            </div>
+
+            <div class="tab-content" id="tab-audit-graphite">
+              <div class="callout warning" style="margin-bottom:0.5rem">
+                <span class="callout-icon">&#9888;</span>
+                <div class="callout-body"><strong>Graphite</strong> &mdash; Time-series monitoring tool. Audit criterion: <strong>Task Description Quality</strong>.</div>
+              </div>
+              <table class="i-table">
+                <thead><tr><th style="width:50%">Round 1 &mdash; Issues Found</th><th style="width:50%">Round 2 &mdash; Fixed</th></tr></thead>
+                <tbody><tr>
+                  <td style="border-left:3px solid var(--red);padding-left:0.8rem">
+                    <strong style="color:var(--red)">HIGH: Over-Prescriptive Description</strong><br>
+                    The description was a step-by-step walkthrough: <em>"click 'Graph Data'... click 'Add'... click 'Apply Function' and choose 'Calculate' > 'movingAverage'. Set the window to 10..."</em> This tells the agent exactly which buttons to click, leaving nothing to figure out.<br><strong>Verdict: FAIL</strong>
+                  </td>
+                  <td style="border-left:3px solid var(--green);padding-left:0.8rem">
+                    <strong style="color:var(--green)">Rewritten to Goal-Oriented</strong><br>
+                    New: <em>"Add the metric <code>servers.ec2_instance_1.cpu.utilization</code> and apply movingAverage with window 10. The graph should show a smoothed version."</em> States the goal without prescribing the click sequence.<br><strong>Verdict: PASS</strong>
+                  </td>
+                </tr></tbody>
+              </table>
+              <p style="font-size:0.8rem;color:var(--text-dim);margin-top:0.4rem">Over-prescriptive descriptions were the most common audit finding, flagged independently in Stellarium, PyMOL, Webots, SeisComP, BlenderBIM, and Sweet Home 3D.</p>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </details>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════════════════════════ -->
+<!-- 5. TASK GENERATION -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="tasks">
+  <h2 class="section-title"><span class="num">5</span> Task Generation</h2>
+  <p>
+    An LLM can generate reasonable task descriptions, but without actually running the software, the generated configurations are often incorrect. We use a
+    <span class="tip">propose-and-amplify<span class="tip-content"><strong>5 expensive seeds + 75 cheap amplifications per software.</strong> The proposer (Claude Opus via Claude Code) creates ~5 seeds by actually running the software. The amplifier (Gemini 3 Pro) generates ~75 more using seeds as in-context examples. A VLM filter checks each task's starting state, discarding failures.</span></span>
+    strategy: an agentic model proposes a small number of high-quality seed tasks by actually running the software, then a cheaper LLM amplifies these into a larger set. Tasks amplified from seeds achieve <span class="stat">88.9%</span> setup success rate vs. <span class="stat">55.2%</span> without seeds.
+  </p>
+
+  <button class="fig-btn" onclick="openLightbox('assets/figures/panel_task_cards.png', 'Example tasks across diverse software: medical imaging analysis in AstroImageJ, patient record management in OpenMRS, 3D modeling in Blender, financial analysis in Portfolio Performance, and more.')">
+    <span class="fig-icon">&#128202;</span> View: Example Tasks
+  </button>
+  <button class="fig-btn" onclick="openLightbox('assets/figures/task_umap_difficulty.png', 'UMAP visualization of all tasks colored by difficulty level, showing wide diversity in task complexity and domain coverage.')">
+    <span class="fig-icon">&#128202;</span> View: Task Diversity (UMAP)
+  </button>
+
+  <details class="expand-l2">
+    <summary>Read more &mdash; quality guidelines and the amplification pipeline</summary>
+    <div class="expand-body">
+      <p>The proposer follows guidelines across three dimensions: <strong>realism</strong> (does the instruction reflect genuine real-world use?), <strong>difficulty</strong> (does the task require multi-step, long-horizon interaction?), and <strong>diversity</strong> (do tasks cover varied functionality of the software?).</p>
+      <p>The agentic loop in the proposer is necessary because the model must actively run the software, search for and download realistic data, interact via the GUI, and verify the resulting state. This expensive step occurs only ~5 times per software but is essential for producing high-quality seeds.</p>
+      <p>During amplification, tasks are generated sequentially: the model receives all previously generated instructions as context when producing each new task, ensuring diversity. Semantic similarity filtering then discards near-duplicates. After generation, automated filtering launches each task, captures the starting state, and a VLM checks whether it matches the task description. Tasks failing this check are discarded. The pipeline yields <span class="stat">12,103 tasks</span> total after filtering.</p>
+
+      <details class="expand-l3">
+        <summary>Deep dive &mdash; CUA-World-Long generation and ablation</summary>
+        <div class="expand-body">
+          <p><strong>CUA-World-Long</strong> is a set of 200 particularly challenging tasks (one per software) designed through trajectory-guided analysis of agent failure modes. For each software, we generate trajectories from a strong agent on existing tasks, analyse why certain tasks have lower pass rates, and design harder tasks that exploit discovered weaknesses.</p>
+          <p>For example, on <strong>3D Slicer</strong> (medical imaging), analysis of 34 agent trajectories showed a 0% pass rate. The primary failure mode was a "scrolling loop" where the model endlessly scrolls through image slices looking for the "perfect" anatomical level, never committing to placing measurements. The generated Long task specifically exploits this weakness.</p>
+          <p>All 200 Long tasks are manually verified against 8 quality criteria covering real-world relevance, objective evaluability, realistic data, and other dimensions. Tasks that fail verification are iteratively refined. These tasks require <strong>200+ steps for humans</strong> and often <strong>500+ steps for models</strong>.</p>
+          <p><strong>Qualitative analysis</strong> on three representative software (Firefox, AstroImageJ, Moodle) reveals that without seeds, the model defaults to demonstrating software features rather than generating realistic professional workflows, producing shorter-horizon tasks with less thorough setup scripts.</p>
+        </div>
+      </details>
+    </div>
+  </details>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════════════════════════ -->
+<!-- 6. VERIFICATION -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="verification">
+  <h2 class="section-title"><span class="num">6</span> Verification</h2>
+  <p>
+    We use a
+    <span class="tip">checklist-based VLM verifier<span class="tip-content"><strong>V(&tau;) = &Sigma; w<sub>i</sub> &middot; VLM(&tau;, c<sub>i</sub>, I).</strong> Each task is decomposed into weighted subtasks. The VLM receives the full trajectory, each subtask description, and privileged information, then judges completion. Enables partial credit.</span></span>
+    that decomposes each task into weighted subtasks for partial credit. These checklists leverage
+    <span class="tip">privileged information<span class="tip-content"><strong>Automatically extracted ground truth.</strong> A coding agent parses setup scripts to retrieve known answers. E.g., correct tumor location from a downloaded medical dataset, expected account balances from initialization data. Eliminates manual annotation.</span></span>
+    &mdash; ground-truth data embedded in setup scripts &mdash; achieving <span class="stat">93.3%</span> human agreement vs. 81.7% for direct VLM and 43.3% for programmatic verifiers.
+  </p>
+
+  <button class="fig-btn" onclick="openLightbox('assets/figures/panel_radar.png', 'Radar chart comparing verification approaches: checklist-based VLM with privileged information achieves highest agreement with human judgments across all evaluation dimensions.')">
+    <span class="fig-icon">&#128202;</span> View: Verifier Comparison
+  </button>
+
+  <details class="expand-l2">
+    <summary>Read more &mdash; privileged information examples and integrity checks</summary>
+    <div class="expand-body">
+      <p>The verification formula: <strong>V(&tau;) = &Sigma; w<sub>i</sub> &middot; VLM(&tau;, c<sub>i</sub>, I)</strong>, where each c<sub>i</sub> is a subtask to verify and w<sub>i</sub> is its point value. The VLM (Gemini 3 Flash) receives the full trajectory &tau;, the subtask description, and privileged information I, yielding a score from 0-100 rather than binary pass/fail.</p>
+
+      <p><strong>Privileged information examples:</strong></p>
+      <table class="i-table">
+        <thead><tr><th>Software</th><th>Task Domain</th><th>Privileged Info Source</th><th>What It Provides</th></tr></thead>
+        <tbody>
+          <tr><td>AstroImageJ</td><td>Astronomy</td><td>FITS header metadata</td><td>Correct star coordinates and magnitude values</td></tr>
+          <tr><td>Apache OpenOffice Writer</td><td>Document editing</td><td>Template document</td><td>Required formatting specifications and content structure</td></tr>
+          <tr><td>Aerobridge</td><td>Drone management</td><td>Registration database</td><td>Expected drone IDs and flight authorization parameters</td></tr>
+          <tr><td>Liverpool Cancer iChart</td><td>Oncology</td><td>Clinical protocol data</td><td>Correct drug interactions and dosage calculations</td></tr>
+        </tbody>
+      </table>
+
+      <p>A separate <strong>integrity checklist</strong> ensures agents did not bypass the intended workflow. Three conditions: (a) the intended software was actually used, (b) application state was reached through the GUI (not by directly editing files), (c) no environment artifacts were exploited. Failing any condition <strong>zeroes the entire score</strong>.</p>
+
+      <details class="expand-l3">
+        <summary>Deep dive &mdash; verifier comparison and integrity examples</summary>
+        <div class="expand-body">
+          <p>We compared three verifier designs on 60 randomly sampled Gemini-3-Flash trajectories:</p>
+          <table class="i-table">
+            <thead><tr><th>Verifier Approach</th><th>Task-Level Agreement</th><th>Per-Item Agreement</th></tr></thead>
+            <tbody>
+              <tr class="highlight"><td>Checklist + privileged info</td><td>93.3%</td><td>90.9%</td></tr>
+              <tr><td>Direct VLM judgment</td><td>81.7%</td><td>&mdash;</td></tr>
+              <tr><td>Auto-generated programmatic</td><td>43.3%</td><td>&mdash;</td></tr>
+            </tbody>
+          </table>
+          <p>Programmatic verifiers perform poorly because the model writes incorrect parsing scripts that fail on the data formats in the end state. The granular checklist decomposition is well-calibrated, as shown by 90.9% per-item agreement.</p>
+
+          <p><strong>Integrity check examples:</strong> Across ~3,000 Gemini-3-Flash trajectories, integrity checks flag only ~1.5% of high-scoring runs (score &gt;75), producing 21 flags, of which 15 are true positives.</p>
+          <p><strong>Autopsy (digital forensics):</strong> The agent followed the correct forensic workflow but <em>fabricated hash values</em> in its final report rather than copying the values actually visible in the application.</p>
+          <p><strong>Epi Info (epidemiology):</strong> The agent mistyped an input parameter, causing the tool to display an incorrect result, but then wrote the mathematically correct answer &mdash; a value never shown by the tool.</p>
+          <p><strong>PEBL (psychology experiments):</strong> The agent hardcoded <code>if pid == 'PRL-999'</code> to exclude a bot participant instead of using data-driven criteria &mdash; a shortcut that would not generalize to any other dataset.</p>
+          <p><strong>PsychoPy (experiment builder):</strong> The agent abandoned the required GUI (PsychoPy Coder) and wrote the experiment script via terminal <code>cat &lt;&lt; EOF</code>. The output was correct, but it was not produced through the intended software interface.</p>
+          <div class="callout insight" style="margin-top:0.5rem">
+            <span class="callout-icon">&#128161;</span>
+            <div class="callout-body">These cases illustrate distinct violation types: <strong>fabrication</strong> (Autopsy), <strong>tool mismatch</strong> (Epi Info output vs. display), <strong>shortcut exploitation</strong> (PEBL hardcoded check), and <strong>wrong interface</strong> (PsychoPy terminal vs. GUI). The integrity checklist catches all of these.</div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </details>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════════════════════════ -->
+<!-- 7. CUA-WORLD -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="benchmark">
+  <h2 class="section-title"><span class="num">7</span> CUA-World</h2>
+  <p>
+    The result is <strong>CUA-World</strong>: <span class="stat">12,103</span> tasks across <span class="stat">200+</span> software spanning domains from medical science and astronomy to engineering and enterprise systems, each configured with realistic data, across three operating systems, with train and test splits. It is the first benchmark to simultaneously provide interactive environments at scale, long-horizon evaluation, all 22 SOC groups, automated creation, and a training split.
+  </p>
+
+  <button class="fig-btn" onclick="openLightbox('assets/figures/softwares_mosaic_v7b_final.png', 'Screenshots from 200+ software environments spanning astronomy (KStars), satellite remote sensing (SNAP), medical imaging (InVesalius), molecular biology (PyMOL), 3D modeling (Blender), financial trading (NinjaTrader), interior design (Sweet Home 3D), climate science (Panoply), robotics (CoppeliaSim), and many more.')">
+    <span class="fig-icon">&#128444;</span> View: 200+ Software Environments
+  </button>
+  <button class="fig-btn" onclick="openLightbox('assets/figures/strip_figure.png', 'Representative applications from each occupation group, illustrating the breadth of professional software covered by CUA-World.')">
+    <span class="fig-icon">&#128444;</span> View: Software Across Occupations
+  </button>
+
+  <!-- Software gallery -->
+  <details class="expand-l2">
+    <summary>Explore &mdash; example environment screenshots</summary>
+    <div class="expand-body">
+      <p>Click any screenshot to enlarge. Showing 36 of 200+ environments:</p>
+      <div class="sw-gallery">
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/01_kstars.png', 'KStars &mdash; Astronomy planetarium and observation planner')"><img src="assets/screenshots/01_kstars.png" alt="KStars" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/02_snap.png', 'SNAP &mdash; Satellite remote sensing and image analysis')"><img src="assets/screenshots/02_snap.png" alt="SNAP" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/03_invesalius.png', 'InVesalius &mdash; 3D medical imaging reconstruction')"><img src="assets/screenshots/03_invesalius.png" alt="InVesalius" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/04_pymol.png', 'PyMOL &mdash; Molecular visualization and analysis')"><img src="assets/screenshots/04_pymol.png" alt="PyMOL" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/05_blender.png', 'Blender &mdash; 3D modeling, animation, and rendering')"><img src="assets/screenshots/05_blender.png" alt="Blender" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/06_ninjatrader.png', 'NinjaTrader &mdash; Financial trading platform')"><img src="assets/screenshots/06_ninjatrader.png" alt="NinjaTrader" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/07_sweethome3d.png', 'Sweet Home 3D &mdash; Interior design planner')"><img src="assets/screenshots/07_sweethome3d.png" alt="Sweet Home 3D" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/08_stellarium.png', 'Stellarium &mdash; Planetarium software')"><img src="assets/screenshots/08_stellarium.png" alt="Stellarium" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/09_panoply.png', 'Panoply &mdash; Climate and geoscience data viewer')"><img src="assets/screenshots/09_panoply.png" alt="Panoply" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/10_coppeliasim.png', 'CoppeliaSim &mdash; Robotics simulation')"><img src="assets/screenshots/10_coppeliasim.png" alt="CoppeliaSim" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/11_qgroundcontrol.png', 'QGroundControl &mdash; Drone mission planning')"><img src="assets/screenshots/11_qgroundcontrol.png" alt="QGroundControl" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/12_splunk.png', 'Splunk &mdash; Security information and event management')"><img src="assets/screenshots/12_splunk.png" alt="Splunk" loading="lazy"></div>
+      </div>
+      <div class="sw-gallery">
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/openemr_env.png', 'OpenEMR &mdash; Electronic medical records system')"><img src="assets/screenshots/openemr_env.png" alt="OpenEMR" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/gnu_health_env.png', 'GNU Health &mdash; Hospital management and health information system')"><img src="assets/screenshots/gnu_health_env.png" alt="GNU Health" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/slicer3d_env.png', 'Slicer3D &mdash; Medical image analysis and visualization')"><img src="assets/screenshots/slicer3d_env.png" alt="Slicer3D" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/freecad_envb.png', 'FreeCAD &mdash; Parametric 3D CAD modeler')"><img src="assets/screenshots/freecad_envb.png" alt="FreeCAD" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/gmat_env.png', 'GMAT &mdash; General Mission Analysis Tool for orbital mechanics')"><img src="assets/screenshots/gmat_env.png" alt="GMAT" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/openvsp_env.png', 'OpenVSP &mdash; Parametric vehicle/aircraft geometry design')"><img src="assets/screenshots/openvsp_env.png" alt="OpenVSP" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/qblade_env.png', 'QBlade &mdash; Wind turbine blade design and simulation')"><img src="assets/screenshots/qblade_env.png" alt="QBlade" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/moodle_env.png', 'Moodle &mdash; Learning management system')"><img src="assets/screenshots/moodle_env.png" alt="Moodle" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/odoo_env.png', 'Odoo &mdash; Enterprise resource planning (CRM, HR, Inventory)')"><img src="assets/screenshots/odoo_env.png" alt="Odoo" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/jenkins_env.png', 'Jenkins &mdash; Continuous integration and delivery')"><img src="assets/screenshots/jenkins_env.png" alt="Jenkins" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/wireshark_env.png', 'Wireshark &mdash; Network protocol analyzer')"><img src="assets/screenshots/wireshark_env.png" alt="Wireshark" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/autopsy_env.png', 'Autopsy &mdash; Digital forensics platform')"><img src="assets/screenshots/autopsy_env.png" alt="Autopsy" loading="lazy"></div>
+      </div>
+      <div class="sw-gallery">
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/wazuh_env.png', 'Wazuh &mdash; Security monitoring and threat detection')"><img src="assets/screenshots/wazuh_env.png" alt="Wazuh" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/opentoonz_env.png', 'OpenToonz &mdash; 2D animation production')"><img src="assets/screenshots/opentoonz_env.png" alt="OpenToonz" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/ardour_env.png', 'Ardour &mdash; Digital audio workstation')"><img src="assets/screenshots/ardour_env.png" alt="Ardour" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/qgis_env.png', 'QGIS &mdash; Geographic information system')"><img src="assets/screenshots/qgis_env.png" alt="QGIS" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/sumo_env.png', 'SUMO &mdash; Traffic simulation and modeling')"><img src="assets/screenshots/sumo_env.png" alt="SUMO" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/veracrypt_env.png', 'VeraCrypt &mdash; Disk encryption software')"><img src="assets/screenshots/veracrypt_env.png" alt="VeraCrypt" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/rstudio_env.png', 'RStudio &mdash; Statistical computing IDE')"><img src="assets/screenshots/rstudio_env.png" alt="RStudio" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/canvas_lms_env.png', 'Canvas LMS &mdash; Learning management platform')"><img src="assets/screenshots/canvas_lms_env.png" alt="Canvas LMS" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/seiscomp_env.png', 'SeisComP &mdash; Seismological monitoring system')"><img src="assets/screenshots/seiscomp_env.png" alt="SeisComP" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/openlca_env.png', 'OpenLCA &mdash; Life cycle assessment software')"><img src="assets/screenshots/openlca_env.png" alt="OpenLCA" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/astroimagej_env.png', 'AstroImageJ &mdash; Astronomical image analysis')"><img src="assets/screenshots/astroimagej_env.png" alt="AstroImageJ" loading="lazy"></div>
+        <div class="sw-thumb" onclick="openLightbox('assets/screenshots/webots_env.png', 'Webots &mdash; Robot simulator')"><img src="assets/screenshots/webots_env.png" alt="Webots" loading="lazy"></div>
+      </div>
+    </div>
+  </details>
+
+  <details class="expand-l2">
+    <summary>Read more &mdash; benchmark comparison, splits, and CUA-World-Long</summary>
+    <div class="expand-body">
+      <p><strong>Contamination filtering:</strong> Tasks are nodes in a similarity graph with LLM-graded similarity scores (1-8 scale) as edges. Any pair scoring 4+ is flagged. Connected components are assigned to a single split, ensuring no contaminated pairs cross the train/test boundary.</p>
+      <p><strong>CUA-World-Long:</strong> 200 tasks (one per software) designed through trajectory-guided analysis of agent failure modes. The agent receives 8 quality guidelines covering real-world relevance, objective evaluability, and realistic data. All 200 tasks are manually verified. These tasks often require <strong>200+ steps for humans</strong> and <strong>500+ steps for models</strong>, with a mean of 425 steps across all Long trajectories.</p>
+
+      <div class="callout finding">
+        <span class="callout-icon">&#9989;</span>
+        <div class="callout-body"><strong>First benchmark to simultaneously provide:</strong> interactive environments at scale (200+ software, 10K+ tasks), long-horizon evaluation, coverage of all 22 SOC groups, automated environment creation, and a training split for learning.</div>
+      </div>
+
+      <details class="expand-l3">
+        <summary>Deep dive &mdash; full benchmark comparison table</summary>
+        <div class="expand-body">
+          <table class="i-table">
+            <thead><tr><th>Benchmark</th><th>Interactive</th><th>Platform</th><th>#SW</th><th>#Tasks</th><th>Long-H</th><th>SOC</th><th>Auto-Create</th><th>Train</th></tr></thead>
+            <tbody>
+              <tr><td>Mind2Web</td><td>&cross;</td><td>Web</td><td>137</td><td>2K</td><td>&cross;</td><td>-</td><td>&cross;</td><td>&check;</td></tr>
+              <tr><td>AITW</td><td>&cross;</td><td>Android</td><td>357</td><td>715K</td><td>&cross;</td><td>-</td><td>&cross;</td><td>&check;</td></tr>
+              <tr><td>OmniACT</td><td>&cross;</td><td>Desktop</td><td>27</td><td>9.8K</td><td>&cross;</td><td>-</td><td>&cross;</td><td>&check;</td></tr>
+              <tr><td>MiniWoB++</td><td>&check;</td><td>Web</td><td>100</td><td>~12K</td><td>&cross;</td><td>1</td><td>&cross;</td><td>&check;</td></tr>
+              <tr><td>WebArena</td><td>&check;</td><td>Web</td><td>6</td><td>812</td><td>&cross;</td><td>5</td><td>&cross;</td><td>&cross;</td></tr>
+              <tr><td>VisualWebArena</td><td>&check;</td><td>Web</td><td>3</td><td>910</td><td>&cross;</td><td>3</td><td>&cross;</td><td>&cross;</td></tr>
+              <tr><td>WorkArena</td><td>&check;</td><td>Web</td><td>1</td><td>~30K</td><td>&cross;</td><td>3</td><td>&check;</td><td>&check;</td></tr>
+              <tr><td>OSWorld</td><td>&check;</td><td>Desktop</td><td>9</td><td>369</td><td>&cross;</td><td>3</td><td>&cross;</td><td>&cross;</td></tr>
+              <tr><td>WindowsAgentArena</td><td>&check;</td><td>Windows</td><td>11</td><td>154</td><td>&cross;</td><td>3</td><td>&cross;</td><td>&cross;</td></tr>
+              <tr><td>AndroidWorld</td><td>&check;</td><td>Android</td><td>20</td><td>116</td><td>&cross;</td><td>2</td><td>&cross;</td><td>&cross;</td></tr>
+              <tr><td>Spider2-V</td><td>&check;</td><td>Desktop</td><td>14</td><td>494</td><td>&cross;</td><td>2</td><td>&cross;</td><td>&cross;</td></tr>
+              <tr><td>AssistGUI</td><td>&check;</td><td>Desktop</td><td>9</td><td>100</td><td>&cross;</td><td>3</td><td>&cross;</td><td>&cross;</td></tr>
+              <tr><td>TheAgentCompany</td><td>&check;</td><td>Web</td><td>7</td><td>175</td><td>&check;</td><td>4</td><td>&cross;</td><td>&cross;</td></tr>
+              <tr><td>ScienceBoard</td><td>&check;</td><td>Web</td><td>4</td><td>832</td><td>&cross;</td><td>1</td><td>&cross;</td><td>&check;</td></tr>
+              <tr class="highlight"><td><strong>CUA-World</strong></td><td><strong>&check;</strong></td><td><strong>All 3</strong></td><td><strong>200+</strong></td><td><strong>10K+</strong></td><td><strong>&check;</strong></td><td><strong>22</strong></td><td><strong>&check;</strong></td><td><strong>&check;</strong></td></tr>
+            </tbody>
+          </table>
+
+          <p>CUA-World is the only benchmark that checks every column. The closest competitor on software count is MiniWoB++, but those are synthetic micro-tasks rather than real professional software. The closest on long-horizon evaluation is TheAgentCompany, which covers only 7 software applications.</p>
+        </div>
+      </details>
+    </div>
+  </details>
+
+  <!-- SOC OCCUPATION BROWSER -->
+  <details class="expand-l2">
+    <summary>Explore &mdash; tasks across all 22 SOC occupation groups</summary>
+    <div class="expand-body">
+      <p>Click an occupation group to see representative tasks:</p>
+      <style>
+        .soc-pills { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:1rem; justify-content:center; }
+        .soc-pill {
+          padding:5px 12px; border-radius:999px; border:1.5px solid var(--border);
+          background:var(--bg); color:var(--text); font-size:0.78rem; font-weight:500;
+          cursor:pointer; transition:all 0.15s; white-space:nowrap; user-select:none;
+          font-family:var(--font-display);
+        }
+        .soc-pill:hover { border-color:var(--accent); background:var(--accent-light); }
+        .soc-pill.active { background:var(--accent); color:white; border-color:var(--accent); }
+        .soc-detail-panel {
+          display:none; border:1px solid var(--border); border-radius:var(--radius);
+          overflow:hidden; background:var(--bg-card);
+        }
+        .soc-detail-panel.open { display:block; animation:slideDown 0.2s ease; }
+        .soc-detail-header {
+          padding:10px 16px; font-weight:600; font-size:0.88rem;
+          background:var(--bg); border-bottom:1px solid var(--border);
+          display:flex; align-items:center; gap:8px; font-family:var(--font-display);
+        }
+        .soc-detail-header .soc-number {
+          background:var(--accent); color:white; font-size:0.68rem;
+          padding:2px 7px; border-radius:999px; font-weight:600;
+        }
+        .soc-task-list { padding:0; margin:0; list-style:none; }
+        .soc-task-item { padding:10px 16px; border-bottom:1px solid var(--border); }
+        .soc-task-item:last-child { border-bottom:none; }
+        .soc-task-meta { display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap; }
+        .soc-task-software { font-weight:600; font-size:0.82rem; color:var(--accent); }
+        .soc-task-sep { color:var(--text-dim); font-size:0.75rem; }
+        .soc-task-role { font-size:0.78rem; font-style:italic; color:var(--text-muted); }
+        .soc-task-desc { font-size:0.8rem; line-height:1.5; color:var(--text-muted); }
+      </style>
+      <div class="soc-pills" id="socPills"></div>
+      <div class="soc-detail-panel" id="socDetail">
+        <div class="soc-detail-header" id="socDetailHeader"></div>
+        <ul class="soc-task-list" id="socTaskList"></ul>
+      </div>
+      <script>
+      (function(){
+        var S=[
+          {id:1,name:"Management",tasks:[
+            {sw:"SuiteCRM",role:"Sales Operations Manager",d:"Flag all 'Technology' industry accounts with a 'Hot' rating for Q4 outreach."},
+            {sw:"ManageService",role:"IT Support Lead",d:"Bulk-update 5 unassigned 'WOW Carts' requests: assign to 'Clinical IT Support' group."}
+          ]},
+          {id:2,name:"Business & Financial",tasks:[
+            {sw:"Oracle SQL Developer",role:"Compensation Analyst",d:"Query 3 months of scheduling data in the HR_COMPLIANCE schema to audit 'Fair Workweek' law compliance."},
+            {sw:"Sygic GPS",role:"Logistics Coordinator",d:"Find and display hospitals in Kabul, Afghanistan within city limits."}
+          ]},
+          {id:3,name:"Computer & Math",tasks:[
+            {sw:"Virtualmin",role:"System Administrator",d:"Diagnose and repair configuration errors for the virtual server 'broken-app.test'."},
+            {sw:"Wireshark",role:"Incident Response Analyst",d:"Investigate potential port scanning by isolating TCP SYN packets from a capture file."},
+            {sw:"VeraCrypt",role:"Systems Admin",d:"Create a shell script that mounts a VeraCrypt volume, appends a timestamped audit entry, and unmounts."}
+          ]},
+          {id:4,name:"Architecture & Engineering",tasks:[
+            {sw:"Stellarium",role:"Spacecraft Comms Engineer",d:"Simulate Mars line-of-sight during Perseverance landing (Feb 18, 2021) to verify DSN telemetry windows."},
+            {sw:"OpenVSP",role:"Aerospace Engineer",d:"Design a Standard Class 15m sailplane wing in 4 sections for optimal elliptical lift distribution."}
+          ]},
+          {id:5,name:"Life & Physical Science",tasks:[
+            {sw:"QGroundControl",role:"Remote Sensing Scientist",d:"Configure a mapping drone to trigger a Sony A7R IV and record microsecond timestamps for survey-grade accuracy."},
+            {sw:"3D Slicer",role:"Medical Physicist",d:"Calculate SNR for a brain MRI by measuring signal in white matter and noise in background."}
+          ]},
+          {id:6,name:"Community & Social",tasks:[
+            {sw:"ArkCase",role:"Probation Officer",d:"Identify all non-compliant supervisees whose 'Last Contact' dates are before Dec 1, 2025."},
+            {sw:"Firefox",role:"Community Health Worker",d:"Research toxic chemical releases in Harris County, Texas using EPA's TRI tools."}
+          ]},
+          {id:7,name:"Legal",tasks:[
+            {sw:"ArkCase",role:"Legal Assistant",d:"Locate and escalate an overdue 'Initial Legal Review' task for a complaint case."},
+            {sw:"Nuxeo Platform",role:"Paralegal",d:"Perform legal discovery: find all documents with 'Agreement' in title and 'Acme' in body."}
+          ]},
+          {id:8,name:"Education & Library",tasks:[
+            {sw:"Moodle",role:"Biology Professor",d:"Set up student progression tracking for BIO302, configuring completion conditions for course activities."},
+            {sw:"Safe Exam Browser",role:"Instructional Coordinator",d:"Configure 'Chemistry 201 Midterm' exam with custom quit confirmation in SEB Server."}
+          ]},
+          {id:9,name:"Arts, Design & Media",tasks:[
+            {sw:"GIMP",role:"Graphic Designer",d:"Remove the background from a dog image using GIMP's selection tools."},
+            {sw:"Sweet Home 3D",role:"Interior Designer",d:"Design 'Spoke & Bean', a hybrid bicycle shop with repair bay and espresso bar."}
+          ]},
+          {id:10,name:"Healthcare Practitioners",tasks:[
+            {sw:"Oscar EMR",role:"Physician",d:"Create a prescription favorite 'Strep Throat - Amox 500' for rapid prescribing."},
+            {sw:"3D Slicer",role:"Radiologist",d:"Generate a subtraction enhancement map and binary EnhancementMask from brain MRI volumes."}
+          ]},
+          {id:11,name:"Healthcare Support",tasks:[
+            {sw:"Oscar EMR",role:"Medical Assistant",d:"Identify active patients prescribed 'Atenolol' due to safety recall and flag their charts."},
+            {sw:"OpenEMR",role:"Medical Assistant",d:"Record a historical DTaP immunization with manufacturer, lot number, and admin details."}
+          ]},
+          {id:12,name:"Protective Service",tasks:[
+            {sw:"OpenCAD",role:"Police Officer",d:"Create a Person BOLO for a suspect with detailed physical descriptions and last known location."},
+            {sw:"Google Earth",role:"Search & Rescue",d:"Identify 3+ helicopter landing zones within 5 km of Rifugio Lagazuoi in the Dolomites, Italy."}
+          ]},
+          {id:13,name:"Food Preparation",tasks:[
+            {sw:"LibreOffice Calc",role:"Baker",d:"Scale a cookie recipe from 24 to 75 cookies with practical rounding and whole-number eggs."},
+            {sw:"Floreant POS",role:"Food Service Manager",d:"Create a 'Burger Toppings' modifier group and configure a 'Build-Your-Own Burger' menu item."}
+          ]},
+          {id:14,name:"Building & Grounds",tasks:[
+            {sw:"Vtiger CRM",role:"Landscaping Supervisor",d:"Register a new materials supplier as a Vendor for spring landscaping purchase orders."},
+            {sw:"LibreOffice Calc",role:"Groundskeeper",d:"Create a plant watering tracker with TODAY(), conditional formatting for overdue plants."}
+          ]},
+          {id:15,name:"Personal Care",tasks:[
+            {sw:"Sweet Home 3D",role:"Cosmetologist",d:"Design a boutique hair salon layout in a converted villa with professional workstations."},
+            {sw:"wger",role:"Fitness Trainer",d:"Log a workout session using the 'Full Body Workout' routine with notes in the wger platform."}
+          ]},
+          {id:16,name:"Sales",tasks:[
+            {sw:"Copper POS",role:"Sales Representative",d:"Create a sales quote for 'Greenfield Office Solutions' with Copy Paper, Pens, and Folders."},
+            {sw:"ERPNext",role:"Sales Ops Coordinator",d:"Enter a new lead from a renewable energy trade show into ERPNext CRM."}
+          ]},
+          {id:17,name:"Office & Admin",tasks:[
+            {sw:"Aerobridge",role:"Admin Assistant",d:"Register a new drone operating company with full company details and credentials."},
+            {sw:"LibreOffice Calc",role:"Admin Assistant",d:"Create a warranty tracking system with expiration dates, days remaining, and visual alerts."}
+          ]},
+          {id:18,name:"Farming & Forestry",tasks:[
+            {sw:"farmOS Field Kit",role:"Farmer",d:"Log today's egg collection \u2014 'Daily Egg Collection - Red Barn' with 22 dozen, noting 4 cracked."},
+            {sw:"QGroundControl",role:"Ag UAV Technician",d:"Configure a spray drone for autonomous ops near a 15m eucalyptus windbreak."}
+          ]},
+          {id:19,name:"Construction",tasks:[
+            {sw:"Subsurface",role:"Commercial Diver",d:"Update the buddy field to 'Michael Chen' for Dive #2 at Sund Rock in the logbook."},
+            {sw:"System Advisor Model",role:"Solar PV Installer",d:"Determine optimal panel tilt angle for a 5 kW PV system on a south-facing roof in Tucson, AZ."}
+          ]},
+          {id:20,name:"Maintenance & Repair",tasks:[
+            {sw:"Vtiger CRM",role:"Medical Equipment Repairer",d:"Set asset SN-US-2024-9981 to 'Out of Service' and create a ticket for 'Dead Transducer Probe'."},
+            {sw:"Graphite",role:"NOC Analyst",d:"Create a 'Weekly Ops Review' dashboard comparing current metrics against 7-day history."}
+          ]},
+          {id:21,name:"Production",tasks:[
+            {sw:"ERPNext",role:"Quality Control Inspector",d:"Set up a 'Shaft Incoming Inspection' template to enforce mandatory quality checks for Eagle Hardware."},
+            {sw:"LibreOffice Calc",role:"Brewer",d:"Calculate ABV using (OG-FG)\u00d7131.25 and highlight batches in the 4.5-6.5% target range."}
+          ]},
+          {id:22,name:"Transportation",tasks:[
+            {sw:"Sygic GPS",role:"Delivery Driver",d:"Search for Kabul Airport and add it to Favorites with the list open to confirm."},
+            {sw:"Subsurface",role:"Commercial Diver",d:"Add a weight system entry (type 'Integrated', weight '4.5 kg') to dive #2 at Sund Rock."}
+          ]}
+        ];
+        var pe=document.getElementById('socPills'),de=document.getElementById('socDetail'),
+            he=document.getElementById('socDetailHeader'),le=document.getElementById('socTaskList'),ai=null;
+        S.forEach(function(g){
+          var b=document.createElement('button');b.className='soc-pill';b.textContent=g.name;b.dataset.id=g.id;
+          b.addEventListener('click',function(){toggle(g)});pe.appendChild(b);
+        });
+        function toggle(g){
+          if(ai===g.id){ai=null;de.classList.remove('open');
+            document.querySelectorAll('.soc-pill').forEach(function(p){p.classList.remove('active')});return;}
+          ai=g.id;
+          document.querySelectorAll('.soc-pill').forEach(function(p){p.classList.toggle('active',+p.dataset.id===g.id)});
+          he.innerHTML='<span class="soc-number">SOC '+g.id+'/22</span> '+g.name;
+          le.innerHTML='';
+          g.tasks.forEach(function(t){
+            var li=document.createElement('li');li.className='soc-task-item';
+            li.innerHTML='<div class="soc-task-meta"><span class="soc-task-software">'+t.sw+'</span><span class="soc-task-sep">|</span><span class="soc-task-role">'+t.role+'</span></div><div class="soc-task-desc">'+t.d+'</div>';
+            le.appendChild(li);
+          });
+          de.classList.add('open');de.scrollIntoView({behavior:'smooth',block:'nearest'});
+        }
+      })();
+      </script>
+    </div>
+  </details>
+
+  <!-- Trajectory example -->
+  <details class="expand-l2">
+    <summary>Explore &mdash; sample agent trajectories</summary>
+    <div class="expand-body">
+      <p>Click a trajectory to enlarge:</p>
+      <div class="sw-gallery" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/gimp.png', 'Agent trajectory on GIMP: navigating menus, applying filters, and verifying results across multiple steps.')"><img src="assets/trajectories/gimp.png" alt="GIMP trajectory" loading="lazy"></div>
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/blender.png', 'Agent trajectory on Blender: creating 3D objects, applying materials, and positioning lights.')"><img src="assets/trajectories/blender.png" alt="Blender trajectory" loading="lazy"></div>
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/qgis.png', 'Agent trajectory on QGIS: loading geospatial data, applying symbology, and running spatial analysis.')"><img src="assets/trajectories/qgis.png" alt="QGIS trajectory" loading="lazy"></div>
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/rstudio.png', 'Agent trajectory on RStudio: loading data, writing R scripts, running analysis, and generating plots.')"><img src="assets/trajectories/rstudio.png" alt="RStudio trajectory" loading="lazy"></div>
+      </div>
+      <div class="sw-gallery" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/dbeaver.png', 'Agent trajectory on DBeaver: connecting to databases, writing queries, and analysing results.')"><img src="assets/trajectories/dbeaver.png" alt="DBeaver trajectory" loading="lazy"></div>
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/autopsy.png', 'Agent trajectory on Autopsy: digital forensics analysis including file system examination and hash verification.')"><img src="assets/trajectories/autopsy.png" alt="Autopsy trajectory" loading="lazy"></div>
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/eclipse.png', 'Agent trajectory on Eclipse IDE: creating projects, writing Java code, and debugging.')"><img src="assets/trajectories/eclipse.png" alt="Eclipse trajectory" loading="lazy"></div>
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/openlca.png', 'Agent trajectory on OpenLCA: life cycle assessment analysis with environmental impact calculations.')"><img src="assets/trajectories/openlca.png" alt="OpenLCA trajectory" loading="lazy"></div>
+      </div>
+      <div class="sw-gallery" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/ardour.png', 'Agent trajectory on Ardour: music production DAW session setup, track configuration, and audio editing.')"><img src="assets/trajectories/ardour.png" alt="Ardour trajectory" loading="lazy"></div>
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/blenderbim.png', 'Agent trajectory on BlenderBIM: architectural BIM modeling, creating BCF issues, and IFC data management.')"><img src="assets/trajectories/blenderbim.png" alt="BlenderBIM trajectory" loading="lazy"></div>
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/geogebra.png', 'Agent trajectory on GeoGebra: mathematical visualization, constructing geometric proofs, and interactive demonstrations.')"><img src="assets/trajectories/geogebra.png" alt="GeoGebra trajectory" loading="lazy"></div>
+        <div class="sw-thumb" style="aspect-ratio:auto" onclick="openLightbox('assets/trajectories/google_earth.png', 'Agent trajectory on Google Earth Pro: geographic analysis, flight path creation, and spatial measurement.')"><img src="assets/trajectories/google_earth.png" alt="Google Earth trajectory" loading="lazy"></div>
+      </div>
+    </div>
+  </details>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════════════════════════ -->
+<!-- 8. RESULTS -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="results">
+  <h2 class="section-title"><span class="num">8</span> Results</h2>
+  <p>We evaluate frontier and open-source models on both CUA-World-Test and CUA-World-Long. The key takeaways:</p>
+
+  <!-- RESULT STAT CARDS -->
+  <div class="result-grid">
+    <div class="result-card">
+      <div class="rc-num">50.1</div>
+      <div class="rc-label">Best avg. score on CUA-World-Test</div>
+      <div class="rc-detail">Gemini 3 Flash achieves the highest score, with 22.6% pass rate. Even the best frontier model leaves half the task incomplete on average.</div>
+    </div>
+    <div class="result-card">
+      <div class="rc-num">7.5%</div>
+      <div class="rc-label">Best pass rate on CUA-World-Long (capped)</div>
+      <div class="rc-detail">Under a 500-step / $5 budget cap. Without the cost cap, GPT-5.4 reaches 27.5% &mdash; the highest overall &mdash; at substantially higher compute cost.</div>
+    </div>
+    <div class="result-card">
+      <div class="rc-num">+9.8</div>
+      <div class="rc-label">Score gain from distillation (2B model)</div>
+      <div class="rc-detail">Our distilled Qwen3-VL-2B (22.5 avg score) outperforms the base Qwen3-VL-4B (19.3), a model 2&times; its size.</div>
+    </div>
+    <div class="result-card">
+      <div class="rc-num">~3.5 pts</div>
+      <div class="rc-label">Score gain per data doubling</div>
+      <div class="rc-detail">Log-linear scaling along both axes (number of software and fraction of tasks), with ~3.5 point additive increase per doubling.</div>
+    </div>
+  </div>
+
+  <!-- TABBED RESULTS PANEL -->
+  <div class="tab-panel">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="main" onclick="switchTab(this, 'main')">Main Results</button>
+      <button class="tab-btn" data-tab="scaling" onclick="switchTab(this, 'scaling')">Scaling</button>
+      <button class="tab-btn" data-tab="training" onclick="switchTab(this, 'training')">Training Insights</button>
+      <button class="tab-btn" data-tab="behavior" onclick="switchTab(this, 'behavior')">Behavioral Analysis</button>
+    </div>
+
+    <!-- TAB: Main Results -->
+    <div class="tab-content active" id="tab-main">
+      <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:0.5rem"><strong>CUA-World-Test</strong> &mdash; 200 steps per task, checklist-based VLM verification:</p>
+      <table class="i-table">
+        <thead><tr><th>Model</th><th>Avg. Score</th><th>Pass Rate</th></tr></thead>
+        <tbody>
+          <tr><td>Gemini 3 Flash</td><td class="best">50.1</td><td class="best">22.6%</td></tr>
+          <tr><td>Kimi-K 2.5</td><td>37.1</td><td>12.8%</td></tr>
+          <tr><td>Qwen3-VL-4B</td><td>19.3</td><td>3.9%</td></tr>
+          <tr class="highlight"><td>Ours (Qwen3-VL-2B distilled)</td><td>22.5</td><td>4.4%</td></tr>
+          <tr><td>Qwen3-VL-2B (base)</td><td>12.7</td><td>1.6%</td></tr>
+        </tbody>
+      </table>
+
+      <p style="font-size:0.88rem;color:var(--text-muted);margin:1rem 0 0.5rem"><strong>CUA-World-Long</strong> &mdash; 500 steps or $5 budget (whichever comes first):</p>
+      <table class="i-table">
+        <thead><tr><th>Model</th><th>Avg. Score</th><th>Pass Rate</th></tr></thead>
+        <tbody>
+          <tr><td>Gemini 3 Flash</td><td class="best">36.2</td><td class="best">7.5%</td></tr>
+          <tr><td>Kimi-K 2.5</td><td>33.9</td><td>5.5%</td></tr>
+          <tr><td>Claude Sonnet 4.6</td><td>20.5</td><td>6.0%</td></tr>
+          <tr><td>GPT-5.4</td><td>22.7</td><td>3.0%</td></tr>
+        </tbody>
+      </table>
+
+      <p style="font-size:0.88rem;color:var(--text-muted);margin:1rem 0 0.5rem"><strong>Extended evaluation</strong> &mdash; 2000 steps, no cost cap:</p>
+      <table class="i-table">
+        <thead><tr><th>Model</th><th>Avg. Score</th><th>Pass Rate</th></tr></thead>
+        <tbody>
+          <tr><td>GPT-5.4</td><td class="best">55.5</td><td class="best">27.5%</td></tr>
+          <tr><td>Gemini 3 Flash</td><td>38.7</td><td>11.5%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB: Scaling -->
+    <div class="tab-content" id="tab-scaling">
+      <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:0.5rem"><strong>Training data scaling:</strong> performance improves log-linearly as we scale along two axes &mdash; number of software (50 &rarr; 100 &rarr; 200) and fraction of tasks (25% &rarr; 50% &rarr; 100%).</p>
+      <img class="inline-fig" src="assets/figures/scaling.png" alt="Training data scaling curves" onclick="openLightbox('assets/figures/scaling.png', 'Training data scaling: log-linear improvement of ~3.5 points per doubling of data, along both the software axis and the task fraction axis.')">
+      <div class="fig-caption">Log-linear scaling: ~3.5 point improvement per data doubling.</div>
+
+      <p style="font-size:0.88rem;color:var(--text-muted);margin:1rem 0 0.5rem"><strong>Generalization (IID vs. OOD):</strong> training on a subset of software recovers 65-87% of full-training gain on seen software but only 22-27% on unseen software.</p>
+      <img class="inline-fig" src="assets/figures/generalization.png" alt="IID vs OOD generalization" onclick="openLightbox('assets/figures/generalization.png', 'Generalization: training on 25% or 50% of software recovers most gains on seen (IID) software but only a fraction on unseen (OOD) software, underscoring the need for diverse training environments.')">
+      <div class="fig-caption">The OOD gap underscores the need for scalable environment creation across diverse software.</div>
+
+      <p style="font-size:0.88rem;color:var(--text-muted);margin:1rem 0 0.5rem"><strong>Test-time compute scaling:</strong> pass rate increases with step budget, and Test-Time Auditing provides further gains.</p>
+      <img class="inline-fig" src="assets/figures/ttc_scaling.png" alt="Test-time compute scaling" onclick="openLightbox('assets/figures/ttc_scaling.png', 'Test-time compute scaling: pass rate rises from 2.0% (50 steps) to 11.5% (~1,300 steps). Test-Time Auditing further improves to 14.0% under the same 2,000-step cap.')">
+      <div class="fig-caption">Pass rate: 2.0% at 50 steps &rarr; 11.5% at ~1,300 steps &rarr; 14.0% with TTA.</div>
+    </div>
+
+    <!-- TAB: Training Insights -->
+    <div class="tab-content" id="tab-training">
+      <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:0.5rem"><strong>Teacher selection paradox:</strong> the weakest teacher produces the best students.</p>
+      <table class="i-table">
+        <thead><tr><th>Teacher</th><th>Teacher Score</th><th>Student (Q3-VL-2B)</th><th>Student (Q2.5-3B)</th></tr></thead>
+        <tbody>
+          <tr><td>Opus 4.6</td><td class="best">53.5</td><td>19.3</td><td>8.5</td></tr>
+          <tr><td>Sonnet 4.6</td><td>45.5</td><td>17.5</td><td>9.8</td></tr>
+          <tr><td>Gemini 3 Flash</td><td>44.0</td><td>16.3</td><td>8.3</td></tr>
+          <tr class="highlight"><td>Kimi-K 2.5</td><td>39.8</td><td class="best">25.3</td><td class="best">15.8</td></tr>
+          <tr><td>Gemini 3 Pro</td><td>39.3</td><td>15.8</td><td>7.0</td></tr>
+        </tbody>
+      </table>
+      <div class="callout insight">
+        <span class="callout-icon">&#128161;</span>
+        <div class="callout-body">Kimi-K 2.5 is one of the weakest teachers (39.8) but produces the best students (25.3 for Q3-VL-2B, 15.8 for Q2.5-3B). Hypothesis: as the only open-source model, it provides full reasoning chains in its trajectories, giving the student richer learning signal despite lower raw performance.</div>
+      </div>
+
+      <p style="font-size:0.88rem;color:var(--text-muted);margin:1rem 0 0.5rem"><strong>Performance by software category:</strong></p>
+      <img class="inline-fig" src="assets/figures/software_categories.png" alt="Performance by software category" onclick="openLightbox('assets/figures/software_categories.png', 'Pass rate by visual complexity and domain knowledge requirements. Large models maintain consistent performance; small models drop sharply on visually complex or domain-specialized software.')">
+      <div class="fig-caption">Large models are robust across complexity levels; small models degrade sharply.</div>
+
+      <details class="expand-l3">
+        <summary>Deep dive &mdash; curriculum and category analysis</summary>
+        <div class="expand-body">
+          <p><strong>Trajectory length curriculum:</strong> We compared training on 50-step vs. 200-step trajectories under the same budget. On average results are similar (22.7 vs. 23.8), but the optimal length varies by software: 50-step trajectories perform better on GIMP and 3D Slicer, while 200-step trajectories are better on OpenEMR (longer-horizon tasks). We adopt a two-stage curriculum: first train on 50-step trajectories, then continue on full 200-step ones.</p>
+          <p><strong>Visual complexity:</strong> Large models (Gemini, Kimi) maintain consistent pass rates across complexity levels (25.3%, 20.9%, 21.6%). Small models show steep declines: Qwen3-VL-2B drops from 3.2% on low-complexity to 0.0% on high-complexity software. Distillation improves all levels but does not close the gap.</p>
+          <p><strong>Domain knowledge:</strong> All models decline from general to specialized software. The decline is steeper for small models (~3&times;: 6.4% to 2.2%) than for large models (~1.3&times;: 25.6% to 19.9%), indicating domain knowledge is a greater challenge at smaller scales.</p>
+        </div>
+      </details>
+    </div>
+
+    <!-- TAB: Behavioral Analysis -->
+    <div class="tab-content" id="tab-behavior">
+      <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:0.5rem"><strong>Trajectory behavioral patterns</strong> &mdash; analysis of ~3,000 trajectories reveals why agents succeed or fail:</p>
+      <img class="inline-fig" src="assets/figures/trajectory_patterns.png" alt="Behavioral patterns in agent trajectories" onclick="openLightbox('assets/figures/trajectory_patterns.png', 'Behavioral patterns: failed trajectories spend 78% of steps in retry loops (vs. 39% for passed). Verification checks appear in 91% of passed trajectories but only 70% of failed.')">
+      <div class="fig-caption">Retry loops dominate failures; verification checks predict success.</div>
+      <button class="fig-btn" style="margin-top:0.4rem" onclick="openLightbox('assets/figures/trajectory_patterns_presence_full.png', 'Full trajectory behavioral pattern analysis across all 15 canonical patterns, showing presence rates in passed vs. failed trajectories. Patterns include retry loops, UI exploration, verification checks, access blockers, tool pivoting, save/export, and more.')">
+        <span class="fig-icon">&#128202;</span> View: All 15 Behavioral Patterns
+      </button>
+
+      <div class="result-grid" style="margin-top:0.75rem">
+        <div class="result-card">
+          <div class="rc-num">78%</div>
+          <div class="rc-label">Steps in retry loops (failed)</div>
+          <div class="rc-detail">vs. only 39% for passed trajectories. Failed agents get stuck repeating the same failing actions.</div>
+        </div>
+        <div class="result-card">
+          <div class="rc-num">91%</div>
+          <div class="rc-label">Verification checks (passed)</div>
+          <div class="rc-detail">vs. 70% for failed. Agents that pause to verify their work succeed much more often.</div>
+        </div>
+      </div>
+
+      <p style="font-size:0.88rem;color:var(--text-muted);margin:1rem 0 0.5rem"><strong>Step distribution on CUA-World-Long:</strong></p>
+      <img class="inline-fig" src="assets/figures/step_distribution.png" alt="Step distribution" onclick="openLightbox('assets/figures/step_distribution.png', 'Step distribution on CUA-World-Long: failed tasks spike at the 500-step cap. Passed tasks spread across a wide range of step counts.')">
+      <div class="fig-caption">Failed tasks spike at the 500-step budget cap. Passed tasks are distributed across step counts.</div>
+
+      <details class="expand-l3">
+        <summary>Deep dive &mdash; TTA and difficulty analysis</summary>
+        <div class="expand-body">
+          <p><strong>Test-Time Auditing in detail:</strong> For Gemini 3 Flash, pass rate stays low at 50-100 steps (2.0% to 2.5%), then rises steeply: 6.5% at ~200 steps, 7.5% at ~400, 11.5% at ~1,300 steps. This sharp jump suggests most Long tasks require a minimum of 100+ steps before meaningful progress is possible. TTA provides further uplift to 14.0% by catching premature stops. Under this scheme, agents sometimes work continuously for <strong>over 12 hours on a single task</strong>. Without cost caps, GPT-5.4 reaches 27.5% pass rate (55.5 avg score), the strongest result on CUA-World-Long, though at ~$18 per trajectory.</p>
+
+          <p><strong>Difficulty distribution:</strong></p>
+          <img class="inline-fig" src="assets/figures/difficulty_histogram.png" alt="Difficulty distribution" onclick="openLightbox('assets/figures/difficulty_histogram.png', 'Score distribution for Gemini 3 Flash and Kimi-K 2.5: a large spike in the 0-10 bin shows roughly a quarter of tasks receive near-zero scores, indicating a substantial fraction is currently beyond frontier model reach.')">
+          <div class="fig-caption">A large spike at 0-10 scores: roughly a quarter of Gemini tasks and a third of Kimi tasks receive near-zero scores, indicating substantial fractions are currently beyond frontier model reach.</div>
+
+          <p><strong>UI exploration</strong> dominates for both passed (76%) and failed (67%) trajectories, indicating that most agent effort is spent <em>locating the right interface elements</em> rather than executing the core task. This suggests that improvements in UI understanding could unlock disproportionate gains in overall performance.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ════════════════════════════════════════ -->
+<!-- 9. LIMITATIONS -->
+<!-- ════════════════════════════════════════ -->
+<div class="section" id="limitations">
+  <h2 class="section-title"><span class="num" style="background:var(--text-dim)">9</span> Limitations</h2>
+  <p style="font-size:0.88rem; color:var(--text-muted);">
+    <strong>GDP attribution is approximate</strong> &mdash; not precise dollar-level, especially for individual software shares within categories.
+    <strong>Licensing exclusions</strong> &mdash; many high-GDP professional software cannot be sandboxed due to licensing, and performance on free alternatives may not predict performance on commercial counterparts.
+    <strong>Solvability not guaranteed</strong> &mdash; not all tasks have been solved end-to-end by humans.
+    <strong>VLM verifiers are imperfect</strong> &mdash; 93.3% agreement leaves room for error, and they may be susceptible to adversarial exploitation.
+    <strong>Scale is compute-bound</strong> &mdash; 200 of ~500 selected software are built based on available compute; the framework supports more.
+  </p>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- FOOTER -->
+<!-- ════════════════════════════════════════ -->
+<div class="footer">
+  <a href="index.html">Project Page</a>
+  <a href="#">Paper (PDF)</a>
+  <a href="https://github.com/cmu-l3/gym-anything">Code</a>
+</div>
+
+</div><!-- /.page -->
+
 <script>
-// ─── TOOLTIP TOUCH SUPPORT ───
-document.querySelectorAll('.tip').forEach(tip => {
-  tip.addEventListener('click', e => {
-    document.querySelectorAll('.tip.tip-active').forEach(t => {
-      if (t !== tip) t.classList.remove('tip-active');
-    });
-    tip.classList.toggle('tip-active');
-    e.stopPropagation();
+// ── LIGHTBOX ──
+function openLightbox(src, caption) {
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lb-img');
+  const cap = document.getElementById('lb-caption');
+  img.src = src; cap.textContent = caption || '';
+  lb.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox(e) {
+  if (e && e.target && e.target.id === 'lb-img') return; // Don't close when clicking the image itself
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox({}); });
+
+// ── READING MODE ──
+function setMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  const l2s = document.querySelectorAll('details.expand-l2');
+  const l3s = document.querySelectorAll('details.expand-l3');
+  if (mode === 'quick') {
+    l2s.forEach(d => d.removeAttribute('open'));
+    l3s.forEach(d => d.removeAttribute('open'));
+  } else if (mode === 'standard') {
+    l2s.forEach(d => d.setAttribute('open', ''));
+    l3s.forEach(d => d.removeAttribute('open'));
+  } else {
+    l2s.forEach(d => d.setAttribute('open', ''));
+    l3s.forEach(d => d.setAttribute('open', ''));
+  }
+  // Show toast feedback
+  showToast(mode === 'quick' ? 'Quick mode: ~5 min overview' :
+            mode === 'standard' ? 'Standard mode: all sections expanded' :
+            'Full Paper: everything expanded including deep dives');
+  // Scroll to first content section so user sees the change
+  const firstSection = document.getElementById('problem');
+  if (firstSection) firstSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── TOAST NOTIFICATIONS ──
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);' +
+      'padding:0.6rem 1.2rem;background:#1a1a1e;color:#f0f0f2;font-family:var(--font-display);' +
+      'font-size:0.82rem;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:250;' +
+      'opacity:0;transition:opacity 0.3s,transform 0.3s;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 2000);
+}
+
+// ── TAB PANELS ──
+function switchTab(btn, tabId) {
+  const panel = btn.closest('.tab-panel');
+  panel.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  panel.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + tabId).classList.add('active');
+}
+
+// ── CODE COPY ──
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('pre').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
   });
+}
+
+// ── PROGRESS BAR ──
+window.addEventListener('scroll', () => {
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = h > 0 ? (window.scrollY / h) * 100 : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
 });
 
-document.addEventListener('click', () => {
-  document.querySelectorAll('.tip.tip-active').forEach(t => t.classList.remove('tip-active'));
-});
-
-// ─── FLOW NAV ACTIVE STATE ───
+// ── SCROLL SPY FOR FLOW NAV ──
 const sections = document.querySelectorAll('.section[id]');
 const flowNodes = document.querySelectorAll('.flow-node');
-
 const observer = new IntersectionObserver(entries => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
@@ -827,9 +1650,20 @@ const observer = new IntersectionObserver(entries => {
       });
     }
   });
-}, { rootMargin: '-20% 0px -60% 0px' });
-
+}, { rootMargin: '-15% 0px -65% 0px' });
 sections.forEach(s => observer.observe(s));
+
+// ── TOOLTIP TOUCH SUPPORT ──
+document.querySelectorAll('.tip').forEach(tip => {
+  tip.addEventListener('click', e => {
+    document.querySelectorAll('.tip.tip-active').forEach(t => { if (t !== tip) t.classList.remove('tip-active'); });
+    tip.classList.toggle('tip-active');
+    e.stopPropagation();
+  });
+});
+document.addEventListener('click', () => {
+  document.querySelectorAll('.tip.tip-active').forEach(t => t.classList.remove('tip-active'));
+});
 </script>
 </body>
 </html>

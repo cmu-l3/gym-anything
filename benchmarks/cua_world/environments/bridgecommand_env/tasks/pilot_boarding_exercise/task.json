@@ -1,0 +1,60 @@
+{
+  "id": "pilot_boarding_exercise@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "Configure a complete harbour pilot boarding exercise in Bridge Command's Solent environment for a marine pilot instructor. Create a scenario directory at '/opt/bridgecommand/Scenarios/p) Solent Pilot Boarding Exercise/' containing three configuration files: 'environment.ini' (Setting='Solent', StartTime between 06:00-08:00, StartDay=15, StartMonth=9, StartYear=2024, VisibilityRange=8.0, Weather=3.0, WindDirection=220, WindSpeed=15), 'ownship.ini' (ShipName='MV Pacific Trader', InitialLat=50.7650, InitialLong=-1.0500, InitialBearing=340, InitialSpeed=10.0), and 'othership.ini' (defining 5 traffic vessels: 'Doris T' [Type='pilot'] at Lat 50.7750, Long -1.0600, 'Ever Forward' [container, outbound], 'Solent Spirit' [ferry, crossing], 'FV Doreen' [fishing], and 'Svitzer Doris' [tug], each with at least one waypoint leg). Update the main configuration file (bc5.ini) to set arpa_on=1, full_radar=1, radar_range_resolution=256, max_radar_range=72, radar_angular_resolution=720, hide_instruments=0, and view_angle=90. Additionally, create a Pilot Boarding Checklist at '/home/ga/Documents/pilot_boarding_checklist.txt' containing the vessel name, boarding position (~50.775N, 1.060W), approach speed limit (6 kts), VHF channels (12, 9, 80), and references to IMO Resolution A.1045(27).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/pilot_boarding_exercise/setup_task.sh",
+    "post_task": "/workspace/tasks/pilot_boarding_exercise/export_result.sh"
+  },
+  "metadata": {
+    "scenario_dir": "/opt/bridgecommand/Scenarios/p) Solent Pilot Boarding Exercise",
+    "checklist_file": "/home/ga/Documents/pilot_boarding_checklist.txt",
+    "environment_expectations": {
+      "Setting": "Solent",
+      "VisibilityRange": "8.0",
+      "Weather": "3.0"
+    },
+    "ownship_expectations": {
+      "ShipName": "MV Pacific Trader",
+      "InitialSpeed": "10.0"
+    },
+    "othership_expectations": {
+      "count": 5,
+      "required_names": [
+        "Doris T",
+        "Ever Forward",
+        "Solent Spirit",
+        "FV Doreen",
+        "Svitzer Doris"
+      ]
+    },
+    "radar_expectations": {
+      "arpa_on": "1",
+      "full_radar": "1",
+      "radar_range_resolution": "256",
+      "max_radar_range": "72"
+    },
+    "checklist_keywords": [
+      "MV Pacific Trader",
+      "IMO",
+      "A.1045",
+      "ladder",
+      "6 knots",
+      "VHF",
+      "channel"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_pilot_boarding_exercise"
+    }
+  }
+}

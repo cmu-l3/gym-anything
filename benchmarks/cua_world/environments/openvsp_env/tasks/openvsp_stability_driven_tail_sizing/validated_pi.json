@@ -1,0 +1,52 @@
+{
+  "task_id": "openvsp_stability_driven_tail_sizing@1",
+  "dataset": "eCRM-001 (NASA Common Research Model derivative from OpenMDAO RevHack2020)",
+  "case_id": "eCRM-001_wing_tail.vsp3 with Tail scaled to 50% area",
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "result_file",
+      "metadata_value": "/tmp/openvsp_stability_sizing_result.json",
+      "verified_value": "/tmp/openvsp_stability_sizing_result.json",
+      "source": "Traced through export_result.sh line 8: RESULT_FILE='/tmp/openvsp_stability_sizing_result.json' and line 120: json.dump writes to this path. Confirmed match.",
+      "status": "verified"
+    },
+    {
+      "key": "target_margin_low",
+      "metadata_value": 10.0,
+      "verified_value": 10.0,
+      "source": "Cross-referenced with setup_task.sh spec file (line 111): 'Target range: 10% <= Static Margin <= 20%'. Value 10% is within standard aerospace practice for transport aircraft static margin (Raymer Aircraft Design Ch.16 recommends 5-15% for transports; MIL-STD-8785C Level 1 allows broader range). The task description also states 'static margin between 10% and 20%'.",
+      "status": "verified"
+    },
+    {
+      "key": "target_margin_high",
+      "metadata_value": 20.0,
+      "verified_value": 20.0,
+      "source": "Cross-referenced with setup_task.sh spec file (line 111): 'Target range: 10% <= Static Margin <= 20%'. The task description also states 'static margin between 10% and 20%'. 20% is a conservative upper bound; some cargo/military transports target up to 25%.",
+      "status": "verified"
+    },
+    {
+      "key": "baseline_model",
+      "metadata_value": "/home/ga/Documents/OpenVSP/ecrm_unstable.vsp3",
+      "verified_value": "/home/ga/Documents/OpenVSP/ecrm_unstable.vsp3",
+      "source": "Traced through setup_task.sh: line 17 copies source to '$MODELS_DIR/ecrm_unstable.vsp3'. MODELS_DIR is defined in task_utils.sh as '/home/ga/Documents/OpenVSP'. Lines 23-80 modify the tail in-place at this path. Line 171 launches OpenVSP with this file. Independently verified by parsing the actual source XML (examples/openvsp_env/data/eCRM-001_wing_tail.vsp3, 394778 bytes) and confirming the Tail component exists with TotalSpan=192.0, TotalArea=6336.0.",
+      "status": "verified"
+    },
+    {
+      "key": "expected_output_path",
+      "metadata_value": "/home/ga/Documents/OpenVSP/stability_restored.vsp3",
+      "verified_value": "/home/ga/Documents/OpenVSP/stability_restored.vsp3",
+      "source": "Three-way cross-reference: (1) task.json description says 'Save the final correctly-sized model to /home/ga/Documents/OpenVSP/stability_restored.vsp3'; (2) setup_task.sh spec file line 131 says same; (3) export_result.sh line 25 checks model_path = os.path.join(models_dir, 'stability_restored.vsp3'). All three match. setup_task.sh line 156 cleans this file before task start.",
+      "status": "verified"
+    },
+    {
+      "key": "expected_report_path",
+      "metadata_value": "/home/ga/Desktop/stability_report.txt",
+      "verified_value": "/home/ga/Desktop/stability_report.txt",
+      "source": "Three-way cross-reference: (1) task.json description says 'Write a report to /home/ga/Desktop/stability_report.txt'; (2) setup_task.sh spec file line 134 says same; (3) export_result.sh line 27 checks report_path = os.path.join(desktop, 'stability_report.txt'). All three match. setup_task.sh line 157 cleans this file before task start.",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The starting model ecrm_unstable.vsp3 is a modified eCRM-001 (NASA Common Research Model derivative) with the horizontal tail scaled to approximately 50% of original planform area. Original tail parameters: TotalSpan=192.0, TotalArea=6336.0, XSec[1] Root_Chord=42.0, XSec[1] Tip_Chord=24.0, aspect ratio=5.818. After scaling (linear dimensions x0.707, areas x0.5): TotalSpan=135.744, TotalArea=3168.0, Root_Chord=29.694, Tip_Chord=16.968, aspect ratio preserved at 5.816. The model contains 7 named components: FuselageUpdated (Stack), VerticalTail (Wing), Tail (Wing, child of VerticalTail), Wing (Wing), WingAC (Ellipsoid), Datum (Blank), CG (Ellipsoid). The Tail has XZ-plane symmetry (Sym_Planar_Flag=2) and is positioned at X=548.5, Z=180.2. The Wing has TotalSpan=454.34, TotalArea=24597.8. The agent must run VSPAero VLM at Mach=0.3 with CG X=28.5 and alpha sweep 0-6 degrees, compute static margin using SM(%)=-(CM_alpha/CL_alpha)*100, and resize the tail until 10%<=SM<=20%. The agent should increase the tail area from the undersized baseline (scaling span and chord proportionally). The expected output files are stability_restored.vsp3 (resized model) and stability_report.txt (iteration log with baseline and final static margins). VSPAero produces .polar files containing columns including Alpha, CL, CDtot, CMy that the agent must read. No specific final tail dimensions can be predetermined as they depend on VSPAero numerical results.",
+  "pi_confidence": "high"
+}

@@ -1,0 +1,80 @@
+{
+  "task_id": "process_returned_mail@1",
+  "dataset": "MedinTux DrTuxTest",
+  "case_id": "dynamic (3 random patients per task execution)",
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "input_file",
+      "metadata_value": "/home/ga/Documents/returned_mail_list.txt",
+      "verified_value": "/home/ga/Documents/returned_mail_list.txt",
+      "source": "setup_task.sh line 51: INPUT_FILE=\"/home/ga/Documents/returned_mail_list.txt\"",
+      "status": "verified"
+    },
+    {
+      "key": "required_prefix",
+      "metadata_value": "NPAI - ",
+      "verified_value": "NPAI (verifier accepts any variation starting with 'NPAI')",
+      "source": "export_result.sh line 73: startswith('NPAI'); verifier.py line 64: comment mentions 'NPAI - ' but implementation is lenient",
+      "status": "contradicted"
+    },
+    {
+      "key": "NPAI_definition",
+      "metadata_value": "N'habite Plus \u00e0 l'Adresse Indiqu\u00e9e",
+      "verified_value": "N'habite Plus \u00e0 l'Adresse Indiqu\u00e9e (no longer lives at the indicated address)",
+      "source": "Wikipedia and French postal documentation confirm NPAI means 'no longer lives at indicated address'",
+      "status": "verified"
+    },
+    {
+      "key": "medintux_version",
+      "metadata_value": "2.16.012",
+      "verified_value": "2.16.012",
+      "source": "setup_medintux.sh line 41: INSTALLER=/opt/medintux/medintux-2.16.012.exe; SourceForge confirms 2.16.012 exists",
+      "status": "verified"
+    },
+    {
+      "key": "database_name",
+      "metadata_value": "DrTuxTest",
+      "verified_value": "DrTuxTest",
+      "source": "setup_task.sh line 25: mysql -u root DrTuxTest",
+      "status": "verified"
+    },
+    {
+      "key": "primary_table",
+      "metadata_value": "fchpat",
+      "verified_value": "fchpat",
+      "source": "setup_task.sh lines 31-32: SELECT from fchpat table",
+      "status": "verified"
+    },
+    {
+      "key": "target_count",
+      "metadata_value": "3 patients",
+      "verified_value": "3 patients",
+      "source": "setup_task.sh line 38: LIMIT 3; export_result.sh line 99: expects 3 new NPAI records",
+      "status": "verified"
+    },
+    {
+      "key": "data_source",
+      "metadata_value": "Synthetic/Demo database",
+      "verified_value": "Synthetic mix: Real MedinTux schema + 20 injected test patients",
+      "source": "setup_medintux.sh lines 223-248 load official SQL dumps; lines 313-334 insert 20 synthetic test patients",
+      "status": "verified"
+    },
+    {
+      "key": "address_field",
+      "metadata_value": "FchPat_Adresse",
+      "verified_value": "FchPat_Adresse",
+      "source": "setup_task.sh line 31: SELECT FchPat_Adresse FROM fchpat",
+      "status": "verified"
+    },
+    {
+      "key": "collateral_damage_check",
+      "metadata_value": "Monitor for unwanted NPAI modifications",
+      "verified_value": "Checks initial vs final NPAI count in entire database",
+      "source": "setup_task.sh line 100-101 saves initial count; export_result.sh line 100-101 checks if > initial + 3",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The task uses MedinTux v2.16.012 with a synthetic DrTuxTest database containing 20 injected test patients with real-world French addresses. Three randomly selected patients from this population are designated to receive the 'NPAI - ' (N'habite Plus \u00e0 l'Adresse Indiqu\u00e9e: no longer lives at indicated address) prefix, a standard French postal notation for returned mail. The metadata claims the required prefix is 'NPAI - ' with space and dash, but the verification logic accepts any string beginning with 'NPAI', making the requirement lenient.",
+  "pi_confidence": "high"
+}

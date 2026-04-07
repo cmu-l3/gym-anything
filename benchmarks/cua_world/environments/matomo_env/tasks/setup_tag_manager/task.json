@@ -1,0 +1,40 @@
+{
+  "id": "setup_tag_manager@1",
+  "version": "1.0",
+  "env_id": "matomo_env@0.1",
+  "description": "Deploy a custom tracking pixel using Matomo Tag Manager for the 'Initial Site'. Matomo is installed and running with an 'Initial Site' configured, and you are logged in as admin. Your goal is to configure a container named 'MainTracker' with a 'Pageview' trigger named 'AllPages'. Create a 'Custom HTML' tag named 'ConversionPixel' containing the script <script>console.log(\"matomo-tag-manager-active\");</script> and link it to the 'AllPages' trigger. Publish the container as a new version named 'v1-initial-deploy'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/setup_tag_manager/setup_task.sh",
+    "post_task": "/workspace/tasks/setup_tag_manager/export_result.sh"
+  },
+  "metadata": {
+    "expected_container_name": "MainTracker",
+    "expected_trigger_name": "AllPages",
+    "expected_trigger_type": "PageView",
+    "expected_tag_name": "ConversionPixel",
+    "expected_tag_type": "CustomHtml",
+    "expected_tag_content": "<script>console.log(\"matomo-tag-manager-active\");</script>",
+    "scoring_weights": {
+      "container_exists": 10,
+      "tag_exists": 15,
+      "tag_type_correct": 10,
+      "tag_content_correct": 15,
+      "trigger_exists": 15,
+      "trigger_type_correct": 10,
+      "tag_linked_to_trigger": 10,
+      "version_published": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_setup_tag_manager"
+    }
+  }
+}

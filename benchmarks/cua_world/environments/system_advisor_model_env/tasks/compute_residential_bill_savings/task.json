@@ -1,0 +1,36 @@
+{
+  "id": "compute_residential_bill_savings@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "Write and execute a PySAM Python script that models a 7 kW residential PV system in Phoenix, AZ, under a 3-tier increasing block utility rate structure with net metering. The simulation should combine the Pvwattsv8, Utilityrate5, and Cashloan modules to generate a financial summary. Save the script to /home/ga/Documents/SAM_Projects/bill_savings_analysis.py and the results to /home/ga/Documents/SAM_Projects/phoenix_bill_savings.json.\n\nSystem Parameters:\n- Location: Phoenix, AZ (use a TMY weather file from SAM's solar_resource directory; check /home/ga/.SAM/solar_resource_dir.txt)\n- DC system capacity: 7.0 kW\n- Module type: 0 (Standard)\n- Array type: 1 (Fixed - roof mount)\n- Tilt: 20 degrees\n- Azimuth: 180 degrees\n- DC-to-AC ratio: 1.2\n- System losses: 14.08%\n- Inverter efficiency: 96%\n\nMonthly Household Electricity Consumption (kWh) from Jan to Dec:\n[750, 700, 800, 900, 1100, 1400, 1600, 1500, 1300, 1000, 800, 750]\n\nTiered Utility Rate Structure:\n- Monthly fixed/service charge: $12.50/month\n- Tier 1: First 400 kWh/month at $0.0925/kWh\n- Tier 2: Next 400 kWh/month (401-800 kWh) at $0.1115/kWh\n- Tier 3: All usage above 800 kWh/month at $0.1378/kWh\n- Net metering: Enabled\n- No demand charges\n\nFinancial Parameters:\n- Total installed cost: $3.00/Wdc ($21,000 total)\n- Federal Investment Tax Credit (ITC): 30%\n- Analysis period: 25 years\n- Nominal discount rate: 5.5%\n- Annual module degradation: 0.5%/year\n- Annual electricity rate escalation: 2.5%/year\n- Loan: Assume cash purchase (no loan)\n- State/local incentives: None\n\nThe JSON results file must contain exactly these keys:\n{\n  \"annual_energy_kwh\": <number>,\n  \"annual_bill_without_solar_dollars\": <number>,\n  \"annual_bill_with_solar_dollars\": <number>,\n  \"first_year_savings_dollars\": <number>,\n  \"npv_25yr_dollars\": <number>,\n  \"simple_payback_years\": <number>\n}",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/compute_residential_bill_savings/setup_task.sh",
+    "post_task": "/workspace/tasks/compute_residential_bill_savings/export_result.sh"
+  },
+  "metadata": {
+    "expected_json_filename": "/home/ga/Documents/SAM_Projects/phoenix_bill_savings.json",
+    "expected_script_filename": "/home/ga/Documents/SAM_Projects/bill_savings_analysis.py",
+    "energy_min": 10000,
+    "energy_max": 13500,
+    "bill_no_solar_min": 1100,
+    "bill_no_solar_max": 1900,
+    "bill_with_solar_min": 50,
+    "bill_with_solar_max": 600,
+    "savings_min": 700,
+    "savings_max": 1700,
+    "payback_min": 6,
+    "payback_max": 18
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_compute_residential_bill_savings"
+    }
+  }
+}

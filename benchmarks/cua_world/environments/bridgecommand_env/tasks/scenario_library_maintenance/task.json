@@ -1,0 +1,39 @@
+{
+  "id": "scenario_library_maintenance@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "Perform a maintenance audit on the Bridge Command scenario library at /opt/bridgecommand/Scenarios/ by validating ship models against the Models directory. For any scenario where the ownship.ini ShipName is missing from the Models directory, move the entire scenario directory to /home/ga/Quarantine/. In othership.ini files, replace missing Type(N) models with 'Tug' if the name contains 'Tug', 'Ferry' if it contains 'Ferry', or 'Coaster' otherwise. Ensure all remaining scenarios contain a description.txt file with the text 'Legacy scenario restored by automated audit.' if one is not already present. Generate a report of all actions taken at /home/ga/Documents/audit_report.txt.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/scenario_library_maintenance/setup_task.sh",
+    "post_task": "/workspace/tasks/scenario_library_maintenance/export_result.sh"
+  },
+  "metadata": {
+    "scenarios_dir": "/opt/bridgecommand/Scenarios",
+    "quarantine_dir": "/home/ga/Quarantine",
+    "models_dir": "/opt/bridgecommand/Models",
+    "valid_models": [
+      "Coaster",
+      "Ferry",
+      "Tug",
+      "Yacht"
+    ],
+    "broken_scenarios": {
+      "fatal": "Legacy_Fatal_Error",
+      "repair_tug": "Legacy_Missing_Tug",
+      "repair_generic": "Legacy_Unknown_Ship",
+      "valid": "Legacy_Valid_Archive"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_scenario_library_maintenance"
+    }
+  }
+}

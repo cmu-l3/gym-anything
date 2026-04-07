@@ -1,0 +1,54 @@
+{
+  "id": "restore_utility_crew_field_gps@1",
+  "version": "1.0",
+  "env_id": "example.sygic_gps_env@0.1",
+  "description": "Your company's utility field service crew in Houston, Texas needs their GPS unit reconfigured for field operations. Update the vehicle profile from a personal sedan to a diesel work van and remove commuter routing preferences that minimize tolls on the Hardy Toll Road. Ensure routing allows for access to remote infrastructure on service roads and semi-improved paths. Replace personal saved locations (shopping mall and restaurant) with the company yard on Lawndale Street and utility infrastructure sites in the Deer Park petrochemical complex to support field operations at pipeline valve stations and industrial pump facilities.",
+  "difficulty": "very_hard",
+  "tags": [
+    "navigation",
+    "vehicle-profile",
+    "route-planning",
+    "favorites",
+    "display-settings",
+    "utility",
+    "field-service",
+    "error-injection"
+  ],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "sh /sdcard/tasks/restore_utility_crew_field_gps/setup_task.sh",
+    "post_task": "sh /sdcard/tasks/restore_utility_crew_field_gps/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Control and Valve Installers and Repairers (SOC 49-9012)",
+    "pattern": "error_injection",
+    "injected_errors": {
+      "vehicle_type": "CAR (should be VAN)",
+      "vehicle_fuel": "GAS (should be DIESEL)",
+      "vehicle_speed": "180 km/h (should be 100-120 km/h for work van)",
+      "route_compute": "0/Shortest (should be 1/Fastest for field response)",
+      "avoid_tolls": "true (should be false — company pays tolls)",
+      "avoid_highways": "false (correct — keep)",
+      "avoid_unpaved": "true (WRONG — utility crew needs unpaved access to infrastructure)",
+      "avoid_ferries": "true (correct for Houston — keep)",
+      "home_location": "shopping mall (should be company yard near Ship Channel)",
+      "work_location": "restaurant (should be Deer Park industrial area)"
+    },
+    "expected_home_lat": 29.725,
+    "expected_home_lon": -95.26,
+    "expected_work_lat": 29.7,
+    "expected_work_lon": -95.124,
+    "coordinate_tolerance_deg": 0.15,
+    "pass_threshold": 55
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_restore_utility_crew_field_gps"
+    }
+  }
+}

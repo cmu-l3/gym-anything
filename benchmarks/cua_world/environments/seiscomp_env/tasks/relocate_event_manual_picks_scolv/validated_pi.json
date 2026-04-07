@@ -1,0 +1,59 @@
+{
+    "task_id": "relocate_event_manual_picks_scolv@1",
+    "dataset": "2024 Noto Peninsula Earthquake (USGS/GEOFON)",
+    "case_id": "us6000m0xl",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_event",
+            "metadata_value": "Noto Peninsula, Japan 2024-01-01 M7.5",
+            "verified_value": "2024 Noto Peninsula, Japan Earthquake, 2024-01-01 M7.5",
+            "source": "data/fdsn/noto_earthquake.xml and data/events.csv which explicitly label the event as '2024 Noto Peninsula, Japan Earthquake' with a magnitude of 7.5.",
+            "status": "verified"
+        },
+        {
+            "key": "stations_with_waveforms",
+            "metadata_value": "[\"GE.GSI\", \"GE.BKB\", \"GE.SANI\"]",
+            "verified_value": "[\"GE.GSI\", \"GE.BKB\", \"GE.SANI\"]",
+            "source": "Inspected data/fdsn/ which contains the downloaded miniSEED waveforms: GE.BKB..BHZ.2024.001.mseed, GE.GSI..BHZ.2024.001.mseed, and GE.SANI..BHZ.2024.001.mseed.",
+            "status": "verified"
+        },
+        {
+            "key": "required_evaluation_mode",
+            "metadata_value": "manual",
+            "verified_value": "manual",
+            "source": "export_result.sh checks for manual origins with SQL query `SELECT COUNT(*) FROM Origin WHERE evaluationMode='manual'`, and verifier.py verifies the count increment.",
+            "status": "verified"
+        },
+        {
+            "key": "required_phases",
+            "metadata_value": "[\"P\"]",
+            "verified_value": "[\"P\"]",
+            "source": "export_result.sh queries for Phase arrivals starting with 'P' `(a.phase_code = 'P' OR a.phase_code LIKE 'P%')` and verifier.py scores based on finding >= 2 of these phases.",
+            "status": "verified"
+        },
+        {
+            "key": "seiscomp_gui_app",
+            "metadata_value": "scolv",
+            "verified_value": "scolv",
+            "source": "setup_task.sh directly launches scolv (`launch_seiscomp_gui scolv`), which serves as the visual waveform picker and origin locator for SeisComP.",
+            "status": "verified"
+        },
+        {
+            "key": "occupation",
+            "metadata_value": "Geoscientists (SOC 19-2042.00)",
+            "verified_value": "Geoscientists (SOC 19-2042.00)",
+            "source": "O*NET occupational classification correctly maps SOC code 19-2042.00 to Geoscientists, which encompasses Seismologists.",
+            "status": "verified"
+        },
+        {
+            "key": "task_type",
+            "metadata_value": "waveform_analysis_and_hypocenter_relocation",
+            "verified_value": "waveform_analysis_and_hypocenter_relocation",
+            "source": "The setup and scoring scripts verify P-wave re-picking (waveform analysis) and lat_lon origin coordinate changes via scolv GUI (hypocenter relocation).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on real seismological data for the M7.5 Noto Peninsula Earthquake (2024-01-01), utilizing USGS QuakeML records and GEOFON miniSEED waveforms. It has been verified that exactly three targeted stations (GE.GSI, GE.BKB, GE.SANI) have their BHZ channel data bundled in the environment. Evaluation logic explicitly confirms that the user interactively accesses the scolv GUI, re-picks at least two P-wave arrivals, relocates the hypocenter (such that the new lat/lon deviate from the initial automatic coordinates by > 0.001 degrees), and commits the new origin to the MariaDB database with the evaluation mode strictly set to 'manual'.",
+    "pi_confidence": "high"
+}

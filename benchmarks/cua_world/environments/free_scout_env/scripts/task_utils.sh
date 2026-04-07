@@ -2,6 +2,18 @@
 # Shared utilities for FreeScout tasks
 # Source this from setup_task.sh and export_result.sh
 
+# ===== Auto-check: wait for FreeScout web service on source =====
+# This ensures Docker containers are ready after cache restore
+echo "Checking FreeScout web service readiness..."
+for _fs_check_i in $(seq 1 60); do
+    _fs_code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080/login" 2>/dev/null || echo "000")
+    if [ "$_fs_code" = "200" ] || [ "$_fs_code" = "302" ]; then
+        echo "FreeScout web service is ready"
+        break
+    fi
+    sleep 2
+done
+
 # ===== Database Query Helper =====
 fs_query() {
     local query="$1"
@@ -134,6 +146,45 @@ take_screenshot() {
     local path="${1:-/tmp/screenshot.png}"
     DISPLAY=:1 import -window root "$path" 2>/dev/null || \
     DISPLAY=:1 scrot "$path" 2>/dev/null || true
+}
+
+# ===== Web Service Wait =====
+wait_for_freescout() {
+    local timeout=${1:-120}
+    local elapsed=0
+    echo "Waiting for FreeScout web service..."
+    while [ $elapsed -lt $timeout ]; do
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080/login" 2>/dev/null || echo "000")
+        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
+            echo "FreeScout is ready (HTTP $HTTP_CODE) after ${elapsed}s"
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+    echo "WARNING: FreeScout not ready after ${timeout}s"
+    return 1
+}
+
+# ===== Firefox Launch with Wait =====
+restart_firefox() {
+    local url="${1:-http://localhost:8080}"
+
+    # Wait for FreeScout web service before launching Firefox
+    wait_for_freescout 120 || echo "WARNING: FreeScout may not be ready"
+
+    # Kill any stale Firefox
+    pkill -9 -f firefox 2>/dev/null || true
+    sleep 3
+
+    su - ga -c "DISPLAY=:1 firefox '$url' > /tmp/firefox.log 2>&1 &"
+
+    # Wait for Firefox window
+    wait_for_window "firefox\|mozilla\|freescout" 30
+
+    # Maximize Firefox
+    DISPLAY=:1 wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+    sleep 2
 }
 
 # ===== Firefox Helpers =====

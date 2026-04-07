@@ -15,7 +15,7 @@ echo "=== Setting up WASP-12b Exoplanet Transit Detection task ==="
 
 DATA_DIR="/home/ga/AstroImages/WASP-12b"
 RESULTS_DIR="/home/ga/AstroImages/results"
-DATA_URL="https://www.astro.louisville.edu/software/astroimagej/benchmarks/cua_world/environments/WASP-12b_example_calibrated_images.tar.gz"
+DATA_URL="https://www.astro.louisville.edu/software/astroimagej/examples/WASP-12b_example_calibrated_images.tar.gz"
 CACHED_DATA="/opt/fits_samples/WASP-12b_calibrated.tar.gz"
 
 mkdir -p "$DATA_DIR"

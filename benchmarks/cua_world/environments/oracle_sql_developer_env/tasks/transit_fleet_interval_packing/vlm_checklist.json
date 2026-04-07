@@ -1,0 +1,59 @@
+{
+  "task_id": "transit_fleet_interval_packing@1",
+  "task_completion": [
+    {
+      "id": "create_downtime_blocks_vw",
+      "description": "Create the DOWNTIME_BLOCKS_VW view to pack overlapping maintenance intervals.",
+      "points": 20,
+      "visual_evidence": "Look for a SQL client (like DBeaver or sqlplus) showing a 'CREATE VIEW DOWNTIME_BLOCKS_VW' statement that includes window functions, along with a success message indicating the view was created."
+    },
+    {
+      "id": "create_fleet_availability_vw",
+      "description": "Create the FLEET_AVAILABILITY_VW view to calculate locomotive availability.",
+      "points": 20,
+      "visual_evidence": "Look for a SQL statement 'CREATE VIEW FLEET_AVAILABILITY_VW' that references DOWNTIME_BLOCKS_VW and calculates availability_pct using the formula ((2160 - total_downtime_hours) / 2160) * 100, along with a success message."
+    },
+    {
+      "id": "create_maintenance_alerts_table",
+      "description": "Create the MAINTENANCE_ALERTS table with the specified schema.",
+      "points": 15,
+      "visual_evidence": "Look for a 'CREATE TABLE MAINTENANCE_ALERTS' statement including columns like alert_id (identity), locomotive_id, mechanic_id, start_time, hours_stuck, and alert_date (default SYSDATE), along with a success message."
+    },
+    {
+      "id": "create_procedure_flag_stuck",
+      "description": "Create the PL/SQL procedure PROC_FLAG_STUCK_LOCOMOTIVES.",
+      "points": 20,
+      "visual_evidence": "Look for a 'CREATE OR REPLACE PROCEDURE PROC_FLAG_STUCK_LOCOMOTIVES' statement that selects records where end_time is null and SYSDATE - start_time > 48 hours, and inserts them into MAINTENANCE_ALERTS, along with a compilation success message."
+    },
+    {
+      "id": "execute_procedure",
+      "description": "Execute the PROC_FLAG_STUCK_LOCOMOTIVES procedure.",
+      "points": 10,
+      "visual_evidence": "Look for a command executing the procedure, such as 'EXEC PROC_FLAG_STUCK_LOCOMOTIVES;' or a PL/SQL anonymous block 'BEGIN PROC_FLAG_STUCK_LOCOMOTIVES; END;', followed by a successful execution message."
+    },
+    {
+      "id": "export_availability_csv",
+      "description": "Export the FLEET_AVAILABILITY_VW results to the specified CSV file path.",
+      "points": 15,
+      "visual_evidence": "Look for a database export dialog, a terminal command (like sqlplus spooling or a csv export script), or a file manager showing the creation of 'locomotive_availability.csv' in the '/home/ga/Documents/exports/' directory."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_database_interaction",
+      "description": "Verify the agent interacted with the Oracle database using a real SQL client or terminal.",
+      "visual_evidence": "The SQL commands should be visible in a database tool (e.g., DBeaver, SQL Developer) or a terminal running sqlplus, not just typed into a disconnected text editor."
+    },
+    {
+      "id": "genuine_procedure_execution",
+      "description": "Verify the agent executed the PL/SQL procedure rather than manually inserting rows into the alerts table.",
+      "visual_evidence": "Look for the actual execution command of the procedure (EXEC or CALL) rather than manual 'INSERT INTO MAINTENANCE_ALERTS' statements."
+    },
+    {
+      "id": "genuine_csv_export",
+      "description": "Verify the CSV file was generated from the database view.",
+      "visual_evidence": "The export should be the result of a query to FLEET_AVAILABILITY_VW (via export wizard or command line spool), not a manually created text file where the agent typed out the expected answers."
+    }
+  ],
+  "privileged_info_for_vlm": "The expected output path for the availability CSV is exactly '/home/ga/Documents/exports/locomotive_availability.csv'. Ensure the agent targets this specific directory and filename."
+}

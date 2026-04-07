@@ -1,0 +1,34 @@
+{
+  "id": "cve_patch_prioritization@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Enrich the vulnerability scan export at /home/ga/Documents/vuln_scan_results.xlsx by integrating data from the Asset_Inventory and NVD_CVE_Info sheets into the Scan_Data sheet. Populate Column D (Environment), Column E (Impact), and Column H (Team_Owner) based on Server_ID, and Column F (Base_Score) and Column G (Exploit_Maturity) based on CVE_ID. In Column I, calculate an Adjusted_Score (capped at 10.0) using the Base_Score adjusted by Environment (Prod: 1.2, Dev: 0.8) and Impact (High: 1.5, Medium: 1.0, Low: 0.5) multipliers. In Column J, assign SLA_Days: 3 days for records where the Adjusted_Score is at least 9.0 or Exploit_Maturity is 'Functional' or 'High'; 14 days for an Adjusted_Score of at least 7.0; and 30 days for all others. Generate a 'Remediation_Summary' sheet that lists unique Team_Owners (Web, Database, Infrastructure, HR_IT, Finance) in Column A and the count of their respective 'Urgent_Patches' (where SLA_Days is 3) in Column B. Save the updated workbook to the original path.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/cve_patch_prioritization/setup_task.sh",
+    "post_task": "/workspace/tasks/cve_patch_prioritization/export_result.sh"
+  },
+  "metadata": {
+    "expected_file": "/home/ga/Documents/vuln_scan_results.xlsx",
+    "required_columns": [
+      "Environment",
+      "Impact",
+      "Base_Score",
+      "Exploit_Maturity",
+      "Team_Owner",
+      "Adjusted_Score",
+      "SLA_Days"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_cve_patch_prioritization"
+    }
+  }
+}

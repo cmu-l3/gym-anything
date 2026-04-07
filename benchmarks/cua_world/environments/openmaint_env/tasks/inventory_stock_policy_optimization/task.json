@@ -1,0 +1,39 @@
+{
+  "id": "inventory_stock_policy_optimization@1",
+  "version": "1.0",
+  "env_id": "openmaint_env@0.1",
+  "description": "You are an Inventory Manager. A new inventory stocking policy has been approved. Update the Spare Parts in OpenMaint based on the policy file located at /home/ga/Desktop/inventory_policy.csv. For parts marked as 'Obsolete' in the policy, set their status to 'Inactive' without updating stock thresholds. For all other parts, update the 'MinimumStock' and 'MaximumStock' fields. After these updates, identify any active parts where the 'Current Stock' (QtyOnHands) is below the new minimum. Create a single Work Order with the category 'Logistics' or 'General' and the description 'Procurement Request - Critical Spares Restock'. In the Work Order notes, list the parts requiring restock and the quantity needed to reach their new maximum levels (Quantity = New Max - Current Stock).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/inventory_stock_policy_optimization/setup_task.sh",
+    "post_task": "/workspace/tasks/inventory_stock_policy_optimization/export_result.sh"
+  },
+  "metadata": {
+    "policy_file": "/home/ga/Desktop/inventory_policy.csv",
+    "parts_to_update": [
+      "SP-BELT-V46",
+      "SP-FILT-2020",
+      "SP-SENS-T10",
+      "SP-VALVE-05"
+    ],
+    "parts_to_obsolete": [
+      "SP-FUSE-OLD"
+    ],
+    "expected_order_items": {
+      "SP-BELT-V46": 18,
+      "SP-SENS-T10": 11,
+      "SP-VALVE-05": 5
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_inventory_stock_policy_optimization"
+    }
+  }
+}

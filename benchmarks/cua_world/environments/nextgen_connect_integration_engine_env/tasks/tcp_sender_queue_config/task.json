@@ -1,0 +1,35 @@
+{
+  "id": "tcp_sender_queue_config@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a channel named 'ADT_Message_Relay' to act as a reliable TCP forwarding queue. The channel must receive HL7 v2.x messages via TCP/MLLP on port 6661 and forward them to a downstream system at localhost:6665 via TCP/MLLP. Configure destination queuing with 'Queue Messages' set to 'Always', a 'Retry Interval' of 10000ms, a 'Max Retry Count' of 5, and 'Rotate Queue' enabled. Verify the configuration by sending the sample ADT message located at /home/ga/test_adt_a01.hl7 to the source port.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/tcp_sender_queue_config/setup_task.sh",
+    "post_task": "/workspace/tasks/tcp_sender_queue_config/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "ADT_Message_Relay",
+    "source_port": 6661,
+    "dest_host": "localhost",
+    "dest_port": 6665,
+    "queue_settings": {
+      "enabled": true,
+      "send_first": false,
+      "retry_interval": 10000,
+      "retry_count": 5,
+      "rotate": true
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_tcp_sender_queue_config"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+    "task_id": "multi_site_survey@1",
+    "dataset": "world_survey.gpkg",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_sites",
+            "metadata_value": "[{\"name\": \"Bras\u00edlia\", \"lat\": -15.79, \"lon\": -47.88, \"notes_keyword\": \"Cerrado\"}, {\"name\": \"Lima\", \"lat\": -12.04, \"lon\": -77.04, \"notes_keyword\": \"Coastal\"}, {\"name\": \"Buenos Aires\", \"lat\": -34.60, \"lon\": -58.38, \"notes_keyword\": \"Pampas\"}]",
+            "verified_value": "Brasilia (-15.7801, -47.9297) and Buenos Aires (-34.6037, -58.3960) exist in the world_capitals table. The city Lima is completely missing from the dataset.",
+            "source": "Queried world_capitals table in world_survey.gpkg using SQLite.",
+            "status": "contradicted"
+        },
+        {
+            "key": "common_attributes",
+            "metadata_value": "{\"observer\": \"Rivera\", \"observation_type\": \"habitat_survey\"}",
+            "verified_value": "The target table does not contain observer, observation_type, or notes columns. The schema is fid, geom, observer_name, species, location, obs_date, and quality_grade.",
+            "source": "Queried PRAGMA table_info(field_observations) in world_survey.gpkg.",
+            "status": "contradicted"
+        },
+        {
+            "key": "gpkg_path",
+            "metadata_value": "/sdcard/Android/data/ch.opengis.qfield/files/world_survey.gpkg",
+            "verified_value": "/sdcard/Android/data/ch.opengis.qfield/files/world_survey.gpkg",
+            "source": "Task setup script explicitly copies the GeoPackage to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "layer_name",
+            "metadata_value": "observations",
+            "verified_value": "field_observations",
+            "source": "Queried sqlite_master in world_survey.gpkg. The only observation table is field_observations. observations does not exist.",
+            "status": "contradicted"
+        },
+        {
+            "key": "proximity_threshold_deg",
+            "metadata_value": "2.0",
+            "verified_value": "2.0",
+            "source": "The verifier.py script enforces dist < 2.0 calculation.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on real-world geographic coordinates and iNaturalist observation data inside world_survey.gpkg. However, there are multiple critical schema mismatches: the dataset does not contain an observations table (it is named field_observations), nor does it have the observer, observation_type, or notes columns required by the task description. As a result, the verifier script will permanently crash with a sqlite3.OperationalError: no such table: observations, rendering the task technically unsolvable. Additionally, Lima is missing from the world_capitals layer, forcing the agent to rely entirely on coordinate navigation rather than existing map markers to complete the survey.",
+    "pi_confidence": "high"
+}

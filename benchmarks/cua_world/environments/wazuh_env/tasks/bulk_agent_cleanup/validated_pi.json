@@ -1,0 +1,39 @@
+{
+    "task_id": "bulk_agent_cleanup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "stale_pattern",
+            "metadata_value": "temp-test-",
+            "verified_value": "temp-test-",
+            "source": "setup_task.sh dynamically creates 25 agents within a loop where NAME=\"temp-test-${i}\".",
+            "status": "verified"
+        },
+        {
+            "key": "keep_agents",
+            "metadata_value": [
+                "production-web",
+                "production-db",
+                "wazuh-manager"
+            ],
+            "verified_value": [
+                "production-web",
+                "production-db",
+                "wazuh-manager"
+            ],
+            "source": "setup_task.sh explicitly executes manage_agents -a for 'production-web' and 'production-db'. verifier.py verifies these names and checks for the manager node (ID '000').",
+            "status": "verified"
+        },
+        {
+            "key": "expected_final_count",
+            "metadata_value": 3,
+            "verified_value": 3,
+            "source": "setup_task.sh removes all non-000 agents, then adds 2 production agents and 25 temp-test agents (28 total). Removing 25 temp-test agents results in exactly 3 remaining.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on synthetically generated Wazuh agent data. setup_task.sh first wipes all non-manager agents (leaving only agent 000). It then dynamically registers 2 production agents ('production-web' and 'production-db') and 25 stale agents using a bash loop with the pattern 'temp-test-01' through 'temp-test-25'. Consequently, the agent environment starts with exactly 28 agents. If an agent correctly removes all 25 'temp-test-' agents without removing the manager or the production agents, exactly 3 agents will remain, satisfying the verifier's checks.",
+    "pi_confidence": "high"
+}

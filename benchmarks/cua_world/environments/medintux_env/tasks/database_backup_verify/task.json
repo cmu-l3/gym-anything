@@ -1,0 +1,34 @@
+{
+  "id": "database_backup_verify@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "You are the IT administrator for a French medical practice using MedinTux. Before a planned system upgrade, create verified backups of the four MedinTux databases (DrTuxTest, MedicaTuxTest, CIM10Test, and CCAMTest) and prove they can be restored. MySQL is running locally (root user, no password).\n\nBack up each database to the following paths in ~/MedinTux_Backups/:\n- DrTuxTest_backup.sql\n- MedicaTuxTest_backup.sql\n- CIM10Test_backup.sql\n- CCAMTest_backup.sql\n\nVerify the integrity of these backups by restoring them into corresponding verification databases named DrTuxTest_verify, MedicaTuxTest_verify, CIM10Test_verify, and CCAMTest_verify. \n\nGenerate a verification report at ~/MedinTux_Backups/backup_report.txt. The report must include:\n- The backup date and time.\n- For each database: the name, original vs. restored table counts, original vs. restored total row counts, and a status of 'OK' or 'MISMATCH'.\n- For DrTuxTest: the specific patient count from the IndexNomPrenom table (original and restored).\n- A final line stating 'OVERALL: PASS' if all counts match, or 'OVERALL: FAIL' otherwise.\n\nAll backups must be valid SQL dumps containing table creation and data insertion statements, and the verification databases must be fully populated clones of the originals.",
+  "category": "system_administration",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/database_backup_verify/setup_task.sh",
+    "post_task": "/workspace/tasks/database_backup_verify/export_result.sh"
+  },
+  "metadata": {
+    "backup_dir": "/home/ga/MedinTux_Backups",
+    "databases": [
+      "DrTuxTest",
+      "MedicaTuxTest",
+      "CIM10Test",
+      "CCAMTest"
+    ],
+    "report_file": "backup_report.txt",
+    "expected_min_sql_size_bytes": 1024
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_database_backup"
+    }
+  }
+}

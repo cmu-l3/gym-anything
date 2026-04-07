@@ -123,31 +123,4 @@ def verify_add_custom_vehicle_field(traj, env_info, task_info):
     
     vlm_final = query_vlm(images=[final_screen], prompt=output_prompt)
     try:
-        analysis = vlm_final.get('parsed', {}) if isinstance(vlm_final, dict) else {}
-        if analysis.get("visitor_visible"):
-            score += 10
-            feedback_parts.append("VLM: Visitor record is visible.")
-        else:
-            feedback_parts.append("VLM: Could not confirm the visitor record.")
-
-        if analysis.get("field_visible"):
-            score += 10
-            feedback_parts.append("VLM: Vehicle or license plate field is visible.")
-        else:
-            feedback_parts.append("VLM: Vehicle or license plate field not confirmed.")
-
-        if analysis.get("value_match"):
-            score += 20
-            feedback_parts.append("VLM: Expected license plate value is visible.")
-        else:
-            feedback_parts.append("VLM: Expected license plate value not confirmed.")
-    except Exception as e:
-        logger.error(f"Final-state VLM verification failed: {e}")
-        feedback_parts.append("VLM final-state verification failed.")
-
-    passed = score >= 60 and result.get('database_license_plate_found')
-    return {
-        "passed": passed,
-        "score": min(score, 100),
-        "feedback": " ".join(feedback_parts),
-    }
+        analysis = json.loads(vlm_final.get('response', '{}').replace("

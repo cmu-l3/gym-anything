@@ -1,0 +1,34 @@
+{
+  "id": "audit_key_holders@1",
+  "version": "1.0",
+  "env_id": "vista_env@0.1",
+  "description": "Audit the VistA security configuration to identify which users hold the 'Programmer Mode' key (XUPROG). VistA uses a dual-key security model where the Security Key file (^XUSEC) acts as a reverse index, mapping keys to the users who hold them. Use the YDBGui Global Viewer to inspect the ^XUSEC global and identify the Internal Entry Numbers (DUZs) of users who possess the XUPROG key. The global structure follows the format ^XUSEC(\"KEY_NAME\", DUZ).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/audit_key_holders/setup_task.sh",
+    "post_task": "/workspace/tasks/audit_key_holders/export_result.sh"
+  },
+  "metadata": {
+    "target_global": "^XUSEC",
+    "target_key": "XUPROG",
+    "interface": "ydbgui",
+    "scoring_weights": {
+      "vista_running": 10,
+      "ydbgui_accessible": 10,
+      "global_navigated": 30,
+      "key_found": 25,
+      "holders_visible": 25
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_key_holders"
+    }
+  }
+}

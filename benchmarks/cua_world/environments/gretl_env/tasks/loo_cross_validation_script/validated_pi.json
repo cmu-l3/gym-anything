@@ -1,0 +1,101 @@
+{
+    "task_id": "loo_cross_validation_script@1",
+    "dataset": "food.gdt",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "dataset",
+            "metadata_value": "food.gdt",
+            "verified_value": "food.gdt",
+            "source": "Dataset file downloaded from http://www.learneconometrics.com/gretl/poe5/data/food.gdt and verified as valid Gretl XML dataset",
+            "status": "verified"
+        },
+        {
+            "key": "observations_count",
+            "metadata_value": "40",
+            "verified_value": "40",
+            "source": "XML parsing of food.gdt shows <gretldata ... endobs=\"40\" ...> and manual verification of all observation entries",
+            "status": "verified"
+        },
+        {
+            "key": "variables",
+            "metadata_value": "food_exp (Y), income (X)",
+            "verified_value": "food_exp (food expenditure per week in $), income (weekly income in $100 units)",
+            "source": "XML metadata in food.gdt describes: 1. food_exp: 'household food expenditure per week', 2. income: 'weekly household income'",
+            "status": "verified"
+        },
+        {
+            "key": "model_specification",
+            "metadata_value": "food_exp = const + income",
+            "verified_value": "food_exp = const + income (simple linear regression with intercept)",
+            "source": "Task description explicitly states model specification",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_attribution",
+            "metadata_value": "Principles of Econometrics 5th Ed, Table 2.1",
+            "verified_value": "Dataset is from Principles of Econometrics 5th Edition (Hill, Griffiths, Lim); available at principlesofeconometrics.com",
+            "source": "Web search confirms POE5 food dataset is standard educational resource; dataset downloaded from official Lee Adkins Gretl repository at learneconometrics.com",
+            "status": "verified"
+        },
+        {
+            "key": "actual_data_mspe",
+            "metadata_value": "Not explicitly stated in metadata, but verifier.py contains reference values",
+            "verified_value": "8334.760061",
+            "source": "Calculated from actual food.gdt dataset using OLS LOO-CV formula: MSPE = mean((y_i - yhat_i)/(1 - h_ii))^2",
+            "status": "verified"
+        },
+        {
+            "key": "actual_data_rmspe",
+            "metadata_value": "Not explicitly stated in metadata, but verifier.py contains reference values",
+            "verified_value": "91.294907",
+            "source": "Calculated from actual food.gdt dataset using RMSPE = sqrt(MSPE)",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_reference_mspe",
+            "metadata_value": "Verifier.py RAW_DATA implies reference MSPE ≈ 872.62",
+            "verified_value": "872.618630",
+            "source": "Calculated from verifier.py RAW_DATA array (lines 20-31), which contains 40 [food_exp, income] pairs",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_reference_rmspe",
+            "metadata_value": "Verifier.py RAW_DATA implies reference RMSPE ≈ 29.54",
+            "verified_value": "29.540119",
+            "source": "Calculated from verifier.py RAW_DATA array using same LOO-CV formula",
+            "status": "verified"
+        },
+        {
+            "key": "data_discrepancy",
+            "metadata_value": "Not mentioned; implicit assumption that verifier.py uses actual food.gdt data",
+            "verified_value": "CRITICAL DISCREPANCY: Verifier.py RAW_DATA differs significantly from actual food.gdt",
+            "source": "Direct comparison of 40 observations: only first 5 match, subsequent 35 observations have different values. Example: obs 6: actual=[243.92, 12.98] vs verifier=[243.43, 12.98]; obs 7: actual=[267.43, 14.2] vs verifier=[109.71, 3.15]",
+            "status": "contradicted"
+        },
+        {
+            "key": "output_dir",
+            "metadata_value": "/home/ga/Documents/gretl_output",
+            "verified_value": "/home/ga/Documents/gretl_output",
+            "source": "Confirmed in setup_task.sh (lines 11-13) and export_result.sh (lines 10-11)",
+            "status": "verified"
+        },
+        {
+            "key": "results_file_name",
+            "metadata_value": "cv_results.txt",
+            "verified_value": "cv_results.txt",
+            "source": "Confirmed in task.json metadata and export_result.sh",
+            "status": "verified"
+        },
+        {
+            "key": "predictions_file_name",
+            "metadata_value": "cv_predictions.csv",
+            "verified_value": "cv_predictions.csv",
+            "source": "Confirmed in task.json metadata and export_result.sh",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the real Principles of Econometrics 5th Edition food.gdt dataset with 40 observations of weekly household food expenditure (Y) and weekly income in $100 units (X), from learneconometrics.com. The dataset is used for Leave-One-Out Cross-Validation on the model food_exp = const + income. CRITICAL ISSUE: The verifier.py file hardcodes different data (RAW_DATA array) than the actual food.gdt file. When comparing the 40 observations: only the first 5 match, while observations 6-40 differ significantly. Using actual food.gdt data yields MSPE=8334.76 and RMSPE=91.29, but verifier.py's RAW_DATA yields MSPE=872.62 and RMSPE=29.54. This means any correctly-implemented agent script using the actual food.gdt file will produce different ground truth metrics than what verifier.py expects, likely causing verification failures despite correct implementation.",
+    "pi_confidence": "high"
+}

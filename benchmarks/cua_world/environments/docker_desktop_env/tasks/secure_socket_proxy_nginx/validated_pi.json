@@ -1,0 +1,38 @@
+{
+    "task_id": "secure_socket_proxy_nginx@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/Documents/docker-projects/monitor-stack",
+            "verified_value": "/home/ga/Documents/docker-projects/monitor-stack",
+            "source": "Code analysis: hardcoded in setup_task.sh line 11 and export_result.sh line 9",
+            "status": "verified"
+        },
+        {
+            "key": "expected_services",
+            "metadata_value": "[\"monitor\", \"proxy\"]",
+            "verified_value": "[\"monitor\", \"proxy\"]",
+            "source": "Code analysis: setup_task.sh creates monitor service (line 59), export_result.sh checks for both services (lines 14-15), task description requires creating proxy service",
+            "status": "verified"
+        },
+        {
+            "key": "forbidden_mount",
+            "metadata_value": "/var/run/docker.sock",
+            "verified_value": "/var/run/docker.sock",
+            "source": "Code analysis: this is the socket mount shown in initial insecure docker-compose.yml (line 63), export_result.sh checks for its removal (line 23), verifier.py validates it's not mounted on monitor (line 45)",
+            "status": "verified"
+        },
+        {
+            "key": "proxy_port",
+            "metadata_value": 2375,
+            "verified_value": 2375,
+            "source": "Web search and code analysis: 2375 is the standard/conventional port for unencrypted Docker socket proxying (confirmed by Docker documentation and multiple socket-proxy implementations). Verified in monitor.sh line 34-36 where it references 'tcp://proxy:2375'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task modifies a synthetic Docker Compose project located at /home/ga/Documents/docker-projects/monitor-stack. The project initially has a single 'monitor' service with direct access to /var/run/docker.sock (a security vulnerability). The task requires creating a 'proxy' service using nginx:alpine that exposes the socket on port 2375 (the standard Docker socket proxy port) while restricting requests to read-only GET operations. The monitor service must then be reconfigured to remove the direct socket mount and instead connect to the proxy via DOCKER_HOST=tcp://proxy:2375. All metadata values accurately describe the expected task configuration.",
+    "pi_confidence": "high"
+}

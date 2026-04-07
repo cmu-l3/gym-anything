@@ -1,0 +1,37 @@
+{
+  "id": "dominant_phase_analysis@1",
+  "version": "1.0",
+  "env_id": "openlca_env@0.1",
+  "description": "Perform a dominant phase analysis for an industrial pump in openLCA using the USLCI database (~/LCA_Imports/uslci_database.zip). Model the lifecycle by creating a 'Pump Production' process (1 item output, 50 kg 'Steel, low-alloyed' input) and a 'Pump Use Phase' process (1 item output, 20,000 MJ 'Electricity, at grid, US' input), integrated into a 'Pump Lifecycle' process. Using the TRACI 2.1 (Global Warming Air) LCIA method, determine the dominant phase and the ratio of the higher GWP value to the lower GWP value. Record the results in ~/LCA_Results/dominance_report.txt with the lines 'Dominant Phase: [Production OR Use]' and 'Ratio: [Value]' (rounded to 1 decimal place).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dominant_phase_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/dominant_phase_analysis/export_result.sh"
+  },
+  "metadata": {
+    "expected_processes": [
+      "Pump Production",
+      "Pump Use Phase",
+      "Pump Lifecycle"
+    ],
+    "expected_inputs": {
+      "steel_kg": 50,
+      "electricity_mj": 20000
+    },
+    "expected_dominance": "Use",
+    "ratio_min": 20.0,
+    "ratio_max": 100.0,
+    "output_file": "/home/ga/LCA_Results/dominance_report.txt"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dominant_phase_analysis"
+    }
+  }
+}

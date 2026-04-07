@@ -1,0 +1,30 @@
+{
+  "id": "synchronous_hl7_to_rest_ack_mapping@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create a synchronous facade channel named 'MPI_Facade' that bridges HL7 v2 and a REST API. The channel should use a TCP Listener on port 6661 as the source and an HTTP Sender targeting http://localhost:9000/patients (POST) as the destination. The channel must return the response from the destination back to the source. Inbound HL7 ADT messages must be converted to JSON with the format: {\"mrn\": \"<PID-3.1>\", \"firstName\": \"<PID-5.2>\", \"lastName\": \"<PID-5.1>\"}. The API's JSON response ({\"status\": \"success\", \"mpi_uuid\": \"<UUID>\"}) must be transformed into a custom HL7 ACK message containing an MSA segment: MSA|AA|<mpi_uuid>|. Deploy the channel upon completion.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/synchronous_hl7_to_rest_ack_mapping/setup_task.sh",
+    "post_task": "/workspace/tasks/synchronous_hl7_to_rest_ack_mapping/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "MPI_Facade",
+    "api_url": "http://localhost:9000/patients",
+    "listen_port": "6661",
+    "test_mrn": "MRN12345",
+    "test_first": "John",
+    "test_last": "Doe"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_synchronous_hl7_to_rest_ack_mapping"
+    }
+  }
+}

@@ -19,11 +19,9 @@ DB_NAME="drupal"
 DB_USER="drupal"
 DB_PASS="drupalpass"
 DRUSH="$DRUPAL_DIR/vendor/bin/drush"
-DOCKERHUB_TOKEN="${DOCKERHUB_TOKEN:-}"
-DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:-}"
-if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
-    echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-fi
+DOCKERHUB_TOKEN="dckr_pat_YISK01jQAaGVVmzkVoZnkOH3Q3g"
+DOCKERHUB_USERNAME="hackear2041"
+echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
 # ============================================================
 # 0. Check if Drupal files are installed (pre_start may have timed out)

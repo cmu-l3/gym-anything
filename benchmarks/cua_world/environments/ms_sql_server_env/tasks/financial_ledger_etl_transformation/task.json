@@ -1,0 +1,42 @@
+{
+  "id": "financial_ledger_etl_transformation@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "You are an ERP Implementation Engineer migrating sales data to a new General Ledger system. Your goal is to build a financial transformation pipeline in the 'AdventureWorks2022' database that converts document-centric sales orders into normalized double-entry journal entries. Establish a 'Finance' schema including a 'Finance.ChartOfAccounts' table seeded with accounts 1100 (Accounts Receivable), 2100 (Tax Payable), 4001-4004 (Sales Revenue by Territory Group), and 4100 (Freight Revenue). Create a 'Finance.GeneralLedger' table to store transactions (JournalID, SalesOrderID, TransactionDate, AccountCode, Description, Debit, Credit) with non-negative constraints. Develop and execute a stored procedure 'Finance.usp_PostSalesToGL' for the period '2013-01-01' to '2013-03-31' that transforms SalesOrderHeader records into balanced GL entries by debiting AR (TotalDue) and crediting Revenue (SubTotal mapped by Territory Group), Tax (TaxAmt), and Freight (Freight). Provide a view 'Finance.vw_UnbalancedTransactions' to audit for any orders where the sum of debits does not equal the sum of credits.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/financial_ledger_etl_transformation/setup_task.sh",
+    "post_task": "/workspace/tasks/financial_ledger_etl_transformation/export_result.sh"
+  },
+  "metadata": {
+    "target_schema": "Finance",
+    "required_tables": [
+      "ChartOfAccounts",
+      "GeneralLedger"
+    ],
+    "required_proc": "usp_PostSalesToGL",
+    "required_view": "vw_UnbalancedTransactions",
+    "account_codes": [
+      1100,
+      2100,
+      4001,
+      4002,
+      4003,
+      4004,
+      4100
+    ],
+    "date_range_start": "2013-01-01",
+    "date_range_end": "2013-03-31"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_financial_ledger_etl"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "transit_fleet_interval_packing@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Industrial Engineer at a regional public transit authority analyzing locomotive reliability. Mechanics log their work hours in the MAINTENANCE_LOGS table in the TRANSIT_OPS schema (connected as transit_ops/Transit2024 to XEPDB1, Host=localhost, Port=1521). To prevent overlapping time logs from overstating downtime, create a view DOWNTIME_BLOCKS_VW that packs overlapping and adjacent maintenance intervals (where end_time is not null) into contiguous blocks per locomotive using window functions. The view must output locomotive_id, block_start_time, block_end_time, and downtime_hours.\n\nUsing DOWNTIME_BLOCKS_VW, create a FLEET_AVAILABILITY_VW to calculate the overall availability for each locomotive over a 90-day evaluation period (2,160 total possible hours). The view must output locomotive_id, model, total_downtime_hours, and availability_pct (calculated as ((2160 - total_downtime_hours) / 2160) * 100).\n\nEstablish an alert infrastructure by creating a table MAINTENANCE_ALERTS with an identity-based alert_id, locomotive_id, mechanic_id, start_time, hours_stuck, and a default SYSDATE alert_date. Develop a PL/SQL procedure PROC_FLAG_STUCK_LOCOMOTIVES that scans MAINTENANCE_LOGS for records where end_time is null and the difference between SYSDATE and start_time is strictly greater than 48 hours, inserting these records into the alerts table. Execute the procedure and export the FLEET_AVAILABILITY_VW results to /home/ga/Documents/exports/locomotive_availability.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/transit_fleet_interval_packing/setup_task.sh",
+    "post_task": "/workspace/tasks/transit_fleet_interval_packing/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/transit_fleet_result.json",
+    "expected_csv_path": "/home/ga/Documents/exports/locomotive_availability.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_transit_fleet_interval_packing"
+    }
+  }
+}

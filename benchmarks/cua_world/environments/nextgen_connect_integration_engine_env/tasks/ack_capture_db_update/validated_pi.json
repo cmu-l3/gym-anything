@@ -1,0 +1,38 @@
+{
+    "task_id": "ack_capture_db_update@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "source_port",
+            "metadata_value": "6661",
+            "verified_value": "6661",
+            "source": "setup_task.sh line 122 shows TCP Listener on Port 6661; task description confirms this is the NextGen Connect channel listening port for receiving HL7 ORM messages",
+            "status": "verified"
+        },
+        {
+            "key": "dest_port",
+            "metadata_value": "6670",
+            "verified_value": "6670",
+            "source": "setup_task.sh lines 16-17 define Lab Simulator PORT=6670; line 57 shows server listening on this port; task sends messages to localhost:6670",
+            "status": "verified"
+        },
+        {
+            "key": "db_connection",
+            "metadata_value": "jdbc:postgresql://nextgen-postgres:5432/mirthdb",
+            "verified_value": "jdbc:postgresql://nextgen-postgres:5432/mirthdb",
+            "source": "setup_task.sh line 86 connects to Docker container 'nextgen-postgres' with database 'mirthdb'; JDBC URL format matches standard PostgreSQL connection string with default port 5432",
+            "status": "verified"
+        },
+        {
+            "key": "sample_control_id",
+            "metadata_value": "ORD-001",
+            "verified_value": "ORD-001",
+            "source": "setup_task.sh line 103 defines HL7 message with Control ID at MSH-10 field (array index 9 after split): 'MSH|^~\\&|HIS|HOSPITAL|LAB|QUEST|202403151000||ORM^O01|ORD-001|P|2.3' - verified via Python split yielding fields[9]='ORD-001'; also appears in ORC and OBR segments; database seeded with this ID in lab_orders table",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a synthetic healthcare integration task. The NextGen Connect integration engine receives HL7 ORM lab order messages on TCP port 6661, forwards them to a lab simulator listening on port 6670 which responds with ACK messages containing reference IDs, and updates a PostgreSQL database at jdbc:postgresql://nextgen-postgres:5432/mirthdb. The sample order file contains HL7 v2.3 message with Control ID ORD-001, generated synthetically by setup scripts. All infrastructure, messages, and test data are created programmatically during task initialization.",
+    "pi_confidence": "high"
+}

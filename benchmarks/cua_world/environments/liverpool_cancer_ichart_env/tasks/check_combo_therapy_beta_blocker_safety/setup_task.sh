@@ -24,8 +24,9 @@ sleep 1
 input keyevent KEYCODE_HOME
 sleep 1
 
-# 5. Launch app to ensure it's ready (optional, but good for stability)
-# The description asks the agent to launch it, but ensuring it's installed/launchable is good.
-# We will leave it closed so the agent has to launch it as per instructions.
+# 5. Launch the app using robust helper
+echo "Launching Cancer iChart..."
+. /sdcard/scripts/launch_helper.sh
+launch_cancer_ichart
 
 echo "=== Setup Complete ==="

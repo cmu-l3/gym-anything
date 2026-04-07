@@ -1,0 +1,29 @@
+{
+  "id": "evaluate_pv_lcoe_lifetime_sensitivity@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "medium",
+  "description": "A Project Finance Analyst needs to demonstrate how extending a solar asset's operational lifetime reduces its Levelized Cost of Energy (LCOE). Use PySAM to simulate the Year 1 annual energy production for a 50 MW single-axis tracking PV plant in Phoenix, AZ, and calculate the LCOE over 25-year, 30-year, and 35-year lifetimes using explicit discounted cash flow (DCF) math.\n\nSystem Configuration (PySAM Pvwattsv8):\n- Location: Phoenix, AZ (Use the TMY weather file in /home/ga/.SAM/solar_resource_dir.txt or /home/ga/SAM_Weather_Data/)\n- DC System Capacity: 50,000 kW (50 MW)\n- DC:AC Ratio: 1.2\n- Array Type: 1-Axis Tracking (array_type=2)\n- Tilt: 0 degrees\n- Azimuth: 180 degrees\n- System Losses: 14.08%\n- Inverter Efficiency: 96%\n\nFinancial & Performance Assumptions:\n- Initial Capital Cost (Year 0): $50,000,000\n- Base Year 1 O&M Cost: $750,000\n- O&M Annual Escalation Rate: 2.0% (0.02)\n- Annual Module Degradation Rate: 0.5% (0.005)\n- Nominal Discount Rate: 6.0% (0.06)\n\nMathematical Definitions for each year t from 1 to N:\n- Cost_t = 750000 * (1 + 0.02)^(t-1)\n- Energy_t = Year1_Energy_kWh * (1 - 0.005)^(t-1)\n- Discount_Factor_t = 1 / (1 + 0.06)^t\n- LCOE_N = (50000000 + Sum(Cost_t * Discount_Factor_t)) / Sum(Energy_t * Discount_Factor_t)\n\nDevelop a script at /home/ga/Documents/SAM_Projects/lcoe_calculator.py to perform the simulation and calculations. Export the findings to /home/ga/Documents/SAM_Projects/lcoe_lifetime_sensitivity.json with the keys: \"year1_energy_kwh\", \"lcoe_25_year\", \"lcoe_30_year\", and \"lcoe_35_year\".",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_pv_lcoe_lifetime_sensitivity/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_pv_lcoe_lifetime_sensitivity/export_result.sh"
+  },
+  "metadata": {
+    "expected_json": "/home/ga/Documents/SAM_Projects/lcoe_lifetime_sensitivity.json",
+    "expected_script": "/home/ga/Documents/SAM_Projects/lcoe_calculator.py",
+    "energy_min_kwh": 95000000,
+    "energy_max_kwh": 130000000,
+    "tolerance_pct": 0.5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_lcoe_sensitivity"
+    }
+  }
+}

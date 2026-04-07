@@ -1,0 +1,54 @@
+{
+  "id": "manual_production_logging_adjustments@1",
+  "version": "1.0",
+  "env_id": "odoo_inventory_env@0.1",
+  "description": "You are a Production Supervisor at an industrial plastics plant. Log the Shift B Production Report #4099 using inventory adjustments.\n\nProduction Report #4099:\n- Finished Goods: Add 45 units of \"Polymer Block - Premium Blue\" to stock and assign them to a new Lot: PB-BLU-4099.\n- Raw Materials Consumed: Subtract 2,000 lbs of \"Raw Polymer Pellets\" (Lot PP-1001), 250 lbs of \"Raw Polymer Pellets\" (Lot PP-1002), and 15 liters of \"Blue Industrial Dye\" (Lot DYE-BLU-77) from stock.\n- Waste: Subtract 5 liters of \"Red Industrial Dye\" (Lot DYE-RED-42) lost in a spill.\n- Inventory Check: Update the system to reflect that \"Yellow Industrial Dye\" (Lot DYE-YEL-19) has exactly 30 liters remaining.\n\nEnsure the system inventory matches these physical production results, material consumptions, and physical counts.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/manual_production_logging_adjustments/setup_task.sh",
+    "post_task": "/workspace/tasks/manual_production_logging_adjustments/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/manual_production_result.json",
+    "expected_lots": {
+      "PP-1001": {
+        "expected_qty": 3000,
+        "product_name": "Raw Polymer Pellets"
+      },
+      "PP-1002": {
+        "expected_qty": 950,
+        "product_name": "Raw Polymer Pellets"
+      },
+      "DYE-BLU-77": {
+        "expected_qty": 85,
+        "product_name": "Blue Industrial Dye"
+      },
+      "DYE-RED-42": {
+        "expected_qty": 35,
+        "product_name": "Red Industrial Dye"
+      }
+    },
+    "new_lot": {
+      "name": "PB-BLU-4099",
+      "expected_qty": 45,
+      "product_name": "Polymer Block - Premium Blue"
+    },
+    "anti_gaming_lot": {
+      "name": "DYE-YEL-19",
+      "expected_qty": 30,
+      "product_name": "Yellow Industrial Dye"
+    },
+    "pass_threshold": 80
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_manual_production_adjustments"
+    }
+  }
+}

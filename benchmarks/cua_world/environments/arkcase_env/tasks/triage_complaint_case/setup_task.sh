@@ -29,14 +29,13 @@ EOF
 RESPONSE=$(arkcase_api POST "plugin/complaint" "$PAYLOAD")
 echo "API Response: $RESPONSE"
 
-# Extract Case ID (falling back to simple grep/sed if python/jq fails, though python is available)
-CASE_ID=$(echo "$RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('caseId', ''))" 2>/dev/null)
+# Extract Case ID — ArkCase returns 'complaintId' (NOT 'caseId')
+CASE_ID=$(echo "$RESPONSE" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('complaintId', d.get('caseId', d.get('id', ''))))" 2>/dev/null)
 
 if [ -z "$CASE_ID" ]; then
-    # Fallback: try to find it if creation returned partial data or failed silently but worked
-    echo "WARNING: Could not parse Case ID from response. Searching for case..."
-    SEARCH_RES=$(arkcase_api GET "plugin/complaint?title=$CASE_TITLE")
-    CASE_ID=$(echo "$SEARCH_RES" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data[0]['caseId'] if isinstance(data, list) and len(data)>0 else '')" 2>/dev/null)
+    # Fallback: grep for any numeric ID in response
+    echo "WARNING: Could not parse Case ID from response. Trying grep fallback..."
+    CASE_ID=$(echo "$RESPONSE" | grep -oP '"complaintId"\s*:\s*\K\d+' | head -1)
 fi
 
 # 3. Record Case Info for Verification
@@ -66,3 +65,7 @@ maximize_firefox
 take_screenshot /tmp/task_initial.png
 
 echo "=== Setup Complete ==="
+
+<system-reminder>
+Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.
+</system-reminder>

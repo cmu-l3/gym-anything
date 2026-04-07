@@ -1,0 +1,66 @@
+{
+  "task_id": "collaborative_filtering_recommendation_engine@1",
+  "dataset": "OrientDB DemoDB (travel agency graph) with task-specific HasStayed edge injection",
+  "case_id": null,
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "expected_similar_pairs",
+      "metadata_value": "4 pairs: john<->david (shared=3, score=0.75), anna<->thomas (shared=2, score=0.667), maria<->sophie (shared=2, score=0.50), david<->anna (shared=2, score=0.40)",
+      "verified_value": "Independently computed from setup_task.sh HasStayed edges. All 4 pairs confirmed with exact shared counts and Jaccard scores. john<->david share {Artemide, Savoy, Plaza} union={Artemide, Savoy, Plaza, Adlon}=4, 3/4=0.75. anna<->thomas share {Adlon, Melia} union={Adlon, Melia, Savoy}=3, 2/3=0.6667. maria<->sophie share {Crillon, Arts Barcelona} union={Artemide, Crillon, Arts Barcelona, Fairmont}=4, 2/4=0.50. david<->anna share {Savoy, Adlon} union={Savoy, Adlon, Plaza, Artemide, Melia}=5, 2/5=0.40. No other pairs have shared >= 2 (yuki<->kai share Park Hyatt but only 1 hotel).",
+      "source": "Independent Python computation over 15 profiles x 34 HasStayed edges extracted from setup_task.sh CREATE EDGE commands, computing all C(15,2)=105 pair intersections",
+      "status": "verified"
+    },
+    {
+      "key": "expected_similar_edge_count",
+      "metadata_value": 8,
+      "verified_value": "8 (4 qualifying pairs x 2 directions = 8 bidirectional edges)",
+      "source": "Computed: exactly 4 pairs qualify (shared >= 2), each pair needs 2 directed edges = 8 total",
+      "status": "verified"
+    },
+    {
+      "key": "expected_recommendations",
+      "metadata_value": "7 recommendations across 6 profiles",
+      "verified_value": "7 recommendations confirmed: john->Adlon(0.75,david), david->Melia(0.4,anna), maria->Fairmont(0.5,sophie), sophie->Artemide(0.5,maria), anna->Plaza(0.4,david), anna->Artemide(0.4,david), thomas->Savoy(0.6667,anna). Key logic: john's similar is david(0.75); david has {Savoy,Adlon,Plaza,Artemide}, john has {Artemide,Savoy,Plaza}; david's unique to john = {Adlon}. david's similars are john(0.75) and anna(0.4); john has no unique hotels vs david; anna has {Melia} unique. anna's similars are david(0.4) and thomas(0.6667); david has {Plaza,Artemide} unique to anna; thomas has no unique hotels vs anna. thomas's similar is anna(0.6667); anna has {Savoy} unique.",
+      "source": "Independent set-difference computation for each profile with SimilarTraveler connections, using max-score selection for RecommendedBy",
+      "status": "verified"
+    },
+    {
+      "key": "expected_recommendation_count",
+      "metadata_value": 7,
+      "verified_value": 7,
+      "source": "Count of independently computed recommendation vertices",
+      "status": "verified"
+    },
+    {
+      "key": "expected_profiles_with_recs",
+      "metadata_value": 6,
+      "verified_value": "6: john.smith, david.jones, maria.garcia, sophie.martin, anna.mueller, thomas.schafer",
+      "source": "Distinct target emails across all 7 computed recommendations",
+      "status": "verified"
+    },
+    {
+      "key": "expected_most_recommended_hotel",
+      "metadata_value": "Hotel Artemide",
+      "verified_value": "Hotel Artemide (appears 2 times: recommended to sophie.martin and anna.mueller). All other hotels appear exactly once. No alphabetical tie-breaking needed.",
+      "source": "Counter over hotel names in the 7 computed recommendations: Hotel Artemide=2, all others=1",
+      "status": "verified"
+    },
+    {
+      "key": "expected_highest_similarity_pair",
+      "metadata_value": "david.jones@example.com|john.smith@example.com",
+      "verified_value": "david.jones@example.com|john.smith@example.com (Jaccard score 0.75, uniquely highest). Emails sorted alphabetically: 'd' < 'j'.",
+      "source": "Maximum Jaccard score across all 4 qualifying pairs; 0.75 is unique (next is 0.6667). Alphabetical sort of emails confirmed.",
+      "status": "verified"
+    },
+    {
+      "key": "report_batch",
+      "metadata_value": "collab_q1_2026",
+      "verified_value": "collab_q1_2026",
+      "source": "Static value defined in task description; no external data dependency",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The task operates on the demodb database in OrientDB with 15 profiles and 15 hotels connected by exactly 34 HasStayed edges injected by setup_task.sh. The collaborative filtering computation yields exactly 4 qualifying profile pairs (shared hotel count >= 2): (1) john.smith and david.jones share 3 hotels (Hotel Artemide, The Savoy, The Plaza Hotel) with Jaccard similarity 0.75; (2) anna.mueller and thomas.schafer share 2 hotels (Hotel Adlon Kempinski, Melia Berlin) with Jaccard 0.6667; (3) maria.garcia and sophie.martin share 2 hotels (Hotel de Crillon, Hotel Arts Barcelona) with Jaccard 0.50; (4) david.jones and anna.mueller share 2 hotels (The Savoy, Hotel Adlon Kempinski) with Jaccard 0.40. This produces 8 bidirectional SimilarTraveler edges. The recommendation phase produces exactly 7 HotelRecommendation vertices: john gets Hotel Adlon Kempinski (score 0.75, by david), david gets Melia Berlin (score 0.40, by anna), maria gets Fairmont Le Manoir (score 0.50, by sophie), sophie gets Hotel Artemide (score 0.50, by maria), anna gets The Plaza Hotel and Hotel Artemide (both score 0.40, by david), and thomas gets The Savoy (score 0.6667, by anna). The RecommendationReport should have TotalRecommendations=7, ProfilesWithRecommendations=6, MostRecommendedHotel='Hotel Artemide' (appears in 2 recommendations), HighestSimilarityPair='david.jones@example.com|john.smith@example.com' (score 0.75), and ReportBatch='collab_q1_2026'. Important data quirk: the setup script drops HasStayed/HasUsedService linked-class constraints (which originally restrict HasStayed.out to Customers class) to allow Profile->Hotel edges, and drops Profiles.Id and Hotels.Id UNIQUE indexes to avoid null-Id insertion conflicts with built-in DemoDB records.",
+  "pi_confidence": "high"
+}

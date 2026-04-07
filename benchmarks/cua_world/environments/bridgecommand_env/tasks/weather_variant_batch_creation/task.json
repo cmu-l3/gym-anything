@@ -1,0 +1,59 @@
+{
+  "id": "weather_variant_batch_creation@1",
+  "version": "1.0",
+  "env_id": "bridgecommand_env@0.1",
+  "description": "Programmatically generate four meteorological variants of the Master Assessment scenario located at '/opt/bridgecommand/Scenarios/00_Master_Assessment/' within the same Scenarios directory. Determine the vessel's base InitialSpeed from the Master scenario's 'ownship.ini' and create new scenario directories named '01_Assessment_Clear', '02_Assessment_Haze', '03_Assessment_Fog', and '04_Assessment_Storm'. Each variant must contain copies of the Master scenario files with 'environment.ini' and 'ownship.ini' modified according to specific logic: Clear (Visibility=12.0, Weather=1, RainVisible=0, Fog=0, Speed=100% of base), Haze (Visibility=4.0, Weather=3, RainVisible=0, Fog=1, Speed=85% of base), Fog (Visibility=0.5, Weather=2, RainVisible=0, Fog=1, Speed=50% of base), and Storm (Visibility=1.0, Weather=8, RainVisible=1, Fog=0, Speed=40% of base), rounding speeds to one decimal place. Each variant directory requires a 'briefing.txt' file stating: \"Current Conditions: Visibility [V]nm, Weather Force [W]. Safe speed set to [S] kts.\" Generate a summary CSV at '/home/ga/Documents/scenario_manifest.csv' with columns for Directory, Visibility, Weather, and Speed.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/weather_variant_batch_creation/setup_task.sh",
+    "post_task": "/workspace/tasks/weather_variant_batch_creation/export_result.sh"
+  },
+  "metadata": {
+    "master_dir": "/opt/bridgecommand/Scenarios/00_Master_Assessment",
+    "variants": [
+      {
+        "name": "01_Assessment_Clear",
+        "vis": 12.0,
+        "wx": 1,
+        "rain": 0,
+        "fog": 0,
+        "speed_factor": 1.0
+      },
+      {
+        "name": "02_Assessment_Haze",
+        "vis": 4.0,
+        "wx": 3,
+        "rain": 0,
+        "fog": 1,
+        "speed_factor": 0.85
+      },
+      {
+        "name": "03_Assessment_Fog",
+        "vis": 0.5,
+        "wx": 2,
+        "rain": 0,
+        "fog": 1,
+        "speed_factor": 0.5
+      },
+      {
+        "name": "04_Assessment_Storm",
+        "vis": 1.0,
+        "wx": 8,
+        "rain": 1,
+        "fog": 0,
+        "speed_factor": 0.4
+      }
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_weather_variant_batch_creation"
+    }
+  }
+}

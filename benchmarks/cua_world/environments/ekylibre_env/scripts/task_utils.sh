@@ -43,6 +43,106 @@ wait_for_ekylibre() {
     return 1
 }
 
+# Ensure Firefox profile exists with comprehensive first-run suppression
+ensure_firefox_profile() {
+    SNAP_FF_DIR="/home/ga/snap/firefox/common/.mozilla/firefox"
+    STD_FF_DIR="/home/ga/.mozilla/firefox"
+
+    if [ -d "/snap/firefox" ] || snap list firefox 2>/dev/null | grep -q firefox; then
+        FF_PROFILE_ROOT="$SNAP_FF_DIR"
+    else
+        FF_PROFILE_ROOT="$STD_FF_DIR"
+    fi
+
+    local PROFILE_DIR="$FF_PROFILE_ROOT/ekylibre.profile"
+    mkdir -p "$PROFILE_DIR"
+
+    # Write profiles.ini if missing
+    if [ ! -f "$FF_PROFILE_ROOT/profiles.ini" ]; then
+        cat > "$FF_PROFILE_ROOT/profiles.ini" << 'FFPROFILE'
+[Install4F96D1932A9F858E]
+Default=ekylibre.profile
+Locked=1
+
+[Profile0]
+Name=ekylibre
+IsRelative=1
+Path=ekylibre.profile
+Default=1
+
+[General]
+StartWithLastProfile=1
+Version=2
+FFPROFILE
+    fi
+
+    # Always refresh user.js with comprehensive first-run suppression
+    cat > "$PROFILE_DIR/user.js" << 'USERJS'
+user_pref("browser.startup.homepage_override.mstone", "ignore");
+user_pref("browser.aboutwelcome.enabled", false);
+user_pref("browser.rights.3.shown", true);
+user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+user_pref("datareporting.policy.dataSubmissionPolicyAcceptedVersion", 2);
+user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.shell.didSkipDefaultBrowserCheckOnFirstRun", true);
+user_pref("startup.homepage_welcome_url", "");
+user_pref("startup.homepage_welcome_url.additional", "");
+user_pref("trailhead.firstrun.didSeeAboutWelcome", true);
+user_pref("app.update.enabled", false);
+user_pref("app.update.auto", false);
+user_pref("browser.vpn_promo.enabled", false);
+user_pref("browser.uitour.enabled", false);
+user_pref("extensions.pocket.enabled", false);
+user_pref("signon.rememberSignons", false);
+user_pref("signon.autofillForms", false);
+user_pref("browser.messaging-system.whatsNewPanel.enabled", false);
+user_pref("identity.fxaccounts.enabled", false);
+user_pref("browser.startup.page", 0);
+user_pref("browser.newtabpage.enabled", false);
+user_pref("browser.tabs.warnOnClose", false);
+user_pref("browser.aboutConfig.showWarning", false);
+user_pref("datareporting.healthreport.uploadEnabled", false);
+user_pref("toolkit.telemetry.enabled", false);
+user_pref("browser.newtabpage.activity-stream.showSponsored", false);
+user_pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
+user_pref("browser.places.importBookmarksHTML", false);
+user_pref("browser.bookmarks.addedImportButton", true);
+user_pref("browser.toolbars.bookmarks.visibility", "never");
+USERJS
+
+    # Fix snap Firefox data directory permissions
+    if [ "$FF_PROFILE_ROOT" = "$SNAP_FF_DIR" ]; then
+        local SNAP_FF_VERSION
+        SNAP_FF_VERSION=$(snap list firefox 2>/dev/null | awk '/firefox/{print $3}')
+        if [ -n "$SNAP_FF_VERSION" ]; then
+            mkdir -p "/home/ga/snap/firefox/$SNAP_FF_VERSION"
+        fi
+    fi
+
+    chown -R ga:ga "$(dirname "$FF_PROFILE_ROOT")" 2>/dev/null || \
+    chown -R ga:ga "$FF_PROFILE_ROOT" 2>/dev/null || true
+}
+
+# Navigate Firefox to a URL robustly (focus + address bar + type + enter)
+_navigate_firefox_to() {
+    local url="$1"
+    local WID
+    WID=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority \
+          xdotool search --class Firefox 2>/dev/null | tail -1)
+    if [ -n "$WID" ]; then
+        DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool windowactivate "$WID" 2>/dev/null || true
+        sleep 0.5
+        DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool key --window "$WID" ctrl+l 2>/dev/null || true
+        sleep 0.3
+        DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool type --clearmodifiers "$url" 2>/dev/null || true
+        sleep 0.2
+        DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool key --window "$WID" Return 2>/dev/null || true
+        return 0
+    fi
+    return 1
+}
+
 # Ensure Firefox is running with Ekylibre
 ensure_firefox_with_ekylibre() {
     local url="${1:-}"
@@ -50,36 +150,35 @@ ensure_firefox_with_ekylibre() {
         url=$(detect_ekylibre_url)
     fi
 
+    # Ensure profile exists with first-run suppression before any Firefox launch
+    ensure_firefox_profile
+
+    SNAP_FF_DIR="/home/ga/snap/firefox/common/.mozilla/firefox"
+    STD_FF_DIR="/home/ga/.mozilla/firefox"
+
+    if [ -d "/snap/firefox" ] || snap list firefox 2>/dev/null | grep -q firefox; then
+        PROFILE_PATH="$SNAP_FF_DIR/ekylibre.profile"
+    else
+        PROFILE_PATH="$STD_FF_DIR/ekylibre.profile"
+    fi
+
     # Check if Firefox is running
     if DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla"; then
-        # Firefox is running - navigate to URL
-        local WID
-        WID=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority \
-              xdotool search --class Firefox 2>/dev/null | tail -1)
-        if [ -n "$WID" ]; then
-            # Focus window and navigate
-            DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool windowactivate "$WID" 2>/dev/null || true
-            sleep 0.5
-            DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool key --window "$WID" ctrl+l 2>/dev/null || true
-            sleep 0.3
-            DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool type --clearmodifiers "$url" 2>/dev/null || true
-            DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority xdotool key --window "$WID" Return 2>/dev/null || true
-        fi
+        # Firefox is running — navigate to URL
+        _navigate_firefox_to "$url"
     else
-        # Firefox not running — launch it
+        # Firefox not running — launch it fresh
         pkill -f firefox 2>/dev/null || true
         sleep 1
 
-        SNAP_FF_DIR="/home/ga/snap/firefox/common/.mozilla/firefox"
-        STD_FF_DIR="/home/ga/.mozilla/firefox"
+        rm -f "$PROFILE_PATH/.parentlock" "$PROFILE_PATH/lock" 2>/dev/null || true
 
         if [ -d "/snap/firefox" ] || snap list firefox 2>/dev/null | grep -q firefox; then
             su - ga -c "
-                rm -f '$SNAP_FF_DIR/ekylibre.profile/.parentlock' \
-                      '$SNAP_FF_DIR/ekylibre.profile/lock' 2>/dev/null || true
+                rm -f '$PROFILE_PATH/.parentlock' '$PROFILE_PATH/lock' 2>/dev/null || true
                 DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority \
                 setsid firefox --new-instance \
-                -profile '$SNAP_FF_DIR/ekylibre.profile' \
+                -profile '$PROFILE_PATH' \
                 '$url' > /tmp/firefox_task.log 2>&1 &
             "
         else
@@ -87,14 +186,14 @@ ensure_firefox_with_ekylibre() {
                 DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority \
                 XDG_RUNTIME_DIR=/run/user/1000 \
                 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
-                setsid firefox \
-                -profile '$STD_FF_DIR/ekylibre.profile' \
+                setsid firefox --new-instance \
+                -profile '$PROFILE_PATH' \
                 '$url' > /tmp/firefox_task.log 2>&1 &
             "
         fi
 
-        # Wait for Firefox
-        for i in $(seq 1 20); do
+        # Wait for Firefox window
+        for i in $(seq 1 30); do
             if DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla"; then
                 break
             fi
@@ -103,6 +202,16 @@ ensure_firefox_with_ekylibre() {
     fi
 
     sleep 3
+
+    # Check if Firefox opened to a welcome/privacy page instead of target URL
+    # If so, forcibly navigate to the correct URL
+    local win_title
+    win_title=$(DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority wmctrl -l 2>/dev/null | grep -i "firefox\|mozilla" | head -1 || true)
+    if echo "$win_title" | grep -qiE "welcome|privacy|mozilla firefox$|new tab|about:"; then
+        echo "Detected Firefox welcome/privacy page, navigating to $url..."
+        _navigate_firefox_to "$url"
+        sleep 3
+    fi
 }
 
 # Maximize Firefox window

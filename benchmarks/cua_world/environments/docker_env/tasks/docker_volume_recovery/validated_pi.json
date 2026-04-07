@@ -1,0 +1,80 @@
+{
+    "task_id": "docker_volume_recovery@1",
+    "dataset": "Chinook",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/acme-musicstore",
+            "verified_value": "/home/ga/projects/acme-musicstore",
+            "source": "setup_task.sh line 26, export_result.sh line 10",
+            "status": "verified"
+        },
+        {
+            "key": "backup_dir",
+            "metadata_value": "/home/ga/projects/acme-musicstore/backups",
+            "verified_value": "/home/ga/projects/acme-musicstore/backups",
+            "source": "setup_task.sh line 28",
+            "status": "verified"
+        },
+        {
+            "key": "api_endpoint",
+            "metadata_value": "http://localhost:5000/api/stats",
+            "verified_value": "http://localhost:5000/api/stats",
+            "source": "setup_task.sh line 120 (@app.route definition), export_result.sh line 40",
+            "status": "verified"
+        },
+        {
+            "key": "expected_tracks",
+            "metadata_value": 3503,
+            "verified_value": 14955,
+            "source": "Actual Chinook PostgreSQL database from https://raw.githubusercontent.com/lerocha/chinook-database/master/ChinookDatabase/DataSources/Chinook_PostgreSql.sql - counted 14955 actual INSERT rows for Track table",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_artists",
+            "metadata_value": 275,
+            "verified_value": 275,
+            "source": "Actual Chinook PostgreSQL database - counted 275 actual INSERT rows for Artist table",
+            "status": "verified"
+        },
+        {
+            "key": "expected_albums",
+            "metadata_value": 347,
+            "verified_value": 347,
+            "source": "Actual Chinook PostgreSQL database - counted 347 actual INSERT rows for Album table",
+            "status": "verified"
+        },
+        {
+            "key": "min_sessions",
+            "metadata_value": 50,
+            "verified_value": 55,
+            "source": "setup_task.sh line 180 generates 'for i in {1..55}' Redis sessions. Actual minimum is 55, which satisfies the >= 50 requirement in verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "admin_user",
+            "metadata_value": "ga",
+            "verified_value": "ga",
+            "source": "setup_task.sh line 189, 195 - chown to ga user and su - ga command",
+            "status": "verified"
+        },
+        {
+            "key": "admin_password",
+            "metadata_value": "password123",
+            "verified_value": "acmepass123",
+            "source": "setup_task.sh line 40 sets POSTGRES_PASSWORD: acmepass123. Redis has no password. No reference to 'password123' anywhere in setup or app code.",
+            "status": "contradicted"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 60,
+            "verified_value": 60,
+            "source": "verifier.py line 134: 'passed = score >= 60'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the real Chinook sample database from GitHub (https://raw.githubusercontent.com/lerocha/chinook-database/master). Project directory is /home/ga/projects/acme-musicstore with backups at /home/ga/projects/acme-musicstore/backups. API endpoint is http://localhost:5000/api/stats. Database contains 275 artists and 347 albums (verified correct). Redis setup generates 55 sessions. Task runs with admin user 'ga' and PostgreSQL password 'acmepass123'. Pass threshold is 60 points. CRITICAL DISCREPANCY: Metadata claims 3503 expected tracks, but actual Chinook database has 14955 tracks. CRITICAL DISCREPANCY: Metadata claims admin_password 'password123' but actual PostgreSQL password is 'acmepass123'.",
+    "pi_confidence": "high"
+}

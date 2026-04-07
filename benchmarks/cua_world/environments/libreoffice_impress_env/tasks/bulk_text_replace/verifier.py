@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Verifier for Bulk Text Replace task
+Verifier for Bulk Text Replace task.
+Uses WHO Health Workforce Report data — replace "workforce" with "personnel".
 """
 
 import sys
@@ -20,16 +21,16 @@ logger = logging.getLogger(__name__)
 
 def verify_text_replaced(traj, env_info, task_info):
     """
-    Verify text replacement.
-    
+    Verify text replacement across WHO Health Workforce Report.
+
     Checks:
-    1. Old text "Company" is no longer present
-    2. New text "Organization" is present
+    1. Old text "workforce" is no longer present (case-insensitive)
+    2. New text "personnel" is present
     """
     copy_from_env = env_info.get('copy_from_env')
     if not copy_from_env:
         return {"passed": False, "score": 0, "feedback": "Copy function not available"}
-    
+
     container_path = "/home/ga/Documents/Presentations/replace_test.odp"
     success, presentation, error, temp_dir = copy_and_parse_presentation(
         container_path,
@@ -44,7 +45,7 @@ def verify_text_replaced(traj, env_info, task_info):
         criteria_passed = 0
         total_criteria = 2
         feedback_parts = []
-        
+
         # Collect all text from all slides
         all_text = []
         for i in range(presentation.get('slide_count', 0)):
@@ -52,30 +53,31 @@ def verify_text_replaced(traj, env_info, task_info):
             if title:
                 all_text.append(title)
             all_text.extend(bullets)
-        
+
         combined_text = ' '.join(all_text)
-        
-        # Criterion 1: "Company" should be gone or mostly gone
-        company_count = combined_text.count("Company")
-        if company_count == 0:
+        combined_lower = combined_text.lower()
+
+        # Criterion 1: "workforce" should be gone
+        workforce_count = combined_lower.count("workforce")
+        if workforce_count == 0:
             criteria_passed += 1
-            feedback_parts.append("✅ Old text 'Company' removed")
+            feedback_parts.append("Old text 'workforce' removed")
         else:
-            feedback_parts.append(f"❌ Old text 'Company' still present ({company_count} instances)")
-        
-        # Criterion 2: "Organization" should be present
-        organization_count = combined_text.count("Organization")
-        if organization_count >= 2:
+            feedback_parts.append(f"Old text 'workforce' still present ({workforce_count} instances)")
+
+        # Criterion 2: "personnel" should be present
+        personnel_count = combined_lower.count("personnel")
+        if personnel_count >= 5:
             criteria_passed += 1
-            feedback_parts.append(f"✅ New text 'Organization' present ({organization_count} instances)")
+            feedback_parts.append(f"New text 'personnel' present ({personnel_count} instances)")
         else:
-            feedback_parts.append(f"❌ New text 'Organization' not found or insufficient ({organization_count} instances)")
-        
+            feedback_parts.append(f"New text 'personnel' insufficient ({personnel_count} instances, need 5+)")
+
         score = int((criteria_passed / total_criteria) * 100)
         passed = score >= 75
-        
+
         feedback = " | ".join(feedback_parts)
-        
+
         return {
             "passed": passed,
             "score": score,

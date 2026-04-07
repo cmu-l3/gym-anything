@@ -3,6 +3,7 @@ echo "=== Setting up register_patient task ==="
 
 # Source shared utilities
 source /workspace/scripts/task_utils.sh
+wait_for_postgres
 
 # 1. Record initial patient count
 INITIAL_COUNT=$(get_patient_count)

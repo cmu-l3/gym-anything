@@ -1,0 +1,22 @@
+{
+  "id": "evaluate_road_diet_lane_reduction@1",
+  "version": "1.0",
+  "env_id": "sumo_env@0.1",
+  "description": "Evaluate a 'road diet' (lane reduction) in the Bologna Acosta network.\n\n1. Parse the compiled network file (/home/ga/SUMO_Scenarios/bologna_acosta/acosta_buslanes.net.xml) to identify the target edge. Exclude internal edges (IDs starting with ':' or function='internal'). Filter for edges with 2 or more lanes. Find the edge with the longest physical length (read from the 'length' attribute of its <lane> elements). If there's a tie, use the first alphabetically by ID.\n\n2. Run the baseline simulation using /home/ga/SUMO_Scenarios/bologna_acosta/run.sumocfg and save trip statistics to /home/ga/SUMO_Output/baseline_tripinfo.xml using the --tripinfo-output flag.\n\n3. Author a plain XML edge patch file at /home/ga/SUMO_Output/roaddiet.edg.xml that updates the target edge to have exactly 1 lane (use the numLanes attribute).\n\n4. Use netconvert to apply your patch file to the original .net.xml file, outputting to /home/ga/SUMO_Output/acosta_roaddiet.net.xml.\n\n5. Create a new SUMO config at /home/ga/SUMO_Output/roaddiet.sumocfg, identical to the original but pointing to the new network. Run it, saving tripinfo to /home/ga/SUMO_Output/roaddiet_tripinfo.xml.\n\n6. Parse both tripinfo XMLs to calculate the average trip duration (sum of 'duration' attributes divided by the number of trips). Create a plain text report at /home/ga/SUMO_Output/road_diet_report.txt containing EXACTLY these lines:\nTarget_Edge: <edge_id>\nOriginal_Lanes: <integer>\nBaseline_Average_Duration: <float>\nDiet_Average_Duration: <float>\nDuration_Increase: <float>",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/evaluate_road_diet_lane_reduction/setup_task.sh",
+    "post_task": "/workspace/tasks/evaluate_road_diet_lane_reduction/export_result.sh"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_evaluate_road_diet_lane_reduction"
+    }
+  }
+}

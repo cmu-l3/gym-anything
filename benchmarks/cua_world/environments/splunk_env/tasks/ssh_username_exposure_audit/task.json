@@ -1,0 +1,27 @@
+{
+  "id": "ssh_username_exposure_audit@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Create a saved report named 'SSH_Username_Exposure_Audit' that identifies excessively long SSH username attempts (over 15 characters) in the 'security_logs' index. The report must calculate the length of the 'user' field, filter for lengths greater than 15, and compute the count of these events grouped by 'src_ip' and the username length. For privacy compliance, the final output table must contain only 'src_ip', the calculated length, and the event 'count', excluding the 'user' string and '_raw' data. Access Splunk at http://localhost:8000 using 'admin' / 'SplunkAdmin1!'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ssh_username_exposure_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/ssh_username_exposure_audit/export_result.sh"
+  },
+  "metadata": {
+    "expected_report_name": "SSH_Username_Exposure_Audit",
+    "expected_index": "security_logs",
+    "length_threshold": 15
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ssh_username_exposure_audit"
+    }
+  }
+}

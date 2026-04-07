@@ -1,0 +1,35 @@
+{
+  "id": "sakila_geospatial_customer_rebalancing@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "The Logistics Manager needs to optimize DVD shipping costs by assigning customers to the nearest physical store. Import the geospatial data from /home/ga/Documents/city_coordinates.csv into a new staging table named sakila.geo_staging and use it to update the location column in the sakila.address table by matching on City and Country names. Reassign every customer in sakila.customer to the store closest to them based on the distance between their address and the store locations: Store 1 in Lethbridge, Canada (49.6935, -112.8418) and Store 2 in Woodridge, Australia (-27.6333, 153.1000). Export a report to /home/ga/Documents/exports/logistics_optimization.csv containing customer_name, address, city, country, assigned_store_id, and distance_km, sorted by distance descending.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_geospatial_customer_rebalancing/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_geospatial_customer_rebalancing/export_result.sh"
+  },
+  "metadata": {
+    "store1_coords": {
+      "lat": 49.6935,
+      "lon": -112.8418
+    },
+    "store2_coords": {
+      "lat": -27.6333,
+      "lon": 153.1
+    },
+    "expected_output_file": "/home/ga/Documents/exports/logistics_optimization.csv",
+    "staging_table": "geo_staging",
+    "target_table": "address"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_geospatial_rebalancing"
+    }
+  }
+}

@@ -1,68 +1,104 @@
-# Note: This environment is Windows-based. The task.json points to .ps1 files.
-# However, for consistency with the prompt requirements, I am providing the content 
-# that would go into the setup script. In a real deployment, this logic is inside 
-# the setup_task.ps1 file referenced in task.json.
+# Setup script for evaluate_sinus_proximity task.
+# Launches Blue Sky Plan fresh, sets up Mesa OpenGL, dismisses dialogs,
+# and verifies DICOM data exists for the agent to import.
 
-# --- CONTENT OF C:\workspace\tasks\evaluate_sinus_proximity\setup_task.ps1 ---
-<#
-.SYNOPSIS
-Sets up the evaluate_sinus_proximity task in Blue Sky Plan.
-#>
-
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
-Write-Output "=== Setting up Sinus Evaluation Task ==="
 
-# 1. Timestamp for anti-gaming
-$startTime = Get-Date -UFormat %s
-$startTime | Out-File -Encoding ASCII "C:\tmp\task_start_time.txt"
-
-# 2. Cleanup previous runs
-Remove-Item -Path "C:\Users\Docker\Documents\sinus_evaluation_report.txt" -ErrorAction SilentlyContinue
-Remove-Item -Path "C:\tmp\task_result.json" -ErrorAction SilentlyContinue
-
-# 3. Create Ground Truth (Hidden)
-# In a real scenario, this would be based on the specific DICOM loaded.
-# Here we mock the ground truth for the default training case.
-$groundTruthDir = "C:\workspace\ground_truth"
-if (-not (Test-Path $groundTruthDir)) {
-    New-Item -ItemType Directory -Path $groundTruthDir -Force
+$logPath = "C:\Users\Docker\task_pre_task_evaluate_sinus_proximity.log"
+try {
+    Start-Transcript -Path $logPath -Force | Out-Null
+} catch {
+    Write-Host "WARNING: Start-Transcript failed: $($_.Exception.Message)"
 }
 
-$groundTruth = @{
-    "pos_3_height_mm" = 8.5
-    "pos_14_height_mm" = 12.2
-    "pos_3_decision" = "Sinus lift required"
-    "pos_14_decision" = "Standard placement"
+try {
+    Write-Host "=== Setting up evaluate_sinus_proximity task ==="
+
+    # Load shared helpers
+    $utils = "C:\workspace\scripts\task_utils.ps1"
+    if (-not (Test-Path $utils)) { throw "Missing task utils: $utils" }
+    . $utils
+
+    # ---- Close any open Blue Sky Plan instances ----
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    Get-Process | Where-Object {
+        $_.ProcessName -like "*BlueSky*" -or $_.ProcessName -like "*BSP*" -or $_.ProcessName -like "*nats-server*"
+    } | Stop-Process -Force -ErrorAction SilentlyContinue
+    $ErrorActionPreference = $prevEAP
+    Start-Sleep -Seconds 2
+
+    # Delete crash log so BSP doesn't show crash dialog
+    Remove-Item "C:\Users\Docker\AppData\Local\BlueSkyBio\Blue Sky Plan\crashinfo.log" -Force -ErrorAction SilentlyContinue
+
+    # ---- Ensure output directory exists ----
+    $outputDir = "C:\Users\Docker\Documents"
+    New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+
+    # ---- Verify DICOM data exists ----
+    $dicomDir = "C:\Users\Docker\Documents\DentalDICOM"
+    if (Test-Path $dicomDir) {
+        $dicomFiles = @(Get-ChildItem -Path $dicomDir -File -ErrorAction SilentlyContinue)
+        Write-Host "DICOM directory found: $dicomDir ($($dicomFiles.Count) files)"
+    } else {
+        Write-Host "WARNING: DICOM directory not found at $dicomDir"
+        # Also check workspace data path
+        $altDicom = "C:\workspace\data\dicom"
+        if (Test-Path $altDicom) {
+            Write-Host "Found DICOM at alternate path: $altDicom"
+        }
+    }
+
+    # ---- Ensure Mesa OpenGL is set up (required for software rendering in QEMU) ----
+    try { Setup-MesaOpenGL } catch { Write-Host "WARNING: Setup-MesaOpenGL: $($_.Exception.Message)" }
+
+    # ---- Find and launch Blue Sky Plan ----
+    $bspExe = Find-BlueSkyPlanExe
+    Write-Host "Blue Sky Plan executable: $bspExe"
+    Write-Host "Launching Blue Sky Plan..."
+    Launch-BlueSkyPlanInteractive -BSPExe $bspExe -WaitSeconds 25
+
+    # ---- Dismiss any startup dialogs ----
+    $dismissScript = "C:\workspace\scripts\dismiss_dialogs.ps1"
+    if (Test-Path $dismissScript) {
+        Write-Host "Dismissing dialogs..."
+        & $dismissScript
+    }
+
+    # ---- Additional dialog cleanup: wait and retry ----
+    # BSP login flow can be delayed; do a second pass
+    Start-Sleep -Seconds 5
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $lateEdge = Get-Process -Name "msedge", "msedgewebview2" -ErrorAction SilentlyContinue
+    if ($null -ne $lateEdge -and @($lateEdge).Count -gt 0) {
+        Write-Host "Late Edge detected after dismiss_dialogs, cleaning up..."
+        $lateEdge | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+        # Close login popup
+        PyAutoGUI-Click -X 814 -Y 255
+        Start-Sleep -Seconds 1
+        Get-Process -Name "msedge", "msedgewebview2" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+        # Back button in case click hit hex grid
+        PyAutoGUI-Click -X 322 -Y 104
+        Start-Sleep -Seconds 1
+    }
+    $ErrorActionPreference = $prevEAP
+
+    # ---- Verify Blue Sky Plan is running ----
+    $bspProc = Get-Process | Where-Object {
+        $_.ProcessName -like "*BlueSky*" -or $_.ProcessName -like "*BSP*" -or $_.ProcessName -like "*Launcher*"
+    } | Select-Object -First 1
+    if ($bspProc) {
+        Write-Host "Blue Sky Plan is running (PID: $($bspProc.Id))"
+    } else {
+        Write-Host "WARNING: Blue Sky Plan process not found after launch."
+    }
+
+    Write-Host "=== evaluate_sinus_proximity task setup complete ==="
+    Write-Host "Agent should import DICOM data from C:\Users\Docker\Documents\DentalDICOM"
+} finally {
+    try { Stop-Transcript | Out-Null } catch { }
 }
-$groundTruth | ConvertTo-Json | Out-File -Encoding ASCII "$groundTruthDir\sinus_heights.json"
-
-# 4. Ensure Blue Sky Plan is running
-$bspProcess = Get-Process -Name "BlueSkyPlan" -ErrorAction SilentlyContinue
-if (-not $bspProcess) {
-    Write-Output "Starting Blue Sky Plan..."
-    Start-Process "C:\Program Files\Blue Sky Bio\Blue Sky Plan\BlueSkyPlan.exe"
-    Start-Sleep -Seconds 15
-}
-
-# 5. Wait for window and maximize (using helper if available, or just waiting)
-# Assuming a helper script 'window_utils.ps1' exists or standard tools
-# Here we simulate the wait
-Write-Output "Waiting for application to be ready..."
-Start-Sleep -Seconds 5
-
-# 6. Load Data (Simulated keystrokes if not loadable via CLI)
-# Assuming the default case loads on start or we trigger a load
-# Ideally, we open a specific project file
-$projectPath = "C:\workspace\data\Default_Patient.bsp"
-if (Test-Path $projectPath) {
-    Start-Process "C:\Program Files\Blue Sky Bio\Blue Sky Plan\BlueSkyPlan.exe" -ArgumentList $projectPath
-    Start-Sleep -Seconds 10
-}
-
-# 7. Initial Screenshot
-# Uses a screen capture tool available in the env (e.g., nircmd or built-in)
-# powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^{PRTSC}')"
-# For this env, we assume 'scrot' or similar is not native Windows, but 'nircmd' might be.
-# We'll rely on the framework's automatic recording, but creating a marker file is good.
-
-Write-Output "=== Task setup complete ==="

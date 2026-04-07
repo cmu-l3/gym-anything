@@ -60,8 +60,14 @@ if ! pgrep -f firefox > /dev/null; then
     su - ga -c "DISPLAY=:1 firefox '$DHIS2_URL' > /tmp/firefox_task.log 2>&1 &"
     sleep 8
 else
-    # Navigate home
-    su - ga -c "DISPLAY=:1 firefox '$DHIS2_URL' > /dev/null 2>&1 &" 2>/dev/null || true
+    # Navigate existing Firefox to DHIS2 URL using xdotool (avoids "Close Firefox" dialog)
+    DISPLAY=:1 wmctrl -a "Mozilla Firefox" 2>/dev/null || DISPLAY=:1 wmctrl -a "firefox" 2>/dev/null || true
+    sleep 0.5
+    su - ga -c "DISPLAY=:1 xdotool key ctrl+l" 2>/dev/null || true
+    sleep 0.3
+    su - ga -c "DISPLAY=:1 xdotool type --clearmodifiers '$DHIS2_URL'" 2>/dev/null || true
+    sleep 0.2
+    su - ga -c "DISPLAY=:1 xdotool key Return" 2>/dev/null || true
     sleep 4
 fi
 

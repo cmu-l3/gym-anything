@@ -1,0 +1,37 @@
+{
+  "id": "sakila_payment_reconciliation_audit@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "The Sakila DVD rental company's annual audit requires reconciling July 2005 internal payment records against the external payment processor's transaction log at /home/ga/Documents/imports/processor_transactions.csv. Using MySQL (host: localhost, user: ga, password: password123), import the processor CSV into a staging table sakila.processor_transactions, handling any data quality issues encountered during import.\n\nCreate a view v_payment_reconciliation that matches every July 2005 record from both sources using customer email (via sakila.customer) and amount (within +/-$0.50 tolerance) with dates within 2 days. Classify each record as: MATCHED, DATE_MISMATCH, AMOUNT_MISMATCH, INTERNAL_ONLY, EXTERNAL_ONLY, or DUPLICATE_EXTERNAL. The view must include columns: match_status, payment_id, txn_id, customer_id, internal_amount, external_amount, internal_date, external_date.\n\nCreate a stored procedure sp_apply_corrections that marks DUPLICATE_EXTERNAL rows (set status='DUPLICATE' in processor_transactions), adjusts AMOUNT_MISMATCH payment amounts to match processor values, and logs every correction into an audit_corrections table with columns for correction_type, record_ref, old_value, new_value, and corrected_at timestamp.\n\nCreate and populate a table reconciliation_summary with one row per match_status category showing category, record_count, total_internal_amount, total_external_amount, and net_difference.\n\nExport the reconciliation view to /home/ga/Documents/exports/reconciliation_report.csv and the summary to /home/ga/Documents/exports/reconciliation_summary.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 3600,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_payment_reconciliation_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_payment_reconciliation_audit/export_result.sh"
+  },
+  "metadata": {
+    "target_database": "sakila",
+    "staging_table": "processor_transactions",
+    "view_name": "v_payment_reconciliation",
+    "procedure_name": "sp_apply_corrections",
+    "summary_table": "reconciliation_summary",
+    "audit_table": "audit_corrections",
+    "input_csv": "/home/ga/Documents/imports/processor_transactions.csv",
+    "output_files": {
+      "reconciliation_csv": "/home/ga/Documents/exports/reconciliation_report.csv",
+      "summary_csv": "/home/ga/Documents/exports/reconciliation_summary.csv"
+    },
+    "ground_truth_file": "/tmp/reconciliation_ground_truth.json",
+    "match_categories": ["MATCHED", "DATE_MISMATCH", "AMOUNT_MISMATCH", "INTERNAL_ONLY", "EXTERNAL_ONLY", "DUPLICATE_EXTERNAL"]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_payment_reconciliation"
+    }
+  }
+}

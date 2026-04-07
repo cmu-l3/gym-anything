@@ -1,0 +1,28 @@
+{
+  "id": "ack_capture_db_update@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Implement a closed-loop order interface using a channel named 'Order_Closed_Loop'. The channel must receive HL7 ORM messages on TCP port 6661 and forward them to a Lab Simulator at localhost:6670. Capture the Reference ID from the MSA-3 field of the simulator's ACK response and update the 'lab_orders' table in the 'mirthdb' PostgreSQL database (user: postgres, pass: postgres). Set the 'lab_reference_number' column to the captured ID where 'order_control_id' matches the message's Control ID (MSH-10). A sample order file is available at /home/ga/assets/sample_order.hl7 (Control ID: ORD-001).",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ack_capture_db_update/setup_task.sh",
+    "post_task": "/workspace/tasks/ack_capture_db_update/export_result.sh"
+  },
+  "metadata": {
+    "source_port": 6661,
+    "dest_port": 6670,
+    "db_connection": "jdbc:postgresql://nextgen-postgres:5432/mirthdb",
+    "sample_control_id": "ORD-001"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ack_capture_db_update"
+    }
+  }
+}

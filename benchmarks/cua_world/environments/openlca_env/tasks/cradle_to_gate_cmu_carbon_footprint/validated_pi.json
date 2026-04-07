@@ -1,0 +1,129 @@
+{
+    "task_id": "cradle_to_gate_cmu_carbon_footprint@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "database_name",
+            "metadata_value": "CMU_Footprint",
+            "verified_value": "CMU_Footprint",
+            "source": "Task instruction — agent is told to create this database. Consistent with task description. Verified no pre-existing databases in environment (initial_db_count=0 from live testing).",
+            "status": "verified"
+        },
+        {
+            "key": "required_processes",
+            "metadata_value": ["Cement Production", "Aggregate Processing", "Concrete Mixing", "Block Molding"],
+            "verified_value": ["Cement Production", "Aggregate Processing", "Concrete Mixing", "Block Molding"],
+            "source": "Task instruction — these exact 4 process names are specified in the task description. Verifier checks for keyword substrings (cement, aggregate, concrete/mixing, molding/block) via Derby query on TBL_PROCESSES.",
+            "status": "verified"
+        },
+        {
+            "key": "required_product_flows",
+            "metadata_value": ["Portland Cement", "Mixed Aggregate", "Fresh Concrete", "CMU Block", "Limestone", "Coal", "Raw Gravel", "Diesel Fuel", "Process Water"],
+            "verified_value": ["Portland Cement", "Mixed Aggregate", "Fresh Concrete", "CMU Block", "Limestone", "Coal", "Raw Gravel", "Diesel Fuel", "Process Water"],
+            "source": "Task instruction — all 9 product flow names are explicitly stated in the task description. Cross-referenced with the 4 process specifications: Cement Production uses Limestone+Coal, outputs Portland Cement; Aggregate Processing uses Raw Gravel+Diesel Fuel, outputs Mixed Aggregate; Concrete Mixing uses Portland Cement+Mixed Aggregate+Process Water, outputs Fresh Concrete; Block Molding uses Fresh Concrete+Diesel Fuel, outputs CMU Block. Note: 'Diesel Fuel' is shared between Aggregate Processing and Block Molding.",
+            "status": "verified"
+        },
+        {
+            "key": "required_elementary_flow",
+            "metadata_value": "Carbon Dioxide",
+            "verified_value": "Carbon Dioxide",
+            "source": "Task instruction — description says 'elementary emission output 0.83 kg Carbon Dioxide to air'. This is the only elementary flow in the model. Important quirk: TRACI 2.1 uses FEDEFL naming (e.g. 'Carbon dioxide' with lowercase 'd' and specific UUIDs). A manually created flow named 'Carbon Dioxide' may not match TRACI characterization factors unless OpenLCA performs case-insensitive or fuzzy matching.",
+            "status": "verified"
+        },
+        {
+            "key": "product_system_name",
+            "metadata_value": "CMU_Production_System",
+            "verified_value": "CMU_Production_System",
+            "source": "Task instruction — description explicitly states 'Create a product system CMU_Production_System'. Verifier checks product_system_count >= 1 via Derby query on TBL_PRODUCT_SYSTEMS.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_output_file",
+            "metadata_value": "/home/ga/LCA_Results/cmu_footprint.csv",
+            "verified_value": "/home/ga/LCA_Results/cmu_footprint.csv",
+            "source": "Live testing confirmed: /home/ga/LCA_Results/ directory exists, is owned by ga:ga, and is writable (touch test passed). export_result.sh checks this exact path. Task description tells agent to 'export results to ~/LCA_Results/cmu_footprint.csv'.",
+            "status": "verified"
+        },
+        {
+            "key": "lcia_method",
+            "metadata_value": "TRACI 2.1",
+            "verified_value": "TRACI 2.1",
+            "source": "Live testing confirmed: ~/LCA_Imports/lcia_methods.zip (8,370,979 bytes, valid zip) contains lcia_methods/ed2353f9-9db5-32b0-b6a8-7bf29f6f46c8.json with 'name': 'TRACI 2.1', version 1.1.2. Built from LCIA Formatter v1.1.3 and FEDEFL v1.2.3. Source: EPA TRACI 2.1 (Bare 2012), downloaded from Figshare (ndownloader.figshare.com/files/46211520).",
+            "status": "verified"
+        },
+        {
+            "key": "impact_category",
+            "metadata_value": "Global Warming",
+            "verified_value": "Global warming",
+            "source": "Live testing confirmed: TRACI 2.1 method JSON lists the impact category as 'Global warming' (lowercase 'w'), ID d21c7132-2861-3d6b-9bc8-590627a087b4. Metadata says 'Global Warming' (uppercase W). The case difference is minor and does not affect the verifier (which uses case-insensitive grep). The agent should look for 'Global warming' in the OpenLCA LCIA calculation dialog.",
+            "status": "verified"
+        },
+        {
+            "key": "key_exchanges.cement_limestone_input_kg",
+            "metadata_value": 1.52,
+            "verified_value": 1.52,
+            "source": "Designer-specified value consistent with task description. Realistic: Portland cement production uses ~1.5-1.7 kg limestone per kg clinker. The IPCC default CaO fraction in clinker is 0.646; stoichiometric CaCO3/CaO = 100/56 = 1.786, giving ~1.15 kg CaCO3 per kg clinker from calcination alone. With other limestone uses and losses, 1.52 is within industry range.",
+            "status": "verified"
+        },
+        {
+            "key": "key_exchanges.cement_coal_input_kg",
+            "metadata_value": 0.092,
+            "verified_value": 0.092,
+            "source": "Designer-specified value consistent with task description. Realistic: typical kiln fuel consumption is 3.0-5.0 GJ/tonne clinker. Coal has ~25-30 GJ/tonne, giving 0.10-0.20 kg coal/kg clinker. 0.092 is slightly below this range but reasonable for a simplified model.",
+            "status": "verified"
+        },
+        {
+            "key": "key_exchanges.cement_co2_emission_kg",
+            "metadata_value": 0.83,
+            "verified_value": 0.83,
+            "source": "Designer-specified value consistent with task description. The task says 'representing calcination' but 0.83 is actually closer to total direct CO2 (calcination + fuel combustion). IPCC calcination-only default is ~0.507 kg CO2/kg clinker. Total direct emissions from cement are ~0.8-0.9 kg CO2/kg cement per EPA (https://www.epa.gov/system/files/documents/2021-10/cement-carbon-intensities-fact-sheet.pdf) and IPCC (https://www.ipcc-nggip.iges.or.jp/public/gp/bgp/3_1_Cement_Production.pdf). The value 0.83 is realistic for total direct emissions.",
+            "status": "verified"
+        },
+        {
+            "key": "key_exchanges.aggregate_gravel_input_kg",
+            "metadata_value": 1.05,
+            "verified_value": 1.05,
+            "source": "Designer-specified value consistent with task description. Represents ~5% processing loss (1.05 kg in -> 1.0 kg out), which is typical for aggregate crushing and screening operations.",
+            "status": "verified"
+        },
+        {
+            "key": "key_exchanges.mixing_cement_input_kg",
+            "metadata_value": 0.15,
+            "verified_value": 0.15,
+            "source": "Designer-specified value consistent with task description. Represents 15% cement content in the concrete mix. Standard CMU concrete mixes use 10-15% cement (https://www.cmha.org/resource/cmu-tec-001/). The mix design sums to 100%: 0.15 + 0.75 + 0.10 = 1.00 kg per kg fresh concrete.",
+            "status": "verified"
+        },
+        {
+            "key": "key_exchanges.mixing_aggregate_input_kg",
+            "metadata_value": 0.75,
+            "verified_value": 0.75,
+            "source": "Designer-specified value consistent with task description. Represents 75% aggregate in the mix. Standard CMU mixes are 70-80% aggregate. Mass balance: 0.15 + 0.75 + 0.10 = 1.00 (perfectly balanced).",
+            "status": "verified"
+        },
+        {
+            "key": "key_exchanges.mixing_water_input_kg",
+            "metadata_value": 0.10,
+            "verified_value": 0.10,
+            "source": "Designer-specified value consistent with task description. Represents 10% water (w/b mass ratio ~0.67 relative to cement). CMU mixes are relatively dry compared to poured concrete. Mass balance check: 0.15 + 0.75 + 0.10 = 1.00.",
+            "status": "verified"
+        },
+        {
+            "key": "key_exchanges.molding_concrete_input_kg",
+            "metadata_value": 17.2,
+            "verified_value": 17.2,
+            "source": "Designer-specified value consistent with task description. A standard 8x8x16 inch normal-weight hollow CMU weighs 32-38 lbs (14.5-17.2 kg). 17.2 kg = 37.9 lbs, at the upper end for a normal-weight block. Reference: CMHA (https://www.cmha.org/resource/cmu-tec-001/) and multiple industry sources confirm this range.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_gwp_range_kg_co2eq",
+            "metadata_value": [1.5, 3.0],
+            "verified_value": [1.5, 3.0],
+            "source": "Independently computed: CO2 per CMU = 0.83 kg CO2/kg cement * 0.15 kg cement/kg concrete * 17.2 kg concrete/CMU = 2.1414 kg CO2. TRACI 2.1 GWP factor for CO2 = 1.0 kg CO2-eq/kg. Expected GWP = 2.1414 kg CO2-eq. This falls within [1.5, 3.0]. IMPORTANT CAVEAT: This assumes the agent-created 'Carbon Dioxide' elementary flow is correctly matched to TRACI 2.1 characterization factors. If the flow name or UUID doesn't match FEDEFL conventions, the actual GWP result could be 0.0. The range [1.5, 3.0] is generous to account for rounding, alternative linking paths, or partial flow matching.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task requires building a cradle-to-gate LCA model in OpenLCA for a concrete masonry unit (CMU). The agent must create a new database named 'CMU_Footprint' with exactly four unit processes: 'Cement Production' (1 kg Portland Cement output, 1.52 kg Limestone + 0.092 kg Coal inputs, 0.83 kg Carbon Dioxide elementary emission to air), 'Aggregate Processing' (1 kg Mixed Aggregate output, 1.05 kg Raw Gravel + 0.003 kg Diesel Fuel inputs), 'Concrete Mixing' (1 kg Fresh Concrete output, 0.15 kg Portland Cement + 0.75 kg Mixed Aggregate + 0.10 kg Process Water inputs), and 'Block Molding' (17.2 kg CMU Block output, 17.2 kg Fresh Concrete + 0.021 kg Diesel Fuel inputs). Nine product flows and one elementary flow ('Carbon Dioxide') must be created. The product system must be named 'CMU_Production_System' with 'Block Molding' as reference process and all upstream processes linked. The LCIA methods zip at ~/LCA_Imports/lcia_methods.zip contains TRACI 2.1 (v1.1.2) with 9 impact categories; the relevant one is 'Global warming' (note: lowercase 'w'). The expected GWP result is approximately 2.14 kg CO2-eq per CMU block (computed as 0.83 * 0.15 * 17.2 = 2.1414). Results must be exported to ~/LCA_Results/cmu_footprint.csv. The CSV should contain keywords like 'Global Warming' or 'GWP'. All data is designer-specified (synthetic), not from external databases. The only elementary flow contributing to GWP is the Carbon Dioxide emission from the Cement Production process.",
+    "pi_confidence": "high"
+}

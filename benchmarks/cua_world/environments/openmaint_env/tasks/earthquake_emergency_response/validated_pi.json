@@ -1,0 +1,73 @@
+{
+  "task_id": "earthquake_emergency_response@1",
+  "dataset": "OpenMaint 2.4 demo database (demo.dump.xz shipped with Docker image itmicus/cmdbuild:om-2.4-4.1.0)",
+  "case_id": null,
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "occupation",
+      "metadata_value": "Maintenance and Repair Workers, General",
+      "verified_value": "Maintenance and Repair Workers, General",
+      "source": "BLS OES page https://www.bls.gov/oes/2023/may/oes499071.htm confirms SOC 49-9071 title is exactly 'Maintenance and Repair Workers, General'. This matches the metadata.",
+      "status": "verified"
+    },
+    {
+      "key": "soc_code",
+      "metadata_value": "49-9071.00",
+      "verified_value": "49-9071.00",
+      "source": "BLS Standard Occupational Classification and O*NET (https://www.onetcodeconnector.org/ccreport/49-9071.00) both confirm SOC 49-9071.00 maps to 'Maintenance and Repair Workers, General'. Task involves building maintenance, work orders, and facility management — core duties of this occupation.",
+      "status": "verified"
+    },
+    {
+      "key": "industry",
+      "metadata_value": "Commercial Property / Facility Management",
+      "verified_value": "Commercial Property / Facility Management",
+      "source": "OpenMaint is a CMMS (Computerized Maintenance Management System) used for facility management. The demo database contains office buildings, residential buildings, and maintenance work orders — consistent with commercial property / facility management industry.",
+      "status": "verified"
+    },
+    {
+      "key": "expected_new_wos",
+      "metadata_value": 3,
+      "verified_value": 3,
+      "source": "Verified by tracing setup_task.sh logic: severity_order = ['severe', 'moderate', 'minor', 'severe', 'minor']. The task description requires WOs for severe (Critical) and moderate (High) buildings only. With 5 buildings: buildings[0]=severe, buildings[1]=moderate, buildings[3]=severe => 2 Critical + 1 High = 3 new WOs. Minor buildings (buildings[2], buildings[4]) get no WOs. Confirmed against live environment: baseline has 4 existing WOs (including contamination trap), so 3 new WOs would bring total to 7.",
+      "status": "verified"
+    },
+    {
+      "key": "expected_new_floors",
+      "metadata_value": 1,
+      "verified_value": 1,
+      "source": "The assessment report designates exactly one building as the EOC (buildings[2] = CH01 - Chalman House). Task requires creating one floor 'EOC — Temporary Operations' (code FLR-EOC-01) under this building. Confirmed in live environment: baseline has 25 existing floors, and the generated report contains exactly one '** DESIGNATED EMERGENCY OPERATIONS CENTER **' marker.",
+      "status": "verified"
+    },
+    {
+      "key": "expected_new_rooms",
+      "metadata_value": 3,
+      "verified_value": 3,
+      "source": "Task description specifies exactly 3 rooms: RM-EOC-CMD (EOC Command Room), RM-EOC-COM (EOC Communications Hub), RM-EOC-SUP (EOC Supply Staging). This is hardcoded in the task description and the assessment report. Confirmed: baseline has 82 existing rooms.",
+      "status": "verified"
+    },
+    {
+      "key": "contamination_wo_code",
+      "metadata_value": "WO-SEISMIC-TEST",
+      "verified_value": "WO-SEISMIC-TEST",
+      "source": "Verified in live environment. The setup script creates a WO with ShortDescr='WO-SEISMIC-TEST: Annual seismic sensor calibration'. Live API response confirmed: id=434058, Number='CM.000.000.004', ShortDescr='WO-SEISMIC-TEST: Annual seismic sensor calibration', Notes='Routine quarterly check of triaxial accelerometers and data loggers — All buildings', FlowStatus=Running, Priority=null (low was set but field expects lookup ID). The WO appears in the Corrective Maintenance list as 'CM.000.000.004 - WO-SEISMIC-TEST: Annual seismic sensor calibration'.",
+      "status": "verified"
+    },
+    {
+      "key": "eoc_floor_code",
+      "metadata_value": "FLR-EOC-01",
+      "verified_value": "FLR-EOC-01",
+      "source": "This is the code specified in the task description for the new floor. The Floor class has a 'Code' attribute (type: string) confirmed via live API introspection of Floor class attributes. The agent must enter this exact code when creating the floor record.",
+      "status": "verified"
+    },
+    {
+      "key": "eoc_room_codes",
+      "metadata_value": ["RM-EOC-CMD", "RM-EOC-COM", "RM-EOC-SUP"],
+      "verified_value": ["RM-EOC-CMD", "RM-EOC-COM", "RM-EOC-SUP"],
+      "source": "These are the codes specified in the task description. The Room class has a 'Code' attribute (type: string) and a 'Floor' reference attribute (type: reference) confirmed via live API introspection. The agent must create 3 Room records with these codes, linked to the FLR-EOC-01 floor.",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The OpenMaint demo database contains exactly 5 buildings returned in this order by the API: (1) WB01 'WB01 - Office Building 01' in Florence at Mainstreet 12/1 — assigned SEVERE damage, (2) WB02 'WB02 - Office Building 02' in Florence at Mainstreet 12/2 — assigned MODERATE damage, (3) CH01 'CH01 - Chalman House' in Red Bank at 3080 Granville Lane — assigned MINOR damage and designated as the Emergency Operations Center (EOC), (4) WB14 'WB14 - Duplex Apartment 14' in Rome at 77A Long Lane — assigned SEVERE damage, (5) TT01 'TT01 - Tecnoteca headquarters' in Tavagnacco at Via L'Aquila 1/A — assigned MINOR damage. The earthquake assessment report file is generated dynamically using these actual building names and placed at /home/ga/Desktop/earthquake_assessment.txt. The agent must perform these actions: (A) Append '| EARTHQUAKE STATUS: RED — DO NOT OCCUPY' to the Description field of WB01 and WB14 (the two SEVERE buildings). (B) Append '| EARTHQUAKE STATUS: YELLOW — LIMITED OCCUPANCY' to the Description field of WB02 (the MODERATE building). (C) Append '| EARTHQUAKE STATUS: GREEN — CLEARED' to the Description fields of CH01 and TT01 (the two MINOR buildings). (D) Create 2 Critical priority corrective maintenance work orders for the SEVERE buildings with subject containing 'EARTHQUAKE: Structural Assessment'. (E) Create 1 High priority corrective maintenance work order for the MODERATE building with subject containing 'EARTHQUAKE: MEP Systems Inspection'. (F) Do NOT create work orders for the MINOR buildings CH01 and TT01. (G) Create 1 new Floor record with code 'FLR-EOC-01' and description 'EOC — Temporary Operations' under building CH01 (the EOC). (H) Create 3 Room records under that floor: RM-EOC-CMD (EOC Command Room), RM-EOC-COM (EOC Communications Hub), RM-EOC-SUP (EOC Supply Staging). (I) A pre-existing contamination-trap work order exists: 'WO-SEISMIC-TEST: Annual seismic sensor calibration' (Number CM.000.000.004, id 434058). It is a routine calibration WO that must NOT be modified, closed, or deleted. Key technical details: Work orders are created via the 'Corrective Maintenance' process (class CorrectiveMaint) accessible from the sidebar under 'Maintenance management > CORRECTIVE MAINTENANCE > Corrective maintenance'. The Subject/title field is 'ShortDescr'. Buildings are selected via the 'Site' lookup field on the WO form. The Floor class has a 'Building' reference field for linking floors to buildings. The Room class has a 'Floor' reference field for linking rooms to floors. The baseline environment has 4 existing WOs, 25 existing floors, and 82 existing rooms. In the OpenMaint UI, buildings appear in the sidebar under 'Facilities and assets > Locations > Building', floors under 'Floor', and rooms under 'Room'. The Building 'Description' field (which shows as the name in the UI) is what must be appended with earthquake status — e.g., original 'WB01 - Office Building 01' becomes 'WB01 - Office Building 01 | EARTHQUAKE STATUS: RED — DO NOT OCCUPY'.",
+  "pi_confidence": "high"
+}

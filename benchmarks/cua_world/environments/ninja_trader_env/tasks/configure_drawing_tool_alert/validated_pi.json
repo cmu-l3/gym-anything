@@ -1,0 +1,45 @@
+{
+    "task_id": "configure_drawing_tool_alert@1",
+    "dataset": "Yahoo Finance SPY Historical Data (2023-2024)",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "instrument",
+            "metadata_value": "SPY",
+            "verified_value": "SPY",
+            "source": "Task description, setup scripts, and SPY.Last.txt data file confirmed. SPY is the S&P 500 ETF Trust with real historical daily OHLCV data from Yahoo Finance spanning 2023-2024.",
+            "status": "verified"
+        },
+        {
+            "key": "drawing_tool",
+            "metadata_value": "HorizontalLine",
+            "verified_value": "Horizontal Line (internal XML representation: HorizontalLine)",
+            "source": "NinjaTrader 8 documentation confirms 'Horizontal Line' is the official drawing tool name. Export verifier script searches for 'HorizontalLine' in XML workspace files, indicating this is the correct XML serialization format. UI displays as 'Horizontal Line' with space, but internal representation is camelCase.",
+            "status": "verified"
+        },
+        {
+            "key": "price_level",
+            "metadata_value": 500.0,
+            "verified_value": 500.0,
+            "source": "Task description explicitly states: 'Place the line exactly at the $500.00 price level'. Verifier script accepts price values matching <Y>500.0</Y> or <Y>500</Y> in XML.",
+            "status": "verified"
+        },
+        {
+            "key": "price_tolerance",
+            "metadata_value": 0.05,
+            "verified_value": "1.0 (approximately, or more precisely 0.0 to 1.0 range from 499.0 to 500.0)",
+            "source": "Verifier script (export_result.ps1 line 46) uses regex: '<Y[^>]*>(499\\.\\d+|500(\\.0+)?)</Y>' which accepts prices from 499.0 to 500.0 (inclusive). This tolerance of ±1.0 contradicts the metadata claim of ±0.05. The price_tolerance metadata value is NOT used anywhere in the verification logic.",
+            "status": "contradicted"
+        },
+        {
+            "key": "alert_condition_pattern",
+            "metadata_value": "Cross.*Above",
+            "verified_value": "Cross.*Above (matches: 'Cross Above', 'Crosses Above', 'CrossAbove')",
+            "source": "NinjaTrader 8 alert condition interface offers 'Crosses Above' and 'Cross Above' options for drawing tool alerts (confirmed via forum posts and official documentation). The regex pattern 'Cross.*Above' correctly matches both variations. Verifier script checks for both 'CrossAbove' and 'CrossesAbove' in XML.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Task configure_drawing_tool_alert@1 uses real Yahoo Finance historical SPY data (2023-2024). The agent must place a Horizontal Line drawing tool at price level $500.00 on a Daily SPY chart, configure an alert with 'Crosses Above' condition, and save the workspace. Verified metadata: instrument=SPY (real market data), drawing_tool=HorizontalLine (correct NinjaTrader terminology), price_level=500.0 (confirmed in task description), alert_condition_pattern='Cross.*Above' (matches NinjaTrader's alert UI options). Contradicted metadata: price_tolerance=0.05 is claimed but verifier actually accepts tolerance of ±1.0 (499.0-500.0 range), not ±0.05. Data is real historical market data, not synthetic.",
+    "pi_confidence": "high"
+}

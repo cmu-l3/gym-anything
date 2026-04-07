@@ -1,0 +1,32 @@
+{
+  "id": "size_pv_battery_system@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "A solar energy installation manager needs a feasibility study for a commercial client in Phoenix, AZ, to evaluate energy flows and peak shaving potential for a 100 kW rooftop PV system paired with a 200 kWh battery. Using PySAM (NREL-PySAM), configure and simulate this system by chaining PySAM.Pvwattsv8 and PySAM.Battwatts. \n\nThe PV system should be configured with 100 kW DC capacity, standard module type, fixed open rack array, 33.4 degree tilt, 180 degree azimuth, 14.08% losses, 1.2 DC-to-AC ratio, 96% inverter efficiency, and 0.4 GCR. Use the Phoenix TMY weather file located via the directory path in /home/ga/.SAM/solar_resource_dir.txt. The battery component must be enabled with 200 kWh capacity, 50 kW power, Lithium-ion NMC chemistry, peak shaving (look ahead) dispatch mode, and behind-the-meter positioning. \n\nExecute the actual simulation and save the results to /home/ga/Documents/SAM_Projects/pv_battery_report.json using the following structure:\n\n{\n  \"system_config\": {\n    \"pv_capacity_kw_dc\": 100,\n    \"battery_capacity_kwh\": 200,\n    \"battery_power_kw\": 50,\n    \"array_tilt_deg\": 33.4,\n    \"array_azimuth_deg\": 180,\n    \"location\": \"Phoenix, AZ\",\n    \"weather_file\": \"<absolute_path_to_tmy_file>\"\n  },\n  \"annual_results\": {\n    \"pv_annual_generation_kwh\": <float>,\n    \"capacity_factor_percent\": <float>,\n    \"battery_annual_throughput_kwh\": <float>,\n    \"annual_energy_to_grid_kwh\": <float>,\n    \"annual_energy_from_grid_kwh\": <float>\n  },\n  \"monthly_pv_generation_kwh\": [<float>, <float>, ... 12 items]\n}",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/size_pv_battery_system/setup_task.sh",
+    "post_task": "/workspace/tasks/size_pv_battery_system/export_result.sh"
+  },
+  "metadata": {
+    "expected_filename": "pv_battery_report.json",
+    "pv_capacity": 100,
+    "batt_capacity": 200,
+    "batt_power": 50,
+    "pv_annual_min": 150000,
+    "pv_annual_max": 195000,
+    "cf_min": 17,
+    "cf_max": 22
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_size_pv_battery_system"
+    }
+  }
+}

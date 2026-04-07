@@ -1,0 +1,28 @@
+{
+  "id": "rest_api_patient_lookup@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a REST API Gateway channel named 'Patient_Status_API' in NextGen Connect that provides real-time patient status lookups. The channel must listen for HTTP GET requests on port 6670, extract the 'mrn' query parameter, and query the hospital_patients table in the PostgreSQL database (jdbc:postgresql://nextgen-postgres:5432/mirthdb, user: postgres, pass: postgres) for the patient's full_name and status. If a record is found, return an HTTP 200 response with JSON: {\"mrn\": \"...\", \"name\": \"...\", \"status\": \"...\"}. If no record is found, return an HTTP 404 response with JSON: {\"error\": \"Patient not found\"}. Verify the channel's functionality using existing patient MRNs such as MRN-1001 and MRN-1002.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rest_api_patient_lookup/setup_task.sh",
+    "post_task": "/workspace/tasks/rest_api_patient_lookup/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "Patient_Status_API",
+    "port": 6670,
+    "test_mrn_exists": "MRN-1001",
+    "test_mrn_missing": "MRN-9999"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rest_api_patient_lookup"
+    }
+  }
+}

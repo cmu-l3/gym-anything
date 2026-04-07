@@ -1,0 +1,39 @@
+{
+  "id": "develop_powershell_obfuscation_rule@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Develop a custom Wazuh detection rule (ID 100300, Level 10) in /var/ossec/etc/rules/local_rules.xml to detect PowerShell execution using Base64 encoded commands, a common malware technique. The rule must use a case-insensitive regular expression to identify command line arguments such as -EncodedCommand, -enc, -en, or -e based on the sample logs provided in ~/data/powershell_samples.json. Ensure the rule is verified and active within the Wazuh manager.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/develop_powershell_obfuscation_rule/setup_task.sh",
+    "post_task": "/workspace/tasks/develop_powershell_obfuscation_rule/export_result.sh"
+  },
+  "metadata": {
+    "rule_id": 100300,
+    "target_level": 10,
+    "sample_log_path": "/home/ga/data/powershell_samples.json",
+    "rules_file": "/var/ossec/etc/rules/local_rules.xml",
+    "required_regex_matches": [
+      "powershell.exe -enc JAB",
+      "powershell -EncodedCommand JAB",
+      "powershell.exe -e JAB",
+      "POWERSHELL.EXE -ENCODEDCOMMAND JAB"
+    ],
+    "required_regex_non_matches": [
+      "powershell.exe -ExecutionPolicy Bypass",
+      "powershell.exe -File script.ps1",
+      "powershell.exe -Command Get-Date"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_develop_powershell_obfuscation_rule"
+    }
+  }
+}

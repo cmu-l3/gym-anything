@@ -1,0 +1,80 @@
+{
+    "task_id": "secure_conference_deployment@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "admin_username",
+            "metadata_value": "admin",
+            "verified_value": "admin",
+            "source": "Verified by live testing: 'prosodyctl --config /config/prosody.cfg.lua register admin meet.jitsi SecureConf2024!' succeeded and created /config/data/meet%2ejitsi/accounts/admin.dat (218 bytes). Confirmed consistent across task.json description, setup_task.sh (line deleting user: 'deluser admin@meet.jitsi'), and export_result.sh (checking /config/data/meet%2ejitsi/accounts/admin.dat). Jitsi Docker documentation at https://jitsi.github.io/handbook/docs/devops-guide/secure-domain/ confirms 'prosodyctl register <username> meet.jitsi <password>' syntax.",
+            "status": "verified"
+        },
+        {
+            "key": "admin_password",
+            "metadata_value": "SecureConf2024!",
+            "verified_value": "SecureConf2024!",
+            "source": "Verified by live testing: registration with this password succeeded and subsequent authentication via the 'I am the host' → 'Authentication required' dialog (User/Password form) with username 'admin' and this password granted moderator access with [M] badge visible in participant tile. Task-designer chosen value, consistent across task.json description and metadata.",
+            "status": "verified"
+        },
+        {
+            "key": "registration_domain",
+            "metadata_value": "meet.jitsi",
+            "verified_value": "meet.jitsi",
+            "source": "Verified by live testing: user registered on 'meet.jitsi' domain, confirmed by file at /config/data/meet%2ejitsi/accounts/admin.dat inside prosody container. Confirmed by Jitsi official documentation at https://jitsi.github.io/handbook/docs/devops-guide/secure-domain/ which states 'prosodyctl register <user> meet.jitsi <password>'. The XMPP_DOMAIN=meet.jitsi is set in docker-compose.yml line 28. CRITICAL: auth.meet.jitsi (XMPP_AUTH_DOMAIN) is for internal component auth only, NOT for human user registration. The served config.js after auth enablement shows 'config.hosts.authdomain = meet.jitsi' (line 19 of served config).",
+            "status": "verified"
+        },
+        {
+            "key": "room_name",
+            "metadata_value": "VerificationRoom",
+            "verified_value": "VerificationRoom",
+            "source": "Task-designer chosen room name. Verified by live testing: navigating to http://localhost:8080/VerificationRoom successfully loaded the pre-join screen and then the 'Waiting for a moderator' dialog after joining. Room name used consistently in task.json description and natural_language.prompt.",
+            "status": "verified"
+        },
+        {
+            "key": "app_name",
+            "metadata_value": "SecureConf",
+            "verified_value": "SecureConf",
+            "source": "Task-designer chosen branding name. Verified by live testing: writing 'interfaceConfig.APP_NAME = \"SecureConf\";' to /home/ga/.jitsi-meet-cfg/web/custom-interface_config.js works because the Jitsi web container volume-mounts /home/ga/.jitsi-meet-cfg/web:/config:Z (docker-compose.yml line 10). Multiple existing tasks (customize_branding, customize_compliance_links, configure_always_visible_toolbar, customize_interface_focus_mode) use this exact same custom-interface_config.js mechanism. Jitsi configuration documentation at https://jitsi.github.io/handbook/docs/dev-guide/dev-guide-configuration/ confirms APP_NAME as a valid interfaceConfig property.",
+            "status": "verified"
+        },
+        {
+            "key": "required_toolbar_buttons",
+            "metadata_value": ["microphone", "camera", "chat", "tileview", "hangup", "participants-pane"],
+            "verified_value": ["microphone", "camera", "chat", "tileview", "hangup", "participants-pane"],
+            "source": "All 6 button names verified as valid Jitsi toolbar button identifiers via official Jitsi configuration documentation at https://jitsi.github.io/handbook/docs/dev-guide/dev-guide-configuration/ which lists these in the buttonsWithNotifyClick/TOOLBAR_BUTTONS configuration. Live testing confirmed: writing interfaceConfig.TOOLBAR_BUTTONS with these exact values to custom-interface_config.js was detected correctly by export_result.sh (toolbar_configured: true). Existing tasks like configure_kiosk_toolbar and simplify_participant_interface use the same button name strings.",
+            "status": "verified"
+        },
+        {
+            "key": "report_file",
+            "metadata_value": "/home/ga/secure_conference_report.txt",
+            "verified_value": "/home/ga/secure_conference_report.txt",
+            "source": "Verified by live testing: file write test with 'echo test > /home/ga/secure_conference_report.txt' succeeded, showing -rw-rw-r-- 1 ga ga permissions. File is deleted by setup_task.sh before task starts (confirmed by evidence: 'No such file or directory' after setup). Path is consistent across task.json description, metadata, setup_task.sh (rm -f), and export_result.sh (REPORT_FILE variable).",
+            "status": "verified"
+        },
+        {
+            "key": "interface_config_file",
+            "metadata_value": "/home/ga/.jitsi-meet-cfg/web/custom-interface_config.js",
+            "verified_value": "/home/ga/.jitsi-meet-cfg/web/custom-interface_config.js",
+            "source": "Verified by live testing: file creation at this path succeeded (194 bytes). This path maps to /config/custom-interface_config.js inside the Jitsi web container via the volume mount '/home/ga/.jitsi-meet-cfg/web:/config:Z' in docker-compose.yml line 10. Setup_task.sh clears this file (rm -f + touch) and export_result.sh checks it. Multiple existing tasks use this exact path for custom interface config.",
+            "status": "verified"
+        },
+        {
+            "key": "env_file",
+            "metadata_value": "/home/ga/jitsi/.env",
+            "verified_value": "/home/ga/jitsi/.env",
+            "source": "Verified by live testing: file exists at this path, written by setup_task.sh with default values (ENABLE_AUTH=0, commented AUTH_TYPE, ENABLE_GUESTS=1). Docker Compose reads .env from the project directory (/home/ga/jitsi/) for variable interpolation. After editing to ENABLE_AUTH=1 and restarting, the served config.js showed auth domains (config.hosts.anonymousdomain='guest.meet.jitsi', config.hosts.authdomain='meet.jitsi'), confirming .env changes propagate correctly. Existing task secure_domain_auth also uses this path.",
+            "status": "verified"
+        },
+        {
+            "key": "jitsi_url",
+            "metadata_value": "http://localhost:8080",
+            "verified_value": "http://localhost:8080",
+            "source": "Verified by live testing: curl http://localhost:8080 returned HTTP 200 with Jitsi Meet welcome page. Docker-compose.yml maps ports '8080:80' for the web container (line 7). The PUBLIC_URL environment variable is set to 'http://localhost:8080' (docker-compose.yml line 26). setup_jitsi.sh confirms this URL (line 84). All existing jitsi_meet_env tasks use this same URL (task_utils.sh line 4: JITSI_BASE_URL=http://localhost:8080).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task configures a real Jitsi Meet deployment (Docker images jitsi/web, jitsi/prosody, jitsi/jicofo, jitsi/jvb all at tag stable-9753) for authenticated branded conferences. All metadata values are verified correct. The authentication flow works as follows: editing /home/ga/jitsi/.env to set ENABLE_AUTH=1, AUTH_TYPE=internal, ENABLE_GUESTS=1, then running 'docker compose down && docker compose up -d' from /home/ga/jitsi/ causes the served config.js to include 'config.hosts.anonymousdomain=guest.meet.jitsi' and 'config.hosts.authdomain=meet.jitsi'. Users must be registered on the 'meet.jitsi' domain (NOT auth.meet.jitsi) using 'docker exec <prosody_container> prosodyctl --config /config/prosody.cfg.lua register admin meet.jitsi SecureConf2024!' — the container name is 'jitsi-prosody-1' and the config path inside is /config/prosody.cfg.lua. The user data file appears at /config/data/meet%2ejitsi/accounts/admin.dat. After auth is enabled, navigating to a room URL shows a normal pre-join screen; after clicking 'Join meeting', a 'Waiting for a moderator' dialog appears with a 'Log-in' button; clicking it shows 'Authentication required' with User and Password fields. Successful login grants moderator status shown by [M] badge. The branding is applied via /home/ga/.jitsi-meet-cfg/web/custom-interface_config.js (volume-mounted to /config in the web container) with interfaceConfig.APP_NAME='SecureConf', interfaceConfig.TOOLBAR_BUTTONS=['microphone','camera','chat','tileview','hangup','participants-pane'], and interfaceConfig.MOBILE_APP_PROMO=false. The lobby feature is enabled via Security Options in the More Actions (...) menu. Epiphany browser is available at /usr/bin/epiphany-browser (version 42.4) for the guest participant. The report must be saved to /home/ga/secure_conference_report.txt (ga user has write permissions to /home/ga/).",
+    "pi_confidence": "high"
+}

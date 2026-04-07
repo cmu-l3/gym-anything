@@ -1,0 +1,62 @@
+{
+    "task_id": "pbs_drug_forecasting_fable@1",
+    "dataset": "tsibble::PBS",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "output_dir",
+            "metadata_value": "/home/ga/RProjects/output",
+            "verified_value": "/home/ga/RProjects/output",
+            "source": "Explicitly checked in export_result.sh and set in setup_task.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_files",
+            "metadata_value": [
+                "l01_decomposition.png",
+                "l01_model_accuracy.csv",
+                "l01_forecast_values.csv",
+                "l01_forecast_plot.png"
+            ],
+            "verified_value": [
+                "l01_decomposition.png",
+                "l01_model_accuracy.csv",
+                "l01_forecast_values.csv",
+                "l01_forecast_plot.png"
+            ],
+            "source": "Explicitly checked in export_result.sh and expected by verifier.py logic.",
+            "status": "verified"
+        },
+        {
+            "key": "forecast_horizon_months",
+            "metadata_value": 36,
+            "verified_value": 36,
+            "source": "Enforced by prompt instructions and verifier checks (forecast_rows between 34 and 38).",
+            "status": "verified"
+        },
+        {
+            "key": "min_expected_monthly_scripts",
+            "metadata_value": 100000,
+            "verified_value": 45000,
+            "source": "Python/R empirical analysis of tsibble::PBS dataset for ATC2 'L01'. The historical monthly sum ranges up to ~49k. A standard Holt-Winters/ARIMA forecast predicts a mean around ~48k, completely contradicting the 100k+ verifier threshold.",
+            "status": "contradicted"
+        },
+        {
+            "key": "max_expected_monthly_scripts",
+            "metadata_value": 400000,
+            "verified_value": 80000,
+            "source": "Python/R empirical analysis of tsibble::PBS dataset for ATC2 'L01'. Historical maximum is 49,213, meaning a 3-year prediction maximum would be far lower than 400k.",
+            "status": "contradicted"
+        },
+        {
+            "key": "atc2_target",
+            "metadata_value": "L01",
+            "verified_value": "L01",
+            "source": "Prompt instructions and setup_task.sh strictly request ATC2 target 'L01'.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task relies on real historical Australian Pharmaceutical Benefits Scheme (PBS) data from the 'tsibble' R package. While output directory requirements, target files, and a 36-month forecast horizon are accurately verified against task scripts, a critical programmatic flaw was discovered in the validation logic. The verifier incorrectly assumes L01 scripts average ~200,000 monthly and strictly requires the forecasted mean to exceed 100,000 to award points. In reality, empirical aggregation of L01 scripts across all concession and type subgroups yields a historical monthly average of just ~23,080 and a peak of ~49,213. Therefore, an agent producing a factually correct forecast (around 48,000 scripts) will falsely fail the verifier's strict magnitude check, rendering the task effectively unscorable unless data is manipulated.",
+    "pi_confidence": "high"
+}

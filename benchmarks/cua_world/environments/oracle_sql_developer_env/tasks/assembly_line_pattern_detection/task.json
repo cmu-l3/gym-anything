@@ -1,0 +1,35 @@
+{
+  "id": "assembly_line_pattern_detection@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are an Industrial Engineer at a Tier-1 automotive parts supplier. The plant manager suspects that recurring cascading failures, quality degradations, and short production runs are causing 60% of unplanned downtime. Analyze 90 days of event logs in the PROD_ENGINEER schema (User: prod_engineer, Password: ProdEng2024, Host: localhost, Port: 1521, Service: XEPDB1) to detect these patterns using Oracle's MATCH_RECOGNIZE feature.\n\nCreate a view named CASCADE_FAILURES_VW using MATCH_RECOGNIZE on the STATION_EVENTS table (joined with WORKSTATIONS) to detect cascading failures, defined as an initial fault (severity >= 3) at one station followed by one or more fault events at different stations on the same assembly line within 10 minutes of the preceding fault. The view must output line_id, cascade_start_time, cascade_end_time, initiating_station_id, num_stations_affected, and total_duration_seconds.\n\nCreate a view named QUALITY_DEGRADATION_VW to detect four or more consecutive 'QUALITY_CHECK' events at the same station where the quality_score is strictly decreasing and the final score drops below 80. The view must output station_id, degradation_start_time, degradation_end_time, start_score, end_score, num_readings, and score_drop.\n\nCreate a view named SHORT_RUN_CYCLES_VW to detect idle-run-idle cycles where a production run duration is less than 30 minutes, sandwiched between idle periods of at least 20 minutes each (Pattern: IDLE >20m -> RUNNING <30m -> IDLE >20m). The view must output station_id, idle_start, run_start, run_end, idle_after_start, and run_duration_minutes.\n\nPopulate the existing PATTERN_RESULTS table with the detected patterns from these three views, mapping them to pattern_type 'CASCADE', 'DEGRADATION', and 'SHORT_RUN'. Create a stored procedure named PROC_DAILY_PATTERN_SCAN that truncates PATTERN_RESULTS, runs all three pattern detections, inserts the results, and commits; the procedure should accept an optional p_line_id parameter (default NULL for all lines).\n\nFinally, create a materialized view named PATTERN_SUMMARY_MV summarizing the counts and average durations of patterns grouped by pattern_type and line_id using GROUP BY ROLLUP for subtotals. Export the contents of PATTERN_SUMMARY_MV to /home/ga/pattern_summary.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/assembly_line_pattern_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/assembly_line_pattern_detection/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Industrial Engineers",
+    "industry": "Manufacturing",
+    "gdp_contribution": "$758M",
+    "design_pattern": "Row Pattern Recognition",
+    "oracle_features": [
+      "MATCH_RECOGNIZE",
+      "ROLLUP",
+      "Materialized Views",
+      "Stored Procedures"
+    ],
+    "csv_export_path": "/home/ga/pattern_summary.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_assembly_line_pattern_detection"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "id": "splunk_audit_and_compliance@1",
+  "version": "1.0",
+  "env_id": "splunk_env@0.1",
+  "description": "Your organization is preparing for a SOC 2 compliance audit. The auditor requires proof that the SOC team actively monitors SIEM usage to detect insider threats or compromised accounts exfiltrating data. Using Splunk (http://localhost:8000, admin/SplunkAdmin1!), use the internal `_audit` index to build two compliance artifacts. Create a dashboard named `Splunk_Usage_Audit` with at least three panels visualizing user search activity, ensuring the internal system user (`splunk-system-user`) is filtered out. Create a scheduled alert named `Data_Exfiltration_Via_Search` that monitors the `_audit` index for searches containing data export commands (`outputcsv`, `outputlookup`, or `export`) and configure it to run on an hourly schedule.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/splunk_audit_and_compliance/setup_task.sh",
+    "post_task": "/workspace/tasks/splunk_audit_and_compliance/export_result.sh"
+  },
+  "metadata": {
+    "dashboard_name": "Splunk_Usage_Audit",
+    "alert_name": "Data_Exfiltration_Via_Search",
+    "target_index": "_audit",
+    "system_user_filter": "splunk-system-user",
+    "export_keywords": [
+      "outputcsv",
+      "outputlookup",
+      "export"
+    ],
+    "min_panels": 3,
+    "splunk_user": "admin",
+    "splunk_pass": "SplunkAdmin1!"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_splunk_audit_and_compliance"
+    }
+  }
+}

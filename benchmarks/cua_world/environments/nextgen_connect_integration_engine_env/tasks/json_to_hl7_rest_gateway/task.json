@@ -1,0 +1,47 @@
+{
+  "id": "json_to_hl7_rest_gateway@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "Create and deploy a channel named 'JSON_to_HL7_Gateway' that accepts patient registration JSON data via an HTTP Listener on port 6661 and converts it to HL7v2.5.1 ADT^A04 format. The transformation must map patient.mrn to PID-3, patient.lastName^patient.firstName to PID-5, patient.dateOfBirth (YYYY-MM-DD) to PID-7 (YYYYMMDD), patient.sex to PID-8, and visit.visitNumber to PV1-19, using ADT, A04, ADT_A01 in MSH-9. The processed messages must be written to /tmp/hl7_output/ using unique filenames. A sample JSON payload for testing is provided at /home/ga/sample_registration.json.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/json_to_hl7_rest_gateway/setup_task.sh",
+    "post_task": "/workspace/tasks/json_to_hl7_rest_gateway/export_result.sh"
+  },
+  "metadata": {
+    "channel_name": "JSON_to_HL7_Gateway",
+    "port": 6661,
+    "output_dir": "/tmp/hl7_output",
+    "test_payload": {
+      "patient": {
+        "mrn": "MRN-TEST-999",
+        "lastName": "Verify",
+        "firstName": "Agent",
+        "dateOfBirth": "1990-01-01",
+        "sex": "M"
+      },
+      "visit": {
+        "visitNumber": "V-TEST-999",
+        "patientClass": "O"
+      }
+    },
+    "expected_hl7_values": {
+      "PID.3": "MRN-TEST-999",
+      "PID.5": "Verify^Agent",
+      "PID.7": "19900101",
+      "PV1.19": "V-TEST-999",
+      "MSH.9": "ADT^A04^ADT_A01"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_json_to_hl7_rest_gateway"
+    }
+  }
+}

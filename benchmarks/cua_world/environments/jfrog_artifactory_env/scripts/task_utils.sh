@@ -259,27 +259,42 @@ get_firefox_profile() {
 }
 
 # Ensure Firefox is running and showing Artifactory.
-# Uses --new-instance and -profile for snap Firefox compatibility.
-# Waits generously for Firefox to fully load before returning.
+# Always checks for a visible window (not just a process) and relaunches if needed.
 ensure_firefox_running() {
     local url="${1:-http://localhost:8082}"
-    local profile
-    profile=$(get_firefox_profile)
-    local xauth="/run/user/1000/gdm/Xauthority"
-    [ -f "$xauth" ] || xauth="/home/ga/.Xauthority"
 
-    if ! pgrep -f firefox > /dev/null 2>&1; then
-        echo "Starting Firefox (profile: $profile)..."
-        # Remove stale lock files so Firefox starts cleanly
-        rm -f "${profile}/.parentlock" "${profile}/lock" 2>/dev/null || true
-        # MOZ_ENABLE_WAYLAND=0 forces X11 mode so xwd/scrot can capture the window.
-        # Without this, snap Firefox uses Wayland natively and is invisible to X11 tools.
-        su - ga -c "DISPLAY=:1 XAUTHORITY='${xauth}' MOZ_ENABLE_WAYLAND=0 GDK_BACKEND=x11 \
-            setsid firefox --new-instance \
-            -profile '${profile}' '${url}' > /tmp/firefox_task.log 2>&1 &"
-        # Wait for snap Firefox to fully start (snap adds overhead)
-        sleep 18
+    # Check if Firefox window is already visible
+    if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla\|artifactory"; then
+        echo "Firefox window already visible"
+        focus_firefox
+        sleep 1
+        return 0
     fi
+
+    echo "No Firefox window found, (re)launching..."
+
+    # Kill ALL Firefox processes aggressively (snap uses different process names)
+    pkill -9 -f firefox 2>/dev/null || true
+    pkill -9 -f 'snap.*firefox' 2>/dev/null || true
+    pkill -9 -f 'Web Content' 2>/dev/null || true
+    killall -9 firefox firefox-bin 2>/dev/null || true
+    sleep 5
+
+    # Clean lock files from all possible locations
+    find /home/ga/.mozilla/firefox/ -name ".parentlock" -delete 2>/dev/null || true
+    find /home/ga/.mozilla/firefox/ -name "lock" -delete 2>/dev/null || true
+    find /home/ga/snap/firefox/ -name ".parentlock" -delete 2>/dev/null || true
+    find /home/ga/snap/firefox/ -name "lock" -delete 2>/dev/null || true
+
+    # Ensure snap Firefox can create its revision directory
+    chown -R ga:ga /home/ga/snap 2>/dev/null || true
+
+    # Use simple launch command (matching proven rancher_env pattern)
+    su - ga -c "DISPLAY=:1 setsid firefox '${url}' > /tmp/firefox_task.log 2>&1 &"
+
+    # Wait for snap Firefox to fully start (snap adds overhead)
+    sleep 15
+
     # Wait up to 60s for Firefox window to appear
     wait_for_firefox 60 || true
     focus_firefox

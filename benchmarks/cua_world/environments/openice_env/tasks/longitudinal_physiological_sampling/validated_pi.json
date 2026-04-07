@@ -1,0 +1,66 @@
+{
+    "task_id": "longitudinal_physiological_sampling@1",
+    "dataset": "OpenICE medical device simulator",
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_csv_path",
+            "metadata_value": "/home/ga/Desktop/monitor_sample.csv",
+            "verified_value": "/home/ga/Desktop/monitor_sample.csv",
+            "source": "Verified in setup_task.sh (line 12) and export_result.sh (line 17)",
+            "status": "verified"
+        },
+        {
+            "key": "expected_report_path",
+            "metadata_value": "/home/ga/Desktop/sample_analysis.txt",
+            "verified_value": "/home/ga/Desktop/sample_analysis.txt",
+            "source": "Verified in setup_task.sh (line 13) and export_result.sh (line 18)",
+            "status": "verified"
+        },
+        {
+            "key": "min_duration_sec",
+            "metadata_value": "100",
+            "verified_value": "120",
+            "source": "Task description explicitly states '2-minute sampling protocol'; 2 minutes = 120 seconds. Verifier checks duration > 100 seconds (verifier.py line 66), but task description specifies 2-minute minimum.",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_samples",
+            "metadata_value": "5",
+            "verified_value": "5",
+            "source": "Task description explicitly states 'Record at least 5 samples' (task.json line 4); verifier checks len(csv_rows) >= 6 (header + 5 data rows) (verifier.py line 91)",
+            "status": "verified"
+        },
+        {
+            "key": "csv_header",
+            "metadata_value": "Time,HeartRate,SpO2",
+            "verified_value": "Time,HeartRate,SpO2",
+            "source": "Task description explicitly states 'Create a CSV file at '/home/ga/Desktop/monitor_sample.csv' with header 'Time,HeartRate,SpO2'' (task.json line 3); verifier checks for 'time', 'heart'/'hr', 'spo2'/'sat' (verifier.py lines 109-111)",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": null,
+            "verified_value": "OpenICE medical device simulator",
+            "source": "Task requires creating simulated 'Multiparameter Monitor' device adapter using OpenICE; setup_task.sh sources task_utils.sh which calls ensure_openice_running; data is synthetic from simulator, not real patient data",
+            "status": "verified"
+        },
+        {
+            "key": "heart_rate_physiological_range",
+            "metadata_value": null,
+            "verified_value": "40-160 bpm",
+            "source": "Verifier checks: 40 <= hr <= 160 (verifier.py line 124); confirmed realistic range covering athletes (40 bpm), normal adults (60-100 bpm), and infants (up to 160 bpm)",
+            "status": "verified"
+        },
+        {
+            "key": "spo2_physiological_range",
+            "metadata_value": null,
+            "verified_value": "80-100%",
+            "source": "Verifier checks: 80 <= spo2 <= 100 (verifier.py line 124); clinically normal SpO2 is 95-100%, so 80-94% range includes concerning values but is appropriate for simulator bounds",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task is a longitudinal physiological data sampling exercise using OpenICE medical device simulator (synthetic data). The agent must create a Multiparameter Monitor device adapter, record 5+ samples of Heart Rate and SpO2 values over a sampling period into monitor_sample.csv with header 'Time,HeartRate,SpO2', and write an analysis report to sample_analysis.txt. File paths are /home/ga/Desktop/monitor_sample.csv and /home/ga/Desktop/sample_analysis.txt. Minimum sample count is 5. The task description specifies a 2-minute (120 seconds) sampling protocol, though metadata lists min_duration_sec as 100. Physiological bounds: Heart Rate 40-160 bpm, SpO2 80-100%. The verifier checks device creation, file existence, duration > 100 seconds, data validity, and report accuracy against CSV calculations.",
+    "pi_confidence": "high"
+}

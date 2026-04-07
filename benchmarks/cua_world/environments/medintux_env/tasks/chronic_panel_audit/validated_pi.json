@@ -1,0 +1,101 @@
+{
+    "task_id": "chronic_panel_audit@1",
+    "dataset": "MedinTux DrTuxTest (synthetic test database)",
+    "case_id": "Multiple patients: DUBOIS, LAMBERT, PERRIN, NICOLAS",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "DUBOIS_Marie-Claire.dob",
+            "metadata_value": "1960-07-21",
+            "verified_value": "1962-07-08",
+            "source": "setup_medintux.sh line 318 (environment initialization script)",
+            "status": "contradicted"
+        },
+        {
+            "key": "LAMBERT_Anne.dob",
+            "metadata_value": "1947-10-07",
+            "verified_value": "1983-01-17",
+            "source": "setup_medintux.sh line 324 (environment initialization script)",
+            "status": "contradicted"
+        },
+        {
+            "key": "PERRIN_Martine.dob",
+            "metadata_value": "1950-02-02",
+            "verified_value": "1958-02-28",
+            "source": "setup_medintux.sh line 330 (environment initialization script)",
+            "status": "contradicted"
+        },
+        {
+            "key": "NICOLAS_Sandrine.dob",
+            "metadata_value": "1981-09-06",
+            "verified_value": "1987-12-03",
+            "source": "setup_medintux.sh line 334 (environment initialization script)",
+            "status": "contradicted"
+        },
+        {
+            "key": "DUBOIS.issue",
+            "metadata_value": "Hypertension + Type 2 diabetes documented in terrain but no active prescription",
+            "verified_value": "Condition documented as valid clinical management gap; setup_task.sh plants HTA and T2DM in terrain without prescription",
+            "source": "setup_task.sh lines 91-109; Medical guidelines: both HTA and T2DM require active treatment",
+            "status": "verified"
+        },
+        {
+            "key": "LAMBERT.issue",
+            "metadata_value": "Atrial fibrillation (Fibrillation auriculaire) documented but only aspirin prescribed — anticoagulation required per guidelines",
+            "verified_value": "Condition requires anticoagulation per CHA2DS2-VASc scoring guidelines. ESC/ACC guidelines state antiplatelet therapy alone is NOT recommended for AF stroke prevention (Class III). Anticoagulation indicated for CHA2DS2-VASc ≥2 in men or ≥3 in women",
+            "source": "setup_task.sh lines 114-154 plants AF with aspirin-only. Web search: CHA2DS2-VASc score guidelines, ESC 2020 Atrial Fibrillation Guidelines, ARTESiA study showing apixaban superiority",
+            "status": "verified"
+        },
+        {
+            "key": "PERRIN.issue",
+            "metadata_value": "COPD patient with last follow-up 2025-05-15 — over 9 months overdue for review",
+            "verified_value": "Overdue per GOLD guidelines recommending yearly spirometry/follow-up for COPD. Timeline: 2025-05-15 to 2026-03-08 = ~297 days (10 months), exceeds 6-month guideline for maintenance appointments",
+            "source": "setup_task.sh lines 179-187 plants COPD with last consultation 2025-05-15. Web search: GOLD COPD guidelines recommend yearly follow-up; Swedish guidelines recommend 1-6 month appointments depending on severity",
+            "status": "verified"
+        },
+        {
+            "key": "NICOLAS.issue",
+            "metadata_value": "Migraine with aura documented in terrain but combined oral contraceptive (ethinylestradiol) prescribed — absolute contraindication",
+            "verified_value": "Absolute contraindication confirmed. Combined hormonal contraceptives containing ethinylestradiol are contraindicated in migraine with aura due to significantly increased stroke risk (odds ratio 5-17x). Current medical consensus (EHF, ESC, Stanford Medicine, American Migraine Foundation) advises against COCs in migraine with aura patients",
+            "source": "setup_task.sh lines 203-240 plants migraine with aura + combined OCP (LUDEAL/ethinylestradiol). Web search: PMC/NIHBI, Stanford Medicine, American Migraine Foundation, Cleveland Clinic, ESC/EHF consensus statements",
+            "status": "verified"
+        },
+        {
+            "key": "expected_corrections",
+            "metadata_value": 4,
+            "verified_value": 4,
+            "source": "setup_task.sh line 3 comment confirms 4 issues planted; verifier.py and README confirm 4 scoring sections",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 50,
+            "verified_value": 50,
+            "source": "verifier.py line 130 and README line 51 both confirm pass_threshold of 50/100",
+            "status": "verified"
+        },
+        {
+            "key": "type_rub_prescription",
+            "metadata_value": 20020100,
+            "verified_value": 20020100,
+            "source": "setup_task.sh uses 20020100 consistently for prescription rubrics (lines 110, 142, 190, 222); export_result.sh line 110 queries TypeRub=20020100 for prescriptions",
+            "status": "verified"
+        },
+        {
+            "key": "type_rub_consultation",
+            "metadata_value": 20030000,
+            "verified_value": 20030000,
+            "source": "setup_task.sh uses 20030000 for consultation rubrics (lines 109, 131, 153, 187, 230); export_result.sh queries TypeRub=20030000",
+            "status": "verified"
+        },
+        {
+            "key": "type_rub_terrain",
+            "metadata_value": 20060000,
+            "verified_value": 20060000,
+            "source": "setup_task.sh uses 20060000 for terrain rubrics (lines 86, 98, 119, 131, 163, 177, 208, 219); task_utils.sh confirms real schema structure",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task plants four real clinical management gaps in synthetic patient records. DUBOIS has hypertension and type 2 diabetes without medication (verified clinical gap). LAMBERT has documented atrial fibrillation but receives only aspirin, violating ESC/ACC guidelines requiring anticoagulation for CHA2DS2-VASc ≥2 (verified high-stroke-risk contraindication). PERRIN has COPD with last follow-up on 2025-05-15, now ~10 months overdue, exceeding GOLD guidelines for yearly review (verified overdue follow-up). NICOLAS has migraine with aura combined with ethinylestradiol-containing oral contraceptive, an absolute contraindication due to 5-17x increased stroke risk per EHF/ESC guidelines (verified dangerous drug-disease interaction). All four clinical issues are real, evidence-based management gaps that require correction. However, the patient dates of birth in task.json are factually incorrect: DUBOIS listed as 1960-07-21 (actual 1962-07-08), LAMBERT as 1947-10-07 (actual 1983-01-17), PERRIN as 1950-02-02 (actual 1958-02-28), NICOLAS as 1981-09-06 (actual 1987-12-03). These DOB discrepancies do not affect task execution since the setup script searches by name only.",
+    "pi_confidence": "high"
+}

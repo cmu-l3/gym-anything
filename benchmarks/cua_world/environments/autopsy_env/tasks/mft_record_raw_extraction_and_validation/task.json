@@ -1,0 +1,28 @@
+{
+  "id": "mft_record_raw_extraction_and_validation@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "You are preparing for a Daubert hearing to defend the accuracy of your forensic tools. The defense claims that automated software is misinterpreting NTFS timestamps. You must manually extract the raw binary Master File Table (MFT) record for the largest deleted file on the evidence drive (/home/ga/evidence/ntfs_undel.dd) to prove the software's parsing is correct. If multiple deleted files share the same maximum size, select the one with the lowest inode number.\n\nRecover the content of this target file to /home/ga/Reports/target_file_content.bin and extract its specific 1024-byte MFT record to /home/ga/Reports/target_mft_record.bin. \n\nCreate a validation report at /home/ga/Reports/daubert_validation.txt with the following keys (one per line, separated by a colon):\nTARGET_INODE: [the base inode number]\nTARGET_FILENAME: [filename]\nTARGET_SIZE_BYTES: [size in bytes]\nMFT_RECORD_HEX_SIGNATURE: [first 4 ASCII characters of the MFT record]\nSTANDARD_INFORMATION_MTIME: [Modified time in UTC]\nFILE_NAME_MTIME: [Modified time in UTC]",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/mft_record_raw_extraction_and_validation/setup_task.sh",
+    "post_task": "/workspace/tasks/mft_record_raw_extraction_and_validation/export_result.sh"
+  },
+  "metadata": {
+    "evidence_path": "/home/ga/evidence/ntfs_undel.dd",
+    "report_path": "/home/ga/Reports/daubert_validation.txt",
+    "mft_record_path": "/home/ga/Reports/target_mft_record.bin",
+    "file_content_path": "/home/ga/Reports/target_file_content.bin"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_mft_extraction"
+    }
+  }
+}

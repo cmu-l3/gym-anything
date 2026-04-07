@@ -1,0 +1,29 @@
+{
+  "id": "ag_prescription_map_msavi2@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "You are an agronomist generating a precision agriculture prescription map from satellite imagery. Using the Landsat multispectral image at `~/snap_data/landsat_multispectral.tif` (containing `band_1`: SWIR1, `band_2`: NIR, `band_3`: Red, and `band_4`: Green), compute the Modified Soil Adjusted Vegetation Index (MSAVI2) and create a virtual band named `MSAVI2` using the formula: (2 * NIR + 1 - sqrt((2 * NIR + 1)^2 - 8 * (NIR - Red))) / 2. Use floating-point numbers in the expression. Create a second virtual band named `management_zones` by reclassifying the `MSAVI2` index into three discrete integer zones: 1 (where MSAVI2 < 0.2), 2 (where 0.2 <= MSAVI2 < 0.6), and 3 (where MSAVI2 >= 0.6). Save the complete product in BEAM-DIMAP format to `~/snap_exports/prescription_map.dim` and export the `management_zones` band as a GeoTIFF to `~/snap_exports/management_zones.tif`. Ensure exact naming for the derived bands and syntactically correct math expressions.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ag_prescription_map_msavi2/setup_task.sh",
+    "post_task": "/workspace/tasks/ag_prescription_map_msavi2/export_result.sh"
+  },
+  "metadata": {
+    "data_file": "/home/ga/snap_data/landsat_multispectral.tif",
+    "expected_dim_path": "/home/ga/snap_exports/prescription_map.dim",
+    "expected_tif_path": "/home/ga/snap_exports/management_zones.tif",
+    "msavi2_band_name": "MSAVI2",
+    "zones_band_name": "management_zones"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ag_prescription_map"
+    }
+  }
+}

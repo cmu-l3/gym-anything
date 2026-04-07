@@ -1,0 +1,38 @@
+{
+    "task_id": "inventory_stock_policy_optimization@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "policy_file",
+            "metadata_value": "/home/ga/Desktop/inventory_policy.csv",
+            "verified_value": "/home/ga/Desktop/inventory_policy.csv",
+            "source": "setup_task.sh line 14 generates CSV file at this exact path with content verified",
+            "status": "verified"
+        },
+        {
+            "key": "parts_to_update",
+            "metadata_value": ["SP-BELT-V46", "SP-FILT-2020", "SP-SENS-T10", "SP-VALVE-05"],
+            "verified_value": ["SP-BELT-V46", "SP-FILT-2020", "SP-SENS-T10", "SP-VALVE-05"],
+            "source": "setup_task.sh policy CSV lines 16-20 define these 4 parts with StatusRecommendation='Active'",
+            "status": "verified"
+        },
+        {
+            "key": "parts_to_obsolete",
+            "metadata_value": ["SP-FUSE-OLD"],
+            "verified_value": ["SP-FUSE-OLD"],
+            "source": "setup_task.sh policy CSV line 19 defines SP-FUSE-OLD with StatusRecommendation='Obsolete'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_order_items",
+            "metadata_value": {"SP-BELT-V46": 18, "SP-SENS-T10": 11, "SP-VALVE-05": 5},
+            "verified_value": {"SP-BELT-V46": 18, "SP-SENS-T10": 11, "SP-VALVE-05": 5},
+            "source": "Code analysis: setup_task.sh seed_data (lines 82-88) provides current stock; policy CSV provides NewMin/NewMax. Task logic orders when Current<NewMin with qty=NewMax-Current. Verified: SP-BELT-V46 Current=2<NewMin=5→18; SP-SENS-T10 Current=4<NewMin=5→11; SP-VALVE-05 Current=0<NewMin=2→5. SP-FILT-2020 (Current=15≥NewMin=10) and SP-FUSE-OLD (Obsolete) correctly excluded.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The inventory policy file is located at /home/ga/Desktop/inventory_policy.csv and contains 5 spare parts with updated minimum/maximum stock thresholds. Four parts (SP-BELT-V46, SP-FILT-2020, SP-SENS-T10, SP-VALVE-05) are designated as Active and should have thresholds updated. One part (SP-FUSE-OLD) is marked Obsolete and should not have thresholds updated. Based on current stock levels (SP-BELT-V46: 2, SP-FILT-2020: 15, SP-SENS-T10: 4, SP-VALVE-05: 0) compared to new minimums, a work order must include three parts: SP-BELT-V46 with quantity 18, SP-SENS-T10 with quantity 11, and SP-VALVE-05 with quantity 5. SP-FILT-2020 (already at sufficient stock) and SP-FUSE-OLD (obsolete) should not be ordered.",
+    "pi_confidence": "high"
+}

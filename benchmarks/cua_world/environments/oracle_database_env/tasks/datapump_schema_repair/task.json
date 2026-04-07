@@ -1,0 +1,29 @@
+{
+  "id": "datapump_schema_repair@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "Create a new development schema named 'HR_APP' by cloning the existing 'HR' production schema using Oracle Data Pump. You must EXCLUDE the 'REGIONS' table during this process (do not export/import it). After the import, the 'EMP_DETAILS_VIEW' in the new 'HR_APP' schema will be invalid because it depends on the missing 'REGIONS' table. You must modify this view in the 'HR_APP' schema to remove the dependency (remove the join to regions and the region_name column) so that it becomes VALID and functional. \n\nCredentials:\n- System User: system / OraclePassword123\n- HR User: hr / hr123\n- New HR_APP User: You determine the password (e.g., app123)\n- Database: localhost:1521/XEPDB1\n- Container Name: oracle-xe\n\nUse the default DATA_PUMP_DIR directory object.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/datapump_schema_repair/setup_task.sh",
+    "post_task": "/workspace/tasks/datapump_schema_repair/export_result.sh"
+  },
+  "metadata": {
+    "source_schema": "HR",
+    "target_schema": "HR_APP",
+    "excluded_table": "REGIONS",
+    "broken_view": "EMP_DETAILS_VIEW",
+    "dump_dir_path": "/opt/oracle/admin/XE/dpdump/"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_datapump_repair"
+    }
+  }
+}

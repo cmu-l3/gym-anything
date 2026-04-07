@@ -1,0 +1,54 @@
+{
+  "task_id": "chinook_revenue_reconciliation@1",
+  "task_completion": [
+    {
+      "id": "db_connection",
+      "description": "The agent connects to the chinook_ledger.db database with the connection name 'LedgerAudit'.",
+      "points": 10,
+      "visual_evidence": "A database client (like DBeaver) or terminal is open showing a connection named 'LedgerAudit' or the database file '/home/ga/Documents/databases/chinook_ledger.db' being accessed."
+    },
+    {
+      "id": "remove_duplicates",
+      "description": "The agent identifies and deletes the duplicate invoice line items.",
+      "points": 15,
+      "visual_evidence": "SQL commands (e.g., `DELETE FROM invoice_items WHERE InvoiceLineId > 2240`) or interface actions showing the deletion of the 18 duplicate invoice items."
+    },
+    {
+      "id": "delete_credit_memo",
+      "description": "The agent deletes the improper credit memo.",
+      "points": 15,
+      "visual_evidence": "SQL commands (e.g., `DELETE FROM invoices WHERE InvoiceId = 413` or `Total < 0`) or interface actions showing the deletion of the credit memo."
+    },
+    {
+      "id": "recalculate_totals",
+      "description": "The agent recalculates the totals for the affected invoices.",
+      "points": 20,
+      "visual_evidence": "SQL commands (e.g., `UPDATE invoices SET Total = ...`) or interface actions updating the totals for the affected invoices (392, 393, 394, 399, 400, 401, 406, 407, 408)."
+    },
+    {
+      "id": "create_correction_log",
+      "description": "The agent creates and populates the 'correction_log' table.",
+      "points": 20,
+      "visual_evidence": "SQL commands showing `CREATE TABLE correction_log` with the specified schema and `INSERT` statements adding records of the corrections made, or a view of the populated table."
+    },
+    {
+      "id": "export_and_save_files",
+      "description": "The agent exports the correction log to a CSV and saves the SQL script.",
+      "points": 20,
+      "visual_evidence": "A file manager, terminal, or editor showing `correction_report.csv` saved in `/home/ga/Documents/exports/` and `reconciliation.sql` saved in `/home/ga/Documents/scripts/`."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_db_queries",
+      "description": "The agent executed queries against the database to investigate the discrepancies rather than just writing a script from prior knowledge.",
+      "visual_evidence": "Screenshots show the agent running SELECT queries in a DB client or terminal to explore the data (e.g., checking the import_log, finding duplicates, locating the credit memo) before making changes."
+    },
+    {
+      "id": "genuine_file_export",
+      "description": "The CSV and SQL files were genuinely saved to the filesystem in the correct directories.",
+      "visual_evidence": "The files are visible in the specified directories via a file explorer or terminal listing (e.g., `ls -l`), not just as text in an editor."
+    }
+  ],
+  "privileged_info_for_vlm": "The database is chinook_ledger.db. There are 18 duplicate invoice_items with InvoiceLineId > 2240. The credit memo is InvoiceId 413 with a Total of -5.94. Affected invoices that need totals recalculated are 392, 393, 394, 399, 400, 401, 406, 407, 408. Correct totals: 392, 393, 399, 400, 406, 407 should be $1.98; 394, 401, 408 should be $3.96. The correction_log table must have columns: CorrectionId, CorrectionType, AffectedTable, AffectedIds, OldValue, NewValue, Reason. Files must be saved to /home/ga/Documents/exports/correction_report.csv and /home/ga/Documents/scripts/reconciliation.sql."
+}

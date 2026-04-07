@@ -1,0 +1,110 @@
+{
+    "task_id": "wine_dinner_event_setup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "tax_name",
+            "metadata_value": "WINE DINNER TAX",
+            "verified_value": "WINE DINNER TAX",
+            "source": "Task description instructs agent to create this exact name. Verified the name does NOT exist in the clean DB (only 'US' tax at 6.0% exists). The agent must create it.",
+            "status": "verified"
+        },
+        {
+            "key": "tax_rate",
+            "metadata_value": 11.5,
+            "verified_value": 11.5,
+            "source": "Task description specifies 11.5%. Cross-referenced: the clean DB has only 'US' at 6.0%. The TAX table uses DOUBLE type for RATE column (confirmed via SYS.SYSCOLUMNS schema query). 11.5 is a valid rate.",
+            "status": "verified"
+        },
+        {
+            "key": "category_name",
+            "metadata_value": "WINE DINNER",
+            "verified_value": "WINE DINNER",
+            "source": "Task description instructs creation. Verified not in clean DB: existing categories are APPETIZERS, BEER & WINE, BEVERAGE & DRINKS, BREAKFAST, BUFFET, DESSERTS, ENTREE, RETAIL, SANDWICHES, SIDES (10 total).",
+            "status": "verified"
+        },
+        {
+            "key": "group_name",
+            "metadata_value": "WINE DINNER COURSES",
+            "verified_value": "WINE DINNER COURSES",
+            "source": "Task description instructs creation. Verified not in clean DB: 17 existing groups include BEERS, CEREALS & MUFF, COLD BEVERAGE, FAST FOOD, etc. None named WINE DINNER COURSES.",
+            "status": "verified"
+        },
+        {
+            "key": "menu_items",
+            "metadata_value": [
+                {"name": "AMUSE BOUCHE", "price": 18.00},
+                {"name": "BRAISED SHORT RIB", "price": 42.00},
+                {"name": "CHOCOLATE FONDANT", "price": 16.00}
+            ],
+            "verified_value": [
+                {"name": "AMUSE BOUCHE", "price": 18.00},
+                {"name": "BRAISED SHORT RIB", "price": 42.00},
+                {"name": "CHOCOLATE FONDANT", "price": 16.00}
+            ],
+            "source": "Task description specifies these exact names and prices. Verified none exist in clean DB (52 default items checked via Menu Items explorer and ij query). Prices are realistic for upscale dining.",
+            "status": "verified"
+        },
+        {
+            "key": "modifier_group_name",
+            "metadata_value": "WINE PAIRING",
+            "verified_value": "WINE PAIRING",
+            "source": "Task description instructs creation. Verified not in clean DB: 9 existing modifier groups are APPLE SLICE, BACON & SAUSAGE, BISCUITS, BUTTER, CHEESE, EGGS, MEAT, POTATO, WHEAT.",
+            "status": "verified"
+        },
+        {
+            "key": "modifier_min",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Task description says 'minimum selection 1'. IMPORTANT schema detail: MIN_QUANTITY is on the MENUITEM_MODIFIERGROUP join table (per-link, NOT on MENU_MODIFIER_GROUP itself). Verified via SYS.SYSCOLUMNS: MENUITEM_MODIFIERGROUP has MIN_QUANTITY (INTEGER), MENU_MODIFIER_GROUP does NOT. The agent must set MIN_QUANTITY=1 when linking the modifier group to each item.",
+            "status": "verified"
+        },
+        {
+            "key": "modifier_max",
+            "metadata_value": 1,
+            "verified_value": 1,
+            "source": "Task description says 'maximum selection 1'. Same schema detail: MAX_QUANTITY is on MENUITEM_MODIFIERGROUP join table. Agent must set MAX_QUANTITY=1 per link. Existing links in clean DB show various values (0, 1, 2), confirming the column is functional.",
+            "status": "verified"
+        },
+        {
+            "key": "modifiers",
+            "metadata_value": [
+                {"name": "SAUVIGNON BLANC", "price": 12.00},
+                {"name": "CABERNET RESERVE", "price": 18.00},
+                {"name": "MOSCATO DESSERT", "price": 14.00}
+            ],
+            "verified_value": [
+                {"name": "SAUVIGNON BLANC", "price": 12.00},
+                {"name": "CABERNET RESERVE", "price": 18.00},
+                {"name": "MOSCATO DESSERT", "price": 14.00}
+            ],
+            "source": "Task description specifies these exact names and prices. Verified none exist in clean DB (16 default modifiers checked: AMERICAN, BACON, BLEU CHEESE, etc.). MENU_MODIFIER table has PRICE column (DOUBLE) and GROUP_ID (INTEGER) FK to MENU_MODIFIER_GROUP.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_base_total",
+            "metadata_value": 120.00,
+            "verified_value": 120.00,
+            "source": "Independent computation: items (18+42+16=76) + modifiers (12+18+14=44) = 120.00. Cross-verified with per-line-item approach: (18+12)+(42+18)+(16+14) = 30+60+30 = 120.00.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_tax_amount",
+            "metadata_value": 13.80,
+            "verified_value": 13.80,
+            "source": "Independent computation: 120.00 * 11.5% = 13.80. Per-line verification: 30*0.115=3.45, 60*0.115=6.90, 30*0.115=3.45; total tax = 3.45+6.90+3.45 = 13.80. NOTE: actual POS total depends on whether Floreant applies item tax rate to modifiers (likely yes, based on TICKET_ITEM schema having SUB_TOTAL and TAX_AMOUNT columns). May differ by pennies due to per-item rounding.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_order_total",
+            "metadata_value": 133.80,
+            "verified_value": 133.80,
+            "source": "Independent computation: 120.00 + 13.80 = 133.80. Per-line: 33.45+66.90+33.45 = 133.80. NOTE: actual POS total may differ slightly due to per-line-item tax rounding. Acceptable range: $132.00-$136.00 to account for different tax application methods.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task requires configuring Floreant POS Back Office (PIN: 1111) for a wine dinner event, then validating with a test order. The clean database starts with only the 'US' tax at 6.0%, 10 categories, 17 groups, 52 items, 9 modifier groups, and 16 modifiers. The agent must create: (1) a new tax rate 'WINE DINNER TAX' at 11.5% via Explorers > Tax > Add; (2) a menu category 'WINE DINNER' and menu group 'WINE DINNER COURSES' linked to it; (3) three menu items assigned to the new group with the new tax: AMUSE BOUCHE ($18.00), BRAISED SHORT RIB ($42.00), CHOCOLATE FONDANT ($16.00); (4) a modifier group 'WINE PAIRING' with three modifiers: SAUVIGNON BLANC ($12.00), CABERNET RESERVE ($18.00), MOSCATO DESSERT ($14.00); (5) link the WINE PAIRING modifier group to all three items with MIN_QUANTITY=1 and MAX_QUANTITY=1 on each link (these fields are on the MENUITEM_MODIFIERGROUP join table, NOT on MENU_MODIFIER_GROUP itself). The agent then processes a DINE IN order with all three courses paired with their wines and settles with CASH. Expected subtotal is $120.00 (items 76 + modifiers 44), tax approximately $13.80, total approximately $133.80. The Back Office with Explorers menu is reached by: main terminal > BACK OFFICE button > PIN 1111 > person/admin toolbar icon > BACK OFFICE button in function panel. The wrench toolbar icon toggles a sub-toolbar and does NOT open the Back Office menu.",
+    "pi_confidence": "high"
+}

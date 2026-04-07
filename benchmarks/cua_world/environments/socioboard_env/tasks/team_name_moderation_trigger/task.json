@@ -1,0 +1,28 @@
+{
+  "id": "team_name_moderation_trigger@1",
+  "version": "1.0",
+  "env_id": "socioboard_env@0.1",
+  "description": "A recent influx of bad actors has led to inappropriate team names being created on Socioboard. Your task is to implement a database-level profanity filter within the socioboard MariaDB database. Populate a new table named banned_keywords (column: word) using the dataset located at /home/ga/banned_words.csv. Create a BEFORE INSERT trigger named enforce_clean_team_names on the team_informations table that prevents any team_name from being saved if it contains a banned keyword as a substring. If profanity is detected, the trigger must abort the operation by signaling SQLSTATE '45000' with the message 'Profanity detected'. Ensure that valid team names can still be inserted successfully and leave the database configured and running.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/team_name_moderation_trigger/setup_task.sh",
+    "post_task": "/workspace/tasks/team_name_moderation_trigger/export_result.sh"
+  },
+  "metadata": {
+    "expected_table": "banned_keywords",
+    "expected_trigger": "enforce_clean_team_names",
+    "target_table": "team_informations",
+    "min_word_count": 300
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_moderation_trigger"
+    }
+  }
+}

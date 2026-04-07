@@ -1,0 +1,31 @@
+{
+  "id": "ntfs_mft_data_run_mapping@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "A state-sponsored threat actor used a custom anti-forensic tool to wipe the contents of an NTFS volume. A hardware recovery lab needs to know which physical clusters correspond to the deleted files in /home/ga/evidence/ntfs_undel.dd. Create a forensic case named 'MFT_Data_Run_Analysis' (Case: INV-MFT-008) and analyze the deleted files (excluding directories and NTFS metadata). Determine the residency of the primary unnamed $DATA attribute for each file. For non-resident files, extract the starting cluster and length of the first data run. Generate a tab-delimited report at /home/ga/Reports/data_run_map.tsv with the header: FILENAME\\tINODE\\tRESIDENCY\\tSTARTING_CLUSTER\\tCLUSTER_LENGTH. Use the base MFT Entry Number for INODE. Residency must be 'RESIDENT' or 'NON_RESIDENT' (use 'N/A' for cluster fields if resident). Save a summary to /home/ga/Reports/mft_summary.txt containing exactly: 'TOTAL_DELETED_FILES_ANALYZED: <N>', 'RESIDENT_FILES: <N>', 'NON_RESIDENT_FILES: <N>', and 'INVESTIGATOR_NOTES: Cluster mapping completed for hardware recovery lab.'",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 120,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/ntfs_mft_data_run_mapping/setup_task.sh",
+    "post_task": "/workspace/tasks/ntfs_mft_data_run_mapping/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "MFT_Data_Run_Analysis",
+    "case_number": "INV-MFT-008",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "report_tsv": "/home/ga/Reports/data_run_map.tsv",
+    "summary_txt": "/home/ga/Reports/mft_summary.txt",
+    "result_file": "/tmp/mft_data_run_result.json",
+    "gt_file": "/tmp/mft_data_run_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ntfs_mft_data_run_mapping"
+    }
+  }
+}

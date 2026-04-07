@@ -1,0 +1,52 @@
+{
+    "task_id": "purge_botnet_and_cleanup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "expected_users_can_register",
+            "metadata_value": "0",
+            "verified_value": "0",
+            "source": "Task instructions and setup_task.sh confirm unchecking registration sets WP option 'users_can_register' to '0'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_default_role",
+            "metadata_value": "subscriber",
+            "verified_value": "subscriber",
+            "source": "Task instructions and setup_task.sh verify the default WP role string is 'subscriber'.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_contributor_count",
+            "metadata_value": 0,
+            "verified_value": 0,
+            "source": "setup_task.sh injects 12 synthetic users with role 'contributor'; task instructs to bulk delete them all, resulting in 0.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_spam_master_exists",
+            "metadata_value": "false",
+            "verified_value": "false",
+            "source": "export_result.sh checks wp_cli for 'spam_master' and assigns 'false' if the user is deleted per instructions.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_spam_posts_count",
+            "metadata_value": 0,
+            "verified_value": 0,
+            "source": "setup_task.sh injects 3 synthetic posts for spam_master. Deleting all content for this user reduces the query count in export_result.sh to 0.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_empty_tags_count",
+            "metadata_value": 0,
+            "verified_value": 0,
+            "source": "setup_task.sh injects 15 empty spam tags. Task instructs bulk deletion of all tags with 0 posts, reducing the wp_term_taxonomy count to 0.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on a synthetically compromised WordPress environment. The setup script injects 12 botnet accounts (contributor role), a 'spam_master' user with 3 malicious posts, and 15 empty spam tags. It also maliciously enables public registration (users_can_register=1) and sets the default role to contributor. Verified ground truth dictates that the agent must disable registration (users_can_register='0'), revert the default role to 'subscriber', bulk delete all contributors, delete the 'spam_master' and all associated content (posts count=0), and clear all empty tags (empty tags count=0). All metadata claims match the strict evaluations in export_result.sh.",
+    "pi_confidence": "high"
+}

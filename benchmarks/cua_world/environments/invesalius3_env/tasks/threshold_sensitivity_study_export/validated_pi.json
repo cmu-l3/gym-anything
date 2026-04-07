@@ -1,0 +1,73 @@
+{
+    "task_id": "threshold_sensitivity_study_export@1",
+    "dataset": "CT Cranium",
+    "case_id": "0051",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "min_triangle_count",
+            "metadata_value": "10000",
+            "verified_value": "1000",
+            "source": "verifier.py line 62: triangle_count > 1000 check; export_result.sh validates STL format",
+            "status": "contradicted"
+        },
+        {
+            "key": "relationship",
+            "metadata_value": "decreasing_triangles",
+            "verified_value": "decreasing_triangles",
+            "source": "verifier.py lines 84-95: checks that 200HU > 400HU and 400HU > 600HU with >1000 triangle difference, which confirms decreasing triangle count with increasing HU threshold",
+            "status": "verified"
+        },
+        {
+            "key": "dataset_name",
+            "metadata_value": "CT Cranium (implied from description)",
+            "verified_value": "CT Cranium",
+            "source": "setup_invesalius.sh line 73: CRANIUM_URL='https://github.com/invesalius/invesalius3/releases/download/v3.0/0051.zip'; GitHub InVesalius releases page confirms CT Cranium (0051) is a standard sample dataset",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_url",
+            "metadata_value": null,
+            "verified_value": "https://github.com/invesalius/invesalius3/releases/download/v3.0/0051.zip",
+            "source": "setup_invesalius.sh lines 71-73; confirmed via API headers (HTTP 302 redirect to release-assets.githubusercontent.com)",
+            "status": "verified"
+        },
+        {
+            "key": "max_hounsfield_unit",
+            "metadata_value": "3071 HU (from description: 'Keep the maximum threshold at 3071 HU')",
+            "verified_value": "3071 HU",
+            "source": "task.json description and setup_task.sh context; consistent with standard Hounsfield scale maximum of ~3000-3071 for dense bone and metals; verified against medical imaging standards (Wikipedia: Hounsfield scale, NCBI medical references)",
+            "status": "verified"
+        },
+        {
+            "key": "threshold_values",
+            "metadata_value": "200 HU, 400 HU, 600 HU (from task description)",
+            "verified_value": "200 HU, 400 HU, 600 HU",
+            "source": "task.json description lines specify these exact values; consistent with medical imaging practice: 200 HU is bone/soft tissue boundary, 400-600 HU is dense bone",
+            "status": "verified"
+        },
+        {
+            "key": "export_format",
+            "metadata_value": "binary STL (from task description: 'Ensure all files are saved in binary STL format')",
+            "verified_value": "binary STL",
+            "source": "task.json description and export_result.sh lines 56-73 which validates binary STL format (80-byte header + 4-byte triangle count + 50 bytes per triangle)",
+            "status": "verified"
+        },
+        {
+            "key": "file_paths",
+            "metadata_value": "/home/ga/Documents/skull_200HU.stl, /home/ga/Documents/skull_400HU.stl, /home/ga/Documents/skull_600HU.stl",
+            "verified_value": "/home/ga/Documents/skull_200HU.stl, /home/ga/Documents/skull_400HU.stl, /home/ga/Documents/skull_600HU.stl",
+            "source": "task.json metadata section and task.json description; setup_task.sh line 13 confirms these paths are used",
+            "status": "verified"
+        },
+        {
+            "key": "invesalius_version",
+            "metadata_value": "InVesalius 3 (implied from env_id: invesalius3_env@0.1)",
+            "verified_value": "InVesalius 3",
+            "source": "task.json env_id and setup_invesalius.sh which uses invesalius-launch (wrapper for invesalius3/invesalius); GitHub InVesalius releases v3.0",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task uses the real CT Cranium dataset (0051.zip) from InVesalius v3.0 releases, a publicly available medical imaging sample of the skull. The dataset is not synthetic. The task requires exporting three binary STL files at different Hounsfield Unit thresholds (200, 400, 600 HU, max 3071 HU) demonstrating sensitivity analysis in CT segmentation. A critical metadata error exists: the 'min_triangle_count' is specified as 10000 in task.json, but the verifier (verifier.py line 62) actually checks for triangle_count > 1000, a ten-fold difference. The 'decreasing_triangles' relationship is correctly implemented—triangle counts decrease as the threshold increases, as expected from medical imaging principles (lower threshold includes more tissue, higher threshold excludes noise).",
+    "pi_confidence": "high"
+}

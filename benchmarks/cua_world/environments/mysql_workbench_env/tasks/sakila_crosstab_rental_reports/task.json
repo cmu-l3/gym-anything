@@ -1,0 +1,65 @@
+{
+  "id": "sakila_crosstab_rental_reports@1",
+  "version": "1.0",
+  "env_id": "mysql_workbench_env@0.1",
+  "description": "You are a Market Research Analyst preparing cross-tabulation reports for a quarterly business review at a DVD rental company. Using MySQL Workbench with the Sakila database (user 'ga', password 'password123', host 'localhost', database 'sakila'), create three pivot-style views in the 'sakila' schema and export two of them to CSV.\n\nView 1: v_rental_by_day_category\nA crosstab of rental counts by film category (rows) and day of week (columns).\n- Required columns: category, sun_rentals, mon_rentals, tue_rentals, wed_rentals, thu_rentals, fri_rentals, sat_rentals, total_rentals\n- Each row represents one of the 16 Sakila film categories.\n- Use DAYOFWEEK(rental.rental_date) where 1=Sunday, 7=Saturday.\n- Join path: rental → inventory → film_category → category.\n- Values are COUNT of rentals.\n\nView 2: v_monthly_rental_trend\nA crosstab of monthly rental counts per store for the year 2005.\n- Required columns: rental_month, store_1_rentals, store_2_rentals, total_rentals\n- Each row represents one month (1-12), filtered to YEAR(rental_date) = 2005.\n- Store determined from inventory.store_id.\n- Join path: rental → inventory.\n- Values are COUNT of rentals.\n\nView 3: v_rating_revenue_matrix\nA crosstab of total payment revenue by film rating (rows) and calendar quarter (columns).\n- Required columns: rating, q1_revenue, q2_revenue, q3_revenue, q4_revenue, total_revenue\n- Each row represents one film rating (G, PG, PG-13, R, NC-17).\n- Use QUARTER(payment.payment_date) for quarters.\n- Revenue is SUM(payment.amount); use COALESCE to replace NULL with 0.00.\n- Join path: payment → rental → inventory → film.\n\nExport v_rental_by_day_category results to /home/ga/Documents/exports/rental_by_day_category.csv and v_rating_revenue_matrix results to /home/ga/Documents/exports/rating_revenue_matrix.csv.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sakila_crosstab_rental_reports/setup_task.sh",
+    "post_task": "/workspace/tasks/sakila_crosstab_rental_reports/export_result.sh"
+  },
+  "metadata": {
+    "database": "sakila",
+    "views": {
+      "v_rental_by_day_category": {
+        "columns": [
+          "category",
+          "sun_rentals",
+          "mon_rentals",
+          "tue_rentals",
+          "wed_rentals",
+          "thu_rentals",
+          "fri_rentals",
+          "sat_rentals",
+          "total_rentals"
+        ],
+        "expected_rows": 16
+      },
+      "v_monthly_rental_trend": {
+        "columns": [
+          "rental_month",
+          "store_1_rentals",
+          "store_2_rentals",
+          "total_rentals"
+        ],
+        "min_rows": 5
+      },
+      "v_rating_revenue_matrix": {
+        "columns": [
+          "rating",
+          "q1_revenue",
+          "q2_revenue",
+          "q3_revenue",
+          "q4_revenue",
+          "total_revenue"
+        ],
+        "expected_rows": 5
+      }
+    },
+    "exports": {
+      "rental_by_day_category.csv": "/home/ga/Documents/exports/rental_by_day_category.csv",
+      "rating_revenue_matrix.csv": "/home/ga/Documents/exports/rating_revenue_matrix.csv"
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sakila_crosstab_rental_reports"
+    }
+  }
+}

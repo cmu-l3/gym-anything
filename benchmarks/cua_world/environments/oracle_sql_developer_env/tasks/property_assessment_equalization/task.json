@@ -1,0 +1,36 @@
+{
+  "id": "property_assessment_equalization@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a County Property Assessor analyzing assessment equity for the 2024 tax year using the COUNTY_ASSESSOR schema (Host=localhost, Port=1521, Service=XEPDB1, User=county_assessor, Password=Assess2024). State law mandates a 33% target assessment level (0.33) and a Coefficient of Dispersion (COD) under 15.0. Document and correct inequities by creating a view RATIO_STUDY_VW that joins 2024 assessments with arm's-length sales to calculate assessment-to-sale ratios and per-neighborhood statistics, including median_ratio, mean_ratio, and COD. Populate a table EQUALIZATION_FACTORS with data for neighborhoods where the COD exceeds 15.0 or the median_ratio is outside the 0.30 to 0.36 range, calculating an equalization_factor (0.33 / current_median_ratio). Update the 2024 land_value, improvement_value, and total_assessed_value in the ASSESSMENTS table using these factors and mark the status in EQUALIZATION_FACTORS as 'APPLIED'. Provide a view PROPERTY_CHARS_UNPIVOT_VW that transforms PROPERTY_FEATURES into a normalized format (parcel_id, feature_name, feature_value) for active features ('Y'). Create a view PARCEL_TAX_SUMMARY_VW that aggregates district_names into a comma-separated list and sums tax_rates for each parcel. Export the final EQUALIZATION_FACTORS table to /home/ga/equalization_report.csv.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/property_assessment_equalization/setup_task.sh",
+    "post_task": "/workspace/tasks/property_assessment_equalization/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/equalization_result.json",
+    "occupation": "Court, Municipal, and License Clerks",
+    "industry": "Government / Municipal Administration",
+    "gdp_contribution": "$739M",
+    "design_pattern": "Data Transformation and Bulk Updates",
+    "oracle_features": [
+      "MERGE",
+      "UNPIVOT",
+      "LISTAGG",
+      "Window Functions",
+      "PERCENTILE_CONT"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_property_assessment_equalization"
+    }
+  }
+}

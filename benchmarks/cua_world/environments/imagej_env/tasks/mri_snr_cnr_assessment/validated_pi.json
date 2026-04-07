@@ -1,0 +1,80 @@
+{
+    "task_id": "mri_snr_cnr_assessment@1",
+    "dataset": "ImageJ Samples",
+    "case_id": "t1-head.zip",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "image_name",
+            "metadata_value": "T1 Head (2.4M)",
+            "verified_value": "T1 Head (2.4M)",
+            "source": "ImageJ sample menu and URLOpener.java",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/home/ga/ImageJ_Data/results/mri_snr_cnr.csv",
+            "verified_value": "/home/ga/ImageJ_Data/results/mri_snr_cnr.csv",
+            "source": "setup_task.sh configuration",
+            "status": "verified"
+        },
+        {
+            "key": "expected_values.wm_mean_min",
+            "metadata_value": 100,
+            "verified_value": 100,
+            "source": "Python analysis showing actual 16-bit WM mean is ~600, which satisfies the >100 minimum.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_values.wm_mean_max",
+            "metadata_value": 250,
+            "verified_value": 600,
+            "source": "Python analysis showing t1-head.tif is 16-bit with WM mean ~600, contradicting the 250 maximum claim.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_values.gm_mean_min",
+            "metadata_value": 50,
+            "verified_value": 50,
+            "source": "Python analysis showing actual 16-bit GM mean is ~270, which satisfies the >50 minimum.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_values.gm_mean_max",
+            "metadata_value": 200,
+            "verified_value": 270,
+            "source": "Python analysis showing t1-head.tif is 16-bit with GM mean ~270, contradicting the 200 maximum claim.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_values.bg_mean_max",
+            "metadata_value": 30,
+            "verified_value": 0,
+            "source": "Dataset documentation and Python analysis showing voxels outside the head are exactly 0.0.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_values.bg_std_max",
+            "metadata_value": 20,
+            "verified_value": 0,
+            "source": "Dataset documentation and Python analysis showing voxels outside the head are exactly 0.0.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_values.snr_min",
+            "metadata_value": 5,
+            "verified_value": null,
+            "source": "Division by zero. Std_BG is 0.0, causing mathematical Infinity.",
+            "status": "contradicted"
+        },
+        {
+            "key": "expected_values.cnr_min",
+            "metadata_value": 1,
+            "verified_value": null,
+            "source": "Division by zero. Std_BG is 0.0, causing mathematical Infinity.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The target dataset 'T1 Head (2.4M)' (t1-head.zip) is a real 16-bit MRI volume from the University of Waterloo where the background voxels outside the head have been artificially set to exactly zero (as documented in t1-head.txt) to improve compression. As a result, the measured background standard deviation (`Std_BG`) will be exactly 0.0. This exposes a critical bug in the task: the verifier deducts 10 points for `std_bg > 0` failing, and any resulting 'Infinity' or 'NaN' outputs for SNR and CNR are ignored by the export script's regex (`r\"[-+]?\\d*\\.\\d+|\\d+\"`), resulting in an automatic loss of another 40 points. Additionally, because the image is 16-bit, the actual mean intensities for White Matter (~600) and Gray Matter (~270) significantly exceed the metadata claims (`wm_mean_max`: 250, `gm_mean_max`: 200) which falsely assume an 8-bit scale.",
+    "pi_confidence": "high"
+}

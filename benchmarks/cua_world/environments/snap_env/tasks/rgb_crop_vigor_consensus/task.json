@@ -1,0 +1,36 @@
+{
+  "id": "rgb_crop_vigor_consensus@1",
+  "version": "1.0",
+  "env_id": "snap_env@0.1",
+  "description": "A precision agriculture consultant needs to identify high-vigor crop areas using an RGB True Color Image (Sentinel-2 TCI) located at ~/snap_data/sentinel2_tci.tif. The image bands are mapped as: band_1 = Red, band_2 = Green, band_3 = Blue. Create three new virtual bands: 'VARI' using the formula (Green - Red) / (Green + Red - Blue), 'NGRDI' using the formula (Green - Red) / (Green + Red), and a binary mask 'high_vigor_mask' where VARI > 0.15 AND NGRDI > 0.05. Save the resulting product containing all bands in BEAM-DIMAP format to ~/snap_projects/rgb_vigor.dim and export it in ENVI format to ~/snap_exports/rgb_vigor_envi.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rgb_crop_vigor_consensus/setup_task.sh",
+    "post_task": "/workspace/tasks/rgb_crop_vigor_consensus/export_result.sh"
+  },
+  "metadata": {
+    "data_file": "/home/ga/snap_data/sentinel2_tci.tif",
+    "expected_dimap": "/home/ga/snap_projects/rgb_vigor.dim",
+    "expected_envi_hdr": "/home/ga/snap_exports/rgb_vigor_envi.hdr",
+    "band_mapping": {
+      "Red": "band_1",
+      "Green": "band_2",
+      "Blue": "band_3"
+    },
+    "thresholds": {
+      "vari": 0.15,
+      "ngrdi": 0.05
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rgb_crop_vigor_consensus"
+    }
+  }
+}

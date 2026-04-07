@@ -1,0 +1,38 @@
+{
+  "id": "adt_census_lab_validation_pipeline@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "You are a Senior Integration Engineer building an end-to-end clinical pipeline for a regional hospital network. The system must process ADT admission/discharge events to maintain a live patient census, then use that census to validate incoming lab results before routing critical values to an alerting system.\n\nChannel 1: 'ADT_Census_Manager' \u2014 TCP Listener on port 6661 (MLLP). For ADT^A01 (admit): insert into the active_census table (mrn, patient_name, department, attending_physician, status='active', admit_time). For ADT^A03 (discharge): update the matching patient's status to 'discharged' with discharge_time. Return a standard HL7 ACK.\n\nChannel 2: 'Lab_Results_Validator' \u2014 TCP Listener on port 6662 (MLLP). JavaScript transformer queries active_census by MRN (PID-3.1). If the patient has status='active': enrich with department and attending_physician, then route to Channel 3 via Channel Writer. If not found or discharged: insert into rejected_results table. Response Transformer returns MSA|AA (with department in MSA-6) for accepted, or MSA|AR for rejected.\n\nChannel 3: 'Critical_Value_Processor' \u2014 Receives from Channel 2. Insert ALL results into lab_results table (mrn, test_code, result_value, units, abnormal_flag, physician, department). If any OBX-8 contains 'HH' or 'LL', also insert into critical_alerts table and write a JSON alert file to /tmp/critical_alerts/.\n\nCreate all database tables yourself. Sample HL7 messages are at /home/ga/. REST API: https://localhost:8443/api (admin/admin, header: X-Requested-With: OpenAPI). PostgreSQL: jdbc:postgresql://nextgen-postgres:5432/mirthdb (postgres/postgres).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 300,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/adt_census_lab_validation_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/adt_census_lab_validation_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "census_channel_name": "ADT_Census_Manager",
+    "validator_channel_name": "Lab_Results_Validator",
+    "processor_channel_name": "Critical_Value_Processor",
+    "census_port": "6661",
+    "validator_port": "6662",
+    "census_table": "active_census",
+    "results_table": "lab_results",
+    "alerts_table": "critical_alerts",
+    "rejected_table": "rejected_results",
+    "alerts_dir": "/tmp/critical_alerts",
+    "test_mrn_known": "MRN-3001",
+    "test_mrn_unknown": "MRN-9999",
+    "occupation": "Senior Integration Engineer",
+    "soc_code": "15-1299.09"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_adt_census_lab_validation_pipeline"
+    }
+  }
+}

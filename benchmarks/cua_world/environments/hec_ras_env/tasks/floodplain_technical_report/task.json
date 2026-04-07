@@ -1,0 +1,27 @@
+{
+  "id": "floodplain_technical_report@1",
+  "version": "1.0",
+  "env_id": "hec_ras_env@0.1",
+  "description": "You are a hydraulic engineer preparing a floodplain technical report for the White River at Muncie, IN. The baseline HEC-RAS unsteady simulation has been run with a 21,000 cfs peak flow (results in Muncie.p04.hdf).\n\nExtract the peak Water Surface Elevation (WSE) and maximum channel velocity at every cross-section from the HDF5 results. Determine each cross-section's minimum channel bed elevation from the geometry data. Compute flood depth (peak WSE minus bed elevation) at each station.\n\nRead ~/Documents/critical_infrastructure.csv (Facility_Name, River_Station, First_Floor_Elevation_ft). Linearly interpolate the peak WSE at each facility's river station from the cross-section profile and classify each as FLOODED (WSE > FFE) or SAFE.\n\nPerform a flow sensitivity check: scale all flow values in the upstream boundary condition hydrograph in Muncie.b04 by 1.5x (multiply every flow value by 1.5, keeping times unchanged). Then re-run the simulation using the clean template (RasUnsteady Muncie.p04.tmp.hdf x04) and extract the resulting peak WSE at every cross-section. Compute the WSE increase (sensitivity minus baseline) per station.\n\nSave results to:\n- ~/Documents/hec_ras_results/floodplain_profile.csv: River_Station, Peak_WSE_ft, Max_Velocity_fps, Bed_Elev_ft, Flood_Depth_ft, Sensitivity_Delta_WSE_ft\n- ~/Documents/hec_ras_results/infrastructure_impact.csv: Facility_Name, River_Station, FFE_ft, Interpolated_WSE_ft, Flood_Depth_ft, Status\n- ~/Documents/hec_ras_results/report_summary.txt with labeled lines: NUM_CROSS_SECTIONS, MAX_FLOOD_DEPTH_FT, MAX_FLOOD_DEPTH_STATION, FACILITIES_FLOODED, FACILITIES_SAFE, MAX_SENSITIVITY_DELTA_FT",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 150,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/floodplain_technical_report/setup_task.sh",
+    "post_task": "/workspace/tasks/floodplain_technical_report/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Civil Engineers",
+    "onetsoc": "17-2051.00",
+    "industry": "Government / Flood Insurance / Water Resources",
+    "difficulty": "expert"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_floodplain_technical_report"
+    }
+  }
+}

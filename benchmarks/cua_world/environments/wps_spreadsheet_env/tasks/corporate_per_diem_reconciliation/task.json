@@ -1,0 +1,30 @@
+{
+  "id": "corporate_per_diem_reconciliation@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Reconcile employee travel expenses against official GSA per diem limits in /home/ga/Documents/travel_reconciliation.xlsx. In the Expense_Claims sheet, populate the GSA_Lodging_Rate (G) and GSA_MIE_Rate (H) columns with the corresponding rates from the GSA_Rates sheet based on the State_City. Calculate the Approved_Lodging (I) and Approved_MIE (J) by capping the claimed amounts at the maximum allowable limits (daily rate multiplied by travel days). Determine the Total_Reimbursement (K) and any Overage (L). Format columns E through L as Currency ($) and apply conditional formatting to highlight overages greater than 0 in column L. Create a new sheet named Summary that displays the 'Total Company Reimbursement' and 'Total Unreimbursed Overages' calculated from the respective columns. Save the updated workbook.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 70,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/corporate_per_diem_reconciliation/setup_task.sh",
+    "post_task": "/workspace/tasks/corporate_per_diem_reconciliation/export_result.sh"
+  },
+  "metadata": {
+    "data_source": "Derived from official US GSA FY2024 Per Diem Rates",
+    "required_formula_types": [
+      "VLOOKUP/XLOOKUP/INDEX",
+      "MIN/IF",
+      "SUM/Addition"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_reconciliation"
+    }
+  }
+}

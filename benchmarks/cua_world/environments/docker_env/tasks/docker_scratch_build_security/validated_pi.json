@@ -1,0 +1,66 @@
+{
+    "task_id": "docker_scratch_build_security@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/payment-validator",
+            "verified_value": "/home/ga/projects/payment-validator",
+            "source": "setup_task.sh:24 defines PROJECT_DIR=\"/home/ga/projects/payment-validator\"; export_result.sh and verifier.py reference this path",
+            "status": "verified"
+        },
+        {
+            "key": "image_tag",
+            "metadata_value": "payment-validator:secure",
+            "verified_value": "payment-validator:secure",
+            "source": "export_result.sh:8 defines IMAGE_TAG=\"payment-validator:secure\"; verifier.py and export_result.sh reference this tag consistently",
+            "status": "verified"
+        },
+        {
+            "key": "max_size_mb",
+            "metadata_value": 20,
+            "verified_value": 20,
+            "source": "verifier.py:22 retrieves max_size_mb from metadata with default 20; line 54 enforces the check: if size_mb < max_size_mb. This is reasonable for a scratch-based Go binary which typically ranges 5-20MB",
+            "status": "verified"
+        },
+        {
+            "key": "required_log_string",
+            "metadata_value": "HTTPS check passed",
+            "verified_value": "HTTPS check passed",
+            "source": "setup_task.sh:56 contains: fmt.Printf(\"HTTPS check passed. Status: %s\\n\", resp.Status); export_result.sh:46 validates: if echo \"$LOGS\" | grep -q \"HTTPS check passed\"; verifier.py:80 checks this criterion",
+            "status": "verified"
+        },
+        {
+            "key": "admin_user",
+            "metadata_value": "ga",
+            "verified_value": "ga",
+            "source": "setup_task.sh:26 runs chown ga:ga \"$PROJECT_DIR\"; line 103 runs chown -R ga:ga \"$PROJECT_DIR\"; line 106 uses su - ga -c to launch terminal as user 'ga'",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 80,
+            "verified_value": 80,
+            "source": "verifier.py:84 contains: passed = score >= metadata.get('pass_threshold', 80); scoring criteria sum to 100 points maximum (image created 10+rebuilt 10+size 20+non-root 20+no shell 20+https 20=100), passing at 80",
+            "status": "verified"
+        },
+        {
+            "key": "go_version",
+            "metadata_value": "1.21",
+            "verified_value": "1.21",
+            "source": "setup_task.sh:77 specifies 'go 1.21' in go.mod; Go 1.21 is an official release from go.dev with extensive documentation",
+            "status": "verified"
+        },
+        {
+            "key": "ubuntu_base_image_version",
+            "metadata_value": "22.04",
+            "verified_value": "22.04",
+            "source": "setup_task.sh:84 specifies 'FROM ubuntu:22.04' in the initial Dockerfile; Ubuntu 22.04 LTS is an official release (Jammy Jellyfish) released 2022-04-21, supported until 2027",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task is a DevSecOps Docker security refactoring challenge. The agent must refactor an insecure Ubuntu-based Dockerfile into a scratch-based multi-stage build for a Go payment validator service. Project directory is /home/ga/projects/payment-validator, final image tag is payment-validator:secure, and it must be under 20MB. The application must run as non-root user 'ga' and demonstrate HTTPS functionality by printing 'HTTPS check passed' on startup. Scoring passes at 80% threshold (80 points out of 100 maximum), with criteria: image creation (10pts), rebuild during task (10pts), size under 20MB (20pts), non-root user (20pts), no shell (20pts), and HTTPS connectivity (20pts). The initial Dockerfile is based on Ubuntu 22.04 with Go 1.21.",
+    "pi_confidence": "high"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "nec_voltage_drop_audit@1",
+  "version": "1.0",
+  "env_id": "microsoft_excel_2010_env@0.1",
+  "description": "Perform a voltage drop compliance audit for 50 electrical branch circuits in 'commercial_circuits.xlsx'. The audit requires populating the Resistance (Column H) with conductor resistance from 'NEC_Table_8' based on wire size and material, calculating the Voltage Drop (Column I) as (2 * Length * Resistance * Load) / 1000, and calculating the % Drop (Column J) as Voltage Drop / System Voltage (formatted as a percentage with 2 decimal places). The Status (Column K) must indicate 'FAIL' for drops greater than 3.00% or 'PASS' otherwise, with 'FAIL' cells highlighted with a red background. Save the updated workbook to 'commercial_circuits.xlsx'.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\nec_voltage_drop_audit\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\nec_voltage_drop_audit\\export_result.ps1"
+  },
+  "metadata": {
+    "target_file": "C:\\Users\\Docker\\Documents\\commercial_circuits.xlsx",
+    "nec_table_source": "NFPA 70 National Electrical Code, Chapter 9, Table 8",
+    "compliance_limit": 0.03
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_nec_voltage_drop_audit"
+    }
+  }
+}

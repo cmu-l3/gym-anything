@@ -18,21 +18,8 @@ sleep 2
 
 # 4. Launch Application
 echo "Launching Electrical Calculations..."
-monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-sleep 5
-
-# 5. Dismiss potential startup dialogs/ads
-# Press Back once to clear overlays
-input keyevent KEYCODE_BACK
-sleep 1
-
-# Ensure we are not on home screen (re-launch if needed)
-CURRENT_FOCUS=$(dumpsys window | grep mCurrentFocus)
-if echo "$CURRENT_FOCUS" | grep -q "Launcher"; then
-    echo "Relaunching app to ensure foreground..."
-    monkey -p $PACKAGE -c android.intent.category.LAUNCHER 1 2>/dev/null
-    sleep 3
-fi
+. /sdcard/scripts/launch_helper.sh
+launch_electrical_calc
 
 # 6. Capture initial state screenshot
 screencap -p /sdcard/task_initial.png

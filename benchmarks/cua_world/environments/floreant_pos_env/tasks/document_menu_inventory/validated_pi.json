@@ -1,0 +1,87 @@
+{
+    "task_id": "document_menu_inventory@1",
+    "dataset": "Floreant POS 1.4 build 1707b pre-populated Derby database",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "floreant_version",
+            "metadata_value": "Not present in task.json (file is truncated)",
+            "verified_value": "1.4 build 1707b",
+            "source": "install_floreant.sh line 38: Downloads from SourceForge 'floreantpos-1.4-build1707b.zip'",
+            "status": "verified"
+        },
+        {
+            "key": "database_type",
+            "metadata_value": "Not present in task.json (file is truncated)",
+            "verified_value": "Apache Derby (embedded)",
+            "source": "setup_task.sh lines 42-50: Java code queries 'jdbc:derby:' with MENU_CATEGORY and MENU_ITEM tables",
+            "status": "verified"
+        },
+        {
+            "key": "database_initialization",
+            "metadata_value": "Not present in task.json (file is truncated)",
+            "verified_value": "Pre-populated in Floreant ZIP file, not dynamically generated",
+            "source": "setup_floreant.sh lines 43-44: 'The Derby database ships pre-populated with the ZIP'",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_extraction_method",
+            "metadata_value": "Not present in task.json (file is truncated)",
+            "verified_value": "Java utility (ExtractMenuTruth) queries Derby directly via JDBC at task setup time",
+            "source": "setup_task.sh lines 42-106: Java code that connects to Derby and extracts CATEGORY, TOTAL, MOST_EXPENSIVE, LEAST_EXPENSIVE",
+            "status": "verified"
+        },
+        {
+            "key": "ground_truth_file_location",
+            "metadata_value": "Not present in task.json (file is truncated)",
+            "verified_value": "/tmp/ground_truth_menu.txt (format: CATEGORY:Name:Count, TOTAL:Count, MOST_EXPENSIVE:Name:Price, LEAST_EXPENSIVE:Name:Price)",
+            "source": "setup_task.sh lines 54, 71, 74, 83, 94: PrintWriter writes to /tmp/ground_truth_menu.txt",
+            "status": "verified"
+        },
+        {
+            "key": "manager_pin",
+            "metadata_value": "Not present in task.json (file is truncated)",
+            "verified_value": "1111",
+            "source": "task.json description (line visible before truncation): 'Enter PIN: 1111'",
+            "status": "verified"
+        },
+        {
+            "key": "report_output_path",
+            "metadata_value": "Not present in task.json (file is truncated)",
+            "verified_value": "/home/ga/menu_inventory_report.txt",
+            "source": "task.json description and setup_task.sh line 12: Removes previous report file at this path",
+            "status": "verified"
+        },
+        {
+            "key": "task_json_structure",
+            "metadata_value": "Complete task.json with metadata field",
+            "verified_value": "task.json is truncated and incomplete - ends at 'Expected Report Format:\\n' with no closing braces or metadata field",
+            "source": "Hexdump shows file ends at byte 0x33e without closing JSON structure. File is only 830 bytes. Other task.json files in same directory are 21-31 lines.",
+            "status": "contradicted"
+        },
+        {
+            "key": "data_source_authenticity",
+            "metadata_value": "Not present in task.json (file is truncated)",
+            "verified_value": "Real Floreant POS application data from SourceForge official release",
+            "source": "WebSearch confirms Floreant POS 1.4 build 1707b (45.7 MB) available on SourceForge with pre-populated Apache Derby database containing sample menu items",
+            "status": "verified"
+        },
+        {
+            "key": "database_schema",
+            "metadata_value": "Not present in task.json (file is truncated)",
+            "verified_value": "Tables: MENU_CATEGORY (with ID, NAME columns) and MENU_ITEM (with ID, CATEGORY_ID, NAME, PRICE columns)",
+            "source": "setup_task.sh lines 58-81: SQL queries reference these exact tables and columns. LEFT JOIN between tables with ID and CATEGORY_ID foreign key relationship.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The document_menu_inventory task uses real Floreant POS 1.4 build 1707b application data from SourceForge (build version 1707b, file size 45.7 MB). The ground truth is extracted from a pre-populated Apache Derby embedded database that ships with Floreant, containing MENU_CATEGORY and MENU_ITEM tables. Ground truth is dynamically extracted at task setup time via a Java JDBC utility that queries the Derby database for category lists, total item counts, and pricing extremes. The agent must access the POS back office using PIN 1111 and create a report at /home/ga/menu_inventory_report.txt.",
+    "pi_confidence": "high",
+    "critical_data_quality_issue": {
+        "severity": "HIGH",
+        "issue": "task.json is truncated and malformed",
+        "details": "File ends abruptly at 'Expected Report Format:\\n' (byte 0x33e, 830 bytes total) without completing the JSON structure. Missing: closing braces, difficulty field, init field, hooks field, metadata field, success field, and tags field. Comparison with other tasks in same directory (change_item_price, process_order) show complete task.json files are 21-31 lines; this one is only 4 lines.",
+        "impact": "Cannot extract metadata claims from task.json as instructed. No metadata field is present to verify against.",
+        "remediation": "task.json file must be reconstructed or recovered from version control."
+    }
+}

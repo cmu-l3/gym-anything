@@ -1,0 +1,26 @@
+{
+  "id": "parse_boarding_pass_qr@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "Scan the boarding pass QR code using bcWebCam to capture the raw IATA BCBP string. The QR code image has been downloaded to C:\\Users\\Docker\\Documents\\boarding_pass_qr.png and is opened on your screen (or visible to the virtual camera). \n\nExtract 7 specific flight details using exact Python-style string slicing on the raw string:\n- `[2:22]` : Passenger Name\n- `[23:30]` : PNR\n- `[30:33]` : Origin\n- `[33:36]` : Destination\n- `[36:39]` : Carrier Code\n- `[39:44]` : Flight Number\n- `[48:52]` : Seat Number\n\nTrim any leading or trailing whitespace from the extracted values.\nSave the extracted data as a JSON file at `C:\\Users\\Docker\\Documents\\claim_data.json` using the exact keys: `\"name\"`, `\"pnr\"`, `\"origin\"`, `\"destination\"`, `\"carrier\"`, `\"flight\"`, `\"seat\"`.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\parse_boarding_pass_qr\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\parse_boarding_pass_qr\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_output_path": "C:\\Users\\Docker\\Documents\\claim_data.json",
+    "ground_truth_path": "C:\\ProgramData\\bcwebcam_ground_truth.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_parse_boarding_pass_qr"
+    }
+  }
+}

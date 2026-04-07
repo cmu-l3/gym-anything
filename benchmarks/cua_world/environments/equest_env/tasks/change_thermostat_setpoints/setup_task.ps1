@@ -48,11 +48,11 @@ try {
 
     Invoke-PyAutoGUICommand -Command @{action = "click"; x = 735; y = 419} | Out-Null
     Write-Host "BDL import started, waiting for completion..."
-    # L_Shape is a larger model — needs more time for BDL import
-    Start-Sleep -Seconds 120
+    # L_Shape is a larger model (127KB, 25 HVAC zones) — needs extra time for BDL import
+    Start-Sleep -Seconds 150
 
     # Poll for eQUEST to become responsive
-    $timeout = 180
+    $timeout = 240
     $elapsed = 0
     while ($elapsed -lt $timeout) {
         $eqProc = Get-Process | Where-Object { $_.ProcessName -like "*quest*" -and $_.MainWindowTitle -ne "" } | Select-Object -First 1

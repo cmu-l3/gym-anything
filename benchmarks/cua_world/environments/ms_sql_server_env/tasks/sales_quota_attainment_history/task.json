@@ -1,0 +1,39 @@
+{
+  "id": "sales_quota_attainment_history@1",
+  "version": "1.0",
+  "env_id": "ms_sql_server_env@0.1",
+  "description": "A Sales Operations Analyst needs a history of quota attainment for calculating retroactive commissions. In the AdventureWorks2022 database, create a view named 'Sales.vw_HistoricalQuotaAttainment' that reconstructs the quota history for each salesperson and calculates their actual sales during each quota period. The view must include BusinessEntityID, FirstName, LastName, QuotaStartDate (from Sales.SalesPersonQuotaHistory), QuotaEndDate (the start date of the next quota record for that person or the current date if active), SalesQuota, ActualSales (sum of Sales.SalesOrderHeader.SubTotal for orders placed on or after QuotaStartDate and strictly before QuotaEndDate, returning 0.00 if no sales), and AttainmentPct (ActualSales / SalesQuota * 100, rounded to",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/sales_quota_attainment_history/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/sales_quota_attainment_history/export_result.sh"
+  },
+  "metadata": {
+    "expected_view_name": "Sales.vw_HistoricalQuotaAttainment",
+    "expected_csv_path": "/home/ga/Documents/quota_attainment_2012.csv",
+    "test_case_person_id": 275,
+    "test_case_date": "2011-05-31 00:00:00.000",
+    "required_columns": [
+      "BusinessEntityID",
+      "FirstName",
+      "LastName",
+      "QuotaStartDate",
+      "QuotaEndDate",
+      "SalesQuota",
+      "ActualSales",
+      "AttainmentPct"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sales_quota_attainment_history"
+    }
+  }
+}

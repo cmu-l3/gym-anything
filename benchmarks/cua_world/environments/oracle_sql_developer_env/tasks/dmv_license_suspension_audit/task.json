@@ -1,0 +1,33 @@
+{
+  "id": "dmv_license_suspension_audit@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Database Analyst at the State Department of Motor Vehicles. A known bug in the legacy COBOL batch system occasionally fails to suspend drivers who accumulate 12 or more points in a 12-month period, or incorrectly leaves drivers suspended after their penalty period expires. You must audit the legacy license suspension system using Oracle temporal window functions.\n\nYour tasks:\n\n1. CALCULATE ROLLING POINTS: Create a view named CITATION_ROLLING_POINTS_VW. \n   - Join DRIVERS, CITATIONS, and CITATION_TYPES.\n   - Filter out citations where adjudication_status is 'DISMISSED' or 'WARNING'.\n   - Calculate a `rolling_12m_points` column representing the sum of penalty points for that driver in the 1 year preceding (and including) each citation date. YOU MUST USE an Oracle window function with a temporal range (RANGE BETWEEN INTERVAL '1' YEAR PRECEDING AND CURRENT ROW).\n   - Output columns: driver_id, citation_id, citation_date, violation_code, points, rolling_12m_points.\n\n2. EVALUATE DISCREPANCIES: Create a view named LICENSE_AUDIT_VW to compare actual vs. expected statuses as of the snapshot date ('2024-07-01').\n   - `expected_status`: 'SUSPENDED' if the driver has ANY citation strictly between '2024-01-01' and '2024-07-01' where their `rolling_12m_points` was >= 12. Otherwise, 'ACTIVE'.\n   - `actual_status`: The current `license_status` from the DRIVERS table.\n   - `audit_flag`:\n      * 'MISSING_SUSPENSION' (actual is ACTIVE, expected is SUSPENDED)\n      * 'INVALID_SUSPENSION' (actual is SUSPENDED, expected is ACTIVE)\n      * 'OK' (actual equals expected)\n   - Output columns: driver_id, first_name, last_name, actual_status, expected_status, audit_flag.\n\n3. CREATE SUMMARY MATERIALIZED VIEW: Create a materialized view named AUDIT_SUMMARY_MV that aggregates the count of drivers grouped by `audit_flag`.\n\n4. EXPORT REMEDIATION REPORT: Export all records from LICENSE_AUDIT_VW where `audit_flag != 'OK'` to a CSV file at /home/ga/Documents/exports/dmv_discrepancies.csv.\n\nConnection details: Host=localhost, Port=1521, Service=XEPDB1, User=dmv_admin, Password=DmvAudit2024\n\nAll work must be performed through the SQL Developer GUI. A reference document is located at /home/ga/Desktop/dmv_rules.txt.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/dmv_license_suspension_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/dmv_license_suspension_audit/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/dmv_audit_result.json",
+    "occupation": "Court, Municipal, and License Clerks",
+    "industry": "State Government / Transportation",
+    "gdp_contribution": "$739.7M",
+    "oracle_features": ["Temporal Window Functions", "RANGE BETWEEN INTERVAL", "Materialized Views", "Conditional Aggregation"],
+    "ground_truth": {
+      "missing_suspension_count": 25,
+      "invalid_suspension_count": 15
+    }
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dmv_audit"
+    }
+  }
+}

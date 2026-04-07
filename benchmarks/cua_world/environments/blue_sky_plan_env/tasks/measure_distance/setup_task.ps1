@@ -53,7 +53,40 @@ try {
 
     # Dismiss any dialogs
     $dismissScript = "C:\workspace\scripts\dismiss_dialogs.ps1"
-    if (Test-Path $dismissScript) { & $dismissScript }
+    if (Test-Path $dismissScript) {
+        Write-Host "Dismissing dialogs (pass 1)..."
+        & $dismissScript
+    }
+
+    # ---- Additional dialog cleanup: BSP login flow can be delayed ----
+    # Wait and do a second pass to catch late-appearing login popups
+    Start-Sleep -Seconds 5
+    $prevEAP2 = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $lateEdge = Get-Process -Name "msedge", "msedgewebview2" -ErrorAction SilentlyContinue
+    if ($null -ne $lateEdge -and @($lateEdge).Count -gt 0) {
+        Write-Host "Late Edge detected after dismiss_dialogs, cleaning up..."
+        $lateEdge | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+        # Close login popup
+        PyAutoGUI-Click -X 814 -Y 255
+        Start-Sleep -Seconds 1
+        Get-Process -Name "msedge", "msedgewebview2" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+        # Back button in case click hit hex grid
+        PyAutoGUI-Click -X 322 -Y 104
+        Start-Sleep -Seconds 1
+    }
+    # Final escape for any remaining overlay
+    PyAutoGUI-Press -Key "escape"
+    Start-Sleep -Seconds 1
+    $ErrorActionPreference = $prevEAP2
+
+    # Run dismiss_dialogs a second time in case login flow restarted
+    if (Test-Path $dismissScript) {
+        Write-Host "Dismissing dialogs (pass 2)..."
+        & $dismissScript
+    }
 
     # Verify process running
     $bspProc = Get-Process | Where-Object { $_.ProcessName -like "*BlueSky*" -or $_.ProcessName -like "*BSP*" -or $_.ProcessName -like "*Launcher*" } | Select-Object -First 1

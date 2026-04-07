@@ -1,0 +1,28 @@
+{
+  "id": "medicare_opioid_prescriber_anomaly_detection@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Compliance Data Analyst investigating potential 'pill mills' using CMS Medicare Part D data in the MEDICARE_ADMIN schema (medicare_admin/Medicare2024, Host=localhost, Port=1521, Service=XEPDB1). Cleanse the prescription staging data from PRESCRIPTIONS_STG into a new table PRESCRIPTION_FACT (prescription_id, npi, drug_id, dispense_quarter, total_qty, day_supply) by matching raw_drug_desc to the DRUGS table using the brand or generic name combined with the strength. Create a view PRESCRIPTION_MME_VW to calculate prescription_mme (total_qty * strength_mg * mme_factor) for opioid drugs. Develop a materialized view PRESCRIBER_STATS_MV to calculate annual MME totals and specialty-based Z-scores (mme_z_score) for each prescriber. Create a view PRESCRIBER_TRENDS_VW to calculate q2_growth_pct between '2023-Q1' and '2023-Q2'. Identify high-risk prescribers in a table FLAGGED_AUDITS based on statistical outliers (mme_z_score > 3.0) or rapid acceleration (q2_growth_pct > 50.0 and q2_mme > 5000), assigning flag_reason values of 'STATISTICAL_OUTLIER', 'RAPID_ACCELERATION', or 'CRITICAL_RISK'. Export the FLAGGED_AUDITS table with headers to /home/ga/Documents/exports/opioid_audit_targets.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/medicare_opioid_prescriber_anomaly_detection/setup_task.sh",
+    "post_task": "/workspace/tasks/medicare_opioid_prescriber_anomaly_detection/export_result.sh"
+  },
+  "metadata": {
+    "expected_stat_outliers": 2,
+    "expected_rapid_accel": 2,
+    "expected_critical_risk": 2,
+    "export_path": "/home/ga/Documents/exports/opioid_audit_targets.csv"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_medicare_opioid_prescriber_anomaly_detection"
+    }
+  }
+}

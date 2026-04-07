@@ -1,0 +1,30 @@
+{
+  "id": "configure_time_based_suppression@1",
+  "version": "1.0",
+  "env_id": "wazuh_env@0.1",
+  "description": "Configure a time-based alert suppression rule in Wazuh to silence false positives from a nightly backup process. Modify the Wazuh manager configuration in /var/ossec/etc/rules/local_rules.xml by creating a new rule with ID 100250. This rule must be a child of rule 5715 (SSHD authentication success), set to level 0, and configured to apply only to the user 'backup_svc' between 02:55 and 03:30. Apply the changes by restarting the Wazuh manager.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/configure_time_based_suppression/setup_task.sh",
+    "post_task": "/workspace/tasks/configure_time_based_suppression/export_result.sh"
+  },
+  "metadata": {
+    "target_rule_id": "100250",
+    "parent_rule_id": "5715",
+    "target_user": "backup_svc",
+    "start_time": "02:55",
+    "end_time": "03:30",
+    "suppress_level": 0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_time_suppression"
+    }
+  }
+}

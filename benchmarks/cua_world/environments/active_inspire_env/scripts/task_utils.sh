@@ -8,35 +8,158 @@ take_screenshot() {
     DISPLAY=:1 import -window root "$path" 2>/dev/null || true
 }
 
-# Wait for ActivInspire to be ready
-wait_for_activinspire() {
+activinspire_window_open() {
+    DISPLAY=:1 wmctrl -l 2>/dev/null | grep -Eq \
+        "ActivInspire|Welcome to ActivInspire|Promethean License Agreement"
+}
+
+wait_for_session_bus() {
+    local runtime_dir="/run/user/$(id -u ga)"
     local timeout="${1:-60}"
     local elapsed=0
-    while [ $elapsed -lt $timeout ]; do
-        if pgrep -f "activinspire\|Inspire" > /dev/null 2>&1; then
-            echo "ActivInspire is running"
+    while [ "$elapsed" -lt "$timeout" ]; do
+        if [ -S "$runtime_dir/bus" ]; then
             return 0
         fi
         sleep 2
         elapsed=$((elapsed + 2))
     done
-    echo "WARNING: ActivInspire not detected within ${timeout}s"
+    return 1
+}
+
+is_supported_focal_base() {
+    . /etc/os-release
+    [ "${VERSION_CODENAME:-}" = "focal" ]
+}
+
+get_display_dimensions() {
+    local dims
+    dims=$(DISPLAY=:1 xdpyinfo 2>/dev/null | awk '/dimensions:/{print $2; exit}')
+    if [ -z "$dims" ]; then
+        echo "1920 1080"
+        return
+    fi
+    echo "${dims%x*} ${dims#*x}"
+}
+
+click_scaled_coord() {
+    local base_x="$1"
+    local base_y="$2"
+    local width height
+    read -r width height < <(get_display_dimensions)
+    local click_x=$((base_x * width / 1920))
+    local click_y=$((base_y * height / 1080))
+    DISPLAY=:1 xdotool mousemove --sync "$click_x" "$click_y" click 1
+}
+
+focus_window_title() {
+    DISPLAY=:1 wmctrl -a "$1" 2>/dev/null || true
+    sleep 1
+}
+
+handle_license_dialog() {
+    local timeout="${1:-30}"
+    local elapsed=0
+    while [ "$elapsed" -lt "$timeout" ]; do
+        if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -q "Promethean License Agreement"; then
+            focus_window_title "Promethean License Agreement"
+            click_scaled_coord 788 719
+            sleep 1
+            click_scaled_coord 845 744
+            sleep 2
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+    return 1
+}
+
+handle_welcome_dialog() {
+    local timeout="${1:-30}"
+    local elapsed=0
+    while [ "$elapsed" -lt "$timeout" ]; do
+        if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -q "Welcome to ActivInspire"; then
+            focus_window_title "Welcome to ActivInspire"
+            click_scaled_coord 1142 587
+            sleep 2
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+    return 1
+}
+
+auto_advance_startup_dialogs() {
+    if ! is_supported_focal_base; then
+        return 0
+    fi
+    handle_license_dialog 45 || true
+    handle_welcome_dialog 45 || true
+}
+
+launch_activinspire() {
+    local runtime_dir="/run/user/$(id -u ga)"
+    sudo -u ga bash -lc \
+        "pkill -x Inspire 2>/dev/null || true
+            pkill -x QtWebEngineProcess 2>/dev/null || true
+            sleep 1
+            nohup env \
+            DISPLAY=:1 \
+            XAUTHORITY=/home/ga/.Xauthority \
+            XDG_RUNTIME_DIR=$runtime_dir \
+            DBUS_SESSION_BUS_ADDRESS=unix:path=$runtime_dir/bus \
+            DESKTOP_SESSION=ubuntu \
+            LIBGL_ALWAYS_SOFTWARE=1 \
+            QT_QUICK_BACKEND=software \
+            QT_OPENGL=software \
+            QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
+            /usr/local/bin/activinspire \
+            >/tmp/activinspire_task_launch.log 2>&1 </dev/null &"
+}
+
+# Wait for ActivInspire to be ready
+wait_for_activinspire() {
+    local timeout="${1:-60}"
+    local elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        if activinspire_window_open; then
+            echo "ActivInspire window is visible"
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+    echo "WARNING: ActivInspire window not detected within ${timeout}s"
     return 1
 }
 
 # Launch ActivInspire if not running
 ensure_activinspire_running() {
-    if ! pgrep -f "activinspire\|Inspire" > /dev/null 2>&1; then
+    if ! activinspire_window_open; then
         echo "Starting ActivInspire..."
-        su - ga -c "DISPLAY=:1 /home/ga/Desktop/launch_activinspire.sh &" 2>/dev/null || true
-        sleep 5
-        wait_for_activinspire 30
+        wait_for_session_bus 60 || true
+        launch_attempt=1
+        while [ "$launch_attempt" -le 2 ]; do
+            launch_activinspire
+            if wait_for_activinspire 120; then
+                auto_advance_startup_dialogs
+                return 0
+            fi
+            echo "Retrying ActivInspire launch (attempt $((launch_attempt + 1)))..."
+            launch_attempt=$((launch_attempt + 1))
+        done
+        return 1
     fi
+    auto_advance_startup_dialogs
 }
 
 # Focus the ActivInspire window
 focus_activinspire() {
     # Try to focus using wmctrl
+    DISPLAY=:1 wmctrl -a "Welcome to ActivInspire" 2>/dev/null || \
+    DISPLAY=:1 wmctrl -a "Promethean License Agreement" 2>/dev/null || \
     DISPLAY=:1 wmctrl -a "ActivInspire" 2>/dev/null || \
     DISPLAY=:1 wmctrl -a "Inspire" 2>/dev/null || \
     DISPLAY=:1 wmctrl -a "flipchart" 2>/dev/null || true

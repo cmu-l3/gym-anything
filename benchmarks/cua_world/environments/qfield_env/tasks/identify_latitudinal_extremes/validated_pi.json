@@ -1,0 +1,38 @@
+{
+    "task_id": "identify_latitudinal_extremes@1",
+    "dataset": "world_survey.gpkg",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_layer",
+            "metadata_value": "field_observations",
+            "verified_value": "field_observations",
+            "source": "Queried sqlite_master for table names in world_survey.gpkg",
+            "status": "verified"
+        },
+        {
+            "key": "capitals_layer",
+            "metadata_value": "world_capitals",
+            "verified_value": "world_capitals",
+            "source": "Queried sqlite_master for table names in world_survey.gpkg",
+            "status": "verified"
+        },
+        {
+            "key": "output_gpkg",
+            "metadata_value": "/sdcard/task_result.gpkg",
+            "verified_value": "/sdcard/task_result.gpkg",
+            "source": "Checked export_result.sh which explicitly defines EXPORT_GPKG as /sdcard/task_result.gpkg",
+            "status": "verified"
+        },
+        {
+            "key": "regex_pattern",
+            "metadata_value": "North:\\s*(?P<north>[^,]+),\\s*South:\\s*(?P<south>[^,]+),\\s*Span:\\s*(?P<span>\\d+)",
+            "verified_value": "North:\\s*([^,]+),\\s*South:\\s*([^,]+),\\s*Span:\\s*(\\d+)",
+            "source": "Checked verifier.py logic where re.compile is structurally identical to the metadata claim",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "Verified that the target GeoPackage dataset world_survey.gpkg contains the 'world_capitals' and 'field_observations' layers. The data is non-synthetic real-world data containing authentic iNaturalist field observations and real global capitals. By extracting and parsing the OGC GeoPackage binary WKB 'geom' column, it was determined that within this dataset of 98 capitals, the northernmost is Reykjavik (Lat: 64.1353) and the southernmost is Canberra (Lat: -35.3075), with an absolute rounded latitudinal span of 99 degrees. Critically, a fatal defect was discovered in the task's verifier.py logic: it attempts to dynamically calculate this ground truth by explicitly querying for a 'lat' or 'latitude' attribute column in the 'world_capitals' table. Because the spatial coordinates are exclusively stored within the binary 'geom' blob and completely lack independent attribute columns, the verifier will perpetually fail with a 'Dataset error: Latitude column not found in capitals', making the task programmatically unsolvable and unscorable.",
+    "pi_confidence": "high"
+}

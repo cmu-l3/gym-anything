@@ -1,0 +1,80 @@
+{
+  "task_id": "generate_clinical_cohort_report@1",
+  "dataset": "NHANES (National Health and Nutrition Examination Survey)",
+  "case_id": null,
+  "data_is_synthetic": false,
+  "pi_items": [
+    {
+      "key": "expected_output_path",
+      "metadata_value": "/home/ga/Documents/cohort_report.csv",
+      "verified_value": "/home/ga/Documents/cohort_report.csv",
+      "source": "task.json, setup_task.sh line 16, export_result.sh line 8, verifier.py line 24, task description line 4",
+      "status": "verified"
+    },
+    {
+      "key": "diagnosis_query",
+      "metadata_value": "Chronic Fatigue Syndrome",
+      "verified_value": "Chronic Fatigue Syndrome",
+      "source": "setup_task.sh line 36, task.json line 5, task description",
+      "status": "verified"
+    },
+    {
+      "key": "ground_truth_dir",
+      "metadata_value": "/var/lib/app/ground_truth",
+      "verified_value": "/var/lib/app/ground_truth",
+      "source": "setup_task.sh line 72, export_result.sh line 9, verifier.py line 25",
+      "status": "verified"
+    },
+    {
+      "key": "icd10_code_for_chronic_fatigue_syndrome",
+      "metadata_value": "R53.82",
+      "verified_value": "G93.32 (recommended as of October 1, 2022); R53.82 is 'Chronic fatigue, unspecified'",
+      "source": "CDC ICD-10-CM database, setup_task.sh line 37; WebFetch https://archive.cdc.gov/www_cdc_gov/me-cfs/healthcare-providers/diagnosis/icd-10.html",
+      "status": "contradicted"
+    },
+    {
+      "key": "data_source",
+      "metadata_value": null,
+      "verified_value": "LibreHealthIO NHANES demo dataset - de-identified patient data from 2011-2012 NHANES survey period, approximately 9,375 patients",
+      "source": "setup_librehealth.sh lines 3-6, 58; GitHub LibreHealthIO/lh-ehr repository sql/nhanes directory; Web search 'Using LibreHealth EHR for Education in Academic Settings'",
+      "status": "verified"
+    },
+    {
+      "key": "test_methodology_target_patients",
+      "metadata_value": null,
+      "verified_value": "3 target patients (P1, P2, P3) are selected randomly and receive the diagnosis",
+      "source": "setup_task.sh lines 23, 25-26, 52-54",
+      "status": "verified"
+    },
+    {
+      "key": "test_methodology_control_patients",
+      "metadata_value": null,
+      "verified_value": "2 control patients (C1, C2) are selected randomly and explicitly exclude the diagnosis",
+      "source": "setup_task.sh lines 23-26, 57",
+      "status": "verified"
+    },
+    {
+      "key": "test_sample_size",
+      "metadata_value": null,
+      "verified_value": "5 random patients total: 3 targets + 2 controls",
+      "source": "setup_task.sh line 25: 'ORDER BY RAND() LIMIT 5'",
+      "status": "verified"
+    },
+    {
+      "key": "database_schema_for_diagnoses",
+      "metadata_value": null,
+      "verified_value": "OpenEMR/LibreHealth 'lists' table with type='medical_problem', storing ICD-10 code in 'diagnosis' column",
+      "source": "setup_task.sh lines 40-48, 57",
+      "status": "verified"
+    },
+    {
+      "key": "ground_truth_storage",
+      "metadata_value": null,
+      "verified_value": "Ground truth stored in 3 files: expected_targets.txt (target patient names), expected_controls.txt (control patient names), target_pids.txt (target patient PIDs)",
+      "source": "setup_task.sh lines 75-84, 87",
+      "status": "verified"
+    }
+  ],
+  "privileged_info_summary": "The task uses the LibreHealthIO NHANES dataset, a real (de-identified) patient dataset from the 2011-2012 National Health and Nutrition Examination Survey containing approximately 9,375 patients. The test injects Chronic Fatigue Syndrome (using ICD-10 code R53.82, which is the older non-specific code; CDC recommends G93.32 since October 2022) into 3 randomly selected target patients from the database. The task verifies correct cohort identification by comparing the agent's exported CSV against ground truth files containing the actual names of 3 target patients (who should appear) and 2 control patients (who should not appear). The verifier checks that all 3 targets are included, all 2 controls are excluded, and awards partial credit based on targets found and control exclusion accuracy.",
+  "pi_confidence": "high"
+}

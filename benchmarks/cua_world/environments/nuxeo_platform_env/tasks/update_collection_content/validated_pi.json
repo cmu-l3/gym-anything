@@ -1,0 +1,108 @@
+{
+    "task_id": "update_collection_content@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_collection_name",
+            "metadata_value": "Brand-Assets",
+            "verified_value": "Brand-Assets",
+            "source": "task.json line 17 claims 'Brand-Assets'; setup_task.sh line 107 creates collection with name='Brand-Assets'; export_result.sh line 34 queries collection at path '/default-domain/workspaces/Projects/Brand-Assets'; verifier.py does not explicitly check collection name but setup_task.sh confirms the name is the document path component 'Brand-Assets'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_description",
+            "metadata_value": "Approved brand assets for 2024 campaigns",
+            "verified_value": "Approved brand assets for 2024 campaigns",
+            "source": "task.json line 18 claims expected_description is 'Approved brand assets for 2024 campaigns'; task.json lines 1-5 (task description) explicitly instructs agent to 'change its description to: `Approved brand assets for 2024 campaigns`'; verifier.py line 52 defines expected_desc = 'Approved brand assets for 2024 campaigns'; verifier.py line 54 checks that expected_desc.lower() is substring of actual_desc.lower() (case-insensitive match); export_result.sh line 40 retrieves dc:description from collection document",
+            "status": "verified"
+        },
+        {
+            "key": "removed_item",
+            "metadata_value": "Obsolete-Logo",
+            "verified_value": "Obsolete-Logo",
+            "source": "task.json line 19 claims removed_item is 'Obsolete-Logo'; setup_task.sh lines 19-45 create a document with name='Obsolete-Logo' and dc:title='Obsolete-Logo'; setup_task.sh lines 112-125 add this document to the collection initially; task.json description (line 5) explicitly states 'Remove the document Obsolete-Logo from the collection'; verifier.py line 64 checks that 'Obsolete-Logo' is NOT in collection members",
+            "status": "verified"
+        },
+        {
+            "key": "added_items",
+            "metadata_value": "[\"Logo-2024\", \"Campaign-Overview\"]",
+            "verified_value": "[\"Logo-2024\", \"Campaign-Overview\"]",
+            "source": "task.json line 20 claims added_items includes 'Logo-2024' and 'Campaign-Overview'; setup_task.sh lines 48-73 create document with name='Logo-2024' and dc:title='Logo-2024'; setup_task.sh lines 76-101 create document with name='Campaign-Overview' and dc:title='Campaign-Overview'; task.json description lines 3-4 explicitly state 'Add the document Logo-2024' and 'Add the document Campaign-Overview'; verifier.py lines 71-81 check that both 'Logo-2024' and 'Campaign-Overview' are in collection members",
+            "status": "verified"
+        },
+        {
+            "key": "document_locations",
+            "metadata_value": "Not explicit in task.json but used in task",
+            "verified_value": "All three source documents (Obsolete-Logo, Logo-2024, Campaign-Overview) are located at /default-domain/workspaces/Projects/",
+            "source": "setup_task.sh lines 43, 71, 99 all POST to '/path/default-domain/workspaces/Projects/' to create the documents; task.json description line 3 states documents are 'located in the Projects workspace'; export_result.sh line 45 uses NXQL to query collection members via collectionMember:collectionIds property",
+            "status": "verified"
+        },
+        {
+            "key": "collection_initial_state",
+            "metadata_value": "Not in task.json metadata",
+            "verified_value": "Collection initially contains only 'Obsolete-Logo'",
+            "source": "setup_task.sh line 107 creates collection with initial description 'Old collection description'; setup_task.sh lines 112-125 add only the Obsolete-Logo document to the collection via Collection.AddToCollection automation API call; Logo-2024 and Campaign-Overview are not initially added",
+            "status": "verified"
+        },
+        {
+            "key": "nuxeo_version",
+            "metadata_value": "Not explicit in task.json",
+            "verified_value": "Nuxeo 10.10",
+            "source": "docker-compose.yml (referenced by setup_nuxeo.sh line 81) specifies 'image: nuxeo:10.10'; Nuxeo Platform Explorer documentation confirms Collection document type and collectionMember:collectionIds property are available in version 10.10",
+            "status": "verified"
+        },
+        {
+            "key": "default_credentials",
+            "metadata_value": "Not in task.json but used throughout",
+            "verified_value": "Administrator/Administrator",
+            "source": "task_utils.sh lines 8-9 define NUXEO_ADMIN='Administrator' and NUXEO_PASS='Administrator'; setup_task.sh line 10 uses these credentials; export_result.sh line 21 uses auth=('Administrator', 'Administrator'); Nuxeo default installation uses Administrator as default user",
+            "status": "verified"
+        },
+        {
+            "key": "collection_api_method",
+            "metadata_value": "Not in task.json",
+            "verified_value": "Collection.AddToCollection automation API endpoint for adding documents; NXQL collectionMember:collectionIds property for querying members",
+            "source": "setup_task.sh line 122 uses 'Collection.AddToCollection' automation endpoint to add Obsolete-Logo to collection; export_result.sh line 45 uses NXQL query with 'collectionMember:collectionIds' property to find collection members; Nuxeo documentation confirms both are valid APIs for collection management",
+            "status": "verified"
+        },
+        {
+            "key": "data_is_synthetic",
+            "metadata_value": "Not in task.json metadata",
+            "verified_value": "true - All documents are created synthetically during task setup",
+            "source": "setup_task.sh creates all three documents (Obsolete-Logo, Logo-2024, Campaign-Overview) on-the-fly using Nuxeo REST API; documents contain dummy/test content (lines 24, 52, 80 create test file content); no external data sources are used; all documents have conditional creation (if ! doc_exists) to allow re-runs",
+            "status": "verified"
+        },
+        {
+            "key": "task_description_consistency",
+            "metadata_value": "Not in metadata field but important to verify",
+            "verified_value": "task.json description, metadata fields, setup script, and verifier script are all consistent",
+            "source": "Cross-verification: (1) task.json description line 5 lists exact same items as metadata; (2) setup_task.sh creates documents with exact same names; (3) verifier.py checks for exact same items and description; (4) export_result.sh retrieves exact same properties; All references are consistent and refer to the same collection name, description, and document names",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_scoring",
+            "metadata_value": "Not in metadata but defined in verifier",
+            "verified_value": "Description: 20 pts; Remove Obsolete-Logo: 20 pts; Add Logo-2024: 20 pts; Add Campaign-Overview: 20 pts; App running: 20 pts; Total: 100 pts; Pass threshold: 80 pts",
+            "source": "verifier.py lines 48-89 define scoring: line 55 (description +20), line 65 (remove +20), line 72 (Logo-2024 +20), line 77 (Campaign-Overview +20), line 86 (app_running +20); line 92 sets passed = score >= 80",
+            "status": "verified"
+        },
+        {
+            "key": "timeout_sec",
+            "metadata_value": "300",
+            "verified_value": "300 seconds",
+            "source": "task.json line 8; 300 seconds (5 minutes) is a reasonable timeout for Nuxeo REST API calls and Selenium-based GUI automation",
+            "status": "verified"
+        },
+        {
+            "key": "max_steps",
+            "metadata_value": "40",
+            "verified_value": "40 steps maximum",
+            "source": "task.json line 9; this is the maximum step limit for the agent to complete the task",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The update_collection_content task is a synthetic automation task in Nuxeo Platform 10.10 that requires an AI agent to manage collection contents and metadata. The task involves three specific synthetic documents (Obsolete-Logo, Logo-2024, Campaign-Overview) all pre-created in the Projects workspace. The agent must: (1) remove 'Obsolete-Logo' from the 'Brand-Assets' collection, (2) add 'Logo-2024' and 'Campaign-Overview' to the same collection, and (3) update the collection's description to exactly 'Approved brand assets for 2024 campaigns'. The task uses Nuxeo's REST API endpoints (Collection.AddToCollection automation API and NXQL search with collectionMember:collectionIds property) to manage collections. Verification is performed by querying the collection document and its members via NXQL, checking the dc:description property, and verifying the collection member list contains exactly Logo-2024 and Campaign-Overview while excluding Obsolete-Logo.",
+    "pi_confidence": "high"
+}

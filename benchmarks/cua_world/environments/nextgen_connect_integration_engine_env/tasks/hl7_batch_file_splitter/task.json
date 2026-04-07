@@ -1,0 +1,34 @@
+{
+  "id": "hl7_batch_file_splitter@1",
+  "version": "1.0",
+  "env_id": "nextgen_connect_integration_engine_env@0.1",
+  "description": "A regional hospital receives nightly batch files from a legacy laboratory information system (LIS). Each batch file contains multiple HL7 v2.5.1 ORU^R01 lab result messages concatenated together. Create and deploy a NextGen Connect channel named 'Lab Batch Splitter' that processes batch files from /var/hl7_input (pattern: *.hl7) and splits them into individual HL7 messages. The individual messages must be written to /var/hl7_output using unique filenames.\n\nAccess:\n- Web Dashboard: https://localhost:8443 (admin/admin)\n- REST API: https://localhost:8443/api (admin/admin, Header X-Requested-With: OpenAPI)\n- Terminal is available for checking files.\n\nNote: The paths /var/hl7_input and /var/hl7_output refer to the filesystem inside the NextGen Connect container.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/hl7_batch_file_splitter/setup_task.sh",
+    "post_task": "/workspace/tasks/hl7_batch_file_splitter/export_result.sh"
+  },
+  "metadata": {
+    "expected_message_count": 5,
+    "expected_ids": [
+      "MSG001",
+      "MSG002",
+      "MSG003",
+      "MSG004",
+      "MSG005"
+    ],
+    "container_input_path": "/var/hl7_input",
+    "container_output_path": "/var/hl7_output"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_hl7_batch_splitter"
+    }
+  }
+}

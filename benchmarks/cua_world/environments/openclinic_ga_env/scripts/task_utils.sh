@@ -73,9 +73,29 @@ get_firefox_window_id() {
 focus_window() {
     local wid="$1"
     if [ -n "$wid" ]; then
+        DISPLAY=:1 wmctrl -k off 2>/dev/null || true
+        DISPLAY=:1 wmctrl -s 0 2>/dev/null || true
         DISPLAY=:1 wmctrl -ia "$wid" 2>/dev/null || true
+        DISPLAY=:1 xdotool windowactivate --sync "$wid" 2>/dev/null || true
+        DISPLAY=:1 wmctrl -r "$wid" -b add,maximized_vert,maximized_horz 2>/dev/null || true
         sleep 0.5
     fi
+}
+
+# ---------------------------------------------------------------
+# Clear Firefox crash/session restore state
+# ---------------------------------------------------------------
+clear_firefox_session_state() {
+    local bases=(
+        "/home/ga/snap/firefox/common/.mozilla/firefox"
+        "/home/ga/.mozilla/firefox"
+    )
+    local base
+    for base in "${bases[@]}"; do
+        [ -d "$base" ] || continue
+        find "$base" -maxdepth 2 \( -name "sessionstore.jsonlz4" -o -name "sessionCheckpoints.json" -o -name "recovery.jsonlz4" -o -name "previous.jsonlz4" \) -type f -delete 2>/dev/null || true
+        find "$base" -maxdepth 2 -name "sessionstore-backups" -type d -exec rm -rf {} + 2>/dev/null || true
+    done
 }
 
 # ---------------------------------------------------------------
@@ -84,16 +104,13 @@ focus_window() {
 ensure_openclinic_browser() {
     local url="${1:-http://localhost:10088/openclinic}"
 
-    # Check if Firefox is already running
-    if DISPLAY=:1 wmctrl -l 2>/dev/null | grep -qi "firefox\|mozilla\|localhost"; then
-        echo "Firefox already running"
-    else
-        echo "Starting Firefox..."
-        pkill -f firefox 2>/dev/null || true
-        sleep 2
-        su - ga -c "DISPLAY=:1 firefox '$url' > /tmp/firefox_task.log 2>&1 &"
-        sleep 6
-    fi
+    echo "Launching fresh Firefox session..."
+    pkill -f firefox 2>/dev/null || true
+    sleep 2
+    pkill -9 -f firefox 2>/dev/null || true
+    clear_firefox_session_state
+    su - ga -c "DISPLAY=:1 firefox --new-window '$url' > /tmp/firefox_task.log 2>&1 &"
+    sleep 6
 
     # Wait for Firefox window
     if ! wait_for_window "firefox\|mozilla\|OpenClinic\|localhost" 30; then
@@ -104,7 +121,6 @@ ensure_openclinic_browser() {
     WID=$(get_firefox_window_id)
     if [ -n "$WID" ]; then
         focus_window "$WID"
-        DISPLAY=:1 wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
         sleep 1
     fi
 
@@ -141,5 +157,84 @@ record_task_start() {
 get_patient_count() {
     admin_query "SELECT COUNT(*) FROM adminview" 2>/dev/null || echo "0"
 }
+
+# ---------------------------------------------------------------
+# Ensure OpenClinic GA services are running
+# This is critical when loading from a QEMU checkpoint — services
+# that were running during checkpoint creation are NOT running
+# when the checkpoint is restored.
+# ---------------------------------------------------------------
+ensure_openclinic_running() {
+    local OPENCLINIC_ROOT="/opt/openclinic"
+    local OPENCLINIC_URL="http://localhost:10088/openclinic"
+
+    # Quick check: is it already responding?
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 "$OPENCLINIC_URL" 2>/dev/null || echo "000")
+    if [ "$http_code" = "200" ] || [ "$http_code" = "301" ] || [ "$http_code" = "302" ]; then
+        echo "OpenClinic GA already running (HTTP $http_code)"
+        return 0
+    fi
+
+    echo "OpenClinic GA not responding (HTTP $http_code). Starting services..."
+
+    # Clean up stale PID files and sockets
+    pkill -f "catalina" 2>/dev/null || true
+    pkill -f "mysqld.*openclinic" 2>/dev/null || true
+    sleep 2
+    pkill -9 -f "catalina" 2>/dev/null || true
+    pkill -9 -f "mysqld.*openclinic" 2>/dev/null || true
+    sleep 1
+    find "$OPENCLINIC_ROOT" -name "*.pid" -delete 2>/dev/null || true
+    rm -f "$MYSQL_SOCKET" 2>/dev/null || true
+    rm -f "$OPENCLINIC_ROOT/tomcat8/bin/catalina.pid" 2>/dev/null || true
+
+    # Start services
+    if [ -x "$OPENCLINIC_ROOT/restart_openclinic" ]; then
+        "$OPENCLINIC_ROOT/restart_openclinic" 2>/dev/null || true
+    elif [ -x "$OPENCLINIC_ROOT/start_openclinic" ]; then
+        "$OPENCLINIC_ROOT/start_openclinic" 2>/dev/null || true
+    else
+        echo "ERROR: No OpenClinic start script found"
+        return 1
+    fi
+
+    # Poll for HTTP readiness (up to 120s)
+    local timeout=120
+    local elapsed=0
+    while [ "$elapsed" -lt "$timeout" ]; do
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 "$OPENCLINIC_URL" 2>/dev/null || echo "000")
+        if [ "$http_code" = "200" ] || [ "$http_code" = "301" ] || [ "$http_code" = "302" ]; then
+            echo "OpenClinic GA is ready after ${elapsed}s (HTTP $http_code)"
+            break
+        fi
+        sleep 5
+        elapsed=$((elapsed + 5))
+        if [ $((elapsed % 30)) -eq 0 ]; then
+            echo "  Still waiting for OpenClinic... ${elapsed}s (HTTP $http_code)"
+        fi
+    done
+
+    if [ "$elapsed" -ge "$timeout" ]; then
+        echo "WARNING: OpenClinic may not be ready after ${timeout}s"
+    fi
+
+    # Poll for MySQL readiness (up to 60s)
+    local mysql_attempts=0
+    while [ "$mysql_attempts" -lt 20 ]; do
+        if $MYSQL_BIN -S "$MYSQL_SOCKET" -u root -e "SELECT 1" >/dev/null 2>&1; then
+            echo "MySQL is accessible (attempt $((mysql_attempts+1)))"
+            return 0
+        fi
+        sleep 3
+        mysql_attempts=$((mysql_attempts + 1))
+    done
+
+    echo "WARNING: MySQL may not be accessible"
+    return 0
+}
+
+# Auto-start services when task_utils.sh is sourced
+ensure_openclinic_running
 
 echo "task_utils.sh loaded (MySQL: $MYSQL_BIN via $MYSQL_SOCKET)"

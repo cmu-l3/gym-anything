@@ -1,0 +1,115 @@
+{
+    "task_id": "json_to_hl7_rest_gateway@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "channel_name",
+            "metadata_value": "JSON_to_HL7_Gateway",
+            "verified_value": "JSON_to_HL7_Gateway",
+            "source": "Task specification in task.json - this is the required channel name for the task",
+            "status": "verified"
+        },
+        {
+            "key": "port",
+            "metadata_value": 6661,
+            "verified_value": 6661,
+            "source": "Task specification in task.json; confirmed in setup_task.sh which configures HTTP Listener on this port; verified in export_result.sh which tests port 6661",
+            "status": "verified"
+        },
+        {
+            "key": "output_dir",
+            "metadata_value": "/tmp/hl7_output",
+            "verified_value": "/tmp/hl7_output",
+            "source": "Task specification in task.json; confirmed in setup_task.sh which creates this directory inside the container; verified in export_result.sh which writes HL7 output files here",
+            "status": "verified"
+        },
+        {
+            "key": "test_payload.patient.mrn",
+            "metadata_value": "MRN-TEST-999",
+            "verified_value": "MRN-TEST-999",
+            "source": "Defined in task.json metadata as test data for channel verification",
+            "status": "verified"
+        },
+        {
+            "key": "test_payload.patient.lastName",
+            "metadata_value": "Verify",
+            "verified_value": "Verify",
+            "source": "Defined in task.json metadata as test data for channel verification",
+            "status": "verified"
+        },
+        {
+            "key": "test_payload.patient.firstName",
+            "metadata_value": "Agent",
+            "verified_value": "Agent",
+            "source": "Defined in task.json metadata as test data for channel verification",
+            "status": "verified"
+        },
+        {
+            "key": "test_payload.patient.dateOfBirth",
+            "metadata_value": "1990-01-01",
+            "verified_value": "1990-01-01",
+            "source": "Defined in task.json metadata as test data for channel verification",
+            "status": "verified"
+        },
+        {
+            "key": "test_payload.patient.sex",
+            "metadata_value": "M",
+            "verified_value": "M",
+            "source": "Defined in task.json metadata as test data for channel verification",
+            "status": "verified"
+        },
+        {
+            "key": "test_payload.visit.visitNumber",
+            "metadata_value": "V-TEST-999",
+            "verified_value": "V-TEST-999",
+            "source": "Defined in task.json metadata as test data for channel verification",
+            "status": "verified"
+        },
+        {
+            "key": "expected_hl7_values.PID.3",
+            "metadata_value": "MRN-TEST-999",
+            "verified_value": "MRN-TEST-999",
+            "source": "HL7v2.5.1 standard: PID-3 is Patient Identifier List field (contains Medical Record Number). Verified against HL7 specification at https://www.hl7.eu/refactored/segPID.html and https://hl7-definition.caristix.com/v2/HL7v2.5.1/Fields/PID.5. Correctly maps from test_payload.patient.mrn",
+            "status": "verified"
+        },
+        {
+            "key": "expected_hl7_values.PID.5",
+            "metadata_value": "Verify^Agent",
+            "verified_value": "Verify^Agent",
+            "source": "HL7v2.5.1 standard: PID-5 is Patient Name field using XPN (Extended Person Name) data type with format LastName^FirstName. Verified against HL7 specification at https://hl7-definition.caristix.com/v2/HL7v2.5.1/Fields/PID.5. Correctly converts patient.lastName^patient.firstName",
+            "status": "verified"
+        },
+        {
+            "key": "expected_hl7_values.PID.7",
+            "metadata_value": "19900101",
+            "verified_value": "19900101",
+            "source": "HL7v2.5.1 standard: PID-7 is Date of Birth field in YYYYMMDD format (not YYYY-MM-DD). Verified against HL7 specification and confirmed in multiple sources (help.interfaceware.com, GRITS, CAIR2 guides). Correctly converts test_payload.patient.dateOfBirth='1990-01-01' to '19900101'",
+            "status": "verified"
+        },
+        {
+            "key": "expected_hl7_values.PV1.19",
+            "metadata_value": "V-TEST-999",
+            "verified_value": "V-TEST-999",
+            "source": "HL7v2.5.1 standard: PV1-19 is Visit Number field. Verified against HL7 specification at https://hl7-definition.caristix.com/v2/HL7v2.5.1/Segments/PV1. Correctly maps from test_payload.visit.visitNumber",
+            "status": "verified"
+        },
+        {
+            "key": "expected_hl7_values.MSH.9",
+            "metadata_value": "ADT^A04^ADT_A01",
+            "verified_value": "ADT^A04^ADT_A01",
+            "source": "HL7v2.5.1 standard: MSH-9 is Message Type field with structure MsgType^TriggerEvent^MessageStructure. Verified: ADT is the message type code (Admission/Discharge/Transfer), A04 is the trigger event (Register a patient/outpatient registration), ADT_A01 is the message structure ID. Verified against https://community.intersystems.com/post/types-hl7-adt-message-and-example-adta04 and https://www.hl7.eu/refactored/msgADT_A01.html",
+            "status": "verified"
+        },
+        {
+            "key": "data_source",
+            "metadata_value": "test_payload in metadata and sample_registration.json created by setup_task.sh",
+            "verified_value": "Synthetic test data",
+            "source": "Inspection of setup_task.sh shows sample_registration.json is generated by the script (not downloaded). Test payload is defined in task.json metadata. Sample data includes fabricated patient 'Elena Rodriguez', synthetic phone number '507-555-0198' (reserved test range), and synthetic MRN 'MRN-2024-78432'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "All HL7v2.5.1 field mappings in the task metadata are correct: PID-3 is the Medical Record Number field (mapped from patient.mrn), PID-5 is the Patient Name field using XPN format LastName^FirstName (mapped from patient.lastName^patient.firstName), PID-7 is Date of Birth in YYYYMMDD format (correctly converted from YYYY-MM-DD format), PV1-19 is the Visit Number field, and MSH-9 is the Message Type field containing ADT^A04^ADT_A01 where A04 is the trigger event for outpatient patient registration. The task uses synthetic test data (fabricated patient records and test phone numbers in reserved ranges). The channel name is 'JSON_to_HL7_Gateway', the HTTP listener port is 6661, and output files are written to /tmp/hl7_output. No real patient data (PHI) is involved.",
+    "pi_confidence": "high"
+}

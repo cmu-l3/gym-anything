@@ -8,7 +8,7 @@ Exoplanet transit detection from time-series differential photometry is one of t
 - **Instrument**: MORC24 telescope, University of Louisville
 - **Filter**: r-band
 - **Images**: ~186 calibrated 4096x4096 FITS frames, 100s exposures
-- **Data URL**: https://www.astro.louisville.edu/software/astroimagej/benchmarks/cua_world/environments/WASP-12b_example_calibrated_images.tar.gz
+- **Data URL**: https://www.astro.louisville.edu/software/astroimagej/examples/WASP-12b_example_calibrated_images.tar.gz
 
 ## Goal
 Determine whether the time-series photometry of WASP-12 shows evidence of a planetary transit. If so, measure the transit depth, mid-transit time, transit duration, and estimate the planet radius.

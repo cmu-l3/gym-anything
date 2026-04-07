@@ -1,0 +1,59 @@
+{
+  "task_id": "implement_waf_sidecar_protection@1",
+  "task_completion": [
+    {
+      "id": "open_docker_compose",
+      "description": "Open the docker-compose.yml file in a text editor",
+      "points": 10,
+      "visual_evidence": "A text editor (like nano, vim, or VS Code) is open showing the contents of /home/ga/legacy-app/docker-compose.yml."
+    },
+    {
+      "id": "add_waf_service",
+      "description": "Add the WAF service using the specified image",
+      "points": 20,
+      "visual_evidence": "The docker-compose.yml file contains a new service (e.g., 'waf') with the image specified as 'owasp/modsecurity-crs:3-nginx'."
+    },
+    {
+      "id": "configure_backend_env",
+      "description": "Configure the BACKEND environment variable for the WAF",
+      "points": 20,
+      "visual_evidence": "The WAF service in docker-compose.yml includes an environment variable 'BACKEND' pointing to the app service (e.g., 'http://app:5000')."
+    },
+    {
+      "id": "update_port_mapping",
+      "description": "Update port mappings to make the WAF the exclusive entry point",
+      "points": 20,
+      "visual_evidence": "The docker-compose.yml file shows host port '8080' mapped to the WAF service (e.g., '8080:80' or '8080:8080'), and the 'app' service no longer has port 8080 mapped to the host."
+    },
+    {
+      "id": "restart_containers",
+      "description": "Restart the docker-compose services to apply changes",
+      "points": 10,
+      "visual_evidence": "A terminal shows a command like 'docker-compose up -d' or 'docker compose up -d' being executed in the /home/ga/legacy-app directory."
+    },
+    {
+      "id": "verify_waf_protection",
+      "description": "Verify that the WAF blocks SQL injection and allows legitimate traffic",
+      "points": 20,
+      "visual_evidence": "A terminal or browser shows a test against http://localhost:8080. A legitimate query (e.g., '?q=Alice') should succeed, and a SQL injection attempt (e.g., '?q=' OR 1=1') should return a 403 Forbidden error."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "actual_file_modification",
+      "description": "The agent actually modifies the docker-compose.yml file",
+      "visual_evidence": "The agent uses a real text editor to modify the file, rather than just echoing text to the console or creating a fake file."
+    },
+    {
+      "id": "genuine_testing",
+      "description": "The agent genuinely tests the application endpoints",
+      "visual_evidence": "The agent uses curl commands or a web browser to send requests to http://localhost:8080, rather than just printing the expected 403 Forbidden output."
+    },
+    {
+      "id": "no_app_code_modification",
+      "description": "The agent does not modify the underlying application code to fix the vulnerability",
+      "visual_evidence": "The agent only modifies the docker-compose.yml file and does not edit the Python/Flask application files to patch the SQL injection directly."
+    }
+  ],
+  "privileged_info_for_vlm": "The task requires modifying /home/ga/legacy-app/docker-compose.yml to add a WAF sidecar. The WAF service must use the 'owasp/modsecurity-crs:3-nginx' image. The WAF must proxy traffic to the internal app service running on port 5000, so the BACKEND environment variable should be set to 'http://app:5000'. The WAF must be the exclusive entry point on host port 8080, meaning the port mapping '8080:80' (or similar) should be on the WAF service, and the app service should not expose port 8080 directly. Legitimate queries to http://localhost:8080 should return 200 OK, while SQL injection attempts (e.g., '?q=' OR 1=1') should be blocked by the WAF with a 403 Forbidden response."
+}

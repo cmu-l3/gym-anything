@@ -131,6 +131,10 @@ collect_gui_evidence() {
     # 4. Check for active Oracle sessions from SQL Developer (not sqlplus)
     local sqldev_sessions=0
     sqldev_sessions=$(oracle_query_raw "SELECT COUNT(*) FROM v\$session WHERE username = 'HR' AND UPPER(program) LIKE '%SQL DEVELOPER%';" "system" 2>/dev/null | tr -d '[:space:]')
+    # Sanitize: ensure numeric (Docker errors can produce non-numeric strings)
+    if ! [[ "$sqldev_sessions" =~ ^[0-9]+$ ]]; then sqldev_sessions=0; fi
+    if ! [[ "$sql_history_count" =~ ^[0-9]+$ ]]; then sql_history_count=0; fi
+    if ! [[ "$mru_connection_count" =~ ^[0-9]+$ ]]; then mru_connection_count=0; fi
 
     # Output JSON fragment
     echo "\"gui_evidence\": {"

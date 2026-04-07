@@ -1,0 +1,27 @@
+{
+  "id": "semantic_fluency_depletion_analysis@1",
+  "version": "1.0",
+  "env_id": "pebl_env@0.1",
+  "description": "A clinical neuropsychology researcher has run 25 older adults through the PEBL Semantic Fluency task (Category: Animals). Using the raw data at ~/pebl/data/semantic_fluency_data.csv (columns: participant, category, word_typed, rt_ms), compute the temporal word-retrieval dynamics ('depletion effect'). Clean the data by converting text to lowercase, stripping whitespace, discarding empty strings, and removing duplicate words per participant (keeping the chronologically first instance). Bin valid words into 15-second quartiles based on rt_ms: Q1 (0-15000), Q2 (15001-30000), Q3 (30001-45000), and Q4 (45001-60000). Exclude participant sub-99 due to robotic timing (exactly 3000ms intervals). Export a JSON report to ~/pebl/analysis/fluency_report.json containing a 'participants' list (with 'id', 'total_valid_words', and a 'quartiles' object with Q1, Q2, Q3, Q4; or 'excluded': true and a 'reason') and a 'group_means' object containing the averages of 'total_valid_words', 'Q1', 'Q2', 'Q3', and 'Q4' across all valid participants.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/semantic_fluency_depletion_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/semantic_fluency_depletion_analysis/export_result.sh"
+  },
+  "metadata": {
+    "contaminated_participant": "sub-99",
+    "contamination_type": "zero_variance_timing",
+    "output_file": "/home/ga/pebl/analysis/fluency_report.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_semantic_fluency_depletion_analysis"
+    }
+  }
+}

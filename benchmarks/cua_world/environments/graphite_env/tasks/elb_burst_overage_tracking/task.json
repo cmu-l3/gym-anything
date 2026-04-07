@@ -1,0 +1,33 @@
+{
+  "id": "elb_burst_overage_tracking@1",
+  "version": "1.0",
+  "env_id": "graphite_env@0.1",
+  "description": "You are a Cloud Economist (FinOps Analyst) auditing your infrastructure invoice. Your load balancer contract includes a baseline allowance of 50 requests per interval. Any traffic spiking above 50 is billed as 'burst overage' at a premium rate. To verify the vendor's invoice, create a Graphite dashboard named 'ELB Burst Overage Tracking' that isolates and accumulates burst traffic.\n\nThe dashboard must contain the following three graphs:\n\n1. A graph titled 'Traffic vs Baseline' with two targets:\n- alias(servers.load_balancer.requests.count, 'Actual Traffic')\n- alias(constantLine(50), 'Contracted Baseline')\n\n2. A graph titled 'Instantaneous Burst Volume' with the target:\n- alias(maxSeries(offset(servers.load_balancer.requests.count, -50), constantLine(0)), 'Billable Burst Rate')\n\n3. A graph titled 'Cumulative Billable Overage' with the target:\n- alias(integral(maxSeries(offset(servers.load_balancer.requests.count, -50), constantLine(0))), 'Cumulative Overage Units')\n\nSave the dashboard when complete.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 85,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/elb_burst_overage_tracking/setup_task.sh",
+    "post_task": "/workspace/tasks/elb_burst_overage_tracking/export_result.sh"
+  },
+  "metadata": {
+    "expected_dashboard_name": "ELB Burst Overage Tracking",
+    "expected_graph_titles": [
+      "Traffic vs Baseline",
+      "Instantaneous Burst Volume",
+      "Cumulative Billable Overage"
+    ],
+    "occupation": "Cloud Economist",
+    "industry": "FinOps / Cloud Infrastructure",
+    "result_file": "/tmp/elb_burst_overage_tracking_result.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_elb_burst_overage_tracking"
+    }
+  }
+}

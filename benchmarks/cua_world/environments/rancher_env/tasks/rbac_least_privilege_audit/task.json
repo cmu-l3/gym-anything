@@ -1,0 +1,35 @@
+{
+  "id": "rbac_least_privilege_audit@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "A security audit has flagged the Kubernetes cluster for RBAC violations where multiple service accounts and roles have been granted excessive permissions. Review all RBAC configurations across all namespaces, identify every overpermissioned binding or role, and remediate each one with properly scoped permissions following the principle of least privilege. Login to Rancher at https://localhost with credentials admin / Admin12345678!",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/rbac_least_privilege_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/rbac_least_privilege_audit/export_result.sh"
+  },
+  "metadata": {
+    "injected_violations": [
+      "ClusterRoleBinding 'dev-all-access': ServiceAccount dev-automation in development namespace bound to cluster-admin ClusterRole",
+      "Role 'wildcard-staging-role' in staging namespace: uses wildcard (*) for verbs, resources, and apiGroups",
+      "ClusterRoleBinding 'monitoring-cluster-admin': ServiceAccount metrics-collector in monitoring namespace bound to cluster-admin",
+      "RoleBinding 'ci-elevated-access' in staging namespace: ServiceAccount ci-runner bound to cluster-admin ClusterRole"
+    ],
+    "target_namespaces": [
+      "development",
+      "staging",
+      "monitoring"
+    ],
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_rbac_least_privilege_audit"
+    }
+  }
+}

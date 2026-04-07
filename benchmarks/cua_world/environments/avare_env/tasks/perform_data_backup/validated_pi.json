@@ -1,0 +1,31 @@
+{
+    "task_id": "perform_data_backup@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "search_paths",
+            "metadata_value": "["/sdcard/com.ds.avare", "/sdcard/Android/data/com.ds.avare/files", "/sdcard/Download"]",
+            "verified_value": "["/sdcard/com.ds.avare", "/sdcard/Android/data/com.ds.avare/files", "/sdcard/Download"]",
+            "source": "Verified by checking the SEARCH_DIRS variable in export_result.sh.",
+            "status": "verified"
+        },
+        {
+            "key": "file_patterns",
+            "metadata_value": "["*backup*", "*.json", "user.db"]",
+            "verified_value": "["*backup*", "*.json", "*user*"]",
+            "source": "The export_result.sh script explicitly checks for '*backup*|*.json|*user*', rather than exactly 'user.db'. Furthermore, Avare's codebase lacks any backup feature that natively generates '*backup*' or '*.json' files; its export tool creates .zip files.",
+            "status": "contradicted"
+        },
+        {
+            "key": "min_size_bytes",
+            "metadata_value": 100,
+            "verified_value": 100,
+            "source": "Verified against the 'backup_size > 100' logic in verifier.py.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task instructions for com.ds.avare describe a 'Backup' menu that does not exist in the application. Avare only provides an 'Export' tool under the 'IO' tab's 'Tools' fragment, which generates standard '.zip' archives. However, the evaluation logic in export_result.sh searches for files matching '*backup*', '*.json', or '*user*'. This introduces a critical false-positive flaw: because the app's live database is named 'user.db' and setup_task.sh does not delete it, any normal app interaction that updates the database's modification time will inadvertently trick the verifier into passing the task.",
+    "pi_confidence": "high"
+}

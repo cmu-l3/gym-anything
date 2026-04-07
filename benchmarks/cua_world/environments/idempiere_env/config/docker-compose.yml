@@ -1,0 +1,42 @@
+version: '3.7'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: idempiere-postgres
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - TZ=UTC
+    volumes:
+      - idempiere_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  idempiere:
+    image: idempiereofficial/idempiere:12-release
+    container_name: idempiere-app
+    environment:
+      - TZ=UTC
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=idempiere
+      - DB_USER=adempiere
+      - DB_PASS=adempiere
+      - DB_ADMIN_PASS=postgres
+      - JAVA_OPTIONS=-Xms512m -Xmx2048m
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+      - "12612:12612"
+    depends_on:
+      - postgres
+    volumes:
+      - idempiere_config:/opt/idempiere/configuration
+      - idempiere_plugins:/opt/idempiere/plugins
+    restart: unless-stopped
+
+volumes:
+  idempiere_data:
+  idempiere_config:
+  idempiere_plugins:

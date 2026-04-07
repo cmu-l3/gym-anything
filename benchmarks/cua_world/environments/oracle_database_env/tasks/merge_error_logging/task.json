@@ -1,0 +1,31 @@
+{
+  "id": "merge_error_logging@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A nightly HR synchronization process is failing because of dirty data in the feed. Synchronize the staging table EMPLOYEE_UPDATES into the production EMPLOYEES table using a resilient merge process. The operation must update existing employees (matching on EMPLOYEE_ID) with new Salary, Commission_PCT, and Job_ID, and insert new employees. Capture any constraint violations in an error logging table named ERR_EMPLOYEES_LOG instead of allowing the synchronization to fail. Export the contents of the error log table with headers to /home/ga/Desktop/sync_errors.csv.\n\nConnection: Host=localhost, Port=1521, Service=XEPDB1, User=hr, Password=hr123.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/merge_error_logging/setup_task.sh",
+    "post_task": "/workspace/tasks/merge_error_logging/export_result.sh"
+  },
+  "metadata": {
+    "staging_table": "EMPLOYEE_UPDATES",
+    "target_table": "EMPLOYEES",
+    "error_table": "ERR_EMPLOYEES_LOG",
+    "report_file": "/home/ga/Desktop/sync_errors.csv",
+    "expected_valid_inserts": 2,
+    "expected_valid_updates": 3,
+    "expected_errors": 5
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_merge_error_logging"
+    }
+  }
+}

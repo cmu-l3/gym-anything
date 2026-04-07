@@ -1,0 +1,31 @@
+{
+  "id": "allocation_delta_correlation_analysis@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "You are a forensic examiner testifying in a case. The defense argues that their IT department already mounted the seized USB drive, searched it, and found no text documents containing evidence, thereby claiming your forensic results must be fabricated. You must formally document the \"investigative delta\"—the difference between standard OS file visibility and forensic extraction. Your mission:\n\n1. Create a mount point at `/home/ga/mnt/usb_ro` and safely mount `/home/ga/evidence/ntfs_undel.dd` as a read-only loop device using sudo (`sudo mount -o ro,loop ...`).\n2. Use native Linux utilities to find all allocated `.txt` files (case-insensitive) visible in the mounted directory. Save the list of these natively visible file paths to `/home/ga/Reports/mounted_txt_files.txt`.\n3. Unmount the image to maintain good system hygiene (`sudo umount /home/ga/mnt/usb_ro`).\n4. Create a new forensic case in Autopsy named `Delta_Analysis_2024` with case number `INV-DEL-009`.\n5. Add `/home/ga/evidence/ntfs_undel.dd` as a Disk Image data source, enabling ONLY the 'File Type Identification' ingest module.\n6. Use Autopsy to identify ALL `.txt` files (both allocated and deleted) present in the image.\n7. Write a correlation report to `/home/ga/Reports/allocation_delta_report.txt` using the EXACT following format:\n\nCASE_NUMBER: INV-DEL-009\nMOUNTED_TXT_COUNT: <number of files found in step 2>\nAUTOPSY_TXT_COUNT: <total .txt files found by Autopsy>\nDELETED_TXT_DELTA: <Autopsy Count minus Mounted Count>\nDELTA_FILENAMES:\n  - <filename1.txt>\n  - <filename2.txt>\n\n(Only list the base filenames of the deleted files in the DELTA_FILENAMES section, not full paths).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/allocation_delta_correlation_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/allocation_delta_correlation_analysis/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Delta_Analysis_2024",
+    "case_number": "INV-DEL-009",
+    "disk_image": "/home/ga/evidence/ntfs_undel.dd",
+    "report_file": "/home/ga/Reports/allocation_delta_report.txt",
+    "mounted_file": "/home/ga/Reports/mounted_txt_files.txt",
+    "result_file": "/tmp/delta_result.json",
+    "gt_file": "/tmp/delta_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_allocation_delta_correlation"
+    }
+  }
+}

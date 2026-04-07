@@ -1,0 +1,92 @@
+{
+    "task_id": "sla_business_hours_calc@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "connection",
+            "metadata_value": {
+                "host": "localhost",
+                "port": "1521",
+                "service": "XEPDB1",
+                "user": "hr",
+                "password": "hr123"
+            },
+            "verified_value": {
+                "host": "localhost",
+                "port": "1521",
+                "service": "XEPDB1",
+                "user": "hr",
+                "password": "hr123"
+            },
+            "source": "Confirmed from setup_task.sh and scripts/task_utils.sh which specify Oracle XE connection parameters and use 'hr' schema.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_view",
+            "metadata_value": "SLA_PERFORMANCE_VW",
+            "verified_value": "SLA_PERFORMANCE_VW",
+            "source": "Confirmed from export_result.sh which executes 'SELECT COUNT(*) FROM user_views WHERE view_name = SLA_PERFORMANCE_VW'.",
+            "status": "verified"
+        },
+        {
+            "key": "output_file",
+            "metadata_value": "/home/ga/Desktop/sla_report.csv",
+            "verified_value": "/home/ga/Desktop/sla_report.csv",
+            "source": "Confirmed from setup_task.sh which cleans it and export_result.sh which validates its existence and length.",
+            "status": "verified"
+        },
+        {
+            "key": "trap_tickets",
+            "metadata_value": {
+                "weekend_spanner": {
+                    "id": 1001,
+                    "desc": "Fri 16:00 -> Mon 10:00",
+                    "expected_mins": 120
+                },
+                "holiday_hit": {
+                    "id": 1002,
+                    "desc": "Fri 16:30 -> Tue 09:30 (Mon is holiday)",
+                    "expected_mins": 60
+                },
+                "late_start": {
+                    "id": 1003,
+                    "desc": "Tue 20:00 -> Wed 09:15",
+                    "expected_mins": 15
+                },
+                "same_day": {
+                    "id": 1004,
+                    "desc": "Wed 10:00 -> Wed 11:30",
+                    "expected_mins": 90
+                }
+            },
+            "verified_value": {
+                "weekend_spanner": {
+                    "id": 1001,
+                    "desc": "Fri 16:00 -> Mon 10:00",
+                    "expected_mins": 120
+                },
+                "holiday_hit": {
+                    "id": 1002,
+                    "desc": "Fri 16:30 -> Tue 09:30 (Mon is holiday)",
+                    "expected_mins": 60
+                },
+                "late_start": {
+                    "id": 1003,
+                    "desc": "Tue 20:00 -> Wed 09:15",
+                    "expected_mins": 15
+                },
+                "same_day": {
+                    "id": 1004,
+                    "desc": "Wed 10:00 -> Wed 11:30",
+                    "expected_mins": 90
+                }
+            },
+            "source": "Manual calculations validated using SQL INSERTs in setup_task.sh. Checked business hours logic (9am-5pm) against synthetic dates: Ticket 1001 spans Fri Jan 12 to Mon Jan 15 (120 mins). Ticket 1002 spans Fri Jan 5 to Tue Jan 9 with a holiday on Mon Jan 8 (60 mins). Ticket 1003 starts at 20:00 so business minutes begin counting 9:00 next day (15 mins). Ticket 1004 is same day (90 mins).",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The SLA data is completely synthetic and seeded by setup scripts. Connection parameters (localhost:1521/XEPDB1, user: hr, password: hr123) are accurate. The requested view name (SLA_PERFORMANCE_VW) and CSV report path (/home/ga/Desktop/sla_report.csv) match the verification scripts. The task relies on 4 artificially planted edge cases (trap_tickets), and their expected business minute lengths (120, 60, 15, and 90 mins) have been verified to accurately map to the inserted dates according to a Monday-Friday 9am-5pm schedule and the public holiday seeded on Jan 8, 2024.",
+    "pi_confidence": "high"
+}

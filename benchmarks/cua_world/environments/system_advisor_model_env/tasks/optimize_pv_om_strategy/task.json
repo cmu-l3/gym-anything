@@ -1,0 +1,31 @@
+{
+  "id": "optimize_pv_om_strategy@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "A Solar Asset Manager is negotiating an O&M contract for a 50 MW (50,000 kW) PV plant in Phoenix, AZ. The base O&M contract costs $15/kW-yr but expects 5.0% system downtime. Premium tiers cost more per kW-yr but reduce downtime exponentially. Determine the optimal integer O&M rate between $15 and $25 (inclusive) that maximizes the project's 25-year Gross Margin using a PySAM Pvwattsv8 model.\n\nThe simulation should use a Phoenix TMY weather file from SAM's bundled solar_resource directory and the following parameters: system_capacity of 50000, tilt of 20, azimuth of 180, array_type of 0 (Fixed Open Rack), module_type of 0 (Standard), dc_ac_ratio of 1.2, and inv_eff of 96.0. System losses are calculated as 10.0% base losses plus a variable downtime percentage defined by the formula: downtime_pct = 5.0 * (0.8 ** (om_rate - 15)).\n\nFinancial calculations are based on a 25-year period where lifetime_revenue = annual_energy * 0.08 * 25 and lifetime_om_cost = 50000 * om_rate * 25. Gross margin is the difference between lifetime revenue and lifetime O&M cost.\n\nExport the optimization results to /home/ga/Documents/SAM_Projects/om_optimization.json. The output must contain the optimal_om_rate, the max_gross_margin, and a list of all 11 scenarios (from $15 to $25) including their respective om_rate, downtime_pct, losses_pct, annual_energy_kwh, lifetime_revenue, lifetime_om_cost, and gross_margin.",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/optimize_pv_om_strategy/setup_task.sh",
+    "post_task": "/workspace/tasks/optimize_pv_om_strategy/export_result.sh"
+  },
+  "metadata": {
+    "expected_filename": "om_optimization.json",
+    "energy_min": 80000000,
+    "energy_max": 120000000,
+    "expected_num_scenarios": 11,
+    "plant_size_kw": 50000,
+    "ppa_price": 0.08,
+    "lifetime_years": 25
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_optimize_pv_om_strategy"
+    }
+  }
+}

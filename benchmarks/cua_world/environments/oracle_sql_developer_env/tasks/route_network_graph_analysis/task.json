@@ -1,0 +1,34 @@
+{
+  "id": "route_network_graph_analysis@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Computer Systems Analyst at a regional airline working with the ROUTE_NETWORK schema in Oracle (Host: localhost, Port: 1521, Service: XEPDB1, User: route_analyst, Password: Route2024). Management requires an analytical layer for graph and spatial analysis of US domestic airport and route data.\n\nPerform a reachability analysis by creating a view named REACHABLE_FROM_ORD_VW that identifies all airports reachable from Chicago O'Hare (IATA: 'ORD') within 1, 2, and 3 hops using recursive SQL. The view must include columns for dest_airport_id, dest_iata, dest_city, min_hops, and the full path (e.g., 'ORD->DFW->LAX'), ensuring infinite loops are prevented.\n\nDevelop a PL/SQL function FIND_SHORTEST_PATH(p_source_iata VARCHAR2, p_dest_iata VARCHAR2) that returns the shortest path (fewest flights) between any two airports as a string or 'NO PATH FOUND' if unreachable within 4 hops. The function must utilize recursive SQL internally.\n\nCompute hub centrality by creating a materialized view HUB_CENTRALITY_MV for airports with at least one route. The view should include in_degree, out_degree, total_degree, unique_destinations (reachable in 1 hop), and a centrality_rank using DENSE_RANK by total_degree in descending order.\n\nIdentify route gaps by creating a view ROUTE_GAP_ANALYSIS_VW for pairs of airports with no direct route but exactly one intermediate connecting hub. The view must include airport1_iata, airport1_city, airport2_iata, airport2_city, connecting_hub_iata, and connecting_hub_city. Include only pairs where both endpoint airports have at least 5 total routes, ordered by airport1_iata and airport2_iata.\n\nImplement spatial calculations by creating a PL/SQL function CALC_GREAT_CIRCLE_KM using the Haversine formula (Earth radius = 6371 km). Use this function to create a view ROUTE_DISTANCE_VW showing route_id, source_iata, dest_iata, distance_km, and distance_rank (RANK by distance DESC).\n\nFinally, set up an anomaly detection system by creating a table ROUTE_ANOMALIES (anomaly_id NUMBER, airline_iata VARCHAR2(3), source_iata VARCHAR2(3), dest_iata VARCHAR2(3), anomaly_type VARCHAR2(20), detected_date DATE) and a procedure PROC_DETECT_ASYMMETRIC_ROUTES. The procedure should identify routes where an airline flies A->B but not B->A and log these findings into the table with anomaly_type 'ASYMMETRIC' and the current date.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 2400,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/route_network_graph_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/route_network_graph_analysis/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/route_network_result.json",
+    "occupation": "Computer Systems Analysts",
+    "industry": "Transportation / Aviation",
+    "oracle_features": [
+      "Recursive CTEs",
+      "CYCLE clause",
+      "Haversine Formula",
+      "Materialized Views",
+      "PL/SQL Graph Traversal"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_route_network_graph_analysis"
+    }
+  }
+}

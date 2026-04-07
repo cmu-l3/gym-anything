@@ -1,0 +1,29 @@
+{
+  "id": "verify_pharmacy_dscsa_datamatrix@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "You are a pharmacy receiving technician. You need to scan an incoming medication package's DSCSA DataMatrix barcode and log the compliance data.\n\n1. Ensure bcWebCam is running and configured to use the OBS Virtual Camera or screen capture.\n2. By default, bcWebCam does not recognize DataMatrix codes. You must open bcWebCam's settings (gear icon -> Barcode Options) and enable 'DataMatrix' 2D barcode recognition.\n3. Wait for bcWebCam to decode the pharmaceutical barcode visible on the screen/camera feed.\n4. Copy the raw decoded GS1 string.\n5. Parse the GS1 string into its components. The string follows this structure:\n   - Starts with AI '01' followed by a 14-digit GTIN.\n   - Contains AI '17' followed by a 6-digit Expiration Date (YYMMDD).\n   - Contains AI '10' followed by the Lot Number.\n6. Create a text file exactly at 'C:\\workspace\\dscsa_log.txt'.\n7. Write the parsed data into the file using exactly this multi-line format:\nGTIN: [14-digit GTIN]\nEXP: [6-digit Date]\nLOT: [Lot Number]\n\nSave the file when finished.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\verify_pharmacy_dscsa_datamatrix\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\verify_pharmacy_dscsa_datamatrix\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_output_path": "C:\\workspace\\dscsa_log.txt",
+    "expected_gtin": "00300010633215",
+    "expected_exp": "260531",
+    "expected_lot": "BXL99",
+    "raw_gs1_string": "01003000106332151726053110BXL99"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_dscsa_datamatrix"
+    }
+  }
+}

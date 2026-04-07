@@ -1,0 +1,52 @@
+{
+    "task_id": "sakila_selective_disaster_recovery@1",
+    "dataset": "sakila-db",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "backup_file",
+            "metadata_value": "/home/ga/Documents/sakila_legacy_dump.sql",
+            "verified_value": "/home/ga/Documents/sakila_legacy_dump.sql",
+            "source": "Task setup_task.sh explicitly writes the legacy dump to this path.",
+            "status": "verified"
+        },
+        {
+            "key": "missing_date_start",
+            "metadata_value": "2005-05-25",
+            "verified_value": "2005-05-25",
+            "source": "Task setup_task.sh explicitly uses this date in the DELETE WHERE clause.",
+            "status": "verified"
+        },
+        {
+            "key": "missing_date_end",
+            "metadata_value": "2005-05-28",
+            "verified_value": "2005-05-28",
+            "source": "Task setup_task.sh explicitly uses this date in the DELETE WHERE clause.",
+            "status": "verified"
+        },
+        {
+            "key": "required_audit_tag",
+            "metadata_value": "RESTORED",
+            "verified_value": "RESTORED",
+            "source": "Task verifier.py and export_result.sh explicitly check for this exact tag.",
+            "status": "verified"
+        },
+        {
+            "key": "expected_restored_count",
+            "metadata_value": 203,
+            "verified_value": 673,
+            "source": "Downloaded the official MySQL Sakila sample database and ran SQL queries against sakila-data.sql. There are exactly 673 payment records between '2005-05-25 00:00:00' and '2005-05-28 23:59:59'. The 203 claim is a mistake.",
+            "status": "contradicted"
+        },
+        {
+            "key": "total_payment_count",
+            "metadata_value": 16049,
+            "verified_value": 16044,
+            "source": "Downloaded the official MySQL Sakila sample database and parsed sakila-data.sql. The payment table contains exactly 16044 rows, despite the maximum payment_id being 16049. The metadata incorrectly assumes COUNT(*) matches MAX(id).",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "The task relies on the official MySQL Sakila sample database downloaded from MySQL's documentation servers. The exact date range '2005-05-25' to '2005-05-28' is removed during setup and needs to be fully recovered from '/home/ga/Documents/sakila_legacy_dump.sql' with the 'RESTORED' audit tag. Crucially, while the task metadata and scripts expect 203 missing records and 16,049 total rows, empirical execution on the official dataset confirms there are actually 673 missing records across exactly 16,044 total rows. This discrepancy stems from the author confusing MAX(payment_id) with the total row count, as 5 IDs are skipped in the official dataset.",
+    "pi_confidence": "high"
+}

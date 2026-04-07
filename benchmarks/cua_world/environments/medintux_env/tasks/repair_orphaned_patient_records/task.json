@@ -1,0 +1,28 @@
+{
+  "id": "repair_orphaned_patient_records@1",
+  "version": "1.0",
+  "env_id": "medintux_env@0.1",
+  "description": "A French general practice experienced a database migration failure that left patient records orphaned. These patients exist in the 'fchpat' detail table but are missing from the 'IndexNomPrenom' search index, making them invisible in MedinTux. Connect to the DrTuxTest MySQL database (user: root, no password, host: localhost) and identify all patient GUIDs in 'fchpat' (column: FchPat_GUID_Doss) that have no matching entry in 'IndexNomPrenom' (column: FchGnrl_IDDos). For each orphaned record, retrieve the last name from 'fchpat.FchPat_NomFille' and look up the corresponding first name using the helper file at '/home/ga/orphan_firstnames.csv' (format: GUID,FirstName). Insert the missing entries into 'IndexNomPrenom' using the following columns: FchGnrl_IDDos (GUID), FchGnrl_NomDos (last name in UPPERCASE), FchGnrl_Prenom (first name), and FchGnrl_Type ('Dossier'). Write a reconciliation report to '/home/ga/orphan_repair_report.txt' containing a header line, one line per repaired record (GUID, Name, First Name), and a summary line with the total count of repaired records.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/repair_orphaned_patient_records/setup_task.sh",
+    "post_task": "/workspace/tasks/repair_orphaned_patient_records/export_result.sh"
+  },
+  "metadata": {
+    "database_name": "DrTuxTest",
+    "helper_file": "/home/ga/orphan_firstnames.csv",
+    "report_file": "/home/ga/orphan_repair_report.txt",
+    "orphaned_count": 3
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_repair_orphaned_patient_records"
+    }
+  }
+}

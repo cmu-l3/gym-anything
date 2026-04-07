@@ -1,0 +1,33 @@
+{
+  "id": "migrate_freestyle_to_pipeline@1",
+  "version": "1.0",
+  "env_id": "jenkins_env@0.1",
+  "description": "Your organization is migrating from Freestyle job chains to Declarative Pipelines. Four interconnected Freestyle jobs implement the Orders API CI/CD pipeline: orders-api-build -> orders-api-test -> orders-api-security-scan -> orders-api-staging-deploy. Each job has its own parameters, build steps, credentials, environment variables, post-build actions, and other configurations. Examine each job's full configuration, then create a single Declarative Pipeline job named 'orders-api-pipeline' that consolidates all four into stages: Build, Test, Security Scan, and Deploy. The pipeline must faithfully preserve ALL configurations from the original Freestyle jobs: parameters, credential bindings, environment variables, shell build steps, artifact archiving, test result publishing, node and label restrictions, build triggers, and build discard policies. Trigger a build of the new pipeline and verify it completes successfully. Jenkins URL: http://localhost:8080 -- Login: admin / Admin123!",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 150
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/migrate_freestyle_to_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/migrate_freestyle_to_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "pipeline_job_name": "orders-api-pipeline",
+    "source_jobs": [
+      "orders-api-build",
+      "orders-api-test",
+      "orders-api-security-scan",
+      "orders-api-staging-deploy"
+    ],
+    "required_stages": ["Build", "Test", "Security Scan", "Deploy"],
+    "required_credentials": ["staging-db-creds", "staging-ssh-key"],
+    "pass_threshold": 55
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_migrate_freestyle_to_pipeline"
+    }
+  }
+}

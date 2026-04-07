@@ -1,0 +1,109 @@
+{
+  "task_id": "world_geodetic_audit@1",
+  "dataset": "Bridge Command World Terrains",
+  "case_id": "None - synthetic test worlds (Santa Catalina, Solent)",
+  "data_is_synthetic": true,
+  "pi_items": [
+    {
+      "key": "csv_path",
+      "metadata_value": "/home/ga/Documents/world_catalog.csv",
+      "verified_value": "/home/ga/Documents/world_catalog.csv",
+      "source": "Confirmed in setup_task.sh and export_result.sh",
+      "status": "verified"
+    },
+    {
+      "key": "report_path",
+      "metadata_value": "/home/ga/Documents/geodetic_audit_report.txt",
+      "verified_value": "/home/ga/Documents/geodetic_audit_report.txt",
+      "source": "Confirmed in setup_task.sh and export_result.sh",
+      "status": "verified"
+    },
+    {
+      "key": "required_columns",
+      "metadata_value": [
+        "WorldName",
+        "TerrainLat",
+        "TerrainLong",
+        "LatExtent",
+        "LongExtent",
+        "MapWidth",
+        "MapHeight",
+        "SeaMaxDepth",
+        "AreaSqNm",
+        "ResolutionMetersPerPixel"
+      ],
+      "verified_value": [
+        "WorldName",
+        "TerrainLat",
+        "TerrainLong",
+        "LatExtent",
+        "LongExtent",
+        "MapWidth",
+        "MapHeight",
+        "SeaMaxDepth",
+        "AreaSqNm",
+        "ResolutionMetersPerPixel"
+      ],
+      "source": "Verified against verifier.py - all columns are checked",
+      "status": "verified"
+    },
+    {
+      "key": "tolerances.coordinates",
+      "metadata_value": 0.02,
+      "verified_value": 0.05,
+      "source": "verifier.py line 104-107 uses 'abs(t_lat - gt_world['TerrainLat']) < 0.05'",
+      "status": "contradicted"
+    },
+    {
+      "key": "tolerances.dimensions",
+      "metadata_value": 0,
+      "verified_value": 0,
+      "source": "verifier.py line 111 checks 'int(float(agent_row['MapWidth'])) == gt_world['MapWidth']' (exact match)",
+      "status": "verified"
+    },
+    {
+      "key": "tolerances.depth",
+      "metadata_value": 1.0,
+      "verified_value": 1.0,
+      "source": "verifier.py line 113 uses 'abs(float(agent_row['SeaMaxDepth']) - gt_world['SeaMaxDepth']) <= 1.0'",
+      "status": "verified"
+    },
+    {
+      "key": "tolerances.calculated",
+      "metadata_value": 0.2,
+      "verified_value": 0.2,
+      "source": "verifier.py lines 119-120 and 128-129 check 'diff_pct < 0.20' for both area and resolution",
+      "status": "verified"
+    },
+    {
+      "key": "area_formula",
+      "metadata_value": "(LatExtent * 60) * (LongExtent * 60 * cos(mid_latitude))",
+      "verified_value": "(LatExtent * 60) * (LongExtent * 60 * cos(mid_latitude))",
+      "source": "export_result.sh lines 101-105 implements this formula exactly",
+      "status": "verified"
+    },
+    {
+      "key": "resolution_formula",
+      "metadata_value": "Average of lat/long resolution in meters",
+      "verified_value": "(res_lat + res_lon) / 2, where res_lat = (lat_ext * m_per_deg_lat) / height, res_lon = (lon_ext * m_per_deg_lon) / width",
+      "source": "export_result.sh lines 107-112 calculates resolution as specified",
+      "status": "verified"
+    },
+    {
+      "key": "dummy_world_santa_catalina_coordinates",
+      "metadata_value": "Real Santa Catalina Island is at approximately 33.37\u00b0N, 118.42\u00b0W",
+      "verified_value": "Setup uses 33.20\u00b0N, 118.60\u00b0W (differs by ~0.17\u00b0 in both lat and lon)",
+      "source": "setup_task.sh lines 19-27; Real coordinates from latitude.to and latlong.net",
+      "status": "unverified"
+    },
+    {
+      "key": "dummy_world_solent_coordinates",
+      "metadata_value": "Real Solent is at approximately 50.77\u00b0N, 1.33\u00b0W",
+      "verified_value": "Setup uses 50.70\u00b0N, 1.60\u00b0W (differs by ~0.07\u00b0 in lat, ~0.27\u00b0 in lon)",
+      "source": "setup_task.sh lines 29-37; Real coordinates from Wikipedia and latlong.net",
+      "status": "unverified"
+    }
+  ],
+  "privileged_info_summary": "The world_geodetic_audit task uses synthetic test worlds (Santa Catalina and Solent) with hardcoded coordinates. Critical discrepancy found: the metadata declares a coordinate tolerance of 0.02\u00b0, but the verifier.py actually implements a tolerance of 0.05\u00b0. All CSV column requirements are verified to be correct. Area calculation uses (LatExtent*60) * (LongExtent*60*cos(mid_latitude)) formula, and resolution is the average of latitude and longitude resolutions. The task requires CSV output with all 10 specified columns and a text report with minimum 50 lines, technical terminology, and training recommendations.",
+  "pi_confidence": "high"
+}

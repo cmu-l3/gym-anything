@@ -1,0 +1,32 @@
+{
+  "id": "baseball_statcast_pattern_recognition@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Data Analyst for a Major League Baseball front office working with the BASEBALL_OPS schema in Oracle (connected as baseball_ops/Statcast2024 to XEPDB1). Your goal is to build a set of advanced analytical views from the STATCAST_PITCHES table to feed the coaching staff's pre-game scouting dashboards.\n\nCreate a view called PITCH_ARSENAL_PIVOT_VW that uses the Oracle PIVOT relational operator to cross-tabulate pitcher_name against the count of the 5 most common pitch types ('FF', 'SL', 'CH', 'CU', 'SI'). The view should return one row per pitcher_name with columns for the counts named FF_COUNT, SL_COUNT, CH_COUNT, CU_COUNT, and SI_COUNT.\n\nCreate a view called THREE_PITCH_K_VW using the Oracle MATCH_RECOGNIZE clause to identify \"immaculate\" at-bats where a batter was struck out on exactly three pitches within the same game_pk and at_bat_number, ordered by pitch_number. All three pitches must have a description in ('called_strike', 'swinging_strike', 'foul_tip', 'swinging_strike_blocked'). Return one row per match with columns: game_pk, at_bat_number, pitcher_name, and batter_name.\n\nCreate a view called FATIGUE_WARNING_VW to detect when a pitcher's 4-seam fastball ('FF') velocity is dropping. Filter the data to pitch_type = 'FF' and calculate the overall average release_speed for that pitcher in that specific game_pk (game_avg_velo) and the rolling average release_speed of the current and up to 4 preceding 'FF' pitches (rolling_5_velo) using a window function with ROWS BETWEEN 4 PRECEDING AND CURRENT ROW. The final view should only show pitches where (game_avg_velo - rolling_5_velo) > 1.5 mph, returning columns: game_pk, pitcher_name, pitch_number, release_speed, game_avg_velo, and rolling_5_velo.\n\nExport the contents of THREE_PITCH_K_VW with headers as a CSV file to /home/ga/Documents/three_pitch_strikeouts.csv.\n\nConnection details: Host=localhost, Port=1521, Service=XEPDB1, User=baseball_ops, Password=Statcast2024.\nSchema Details: STATCAST_PITCHES (pitch_id NUMBER PRIMARY KEY, game_pk NUMBER, game_date DATE, at_bat_number NUMBER, pitch_number NUMBER, pitcher_id NUMBER, pitcher_name VARCHAR2(100), batter_id NUMBER, batter_name VARCHAR2(100), inning NUMBER, pitch_type VARCHAR2(2), release_speed NUMBER, zone NUMBER, description VARCHAR2(50), events VARCHAR2(50), stand VARCHAR2(1), p_throws VARCHAR2(1), balls NUMBER, strikes NUMBER)",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/baseball_statcast_pattern_recognition/setup_task.sh",
+    "post_task": "/workspace/tasks/baseball_statcast_pattern_recognition/export_result.sh"
+  },
+  "metadata": {
+    "expected_output_path": "/home/ga/Documents/three_pitch_strikeouts.csv",
+    "occupation": "Data Scientists and Systems Analysts",
+    "industry": "Sports Operations",
+    "oracle_features": [
+      "MATCH_RECOGNIZE",
+      "PIVOT",
+      "Window Functions"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_baseball_statcast_pattern_recognition"
+    }
+  }
+}

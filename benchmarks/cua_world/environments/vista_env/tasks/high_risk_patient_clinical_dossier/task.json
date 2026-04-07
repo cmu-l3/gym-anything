@@ -1,0 +1,28 @@
+{
+  "id": "high_risk_patient_clinical_dossier@1",
+  "version": "1.0",
+  "env_id": "vista_env@0.1",
+  "description": "You are a patient safety officer at a VA medical center. The Chief Medical Officer has requested a comprehensive risk dossier for the single highest-risk patient in VistA. This dossier will be presented at a Pharmacy & Therapeutics committee meeting.\n\nIdentify the target patient by computing a risk score for every patient who has records in BOTH the outpatient pharmacy system (^PS(55)) AND the allergy tracking system (^GMR(120.8)). Risk score formula: (prescription_count * 2) + (allergy_count * 3). Find the patient with the highest risk score.\n\nCompile a complete clinical dossier for this patient at /home/ga/Desktop/patient_risk_dossier.txt containing:\n- Demographics from ^DPT: full name, date of birth, sex\n- Period of Service: resolved to a human-readable service era name via ^DIC(21), not a raw pointer ID\n- Primary Eligibility: resolved to a human-readable category name via ^DIC(8), not a raw pointer ID\n- Rated disabilities: if any exist in the patient record, resolve each through ^DIC(31) with condition name and percentage; if none exist, state that explicitly\n- All documented allergy reactant names for this patient from ^GMR(120.8)\n- Prescription summary: total count and drug names for the first 10 prescriptions\n- Contraindication screen: flag any case where an allergy reactant name appears as a substring in any prescription drug name\n\nThe dossier must contain resolved human-readable names from pointer references, not raw internal IDs.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1500,
+    "max_steps": 200,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/high_risk_patient_clinical_dossier/setup_task.sh",
+    "post_task": "/workspace/tasks/high_risk_patient_clinical_dossier/export_result.sh"
+  },
+  "metadata": {
+    "output_file": "/home/ga/Desktop/patient_risk_dossier.txt",
+    "risk_score_formula": "(prescription_count * 2) + (allergy_count * 3)",
+    "globals_required": ["^PS(55)", "^GMR(120.8)", "^DPT", "^DIC(21)", "^DIC(8)", "^DIC(31)", "^PSRX", "^PSDRUG"],
+    "expected_outcome": "File /home/ga/Desktop/patient_risk_dossier.txt created during the task session, containing the comprehensive clinical dossier for the patient with the highest combined medication-allergy risk score, including resolved pointer values for service history, eligibility, and disabilities, complete allergy list, prescription summary, and contraindication screening results."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_high_risk_patient_clinical_dossier"
+    }
+  }
+}

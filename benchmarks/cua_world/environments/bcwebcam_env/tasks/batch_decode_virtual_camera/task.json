@@ -1,0 +1,30 @@
+{
+  "id": "batch_decode_virtual_camera@1",
+  "version": "1.0",
+  "env_id": "bcwebcam_env@0.1",
+  "description": "Decode 3 provided QR code image files by sequentially loading them into the OBS Virtual Camera so bcWebCam can scan them, and save the extracted URLs into a single text file.\n\nExpected Actions:\n1. Open OBS Studio and locate the existing Image source (or create a new Image source) in the current scene.\n2. Change the Image source file path to display `equip_1.png` located in `C:\\Users\\Docker\\Documents\\offline_codes\\`.\n3. Switch focus to bcWebCam, allowing it to scan the virtual camera feed.\n4. Copy the decoded text (a GS1 URL) from bcWebCam's output window.\n5. Paste the decoded text into a new text file.\n6. Repeat steps 2-5 for `equip_2.png` and `equip_3.png`.\n7. Save the final text file to `C:\\Users\\Docker\\Documents\\equipment_ids.txt`. Each URL must be on a new line.\n\nNote: You MUST use bcWebCam and OBS to perform the decoding. Bypassing the applications using online decoders or custom scripts will fail verification.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 300,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\batch_decode_virtual_camera\\setup_task.ps1",
+    "post_task": "powershell -ExecutionPolicy Bypass -File C:\\workspace\\tasks\\batch_decode_virtual_camera\\export_result.ps1"
+  },
+  "metadata": {
+    "expected_output_path": "C:\\Users\\Docker\\Documents\\equipment_ids.txt",
+    "expected_uris": [
+      "https://id.gs1.org/01/00880002000216/21/SER12345",
+      "https://id.gs1.org/01/00880002000216/21/SER67890",
+      "https://id.gs1.org/01/00880002000216/21/SER54321"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_batch_decode_virtual_camera"
+    }
+  }
+}

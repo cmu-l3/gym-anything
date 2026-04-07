@@ -1,0 +1,46 @@
+{
+  "id": "security_camera_daily_digest@1",
+  "version": "1.0",
+  "env_id": "vlc_env@0.1",
+  "description": "You are a property management coordinator processing overnight security footage. Three 3-minute camera recordings (camera_lobby.mp4, camera_parking.mp4, camera_loading.mp4) are located in /home/ga/Videos/security_feeds/. Using the incident data provided in /home/ga/Documents/guard_notes.txt, create a daily digest package in /home/ga/Videos/daily_digest/. \n\nThe digest must include 6x speed time-lapses for each camera (timelapse_lobby.mp4, timelapse_parking.mp4, timelapse_loading.mp4) in H.264 MP4 format with no audio. Extract PNG frames from each camera every 30 seconds (at 0s, 30s, 60s, 90s, 120s, 150s) to /home/ga/Videos/daily_digest/frames/ using the naming convention {camera}_{seconds}s.png. Extract the four incidents described in the guard notes to /home/ga/Videos/daily_digest/incidents/ as incident_1.mp4 through incident_4.mp4, matching the specified timestamp ranges. Generate a JSON manifest at /home/ga/Videos/daily_digest/digest_manifest.json containing the keys 'cameras' (camera names and resolutions), 'timelapses' (filenames), 'incidents' (objects with clip filename, camera, start, end, and description), and 'frames_count' (total count of extracted frames).",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 60,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/security_camera_daily_digest/setup_task.sh",
+    "post_task": "/workspace/tasks/security_camera_daily_digest/export_result.sh"
+  },
+  "metadata": {
+    "skills": [
+      "video_speed_manipulation",
+      "frame_extraction",
+      "video_clipping",
+      "json_manifest",
+      "batch_processing"
+    ],
+    "tags": [
+      "ffmpeg",
+      "vlc",
+      "batch_processing",
+      "security",
+      "time_lapse"
+    ],
+    "expected_timelapse_duration": 30,
+    "expected_clip_durations": {
+      "1": 20,
+      "2": 25,
+      "3": 25,
+      "4": 20
+    },
+    "expected_frame_count": 18
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_daily_digest"
+    }
+  }
+}

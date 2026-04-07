@@ -3,6 +3,7 @@ echo "=== Setting up update_patient_info task ==="
 
 # Source shared utilities
 source /workspace/scripts/task_utils.sh
+wait_for_postgres
 
 # 1. Verify Ana Betz patient exists in the demo DB
 ANA_EXISTS=$(gnuhealth_db_query "SELECT COUNT(*) FROM gnuhealth_patient gp JOIN party_party pp ON gp.party = pp.id WHERE pp.name ILIKE '%Ana%' AND pp.lastname ILIKE '%Betz%'" | tr -d '[:space:]')

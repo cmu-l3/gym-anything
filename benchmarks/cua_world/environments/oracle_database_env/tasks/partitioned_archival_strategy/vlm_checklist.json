@@ -1,0 +1,53 @@
+{
+  "task_id": "partitioned_archival_strategy@1",
+  "task_completion": [
+    {
+      "id": "create_partitioned_table",
+      "description": "Create the EMPLOYEE_HISTORY_ARCHIVE table partitioned by END_DATE with four decade partitions.",
+      "points": 25,
+      "visual_evidence": "Look for a SQL client (e.g., SQL*Plus, SQL Developer, DBeaver) showing a 'CREATE TABLE EMPLOYEE_HISTORY_ARCHIVE' statement that includes 'PARTITION BY RANGE (END_DATE)' and defines at least 4 partitions (e.g., before 1990, 1990s, 2000s, 2010+), followed by a success message."
+    },
+    {
+      "id": "migrate_data",
+      "description": "Migrate all rows from JOB_HISTORY into the new EMPLOYEE_HISTORY_ARCHIVE table.",
+      "points": 15,
+      "visual_evidence": "Look for an 'INSERT INTO EMPLOYEE_HISTORY_ARCHIVE SELECT * FROM JOB_HISTORY' statement executed successfully, or a 'SELECT COUNT(*)' query on the new table returning at least 10 rows."
+    },
+    {
+      "id": "create_bitmap_indexes",
+      "description": "Create bitmap indexes on the JOB_ID and DEPARTMENT_ID columns of the archive table.",
+      "points": 20,
+      "visual_evidence": "Look for 'CREATE BITMAP INDEX' statements targeting the 'JOB_ID' and 'DEPARTMENT_ID' columns of the 'EMPLOYEE_HISTORY_ARCHIVE' table, along with execution success messages."
+    },
+    {
+      "id": "create_materialized_view",
+      "description": "Create a materialized view named MV_DEPT_TURNOVER showing per-department job change counts.",
+      "points": 20,
+      "visual_evidence": "Look for a 'CREATE MATERIALIZED VIEW MV_DEPT_TURNOVER' statement that includes a 'SELECT ... COUNT(...) ... GROUP BY DEPARTMENT_ID' query from the archive table, followed by a success message."
+    },
+    {
+      "id": "save_analysis_report",
+      "description": "Save a partition analysis report showing row counts per partition to /home/ga/Desktop/archive_analysis.txt.",
+      "points": 20,
+      "visual_evidence": "Look for a terminal or text editor showing the creation and contents of '/home/ga/Desktop/archive_analysis.txt', which should display partition names/ranges and their corresponding row counts."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_db_interaction",
+      "description": "Verify the agent interacted with a real database client to execute the commands.",
+      "visual_evidence": "Screenshots should show a genuine database interface (like SQL*Plus in a terminal, or a GUI like DBeaver/SQL Developer) with actual execution outputs, not just SQL typed into a plain text editor without running it."
+    },
+    {
+      "id": "authentic_report_data",
+      "description": "Verify the partition analysis report contains genuine query results.",
+      "visual_evidence": "The contents of archive_analysis.txt should look like the output of a real SQL query (e.g., formatted columns, realistic row counts summing to >= 10), rather than manually typed placeholder text."
+    },
+    {
+      "id": "no_mocked_objects",
+      "description": "Verify the agent did not create empty or dummy objects just to satisfy naming checks.",
+      "visual_evidence": "The SQL statements for the table, indexes, and materialized view must contain the actual required logic (PARTITION BY RANGE, BITMAP, GROUP BY) rather than being simple, empty definitions."
+    }
+  ],
+  "privileged_info_for_vlm": "Target table: EMPLOYEE_HISTORY_ARCHIVE. Must be range-partitioned by END_DATE with >= 4 partitions. Source table: JOB_HISTORY (contains >= 10 rows). Bitmap indexes required on columns: JOB_ID, DEPARTMENT_ID. Materialized view name: MV_DEPT_TURNOVER. Output file path: /home/ga/Desktop/archive_analysis.txt."
+}

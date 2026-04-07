@@ -1,0 +1,34 @@
+{
+  "id": "nyc_restaurant_grade_laundering@1",
+  "version": "1.0",
+  "env_id": "oracle_sql_developer_env@0.1",
+  "description": "You are a Compliance Officer for the NYC Department of Health investigating \"grade laundering,\" a practice where failing restaurants re-register under new CAMIS IDs at the same location to wipe their violation history. Using the DOHMH schema in Oracle (User: health_auditor, Password: Audit2024, Service: XEPDB1, Port: 1521), algorithmically link these entities to calculate their true chronic risk.\n\nCreate a materialized view RESTAURANT_LIFECYCLES_MV summarizing each restaurant's lifespan, including camis, dba, building, street, zipcode, phone, first_inspection_date, last_inspection_date, and the score of the chronologically final inspection (last_score). \n\nIdentify direct successions in a view SUSPECT_TRANSITIONS_VW where old_camis != new_camis, the building and street match (case-insensitive), the old entity's last_score >= 28, and the new entity's first_inspection_date is between the old entity's last_inspection_date and last_inspection_date + 180 days. The transition is suspect if either the phone matches exactly or the DBA names have a Jaro-Winkler similarity (UTL_MATCH.JARO_WINKLER_SIMILARITY) >= 75. Include columns: old_camis, old_dba, new_camis, new_dba, transition_days, and name_similarity.\n\nTrack multi-hop laundering chains in a view LAUNDERING_CHAINS_VW using a hierarchical query on SUSPECT_TRANSITIONS_VW to find chains with at least 3 entities (hops >= 2). Include root_camis, latest_camis, hops (LEVEL - 1), and the full camis_path (e.g., '1001->1002->1003').\n\nGenerate a final report in a view CHRONIC_OFFENDERS_REPORT_VW by joining the chains to the VIOLATIONS table to calculate combined critical violations (where critical_flag = 'Y') across all CAMIS IDs in the chain. The report must include root_camis, original_dba, latest_camis, latest_dba, total_entities_in_chain, and combined_critical_violations. Export the CHRONIC_OFFENDERS_REPORT_VW to /home/ga/Documents/exports/chronic_offenders.csv.",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/nyc_restaurant_grade_laundering/setup_task.sh",
+    "post_task": "/workspace/tasks/nyc_restaurant_grade_laundering/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/restaurant_audit_result.json",
+    "occupation": "Compliance Officers",
+    "industry": "Government / Public Health",
+    "oracle_features": [
+      "UTL_MATCH",
+      "CONNECT BY",
+      "SYS_CONNECT_BY_PATH",
+      "Window Functions",
+      "Materialized Views"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_restaurant_grade_laundering"
+    }
+  }
+}

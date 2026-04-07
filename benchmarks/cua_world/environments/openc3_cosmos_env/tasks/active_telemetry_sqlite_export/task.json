@@ -1,0 +1,29 @@
+{
+  "id": "active_telemetry_sqlite_export@1",
+  "version": "1.0",
+  "env_id": "openc3_cosmos_env@0.1",
+  "description": "You are a payload data analyst needing a precise time-series baseline of the INST spacecraft's thermal state immediately before, during, and after a payload data collection event. Write and execute a Python script at /home/ga/Desktop/archive.py that uses the pre-installed requests library or COSMOS CLI tools to interact with the COSMOS JSON-RPC API at http://localhost:2900/openc3-api/api (Authorization token: Cosmos2024!). The script must automate the creation of a SQLite database at /home/ga/Desktop/telemetry_archive.db with a table named telemetry_archive using the schema: id (INTEGER PRIMARY KEY AUTOINCREMENT), timestamp (TEXT, ISO 8601 format), temp1 (REAL), temp2 (REAL), temp3 (REAL), temp4 (REAL), and collects (INTEGER). The script must capture a baseline by polling the INST HEALTH_STATUS telemetry (TEMP1, TEMP2, TEMP3, TEMP4, and COLLECTS) five times at 1-2 second intervals, issuing the INST COLLECT command with TYPE NORMAL, and then polling the same telemetry five more times at the same intervals. Ensure all data is committed to the database.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/active_telemetry_sqlite_export/setup_task.sh",
+    "pre_task_timeout": 120,
+    "post_task": "/workspace/tasks/active_telemetry_sqlite_export/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/active_telemetry_sqlite_export_result.json",
+    "output_db": "/home/ga/Desktop/telemetry_archive.db",
+    "target": "INST",
+    "command": "INST COLLECT"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_active_telemetry_sqlite_export"
+    }
+  }
+}

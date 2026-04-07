@@ -1,0 +1,59 @@
+{
+    "task_id": "docker_oom_debugging@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "project_dir",
+            "metadata_value": "/home/ga/projects/acme-worker-service",
+            "verified_value": "/home/ga/projects/acme-worker-service",
+            "source": "setup_task.sh line 19 defines PROJECT_DIR=/home/ga/projects/acme-worker-service",
+            "status": "verified"
+        },
+        {
+            "key": "container_name",
+            "metadata_value": "acme-worker",
+            "verified_value": "acme-worker",
+            "source": "setup_task.sh line 78 container_name declaration and line 10 CONTAINER_NAME variable; export_result.sh line 10 CONTAINER_NAME variable",
+            "status": "verified"
+        },
+        {
+            "key": "max_allowed_memory_mb",
+            "metadata_value": 300,
+            "verified_value": 300,
+            "source": "setup_task.sh line 87 specifies 'memory: 300M' in docker-compose.yml; verifier.py line 92 calculates 314572800 bytes = 300*1024*1024",
+            "status": "verified"
+        },
+        {
+            "key": "safe_allocation_mb",
+            "metadata_value": 250,
+            "verified_value": 250,
+            "source": "verifier.py line 78-80: allocation <= 250 earns full 30 points for app configuration tuning",
+            "status": "verified"
+        },
+        {
+            "key": "admin_user",
+            "metadata_value": "ga",
+            "verified_value": "ga",
+            "source": "setup_task.sh: line 19 PROJECT_DIR created, line 111 chown -R ga:ga, line 131 su - ga command runs terminal",
+            "status": "verified"
+        },
+        {
+            "key": "admin_password",
+            "metadata_value": "password123",
+            "verified_value": "password123",
+            "source": "task.json line 5 task description states: 'Login: user ga, password password123'",
+            "status": "verified"
+        },
+        {
+            "key": "pass_threshold",
+            "metadata_value": 70,
+            "verified_value": 70,
+            "source": "verifier.py line 102: 'passed = score >= 70'; verifier.py line 10: 'Pass threshold: 70 pts'",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The docker_oom_debugging task creates a synthetic OOM debugging scenario with a Python worker service. The project directory is /home/ga/projects/acme-worker-service. The container name is acme-worker with a Docker memory limit of 300MB (hard constraint). The application has a configurable MAX_ALLOCATION_MB environment variable (default 500MB, causing OOM). The safe allocation threshold is 250MB. Users must tune this parameter without increasing the Docker memory limit. Task passes at 70+ points: 40 for stability, 30 for config tuning (allocation ≤ 250MB), 30 for respecting the 300MB constraint. Admin credentials: user 'ga' with password 'password123' for environment access.",
+    "pi_confidence": "high"
+}

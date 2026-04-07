@@ -1,0 +1,34 @@
+{
+  "id": "multi_arch_build_pipeline@1",
+  "version": "1.0",
+  "env_id": "docker_desktop_env@0.1",
+  "description": "Configure a multi-architecture build pipeline using Docker Buildx and a local registry. Build the Go application located at /home/ga/edge-app/ for linux/amd64 and linux/arm64 platforms using a Buildx builder instance with the 'docker-container' driver. The resulting multi-architecture image must be pushed to a local registry running on port 5000 at localhost:5000/edge-app:latest. Ensure the builder is configured to communicate with the registry.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/multi_arch_build_pipeline/setup_task.sh",
+    "post_task": "/workspace/tasks/multi_arch_build_pipeline/export_result.sh"
+  },
+  "metadata": {
+    "app_dir": "/home/ga/edge-app",
+    "registry_port": 5000,
+    "image_repo": "edge-app",
+    "image_tag": "latest",
+    "target_platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "expected_manifest_media_type": "application/vnd.docker.distribution.manifest.list.v2+json",
+    "alt_manifest_media_type": "application/vnd.oci.image.index.v1+json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_multi_arch_build"
+    }
+  }
+}

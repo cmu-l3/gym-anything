@@ -1,0 +1,59 @@
+{
+    "task_id": "price_sync_merge@1",
+    "dataset": "AdventureWorks2022",
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "target_table",
+            "metadata_value": "Pricing.PriceMaster",
+            "verified_value": "Pricing.PriceMaster",
+            "source": "Code analysis: setup_task.sh lines 32-46 creates table from Production.Product WHERE ListPrice > 0 AND (ProductID % 10) != 0",
+            "status": "verified"
+        },
+        {
+            "key": "source_table",
+            "metadata_value": "Pricing.SupplierPriceUpdate",
+            "verified_value": "Pricing.SupplierPriceUpdate",
+            "source": "Code analysis: setup_task.sh lines 48-85 creates staging table from Production.Product with mixed operations (updates at 12% increase, no-change rows, and inserts)",
+            "status": "verified"
+        },
+        {
+            "key": "audit_table",
+            "metadata_value": "Pricing.MergeAuditLog",
+            "verified_value": "Pricing.MergeAuditLog",
+            "source": "Task description lines 19-25 and export_result.sh lines 14-19 verify this table is created and verified",
+            "status": "verified"
+        },
+        {
+            "key": "required_columns",
+            "metadata_value": "[\"MergeAction\", \"ProductID\", \"OldListPrice\", \"NewListPrice\", \"PriceChangePercent\"]",
+            "verified_value": "[\"AuditID\", \"MergeAction\", \"ProductID\", \"ProductName\", \"OldListPrice\", \"NewListPrice\", \"PriceChangePercent\", \"AuditTimestamp\"]",
+            "source": "Task description lines 19-25 explicitly defines 8 required columns for Pricing.MergeAuditLog. Verifier script line 66 checks for ColCount >= 8",
+            "status": "contradicted"
+        },
+        {
+            "key": "data_source_database",
+            "metadata_value": null,
+            "verified_value": "AdventureWorks2022 (Microsoft SQL Server official sample OLTP database)",
+            "source": "setup_mssql.sh line 15 downloads from https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak. Verified via Microsoft Learn documentation.",
+            "status": "verified"
+        },
+        {
+            "key": "data_source_table",
+            "metadata_value": null,
+            "verified_value": "Production.Product (real table from AdventureWorks2022 sample database)",
+            "source": "setup_task.sh lines 35-85 uses Production.Product table. WebFetch confirmed columns: Name (nvarchar), ListPrice (money), StandardCost (money), SellStartDate (datetime) exist in this table",
+            "status": "verified"
+        },
+        {
+            "key": "data_is_synthetic",
+            "metadata_value": null,
+            "verified_value": false,
+            "source": "AdventureWorks2022 is Microsoft's official public sample database. Confirmed via Microsoft Learn and GitHub releases at https://github.com/Microsoft/sql-server-samples/releases/tag/adventureworks",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task uses the AdventureWorks2022 database, Microsoft's official SQL Server sample OLTP database. The task operates on real schema with the Production.Product table (504 products with ListPrice > 0). Target table Pricing.PriceMaster excludes products where ProductID % 10 = 0. Source table Pricing.SupplierPriceUpdate contains: products with 12% price increases (ProductID % 3 = 0), unchanged prices (ProductID % 3 = 1), and new products (ProductID % 10 = 0). The required audit table Pricing.MergeAuditLog must have 8 columns: AuditID, MergeAction, ProductID, ProductName, OldListPrice, NewListPrice, PriceChangePercent, and AuditTimestamp (verified from task description and verifier constraints).",
+    "pi_confidence": "high"
+}

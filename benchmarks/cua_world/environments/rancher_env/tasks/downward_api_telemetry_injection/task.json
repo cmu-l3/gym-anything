@@ -1,0 +1,28 @@
+{
+  "id": "downward_api_telemetry_injection@1",
+  "version": "1.0",
+  "env_id": "rancher_env@0.1",
+  "description": "The payment-gateway deployment in the ecommerce namespace has an audit-logger sidecar container that currently uses static, hardcoded environment variables for telemetry, causing inaccurate logs. Refactor the deployment to dynamically inject metadata using the Downward API. Configure APP_POD_NAME, APP_POD_NAMESPACE, HOST_IP, and POD_IP environment variables in the audit-logger container using fieldRefs for metadata.name, metadata.namespace, status.hostIP, and status.podIP respectively. Set the MAIN_CPU_LIMIT environment variable using a resourceFieldRef pointing to the gateway-app container's limits.cpu with a divisor of 1m. Implement a downwardAPI volume named pod-metadata that maps metadata.labels to labels and metadata.annotations to annotations, and mount this volume at /etc/podinfo within the audit-logger container. Login to Rancher at https://localhost with credentials admin / Admin12345678!",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/downward_api_telemetry_injection/setup_task.sh",
+    "post_task": "/workspace/tasks/downward_api_telemetry_injection/export_result.sh"
+  },
+  "metadata": {
+    "occupation": "Cloud Observability Engineer",
+    "target_namespace": "ecommerce",
+    "target_deployment": "payment-gateway",
+    "pass_threshold": 75
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_downward_api_telemetry_injection"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "chain_of_custody_tamper_audit@1",
+  "version": "1.0",
+  "env_id": "example.autopsy_env@0.1",
+  "description": "Internal Affairs suspects a rogue detective accessed a sealed evidence locker and modified a digital device after it was officially seized. Validate the cryptographic chain of custody for three seized USB drives (seized_usb_1.dd, seized_usb_2.dd, seized_usb_3.dd) in /home/ga/evidence/ by comparing their current SHA-256 hashes against the official acquisition log at /home/ga/evidence/Chain_of_Custody_Log.txt. Identify the tampered drive and any files modified or created after the official Seizure Date of 2023-05-01 00:00:00 UTC. Create an Autopsy case named Evidence_Audit_2024 (Case ID: IA-001) in /home/ga/Cases/ to conduct the investigation. Write an Audit Report to /home/ga/Reports/integrity_audit.txt containing the following lines:\nTAMPERED_IMAGE: <filename.dd>\nORIGINAL_SHA256: <original hash from the log>\nCURRENT_SHA256: <the newly calculated hash>\nPLANTED_FILES: <comma-separated list of filenames modified/created after the seizure date>\nCONCLUSION: <Brief 1-2 sentence summary of findings>",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 720,
+    "max_steps": 100,
+    "reward_type": "dense"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/chain_of_custody_tamper_audit/setup_task.sh",
+    "post_task": "/workspace/tasks/chain_of_custody_tamper_audit/export_result.sh"
+  },
+  "metadata": {
+    "case_name": "Evidence_Audit_2024",
+    "case_number": "IA-001",
+    "log_file": "/home/ga/evidence/Chain_of_Custody_Log.txt",
+    "report_file": "/home/ga/Reports/integrity_audit.txt",
+    "result_file": "/tmp/chain_of_custody_result.json",
+    "gt_file": "/tmp/chain_of_custody_gt.json"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_chain_of_custody_audit"
+    }
+  }
+}

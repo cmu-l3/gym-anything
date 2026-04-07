@@ -1,0 +1,33 @@
+{
+  "id": "lob_document_ingestion@1",
+  "version": "1.0",
+  "env_id": "oracle_database_env@0.1",
+  "description": "A law firm needs to archive software license agreements into the Oracle Database. Create a DIRECTORY object named 'LICENSE_DIR' pointing to the OS path '/tmp/licenses' and grant READ permission to the 'hr' user (system/OraclePassword123). In the 'hr' schema (hr/hr123), archive the 5 text files from '/tmp/licenses' into a new table named 'LICENSE_ARCHIVE' with columns for ID (NUMBER, Primary Key), FILENAME (VARCHAR2(255)), FILE_CONTENT (BLOB), FILE_HASH (VARCHAR2(64)), and INGEST_DATE (DATE, default SYSDATE). The FILE_HASH column must contain the SHA-256 hash of the binary data. Identify any duplicate files based on their hashes and save a report listing the filenames and the shared hash to /home/ga/Desktop/duplicate_report.txt.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/lob_document_ingestion/setup_task.sh",
+    "post_task": "/workspace/tasks/lob_document_ingestion/export_result.sh"
+  },
+  "metadata": {
+    "source_dir": "/tmp/licenses",
+    "expected_file_count": 5,
+    "duplicate_files": [
+      "apache-2.0.txt",
+      "vendor_terms.txt"
+    ],
+    "report_path": "/home/ga/Desktop/duplicate_report.txt",
+    "table_name": "LICENSE_ARCHIVE",
+    "directory_name": "LICENSE_DIR"
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_lob_ingestion"
+    }
+  }
+}

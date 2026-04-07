@@ -1,0 +1,41 @@
+{
+  "id": "calculate_manufacturing_oee@1",
+  "version": "1.0",
+  "env_id": "wps_spreadsheet_env@0.1",
+  "description": "Calculate Manufacturing OEE and create a machine summary in /home/ga/Documents/production_logs.xlsx. On the 'Shift Logs' sheet, calculate Operating Time (Planned Minutes - Downtime Minutes), Availability (Operating Time / Planned Minutes), Performance ((Total Parts * (Ideal Cycle Time in seconds / 60)) / Operating Time), Quality ((Total Parts - Defect Parts) / Total Parts), and OEE (Availability * Performance * Quality) for all records. Format Availability, Performance, Quality, and OEE as percentages with one decimal place. On a new sheet named 'Machine Summary', list each unique Machine ID with its average OEE and a status of 'Needs Review' if the average OEE is less than 75% or 'Good' if it is",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 480,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/calculate_manufacturing_oee/setup_task.sh",
+    "post_task": "/workspace/tasks/calculate_manufacturing_oee/export_result.sh"
+  },
+  "metadata": {
+    "expected_file_path": "/home/ga/Documents/production_logs.xlsx",
+    "expected_sheets": [
+      "Shift Logs",
+      "Machine Summary"
+    ],
+    "required_columns": [
+      "Operating_Time",
+      "Availability",
+      "Performance",
+      "Quality",
+      "OEE"
+    ],
+    "summary_headers": [
+      "Machine_ID",
+      "Average_OEE",
+      "Status"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_manufacturing_oee"
+    }
+  }
+}

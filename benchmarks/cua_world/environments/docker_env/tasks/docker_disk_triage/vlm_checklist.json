@@ -1,0 +1,59 @@
+{
+  "task_id": "docker_disk_triage@1",
+  "task_completion": [
+    {
+      "id": "report_created",
+      "description": "The agent created a disk cleanup report documenting before and after disk usage.",
+      "points": 15,
+      "visual_evidence": "Look for a text editor or terminal output showing the contents of '/home/ga/Desktop/disk_cleanup_report.txt'. It must contain Docker disk usage statistics (e.g., from 'docker system df') representing both the 'before' and 'after' states."
+    },
+    {
+      "id": "trash_removed",
+      "description": "The agent successfully removed all dangling images, stopped trash containers, and orphaned volumes.",
+      "points": 20,
+      "visual_evidence": "Look for terminal output of 'docker ps -a' and 'docker volume ls'. The trash containers (e.g., 'acme-failed-build-*', 'acme-old-migration', 'acme-test-runner-old') and trash volumes (e.g., 'acme-redis-data', 'acme-old-uploads', 'acme-test-fixtures', 'acme-build-cache-vol') should no longer be listed."
+    },
+    {
+      "id": "protected_containers_preserved",
+      "description": "The production containers remain running and the debug snapshot is preserved.",
+      "points": 20,
+      "visual_evidence": "Look for terminal output of 'docker ps' or 'docker ps -a'. 'acme-prod-web', 'acme-prod-api', and 'acme-prod-db' must be listed with an 'Up' status. 'acme-debug-snapshot' must also still be present in the container list."
+    },
+    {
+      "id": "protected_volume_preserved",
+      "description": "The production database volume is preserved.",
+      "points": 10,
+      "visual_evidence": "Look for terminal output of 'docker volume ls'. The volume 'acme-pgdata' must still be listed."
+    },
+    {
+      "id": "script_content",
+      "description": "The agent created an automation script with cleanup logic and safety filters.",
+      "points": 25,
+      "visual_evidence": "Look for a text editor or terminal output showing the contents of '/home/ga/projects/maintenance/auto_cleanup.sh'. The script should contain Docker cleanup commands (like 'docker container prune', 'docker volume prune', or 'docker rm') with explicit filters or logic to protect the 'preserve=true' label and the 'acme-pgdata' volume."
+    },
+    {
+      "id": "script_executable",
+      "description": "The automation script was made executable.",
+      "points": 10,
+      "visual_evidence": "Look for terminal output showing 'chmod +x /home/ga/projects/maintenance/auto_cleanup.sh' or an 'ls -l' command showing execute permissions (e.g., '-rwxr-xr-x') for the script."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_docker_execution",
+      "description": "The agent actually executed Docker commands to perform the cleanup, rather than just writing the script and stopping.",
+      "visual_evidence": "Look for actual execution of commands like 'docker rm', 'docker volume rm', or 'docker system prune' in the terminal."
+    },
+    {
+      "id": "real_disk_usage_data",
+      "description": "The disk cleanup report contains genuine output from Docker commands.",
+      "visual_evidence": "The report contents should look like standard terminal output from 'docker system df' (showing TYPE, TOTAL, ACTIVE, SIZE, RECLAIMABLE columns), not manually typed or hallucinated summaries."
+    },
+    {
+      "id": "script_uses_automation_logic",
+      "description": "The script automates the cleanup using filters rather than hardcoding the exact names of the trash containers present in this specific run.",
+      "visual_evidence": "The script contents should use commands like 'docker container prune --filter label!=preserve=true' or similar dynamic logic, rather than just 'docker rm acme-failed-build-1 acme-failed-build-2...'."
+    }
+  ],
+  "privileged_info_for_vlm": "Protected containers that MUST exist: 'acme-prod-web' (must be running), 'acme-prod-api' (must be running), 'acme-prod-db' (must be running), and 'acme-debug-snapshot' (must exist, has label 'preserve=true'). Protected volume that MUST exist: 'acme-pgdata'. Trash containers that MUST be removed: 'acme-failed-build-1' through '4', 'acme-old-migration', 'acme-test-runner-old'. Trash volumes that MUST be removed: 'acme-redis-data', 'acme-old-uploads', 'acme-test-fixtures', 'acme-build-cache-vol'. Required file paths: '/home/ga/Desktop/disk_cleanup_report.txt' and '/home/ga/projects/maintenance/auto_cleanup.sh'."
+}

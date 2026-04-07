@@ -1,0 +1,73 @@
+{
+    "task_id": "eraser_transparency@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "image_source_unsplash_url_1",
+            "metadata_value": "https://images.unsplash.com/photo-1574158622682-e40e69881006 (primary URL in setup_eraser_task.sh)",
+            "verified_value": "URL is accessible and returns valid JPEG image (100.3 KB downloaded successfully)",
+            "source": "WebFetch tool - successfully downloaded image from URL",
+            "status": "verified"
+        },
+        {
+            "key": "image_source_unsplash_url_2",
+            "metadata_value": "https://images.unsplash.com/photo-1551963831-b3b1ca40c98e (fallback URL in setup_eraser_task.sh)",
+            "verified_value": "URL is accessible and returns valid JPEG image (118 KB downloaded successfully)",
+            "source": "WebFetch tool - successfully downloaded image from URL",
+            "status": "verified"
+        },
+        {
+            "key": "data_is_synthetic",
+            "metadata_value": "Implicit claim: data comes from real Unsplash photo service",
+            "verified_value": "Data is REAL - images come from Unsplash public photo gallery. Fallback option generates synthetic test image only if downloads fail.",
+            "source": "Code analysis: setup_eraser_task.sh downloads from Unsplash URLs with synthetic fallback via ImageMagick",
+            "status": "verified"
+        },
+        {
+            "key": "output_format_png_preserves_transparency",
+            "metadata_value": "Task exports result as PNG to preserve alpha channel (export_erased.sh, verifier.py line 208)",
+            "verified_value": "PNG format correctly preserves RGBA alpha channel. Verified: PIL can save and reload RGBA images with alpha transparency intact.",
+            "source": "Technical verification: PIL Image library test with RGBA mode and PNG export/reload",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_transparency_threshold_greater_than_2_percent",
+            "metadata_value": "Verifier checks: result_stats['transparency_percentage'] > 2.0 (verifier.py line 185)",
+            "verified_value": "Verification logic is correct. Python/NumPy can count pixels with alpha < 255 and calculate percentage correctly.",
+            "source": "Code review of analyze_transparency() function in verifier.py (lines 21-65) and test via numpy array operations",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_content_preservation_check_less_than_80_percent",
+            "metadata_value": "Verifier checks: result_stats['transparency_percentage'] < 80.0 to ensure content preserved (verifier.py line 196)",
+            "verified_value": "Verification threshold is correctly implemented. NumPy comparison operators work as specified.",
+            "source": "Code review of verifier.py lines 195-199",
+            "status": "verified"
+        },
+        {
+            "key": "verifier_meaningful_change_threshold_2_percentage_points",
+            "metadata_value": "Verifier requires: transparency_increase >= 2.0 percentage points (verifier.py line 98)",
+            "verified_value": "Verification threshold is correctly implemented. Calculates transparency_increase as result - original percentage.",
+            "source": "Code review of compare_transparency_change() function in verifier.py (lines 76-114)",
+            "status": "verified"
+        },
+        {
+            "key": "gimp_environment_available",
+            "metadata_value": "Task depends on GIMP being available in the environment (env_id: example.gimp_env@0.1)",
+            "verified_value": "GIMP is installed and configured in env.json. Environment setup includes 'ubuntu-gnome-systemd_highres_gimp' base with GIMP user account and DISPLAY configuration.",
+            "source": "env.json configuration review - user 'ga' with DISPLAY=:1, gimp install hook in scripts/install_gimp.sh",
+            "status": "verified"
+        },
+        {
+            "key": "png_alpha_channel_modes_supported",
+            "metadata_value": "Verifier checks for alpha channel in modes: RGBA, LA, PA (verifier.py line 30)",
+            "verified_value": "These are valid PIL image modes that support transparency. RGBA (Red-Green-Blue-Alpha) is the standard RGB + transparency mode.",
+            "source": "PIL Image library documentation and code review; verified by testing RGBA mode preservation",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The eraser_transparency@1 task operates on REAL image data sourced from Unsplash's public photo gallery. Two URLs are used (with fallback): photo-1574158622682-e40e69881006 and photo-1551963831-b3b1ca40c98e. Both URLs are accessible and return valid JPEG images. If downloads fail, a synthetic test image is created via ImageMagick. The task uses GIMP to erase portions of the image and verifies transparency creation using PNG format (which correctly preserves alpha channels). The verifier checks: (1) >2% of pixels become transparent, (2) transparency increase ≥2 percentage points from original, (3) <80% of image is erased (content preservation), (4) result is valid PNG format. All verification thresholds and logic are correctly implemented.",
+    "pi_confidence": "high"
+}

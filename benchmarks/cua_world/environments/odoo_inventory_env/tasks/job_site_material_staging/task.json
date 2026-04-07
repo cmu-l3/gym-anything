@@ -1,0 +1,49 @@
+{
+  "id": "job_site_material_staging@1",
+  "version": "1.0",
+  "env_id": "odoo_inventory_env@0.1",
+  "description": "You are a Field Logistics Coordinator for a construction company staging materials for a new project site. Create an internal location named 'Job Site - Riverfront' and fulfill the following material request:\n\n- Heavy Duty Steel Beams: 50 units\n- Portland Cement (50lb bags): 200 units\n- Acoustic Ceiling Tiles (Box): 100 units\n- Commercial Copper Wiring (100m spool): 5 units\n- Hazardous Material Containment Drum: 2 units\n\nFulfill the request using existing stock from the main warehouse (WH/Stock) via internal transfer to the 'Job Site - Riverfront' location. For any quantities that cannot be fulfilled from stock, create a purchase order to 'BuildMart Wholesale' and ensure the materials are received directly at the 'Job Site - Riverfront' location. Follow the standard policy to check product internal notes; do not deploy or purchase items with a safety hold or those requiring manager approval. Ensure all transfers and receipts are validated so the job site contains the exact required quantities (excluding safety hold items).",
+  "difficulty": "very_hard",
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/job_site_material_staging/setup_task.sh",
+    "post_task": "/workspace/tasks/job_site_material_staging/export_result.sh"
+  },
+  "metadata": {
+    "result_file": "/tmp/job_site_staging_result.json",
+    "target_location": "Job Site - Riverfront",
+    "vendor": "BuildMart Wholesale",
+    "requests": {
+      "CONST-BEAM-01": 50,
+      "CONST-CEM-02": 200,
+      "CONST-TILE-03": 100,
+      "CONST-WIRE-04": 5,
+      "CONST-HAZ-05": 0
+    },
+    "expected_po_deltas": {
+      "CONST-BEAM-01": 30,
+      "CONST-CEM-02": 120,
+      "CONST-TILE-03": 100,
+      "CONST-WIRE-04": 0,
+      "CONST-HAZ-05": 0
+    },
+    "expected_wh_remains": {
+      "CONST-BEAM-01": 0,
+      "CONST-CEM-02": 0,
+      "CONST-TILE-03": 0,
+      "CONST-WIRE-04": 5,
+      "CONST-HAZ-05": 5
+    },
+    "pass_threshold": 80
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_job_site_material_staging"
+    }
+  }
+}

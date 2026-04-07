@@ -1,0 +1,59 @@
+{
+    "task_id": "evaluate_dcac_ratio_impact@1",
+    "dataset": "SAM NSRDB TMY",
+    "case_id": "phoenix_az_33.450495_-111.983688_psmv3_60_tmy",
+    "data_is_synthetic": false,
+    "pi_items": [
+        {
+            "key": "expected_output_file",
+            "metadata_value": "/home/ga/Documents/SAM_Projects/dcac_ratio_comparison.json",
+            "verified_value": "/home/ga/Documents/SAM_Projects/dcac_ratio_comparison.json",
+            "source": "task.json and export_result.sh explicitly require this path.",
+            "status": "verified"
+        },
+        {
+            "key": "min_energy_kwh",
+            "metadata_value": 150000000,
+            "verified_value": 150000000,
+            "source": "Simulation yields ~207,135,461 kWh, which is within the 150M-300M range.",
+            "status": "verified"
+        },
+        {
+            "key": "max_energy_kwh",
+            "metadata_value": 300000000,
+            "verified_value": 300000000,
+            "source": "Simulation yields ~207,135,461 kWh, which is within the 150M-300M range.",
+            "status": "verified"
+        },
+        {
+            "key": "min_cf_percent",
+            "metadata_value": 17.0,
+            "verified_value": 17.0,
+            "source": "Simulation yields a CF of ~23.6%, which is within the 17.0-35.0 range.",
+            "status": "verified"
+        },
+        {
+            "key": "max_cf_percent",
+            "metadata_value": 35.0,
+            "verified_value": 35.0,
+            "source": "Simulation yields a CF of ~23.6%, which is within the 17.0-35.0 range.",
+            "status": "verified"
+        },
+        {
+            "key": "min_gain_percent",
+            "metadata_value": 0.1,
+            "verified_value": -0.33,
+            "source": "Python PySAM simulation using task parameters yields -0.33%. Fixing DC capacity at 100MW and increasing DC/AC ratio from 1.2 to 1.4 reduces AC capacity, increasing clipping and strictly decreasing total energy output.",
+            "status": "contradicted"
+        },
+        {
+            "key": "max_gain_percent",
+            "metadata_value": 15.0,
+            "verified_value": -0.33,
+            "source": "Python PySAM simulation using task parameters yields -0.33%. Fixing DC capacity at 100MW and increasing DC/AC ratio from 1.2 to 1.4 reduces AC capacity, increasing clipping and strictly decreasing total energy output.",
+            "status": "contradicted"
+        }
+    ],
+    "privileged_info_summary": "I completed a PI audit for system_advisor_model_env evaluate_dcac_ratio_impact task. The weather data used is real NREL NSRDB TMY data for Phoenix AZ. By running an independent PySAM PVWatts simulation following the task's exact instructions (100MW DC, 1-axis tracking, 96% inv_eff), I verified the annual energy (~207.1M kWh) and capacity factor (~23.6%) fall correctly within their bounds. However, I discovered a fundamental physical contradiction in the task's logic: increasing the DC/AC ratio from 1.2 to 1.4 while fixing the DC capacity results in a smaller inverter, more clipping, and less energy produced, yielding a negative gain of -0.33%. The metadata incorrectly expects a positive gain between 0.1% and 15.0%. Additionally, I discovered a critical defect: 'verifier.py' is entirely missing from the environment, making the task programmatically unscorable because the success specification points to a non-existent script.",
+    "pi_confidence": "high"
+}

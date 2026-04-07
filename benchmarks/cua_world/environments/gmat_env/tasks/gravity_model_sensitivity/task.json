@@ -1,0 +1,33 @@
+{
+  "id": "gravity_model_sensitivity@1",
+  "version": "1.0",
+  "env_id": "gmat_env@0.1",
+  "description": "You are a mission analyst at an Earth observation company. Operations needs to know how high-order the gravity model needs to be for acceptable prediction accuracy for a new LEO imaging satellite. Higher orders cost more compute time. Your task:\n\n1. Read the initial state document at ~/Documents/missions/gravity_study_initial_state.txt\n2. Create a GMAT script that propagates this satellite for exactly 7 days (ElapsedDays = 7) under 4 different Earth gravity truncation levels:\n   - J2-only (Degree=2, Order=0)\n   - 4x4 (Degree=4, Order=4)\n   - 12x12 (Degree=12, Order=12)\n   - 70x70 reference (Degree=70, Order=70)\n3. You MUST isolate gravity effects: Do NOT include atmospheric drag, SRP, or third-body point masses (Sun/Luna) in any force model.\n4. Propagate identical initial conditions for all 4 scenarios.\n5. Compute the final RSS position difference (in km) of each lower-fidelity model relative to the 70x70 reference model at the end of the 7 days.\n6. Write a sensitivity report to ~/GMAT_output/gravity_sensitivity_report.txt containing EXACTLY these lines:\n   J2_divergence_km: <value>\n   4x4_divergence_km: <value>\n   12x12_divergence_km: <value>\n   ordering: <state the ordering, e.g., J2 > 4x4 > 12x12>\n   recommended_min_order: <your recommendation>\n7. Save your GMAT script to ~/Documents/missions/gravity_study.script and run it.\n\nLogin: username=ga, password=password123",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 1800,
+    "max_steps": 120,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/gravity_model_sensitivity/setup_task.sh",
+    "post_task": "/workspace/tasks/gravity_model_sensitivity/export_result.sh"
+  },
+  "metadata": {
+    "script_path": "/home/ga/Documents/missions/gravity_study.script",
+    "report_path": "/home/ga/GMAT_output/gravity_sensitivity_report.txt",
+    "expected_orders": [2, 4, 12, 70],
+    "divergence_j2_min_km": 1.0,
+    "divergence_j2_max_km": 250.0,
+    "divergence_4x4_min_km": 0.05,
+    "divergence_4x4_max_km": 50.0,
+    "divergence_12x12_min_km": 0.001,
+    "divergence_12x12_max_km": 5.0
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_gravity_model_sensitivity"
+    }
+  }
+}

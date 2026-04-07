@@ -1,0 +1,39 @@
+{
+  "id": "optimize_gcr_land_cost_tradeoff@1",
+  "version": "1.0",
+  "env_id": "system_advisor_model_env@0.1",
+  "difficulty": "hard",
+  "description": "A Solar Energy Systems Engineer is sizing a 50 MW utility-scale tracking PV system near Phoenix, AZ, where land costs $60,000/acre. Use PySAM to determine which Ground Coverage Ratio (GCR) among 0.3, 0.4, 0.5, 0.6, and 0.7 minimizes the Levelized Cost of Energy (LCOE) by balancing inter-row shading losses against land costs.\n\nSystem Configuration:\n- Weather File: /home/ga/SAM_Weather_Data/phoenix_az_tmy.csv\n- System Capacity: 50,000 kW DC\n- Module Type: 0 (Standard)\n- Array Type: 2 (1-Axis Tracking)\n- DC-to-AC Ratio: 1.2\n- Inverter Efficiency: 96.0%\n- System Losses: 14.08%\n- Tilt: 0\n- Azimuth: 180\n\nLCOE Calculation Parameters:\n- Module Area: 333,333.33 m²\n- Land Area: Module Area / GCR (1 acre = 4046.86 m²)\n- Total Capital Cost: $50,000,000 (Base) + Land Cost ($60,000/acre)\n- Annualized Cost: (Total Capital Cost * 0.08) + $750,000 (O&M)\n- LCOE (cents/kWh): (Annualized Cost / annual_energy) * 100\n\nExport the results to /home/ga/Documents/SAM_Projects/gcr_optimization.json. The JSON must include the project location (\"Phoenix, AZ\"), system capacity, the optimal GCR, and a results array containing the GCR, annual energy (kWh), land area (acres), and LCOE (cents/kWh) for each of the five tested GCR values.",
+  "init": {
+    "timeout_sec": 420,
+    "max_steps": 50,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/optimize_gcr_land_cost_tradeoff/setup_task.sh",
+    "post_task": "/workspace/tasks/optimize_gcr_land_cost_tradeoff/export_result.sh"
+  },
+  "metadata": {
+    "expected_filename": "gcr_optimization.json",
+    "expected_output_path": "/home/ga/Documents/SAM_Projects/gcr_optimization.json",
+    "required_gcrs": [
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7
+    ],
+    "module_area_m2": 333333.33,
+    "acres_per_m2": 4046.86,
+    "land_cost_per_acre": 60000,
+    "base_cap_cost": 50000000,
+    "annual_om_cost": 750000,
+    "fcr": 0.08
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_optimize_gcr"
+    }
+  }
+}

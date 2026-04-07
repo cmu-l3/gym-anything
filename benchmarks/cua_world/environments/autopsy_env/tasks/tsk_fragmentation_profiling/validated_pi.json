@@ -1,0 +1,52 @@
+{
+    "task_id": "tsk_fragmentation_profiling@1",
+    "dataset": "DFTT #8 JPEG Search",
+    "case_id": "8-jpeg-search.dd",
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "disk_image",
+            "metadata_value": "/home/ga/evidence/jpeg_search.dd",
+            "verified_value": "/home/ga/evidence/jpeg_search.dd",
+            "source": "task_utils.sh and script analysis",
+            "status": "verified"
+        },
+        {
+            "key": "csv_file",
+            "metadata_value": "/home/ga/Reports/fragment_counts.csv",
+            "verified_value": "/home/ga/Reports/fragment_counts.csv",
+            "source": "verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "txt_file",
+            "metadata_value": "/home/ga/Reports/most_fragmented_analysis.txt",
+            "verified_value": "/home/ga/Reports/most_fragmented_analysis.txt",
+            "source": "verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "bin_file",
+            "metadata_value": "/home/ga/Reports/fragment_start.bin",
+            "verified_value": "/home/ga/Reports/fragment_start.bin",
+            "source": "verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "result_file",
+            "metadata_value": "/tmp/fragmentation_result.json",
+            "verified_value": "/tmp/fragmentation_result.json",
+            "source": "verifier.py",
+            "status": "verified"
+        },
+        {
+            "key": "gt_file",
+            "metadata_value": "/tmp/tsk_fragmentation_gt.json",
+            "verified_value": "/tmp/tsk_fragmentation_gt.json",
+            "source": "verifier.py and setup_task.sh",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "The task operates on the DFTT #8 JPEG Search test disk image created by Brian Carrier, located at `/home/ga/evidence/jpeg_search.dd`. I verified via `fsstat` that the image is actually an NTFS volume, explicitly contradicting the task description's claim that it is a 'FAT32 camera SD card image'. This contradiction triggers a critical defect in `setup_task.sh`: the ground-truth generation script uses `istat` and strictly parses for FAT/EXT keywords ('Sectors:', 'Blocks:', 'Cluster Runs:'), ignoring the NTFS-specific '$DATA' attribute block listings. Consequently, the ground-truth script perpetually fails to map any allocated blocks, mathematically assigning a `run_count` of exactly 0 to all 15 files, setting the target second run sector to `-1`, and the expected hash to `\"N/A\"`. Because the `verifier.py` logic explicitly requires `gt_sector != -1` and `gt_hash != \"N/A\"` to award the final 30 points for Split Point ID and Raw Sector Extraction, it is mathematically impossible for any agent to achieve a score higher than 70/100. Moreover, to even pass at the 70-point threshold, an agent would have to mimic the bug by incorrectly concluding that all files have zero fragments, despite `inode` 44 empirically having 6 runs.",
+    "pi_confidence": "high"
+}

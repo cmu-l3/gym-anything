@@ -128,6 +128,326 @@ else
 fi
 
 # ---------------------------------------------------------------
+# 4b. Enable the Holidays module
+# ---------------------------------------------------------------
+# SuiteCRM 7.x has a Holidays module but it may not be visible in the
+# navigation by default. Enable it by adding it to the displayed_modules
+# list in config_override.php and ensuring the holidays table exists.
+echo "--- Enabling Holidays module ---"
+docker exec suitecrm-app bash -c '
+    # Ensure the holidays DB table exists (it is part of SuiteCRM core but
+    # some stripped-down releases omit it).
+    cd /var/www/html
+    php -r "
+    define(\"sugarEntry\", true);
+    require_once \"include/entryPoint.php\";
+
+    // Create the holidays table if it does not exist
+    \$db = DBManagerFactory::getInstance();
+    \$result = \$db->query(\"SHOW TABLES LIKE '\''holidays'\''\");
+    if (\$db->getRowCount(\$result) == 0) {
+        \$query = \"CREATE TABLE holidays (
+            id char(36) NOT NULL,
+            name varchar(255) DEFAULT NULL,
+            date_entered datetime DEFAULT NULL,
+            date_modified datetime DEFAULT NULL,
+            modified_user_id char(36) DEFAULT NULL,
+            created_by char(36) DEFAULT NULL,
+            description text,
+            deleted tinyint(1) DEFAULT 0,
+            holiday_date date DEFAULT NULL,
+            person_id char(36) DEFAULT NULL,
+            related_module varchar(50) DEFAULT NULL,
+            PRIMARY KEY (id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4\";
+        \$db->query(\$query);
+        echo \"Created holidays table\n\";
+    } else {
+        echo \"Holidays table already exists\n\";
+    }
+
+    // Ensure Holidays module is in the displayed modules
+    // Check modules_info for Holidays
+    if (file_exists(\"modules/Holidays\")) {
+        echo \"Holidays module directory exists\n\";
+    } else {
+        echo \"Holidays module directory does not exist, checking moduleList\n\";
+    }
+    "
+' 2>&1 || true
+
+# Ensure the Holidays module directory structure exists. SuiteCRM 7.x ships
+# Holidays as a schedulers/admin module. If the directory is missing, create
+# the minimal module scaffolding so ?module=Holidays&action=index works.
+docker exec suitecrm-app bash -c '
+    if [ ! -d /var/www/html/modules/Holidays ]; then
+        echo "Creating Holidays module directory..."
+        mkdir -p /var/www/html/modules/Holidays
+        # Create minimal module metadata so SuiteCRM recognises it
+        cat > /var/www/html/modules/Holidays/vardefs.php << '\''VARDEFS'\''
+<?php
+$dictionary["Holiday"] = array(
+    "table" => "holidays",
+    "fields" => array(
+        "id" => array("name" => "id", "type" => "id", "required" => true),
+        "name" => array("name" => "name", "vname" => "LBL_NAME", "type" => "name", "dbType" => "varchar", "len" => 255),
+        "date_entered" => array("name" => "date_entered", "type" => "datetime"),
+        "date_modified" => array("name" => "date_modified", "type" => "datetime"),
+        "modified_user_id" => array("name" => "modified_user_id", "type" => "id"),
+        "created_by" => array("name" => "created_by", "type" => "id"),
+        "description" => array("name" => "description", "type" => "text"),
+        "deleted" => array("name" => "deleted", "type" => "bool", "default" => 0),
+        "holiday_date" => array("name" => "holiday_date", "vname" => "LBL_HOLIDAY_DATE", "type" => "date"),
+        "person_id" => array("name" => "person_id", "type" => "id"),
+        "related_module" => array("name" => "related_module", "type" => "varchar", "len" => 50),
+    ),
+    "indices" => array(
+        array("name" => "holidays_pk", "type" => "primary", "fields" => array("id")),
+    ),
+);
+VARDEFS
+
+        # Module menu item
+        cat > /var/www/html/modules/Holidays/Menu.php << '\''MENU'\''
+<?php
+if (!defined("sugarEntry") || !sugarEntry) die("Not A Valid Entry Point");
+global $mod_strings, $app_strings;
+$module_menu = array();
+$module_menu[] = array("index.php?module=Holidays&action=EditView", $app_strings["LNK_NEW_RECORD"] ?? "Create Holiday", "CreateHolidays", "Holidays");
+$module_menu[] = array("index.php?module=Holidays&action=index", $app_strings["LNK_LIST"] ?? "View Holidays", "Holidays", "Holidays");
+MENU
+
+        # Language file
+        mkdir -p /var/www/html/modules/Holidays/language
+        cat > /var/www/html/modules/Holidays/language/en_us.lang.php << '\''LANG'\''
+<?php
+$mod_strings = array(
+    "LBL_MODULE_NAME" => "Holidays",
+    "LBL_MODULE_TITLE" => "Holidays",
+    "LBL_HOLIDAY_DATE" => "Holiday Date",
+    "LBL_DESCRIPTION" => "Description",
+    "LBL_NAME" => "Holiday Name",
+    "LBL_LIST_FORM_TITLE" => "Holiday List",
+    "LBL_PERSON" => "User",
+    "LNK_NEW_RECORD" => "Create Holiday",
+    "LNK_LIST" => "View Holidays",
+);
+LANG
+
+        chown -R www-data:www-data /var/www/html/modules/Holidays
+        echo "Holidays module scaffolding created"
+    else
+        echo "Holidays module directory already exists"
+    fi
+' 2>&1 || true
+
+# Register Holidays module in SuiteCRM module registry so it is accessible
+docker exec suitecrm-app bash -c '
+    cd /var/www/html
+
+    # Create a minimal Bean class if missing
+    if [ ! -f modules/Holidays/Holiday.php ]; then
+        cat > modules/Holidays/Holiday.php << '\''BEANPHP'\''
+<?php
+if (!defined("sugarEntry")) define("sugarEntry", true);
+require_once "data/SugarBean.php";
+class Holiday extends SugarBean {
+    var $module_dir = "Holidays";
+    var $object_name = "Holiday";
+    var $table_name = "holidays";
+    var $new_schema = true;
+    var $importable = true;
+    function __construct() { parent::__construct(); }
+    function bean_implements($interface) { return false; }
+}
+BEANPHP
+        chown www-data:www-data modules/Holidays/Holiday.php
+        echo "Created Holiday bean class"
+    fi
+
+    # Write extension source file
+    mkdir -p custom/Extension/application/Ext/Include
+    cat > custom/Extension/application/Ext/Include/Holidays.php << '\''EXTPHP'\''
+<?php
+$beanList["Holidays"] = "Holiday";
+$beanFiles["Holiday"] = "modules/Holidays/Holiday.php";
+$moduleList[] = "Holidays";
+EXTPHP
+
+    # CRITICAL: Also write the compiled extension file directly
+    # (rebuildExtensions() may fail silently in non-interactive context)
+    mkdir -p custom/application/Ext/Include
+    COMPILED="custom/application/Ext/Include/modules.ext.php"
+    if [ ! -f "$COMPILED" ]; then
+        echo "<?php" > "$COMPILED"
+    fi
+    if ! grep -q "Holidays" "$COMPILED" 2>/dev/null; then
+        cat >> "$COMPILED" << '\''CEXTPHP'\''
+
+// Holidays module registration
+$beanList["Holidays"] = "Holiday";
+$beanFiles["Holiday"] = "modules/Holidays/Holiday.php";
+$moduleList[] = "Holidays";
+CEXTPHP
+        echo "Added Holidays to compiled extension include"
+    fi
+
+    # Belt-and-suspenders: also append to core include/modules.php
+    if ! grep -q "Holidays" include/modules.php 2>/dev/null; then
+        cat >> include/modules.php << '\''COREPHP'\''
+
+// Holidays module
+$beanList["Holidays"] = "Holiday";
+$beanFiles["Holiday"] = "modules/Holidays/Holiday.php";
+$moduleList[] = "Holidays";
+COREPHP
+        echo "Added Holidays to core modules.php"
+    fi
+
+    # Set ownership
+    chown -R www-data:www-data custom/Extension/application/Ext/Include/ \
+        custom/application/Ext/Include/ modules/Holidays/ include/modules.php 2>/dev/null || true
+
+    # Targeted cache clear for Holidays module (preserves language packs etc.)
+    rm -rf cache/modules/Holidays/ 2>/dev/null || true
+    rm -f cache/class_map.php 2>/dev/null || true
+    rm -f cache/modules/unified_search_modules.php 2>/dev/null || true
+    echo "Holidays caches cleared"
+
+    # Try running repair (may fail, thats OK - direct edits above are the real fix)
+    php -r "
+    define(\"sugarEntry\", true);
+    \$_SESSION = array();
+    require_once \"include/entryPoint.php\";
+    require_once \"modules/Administration/QuickRepairAndRebuild.php\";
+    \$repair = new RepairAndClear();
+    \$repair->rebuildExtensions();
+    echo \"Extensions rebuilt\\n\";
+    " 2>&1 || echo "rebuildExtensions failed (OK - direct file edits used as fallback)"
+' 2>&1 || true
+
+# Ensure holidays DB table exists via SQL fallback (in case PHP approach failed)
+docker exec suitecrm-db mysql -u suitecrm -psuitecrm_pass suitecrm -e "
+    CREATE TABLE IF NOT EXISTS holidays (
+        id char(36) NOT NULL,
+        name varchar(255) DEFAULT NULL,
+        date_entered datetime DEFAULT NULL,
+        date_modified datetime DEFAULT NULL,
+        modified_user_id char(36) DEFAULT NULL,
+        created_by char(36) DEFAULT NULL,
+        description text,
+        deleted tinyint(1) DEFAULT 0,
+        holiday_date date DEFAULT NULL,
+        person_id char(36) DEFAULT NULL,
+        related_module varchar(50) DEFAULT NULL,
+        PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+" 2>/dev/null || true
+echo "Holidays module setup complete"
+
+# Grant admin full access to the Holidays module via ACL entries (SQL approach)
+echo "--- Creating ACL entries for Holidays module ---"
+ACL_EXISTS=$(docker exec suitecrm-db mysql -u suitecrm -psuitecrm_pass suitecrm -N -e "SELECT COUNT(*) FROM acl_actions WHERE category='Holidays'" 2>/dev/null || echo "0")
+if [ "${ACL_EXISTS:-0}" = "0" ] || [ "${ACL_EXISTS:-0}" -lt 2 ] 2>/dev/null; then
+    docker exec suitecrm-db mysql -u suitecrm -psuitecrm_pass suitecrm -e "
+        DELETE FROM acl_actions WHERE category='Holidays';
+        INSERT INTO acl_actions (id, date_entered, date_modified, modified_user_id, name, category, acltype, aclaccess, deleted)
+        VALUES
+        (UUID(), NOW(), NOW(), '1', 'access', 'Holidays', 'module', 99, 0),
+        (UUID(), NOW(), NOW(), '1', 'view', 'Holidays', 'module', 99, 0),
+        (UUID(), NOW(), NOW(), '1', 'list', 'Holidays', 'module', 99, 0),
+        (UUID(), NOW(), NOW(), '1', 'edit', 'Holidays', 'module', 99, 0),
+        (UUID(), NOW(), NOW(), '1', 'delete', 'Holidays', 'module', 99, 0),
+        (UUID(), NOW(), NOW(), '1', 'import', 'Holidays', 'module', 99, 0),
+        (UUID(), NOW(), NOW(), '1', 'export', 'Holidays', 'module', 99, 0),
+        (UUID(), NOW(), NOW(), '1', 'massupdate', 'Holidays', 'module', 99, 0);
+    " 2>/dev/null && echo "ACL entries created for Holidays" || echo "WARNING: ACL insert failed"
+else
+    echo "ACL entries already exist for Holidays (count: $ACL_EXISTS)"
+fi
+
+# Add Holidays module to displayed tabs via config_override.php
+docker exec suitecrm-app bash -c '
+    cd /var/www/html
+    if ! grep -q "Holidays" config_override.php 2>/dev/null; then
+        # Create a small PHP script to safely add Holidays to display_modules
+        cat > /tmp/add_holidays_tab.php << "ADDTAB"
+<?php
+define("sugarEntry", true);
+require_once "include/entryPoint.php";
+// Add Holidays to the tab controller display list
+require_once "modules/MySettings/TabController.php";
+$tc = new TabController();
+$tabs = $tc->get_system_tabs();
+$tabs["Holidays"] = "Holidays";
+$tc->set_system_tabs($tabs);
+echo "Holidays tab added to display\n";
+ADDTAB
+        php /tmp/add_holidays_tab.php 2>&1 || echo "Tab add via TabController failed, using fallback"
+        rm -f /tmp/add_holidays_tab.php
+    fi
+    chown www-data:www-data config_override.php 2>/dev/null || true
+' 2>&1 || true
+
+# Ensure admin user definitely has is_admin=1
+docker exec suitecrm-db mysql -u suitecrm -psuitecrm_pass suitecrm -e \
+    "UPDATE users SET is_admin=1 WHERE user_name='admin'" 2>/dev/null || true
+
+# Create minimal list view metadata so the Holidays list page works
+docker exec suitecrm-app bash -c '
+    mkdir -p /var/www/html/modules/Holidays/metadata
+    if [ ! -f /var/www/html/modules/Holidays/metadata/listviewdefs.php ]; then
+        cat > /var/www/html/modules/Holidays/metadata/listviewdefs.php << '\''LVDEFS'\''
+<?php
+$listViewDefs["Holidays"] = array(
+    "NAME" => array("width" => "30%", "label" => "LBL_NAME", "link" => true, "default" => true),
+    "HOLIDAY_DATE" => array("width" => "20%", "label" => "LBL_HOLIDAY_DATE", "default" => true),
+    "DESCRIPTION" => array("width" => "30%", "label" => "LBL_DESCRIPTION", "default" => true),
+    "DATE_ENTERED" => array("width" => "20%", "label" => "LBL_DATE_ENTERED", "default" => true),
+);
+LVDEFS
+        chown www-data:www-data /var/www/html/modules/Holidays/metadata/listviewdefs.php
+    fi
+    if [ ! -f /var/www/html/modules/Holidays/metadata/searchdefs.php ]; then
+        cat > /var/www/html/modules/Holidays/metadata/searchdefs.php << '\''SDEFS'\''
+<?php
+$searchdefs["Holidays"] = array(
+    "layout" => array(
+        "basic_search" => array("name" => array("name" => "name", "default" => true)),
+        "advanced_search" => array("name" => array("name" => "name", "default" => true)),
+    ),
+);
+SDEFS
+        chown www-data:www-data /var/www/html/modules/Holidays/metadata/searchdefs.php
+    fi
+    if [ ! -f /var/www/html/modules/Holidays/metadata/editviewdefs.php ]; then
+        cat > /var/www/html/modules/Holidays/metadata/editviewdefs.php << '\''EVDEFS'\''
+<?php
+$viewdefs["Holidays"]["EditView"] = array(
+    "templateMeta" => array("maxColumns" => "2", "widths" => array(array("label" => "10", "field" => "30"))),
+    "panels" => array(
+        "default" => array(
+            array(array("name" => "name", "label" => "LBL_NAME")),
+            array(array("name" => "holiday_date", "label" => "LBL_HOLIDAY_DATE")),
+            array(array("name" => "description", "label" => "LBL_DESCRIPTION")),
+        ),
+    ),
+);
+EVDEFS
+        chown www-data:www-data /var/www/html/modules/Holidays/metadata/editviewdefs.php
+    fi
+
+    # Targeted cache clear for Holidays module only (do NOT nuke all caches)
+    rm -rf /var/www/html/cache/modules/Holidays/ 2>/dev/null || true
+    rm -f /var/www/html/cache/class_map.php 2>/dev/null || true
+    rm -f /var/www/html/cache/modules/unified_search_modules.php 2>/dev/null || true
+' 2>&1 || true
+
+# Restart Apache so PHP picks up new module files
+docker exec suitecrm-app apache2ctl restart 2>/dev/null || true
+sleep 3
+
+# ---------------------------------------------------------------
 # 5. Seed realistic CRM data
 # ---------------------------------------------------------------
 echo "--- Seeding CRM data ---"

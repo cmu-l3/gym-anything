@@ -1,0 +1,53 @@
+{
+  "task_id": "sidecar_xml_manifest_generation@1",
+  "task_completion": [
+    {
+      "id": "channel_source_configured",
+      "description": "Verify the channel is created with the correct name and source settings.",
+      "points": 15,
+      "visual_evidence": "Look for the NextGen Connect (Mirth Connect) Administrator UI showing a channel named 'Document_Archive_Feed'. In the Source tab, the connector type should be 'TCP Listener' and the Local Port should be set to '6661'."
+    },
+    {
+      "id": "hl7_file_destination",
+      "description": "Verify the destination is configured to archive the raw HL7 message.",
+      "points": 20,
+      "visual_evidence": "Look for a Destination tab configured as a 'File Writer'. The Directory should be '/home/ga/archive_drop/' (or '/home/ga/archive_drop') and the File Name should be 'adt-${message.messageId}.hl7' (or equivalent variable syntax). The template should contain the raw encoded message."
+    },
+    {
+      "id": "xml_file_destination",
+      "description": "Verify the destination is configured to generate the XML manifest file.",
+      "points": 20,
+      "visual_evidence": "Look for a Destination tab configured as a 'File Writer' (this could be a second destination or part of a script). The Directory should be '/home/ga/archive_drop/' and the File Name should be 'adt-${message.messageId}.xml' (or equivalent variable syntax)."
+    },
+    {
+      "id": "xml_template_structure",
+      "description": "Verify the XML manifest follows the exact required structure.",
+      "points": 25,
+      "visual_evidence": "Look at the Destination Template or a JavaScript builder script. It must contain the root `<IndexEntry>` tag with exact child tags: `<SourceSystem>`, `<PatientID>`, `<PatientName>`, `<EventDate>`, and `<OriginalFile>`. `<SourceSystem>` should be hardcoded to 'NextGenConnect'."
+    },
+    {
+      "id": "data_extraction_and_conversion",
+      "description": "Verify the logic for extracting HL7 fields and converting the date format.",
+      "points": 20,
+      "visual_evidence": "Look at the Transformers or script editor. There should be logic extracting PID.3.1 (Patient ID), PID.5.1 and PID.5.2 (Patient Name), and EVN.2 (Event Date). There must be explicit JavaScript or date formatting logic to convert the EVN.2 timestamp into the 'YYYY-MM-DDTHH:MM:SS' format."
+    }
+  ],
+  "integrity": [
+    {
+      "id": "genuine_mirth_usage",
+      "description": "Verify the agent actually used NextGen Connect (Mirth Connect) to configure the channel.",
+      "visual_evidence": "Screenshots should show interaction with the NextGen Connect Administrator Java GUI or valid REST API calls to localhost:8443/api, rather than just writing a standalone Python/Bash script to fake the behavior."
+    },
+    {
+      "id": "no_hardcoded_test_data",
+      "description": "Verify the agent used variables/mappings rather than hardcoding the expected test output.",
+      "visual_evidence": "The XML template or transformer scripts should use message variables (e.g., msg['PID']['PID.3']['PID.3.1'].toString()) instead of hardcoding '12345', 'Doe John', or '2023-01-01T12:00:00'."
+    },
+    {
+      "id": "no_terminal_faking",
+      "description": "Verify the agent didn't manually create the output files in the terminal.",
+      "visual_evidence": "The agent should not be using 'echo' or 'cat' commands in the terminal to directly write 'adt-VERIFY001.xml' or 'adt-VERIFY001.hl7' to the archive_drop directory to bypass the channel logic."
+    }
+  ],
+  "privileged_info_for_vlm": "The channel must be named 'Document_Archive_Feed' and listen on TCP port 6661. Output directory is '/home/ga/archive_drop'. The test message ID is 'VERIFY001'. The expected extracted Patient ID is '12345'. The expected extracted Patient Name is 'Doe John'. The expected converted Event Date is '2023-01-01T12:00:00'. The XML manifest must strictly follow the <IndexEntry> structure provided in the prompt."
+}

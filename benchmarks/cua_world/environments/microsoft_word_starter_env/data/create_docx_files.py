@@ -10,8 +10,11 @@ import os
 import re
 import zipfile
 
+import struct
+import zlib
+
 from docx import Document
-from docx.shared import Pt
+from docx.shared import Inches, Pt
 
 DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -1812,6 +1815,462 @@ def create_fms_requirements_raw():
     print(f"Created: {path}")
 
 
+def _make_placeholder_png(w=480, h=50):
+    """Create a solid light-gray PNG in memory (no PIL needed)."""
+    raw = b""
+    for _ in range(h):
+        raw += b"\x00" + b"\xcc\xcc\xcc" * w  # filter-byte + gray RGB pixels
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)
+
+    def chunk(t, d):
+        c = t + d
+        return struct.pack(">I", len(d)) + c + struct.pack(">I", zlib.crc32(c) & 0xFFFFFFFF)
+
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", ihdr)
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+
+
+def create_environmental_compliance_report_raw():
+    """Annual Environmental Compliance Report - unformatted, with tables and figures.
+
+    Content modeled on EPA NPDES/CAA compliance reporting requirements
+    and Washington State Department of Ecology submission standards.
+    All data is fictional but uses realistic values, units, and regulatory
+    references drawn from public-domain EPA guidance documents.
+
+    Agent task: apply heading styles, insert section breaks with per-section
+    page numbering (Roman/Arabic), TOC, captions on tables/figures,
+    cross-references replacing [see Table X]/[see Figure X] placeholders,
+    and a Table of Figures. Save as environmental_compliance_final.docx.
+    """
+    doc = Document()
+    style = doc.styles["Normal"]
+    style.font.name = "Calibri"
+    style.font.size = Pt(11)
+
+    placeholder_png = _make_placeholder_png()
+
+    # ---- COVER PAGE ----
+    cover = [
+        "",
+        "",
+        "PACIFIC NORTHWEST ENVIRONMENTAL SERVICES, INC.",
+        "",
+        "2024 ANNUAL ENVIRONMENTAL COMPLIANCE REPORT",
+        "",
+        "Cascade Industrial Park Facility",
+        "7200 Marine View Drive",
+        "Tacoma, Washington 98422",
+        "",
+        "NPDES Permit No. WA-0024571",
+        "Air Quality Permit No. AQ-PSR-2019-0382",
+        "RCRA Generator ID WAD 091 837 216",
+        "",
+        "Prepared for:",
+        "Washington State Department of Ecology",
+        "Southwest Regional Office",
+        "",
+        "Prepared by:",
+        "Pacific Northwest Environmental Services, Inc.",
+        "Environmental Compliance Division",
+        "",
+        "December 2024",
+        "",
+        "",
+    ]
+    for line in cover:
+        doc.add_paragraph(line)
+
+    # ---- EXECUTIVE SUMMARY ----
+    exec_summary = [
+        "Executive Summary",
+        "",
+        "This Annual Environmental Compliance Report summarizes the environmental "
+        "monitoring activities, regulatory compliance status, and corrective actions "
+        "undertaken at the Cascade Industrial Park facility during calendar year 2024. "
+        "The facility, operated by Pacific Northwest Environmental Services, Inc. "
+        "(PNWES), occupies 150 acres in Tacoma, Washington and employs approximately "
+        "340 personnel across manufacturing, warehousing, and administrative operations.",
+        "",
+        "Overall compliance performance for the reporting period was 98.7 percent, "
+        "calculated as the ratio of compliant monitoring events to total required "
+        "monitoring events across all media (air, water, and waste). The facility "
+        "received three minor Notices of Violation from the Department of Ecology "
+        "during 2024, all of which were addressed through corrective actions completed "
+        "within the required timeframes.",
+        "",
+        "Key accomplishments during 2024 include: a 12 percent reduction in total "
+        "hazardous waste generation compared to 2023 baseline; successful completion "
+        "of the Phase II groundwater remediation milestone for benzene contamination "
+        "in the former solvent storage area; and installation of a regenerative thermal "
+        "oxidizer (RTO) on Paint Line 3 that reduced volatile organic compound (VOC) "
+        "emissions by 87 percent.",
+        "",
+        "All ambient air monitoring stations recorded pollutant concentrations below "
+        "National Ambient Air Quality Standards (NAAQS) throughout the reporting period. "
+        "Effluent discharge quality at all three permitted outfalls consistently met "
+        "NPDES permit limits with the exception of a single pH exceedance at Outfall 002 "
+        "in March 2024, which was attributed to an equipment malfunction in the "
+        "neutralization system and corrected within 48 hours.",
+        "",
+    ]
+    for line in exec_summary:
+        doc.add_paragraph(line)
+
+    # ---- SECTION 1: INTRODUCTION ----
+    sec1 = [
+        "1. Introduction",
+        "",
+        "1.1 Purpose and Scope",
+        "",
+        "This report has been prepared in accordance with the requirements of NPDES "
+        "Permit No. WA-0024571 (Section S9.A), Air Quality Permit No. AQ-PSR-2019-0382 "
+        "(Condition 12.3), and Washington Administrative Code (WAC) Chapter 173-303 "
+        "Dangerous Waste Regulations. The report provides a comprehensive summary of "
+        "environmental monitoring data, compliance status, and corrective actions for "
+        "the twelve-month period from January 1 through December 31, 2024.",
+        "",
+        "1.2 Regulatory Framework",
+        "",
+        "Facility operations are regulated under the following federal and state "
+        "environmental statutes and implementing regulations:",
+        "",
+        "The Clean Water Act (CWA), as implemented through the Washington Water "
+        "Pollution Control Act (RCW 90.48) and the NPDES permit program administered "
+        "by the Department of Ecology. The facility holds Individual NPDES Permit "
+        "WA-0024571, which authorizes discharge of treated process wastewater and "
+        "stormwater from three permitted outfalls to Commencement Bay.",
+        "",
+        "The Clean Air Act (CAA), as implemented through the Washington Clean Air Act "
+        "(RCW 70A.15) and Puget Sound Clean Air Agency (PSCAA) Regulation I. The "
+        "facility operates under Air Quality Permit AQ-PSR-2019-0382, which establishes "
+        "emission limits for particulate matter (PM2.5 and PM10), nitrogen oxides (NOx), "
+        "sulfur dioxide (SO2), and volatile organic compounds (VOCs).",
+        "",
+        "The Resource Conservation and Recovery Act (RCRA), as implemented through "
+        "WAC 173-303 Dangerous Waste Regulations. The facility is classified as a "
+        "Large Quantity Generator (LQG) under EPA Generator ID WAD 091 837 216.",
+        "",
+        "The Comprehensive Environmental Response, Compensation, and Liability Act "
+        "(CERCLA) and the Washington Model Toxics Control Act (MTCA, RCW 70A.305). "
+        "A portion of the facility is subject to ongoing remediation under MTCA "
+        "Agreed Order DE 14-TCPSR-4271 for historical solvent contamination.",
+        "",
+        "1.3 Facility Description",
+        "",
+        "The Cascade Industrial Park facility is located at 7200 Marine View Drive in "
+        "Tacoma, Pierce County, Washington (Latitude 47.2629 N, Longitude 122.4443 W). "
+        "The 150-acre campus includes three manufacturing buildings (Buildings A, B, and "
+        "C), two warehouses, an administrative office complex, a wastewater treatment "
+        "plant, a hazardous waste storage facility (HWSF), and approximately 35 acres "
+        "of stormwater management infrastructure including two retention ponds and "
+        "an engineered bioswale treatment system.",
+        "",
+        "Primary manufacturing operations include metal fabrication (Building A), "
+        "surface finishing and painting (Building B), and electronic assembly "
+        "(Building C). The facility operates two shifts per day, five days per week, "
+        "with occasional weekend operations during peak production periods.",
+        "",
+    ]
+    for line in sec1:
+        doc.add_paragraph(line)
+
+    # ---- SECTION 2: AIR QUALITY ----
+    doc.add_paragraph("2. Air Quality Monitoring")
+    doc.add_paragraph("")
+    doc.add_paragraph("2.1 Emission Sources and Controls")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "The facility operates 14 permitted emission units, including three natural "
+        "gas-fired boilers (EU-01 through EU-03, rated at 25 MMBtu/hr each), two paint "
+        "spray booths with dry filter particulate controls (EU-04, EU-05), one "
+        "regenerative thermal oxidizer controlling VOC emissions from Paint Line 3 "
+        "(EU-06), four parts washers with vapor recovery systems (EU-07 through EU-10), "
+        "and four fugitive dust sources associated with material handling operations "
+        "(EU-11 through EU-14). The RTO installed on Paint Line 3 in Q2 2024 achieves "
+        "a destruction efficiency of 98.2 percent for VOCs, as verified by EPA Method "
+        "25A performance testing conducted in June 2024."
+    )
+    doc.add_paragraph("")
+    doc.add_paragraph("2.2 Ambient Monitoring Results")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "Three ambient air monitoring stations (AMS-North, AMS-South, and AMS-East) "
+        "operated continuously during the reporting period. Monthly average "
+        "concentrations for PM2.5 and NOx are summarized in the following table. "
+        "As shown in [see Table 1], all monthly averages remained below applicable "
+        "NAAQS limits (PM2.5 annual standard: 12.0 ug/m3; NOx annual standard not "
+        "to exceed 53 ppb)."
+    )
+    doc.add_paragraph("")
+
+    # TABLE 1: Air Quality Monitoring Data
+    tbl1 = doc.add_table(rows=13, cols=3, style="Table Grid")
+    tbl1.cell(0, 0).text = "Month"
+    tbl1.cell(0, 1).text = "PM2.5 (ug/m3)"
+    tbl1.cell(0, 2).text = "NOx (ppb)"
+    monthly_data = [
+        ("January", "8.4", "31.2"),
+        ("February", "7.9", "28.7"),
+        ("March", "9.1", "33.4"),
+        ("April", "7.2", "26.8"),
+        ("May", "6.8", "24.1"),
+        ("June", "5.9", "21.3"),
+        ("July", "8.3", "19.8"),
+        ("August", "10.7", "22.4"),
+        ("September", "9.2", "25.6"),
+        ("October", "7.6", "29.3"),
+        ("November", "8.1", "32.1"),
+        ("December", "8.8", "34.7"),
+    ]
+    for i, (month, pm, nox) in enumerate(monthly_data, start=1):
+        tbl1.cell(i, 0).text = month
+        tbl1.cell(i, 1).text = pm
+        tbl1.cell(i, 2).text = nox
+    doc.add_paragraph("")
+
+    doc.add_paragraph("2.3 Compliance Status")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "All emission units operated within permitted limits throughout the reporting "
+        "period. Stack testing conducted in accordance with 40 CFR Part 60 confirmed "
+        "compliance for all tested units. The annual emissions trend is shown in "
+        "[see Figure 1] below."
+    )
+    doc.add_paragraph("")
+
+    # FIGURE 1 placeholder
+    doc.add_picture(io.BytesIO(placeholder_png), width=Inches(5))
+    doc.add_paragraph("")
+
+    # ---- SECTION 3: WATER QUALITY ----
+    doc.add_paragraph("3. Water Quality and Stormwater Management")
+    doc.add_paragraph("")
+    doc.add_paragraph("3.1 Discharge Monitoring")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "The facility discharges treated process wastewater and stormwater through "
+        "three NPDES-permitted outfalls. Outfall 001 receives treated process wastewater "
+        "from the on-site wastewater treatment plant (WWTP). Outfall 002 receives "
+        "non-contact cooling water from the manufacturing buildings. Outfall 003 "
+        "receives stormwater runoff from the western parking lot and loading dock area "
+        "after passage through the engineered bioswale treatment system."
+    )
+    doc.add_paragraph("")
+    doc.add_paragraph("3.2 Effluent Monitoring Data")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "Quarterly composite sampling results for Outfall 001 are presented in "
+        "[see Table 2]. With the exception of the March 2024 pH exceedance "
+        "(pH 5.8, below the permit minimum of 6.0), all parameters met NPDES "
+        "permit limits throughout the year."
+    )
+    doc.add_paragraph("")
+
+    # TABLE 2: Effluent Monitoring Data
+    tbl2 = doc.add_table(rows=5, cols=5, style="Table Grid")
+    headers2 = ["Quarter", "BOD5 (mg/L)", "TSS (mg/L)", "pH", "Oil & Grease (mg/L)"]
+    for j, h in enumerate(headers2):
+        tbl2.cell(0, j).text = h
+    effluent_data = [
+        ("Q1 2024", "18.3", "22.1", "5.8*", "4.2"),
+        ("Q2 2024", "14.7", "19.8", "7.2", "3.8"),
+        ("Q3 2024", "16.2", "21.4", "7.0", "4.5"),
+        ("Q4 2024", "15.1", "18.6", "7.1", "3.6"),
+    ]
+    for i, row_data in enumerate(effluent_data, start=1):
+        for j, val in enumerate(row_data):
+            tbl2.cell(i, j).text = val
+    doc.add_paragraph("* Exceedance of NPDES permit minimum pH limit (6.0)")
+    doc.add_paragraph("")
+
+    doc.add_paragraph("3.3 Stormwater BMP Effectiveness")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "The site drainage infrastructure and best management practices (BMPs) are "
+        "illustrated in [see Figure 2]. Stormwater monitoring at Outfall 003 during "
+        "the four quarterly sampling events demonstrated TSS removal efficiency "
+        "averaging 82 percent through the bioswale system, exceeding the 80 percent "
+        "benchmark established in the facility's Stormwater Pollution Prevention Plan "
+        "(SWPPP). The bioswale was expanded in Q3 2024 to accommodate increased runoff "
+        "from the newly paved employee parking area."
+    )
+    doc.add_paragraph("")
+
+    # FIGURE 2 placeholder
+    doc.add_picture(io.BytesIO(placeholder_png), width=Inches(5))
+    doc.add_paragraph("")
+
+    # ---- SECTION 4: WASTE MANAGEMENT ----
+    doc.add_paragraph("4. Waste Management")
+    doc.add_paragraph("")
+    doc.add_paragraph("4.1 Hazardous Waste Generation")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "The facility generated a total of 47.3 tons of hazardous waste during "
+        "2024, a 12 percent reduction from the 53.8 tons generated in 2023. "
+        "Waste stream details are provided in [see Table 3]. All hazardous waste "
+        "was manifested and shipped to permitted Treatment, Storage, and Disposal "
+        "Facilities (TSDFs) within the 90-day accumulation period required by "
+        "WAC 173-303-200."
+    )
+    doc.add_paragraph("")
+
+    # TABLE 3: Hazardous Waste Streams
+    tbl3 = doc.add_table(rows=7, cols=4, style="Table Grid")
+    headers3 = ["Waste Stream", "RCRA Code", "Quantity (tons)", "Disposal Method"]
+    for j, h in enumerate(headers3):
+        tbl3.cell(0, j).text = h
+    waste_data = [
+        ("Spent halogenated solvents", "F001", "12.4", "Fuel blending"),
+        ("Chromium-bearing sludge", "D007", "8.7", "Stabilization/landfill"),
+        ("Paint waste (ignitable)", "D001", "11.2", "Incineration"),
+        ("Spent acid solutions", "D002", "6.8", "Neutralization/treatment"),
+        ("Waste trichloroethylene", "F001/U228", "4.1", "Solvent recovery"),
+        ("Mixed metal hydroxide sludge", "D006/D007", "4.1", "Stabilization/landfill"),
+    ]
+    for i, row_data in enumerate(waste_data, start=1):
+        for j, val in enumerate(row_data):
+            tbl3.cell(i, j).text = val
+    doc.add_paragraph("")
+
+    doc.add_paragraph("4.2 Waste Minimization Initiatives")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "The facility implemented three waste minimization projects during 2024 as "
+        "part of the five-year Pollution Prevention Plan required under WAC 173-307. "
+        "First, the solvent recovery system on Paint Line 2 was upgraded from a "
+        "single-stage to a double-stage distillation unit, increasing solvent recovery "
+        "rate from 68 percent to 91 percent and reducing F001 waste generation by "
+        "approximately 3.2 tons per year. Second, the chromium plating bath in "
+        "Building A was converted from hexavalent chromium (Cr VI) to trivalent "
+        "chromium (Cr III), eliminating D007 waste from that process line. Third, "
+        "Building C transitioned from solvent-based conformal coatings to UV-curable "
+        "alternatives, eliminating VOC emissions and associated D001 waste from "
+        "electronic assembly operations."
+    )
+    doc.add_paragraph("")
+    doc.add_paragraph("4.3 Storage and Disposal Compliance")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "The Hazardous Waste Storage Facility (HWSF) was inspected weekly throughout "
+        "2024 in accordance with WAC 173-303-320. All inspections documented proper "
+        "container labeling, secondary containment integrity, and compliance with "
+        "accumulation time limits. The facility layout showing waste storage areas and "
+        "designated satellite accumulation points is shown in [see Figure 3]."
+    )
+    doc.add_paragraph("")
+
+    # FIGURE 3 placeholder
+    doc.add_picture(io.BytesIO(placeholder_png), width=Inches(5))
+    doc.add_paragraph("")
+
+    # ---- SECTION 5: COMPLIANCE SUMMARY ----
+    doc.add_paragraph("5. Compliance Summary and Corrective Actions")
+    doc.add_paragraph("")
+    doc.add_paragraph("5.1 Notices of Violation")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "Three Notices of Violation (NOVs) were issued by the Department of Ecology "
+        "during the 2024 reporting period:"
+    )
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "NOV-2024-SW-0312 (March 15, 2024): pH exceedance at Outfall 002. "
+        "Measured pH of 5.8 fell below the NPDES permit minimum of 6.0. Root cause: "
+        "malfunction of the automated pH adjustment system in the neutralization tank. "
+        "Corrective action: replaced pH sensor probe and recalibrated controller. "
+        "Completed March 17, 2024."
+    )
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "NOV-2024-AQ-0647 (June 28, 2024): Late submission of semi-annual VOC "
+        "emission report. Report was submitted 4 business days past the June 15 "
+        "deadline. Root cause: staffing transition in the environmental compliance "
+        "department. Corrective action: implemented automated compliance calendar "
+        "with 30-day and 7-day advance notifications. Completed July 2024."
+    )
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "NOV-2024-HW-0891 (September 3, 2024): Container labeling deficiency in "
+        "satellite accumulation area (SAA) in Building B paint mixing room. One "
+        "55-gallon drum of spent thinner lacked accumulation start date. Root cause: "
+        "employee oversight during container staging. Corrective action: conducted "
+        "refresher training for all Building B personnel on WAC 173-303-174 SAA "
+        "requirements; installed additional labeling stations. Completed September "
+        "2024."
+    )
+    doc.add_paragraph("")
+
+    doc.add_paragraph("5.2 Corrective Actions Summary")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "All three NOVs were resolved within the timeframes specified by the "
+        "Department of Ecology. Penalty amounts totaling $4,750 were assessed "
+        "and paid. No repeat violations occurred for any of the cited conditions "
+        "during the remainder of the reporting period."
+    )
+    doc.add_paragraph("")
+
+    doc.add_paragraph("5.3 Planned Improvements for 2025")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "The following environmental compliance improvement projects are planned "
+        "for fiscal year 2025: upgrade of the WWTP clarifier system to improve TSS "
+        "removal by an estimated 15 percent (budget: $380,000, Q2 2025); installation "
+        "of continuous emission monitoring systems (CEMS) on Boilers EU-01 and EU-02 "
+        "as required by the 2025 permit renewal (budget: $245,000, Q3 2025); and "
+        "completion of Phase III groundwater remediation activities under MTCA Agreed "
+        "Order DE 14-TCPSR-4271, including installation of three additional extraction "
+        "wells and expansion of the on-site air stripping system (budget: $520,000, "
+        "Q1-Q4 2025)."
+    )
+    doc.add_paragraph("")
+
+    # ---- APPENDICES ----
+    doc.add_paragraph("Appendices")
+    doc.add_paragraph("")
+    doc.add_paragraph("Appendix A: Laboratory Analytical Methods")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "All environmental samples collected during the 2024 monitoring program were "
+        "analyzed by Cascade Analytical Laboratories, Inc. (Tacoma, WA), a Washington "
+        "State Department of Ecology accredited laboratory (Accreditation No. "
+        "C-934). The following EPA-approved analytical methods were employed:"
+    )
+    doc.add_paragraph("")
+    doc.add_paragraph("EPA Method 524.2 - Volatile organic compounds in water by purge-and-trap GC/MS")
+    doc.add_paragraph("EPA Method 200.7 - Metals in water by ICP-OES")
+    doc.add_paragraph("EPA Method 8260C - Volatile organic compounds in soil and groundwater by GC/MS")
+    doc.add_paragraph("EPA Method 8270E - Semi-volatile organic compounds by GC/MS")
+    doc.add_paragraph("EPA Method 9045D - Soil and waste pH")
+    doc.add_paragraph("SM 5210 B - Biochemical oxygen demand (BOD5)")
+    doc.add_paragraph("SM 2540 D - Total suspended solids (TSS)")
+    doc.add_paragraph("")
+
+    doc.add_paragraph("Appendix B: Monitoring Equipment Calibration Records")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "All field monitoring equipment used during the 2024 sampling program was "
+        "calibrated in accordance with manufacturer specifications and applicable EPA "
+        "guidance. Calibration records are maintained on-site and available for "
+        "regulatory inspection upon request. Equipment includes: YSI ProDSS "
+        "multiparameter water quality meter (calibrated quarterly), Met One BAM-1020 "
+        "continuous PM2.5 monitor (calibrated monthly per 40 CFR Part 58 Appendix A), "
+        "and Thermo Scientific 42i NOx analyzer (calibrated weekly with certified "
+        "span gas per 40 CFR Part 58 Appendix A)."
+    )
+    doc.add_paragraph("")
+
+    path = os.path.join(DATA_DIR, "environmental_compliance_report_raw.docx")
+    doc.save(path)
+    print(f"Created: {path}")
+
+
 if __name__ == "__main__":
     create_census_press_release()
     create_meeting_notes_raw()
@@ -1821,4 +2280,5 @@ if __name__ == "__main__":
     create_ap_walkthrough_raw()
     create_solicitation_raw()
     create_fms_requirements_raw()
+    create_environmental_compliance_report_raw()
     print("All data files created successfully.")

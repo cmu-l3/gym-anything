@@ -1,0 +1,33 @@
+{
+  "id": "flat_field_noise_analysis@1",
+  "version": "1.0",
+  "env_id": "astroimagej_env@0.1",
+  "name": "Flat Field Noise Analysis and Detector Characterization",
+  "description": "Evaluate CCD detector noise properties using flat-field FITS frames from the Palomar Large Format Camera located in `~/AstroImages/flat_analysis/flats/`. Using AstroImageJ, generate a median Z-projection saved to `~/AstroImages/flat_analysis/results/median_flat.fits` and a standard deviation Z-projection saved to `~/AstroImages/flat_analysis/results/stddev_flat.fits`.\n\nAnalyze the detector by dividing the image into four equal quadrants. For each quadrant, measure the median signal from the median projection and the median noise from the standard deviation projection. Estimate the gain (e-/ADU) for each quadrant using the formula Gain ≈ Signal / (Noise^2) and calculate the mean gain. Identify bad pixels in the standard deviation projection, defined as pixels with a standard deviation >5x or <0.1x the median standard deviation of the entire image.\n\nExport the results to `~/AstroImages/flat_analysis/results/noise_analysis.txt` using this exact format:\nLine 1: [Median signal Q1] [Median signal Q2] [Median signal Q3] [Median signal Q4]\nLine 2: [Median noise Q1] [Median noise Q2] [Median noise Q3] [Median noise Q4]\nLine 3: GAIN_ESTIMATE: [Mean gain value]\nLine 4: BAD_PIXEL_COUNT: [Integer count]\nLine 5: POISSON_CHECK: [PASS or FAIL] (PASS if quadrant gain estimates are within 20% of each other)\n\nNote: All values can be approximate based on region selections.",
+  "difficulty": "hard",
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/flat_field_noise_analysis/setup_task.sh",
+    "post_task": "/workspace/tasks/flat_field_noise_analysis/export_result.sh"
+  },
+  "metadata": {
+    "data_source": "Palomar 200-inch Hale Telescope, Large Format Camera (LFC)",
+    "data_description": "Cryo-cooled CCD flat-field frames",
+    "output_dir": "/home/ga/AstroImages/flat_analysis/results",
+    "required_files": [
+      "median_flat.fits",
+      "stddev_flat.fits",
+      "noise_analysis.txt"
+    ]
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_noise_analysis"
+    }
+  }
+}

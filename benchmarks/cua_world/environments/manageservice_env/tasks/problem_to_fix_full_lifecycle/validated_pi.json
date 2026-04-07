@@ -1,0 +1,80 @@
+{
+    "task_id": "problem_to_fix_full_lifecycle@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "target_ticket_ids",
+            "metadata_value": [1001, 1003, 1004],
+            "verified_value": [1001, 1003, 1004],
+            "source": "Verified via live DB query against workorder table (db_tickets.txt evidence). Ticket 1001 title='Laptop keyboard not responding' (priorityid=4/High, statusid=2/Open, categoryid=2/Desktop Hardware), ticket 1003 title='Office printer not printing' (priorityid=4/High, statusid=2/Open, categoryid=2/Desktop Hardware), ticket 1004 title='VPN connection dropping every 30 minutes' (priorityid=4/High, statusid=2/Open, categoryid=10/Network). All three are created synthetically by task_utils.sh::create_initial_requests(). Cross-referenced against task description which refers to '1001 (keyboard not responding), 1003 (printer not printing), and 1004 (VPN dropping)' — titles match. Verifier checks linked_target_count by comparing linked IDs against string set ['1001','1003','1004'].",
+            "status": "verified"
+        },
+        {
+            "key": "problem_title_keywords",
+            "metadata_value": ["faulty", "network switch", "idf-a2"],
+            "verified_value": ["faulty", "network switch", "idf-a2"],
+            "source": "Verified against task description which instructs: 'Create a Problem titled Faulty Network Switch IDF-A2 - Building A Connectivity Failures'. export_result.sh SQL uses LOWER(title) LIKE '%faulty%' AND (LIKE '%network switch%' OR LIKE '%idf-a2%'). API search uses identical logic. Verifier gates on problem_found which is set when either SQL or API find a match. All three keywords are present in the instructed title and searched for in the verification logic. Note: verifier also accepts broader fallback 'building a' AND 'connectivity' in title.",
+            "status": "verified"
+        },
+        {
+            "key": "rca_keyword",
+            "metadata_value": "CSCvz12345",
+            "verified_value": "CSCvz12345",
+            "source": "Verified against task description which instructs the agent to enter 'firmware bug CSCvz12345 in IOS-XE 17.9.1' as part of the Root Cause. export_result.sh consolidation logic sets rca_has_bug_id = 'cscvz12345' in rca_combined (case-insensitive). The rca_combined string is assembled from API fields root_cause, symptoms, impact_details, problem_resolution_text, and DB field rca_text_sql (from problemresolution.resolution). Verifier awards 15 pts for rca_has_content AND rca_has_bug_id, or 8 pts for content without the bug ID. Note: CSCvz12345 is a fictional Cisco bug ID in the CSCvz-series format used by Cisco's Bug Search Tool — format is realistic but the specific ID is synthetic.",
+            "status": "verified"
+        },
+        {
+            "key": "symptom_keywords",
+            "metadata_value": ["connectivity", "building a"],
+            "verified_value": ["connectivity", "building a"],
+            "source": "Verified against task description which instructs: 'Wired devices on Building A Floors 1-3 lose connectivity every 2-4 hours'. These keywords are not directly checked by the verifier/export as separate criteria — symptoms are part of the broader RCA content check (rca_has_content requires len > 10). The keywords appear in the instructed symptom text. The export_result.sh symptoms_combined field aggregates symptoms_from_api, impact_details_from_api, and workaround_text_sql, checking symptoms_has_content flag.",
+            "status": "verified"
+        },
+        {
+            "key": "workaround_keywords",
+            "metadata_value": ["bounce", "shutdown"],
+            "verified_value": ["bounce", "shutdown"],
+            "source": "Verified against task description which instructs: 'Bounce affected ports via CLI: interface range gi1/0/1-24, shutdown, no shutdown'. These keywords are metadata-only and not directly checked in verifier scoring — the workaround is part of RCA documentation which is checked via rca_has_content. The keywords are present in the instructed workaround text. In the DB, workaround data is stored in problemresolution.workaround column (USER-DEFINED/encrypted type).",
+            "status": "verified"
+        },
+        {
+            "key": "change_title_keywords",
+            "metadata_value": ["firmware", "catalyst", "idf-a2"],
+            "verified_value": ["firmware", "catalyst", "idf-a2"],
+            "source": "Verified against task description which instructs: 'Create an Emergency Change Request titled Emergency Firmware Upgrade - Cisco Catalyst 9300 IDF-A2'. export_result.sh SQL uses LOWER(title) LIKE '%firmware%' AND (LIKE '%catalyst%' OR LIKE '%idf-a2%'). API search uses identical logic. The change table in this SDP version is 'changedetails' (confirmed via live DB schema check — changemanagement does NOT exist). All three keywords are present in the instructed title.",
+            "status": "verified"
+        },
+        {
+            "key": "change_type",
+            "metadata_value": "Emergency",
+            "verified_value": "Emergency",
+            "source": "Verified against task description which instructs 'Create an Emergency Change Request'. Verifier checks 'emergency' in change_type_name.lower() — awards 15 pts if Emergency, 10 pts for other types. The change_type_name is extracted from the API response field target_change.get('change_type', {}).get('name', ''). ManageEngine ServiceDesk Plus supports change types: Normal, Standard, Emergency, Minor — confirmed from SDP documentation.",
+            "status": "verified"
+        },
+        {
+            "key": "backout_keywords",
+            "metadata_value": ["17.6.3", "install remove"],
+            "verified_value": ["17.6.3", "install remove"],
+            "source": "Verified against task description which instructs: 'Backout plan: Downgrade to IOS-XE 17.6.3 using install remove inactive'. These keywords are metadata-only and not directly checked in verifier scoring — the backout plan is checked via has_backout_plan = len(backout.strip()) > 10 by the export script, but the verifier does not score backout plan content separately. The keywords are present in the instructed text.",
+            "status": "verified"
+        },
+        {
+            "key": "kb_title_keywords",
+            "metadata_value": ["catalyst 9300", "cscvz12345"],
+            "verified_value": ["catalyst 9300", "cscvz12345"],
+            "source": "Verified against task description which instructs: 'Create a Knowledge Base solution titled Cisco Catalyst 9300 Port Failures - Firmware Bug CSCvz12345'. export_result.sh SQL uses LOWER(title) LIKE '%cscvz12345%' OR (LIKE '%catalyst%' AND LIKE '%port%fail%'). API searches both /api/v3/solutions and /api/v3/knowledge_base_articles for 'cscvz12345' in title or ('catalyst' AND ('port' OR 'firmware')). Verifier awards 15 pts for kb_found. The KB table is 'solution' in this SDP version (confirmed via live DB schema check).",
+            "status": "verified"
+        },
+        {
+            "key": "problem_final_status",
+            "metadata_value": "Resolved",
+            "verified_value": "Resolved",
+            "source": "Verified against task description step 5: 'Resolve the Problem with resolution referencing the emergency change'. export_result.sh sets problem_is_resolved = 'resolved' in status_name.lower() or 'closed' in status_name.lower(). Verifier awards 10 pts for problem_is_resolved. ManageEngine SDP problem statuses include: Open, Analysis In Progress, Known Error, Closed, Resolved — confirmed from SDP documentation. The verifier accepts both 'Resolved' and 'Closed' as passing.",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This task requires the agent to perform a complete ITIL problem-to-resolution lifecycle in ManageEngine ServiceDesk Plus. Pre-existing tickets in the DB: #1001 'Laptop keyboard not responding' (High priority, Open), #1003 'Office printer not printing' (High priority, Open), #1004 'VPN connection dropping every 30 minutes' (High priority, Open). The agent must: (1) Create a Problem record — title must contain 'Faulty' AND ('Network Switch' OR 'IDF-A2'), with High impact and High urgency; (2) Link exactly tickets 1001, 1003, and 1004 to the Problem; (3) Document RCA — the root_cause/symptoms/resolution fields must contain the string 'CSCvz12345' (case-insensitive, checked across API fields root_cause, symptoms, impact_details, and DB problemresolution table); (4) Create a Change Request — title must contain 'firmware' AND ('catalyst' OR 'idf-a2'), type must be 'Emergency' (change table is 'changedetails', not 'changemanagement'); (5) Link the Change to the Problem (checked via /api/v3/changes/{id}/problems and /api/v3/problems/{id}/changes cross-reference); (6) Create a KB article — title must contain 'cscvz12345' OR ('catalyst' AND 'port'/'firmware'), stored in the 'solution' table; (7) Set Problem status to 'Resolved' or 'Closed'. Default login is administrator/administrator but SDP enforces a mandatory password change on first login. The DB uses PostgreSQL on port 65432 with encrypted USER-DEFINED column types for title/description fields. API requires an authtoken (not session cookies). All verification data is synthetic — no external data sources.",
+    "pi_confidence": "high"
+}

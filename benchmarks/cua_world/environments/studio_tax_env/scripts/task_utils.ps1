@@ -9,9 +9,16 @@ function Find-StudioTaxExe {
     # Check cached path first
     $cachedPath = "C:\Users\Docker\studiotax_path.txt"
     if (Test-Path $cachedPath) {
-        $path = (Get-Content $cachedPath -ErrorAction SilentlyContinue).Trim()
-        if ($path -and (Test-Path $path)) {
-            return $path
+        try {
+            $path = (Get-Content $cachedPath -Raw -ErrorAction SilentlyContinue)
+            if ($path) {
+                $path = $path.Trim()
+                if ($path -and (Test-Path $path -ErrorAction SilentlyContinue)) {
+                    return $path
+                }
+            }
+        } catch {
+            Write-Host "WARNING: Cached path file unreadable, ignoring"
         }
     }
 

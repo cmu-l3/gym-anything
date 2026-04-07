@@ -1,0 +1,34 @@
+{
+  "id": "docker_volume_recovery@1",
+  "version": "1.0",
+  "env_id": "docker_env@0.1",
+  "description": "A production incident has occurred: all Docker volumes for the AcmeCorp Music Store application were accidentally deleted. Restore the service at ~/projects/acme-musicstore using the provided backup files in the backups/ directory (chinook_db.sql for PostgreSQL and redis_restore.txt for Redis). Ensure the application stack is running and the data is fully restored. Verify the restoration by checking the /api/stats endpoint. Create an executable backup script at ~/projects/acme-musicstore/backup.sh that automates dumping the database and Redis data to backups/latest/, and run it to confirm it functions correctly.",
+  "difficulty": "medium",
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/workspace/tasks/docker_volume_recovery/setup_task.sh",
+    "post_task": "/workspace/tasks/docker_volume_recovery/export_result.sh"
+  },
+  "metadata": {
+    "project_dir": "/home/ga/projects/acme-musicstore",
+    "backup_dir": "/home/ga/projects/acme-musicstore/backups",
+    "api_endpoint": "http://localhost:5000/api/stats",
+    "expected_tracks": 3503,
+    "expected_artists": 275,
+    "expected_albums": 347,
+    "min_sessions": 50,
+    "admin_user": "ga",
+    "admin_password": "password123",
+    "pass_threshold": 60
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_docker_volume_recovery"
+    }
+  }
+}

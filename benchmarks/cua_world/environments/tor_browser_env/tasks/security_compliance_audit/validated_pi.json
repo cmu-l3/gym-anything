@@ -1,0 +1,38 @@
+{
+    "task_id": "security_compliance_audit@1",
+    "dataset": null,
+    "case_id": null,
+    "data_is_synthetic": true,
+    "pi_items": [
+        {
+            "key": "policy_file",
+            "metadata_value": "/home/ga/Documents/AuditPackage/security_policy.md",
+            "verified_value": "/home/ga/Documents/AuditPackage/security_policy.md",
+            "source": "Live environment testing confirmed: setup_task.sh creates this file via heredoc at line 115. File verified present in QEMU environment with 4987 bytes, 129 lines, all 4 REQ sections (REQ-1 through REQ-4), and the report format template. File is owned by ga:ga with correct permissions. Evidence: hard_tasks_evidence_logs/tor_browser_env/security_compliance_audit/02_policy_document.txt",
+            "status": "verified"
+        },
+        {
+            "key": "report_file",
+            "metadata_value": "/home/ga/Documents/AuditPackage/compliance_report.txt",
+            "verified_value": "/home/ga/Documents/AuditPackage/compliance_report.txt",
+            "source": "Live testing confirmed: (1) This path does NOT exist at task start (setup_task.sh deletes it at line 51). (2) The directory /home/ga/Documents/AuditPackage/ exists and is writable by user ga. (3) User ga can create and delete files in this directory. (4) The export_result.sh checks for this exact path at line 135. (5) The verifier.py scores report existence at this path. Evidence: hard_tasks_evidence_logs/tor_browser_env/security_compliance_audit/04_directory_permissions.txt and 13_file_write_permissions.txt",
+            "status": "verified"
+        },
+        {
+            "key": "canvas_test_file",
+            "metadata_value": "/home/ga/Documents/AuditPackage/canvas_test.html",
+            "verified_value": "/home/ga/Documents/AuditPackage/canvas_test.html",
+            "source": "Live testing confirmed: setup_task.sh creates this file via heredoc at line 248. File verified present with 2920 bytes, valid HTML containing canvas element (400x300), drawChart() function drawing 30 colored nodes + grid + 'AUDIT TEST PATTERN' text, and exportCanvas() function that calls canvas.toDataURL('image/png') and checks if result < 500 bytes (BLOCKED) or >= 500 bytes (WARNING). File owned by ga:ga. The canvas test page is accessible in Tor Browser at file:///home/ga/Documents/AuditPackage/canvas_test.html. Evidence: hard_tasks_evidence_logs/tor_browser_env/security_compliance_audit/03_canvas_test_html.txt and 12_canvas_test.txt",
+            "status": "verified"
+        },
+        {
+            "key": "allowed_exit_countries",
+            "metadata_value": ["ch", "is", "nl"],
+            "verified_value": ["ch", "is", "nl"],
+            "source": "Independently verified: (1) These are valid ISO 3166-1 alpha-2 country codes: CH=Switzerland, IS=Iceland, NL=Netherlands. (2) All three countries have active Tor exit relays — CH and NL are among the top exit relay hosting countries globally; IS has fewer but active relays. (3) During live testing, after configuring ExitNodes {ch},{is},{nl} + StrictNodes 1, check.torproject.org confirmed exit through NL (IP 45.148.10.217). (4) The Tor torrc syntax {ch},{is},{nl} is the correct format for country-code-based exit node restriction per the Tor manual. (5) The policy document at line 153 matches: 'ExitNodes {ch},{is},{nl}'. Evidence: hard_tasks_evidence_logs/tor_browser_env/security_compliance_audit/11_network_access.txt",
+            "status": "verified"
+        }
+    ],
+    "privileged_info_summary": "This is a security compliance audit task with a pre-seeded policy document and canvas test page (both synthetic, created by setup_task.sh). The task has 4 requirements (REQ-1 through REQ-4) detailed in /home/ga/Documents/AuditPackage/security_policy.md. The compliance report must be written to /home/ga/Documents/AuditPackage/compliance_report.txt.\n\nCRITICAL GROUND TRUTH — Tor Browser v15 slider mapping is INVERTED from older versions: slider=4 means Standard (baseline), slider=2 means Safer, slider=1 means Safest (target). The verifier checks for slider==1.\n\nBASELINE STATE (what the agent should observe as 'Initial State'):\n- REQ-1: security_slider=4 (Standard), dom.security.https_only_mode=false, places.history.enabled=true — all three need REMEDIATION\n- REQ-2: torrc has NO ExitNodes or StrictNodes lines — needs REMEDIATION by adding 'ExitNodes {ch},{is},{nl}' and 'StrictNodes 1'\n- REQ-3 Part A: network.http.speculative-parallel-limit=6 (needs change to 0), network.prefetch-next=true (needs change to false), network.dns.disablePrefetch=true (ALREADY CORRECT, Tor Browser default — should be reported as COMPLIANT)\n- REQ-3 Part B: Canvas fingerprinting protection is ALREADY ACTIVE by default in Tor Browser. The canvas_test.html page should show 'BLOCKED' when Export is clicked. This should be reported as COMPLIANT.\n- REQ-4: The agent must read the circuit display (click padlock/onion icon) for the entry guard relay name, visit check.torproject.org/api/ip for exit IP, and verify the exit country is CH, IS, or NL after REQ-2 geofencing is applied.\n\nEXPECTED FINAL STATUS: REQ-1=REMEDIATED, REQ-2=REMEDIATED, REQ-3=mixed (speculative prefs REMEDIATED, dns.disablePrefetch COMPLIANT, canvas COMPLIANT), REQ-4=COMPLIANT (documentation only).\n\nThe report must use the format: '## REQ-N' headers, with 'Initial State', 'Status', 'Evidence', 'Action Taken' fields, ending with '## Summary' listing COMPLIANT/REMEDIATED/FAILED counts.\n\nKEY PATHS: torrc is at ~/.local/share/torbrowser/tbb/x86_64/tor-browser/Browser/TorBrowser/Data/Tor/torrc. Profile is at ~/.local/share/torbrowser/tbb/x86_64/tor-browser/Browser/TorBrowser/Data/Browser/profile.default. Tor SOCKS proxy is at 127.0.0.1:9150. check.torproject.org/api/ip returns JSON like {\"IsTor\":true,\"IP\":\"x.x.x.x\"}.\n\nIMPORTANT ORDERING: The policy document instructs the agent to complete REQ-3 (canvas test) BEFORE REQ-1 (Safest), because Safest disables JavaScript on file:// pages, which would prevent the canvas test from running.",
+    "pi_confidence": "high"
+}
