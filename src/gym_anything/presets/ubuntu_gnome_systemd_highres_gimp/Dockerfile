@@ -44,10 +44,15 @@ RUN rm -f \
   /lib/systemd/system/systemd-update-utmp* \
   /lib/systemd/system/systemd-resolved.service
 
-# Install TigerVNC server, X11 tools, and media packages
+# Install TigerVNC server, noVNC, X11 tools, dconf, and media packages
 RUN apt-get update \
-  && apt-get install -y tigervnc-common tigervnc-scraping-server tigervnc-standalone-server tigervnc-viewer tigervnc-xorg-extension \
+  && apt-get install -y \
+     tigervnc-common tigervnc-scraping-server tigervnc-standalone-server \
+     tigervnc-viewer tigervnc-xorg-extension \
      xvfb x11-apps x11-utils xdotool pulseaudio ffmpeg xterm wmctrl \
+     net-tools novnc \
+     dconf-cli sudo \
+  && ln -s /usr/share/novnc/vnc_lite.html /usr/share/novnc/index.html \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
@@ -55,41 +60,21 @@ COPY tigervnc@.service /etc/systemd/system/tigervnc@.service
 RUN systemctl enable tigervnc@:1
 EXPOSE 5901
 
-# Install noVNC
-RUN apt-get update && apt-get install -y \
-  net-tools novnc \
-  && apt-get clean -y \
-  && rm -rf /var/lib/apt/lists/*
-RUN ln -s /usr/share/novnc/vnc_lite.html /usr/share/novnc/index.html
-
-# Install dconf-cli if not already installed
-RUN apt-get update && apt-get install -y dconf-cli
-
-# Create system-wide dconf defaults
-RUN mkdir -p /etc/dconf/db/local.d && \
-    mkdir -p /etc/dconf/profile
-
-# Create the dconf profile
-RUN echo "user-db:user" > /etc/dconf/profile/user && \
-    echo "system-db:local" >> /etc/dconf/profile/user
-
-# Create the settings file to disable lock screen
-RUN echo "[org/gnome/desktop/screensaver]" > /etc/dconf/db/local.d/01-disable-lock && \
+# Configure GNOME: disable lock screen and idle timeout
+RUN mkdir -p /etc/dconf/db/local.d /etc/dconf/profile && \
+    echo "user-db:user" > /etc/dconf/profile/user && \
+    echo "system-db:local" >> /etc/dconf/profile/user && \
+    echo "[org/gnome/desktop/screensaver]" > /etc/dconf/db/local.d/01-disable-lock && \
     echo "lock-enabled=false" >> /etc/dconf/db/local.d/01-disable-lock && \
     echo "ubuntu-lock-on-suspend=false" >> /etc/dconf/db/local.d/01-disable-lock && \
     echo "" >> /etc/dconf/db/local.d/01-disable-lock && \
     echo "[org/gnome/desktop/session]" >> /etc/dconf/db/local.d/01-disable-lock && \
-    echo "idle-delay=uint32 0" >> /etc/dconf/db/local.d/01-disable-lock
-
-
-
-# Update the dconf database
-RUN dconf update
+    echo "idle-delay=uint32 0" >> /etc/dconf/db/local.d/01-disable-lock && \
+    dconf update
 
 # Create unprivileged user 'ga' (matching the service file)
 # Remove default ubuntu user if it exists (Ubuntu 24.04 ships with ubuntu:1000)
-RUN (userdel -r ubuntu 2>/dev/null || true) && useradd ga -u 1000 -U -d /home/ga -m -s /bin/bash
-RUN apt-get update && apt-get install -y sudo && apt-get clean && rm -rf /var/lib/apt/lists/* && \
+RUN (userdel -r ubuntu 2>/dev/null || true) && useradd ga -u 1000 -U -d /home/ga -m -s /bin/bash && \
   echo "ga ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/ga" && \
   chmod 440 "/etc/sudoers.d/ga"
 
@@ -102,51 +87,24 @@ RUN mkdir -p $HOME/.vnc
 COPY --chown=ga:ga xstartup $HOME/.vnc/xstartup
 RUN chmod +x $HOME/.vnc/xstartup && echo "password" | vncpasswd -f > $HOME/.vnc/passwd && chmod 600 $HOME/.vnc/passwd
 
-
-
 # Switch back to root to start systemd
 USER root
 WORKDIR /workspace
 
+# Disable crash reporters
+RUN sed -i 's/^enabled=.*/enabled=0/' /etc/default/apport && \
+    systemctl disable apport.service 2>/dev/null || true && \
+    systemctl disable --now whoopsie.service 2>/dev/null || true
 
-RUN sed -i 's/^enabled=.*/enabled=0/' /etc/default/apport
-RUN systemctl stop apport.service 2>/dev/null || service apport stop
-RUN systemctl disable apport.service 2>/dev/null || true
-RUN systemctl disable --now whoopsie.service 2>/dev/null || true
-
-#!/bin/bash
+# Install graphics, imaging, fonts, and development packages
 RUN apt-get update && apt-get install -y \
-    gimp \
-    gimp-data-extras \
-    gimp-plugin-registry \
-    gimp-gmic \
-    gimp-help-en \
-    gimp-help-common
-
-RUN apt-get update && apt-get install -y \
-    inkscape \
-    imagemagick \
-    graphicsmagick \
-    exiftool \
-    dcraw
-
-RUN apt-get update && apt-get install -y \
-    fonts-liberation \
-    fonts-dejavu-extra \
-    fonts-noto \
-    fonts-hack \
-    fonts-firacode
-
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libgimp2.0-dev \
-    python3-pip \
-    python3-dev
-
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update -qq && apt-get install -y -qq wget python3-pil python3-numpy python3-scipy imagemagick
-
-# apt install python3-tk python3-pip && python3 -m pip install --break-system-packages pyautogui
-RUN apt-get update && apt-get install -y python3-tk python3-pip && python3 -m pip install --break-system-packages pyautogui
-
+    gimp gimp-data-extras gimp-plugin-registry gimp-gmic \
+    gimp-help-en gimp-help-common \
+    inkscape imagemagick graphicsmagick exiftool dcraw \
+    fonts-liberation fonts-dejavu-extra fonts-noto fonts-hack fonts-firacode \
+    build-essential libgimp2.0-dev python3-pip python3-dev \
+    wget python3-pil python3-numpy python3-scipy \
+    python3-tk \
+  && python3 -m pip install --break-system-packages pyautogui \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
