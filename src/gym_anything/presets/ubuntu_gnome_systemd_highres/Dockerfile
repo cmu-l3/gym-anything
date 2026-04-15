@@ -115,8 +115,8 @@ RUN apt-get update && apt-get install -y \
     inkscape imagemagick graphicsmagick exiftool dcraw \
     fonts-liberation fonts-dejavu-extra fonts-noto fonts-hack fonts-firacode \
     build-essential libgimp2.0-dev python3-pip python3-dev \
-    wget python3-pil python3-numpy python3-scipy imagemagick \
-    python3-tk python3-pip \
+    wget python3-pil python3-numpy python3-scipy \
+    python3-tk \
   && python3 -m pip install --break-system-packages pyautogui \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
