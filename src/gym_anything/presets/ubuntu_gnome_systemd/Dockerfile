@@ -43,10 +43,14 @@ RUN rm -f \
   /lib/systemd/system/systemd-update-utmp* \
   /lib/systemd/system/systemd-resolved.service
 
-# Install TigerVNC server, X11 tools, and media packages
+# Install TigerVNC server, noVNC, X11 tools, and media packages
 RUN apt-get update \
-  && apt-get install -y tigervnc-common tigervnc-scraping-server tigervnc-standalone-server tigervnc-viewer tigervnc-xorg-extension \
+  && apt-get install -y \
+     tigervnc-common tigervnc-scraping-server tigervnc-standalone-server \
+     tigervnc-viewer tigervnc-xorg-extension \
      xvfb x11-apps x11-utils xdotool pulseaudio ffmpeg xterm wmctrl \
+     net-tools novnc sudo \
+  && ln -s /usr/share/novnc/vnc_lite.html /usr/share/novnc/index.html \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
@@ -54,17 +58,9 @@ COPY tigervnc@.service /etc/systemd/system/tigervnc@.service
 RUN systemctl enable tigervnc@:1
 EXPOSE 5901
 
-# Install noVNC
-RUN apt-get update && apt-get install -y \
-  net-tools novnc \
-  && apt-get clean -y \
-  && rm -rf /var/lib/apt/lists/*
-RUN ln -s /usr/share/novnc/vnc_lite.html /usr/share/novnc/index.html
-
 # Create unprivileged user 'ga' (matching the service file)
 # Remove default ubuntu user if it exists (Ubuntu 24.04 ships with ubuntu:1000)
-RUN (userdel -r ubuntu 2>/dev/null || true) && useradd ga -u 1000 -U -d /home/ga -m -s /bin/bash
-RUN apt-get update && apt-get install -y sudo && apt-get clean && rm -rf /var/lib/apt/lists/* && \
+RUN (userdel -r ubuntu 2>/dev/null || true) && useradd ga -u 1000 -U -d /home/ga -m -s /bin/bash && \
   echo "ga ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/ga" && \
   chmod 440 "/etc/sudoers.d/ga"
 
