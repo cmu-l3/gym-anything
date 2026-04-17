@@ -34,6 +34,20 @@ wait_for_openemr() {
     return 1
 }
 
+# Configure vfs storage driver if not already set (needed for nested docker)
+if ! grep -q 'storage-driver' /etc/docker/daemon.json 2>/dev/null; then
+    echo "Configuring docker storage driver: vfs"
+    systemctl stop docker 2>/dev/null || true
+    rm -rf /var/lib/docker/overlay2 /var/lib/docker/image 2>/dev/null
+    mkdir -p /etc/docker
+    echo '{"storage-driver": "vfs"}' > /etc/docker/daemon.json
+    systemctl start docker
+    for i in {1..30}; do
+        docker info >/dev/null 2>&1 && break
+        sleep 1
+    done
+fi
+
 # Copy docker-compose.yml to working directory
 echo "Setting up Docker Compose configuration..."
 mkdir -p /home/ga/openemr
@@ -44,8 +58,13 @@ chown -R ga:ga /home/ga/openemr
 echo "Starting OpenEMR Docker containers..."
 cd /home/ga/openemr
 
-# Pull images first (better error handling)
-docker-compose pull
+# Pull only if images not already cached (pre_start bakes them into checkpoint)
+if ! docker images | grep -q mariadb; then
+    echo "Images not cached, pulling..."
+    docker-compose pull
+else
+    echo "Images cached from checkpoint, skipping pull"
+fi
 
 # Start containers in detached mode
 docker-compose up -d
