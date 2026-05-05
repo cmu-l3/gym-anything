@@ -109,7 +109,14 @@ def _import_method(method_path: Path):
     if repo_root and str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-    spec.loader.exec_module(module)
+    # Some module-level decorators (notably dataclasses on Python 3.13)
+    # resolve the module through sys.modules while the file is executing.
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
     return module
 
 

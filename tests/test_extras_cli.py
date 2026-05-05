@@ -68,6 +68,14 @@ class DispatchTests(unittest.TestCase):
         self.assertIn("--software", out)
         self.assertIn("--env-dir", out)
 
+    def test_download_check_method_help_dispatched(self):
+        rc, out, _ = self._capture(
+            ["utilities", "benchmark_assets", "download_check", "--help"]
+        )
+        self.assertEqual(rc, 0)
+        self.assertIn("--check-links", out)
+        self.assertIn("--download", out)
+
 
 if __name__ == "__main__":
     unittest.main()
