@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CUA-World Visualizer — gym-anything</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Search 13k+ computer-use agent tasks across 200+ professional software, grounded in U.S. GDP and SOC occupations.">
+  <!-- Resolve the theme before first paint to avoid a flash of the wrong palette. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("cuaw_theme");
+        var systemDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", saved || (systemDark ? "dark" : "light"));
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="#tasks">
+    <span class="brand-tilde">~/</span><span class="brand-name">cua-world</span><span class="cursor"></span>
+  </a>
+  <nav class="tabs" id="tabs">
+    <button data-tab="tasks" class="tab-btn active"><span class="t-prompt">▸</span> Tasks</button>
+    <button data-tab="software" class="tab-btn"><span class="t-prompt">▸</span> Software</button>
+    <button data-tab="occupations" class="tab-btn"><span class="t-prompt">▸</span> Occupations</button>
+    <button data-tab="insights" class="tab-btn"><span class="t-prompt">▸</span> Insights</button>
+  </nav>
+  <div class="topbar-meta">
+    <span id="meta-summary" class="meta-pill">loading…</span>
+    <span id="embed-status" class="meta-pill" hidden>semantic: idle</span>
+    <button id="theme-toggle" class="theme-toggle" aria-label="toggle light/dark theme" title="toggle theme">◐</button>
+    <a href="https://github.com/cmu-l3/gym-anything" target="_blank" rel="noopener" class="ext-link">GitHub →</a>
+  </div>
+</header>
+
+<main>
+
+<!-- =============== TASKS TAB =============== -->
+<section id="tab-tasks" class="tab-pane active">
+
+  <div class="search-window window">
+    <div class="window-titlebar">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span class="title-text">Type to search tasks</span>
+      <span class="hint">
+        Wrap with <code>""</code> or click the button →
+        <button id="exact-toggle" class="hint-btn">[exact match]</button>
+        <button id="clear-btn" class="hint-btn">[clear]</button>
+      </span>
+    </div>
+    <div class="window-body search-body">
+      <span class="prompt">$ find</span>
+      <span class="mag">⌕</span>
+      <input id="q" autocomplete="off" spellcheck="false"
+             placeholder="enterprise · health · rocket science · develop protein · help with admin stuff">
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <div class="filter-group" id="filter-soc"></div>
+    <div class="filter-group" id="filter-os"></div>
+    <div class="filter-group" id="filter-kind"></div>
+    <div class="filter-group" id="filter-flags"></div>
+  </div>
+
+  <div id="favorites-section">
+    <h2 class="section-h">
+      <span class="section-prompt">$</span> cat <span class="section-name">favorites.json</span>
+      <span class="section-meta" id="fav-blurb"></span>
+    </h2>
+    <div class="card-grid" id="favorites-grid"></div>
+  </div>
+
+  <div id="results-section" hidden>
+    <h2 class="section-h">
+      <span class="section-prompt">$</span> grep <span class="section-name" id="results-label">…</span>
+      <span class="section-meta" id="results-count"></span>
+    </h2>
+    <div class="card-grid" id="results-grid"></div>
+  </div>
+
+</section>
+
+<!-- =============== SOFTWARE TAB =============== -->
+<section id="tab-software" class="tab-pane">
+  <div class="window">
+    <div class="window-titlebar">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span class="title-text">software.csv — environments shipped in CUA-World (GDP &amp; SOC metadata from the original catalog)</span>
+    </div>
+    <div class="window-body">
+      <div class="sw-controls">
+        <span class="prompt">$ ls</span>
+        <input id="sw-q" placeholder="filter…" autocomplete="off" spellcheck="false">
+        <span class="ctrl-sep">|</span>
+        <span class="ctrl-label">sort</span>
+        <select id="sw-sort">
+          <option value="gdp">by GDP</option>
+          <option value="tasks">by tasks</option>
+          <option value="name">by name</option>
+        </select>
+      </div>
+      <div class="sw-grid" id="software-list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- =============== OCCUPATIONS TAB =============== -->
+<section id="tab-occupations" class="tab-pane">
+  <div class="window">
+    <div class="window-titlebar">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span class="title-text">occupations.json — counts roll up across the envs CUA-World shipped; GDP shares come from the original catalog</span>
+    </div>
+    <div class="window-body">
+      <div class="occ-layout">
+        <div class="occ-side">
+          <div class="occ-section-h">SOC major groups
+            <span class="occ-source-tag" title="22 BLS Standard Occupational Classification major groups. Per-task assignment is gpt-5.4-nano picking from this closed taxonomy; per-software grouping is from the BLS-grounded GDP pipeline.">SOC · BLS</span>
+          </div>
+          <div class="occ-list" id="soc-list"></div>
+          <div class="occ-section-h">Top occupations
+            <span class="occ-source-tag warn" title="These are gpt-5.4-nano free-text labels assigned per task. They are NOT part of CUA-World, not curated, and quality is poor — treat as a rough guide only. The SOC major groups above are the real grounded view.">LLM-labeled · not part of CUA-World</span>
+          </div>
+          <div class="occ-list" id="occ-list"></div>
+        </div>
+        <div class="occ-detail" id="occ-detail">
+          <div class="occ-detail-empty">Pick an occupation or SOC group on the left.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============== INSIGHTS TAB =============== -->
+<section id="tab-insights" class="tab-pane">
+  <div class="window">
+    <div class="window-titlebar">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span class="title-text">insights.txt — rollups across CUA-World's shipped envs; dollar amounts are catalog GDP attribution per product</span>
+    </div>
+    <div class="window-body" id="insights-body">loading…</div>
+  </div>
+</section>
+
+</main>
+
+<button id="cd-top" hidden><span class="prompt">$ cd</span> ↑ top</button>
+<a id="run-pill" href="https://cmu-l3.github.io/gym-anything/docs/quickstart" target="_blank" rel="noopener">
+  ▸ Run any task with one command
+</a>
+
+<footer class="page-footer">
+  <span class="footer-prompt">$</span> echo
+  <span class="footer-text">design adapted from
+    <a href="https://skillsmp.com/" target="_blank" rel="noopener">skillsmp.com</a>
+    by <a href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a>
+  </span>
+</footer>
+
+<!-- =============== TASK MODAL =============== -->
+<div id="task-modal" class="modal" hidden>
+  <div class="modal-overlay"></div>
+  <div class="modal-window window">
+    <div class="window-titlebar">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span class="title-text" id="modal-title">task.json</span>
+      <button id="modal-close" class="hint-btn">[esc]</button>
+    </div>
+    <div class="window-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+  // Static mode: in-browser search engine, no backend.
+  window.STATIC_MODE = true;
+</script>
+<script src="static_index.js"></script>
+<script src="embed_loader.js"></script>
+<script src="api_static.js"></script>
+<script src="app.js"></script>
+<script>
+  // Wire the embed-status pill to the loader's transitions.
+  (() => {
+    const pill = document.getElementById("embed-status");
+    if (!pill || !window.embedLoader) return;
+    pill.hidden = false;
+    const labels = {
+      idle:    "semantic: idle",
+      loading: "semantic: loading…",
+      ready:   "semantic: on",
+      failed:  "semantic: lexical-only",
+    };
+    const update = (s) => { pill.textContent = labels[s] || s; };
+    update(window.embedLoader.status);
+    window.embedLoader.onStatusChange(update);
+  })();
+</script>
+
+</body>
+</html>
