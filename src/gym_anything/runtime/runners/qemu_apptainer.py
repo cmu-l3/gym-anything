@@ -275,6 +275,7 @@ class QemuApptainerRunner(BaseRunner):
         # When True: saves full VM state (instant restore, preserves running processes)
         # When False: only saves disk state (requires full reboot on restore)
         self._use_savevm: bool = False
+        self._container_image = QEMU_CONTAINER
 
     def _check_prerequisites(self) -> None:
         """Check that required system tools are available. Subclasses override."""
@@ -313,7 +314,7 @@ class QemuApptainerRunner(BaseRunner):
             if os.path.exists(path):
                 cmd.extend(["--bind", f"{path}:{path}"])
 
-        cmd.append(QEMU_CONTAINER)
+        cmd.append(self._container_image)
         cmd.extend(["qemu-img"] + args)
 
         return subprocess.run(cmd, capture_output=True, text=True)
@@ -326,6 +327,11 @@ class QemuApptainerRunner(BaseRunner):
 
     def supports_fast_io(self) -> bool:
         return True
+
+    def set_fast_io(self, enabled: bool) -> None:
+        super().set_fast_io(enabled)
+        if self._fast_io and self._fast_io_backend() == "dbus":
+            self._ensure_dbus_display_container()
 
     def _detect_windows(self, spec: EnvSpec) -> bool:
         """Detect if this is a Windows environment."""
@@ -579,7 +585,7 @@ class QemuApptainerRunner(BaseRunner):
         artifacts_abs = str(artifacts_dir.absolute())
         cmd.extend(["--bind", f"{artifacts_abs}:{artifacts_abs}"])
 
-        cmd.append(QEMU_CONTAINER)
+        cmd.append(self._container_image)
         return cmd
 
     def _get_work_base(self) -> Path:
@@ -622,6 +628,126 @@ class QemuApptainerRunner(BaseRunner):
 
     def _fast_io_backend(self) -> str:
         return os.environ.get("GYM_ANYTHING_QEMU_FAST_IO_BACKEND", "qmp").strip().lower()
+
+    def _dbus_auto_install_enabled(self) -> bool:
+        value = os.environ.get("GYM_ANYTHING_QEMU_DBUS_AUTO_INSTALL", "1")
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+
+    def _dbus_sandbox_path(self) -> Path:
+        override = os.environ.get("GYM_ANYTHING_QEMU_DBUS_SANDBOX")
+        if override:
+            return Path(override).expanduser()
+        source_hash = hashlib.sha256(QEMU_CONTAINER.encode("utf-8")).hexdigest()[:16]
+        return QEMU_CACHE / "containers" / f"qemu-dbus-{source_hash}"
+
+    def _container_supports_dbus_display(self, container: str) -> bool:
+        try:
+            result = subprocess.run(
+                [
+                    "apptainer",
+                    "exec",
+                    "--contain",
+                    container,
+                    "qemu-system-x86_64",
+                    "-display",
+                    "help",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except Exception:
+            return False
+        output = f"{result.stdout}\n{result.stderr}"
+        return any(line.strip() == "dbus" for line in output.splitlines())
+
+    def _ensure_dbus_display_container(self) -> None:
+        sandbox = self._dbus_sandbox_path()
+        if sandbox.exists() and self._container_supports_dbus_display(str(sandbox)):
+            self._container_image = str(sandbox)
+            return
+
+        if self._container_supports_dbus_display(self._container_image):
+            return
+        if not self._dbus_auto_install_enabled():
+            raise RuntimeError(
+                "QEMU D-Bus display backend requested, but the Apptainer image "
+                "does not provide '-display dbus'. Install qemu-system-modules-opengl "
+                "in the image or unset GYM_ANYTHING_QEMU_DBUS_AUTO_INSTALL=0."
+            )
+
+        lock_path = sandbox.with_suffix(".lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "w") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                if self._container_supports_dbus_display(str(sandbox)):
+                    self._container_image = str(sandbox)
+                    return
+
+                tmp_sandbox = sandbox.with_name(f".{sandbox.name}.tmp-{os.getpid()}")
+                shutil.rmtree(tmp_sandbox, ignore_errors=True)
+                print(f"[QemuApptainer] Preparing D-Bus-capable QEMU sandbox: {sandbox}")
+
+                try:
+                    build = subprocess.run(
+                        [
+                            "apptainer",
+                            "build",
+                            "--fakeroot",
+                            "--sandbox",
+                            str(tmp_sandbox),
+                            QEMU_CONTAINER,
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=1800,
+                    )
+                    if build.returncode != 0:
+                        raise RuntimeError(
+                            "Failed to build QEMU D-Bus sandbox:\n"
+                            + (build.stderr or build.stdout)
+                        )
+
+                    install = subprocess.run(
+                        [
+                            "apptainer",
+                            "exec",
+                            "--fakeroot",
+                            "--writable",
+                            str(tmp_sandbox),
+                            "bash",
+                            "-lc",
+                            (
+                                "apt-get update && "
+                                "DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "
+                                "qemu-system-modules-opengl dbus && "
+                                "rm -rf /var/lib/apt/lists/*"
+                            ),
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=1800,
+                    )
+                    if install.returncode != 0:
+                        raise RuntimeError(
+                            "Failed to install QEMU D-Bus display modules:\n"
+                            + (install.stderr or install.stdout)
+                        )
+
+                    if not self._container_supports_dbus_display(str(tmp_sandbox)):
+                        raise RuntimeError(
+                            "QEMU D-Bus sandbox was prepared, but '-display dbus' is still unavailable"
+                        )
+                except Exception:
+                    shutil.rmtree(tmp_sandbox, ignore_errors=True)
+                    raise
+
+                shutil.rmtree(sandbox, ignore_errors=True)
+                tmp_sandbox.rename(sandbox)
+                self._container_image = str(sandbox)
+            finally:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
     def _display_backend_arg(self, work_dir: Path) -> str:
         if not self._fast_io or self._fast_io_backend() != "dbus":

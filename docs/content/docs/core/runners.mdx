@@ -63,3 +63,83 @@ If your question is simply "does this support caching?" or "can I use savevm her
 | Local | No | No | No |
 
 This reflects our current runner behavior.
+
+## QEMU Fast I/O
+
+QEMU supports `fast_io=True` for low-latency screenshot observations:
+
+```python
+from gym_anything import from_config
+
+env = from_config(
+    "benchmarks/cua_world/environments/google_earth_env",
+    task_id="take_screenshot",
+    fast_io=True,
+)
+```
+
+In fast mode, `env.capture_observation()` and `env.step(...)` return
+`obs["screen"]["image"]` as a PIL image object. Non-fast mode keeps the
+file-backed `obs["screen"]["path"]` behavior.
+
+### Default: QMP Screendump
+
+The default QEMU fast backend is QMP:
+
+```bash
+export GYM_ANYTHING_QEMU_FAST_IO_BACKEND=qmp
+```
+
+This is the stable default. It asks QEMU for a `screendump`, exchanges the
+frame through local scratch space, and decodes it in-process.
+
+When `fast_io=True`, the QEMU runner prefers local scratch under
+`/tmp/gym-anything-qemu-work` when there is enough free space. Override this
+with:
+
+```bash
+export GYM_ANYTHING_FAST_IO_WORK_DIR=/local/ssd/gym-anything-qemu-work
+```
+
+### Optional: D-Bus Display
+
+The D-Bus backend is faster because QEMU pushes display updates to a listener
+thread and the API returns the latest in-memory frame:
+
+```bash
+export GYM_ANYTHING_QEMU_FAST_IO_BACKEND=dbus
+```
+
+QEMU's D-Bus display backend requires `qemu-system-modules-opengl` inside the
+Apptainer QEMU image. If the configured image does not provide `-display dbus`,
+Gym Anything prepares a cached sandbox automatically on first use. The sandbox
+is built from `GYM_ANYTHING_QEMU_CONTAINER`, installs the missing QEMU display
+module and `dbus`, and is reused from:
+
+```text
+~/.cache/gym-anything/qemu/containers/
+```
+
+The first D-Bus run can therefore take longer and needs network access plus
+Apptainer fakeroot support. Disable automatic sandbox preparation if you want
+the runner to fail fast instead:
+
+```bash
+export GYM_ANYTHING_QEMU_DBUS_AUTO_INSTALL=0
+```
+
+Use a specific managed sandbox cache path with:
+
+```bash
+export GYM_ANYTHING_QEMU_DBUS_SANDBOX=/path/to/qemu-dbus-sandbox
+```
+
+You can also point directly at a prebuilt image:
+
+```bash
+export GYM_ANYTHING_QEMU_CONTAINER=docker://your-registry/qemu-dbus:latest
+export GYM_ANYTHING_QEMU_FAST_IO_BACKEND=dbus
+```
+
+Keep QMP as the default unless you need the lowest screenshot latency and the
+host can support the D-Bus runtime requirements.

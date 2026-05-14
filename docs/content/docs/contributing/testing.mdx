@@ -73,6 +73,7 @@ Use these when changing runner selection, compatibility reporting, or real execu
 python -m pytest \
   tests/test_compatibility.py \
   tests/test_doctor.py \
+  tests/test_qemu_dbus_fast_io.py \
   tests/test_runner_execution_contracts.py -q
 ```
 
@@ -88,12 +89,48 @@ GYM_ANYTHING_EXECUTION_RUNNERS=avf \
 python -m pytest tests/test_runner_execution_contracts.py -q
 ```
 
+## Screenshot Latency Benchmarks
+
+When changing QEMU screenshot capture, benchmark the integrated API boundary,
+not only runner internals:
+
+```bash
+PYTHONPATH=src GYM_ANYTHING_RUNNER=qemu \
+python benchmarks/cua_world/tools/measure_screenshot_latency.py \
+  --env-dir benchmarks/cua_world/environments/google_earth_env \
+  --task take_screenshot \
+  --samples 50 \
+  --warmup 10 \
+  --interleave \
+  --methods qmp_ppm,api_capture_observation,api_step_noop,api_step_screenshot \
+  --use-cache \
+  --cache-level post_task \
+  --use-savevm
+```
+
+To benchmark the optional D-Bus backend:
+
+```bash
+PYTHONPATH=src GYM_ANYTHING_RUNNER=qemu \
+GYM_ANYTHING_QEMU_FAST_IO_BACKEND=dbus \
+python benchmarks/cua_world/tools/measure_screenshot_latency.py \
+  --env-dir benchmarks/cua_world/environments/google_earth_env \
+  --task take_screenshot \
+  --samples 50 \
+  --warmup 10 \
+  --interleave \
+  --methods api_capture_observation,api_step_noop,api_step_screenshot,qmp_ppm \
+  --use-cache \
+  --cache-level post_task \
+  --use-savevm
+```
+
 ## Docs Checks
 
 For docs changes:
 
 ```bash
-cd docs-v2
+cd docs
 npm run build
 ```
 

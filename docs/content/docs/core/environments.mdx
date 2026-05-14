@@ -36,6 +36,40 @@ obs, reward, done, info = env.step([])
 env.close()
 ```
 
+## Fast I/O Observations
+
+QEMU environments can opt into runner-native screenshot capture at environment
+creation time:
+
+```python
+env = from_config(
+    "benchmarks/cua_world/environments/google_earth_env",
+    task_id="take_screenshot",
+    fast_io=True,
+)
+```
+
+With `fast_io=True`, screen observations return an in-process image object:
+
+```python
+obs = env.capture_observation()
+image = obs["screen"]["image"]
+```
+
+The same observation shape is returned by `step(...)`. In fast mode,
+`obs["screen"]["image"]` is a PIL image and the library does not write a
+`frame_XXXXX.png` file for every observation. Non-fast mode keeps the existing
+file-backed `obs["screen"]["path"]` behavior.
+
+For QEMU, the default fast backend is QMP screendump. To use the lower-latency
+D-Bus display backend, set:
+
+```bash
+export GYM_ANYTHING_QEMU_FAST_IO_BACKEND=dbus
+```
+
+See [Runners](/core/runners) for the QEMU runtime requirements.
+
 ## What `step(...)` Does
 
 `step(...)` sends actions to the environment and returns:
