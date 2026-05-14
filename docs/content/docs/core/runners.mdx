@@ -106,13 +106,20 @@ export GYM_ANYTHING_FAST_IO_WORK_DIR=/local/ssd/gym-anything-qemu-work
 
 ### QMP Fast Input
 
-Fast input uses QMP `input-send-event` for keyboard and mouse actions. The
-runner emits absolute pointer coordinates for move, click, double-click,
-right-click, drag, and scroll actions, and qcode key events for text and
-hotkeys. For click semantics, pointer movement, button down, and button up are
-sent as separate QMP commands; batching those into a single QMP command can be
-acknowledged quickly but still arrive at GTK before the new pointer position is
-used.
+Fast input uses QMP `input-send-event` for mouse actions. For Linux and Windows
+guests, `fast_io=True` also starts QEMU with an explicit xHCI USB keyboard and
+USB tablet. This makes the guest see standard virtual HID devices instead of
+relying on QEMU's default PS/2/VMMouse path.
+
+The runner emits absolute pointer coordinates for move, click, double-click,
+right-click, drag, and scroll actions. For click semantics, pointer movement,
+button down, and button up are sent as separate QMP commands so the guest sees
+ordered HID events through the virtual input devices.
+
+Keyboard input in the QMP fast path is experimental. It currently uses QMP
+`send-key` with a 5 ms hold time and a 10 ms gap between key submissions. These
+values are temporary safety margins around QEMU's asynchronous key-release
+scheduling; they are not the intended production correctness contract.
 
 Input latency benchmarks report two timed boundaries:
 
@@ -126,9 +133,15 @@ Input latency benchmarks report two timed boundaries:
 
 Use app-level evidence to prove that the target application consumed the event.
 The benchmark under `benchmarks/cua_world/tools/measure_input_latency.py`
-records saved gedit file contents for click, double-click, drag selection,
-triple-click, text, and hotkey behavior, plus contact-sheet screenshots for
-right-click menus and Google Earth zoom/drag behavior.
+records the guest input device list, XInput event counts, a Google Earth search
+field semantic readback, saved gedit file contents for click, double-click,
+drag selection, triple-click, text, and hotkey behavior, plus contact-sheet
+screenshots for right-click menus and Google Earth zoom/drag behavior.
+
+QEMU `savevm` snapshots capture device state. A snapshot created before a QEMU
+device-topology change can fail to load after fast input devices are added.
+Regenerate `savevm` checkpoints when changing QEMU devices; disk-only
+checkpoints do not serialize the live device state in the same way.
 
 `fast_io=True` removes the legacy fixed two-second post-action sleep and the
 default synchronous step-cycle wait from `env.step(...)`. Use explicit wait

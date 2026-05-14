@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
 import time
 from pathlib import Path
@@ -93,7 +94,7 @@ def _action_factories() -> dict[str, ActionFactory]:
         "drag": lambda: {"mouse": {"left_click_drag": [[760, 540], [1060, 540]]}},
         "scroll_down": lambda: {"mouse": {"move": [960, 540], "scroll": 3}},
         "scroll_up": lambda: {"mouse": {"move": [960, 540], "scroll": -3}},
-        "hotkey": lambda: {"keyboard": {"keys": ["ctrl", "shift", "f12"]}},
+        "hotkey": lambda: {"keyboard": {"keys": ["ctrl", "alt", "shift", "f24"]}},
         "text": lambda: {"keyboard": {"text": "FastInput42!"}},
     }
 
@@ -190,13 +191,104 @@ def _verify_pointer_position(env) -> dict[str, Any]:
     }
 
 
-def _verify_google_earth_visuals(env, evidence_dir: Path) -> dict[str, Any]:
-    runner = env._runner
+def _dismiss_google_earth_dialogs(runner) -> None:
     _ssh(
         runner,
-        "DISPLAY=:1 bash -lc 'for w in $(xdotool search --name \"Start-up Tips\" 2>/dev/null); do xdotool windowclose $w; done; true'",
+        (
+            "DISPLAY=:1 bash -lc '"
+            "for pattern in \"Start-up Tips\" \"Google Earth - New Folder\" \"New Folder\"; do "
+            "for w in $(xdotool search --name \"$pattern\" 2>/dev/null); do "
+            "xdotool windowclose $w 2>/dev/null || true; "
+            "done; "
+            "done; "
+            "xdotool key Escape 2>/dev/null || true'"
+        ),
         timeout=5,
     )
+
+
+def _collect_input_device_contract(env) -> dict[str, Any]:
+    runner = env._runner
+    _, xinput_list, _ = _ssh(runner, "DISPLAY=:1 xinput list --short", timeout=5)
+    _, proc_devices, _ = _ssh(runner, "cat /proc/bus/input/devices", timeout=5)
+    combined = f"{xinput_list}\n{proc_devices}".lower()
+    return {
+        "contract": "fast_io QMP input should enter the guest through standard virtual HID devices",
+        "xinput_list": xinput_list,
+        "proc_bus_input_devices": proc_devices,
+        "has_usb_keyboard": "usb keyboard" in combined,
+        "has_usb_tablet": "usb tablet" in combined,
+        "passed": "usb keyboard" in combined and "usb tablet" in combined,
+    }
+
+
+def _verify_google_earth_search_semantic(env, evidence_dir: Path) -> dict[str, Any]:
+    runner = env._runner
+    _dismiss_google_earth_dialogs(runner)
+    _, window_id, _ = _ssh(
+        runner,
+        (
+            "DISPLAY=:1 bash -lc "
+            "'xdotool search --onlyvisible --class google-earth-pro | tail -n 1 || "
+            "xdotool search --onlyvisible --name \"Google Earth\" | tail -n 1'"
+        ),
+        timeout=5,
+    )
+    if window_id:
+        _ssh(runner, f"DISPLAY=:1 xdotool windowactivate {window_id}", timeout=5)
+
+    search_point = [45, 31]
+    query = "giza-fast-input"
+    before_path = _save_image(env.capture_screenshot_image(), evidence_dir / "google_earth_search_before.png")
+    click_dispatch_ms = _inject_action_timed(runner, {"mouse": {"left_click": search_point}})
+    clear_dispatch_ms = _inject_action_timed(runner, {"keyboard": {"keys": ["ctrl", "a"]}})
+    backspace_dispatch_ms = _inject_action_timed(runner, {"keyboard": {"keys": ["backspace"]}})
+    text_dispatch_ms = _inject_action_timed(runner, {"keyboard": {"text": query}})
+    after_text_path = _save_image(env.capture_screenshot_image(), evidence_dir / "google_earth_search_after_text.png")
+    select_all_dispatch_ms = _inject_action_timed(runner, {"keyboard": {"keys": ["ctrl", "a"]}})
+    copy_dispatch_ms = _inject_action_timed(runner, {"keyboard": {"keys": ["ctrl", "c"]}})
+    _, clipboard, _ = _ssh(
+        runner,
+        (
+            "DISPLAY=:1 bash -lc '"
+            "if command -v xclip >/dev/null 2>&1; then xclip -selection clipboard -o; "
+            "elif command -v xsel >/dev/null 2>&1; then xsel -b -o; "
+            "else python3 - <<\"PY\"\n"
+            "try:\n"
+            "    import tkinter as tk\n"
+            "    root = tk.Tk()\n"
+            "    root.withdraw()\n"
+            "    print(root.clipboard_get(), end=\"\")\n"
+            "    root.destroy()\n"
+            "except Exception:\n"
+            "    pass\n"
+            "PY\n"
+            "fi'"
+        ),
+        timeout=5,
+    )
+    after_copy_path = _save_image(env.capture_screenshot_image(), evidence_dir / "google_earth_search_after_copy.png")
+    return {
+        "evidence_type": "semantic clipboard readback plus screenshots; no pixel-delta pass/fail",
+        "search_point": search_point,
+        "typed_query": query,
+        "clipboard_after_ctrl_a_ctrl_c": clipboard,
+        "click_dispatch_ms": click_dispatch_ms,
+        "clear_ctrl_a_dispatch_ms": clear_dispatch_ms,
+        "backspace_dispatch_ms": backspace_dispatch_ms,
+        "text_dispatch_ms": text_dispatch_ms,
+        "select_all_dispatch_ms": select_all_dispatch_ms,
+        "copy_dispatch_ms": copy_dispatch_ms,
+        "before": before_path,
+        "after_text": after_text_path,
+        "after_copy": after_copy_path,
+        "passed": clipboard == query,
+    }
+
+
+def _verify_google_earth_visuals(env, evidence_dir: Path) -> dict[str, Any]:
+    runner = env._runner
+    _dismiss_google_earth_dialogs(runner)
     time.sleep(0.2)
     _, window_id, _ = _ssh(
         runner,
@@ -351,11 +443,7 @@ def _verify_gedit_semantic_input(env, evidence_dir: Path) -> dict[str, Any]:
     }
     contact_items: list[tuple[str, str]] = []
 
-    _ssh(
-        runner,
-        "DISPLAY=:1 bash -lc 'for w in $(xdotool search --name \"Start-up Tips\" 2>/dev/null); do xdotool windowclose $w; done; true'",
-        timeout=5,
-    )
+    _dismiss_google_earth_dialogs(runner)
 
     for key, label, mouse_action, text_action, expected, timing_key in cases:
         _open_gedit_case(runner, guest_path, base_content)
@@ -460,6 +548,7 @@ def main() -> None:
         "task": args.task,
         "samples": args.samples,
         "warmup": args.warmup,
+        "backend": os.environ.get("GYM_ANYTHING_QEMU_FAST_IO_BACKEND", "qmp"),
         "actions": action_names,
         "timer_boundaries": {
             "runner_inject_action": (
@@ -486,13 +575,16 @@ def main() -> None:
         )
         env.set_episode_limits(max_steps=None, timeout_sec=None)
         results["reset_ms"] = (time.perf_counter_ns() - reset_start) / 1_000_000.0
-        results["latency"] = _benchmark_actions(env, action_names, args.samples, args.warmup)
+        _dismiss_google_earth_dialogs(env._runner)
         results["evidence"] = {
+            "input_device_contract": _collect_input_device_contract(env),
             "pointer_position": _verify_pointer_position(env),
-            "xinput_events": _verify_xinput_events(env),
+            "google_earth_search_semantic": _verify_google_earth_search_semantic(env, evidence_dir),
             "google_earth_visuals": _verify_google_earth_visuals(env, evidence_dir),
             "gedit_semantic_input": _verify_gedit_semantic_input(env, evidence_dir),
+            "xinput_events": _verify_xinput_events(env),
         }
+        results["latency"] = _benchmark_actions(env, action_names, args.samples, args.warmup)
     finally:
         env._finalized = True
         env.close()

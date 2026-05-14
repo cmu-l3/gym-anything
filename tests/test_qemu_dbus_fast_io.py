@@ -113,20 +113,40 @@ class QemuDbusFastIoTests(unittest.TestCase):
     def test_fast_qmp_input_encodes_text_and_hotkey(self) -> None:
         runner = self._runner()
 
-        with mock.patch.object(runner, "_qmp_send_input_events") as send:
+        with mock.patch.object(runner, "_qmp_send_key_combo") as send:
             runner._inject_action_via_qmp({"keyboard": {"text": "Az!\n", "keys": ["ctrl", "a"]}})
 
-        events = []
-        for call in send.call_args_list:
-            events.extend(call.args[0])
-        key_events = [event["data"] for event in events if event["type"] == "key"]
-        qcodes = [event["key"]["data"] for event in key_events]
-        self.assertIn("shift", qcodes)
-        self.assertIn("a", qcodes)
-        self.assertIn("z", qcodes)
-        self.assertIn("1", qcodes)
-        self.assertIn("ret", qcodes)
-        self.assertEqual(qcodes[-4:], ["ctrl", "a", "a", "ctrl"])
+        qcode_groups = [call.args[0] for call in send.call_args_list]
+        self.assertEqual(qcode_groups[:4], [["shift", "a"], ["z"], ["shift", "1"], ["ret"]])
+        self.assertEqual(qcode_groups[-1], ["ctrl", "a"])
+
+    def test_fast_qmp_keyboard_uses_experimental_send_key_pacing(self) -> None:
+        runner = self._runner()
+        client = mock.Mock()
+
+        with mock.patch.object(runner, "_get_qmp_client", return_value=client), \
+             mock.patch("gym_anything.runtime.runners.qemu_apptainer.time.sleep") as sleep:
+            runner._qmp_send_key_combo(["ctrl", "a"])
+
+        client.execute.assert_called_once_with(
+            "send-key",
+            {
+                "keys": [
+                    {"type": "qcode", "data": "ctrl"},
+                    {"type": "qcode", "data": "a"},
+                ],
+                "hold-time": 5,
+            },
+        )
+        sleep.assert_called_once_with(0.010)
+
+    def test_fast_qmp_text_key_groups_encode_shifted_characters(self) -> None:
+        runner = self._runner()
+
+        self.assertEqual(
+            runner._qmp_text_key_groups("Az!\n"),
+            [["shift", "a"], ["z"], ["shift", "1"], ["ret"]],
+        )
 
     def test_inject_action_uses_qmp_when_fast_io_is_enabled(self) -> None:
         runner = self._runner()
@@ -135,6 +155,47 @@ class QemuDbusFastIoTests(unittest.TestCase):
             runner.inject_action({"mouse": {"move": [1, 2]}})
 
         inject.assert_called_once_with({"mouse": {"move": [1, 2]}})
+
+    def test_linux_fast_io_qemu_command_adds_usb_hid_devices(self) -> None:
+        runner = self._runner()
+        runner.memory = "8G"
+        runner.cpus = 4
+        runner.enable_kvm = False
+        runner._build_container_prefix = lambda work_dir, disk: []
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work_dir = Path(tmp)
+            cmd = runner._build_qemu_cmd(
+                work_dir / "disk.qcow2",
+                vnc_port=5901,
+                ssh_port=2222,
+                work_dir=work_dir,
+            )
+
+        self.assertIn("qemu-xhci,id=fastio_xhci", cmd)
+        self.assertIn("usb-kbd,id=fastio_kbd,bus=fastio_xhci.0", cmd)
+        self.assertIn("usb-tablet,id=fastio_tablet,bus=fastio_xhci.0", cmd)
+
+    def test_linux_non_fast_io_qemu_command_keeps_legacy_input_devices(self) -> None:
+        runner = self._runner()
+        runner._fast_io = False
+        runner.memory = "8G"
+        runner.cpus = 4
+        runner.enable_kvm = False
+        runner._build_container_prefix = lambda work_dir, disk: []
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work_dir = Path(tmp)
+            cmd = runner._build_qemu_cmd(
+                work_dir / "disk.qcow2",
+                vnc_port=5901,
+                ssh_port=2222,
+                work_dir=work_dir,
+            )
+
+        self.assertNotIn("qemu-xhci,id=fastio_xhci", cmd)
+        self.assertNotIn("usb-kbd,id=fastio_kbd,bus=fastio_xhci.0", cmd)
+        self.assertNotIn("usb-tablet,id=fastio_tablet,bus=fastio_xhci.0", cmd)
 
 
 if __name__ == "__main__":

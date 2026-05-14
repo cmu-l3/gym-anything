@@ -779,6 +779,13 @@ class QemuApptainerRunner(BaseRunner):
         """Return the display device for Linux guests. Subclasses override for TCG."""
         return f"virtio-vga,xres={width},yres={height}"
 
+    def _fast_input_hid_args(self) -> List[str]:
+        return [
+            "-device", "qemu-xhci,id=fastio_xhci",
+            "-device", "usb-kbd,id=fastio_kbd,bus=fastio_xhci.0",
+            "-device", "usb-tablet,id=fastio_tablet,bus=fastio_xhci.0",
+        ]
+
     def _post_boot_settle_seconds(self) -> int:
         """Seconds to wait after desktop is ready for compositor to render.
         Subclasses override for TCG where software rendering is slow."""
@@ -885,6 +892,8 @@ class QemuApptainerRunner(BaseRunner):
                 "-netdev", f"user,id=net0,{port_forwards}",
                 "-boot", "c",
             ])
+            if self._fast_io:
+                cmd.extend(self._fast_input_hid_args())
         else:
             # Linux: Use virtio for better performance
             # Note: VirGL with egl-headless requires qemu-system-modules-opengl
@@ -904,6 +913,8 @@ class QemuApptainerRunner(BaseRunner):
                 "-netdev", f"user,id=net0,{port_forwards}",
                 "-boot", "c",
             ])
+            if self._fast_io:
+                cmd.extend(self._fast_input_hid_args())
 
         # Load VM state from snapshot (the correct way to restore savevm snapshots)
         if loadvm_snapshot:
@@ -1960,6 +1971,11 @@ class QemuApptainerRunner(BaseRunner):
     _QMP_POINTER_MAX = 0x7FFF
     _QMP_TEXT_CHUNK_EVENTS = 256
     _QMP_DRAG_STEPS = 8
+    # Experimental QMP keyboard pacing. These are temporary margins around
+    # QEMU's asynchronous send-key release scheduling, not a correctness
+    # contract for production input.
+    _QMP_EXPERIMENTAL_KEY_HOLD_MS = 5
+    _QMP_EXPERIMENTAL_KEY_GAP_SECONDS = 0.010
 
     _QMP_KEY_NAME_MAP = {
         "ctrl": "ctrl",
@@ -2170,11 +2186,40 @@ class QemuApptainerRunner(BaseRunner):
             groups.append(events)
         return groups
 
+    def _qmp_text_key_groups(self, text: str) -> List[List[str]]:
+        groups: List[List[str]] = []
+        for char in text:
+            if "a" <= char <= "z":
+                qcode, shifted = char, False
+            elif "A" <= char <= "Z":
+                qcode, shifted = char.lower(), True
+            else:
+                mapped = self._QMP_CHAR_KEY_MAP.get(char)
+                if mapped is None:
+                    raise ValueError(f"QMP fast input cannot type character {char!r}")
+                qcode, shifted = mapped
+            groups.append(["shift", qcode] if shifted else [qcode])
+        return groups
+
     def _qmp_text_events(self, text: str) -> List[Dict[str, Any]]:
         events: List[Dict[str, Any]] = []
         for group in self._qmp_text_event_groups(text):
             events.extend(group)
         return events
+
+    def _qmp_send_key_combo(self, qcodes: List[str]) -> None:
+        if not qcodes:
+            return
+        client = self._get_qmp_client()
+        client.execute(
+            "send-key",
+            {
+                "keys": [{"type": "qcode", "data": qcode} for qcode in qcodes],
+                "hold-time": self._QMP_EXPERIMENTAL_KEY_HOLD_MS,
+            },
+        )
+        time.sleep(self._QMP_EXPERIMENTAL_KEY_GAP_SECONDS)
+
 
     def _qmp_send_input_events(self, events: List[Dict[str, Any]]) -> None:
         if not events:
@@ -2278,13 +2323,15 @@ class QemuApptainerRunner(BaseRunner):
         if keyboard:
             if "text" in keyboard:
                 flush_events()
-                for group in self._qmp_text_event_groups(str(keyboard["text"])):
-                    self._qmp_send_input_events(group)
+                for group in self._qmp_text_key_groups(str(keyboard["text"])):
+                    self._qmp_send_key_combo(group)
             if "keys" in keyboard:
                 keys = keyboard["keys"]
                 if isinstance(keys, str):
                     keys = [keys]
-                events.extend(self._qmp_key_combo_events([str(key) for key in keys]))
+                qcodes = [self._normalize_qmp_key_name(str(key)) for key in keys]
+                flush_events()
+                self._qmp_send_key_combo(qcodes)
 
         flush_events()
 

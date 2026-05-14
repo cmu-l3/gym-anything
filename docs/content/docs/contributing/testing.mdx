@@ -129,15 +129,20 @@ python benchmarks/cua_world/tools/measure_screenshot_latency.py \
 
 When changing QEMU keyboard or mouse input, benchmark both the QMP dispatch
 boundary and the full `env.step(...)` boundary. The input benchmark also writes
-visual and guest-side evidence artifacts for move, click, right-click,
-middle-click, double-click, triple-click, drag, scroll, text, and hotkey
-behavior.
+guest device-list evidence, XInput event evidence, semantic application checks,
+and review screenshots for move, click, right-click, middle-click,
+double-click, triple-click, drag, scroll, text, and hotkey behavior.
+
+The QMP keyboard fast path is currently experimental. It uses QMP `send-key`
+with temporary 5 ms hold / 10 ms inter-key pacing, so passing latency numbers do
+not by themselves prove production keyboard correctness.
 
 The dispatch timing starts before `runner.inject_action(...)` and ends after
 QMP acknowledges the command sequence, so it includes socket flush and QMP
 response time. It does not claim that the target app has consumed the event.
-For app-consumption evidence, inspect the generated gedit semantic checks and
-contact-sheet screenshots:
+For app-consumption evidence, inspect the generated Google Earth search
+readback, gedit semantic checks, and contact-sheet screenshots. Do not use raw
+pixel deltas as pass/fail evidence for input correctness:
 
 ```bash
 PYTHONPATH=src GYM_ANYTHING_RUNNER=qemu \
@@ -153,6 +158,11 @@ python benchmarks/cua_world/tools/measure_input_latency.py \
   --output-json benchmarks/cua_world/environments/google_earth_env/artifacts/fast_input_latency_qmp_dbus.json \
   --evidence-dir benchmarks/cua_world/environments/google_earth_env/artifacts/fast_input_evidence
 ```
+
+When validating QEMU device-topology changes, avoid reusing old `savevm`
+checkpoints. QEMU memory snapshots include device state, so an old snapshot can
+fail to load after adding or removing input devices. Run without `--use-savevm`
+or regenerate the checkpoint.
 
 ## Docs Checks
 
