@@ -66,7 +66,8 @@ This reflects our current runner behavior.
 
 ## QEMU Fast I/O
 
-QEMU supports `fast_io=True` for low-latency screenshot observations:
+QEMU supports `fast_io=True` for low-latency screenshot observations and
+QMP-backed keyboard/mouse input:
 
 ```python
 from gym_anything import from_config
@@ -79,8 +80,10 @@ env = from_config(
 ```
 
 In fast mode, `env.capture_observation()` and `env.step(...)` return
-`obs["screen"]["image"]` as a PIL image object. Non-fast mode keeps the
-file-backed `obs["screen"]["path"]` behavior.
+`obs["screen"]["image"]` as a PIL image object. `env.step(...)` also sends
+mouse and keyboard actions through QMP instead of the guest SSH/PyAutoGUI path.
+Non-fast mode keeps the file-backed `obs["screen"]["path"]` behavior and the
+legacy input path.
 
 ### Default: QMP Screendump
 
@@ -99,6 +102,47 @@ with:
 
 ```bash
 export GYM_ANYTHING_FAST_IO_WORK_DIR=/local/ssd/gym-anything-qemu-work
+```
+
+### QMP Fast Input
+
+Fast input uses QMP `input-send-event` for keyboard and mouse actions. The
+runner emits absolute pointer coordinates for move, click, double-click,
+right-click, drag, and scroll actions, and qcode key events for text and
+hotkeys. For click semantics, pointer movement, button down, and button up are
+sent as separate QMP commands; batching those into a single QMP command can be
+acknowledged quickly but still arrive at GTK before the new pointer position is
+used.
+
+Input latency benchmarks report two timed boundaries:
+
+- `runner_inject_action`: starts before `runner.inject_action(...)` and ends
+  after QMP acknowledges the command sequence. This includes the QMP socket
+  write/flush and QMP response, but it is a dispatch boundary, not an
+  app-consumed boundary.
+- `env_step`: starts before `env.step([action], wait_between_actions=0.0)` and
+  ends after the observation is returned. In fast mode this includes QMP input
+  dispatch and fast screenshot capture.
+
+Use app-level evidence to prove that the target application consumed the event.
+The benchmark under `benchmarks/cua_world/tools/measure_input_latency.py`
+records saved gedit file contents for click, double-click, drag selection,
+triple-click, text, and hotkey behavior, plus contact-sheet screenshots for
+right-click menus and Google Earth zoom/drag behavior.
+
+`fast_io=True` removes the legacy fixed two-second post-action sleep and the
+default synchronous step-cycle wait from `env.step(...)`. Use explicit wait
+actions when a task needs app-level settling:
+
+```python
+env.step([{"action": "wait", "time": 0.5}])
+```
+
+You can also restore a fixed fast-mode settle delay with environment variables:
+
+```bash
+export GYM_ANYTHING_FAST_IO_ACTION_SETTLE_MS=25
+export GYM_ANYTHING_FAST_IO_STEP_CYCLE_MS=50
 ```
 
 ### Optional: D-Bus Display

@@ -229,6 +229,48 @@ class RuntimeBehaviorTests(unittest.TestCase):
             finally:
                 env.close()
 
+    def test_fast_io_step_does_not_apply_default_action_sleeps(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FastFakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None, fast_io=True)
+
+            try:
+                env.reset(seed=1)
+                with mock.patch.dict("os.environ", {}, clear=False), \
+                     mock.patch("gym_anything.env.time.sleep") as sleep_mock:
+                    env.step([{"mouse": {"move": [1, 2]}}])
+
+                sleep_mock.assert_not_called()
+                self.assertEqual(runner.injected_actions, [{"mouse": {"move": [1, 2]}}])
+            finally:
+                env.close()
+
+    def test_fast_io_step_uses_explicit_settle_env_vars(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FastFakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None, fast_io=True)
+
+            try:
+                env.reset(seed=1)
+                with mock.patch.dict(
+                    "os.environ",
+                    {
+                        "GYM_ANYTHING_FAST_IO_ACTION_SETTLE_MS": "7",
+                        "GYM_ANYTHING_FAST_IO_STEP_CYCLE_MS": "11",
+                    },
+                    clear=False,
+                ), mock.patch("gym_anything.env.time.sleep") as sleep_mock:
+                    env.step([{"mouse": {"move": [1, 2]}}])
+
+                self.assertEqual(
+                    [call.args[0] for call in sleep_mock.call_args_list],
+                    [0.007, 0.011],
+                )
+            finally:
+                env.close()
+
     def test_close_runs_post_task_hook_for_unfinished_episode(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runner = _FakeRunner()

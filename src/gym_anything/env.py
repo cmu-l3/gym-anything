@@ -680,10 +680,13 @@ class GymAnythingEnv:
             if wait_between_actions and action_num < len(actions) - 1:
                 time.sleep(wait_between_actions)
         if injected_actions:
-            time.sleep(2)
-        # For synchronous envs, wait for the step cycle
-        if injected_actions and self.env_spec.synchronous and self.env_spec.step_cycle_ms:
-            time.sleep(self.env_spec.step_cycle_ms / 1000.0)
+            settle_seconds = self._post_action_settle_seconds()
+            if settle_seconds > 0:
+                time.sleep(settle_seconds)
+        # For synchronous envs, wait for the step cycle unless fast I/O asked for immediate observation.
+        cycle_seconds = self._step_cycle_settle_seconds(injected_actions)
+        if cycle_seconds > 0:
+            time.sleep(cycle_seconds)
         obs: Dict[str, Any] = self._capture_observation()
 
         # Log step
@@ -742,6 +745,26 @@ class GymAnythingEnv:
             reward = self._final_reward(summary, current_reward=reward)
         self._step_idx += 1
         return obs, reward, done, info
+
+    def _post_action_settle_seconds(self) -> float:
+        if not self.fast_io:
+            return 2.0
+        value = os.environ.get("GYM_ANYTHING_FAST_IO_ACTION_SETTLE_MS", "0")
+        try:
+            return max(0.0, float(value) / 1000.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _step_cycle_settle_seconds(self, injected_actions: int) -> float:
+        if not injected_actions or not self.env_spec.synchronous or not self.env_spec.step_cycle_ms:
+            return 0.0
+        if self.fast_io:
+            value = os.environ.get("GYM_ANYTHING_FAST_IO_STEP_CYCLE_MS", "0")
+            try:
+                return max(0.0, float(value) / 1000.0)
+            except (TypeError, ValueError):
+                return 0.0
+        return self.env_spec.step_cycle_ms / 1000.0
 
     def _parse_control_action(self, action: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if not isinstance(action, dict):

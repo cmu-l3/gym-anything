@@ -1957,9 +1957,116 @@ class QemuApptainerRunner(BaseRunner):
         "f9": "f9", "f10": "f10", "f11": "f11", "f12": "f12",
     }
 
+    _QMP_POINTER_MAX = 0x7FFF
+    _QMP_TEXT_CHUNK_EVENTS = 256
+    _QMP_DRAG_STEPS = 8
+
+    _QMP_KEY_NAME_MAP = {
+        "ctrl": "ctrl",
+        "control": "ctrl",
+        "alt": "alt",
+        "shift": "shift",
+        "super": "meta_l",
+        "win": "meta_l",
+        "meta": "meta_l",
+        "command": "meta_l",
+        "cmd": "meta_l",
+        "enter": "ret",
+        "return": "ret",
+        "esc": "esc",
+        "escape": "esc",
+        "backspace": "backspace",
+        "delete": "delete",
+        "del": "delete",
+        "tab": "tab",
+        "space": "spc",
+        "up": "up",
+        "down": "down",
+        "left": "left",
+        "right": "right",
+        "home": "home",
+        "end": "end",
+        "pageup": "pgup",
+        "pagedown": "pgdn",
+        "pgup": "pgup",
+        "pgdn": "pgdn",
+        "insert": "insert",
+        "ins": "insert",
+        "plus": "equal",
+        "minus": "minus",
+        "comma": "comma",
+        "period": "dot",
+        "dot": "dot",
+        "slash": "slash",
+        "backslash": "backslash",
+        "semicolon": "semicolon",
+        "apostrophe": "apostrophe",
+        "quote": "apostrophe",
+        "grave": "grave_accent",
+        "backtick": "grave_accent",
+        "f1": "f1", "f2": "f2", "f3": "f3", "f4": "f4",
+        "f5": "f5", "f6": "f6", "f7": "f7", "f8": "f8",
+        "f9": "f9", "f10": "f10", "f11": "f11", "f12": "f12",
+    }
+
+    _QMP_CHAR_KEY_MAP = {
+        " ": ("spc", False),
+        "\n": ("ret", False),
+        "\r": ("ret", False),
+        "\t": ("tab", False),
+        "`": ("grave_accent", False),
+        "~": ("grave_accent", True),
+        "1": ("1", False),
+        "!": ("1", True),
+        "2": ("2", False),
+        "@": ("2", True),
+        "3": ("3", False),
+        "#": ("3", True),
+        "4": ("4", False),
+        "$": ("4", True),
+        "5": ("5", False),
+        "%": ("5", True),
+        "6": ("6", False),
+        "^": ("6", True),
+        "7": ("7", False),
+        "&": ("7", True),
+        "8": ("8", False),
+        "*": ("8", True),
+        "9": ("9", False),
+        "(": ("9", True),
+        "0": ("0", False),
+        ")": ("0", True),
+        "-": ("minus", False),
+        "_": ("minus", True),
+        "=": ("equal", False),
+        "+": ("equal", True),
+        "[": ("bracket_left", False),
+        "{": ("bracket_left", True),
+        "]": ("bracket_right", False),
+        "}": ("bracket_right", True),
+        "\\": ("backslash", False),
+        "|": ("backslash", True),
+        ";": ("semicolon", False),
+        ":": ("semicolon", True),
+        "'": ("apostrophe", False),
+        '"': ("apostrophe", True),
+        ",": ("comma", False),
+        "<": ("comma", True),
+        ".": ("dot", False),
+        ">": ("dot", True),
+        "/": ("slash", False),
+        "?": ("slash", True),
+    }
+
     def _normalize_key_name(self, key: str) -> str:
         """Normalize key name for pyautogui compatibility."""
         return self._KEY_NAME_MAP.get(key.lower(), key.lower())
+
+    def _normalize_qmp_key_name(self, key: str) -> str:
+        normalized = self._QMP_KEY_NAME_MAP.get(key.lower(), key.lower())
+        if len(normalized) == 1:
+            return normalized.lower()
+        return normalized
 
     def _build_pyautogui_script(self, commands: List[str]) -> str:
         """Build a pyautogui script from a list of commands."""
@@ -1993,6 +2100,194 @@ class QemuApptainerRunner(BaseRunner):
 
         self._ssh_command(cmd, timeout=timeout)
 
+    def _qmp_key_event(self, qcode: str, down: bool) -> Dict[str, Any]:
+        return {
+            "type": "key",
+            "data": {
+                "down": down,
+                "key": {"type": "qcode", "data": qcode},
+            },
+        }
+
+    def _qmp_button_event(self, button: str, down: bool) -> Dict[str, Any]:
+        return {
+            "type": "btn",
+            "data": {"down": down, "button": button},
+        }
+
+    def _qmp_abs_event(self, axis: str, value: int) -> Dict[str, Any]:
+        return {
+            "type": "abs",
+            "data": {"axis": axis, "value": value},
+        }
+
+    def _qmp_pointer_value(self, coordinate: int, axis_size: int) -> int:
+        if axis_size <= 1:
+            return 0
+        clipped = max(0, min(int(coordinate), axis_size - 1))
+        return round(clipped * self._QMP_POINTER_MAX / (axis_size - 1))
+
+    def _qmp_move_events(self, x: int, y: int) -> List[Dict[str, Any]]:
+        width, height = self.resolution
+        return [
+            self._qmp_abs_event("x", self._qmp_pointer_value(x, width)),
+            self._qmp_abs_event("y", self._qmp_pointer_value(y, height)),
+        ]
+
+    def _qmp_key_tap_events(self, qcode: str) -> List[Dict[str, Any]]:
+        return [
+            self._qmp_key_event(qcode, True),
+            self._qmp_key_event(qcode, False),
+        ]
+
+    def _qmp_key_combo_events(self, keys: List[str]) -> List[Dict[str, Any]]:
+        qcodes = [self._normalize_qmp_key_name(str(key)) for key in keys]
+        events: List[Dict[str, Any]] = []
+        for qcode in qcodes:
+            events.append(self._qmp_key_event(qcode, True))
+        for qcode in reversed(qcodes):
+            events.append(self._qmp_key_event(qcode, False))
+        return events
+
+    def _qmp_text_event_groups(self, text: str) -> List[List[Dict[str, Any]]]:
+        groups: List[List[Dict[str, Any]]] = []
+        for char in text:
+            if "a" <= char <= "z":
+                qcode, shifted = char, False
+            elif "A" <= char <= "Z":
+                qcode, shifted = char.lower(), True
+            else:
+                mapped = self._QMP_CHAR_KEY_MAP.get(char)
+                if mapped is None:
+                    raise ValueError(f"QMP fast input cannot type character {char!r}")
+                qcode, shifted = mapped
+            events: List[Dict[str, Any]] = []
+            if shifted:
+                events.append(self._qmp_key_event("shift", True))
+            events.extend(self._qmp_key_tap_events(qcode))
+            if shifted:
+                events.append(self._qmp_key_event("shift", False))
+            groups.append(events)
+        return groups
+
+    def _qmp_text_events(self, text: str) -> List[Dict[str, Any]]:
+        events: List[Dict[str, Any]] = []
+        for group in self._qmp_text_event_groups(text):
+            events.extend(group)
+        return events
+
+    def _qmp_send_input_events(self, events: List[Dict[str, Any]]) -> None:
+        if not events:
+            return
+        client = self._get_qmp_client()
+        for index in range(0, len(events), self._QMP_TEXT_CHUNK_EVENTS):
+            client.execute("input-send-event", {"events": events[index:index + self._QMP_TEXT_CHUNK_EVENTS]})
+
+    def _inject_action_via_qmp(self, action: Dict[str, Any]) -> None:
+        events: List[Dict[str, Any]] = []
+
+        def flush_events() -> None:
+            nonlocal events
+            if events:
+                self._qmp_send_input_events(events)
+                events = []
+
+        def send_pointer_move(x: int, y: int) -> None:
+            events.extend(self._qmp_move_events(int(x), int(y)))
+            flush_events()
+
+        def send_button_tap(button: str) -> None:
+            events.append(self._qmp_button_event(button, True))
+            flush_events()
+            events.append(self._qmp_button_event(button, False))
+            flush_events()
+
+        mouse = action.get("mouse")
+        if mouse:
+            if "move" in mouse:
+                x, y = mouse["move"]
+                send_pointer_move(int(x), int(y))
+            if "left_click" in mouse:
+                x, y = mouse["left_click"]
+                send_pointer_move(int(x), int(y))
+                send_button_tap("left")
+            if "right_click" in mouse:
+                x, y = mouse["right_click"]
+                send_pointer_move(int(x), int(y))
+                send_button_tap("right")
+            if "middle_click" in mouse:
+                x, y = mouse["middle_click"]
+                send_pointer_move(int(x), int(y))
+                send_button_tap("middle")
+            if "double_click" in mouse:
+                x, y = mouse["double_click"]
+                send_pointer_move(int(x), int(y))
+                for _ in range(2):
+                    send_button_tap("left")
+            if "triple_click" in mouse:
+                x, y = mouse["triple_click"]
+                send_pointer_move(int(x), int(y))
+                for _ in range(3):
+                    send_button_tap("left")
+            if "left_click_drag" in mouse:
+                (x1, y1), (x2, y2) = mouse["left_click_drag"]
+                send_pointer_move(int(x1), int(y1))
+                events.append(self._qmp_button_event("left", True))
+                flush_events()
+                for step in range(1, self._QMP_DRAG_STEPS + 1):
+                    x = int(x1 + (x2 - x1) * step / self._QMP_DRAG_STEPS)
+                    y = int(y1 + (y2 - y1) * step / self._QMP_DRAG_STEPS)
+                    events.extend(self._qmp_move_events(x, y))
+                flush_events()
+                events.append(self._qmp_button_event("left", False))
+                flush_events()
+            if "right_click_drag" in mouse:
+                (x1, y1), (x2, y2) = mouse["right_click_drag"]
+                send_pointer_move(int(x1), int(y1))
+                events.append(self._qmp_button_event("right", True))
+                flush_events()
+                for step in range(1, self._QMP_DRAG_STEPS + 1):
+                    x = int(x1 + (x2 - x1) * step / self._QMP_DRAG_STEPS)
+                    y = int(y1 + (y2 - y1) * step / self._QMP_DRAG_STEPS)
+                    events.extend(self._qmp_move_events(x, y))
+                flush_events()
+                events.append(self._qmp_button_event("right", False))
+                flush_events()
+            buttons = mouse.get("buttons", {})
+            if buttons.get("left_down"):
+                events.append(self._qmp_button_event("left", True))
+            if buttons.get("left_up"):
+                events.append(self._qmp_button_event("left", False))
+            if buttons.get("right_down"):
+                events.append(self._qmp_button_event("right", True))
+            if buttons.get("right_up"):
+                events.append(self._qmp_button_event("right", False))
+            if buttons.get("middle_down"):
+                events.append(self._qmp_button_event("middle", True))
+            if buttons.get("middle_up"):
+                events.append(self._qmp_button_event("middle", False))
+            flush_events()
+            if "scroll" in mouse:
+                dy = int(mouse["scroll"])
+                button = "wheel-down" if dy > 0 else "wheel-up"
+                for _ in range(abs(dy)):
+                    events.extend([self._qmp_button_event(button, True), self._qmp_button_event(button, False)])
+                flush_events()
+
+        keyboard = action.get("keyboard")
+        if keyboard:
+            if "text" in keyboard:
+                flush_events()
+                for group in self._qmp_text_event_groups(str(keyboard["text"])):
+                    self._qmp_send_input_events(group)
+            if "keys" in keyboard:
+                keys = keyboard["keys"]
+                if isinstance(keys, str):
+                    keys = [keys]
+                events.extend(self._qmp_key_combo_events([str(key) for key in keys]))
+
+        flush_events()
+
     def inject_action(self, action: Dict[str, Any]) -> None:
         """Inject keyboard/mouse actions via pyautogui or ADB.
 
@@ -2000,6 +2295,10 @@ class QemuApptainerRunner(BaseRunner):
         On Android: Uses ADB input commands.
         On Linux: Uses pyautogui over SSH with DISPLAY=:1.
         """
+        if self._fast_io and not self.is_android:
+            self._inject_action_via_qmp(action)
+            return
+
         # Windows: Use the pyautogui client (TCP server protocol)
         if self.is_windows and self._pyautogui_client:
             self._inject_action_via_client(action)
