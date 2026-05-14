@@ -260,6 +260,7 @@ class QemuApptainerRunner(BaseRunner):
         self._qmp_client: Optional[_QMPClient] = None
         self._fast_io_dir: Optional[Path] = None
         self._fast_io_container_dir: Optional[Path] = None
+        self._dbus_display = None
         self._work_dir: Optional[Path] = None
         self._instance_qcow2: Optional[Path] = None
         self._artifacts_root = os.path.abspath(spec.recording.output_dir)
@@ -619,6 +620,25 @@ class QemuApptainerRunner(BaseRunner):
         host_path.mkdir(parents=True, exist_ok=True)
         return host_path, host_path
 
+    def _fast_io_backend(self) -> str:
+        return os.environ.get("GYM_ANYTHING_QEMU_FAST_IO_BACKEND", "qmp").strip().lower()
+
+    def _display_backend_arg(self, work_dir: Path) -> str:
+        if not self._fast_io or self._fast_io_backend() != "dbus":
+            return "none"
+        if self._dbus_display is None:
+            from .qemu_dbus_display import QemuDbusDisplayCapture
+
+            self._dbus_display = QemuDbusDisplayCapture(work_dir)
+            self._dbus_display.start_bus()
+        return f"dbus,addr={self._dbus_display.bus_address}"
+
+    def _start_fast_io_display_listener(self) -> None:
+        if self._fast_io and self._fast_io_backend() == "dbus":
+            if self._dbus_display is None:
+                raise RuntimeError("QEMU D-Bus display was not initialized")
+            self._dbus_display.start_listener()
+
     def _get_accel_args(self) -> List[str]:
         """Return QEMU acceleration arguments. Subclasses override for HVF etc."""
         if self.enable_kvm:
@@ -657,6 +677,7 @@ class QemuApptainerRunner(BaseRunner):
 
         # Use virtio-gpu with specific resolution for proper display
         width, height = self.resolution
+        display_backend = self._display_backend_arg(work_dir)
 
         # Build netdev with port forwards
         if self.is_android:
@@ -689,7 +710,7 @@ class QemuApptainerRunner(BaseRunner):
                 "-cdrom", str(iso_path),
                 "-device", f"virtio-vga,xres={width},yres={height}",
                 "-vnc", f":{vnc_display},password=on",
-                "-display", "none",
+                "-display", display_backend,
                 "-monitor", "stdio",
                 "-device", "virtio-net-pci,netdev=net0",
                 "-netdev", f"user,id=net0,{port_forwards}",
@@ -731,7 +752,7 @@ class QemuApptainerRunner(BaseRunner):
                 # Display with virtio-vga
                 "-device", "virtio-vga",
                 "-vnc", f":{vnc_display},password=on",
-                "-display", "none",
+                "-display", display_backend,
                 "-monitor", "stdio",
                 # Network with virtio
                 "-device", "virtio-net-pci,netdev=net0",
@@ -746,7 +767,6 @@ class QemuApptainerRunner(BaseRunner):
             # GPU devices are still passed through for applications that
             # access them directly (e.g., DaVinci Resolve uses OpenCL).
             display_device = self._get_linux_display_device(width, height)
-            display_backend = "none"
 
             cmd.extend([
                 "-drive", f"file={disk_abs},format=qcow2,if=virtio",
@@ -779,6 +799,7 @@ class QemuApptainerRunner(BaseRunner):
                 cmd, stdin=subprocess.PIPE, stdout=lf, stderr=subprocess.STDOUT,
                 cwd=str(self._work_dir), preexec_fn=os.setsid
             )
+        self._start_fast_io_display_listener()
 
         # Set VNC password via QEMU monitor (required for macOS Screen Sharing compatibility)
         self._set_vnc_password()
@@ -1743,6 +1764,10 @@ class QemuApptainerRunner(BaseRunner):
         if self._qmp_client:
             self._qmp_client.close()
             self._qmp_client = None
+
+        if self._dbus_display:
+            self._dbus_display.stop()
+            self._dbus_display = None
         
         if self._process and self._process.poll() is None:
             try:
@@ -2199,6 +2224,10 @@ class QemuApptainerRunner(BaseRunner):
     def capture_screenshot_image(self):
         """Capture the display as a PIL Image without guest SSH, ffmpeg, or VNC."""
         if self._fast_io:
+            if self._fast_io_backend() == "dbus":
+                if self._dbus_display is None:
+                    raise RuntimeError("QEMU D-Bus display capture is not initialized")
+                return self._dbus_display.capture_image()
             image_format = os.environ.get("GYM_ANYTHING_QEMU_SCREENSHOT_FORMAT", "ppm")
             parser = os.environ.get("GYM_ANYTHING_QEMU_SCREENSHOT_PARSER", "pil")
             return self._capture_screenshot_image_qmp(image_format=image_format, parser=parser)
