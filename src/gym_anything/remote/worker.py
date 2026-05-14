@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import argparse
 import atexit
+import base64
+import io
 import json
 import logging
 import os
@@ -353,17 +355,18 @@ class EnvironmentManager:
                           env_dir: Optional[str] = None,
                           task_id: Optional[str] = None,
                           metadata: Optional[Dict[str, Any]] = None,
-                          verifier_env: Optional[Dict[str, Any]] = None) -> str:
+                          verifier_env: Optional[Dict[str, Any]] = None,
+                          fast_io: bool = False) -> str:
         """Create a new environment instance and return its ID."""
         env_id = str(uuid.uuid4())
 
         try:
             if env_dir:
-                env = from_config(env_dir, task_id=task_id)
+                env = from_config(env_dir, task_id=task_id, fast_io=fast_io)
             else:
                 env_spec = EnvSpec.from_dict(env_spec_dict) if env_spec_dict else None
                 task_spec = TaskSpec.from_dict(task_spec_dict) if task_spec_dict else None
-                env = make(env_spec, task_spec)
+                env = make(env_spec, task_spec, fast_io=fast_io)
 
             if verifier_env:
                 env.set_verifier_overrides(verifier_env)
@@ -644,6 +647,17 @@ heartbeat_manager: Optional[HeartbeatManager] = None
 # Serialization Helpers
 # =============================================================================
 
+def _serialize_image_object(image: Any) -> Dict[str, Any]:
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return {
+        "format": "png",
+        "png_b64": base64.b64encode(buffer.getvalue()).decode("ascii"),
+        "resolution": [image.size[0], image.size[1]],
+        "mode": image.mode,
+    }
+
+
 def serialize_observation(obs: Dict[str, Any]) -> Dict[str, Any]:
     """Serialize observation for JSON response, marking remote paths."""
     serialized = {}
@@ -652,6 +666,9 @@ def serialize_observation(obs: Dict[str, Any]) -> Dict[str, Any]:
             serialized[key] = dict(value)
             if "path" in value:
                 serialized[key]["remote"] = True
+            image = serialized[key].pop("image", None)
+            if image is not None:
+                serialized[key].update(_serialize_image_object(image))
         else:
             serialized[key] = value
     return serialized
@@ -665,6 +682,8 @@ def serialize_response(data: Any) -> Any:
         return [serialize_response(item) for item in data]
     elif isinstance(data, Path):
         return str(data)
+    elif hasattr(data, "save") and hasattr(data, "size") and hasattr(data, "mode"):
+        return _serialize_image_object(data)
     elif hasattr(data, '__dict__'):
         return serialize_response(vars(data))
     else:
@@ -738,6 +757,7 @@ def create_environment():
         task_id = data.get("task_id")
         metadata = data.get("metadata", {})
         verifier_env = data.get("verifier_env") or {}
+        fast_io = bool(data.get("fast_io", False))
 
         env_id = env_manager.create_environment(
             env_spec_dict=env_spec_dict,
@@ -746,6 +766,7 @@ def create_environment():
             task_id=task_id,
             metadata=metadata,
             verifier_env=verifier_env,
+            fast_io=fast_io,
         )
 
         return jsonify({"env_id": env_id}), 201

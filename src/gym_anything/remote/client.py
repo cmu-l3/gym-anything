@@ -89,7 +89,8 @@ class RemoteGymEnv:
                  task_spec: Optional[Union[TaskSpec, Dict[str, Any]]] = None,
                  env_dir: Optional[str] = None, task_id: Optional[str] = None,
                  timeout: int = 300, worker_reset_policy: Optional[str] = "core",
-                 verifier_env: Optional[Dict[str, Any]] = None):
+                 verifier_env: Optional[Dict[str, Any]] = None,
+                 fast_io: bool = False):
         """Initialize remote environment client.
         
         Args:
@@ -103,6 +104,7 @@ class RemoteGymEnv:
                 "core" so remote reset matches local reset behavior.
             verifier_env: Optional per-environment verifier/VLM overrides sent
                 to the worker. Defaults to the current process verifier env.
+            fast_io: Request runner-native low-latency I/O paths.
         """
         self.remote_url = remote_url.rstrip('/')
         self.timeout = timeout
@@ -114,6 +116,7 @@ class RemoteGymEnv:
         self._timeout_sec_override: Optional[int] = None
         self._closed = False
         self.worker_reset_policy = worker_reset_policy
+        self.fast_io = bool(fast_io)
         self.verifier_env = (
             _capture_verifier_env()
             if verifier_env is None
@@ -168,6 +171,8 @@ class RemoteGymEnv:
 
         if self.verifier_env:
             data["verifier_env"] = self.verifier_env
+        if self.fast_io:
+            data["fast_io"] = True
 
         # Hint the master at which runner this env needs so it can route to a
         # worker that advertises support. Best-effort: when the spec doesn't
@@ -360,6 +365,10 @@ class RemoteGymEnv:
         
         result = response.json()
         return result["observation"]
+
+    def capture_screenshot_image(self):
+        """Remote screenshot object capture is not available over JSON."""
+        raise NotImplementedError("capture_screenshot_image requires a local GymAnythingEnv")
 
     def _capture_observation(self) -> Dict[str, Any]:
         """Compatibility shim for older callers using the private method."""
@@ -597,7 +606,8 @@ class RemoteGymEnv:
     def from_config(cls, remote_url: str, env_dir: Union[str, os.PathLike],
                     task_id: Optional[str] = None, timeout: int = 300,
                     worker_reset_policy: Optional[str] = "core",
-                    verifier_env: Optional[Dict[str, Any]] = None) -> RemoteGymEnv:
+                    verifier_env: Optional[Dict[str, Any]] = None,
+                    fast_io: bool = False) -> RemoteGymEnv:
         """Create remote environment from config directory.
         
         This mirrors the gym_anything.api.from_config() interface.
@@ -609,6 +619,7 @@ class RemoteGymEnv:
             timeout: Request timeout in seconds
             worker_reset_policy: Worker-local post-reset policy
             verifier_env: Optional per-environment verifier/VLM overrides
+            fast_io: Request runner-native low-latency I/O paths.
             
         Returns:
             RemoteGymEnv instance
@@ -620,13 +631,15 @@ class RemoteGymEnv:
             timeout=timeout,
             worker_reset_policy=worker_reset_policy,
             verifier_env=verifier_env,
+            fast_io=fast_io,
         )
     
     @classmethod
     def make(cls, remote_url: str, env: Union[str, os.PathLike, Dict[str, Any], EnvSpec],
              task: Optional[Union[str, os.PathLike, Dict[str, Any], TaskSpec]] = None,
              timeout: int = 300, worker_reset_policy: Optional[str] = "core",
-             verifier_env: Optional[Dict[str, Any]] = None) -> RemoteGymEnv:
+             verifier_env: Optional[Dict[str, Any]] = None,
+             fast_io: bool = False) -> RemoteGymEnv:
         """Create remote environment from spec.
         
         This mirrors the gym_anything.api.make() interface.
@@ -638,6 +651,7 @@ class RemoteGymEnv:
             timeout: Request timeout in seconds
             worker_reset_policy: Worker-local post-reset policy
             verifier_env: Optional per-environment verifier/VLM overrides
+            fast_io: Request runner-native low-latency I/O paths.
             
         Returns:
             RemoteGymEnv instance
@@ -658,6 +672,7 @@ class RemoteGymEnv:
             timeout=timeout,
             worker_reset_policy=worker_reset_policy,
             verifier_env=verifier_env,
+            fast_io=fast_io,
         )
     
     def __repr__(self) -> str:

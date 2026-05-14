@@ -35,11 +35,22 @@ class GymAnythingEnv:
     observation dicts keyed by modality (e.g., `screen`, `audio`, `ui_tree`).
     """
 
-    def __init__(self, env_spec: EnvSpec, task_spec: Optional[TaskSpec] = None):
+    def __init__(
+        self,
+        env_spec: EnvSpec,
+        task_spec: Optional[TaskSpec] = None,
+        *,
+        fast_io: bool = False,
+    ):
         self.env_spec = env_spec
         self.task_spec = task_spec
+        self.fast_io = bool(fast_io)
         self._reporter = None
         self._runner: BaseRunner = self._select_runner(env_spec)
+        if self.fast_io:
+            if not self._runner.supports_fast_io():
+                raise RuntimeError(f"{self.runner_name} does not support fast_io=True")
+            self._runner.set_fast_io(True)
         self._recorder: Optional[FFmpegRecorder] = None
         self._rec_handle: Optional[RecordingHandle] = None
         self._episode_dir: Optional[Path] = None
@@ -690,7 +701,11 @@ class GymAnythingEnv:
         if actions:
             if control_result is not None and injected_actions == 0 and len(actions) == 1:
                 if control_result["action"] == "screenshot":
-                    control_result["output"] = obs.get("screen", {}).get("path")
+                    screen = obs.get("screen", {})
+                    if "image" in screen:
+                        control_result["output"] = screen["image"]
+                    else:
+                        control_result["output"] = screen.get("path")
                 info["action_result"] = control_result
             else:
                 info["action_result"] = {
@@ -748,6 +763,10 @@ class GymAnythingEnv:
     def capture_observation(self) -> Dict[str, Any]:
         """Capture the current observation without advancing the episode."""
         return self._capture_observation()
+
+    def capture_screenshot_image(self):
+        """Capture the current screen as an in-process Python image object."""
+        return self._runner.capture_screenshot_image()
 
     def set_episode_limits(
         self,
@@ -825,6 +844,8 @@ class GymAnythingEnv:
             try:
                 self._recorder.stop(self._rec_handle)
             except Exception:
+                if self.fast_io:
+                    raise
                 pass
         try:
             self._ensure_recording_artifact()
@@ -1132,18 +1153,29 @@ class GymAnythingEnv:
         obs: Dict[str, Any] = {}
         screen_spec = next((o for o in self.env_spec.observation if o.type == "rgb_screen"), None)
         if screen_spec and self._episode_dir:
-            frame_path = self._episode_dir / f"frame_{self._step_idx:05d}.png"
             try:
-                if self._runner.capture_screenshot(frame_path):
-                    # breakpoint()
-                    item: Dict[str, Any] = {"path": str(frame_path)}
+                if self.fast_io:
+                    image = self._runner.capture_screenshot_image()
+                    item: Dict[str, Any] = {"image": image, "format": "pil"}
                     if screen_spec.resolution:
                         item["resolution"] = list(screen_spec.resolution)
-                    if screen_spec.inline:
-                        with open(frame_path, "rb") as fh:
-                            item["png_b64"] = base64.b64encode(fh.read()).decode("ascii")
+                    else:
+                        item["resolution"] = [image.size[0], image.size[1]]
+                    item["mode"] = image.mode
                     obs["screen"] = item
+                else:
+                    frame_path = self._episode_dir / f"frame_{self._step_idx:05d}.png"
+                    if self._runner.capture_screenshot(frame_path):
+                        item = {"path": str(frame_path)}
+                        if screen_spec.resolution:
+                            item["resolution"] = list(screen_spec.resolution)
+                        if screen_spec.inline:
+                            with open(frame_path, "rb") as fh:
+                                item["png_b64"] = base64.b64encode(fh.read()).decode("ascii")
+                        obs["screen"] = item
             except Exception:
+                if self.fast_io:
+                    raise
                 pass
         audio_spec = next((o for o in self.env_spec.observation if o.type == "audio_waveform"), None)
         if audio_spec:

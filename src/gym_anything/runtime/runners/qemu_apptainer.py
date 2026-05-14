@@ -24,6 +24,7 @@ import re
 import shlex
 import shutil
 import signal
+import socket
 import subprocess
 import tempfile
 import threading
@@ -92,6 +93,69 @@ def _get_env_hash(spec: EnvSpec) -> str:
         str(getattr(spec, "hooks", {})),
     ]
     return hashlib.sha256("|".join(key_parts).encode()).hexdigest()[:16]
+
+
+class _QMPClient:
+    """Small synchronous QMP client for host-side fast I/O commands."""
+
+    def __init__(self, socket_path: Path, timeout: float = 5.0):
+        self.socket_path = socket_path
+        self.timeout = timeout
+        self._socket: Optional[socket.socket] = None
+        self._buffer = b""
+        self._lock = threading.RLock()
+
+    def connect(self) -> None:
+        if self._socket is not None:
+            return
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(self.timeout)
+        sock.connect(str(self.socket_path))
+        self._socket = sock
+        self._read_message()  # QMP greeting
+        self.execute("qmp_capabilities")
+
+    def close(self) -> None:
+        if self._socket is None:
+            return
+        try:
+            self._socket.close()
+        finally:
+            self._socket = None
+            self._buffer = b""
+
+    def execute(self, command: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        with self._lock:
+            try:
+                return self._execute_once(command, arguments)
+            except OSError:
+                self.close()
+                return self._execute_once(command, arguments)
+
+    def _execute_once(self, command: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        self.connect()
+        payload: Dict[str, Any] = {"execute": command}
+        if arguments:
+            payload["arguments"] = arguments
+        assert self._socket is not None
+        self._socket.sendall(json.dumps(payload, separators=(",", ":")).encode("utf-8") + b"\r\n")
+        while True:
+            message = self._read_message()
+            if "event" in message:
+                continue
+            if "error" in message:
+                raise RuntimeError(f"QMP {command} failed: {message['error']}")
+            return message.get("return", {})
+
+    def _read_message(self) -> Dict[str, Any]:
+        assert self._socket is not None
+        while b"\n" not in self._buffer:
+            chunk = self._socket.recv(65536)
+            if not chunk:
+                raise RuntimeError("QMP connection closed")
+            self._buffer += chunk
+        line, self._buffer = self._buffer.split(b"\n", 1)
+        return json.loads(line.strip().decode("utf-8"))
 
 
 class QemuApptainerRunner(BaseRunner):
@@ -192,6 +256,10 @@ class QemuApptainerRunner(BaseRunner):
         self._running = False
         self._process: Optional[subprocess.Popen] = None
         self._vnc_pool: Optional[VNCConnectionPool] = None
+        self._qmp_socket_path: Optional[Path] = None
+        self._qmp_client: Optional[_QMPClient] = None
+        self._fast_io_dir: Optional[Path] = None
+        self._fast_io_container_dir: Optional[Path] = None
         self._work_dir: Optional[Path] = None
         self._instance_qcow2: Optional[Path] = None
         self._artifacts_root = os.path.abspath(spec.recording.output_dir)
@@ -255,6 +323,9 @@ class QemuApptainerRunner(BaseRunner):
     def supports_savevm(self) -> bool:
         return True
 
+    def supports_fast_io(self) -> bool:
+        return True
+
     def _detect_windows(self, spec: EnvSpec) -> bool:
         """Detect if this is a Windows environment."""
         # Check os_type field directly
@@ -292,8 +363,9 @@ class QemuApptainerRunner(BaseRunner):
             self._create_base_qcow2()
 
         # Step 2: Create work directory and COW overlay (from base, not checkpoint)
-        # Use cache directory for work instead of /tmp (which may be full)
-        work_base = QEMU_WORK_DIR
+        # Use cache directory for work instead of /tmp (which may be full).
+        # In fast_io mode, prefer local scratch for screenshot exchange and COW overlays.
+        work_base = self._get_work_base()
         work_base.mkdir(parents=True, exist_ok=True)
         self._work_dir = Path(tempfile.mkdtemp(prefix=f"ga_qemu_{self.instance_id}_", dir=work_base))
         self._instance_qcow2 = self._work_dir / "disk.qcow2"
@@ -498,6 +570,9 @@ class QemuApptainerRunner(BaseRunner):
         cmd.extend(["--bind", f"{work_dir_abs}:{work_dir_abs}"])
         cmd.extend(["--bind", f"{cache_dir_abs}:{cache_dir_abs}"])
 
+        if self._fast_io:
+            self._fast_io_dir, self._fast_io_container_dir = self._make_fast_io_dirs(work_dir)
+
         artifacts_dir = Path(self._artifacts_root)
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         artifacts_abs = str(artifacts_dir.absolute())
@@ -505,6 +580,44 @@ class QemuApptainerRunner(BaseRunner):
 
         cmd.append(QEMU_CONTAINER)
         return cmd
+
+    def _get_work_base(self) -> Path:
+        if not self._fast_io:
+            return QEMU_WORK_DIR
+
+        override = os.environ.get("GYM_ANYTHING_FAST_IO_WORK_DIR")
+        if override:
+            base = Path(override).expanduser()
+            return base if self._usable_work_base(base) else QEMU_WORK_DIR
+
+        if _work_dir_env:
+            return QEMU_WORK_DIR
+
+        base = Path(tempfile.gettempdir()) / "gym-anything-qemu-work"
+        return base if self._usable_work_base(base) else QEMU_WORK_DIR
+
+    def _usable_work_base(self, base: Path) -> bool:
+        try:
+            base.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return False
+        if not os.access(base, os.W_OK | os.X_OK):
+            return False
+        try:
+            required = 512 * 1024 * 1024
+            if self._use_savevm:
+                checkpoint_path = self._get_checkpoint_path()
+                if checkpoint_path.exists():
+                    required += checkpoint_path.stat().st_size
+            free = shutil.disk_usage(base).free
+        except OSError:
+            return False
+        return free >= required
+
+    def _make_fast_io_dirs(self, work_dir: Path) -> tuple[Path, Path]:
+        host_path = work_dir / self.instance_id
+        host_path.mkdir(parents=True, exist_ok=True)
+        return host_path, host_path
 
     def _get_accel_args(self) -> List[str]:
         """Return QEMU acceleration arguments. Subclasses override for HVF etc."""
@@ -558,6 +671,14 @@ class QemuApptainerRunner(BaseRunner):
             "-smp", str(self.cpus),
             "-cpu", self._get_cpu_model(),
         ])
+
+        if self._fast_io:
+            self._qmp_socket_path = work_dir / "qmp.sock"
+            try:
+                self._qmp_socket_path.unlink()
+            except FileNotFoundError:
+                pass
+            cmd.extend(["-qmp", f"unix:{self._qmp_socket_path},server=on,wait=off"])
 
         if self.is_android:
             # Android (BlissOS): Boot from live ISO with virtio disk for persistence
@@ -1618,6 +1739,10 @@ class QemuApptainerRunner(BaseRunner):
         if self._vnc_pool:
             self._vnc_pool.close()
             self._vnc_pool = None
+
+        if self._qmp_client:
+            self._qmp_client.close()
+            self._qmp_client = None
         
         if self._process and self._process.poll() is None:
             try:
@@ -1637,6 +1762,10 @@ class QemuApptainerRunner(BaseRunner):
         
         if self._work_dir and self._work_dir.exists():
             shutil.rmtree(self._work_dir, ignore_errors=True)
+        if self._fast_io_dir and self._fast_io_dir.exists():
+            shutil.rmtree(self._fast_io_dir, ignore_errors=True)
+        self._fast_io_dir = None
+        self._fast_io_container_dir = None
     
     # === Actions via pyautogui (SSH) ===
 
@@ -1949,6 +2078,131 @@ class QemuApptainerRunner(BaseRunner):
         if screen_spec:
             obs["screen"] = {"format": "rgb", "fps": screen_spec.fps, "resolution": self.resolution}
         return obs
+
+    @staticmethod
+    def _ppm_token(data: bytes, index: int) -> tuple[bytes, int]:
+        while index < len(data):
+            byte = data[index]
+            if byte == 35:  # '#'
+                index = data.find(b"\n", index)
+                if index < 0:
+                    raise ValueError("unterminated PPM comment")
+                index += 1
+                continue
+            if byte not in b" \t\r\n":
+                break
+            index += 1
+        start = index
+        while index < len(data) and data[index] not in b" \t\r\n":
+            index += 1
+        return data[start:index], index
+
+    @classmethod
+    def _load_ppm_rgb_fast(cls, path: Path):
+        from PIL import Image
+
+        data = path.read_bytes()
+        magic, index = cls._ppm_token(data, 0)
+        if magic != b"P6":
+            raise ValueError(f"unsupported PPM magic: {magic!r}")
+        width_token, index = cls._ppm_token(data, index)
+        height_token, index = cls._ppm_token(data, index)
+        maxval_token, index = cls._ppm_token(data, index)
+        if maxval_token != b"255":
+            raise ValueError(f"unsupported PPM maxval: {maxval_token!r}")
+        if data[index:index + 2] == b"\r\n":
+            index += 2
+        elif index < len(data) and data[index] in b" \t\r\n":
+            index += 1
+        width = int(width_token)
+        height = int(height_token)
+        expected = width * height * 3
+        payload = data[index:index + expected]
+        if len(payload) != expected:
+            raise ValueError(f"truncated PPM payload: expected {expected}, got {len(payload)}")
+        return Image.frombuffer("RGB", (width, height), payload, "raw", "RGB", 0, 1)
+
+    def _get_qmp_client(self) -> _QMPClient:
+        if not self._fast_io:
+            raise RuntimeError("QMP screenshot capture requires fast_io=True")
+        if self._qmp_socket_path is None:
+            raise RuntimeError("QMP socket was not configured for this QEMU instance")
+        if self._qmp_client is not None and self._qmp_client.socket_path != self._qmp_socket_path:
+            self._qmp_client.close()
+            self._qmp_client = None
+        if self._qmp_client is None:
+            deadline = time.time() + 5
+            last_error: Optional[Exception] = None
+            while time.time() < deadline:
+                try:
+                    client = _QMPClient(self._qmp_socket_path, timeout=1.0)
+                    client.connect()
+                    self._qmp_client = client
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    time.sleep(0.05)
+            if self._qmp_client is None:
+                raise RuntimeError(f"QMP fast I/O connection failed: {last_error}")
+        return self._qmp_client
+
+    def _capture_screenshot_image_qmp(self, image_format: str = "ppm", parser: str = "pil"):
+        """Capture via QMP screendump and return a loaded PIL Image."""
+        host_output_dir = self._fast_io_dir or self._work_dir
+        qmp_output_dir = self._fast_io_container_dir or host_output_dir
+        if not host_output_dir or not qmp_output_dir:
+            raise RuntimeError("QEMU work directory is not initialized")
+        from PIL import Image
+
+        image_format = image_format.lower()
+        suffix = "png" if image_format == "png" else "ppm"
+        filename = f"fast_screenshot_{uuid.uuid4().hex[:8]}.{suffix}"
+        host_path = host_output_dir / filename
+        qmp_path = qmp_output_dir / filename
+        args: Dict[str, Any] = {"filename": str(qmp_path)}
+        if image_format != "ppm":
+            args["format"] = image_format
+        client = self._get_qmp_client()
+        client.execute("screendump", args)
+        try:
+            if image_format == "ppm" and parser == "fast":
+                return self._load_ppm_rgb_fast(host_path)
+            image = Image.open(host_path)
+            image.load()
+            return image.convert("RGB")
+        finally:
+            try:
+                host_path.unlink()
+            except FileNotFoundError:
+                pass
+
+    def _capture_screenshot_image_legacy(self):
+        """Capture through the runner's existing screenshot path and return PIL Image."""
+        tmp_dir = Path(tempfile.mkdtemp(prefix=f"ga_capture_{self.instance_id}_", dir=str(QEMU_WORK_DIR)))
+        try:
+            out_path = tmp_dir / "screenshot.png"
+            fast_io_enabled = self._fast_io
+            self._fast_io = False
+            try:
+                if not self.capture_screenshot(out_path):
+                    raise RuntimeError("screenshot capture failed")
+            finally:
+                self._fast_io = fast_io_enabled
+            from PIL import Image
+
+            image = Image.open(out_path)
+            image.load()
+            return image.convert("RGB")
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def capture_screenshot_image(self):
+        """Capture the display as a PIL Image without guest SSH, ffmpeg, or VNC."""
+        if self._fast_io:
+            image_format = os.environ.get("GYM_ANYTHING_QEMU_SCREENSHOT_FORMAT", "ppm")
+            parser = os.environ.get("GYM_ANYTHING_QEMU_SCREENSHOT_PARSER", "pil")
+            return self._capture_screenshot_image_qmp(image_format=image_format, parser=parser)
+        return self._capture_screenshot_image_legacy()
     
     def capture_screenshot(self, host_path) -> bool:
         """Capture a screenshot.
@@ -1960,6 +2214,15 @@ class QemuApptainerRunner(BaseRunner):
         """
         host_path = Path(host_path)
         host_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if self._fast_io:
+            try:
+                img = self.capture_screenshot_image()
+                img.save(str(host_path), "PNG")
+                return True
+            except Exception as e:
+                print(f"[QemuApptainer] QMP fast screenshot failed: {e}")
+                return False
 
         # --- Android: Use ADB screencap ---
         if self.is_android:
@@ -2828,7 +3091,7 @@ class QemuApptainerRunner(BaseRunner):
             print(f"[QemuApptainer] GPU: enabled ({gpu_type})")
 
         # Create work directory
-        work_base = QEMU_WORK_DIR
+        work_base = self._get_work_base()
         work_base.mkdir(parents=True, exist_ok=True)
         self._work_dir = Path(tempfile.mkdtemp(prefix=f"ga_qemu_{self.instance_id}_", dir=work_base))
         self._instance_qcow2 = self._work_dir / "disk.qcow2"
