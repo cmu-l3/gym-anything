@@ -66,8 +66,8 @@ This reflects our current runner behavior.
 
 ## QEMU Fast I/O
 
-QEMU supports `fast_io=True` for low-latency screenshot observations and
-QMP-backed keyboard/mouse input:
+QEMU supports `fast_io=True` for low-latency screenshot observations and fast
+keyboard/mouse input:
 
 ```python
 from gym_anything import from_config
@@ -81,7 +81,8 @@ env = from_config(
 
 In fast mode, `env.capture_observation()` and `env.step(...)` return
 `obs["screen"]["image"]` as a PIL image object. `env.step(...)` also sends
-mouse and keyboard actions through QMP instead of the guest SSH/PyAutoGUI path.
+mouse and keyboard actions through persistent fast paths instead of the guest
+SSH/PyAutoGUI path.
 Non-fast mode keeps the file-backed `obs["screen"]["path"]` behavior and the
 legacy input path.
 
@@ -104,31 +105,51 @@ with:
 export GYM_ANYTHING_FAST_IO_WORK_DIR=/local/ssd/gym-anything-qemu-work
 ```
 
-### QMP Fast Input
+### Fast Input
 
-Fast input uses QMP `input-send-event` for mouse actions. For Linux and Windows
-guests, `fast_io=True` also starts QEMU with an explicit xHCI USB keyboard and
-USB tablet. This makes the guest see standard virtual HID devices instead of
-relying on QEMU's default PS/2/VMMouse path.
+Fast mouse input uses QMP `input-send-event`. For Linux and Windows guests,
+`fast_io=True` also starts QEMU with an explicit xHCI USB keyboard and USB
+tablet. This makes the guest see standard virtual HID devices instead of relying
+on QEMU's default PS/2/VMMouse path.
 
 The runner emits absolute pointer coordinates for move, click, double-click,
 right-click, drag, and scroll actions. For click semantics, pointer movement,
 button down, and button up are sent as separate QMP commands so the guest sees
 ordered HID events through the virtual input devices.
 
-Keyboard input in the QMP fast path is experimental. It currently uses QMP
-`send-key` with a 5 ms hold time and a 10 ms gap between key submissions. These
-values are temporary safety margins around QEMU's asynchronous key-release
-scheduling; they are not the intended production correctness contract.
+Linux keyboard input uses a required guest-side uinput agent by default. The
+runner starts `gym-anything-fast-inputd`, validates `/dev/uinput`, validates the
+`GymAnything Fast Keyboard` device in the guest input stack, and then sends
+keyboard actions over a persistent forwarded TCP connection. If that contract is
+not available, `fast_io=True` fails loudly instead of falling back silently.
+
+The previous QMP keyboard path is still available only as an explicit
+experimental backend:
+
+```bash
+export GYM_ANYTHING_QEMU_FAST_KEYBOARD_BACKEND=qmp-experimental
+```
+
+That backend uses QMP `send-key` with a 5 ms hold time and a 10 ms gap between
+key submissions. These values are temporary safety margins around QEMU's
+asynchronous key-release scheduling; they are not the intended production
+correctness contract.
+
+The QMP timing margins can be adjusted when testing that experimental backend:
+
+```bash
+export GYM_ANYTHING_QEMU_QMP_KEY_HOLD_MS=5
+export GYM_ANYTHING_QEMU_QMP_KEY_GAP_MS=10
+```
 
 Input latency benchmarks report two timed boundaries:
 
 - `runner_inject_action`: starts before `runner.inject_action(...)` and ends
-  after QMP acknowledges the command sequence. This includes the QMP socket
-  write/flush and QMP response, but it is a dispatch boundary, not an
-  app-consumed boundary.
+  after the fast input backend acknowledges the command sequence. For QMP mouse
+  this includes QMP socket write/flush and response. For Linux keyboard this
+  includes the uinput agent acknowledgement.
 - `env_step`: starts before `env.step([action], wait_between_actions=0.0)` and
-  ends after the observation is returned. In fast mode this includes QMP input
+  ends after the observation is returned. In fast mode this includes fast input
   dispatch and fast screenshot capture.
 
 Use app-level evidence to prove that the target application consumed the event.

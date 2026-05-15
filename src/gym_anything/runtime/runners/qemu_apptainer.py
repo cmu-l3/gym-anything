@@ -32,7 +32,7 @@ import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from ...config.presets import is_android_preset, is_windows_preset
 from ...security import wrap_posix_command_with_env, wrap_powershell_command_with_env
@@ -70,6 +70,24 @@ def _find_free_port(start: int = 5900) -> int:
         except OSError:
             continue
     raise RuntimeError("No free port")
+
+
+def _find_free_qemu_hostfwd_port(start: int = 45500) -> int:
+    """Find a hostfwd port using the same bind constraints QEMU will use."""
+    import socket
+    import random
+    offset = random.randint(0, 200)
+    for i in range(300):
+        port = start + offset + i
+        if port > 65535:
+            port = start + (i % 300)
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("0.0.0.0", port))
+                return port
+        except OSError:
+            continue
+    raise RuntimeError("No free QEMU hostfwd port")
 
 
 def _check_apptainer() -> bool:
@@ -156,6 +174,62 @@ class _QMPClient:
             self._buffer += chunk
         line, self._buffer = self._buffer.split(b"\n", 1)
         return json.loads(line.strip().decode("utf-8"))
+
+
+class _FastInputAgentClient:
+    """Persistent host-side client for the Linux guest uinput input service."""
+
+    def __init__(self, host: str, port: int, timeout: float = 1.0):
+        self.host = host
+        self.port = int(port)
+        self.timeout = timeout
+        self._socket: Optional[socket.socket] = None
+        self._buffer = b""
+        self._lock = threading.RLock()
+
+    def connect(self) -> None:
+        if self._socket is not None:
+            return
+        sock = socket.create_connection((self.host, self.port), timeout=self.timeout)
+        sock.settimeout(self.timeout)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self._socket = sock
+
+    def close(self) -> None:
+        if self._socket is None:
+            return
+        try:
+            self._socket.close()
+        finally:
+            self._socket = None
+            self._buffer = b""
+
+    def request(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        with self._lock:
+            try:
+                return self._request_once(payload)
+            except OSError:
+                self.close()
+                return self._request_once(payload)
+
+    def _request_once(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        self.connect()
+        assert self._socket is not None
+        self._socket.sendall(json.dumps(payload, separators=(",", ":")).encode("utf-8") + b"\n")
+        response = self._read_line()
+        if not response.get("ok"):
+            raise RuntimeError(f"fast input agent error: {response.get('error', response)}")
+        return response
+
+    def _read_line(self) -> Dict[str, Any]:
+        assert self._socket is not None
+        while b"\n" not in self._buffer:
+            chunk = self._socket.recv(65536)
+            if not chunk:
+                raise RuntimeError("fast input agent connection closed")
+            self._buffer += chunk
+        line, self._buffer = self._buffer.split(b"\n", 1)
+        return json.loads(line.decode("utf-8"))
 
 
 class QemuApptainerRunner(BaseRunner):
@@ -258,6 +332,10 @@ class QemuApptainerRunner(BaseRunner):
         self._vnc_pool: Optional[VNCConnectionPool] = None
         self._qmp_socket_path: Optional[Path] = None
         self._qmp_client: Optional[_QMPClient] = None
+        self._fast_input_client: Optional[_FastInputAgentClient] = None
+        self._fast_input_host_port: Optional[int] = None
+        self._fast_input_guest_port = int(os.environ.get("GYM_ANYTHING_QEMU_FAST_INPUT_GUEST_PORT", "5599"))
+        self._fast_input_device_name = "GymAnything Fast Keyboard"
         self._fast_io_dir: Optional[Path] = None
         self._fast_io_container_dir: Optional[Path] = None
         self._dbus_display = None
@@ -330,6 +408,8 @@ class QemuApptainerRunner(BaseRunner):
 
     def set_fast_io(self, enabled: bool) -> None:
         super().set_fast_io(enabled)
+        if self._fast_io:
+            self._validate_fast_keyboard_backend()
         if self._fast_io and self._fast_io_backend() == "dbus":
             self._ensure_dbus_display_container()
 
@@ -398,12 +478,15 @@ class QemuApptainerRunner(BaseRunner):
                 self.ssh_port = _find_free_port(2222)
             if self.is_windows:
                 self.pyautogui_port = _find_free_port(5555)
+            self._assign_fast_input_port()
         if self.is_android:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, ADB: {self.adb_port}")
         elif self.is_windows:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}, PyAutoGUI: {self.pyautogui_port}")
         else:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}")
+            if self._fast_input_host_port:
+                print(f"[QemuApptainer] Fast input: {self._fast_input_host_port}->{self._fast_input_guest_port}")
         
         # Step 5: Start VM
         self._start_vm()
@@ -466,6 +549,7 @@ class QemuApptainerRunner(BaseRunner):
                 if self.is_windows and not self._pyautogui_client:
                     print("[QemuApptainer] Attempting to connect to PyAutoGUI server...")
                     self._try_connect_pyautogui_client()
+            self._ensure_fast_input_agent()
 
         # Step 10: Connect VNC (now should get proper desktop resolution)
         self._vnc_pool = VNCConnectionPool(
@@ -629,6 +713,35 @@ class QemuApptainerRunner(BaseRunner):
     def _fast_io_backend(self) -> str:
         return os.environ.get("GYM_ANYTHING_QEMU_FAST_IO_BACKEND", "qmp").strip().lower()
 
+    def _fast_keyboard_backend(self) -> str:
+        if getattr(self, "is_android", False):
+            return "adb"
+        if getattr(self, "is_windows", False):
+            return os.environ.get("GYM_ANYTHING_QEMU_FAST_KEYBOARD_BACKEND", "qmp-experimental").strip().lower()
+        return os.environ.get("GYM_ANYTHING_QEMU_FAST_KEYBOARD_BACKEND", "uinput").strip().lower()
+
+    def _fast_uinput_keyboard_enabled(self) -> bool:
+        return (
+            self._fast_io
+            and not getattr(self, "is_android", False)
+            and not getattr(self, "is_windows", False)
+            and self._fast_keyboard_backend() == "uinput"
+        )
+
+    def _validate_fast_keyboard_backend(self) -> None:
+        backend = self._fast_keyboard_backend()
+        if getattr(self, "is_android", False):
+            return
+        allowed = {"uinput", "qmp-experimental"} if not getattr(self, "is_windows", False) else {"qmp-experimental"}
+        if backend not in allowed:
+            raise RuntimeError(
+                f"Unsupported QEMU fast keyboard backend {backend!r}. "
+                f"Allowed values for this guest are: {', '.join(sorted(allowed))}."
+            )
+
+    def _assign_fast_input_port(self) -> None:
+        self._fast_input_host_port = _find_free_qemu_hostfwd_port(45500) if self._fast_uinput_keyboard_enabled() else None
+
     def _dbus_auto_install_enabled(self) -> bool:
         value = os.environ.get("GYM_ANYTHING_QEMU_DBUS_AUTO_INSTALL", "1")
         return value.strip().lower() in {"1", "true", "yes", "on"}
@@ -765,6 +878,131 @@ class QemuApptainerRunner(BaseRunner):
                 raise RuntimeError("QEMU D-Bus display was not initialized")
             self._dbus_display.start_listener()
 
+    def _fast_input_agent_script(self) -> Path:
+        return Path(__file__).parent / "linux_uinput_fast_inputd.py"
+
+    def _ensure_fast_input_agent(self) -> None:
+        if not self._fast_uinput_keyboard_enabled():
+            return
+        if not self.ssh_port or not self._fast_input_host_port:
+            raise RuntimeError("fast uinput keyboard requested before SSH and host forwarding were configured")
+
+        script_path = self._fast_input_agent_script()
+        if not script_path.exists():
+            raise RuntimeError(f"fast input agent script is missing: {script_path}")
+
+        remote_tmp = "/tmp/gym_anything_fast_inputd.py"
+        remote_bin = "/usr/local/bin/gym-anything-fast-inputd"
+        log_path = "/tmp/gym_anything_fast_inputd.log"
+
+        self._sftp_copy_to(str(script_path), remote_tmp)
+        install_cmd = (
+            f"sudo -n install -m 0755 {shlex.quote(remote_tmp)} {shlex.quote(remote_bin)} && "
+            "(sudo -n modprobe uinput 2>/dev/null || true); "
+            "test -e /dev/uinput"
+        )
+        result = self._ssh_command(f"bash -lc {shlex.quote(install_cmd)}", timeout=30, use_pty=False)
+        if result.returncode != 0:
+            stderr = result.stderr.decode(errors="replace") if result.stderr else ""
+            raise RuntimeError(f"fast uinput keyboard requires /dev/uinput in the guest: {stderr[:500]}")
+
+        try:
+            self._connect_fast_input_agent(timeout=1.0)
+        except RuntimeError:
+            if self._fast_input_client:
+                self._fast_input_client.close()
+                self._fast_input_client = None
+        else:
+            self._validate_fast_input_agent()
+            return
+
+        start_cmd = (
+            f"sudo -n env PYTHONUNBUFFERED=1 DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority "
+            f"nohup python3 {shlex.quote(remote_bin)} "
+            f"--host 0.0.0.0 "
+            f"--port {int(self._fast_input_guest_port)} "
+            f"--device-name {shlex.quote(self._fast_input_device_name)} "
+            f"--x11-display :1 "
+            f"--require-x11 "
+            f"> {shlex.quote(log_path)} 2>&1 < /dev/null &"
+        )
+        result = self._ssh_command(f"bash -lc {shlex.quote(start_cmd)}", timeout=10, use_pty=False)
+        try:
+            self._connect_fast_input_agent(timeout=15.0)
+        except RuntimeError as exc:
+            stdout = result.stdout.decode(errors="replace") if result.stdout else ""
+            stderr = result.stderr.decode(errors="replace") if result.stderr else ""
+            raise RuntimeError(
+                "failed to start fast input agent "
+                f"(ssh exit={result.returncode}, stdout={stdout[:500]!r}, stderr={stderr[:500]!r}): {exc}"
+            ) from exc
+        self._validate_fast_input_agent()
+
+    def _connect_fast_input_agent(self, timeout: float = 15.0) -> None:
+        if not self._fast_input_host_port:
+            raise RuntimeError("fast input host port is not configured")
+        deadline = time.time() + timeout
+        last_error: Optional[Exception] = None
+        while time.time() < deadline:
+            client = _FastInputAgentClient("127.0.0.1", self._fast_input_host_port, timeout=1.0)
+            try:
+                response = client.request({"op": "ping"})
+                if response.get("version") != 1 or response.get("backend") != "uinput":
+                    raise RuntimeError(f"unexpected fast input agent handshake: {response}")
+                self._fast_input_client = client
+                return
+            except Exception as exc:
+                last_error = exc
+                client.close()
+                time.sleep(0.2)
+
+        log = self._read_fast_input_agent_log()
+        raise RuntimeError(
+            "fast input agent did not become reachable "
+            f"on localhost:{self._fast_input_host_port}: {last_error}\n{log}"
+        )
+
+    def _read_fast_input_agent_log(self) -> str:
+        if not self.ssh_port:
+            return ""
+        result = self._ssh_command("tail -n 80 /tmp/gym_anything_fast_inputd.log 2>/dev/null || true", timeout=10, use_pty=False)
+        stdout = result.stdout.decode(errors="replace") if result.stdout else ""
+        stderr = result.stderr.decode(errors="replace") if result.stderr else ""
+        return (stdout + "\n" + stderr).strip()
+
+    def _validate_fast_input_agent(self) -> None:
+        if not self.ssh_port:
+            raise RuntimeError("cannot validate fast input agent without SSH")
+        deadline = time.time() + 8.0
+        last_xinput = ""
+        last_devices = ""
+        while time.time() < deadline:
+            xinput_result = self._ssh_command("DISPLAY=:1 xinput list --short", timeout=5, use_pty=False)
+            devices_result = self._ssh_command("cat /proc/bus/input/devices", timeout=5, use_pty=False)
+            last_xinput = xinput_result.stdout.decode(errors="replace") if xinput_result.stdout else ""
+            last_devices = devices_result.stdout.decode(errors="replace") if devices_result.stdout else ""
+            combined = f"{last_xinput}\n{last_devices}".lower()
+            if self._fast_input_device_name.lower() in combined and "usb tablet" in combined:
+                return
+            time.sleep(0.25)
+
+        log = self._read_fast_input_agent_log()
+        raise RuntimeError(
+            "fast input agent started, but the expected uinput keyboard/tablet devices "
+            "were not visible in the guest.\n"
+            f"xinput:\n{last_xinput[-2000:]}\n"
+            f"/proc/bus/input/devices:\n{last_devices[-2000:]}\n"
+            f"agent log:\n{log}"
+        )
+
+    def _get_fast_input_client(self) -> _FastInputAgentClient:
+        if not self._fast_uinput_keyboard_enabled():
+            raise RuntimeError("fast input agent is only available for the uinput keyboard backend")
+        if self._fast_input_client is None:
+            self._connect_fast_input_agent(timeout=3.0)
+        assert self._fast_input_client is not None
+        return self._fast_input_client
+
     def _get_accel_args(self) -> List[str]:
         """Return QEMU acceleration arguments. Subclasses override for HVF etc."""
         if self.enable_kvm:
@@ -819,6 +1057,9 @@ class QemuApptainerRunner(BaseRunner):
             port_forwards = f"hostfwd=tcp::{ssh_port}-:22"
             if self.is_windows:
                 port_forwards += f",hostfwd=tcp::{self.pyautogui_port}-:5555"
+            fast_input_host_port = getattr(self, "_fast_input_host_port", None)
+            if self._fast_uinput_keyboard_enabled() and fast_input_host_port:
+                port_forwards += f",hostfwd=tcp::{fast_input_host_port}-:{self._fast_input_guest_port}"
 
         cmd.extend([
             "-m", self.memory,
@@ -1898,6 +2139,10 @@ class QemuApptainerRunner(BaseRunner):
             self._vnc_pool.close()
             self._vnc_pool = None
 
+        if self._fast_input_client:
+            self._fast_input_client.close()
+            self._fast_input_client = None
+
         if self._qmp_client:
             self._qmp_client.close()
             self._qmp_client = None
@@ -1971,11 +2216,11 @@ class QemuApptainerRunner(BaseRunner):
     _QMP_POINTER_MAX = 0x7FFF
     _QMP_TEXT_CHUNK_EVENTS = 256
     _QMP_DRAG_STEPS = 8
-    # Experimental QMP keyboard pacing. These are temporary margins around
-    # QEMU's asynchronous send-key release scheduling, not a correctness
+    # Experimental QMP keyboard pacing defaults. These are temporary margins
+    # around QEMU's asynchronous send-key release scheduling, not a correctness
     # contract for production input.
-    _QMP_EXPERIMENTAL_KEY_HOLD_MS = 5
-    _QMP_EXPERIMENTAL_KEY_GAP_SECONDS = 0.010
+    _QMP_EXPERIMENTAL_KEY_HOLD_MS_DEFAULT = 5
+    _QMP_EXPERIMENTAL_KEY_GAP_MS_DEFAULT = 10
 
     _QMP_KEY_NAME_MAP = {
         "ctrl": "ctrl",
@@ -2083,6 +2328,32 @@ class QemuApptainerRunner(BaseRunner):
         if len(normalized) == 1:
             return normalized.lower()
         return normalized
+
+    @staticmethod
+    def _read_nonnegative_int_env(name: str, default: int) -> int:
+        raw = os.environ.get(name)
+        if raw is None or raw.strip() == "":
+            return default
+        try:
+            value = int(raw)
+        except ValueError as exc:
+            raise RuntimeError(f"{name} must be an integer number of milliseconds, got {raw!r}") from exc
+        if value < 0:
+            raise RuntimeError(f"{name} must be >= 0 milliseconds, got {value}")
+        return value
+
+    def _qmp_experimental_key_hold_ms(self) -> int:
+        return self._read_nonnegative_int_env(
+            "GYM_ANYTHING_QEMU_QMP_KEY_HOLD_MS",
+            self._QMP_EXPERIMENTAL_KEY_HOLD_MS_DEFAULT,
+        )
+
+    def _qmp_experimental_key_gap_seconds(self) -> float:
+        gap_ms = self._read_nonnegative_int_env(
+            "GYM_ANYTHING_QEMU_QMP_KEY_GAP_MS",
+            self._QMP_EXPERIMENTAL_KEY_GAP_MS_DEFAULT,
+        )
+        return gap_ms / 1000.0
 
     def _build_pyautogui_script(self, commands: List[str]) -> str:
         """Build a pyautogui script from a list of commands."""
@@ -2215,10 +2486,10 @@ class QemuApptainerRunner(BaseRunner):
             "send-key",
             {
                 "keys": [{"type": "qcode", "data": qcode} for qcode in qcodes],
-                "hold-time": self._QMP_EXPERIMENTAL_KEY_HOLD_MS,
+                "hold-time": self._qmp_experimental_key_hold_ms(),
             },
         )
-        time.sleep(self._QMP_EXPERIMENTAL_KEY_GAP_SECONDS)
+        time.sleep(self._qmp_experimental_key_gap_seconds())
 
 
     def _qmp_send_input_events(self, events: List[Dict[str, Any]]) -> None:
@@ -2335,6 +2606,24 @@ class QemuApptainerRunner(BaseRunner):
 
         flush_events()
 
+    def _inject_keyboard_via_fast_input_agent(self, keyboard: Dict[str, Any]) -> None:
+        client = self._get_fast_input_client()
+        client.request({"op": "keyboard", "keyboard": keyboard})
+
+    def _inject_action_via_fast_io(self, action: Dict[str, Any]) -> None:
+        mouse = action.get("mouse")
+        if mouse:
+            self._inject_action_via_qmp({"mouse": mouse})
+
+        keyboard = action.get("keyboard")
+        if keyboard:
+            if self._fast_uinput_keyboard_enabled():
+                self._inject_keyboard_via_fast_input_agent(keyboard)
+            elif self._fast_keyboard_backend() == "qmp-experimental":
+                self._inject_action_via_qmp({"keyboard": keyboard})
+            else:
+                self._validate_fast_keyboard_backend()
+
     def inject_action(self, action: Dict[str, Any]) -> None:
         """Inject keyboard/mouse actions via pyautogui or ADB.
 
@@ -2343,7 +2632,7 @@ class QemuApptainerRunner(BaseRunner):
         On Linux: Uses pyautogui over SSH with DISPLAY=:1.
         """
         if self._fast_io and not self.is_android:
-            self._inject_action_via_qmp(action)
+            self._inject_action_via_fast_io(action)
             return
 
         # Windows: Use the pyautogui client (TCP server protocol)
@@ -3629,12 +3918,15 @@ class QemuApptainerRunner(BaseRunner):
                 self.ssh_port = _find_free_port(2222)
             if self.is_windows:
                 self.pyautogui_port = _find_free_port(5555)
+            self._assign_fast_input_port()
         if self.is_android:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, ADB: {self.adb_port}")
         elif self.is_windows:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}, PyAutoGUI: {self.pyautogui_port}")
         else:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}")
+            if self._fast_input_host_port:
+                print(f"[QemuApptainer] Fast input: {self._fast_input_host_port}->{self._fast_input_guest_port}")
 
         # Start VM
         self._start_vm()
@@ -3678,6 +3970,7 @@ class QemuApptainerRunner(BaseRunner):
                 if self.is_windows and not self._pyautogui_client:
                     print("[QemuApptainer] Attempting to connect to PyAutoGUI server...")
                     self._try_connect_pyautogui_client()
+            self._ensure_fast_input_agent()
 
         # Connect VNC
         self._vnc_pool = VNCConnectionPool(
@@ -3720,11 +4013,14 @@ class QemuApptainerRunner(BaseRunner):
                 self.ssh_port = _find_free_port(2222)
             if self.is_windows:
                 self.pyautogui_port = _find_free_port(5555)
+            self._assign_fast_input_port()
 
         if self.is_windows:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}, PyAutoGUI: {self.pyautogui_port}")
         else:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}")
+            if self._fast_input_host_port:
+                print(f"[QemuApptainer] Fast input: {self._fast_input_host_port}->{self._fast_input_guest_port}")
 
         # Start VM with -loadvm option - QEMU automatically restores state before running
         print(f"[QemuApptainer] Starting QEMU with -loadvm {SAVEVM_SNAPSHOT_NAME}...")
@@ -3749,6 +4045,10 @@ class QemuApptainerRunner(BaseRunner):
             # Now wait for SSH to be actually reachable
             ssh_timeout = 60 if self.is_windows else 30  # Shorter timeout since VM is already running
             if not self._wait_for_ssh(self.ssh_port, timeout=ssh_timeout):
+                if self._fast_uinput_keyboard_enabled():
+                    self._dump_log()
+                    self.stop()
+                    raise RuntimeError("SSH not responding after loadvm; cannot start required fast input agent")
                 print(f"[QemuApptainer] Warning: SSH not responding after loadvm, continuing anyway...")
             else:
                 print(f"[QemuApptainer] SSH is ready after loadvm")
@@ -3756,6 +4056,7 @@ class QemuApptainerRunner(BaseRunner):
             # Setup mounts - still needed because host paths may have changed
             # But this is fast since files are likely already there
             self._setup_mounts(self.ssh_port)
+            self._ensure_fast_input_agent()
 
         # Connect VNC pool to new port
         self._vnc_pool = VNCConnectionPool(

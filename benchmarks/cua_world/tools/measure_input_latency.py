@@ -213,12 +213,12 @@ def _collect_input_device_contract(env) -> dict[str, Any]:
     _, proc_devices, _ = _ssh(runner, "cat /proc/bus/input/devices", timeout=5)
     combined = f"{xinput_list}\n{proc_devices}".lower()
     return {
-        "contract": "fast_io QMP input should enter the guest through standard virtual HID devices",
+        "contract": "fast_io should expose QMP tablet mouse plus the required uinput keyboard agent",
         "xinput_list": xinput_list,
         "proc_bus_input_devices": proc_devices,
-        "has_usb_keyboard": "usb keyboard" in combined,
+        "has_uinput_keyboard": "gymanything fast keyboard" in combined,
         "has_usb_tablet": "usb tablet" in combined,
-        "passed": "usb keyboard" in combined and "usb tablet" in combined,
+        "passed": "gymanything fast keyboard" in combined and "usb tablet" in combined,
     }
 
 
@@ -237,7 +237,7 @@ def _verify_google_earth_search_semantic(env, evidence_dir: Path) -> dict[str, A
     if window_id:
         _ssh(runner, f"DISPLAY=:1 xdotool windowactivate {window_id}", timeout=5)
 
-    search_point = [45, 31]
+    search_point = [70, 62]
     query = "giza-fast-input"
     before_path = _save_image(env.capture_screenshot_image(), evidence_dir / "google_earth_search_before.png")
     click_dispatch_ms = _inject_action_timed(runner, {"mouse": {"left_click": search_point}})
@@ -514,7 +514,11 @@ def _verify_gedit_semantic_input(env, evidence_dir: Path) -> dict[str, Any]:
             ("right click: context menu after QMP right click", right_after_path),
         ]
     )
-    checked_cases = [key for key, *_ in cases] + ["keyboard_text_and_ctrl_a"]
+    mouse_selection_cases = [key for key, *_ in cases]
+    keyboard_cases = ["left_click_caret_line1_end", "keyboard_text_and_ctrl_a"]
+    checked_cases = mouse_selection_cases + ["keyboard_text_and_ctrl_a"]
+    results["keyboard_checks_passed"] = all(results["cases"][key]["passed"] for key in keyboard_cases)
+    results["mouse_selection_checks_passed"] = all(results["cases"][key]["passed"] for key in mouse_selection_cases)
     results["semantic_checks_passed"] = all(results["cases"][key]["passed"] for key in checked_cases)
     results["contact_sheet"] = _make_contact_sheet(contact_items, evidence_dir / "gedit_semantic_contact_sheet.png")
     return results

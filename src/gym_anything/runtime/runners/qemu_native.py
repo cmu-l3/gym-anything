@@ -164,6 +164,9 @@ class QemuNativeRunner(QemuApptainerRunner):
         port_forwards = f"hostfwd=tcp::{ssh_port}-:22"
         if self.is_windows:
             port_forwards += f",hostfwd=tcp::{self.pyautogui_port}-:5555"
+        fast_input_host_port = getattr(self, "_fast_input_host_port", None)
+        if self._fast_uinput_keyboard_enabled() and fast_input_host_port:
+            port_forwards += f",hostfwd=tcp::{fast_input_host_port}-:{self._fast_input_guest_port}"
 
         cmd = [
             "qemu-system-aarch64",

@@ -127,19 +127,26 @@ python benchmarks/cua_world/tools/measure_screenshot_latency.py \
 
 ## Input Latency Benchmarks
 
-When changing QEMU keyboard or mouse input, benchmark both the QMP dispatch
-boundary and the full `env.step(...)` boundary. The input benchmark also writes
-guest device-list evidence, XInput event evidence, semantic application checks,
-and review screenshots for move, click, right-click, middle-click,
-double-click, triple-click, drag, scroll, text, and hotkey behavior.
+When changing QEMU keyboard or mouse input, benchmark both the fast input
+dispatch boundary and the full `env.step(...)` boundary. The input benchmark
+also writes guest device-list evidence, XInput event evidence, semantic
+application checks, and review screenshots for move, click, right-click,
+middle-click, double-click, triple-click, drag, scroll, text, and hotkey
+behavior.
 
-The QMP keyboard fast path is currently experimental. It uses QMP `send-key`
-with temporary 5 ms hold / 10 ms inter-key pacing, so passing latency numbers do
-not by themselves prove production keyboard correctness.
+Linux fast keyboard input requires the uinput agent and should show
+`GymAnything Fast Keyboard` in the guest device evidence. The QMP keyboard path
+is only an explicit experimental backend; it uses temporary 5 ms hold / 10 ms
+inter-key pacing, so passing latency numbers there do not by themselves prove
+production keyboard correctness. Use
+`GYM_ANYTHING_QEMU_FAST_KEYBOARD_BACKEND=qmp-experimental` to select it, and
+tune its temporary timing margins with `GYM_ANYTHING_QEMU_QMP_KEY_HOLD_MS` and
+`GYM_ANYTHING_QEMU_QMP_KEY_GAP_MS`.
 
 The dispatch timing starts before `runner.inject_action(...)` and ends after
-QMP acknowledges the command sequence, so it includes socket flush and QMP
-response time. It does not claim that the target app has consumed the event.
+the active fast input backend acknowledges the command sequence, so it includes
+socket flush and backend response time. It does not claim that the target app has
+consumed the event.
 For app-consumption evidence, inspect the generated Google Earth search
 readback, gedit semantic checks, and contact-sheet screenshots. Do not use raw
 pixel deltas as pass/fail evidence for input correctness:

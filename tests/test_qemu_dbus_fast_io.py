@@ -15,6 +15,9 @@ class QemuDbusFastIoTests(unittest.TestCase):
         runner.is_android = False
         runner.is_windows = False
         runner._fast_io = True
+        runner._fast_input_host_port = None
+        runner._fast_input_guest_port = 5599
+        runner._fast_input_device_name = "GymAnything Fast Keyboard"
         return runner
 
     def test_set_fast_io_prepares_dbus_container_only_for_dbus_backend(self) -> None:
@@ -140,6 +143,35 @@ class QemuDbusFastIoTests(unittest.TestCase):
         )
         sleep.assert_called_once_with(0.010)
 
+    def test_fast_qmp_keyboard_pacing_can_be_overridden(self) -> None:
+        runner = self._runner()
+        client = mock.Mock()
+
+        with mock.patch.dict(
+            "os.environ",
+            {
+                "GYM_ANYTHING_QEMU_QMP_KEY_HOLD_MS": "12",
+                "GYM_ANYTHING_QEMU_QMP_KEY_GAP_MS": "34",
+            },
+            clear=False,
+        ), mock.patch.object(runner, "_get_qmp_client", return_value=client), \
+             mock.patch("gym_anything.runtime.runners.qemu_apptainer.time.sleep") as sleep:
+            runner._qmp_send_key_combo(["ret"])
+
+        self.assertEqual(client.execute.call_args.args[1]["hold-time"], 12)
+        sleep.assert_called_once_with(0.034)
+
+    def test_fast_qmp_keyboard_pacing_rejects_invalid_values(self) -> None:
+        runner = self._runner()
+
+        with mock.patch.dict("os.environ", {"GYM_ANYTHING_QEMU_QMP_KEY_HOLD_MS": "-1"}, clear=False):
+            with self.assertRaisesRegex(RuntimeError, "GYM_ANYTHING_QEMU_QMP_KEY_HOLD_MS"):
+                runner._qmp_experimental_key_hold_ms()
+
+        with mock.patch.dict("os.environ", {"GYM_ANYTHING_QEMU_QMP_KEY_GAP_MS": "slow"}, clear=False):
+            with self.assertRaisesRegex(RuntimeError, "GYM_ANYTHING_QEMU_QMP_KEY_GAP_MS"):
+                runner._qmp_experimental_key_gap_seconds()
+
     def test_fast_qmp_text_key_groups_encode_shifted_characters(self) -> None:
         runner = self._runner()
 
@@ -148,7 +180,7 @@ class QemuDbusFastIoTests(unittest.TestCase):
             [["shift", "a"], ["z"], ["shift", "1"], ["ret"]],
         )
 
-    def test_inject_action_uses_qmp_when_fast_io_is_enabled(self) -> None:
+    def test_inject_action_uses_qmp_for_mouse_when_fast_io_is_enabled(self) -> None:
         runner = self._runner()
 
         with mock.patch.object(runner, "_inject_action_via_qmp") as inject:
@@ -156,11 +188,40 @@ class QemuDbusFastIoTests(unittest.TestCase):
 
         inject.assert_called_once_with({"mouse": {"move": [1, 2]}})
 
+    def test_inject_action_uses_uinput_agent_for_linux_fast_keyboard(self) -> None:
+        runner = self._runner()
+
+        with mock.patch.object(runner, "_inject_action_via_qmp") as qmp, \
+             mock.patch.object(runner, "_inject_keyboard_via_fast_input_agent") as keyboard:
+            runner.inject_action({"keyboard": {"text": "abc"}})
+
+        qmp.assert_not_called()
+        keyboard.assert_called_once_with({"text": "abc"})
+
+    def test_explicit_qmp_experimental_keyboard_backend_uses_qmp(self) -> None:
+        runner = self._runner()
+
+        with mock.patch.dict("os.environ", {"GYM_ANYTHING_QEMU_FAST_KEYBOARD_BACKEND": "qmp-experimental"}, clear=False), \
+             mock.patch.object(runner, "_inject_action_via_qmp") as qmp, \
+             mock.patch.object(runner, "_inject_keyboard_via_fast_input_agent") as keyboard:
+            runner.inject_action({"keyboard": {"text": "abc"}})
+
+        qmp.assert_called_once_with({"keyboard": {"text": "abc"}})
+        keyboard.assert_not_called()
+
+    def test_invalid_linux_fast_keyboard_backend_fails_loudly(self) -> None:
+        runner = self._runner()
+
+        with mock.patch.dict("os.environ", {"GYM_ANYTHING_QEMU_FAST_KEYBOARD_BACKEND": "unknown"}, clear=False):
+            with self.assertRaisesRegex(RuntimeError, "Unsupported QEMU fast keyboard backend"):
+                runner.set_fast_io(True)
+
     def test_linux_fast_io_qemu_command_adds_usb_hid_devices(self) -> None:
         runner = self._runner()
         runner.memory = "8G"
         runner.cpus = 4
         runner.enable_kvm = False
+        runner._fast_input_host_port = 45678
         runner._build_container_prefix = lambda work_dir, disk: []
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -175,6 +236,7 @@ class QemuDbusFastIoTests(unittest.TestCase):
         self.assertIn("qemu-xhci,id=fastio_xhci", cmd)
         self.assertIn("usb-kbd,id=fastio_kbd,bus=fastio_xhci.0", cmd)
         self.assertIn("usb-tablet,id=fastio_tablet,bus=fastio_xhci.0", cmd)
+        self.assertIn("user,id=net0,hostfwd=tcp::2222-:22,hostfwd=tcp::45678-:5599", cmd)
 
     def test_linux_non_fast_io_qemu_command_keeps_legacy_input_devices(self) -> None:
         runner = self._runner()
