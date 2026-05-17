@@ -1,14 +1,15 @@
 # Environment Creation Checklist
 
 ## Before Starting
-- [ ] **Read `10_cross_cutting_patterns.md`** — essential patterns from 100+ envs (service readiness, dialog suppression, Docker v2, snap gotchas, verification, setsid, pgrep bugs, XAUTHORITY, and more)
+- [ ] **Read `10_cross_cutting_patterns.md`** — essential patterns from 100+ envs (service readiness, dialog suppression, Docker v2, snap gotchas, verification, setsid, pgrep bugs, XAUTHORITY, verify-against-user-flow #35, convention-following #36, probe-before-speculating #37, and more)
 - [ ] **If Windows app:** Read `11_windows_environments.md` — Session 0, schtasks /IT, Win32 vs PyAutoGUI, Office installs
+- [ ] **If macOS app:** Read `12_macos_environments.md` — UseComputerRunner, `/Users/lume/workspace` (SIP read-only root), Rosetta, DMG / .pkg install patterns, TCC over SSH, no checkpoint caching
 - [ ] Verify application is free/has appropriate license
-- [ ] Find official download URL (.deb preferred for Ubuntu) — have fallback URLs (see pattern #7)
+- [ ] Find official download URL (.deb preferred for Ubuntu; .dmg for macOS) — have fallback URLs (see pattern #7) and **probe the URL is alive before relying on it** (see pattern #37)
 - [ ] Identify application dependencies
 - [ ] Check if application has first-run dialogs that need handling — plan two-layer suppression (see pattern #2)
 - [ ] Check if it's a snap package — review snap-specific gotchas (see pattern #4)
-- [ ] Check `specific_env_notes/` for notes on similar applications
+- [ ] Check `specific_env_notes/` for notes on similar applications — **conventions there are authoritative defaults** (pattern #36)
 
 ## File Creation
 - [ ] Create directory structure: `benchmarks/cua_world/environments/<env_name>/{scripts,config,tasks,utils}`
