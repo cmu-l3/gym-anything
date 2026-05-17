@@ -15,13 +15,18 @@ import tty
 from typing import Optional
 
 
-def _open_vnc(port: int, password: str = "") -> None:
-    """Open the VNC viewer for this platform."""
-    url = f"vnc://localhost:{port}"
+def _open_url(url: str) -> None:
+    """Hand off `url` to the OS so the right viewer opens (vnc://… → VNC client,
+    https://… → browser, etc.)."""
     if sys.platform == "darwin":
         subprocess.Popen(["open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     elif sys.platform == "linux":
         subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def _open_vnc(port: int, password: str = "") -> None:
+    """Back-compat shim: open vnc://localhost:<port>."""
+    _open_url(f"vnc://localhost:{port}")
 
 
 class InteractiveSession:
@@ -42,23 +47,31 @@ class InteractiveSession:
         session_info = self._env.get_session_info()
 
         vnc_port = session_info.vnc_port if session_info else None
+        vnc_url = session_info.vnc_url if session_info else None
         vnc_pw = session_info.vnc_password if session_info and session_info.vnc_password else "password"
         ssh_port = session_info.ssh_port if session_info else None
         ssh_user = session_info.ssh_user if session_info and session_info.ssh_user else "ga"
         ssh_pw = session_info.ssh_password if session_info and session_info.ssh_password else "password123"
         artifacts = self._env.episode_dir or ""
 
-        if self._auto_open_vnc and vnc_port:
-            _open_vnc(vnc_port, vnc_pw)
+        # vnc_url covers both the local vnc:// case (constructed from vnc_port)
+        # and the remote-gateway noVNC case (https://…/v1/sandboxes/…/vnc).
+        vnc_openable = vnc_url or (f"vnc://localhost:{vnc_port}" if vnc_port else None)
+        if self._auto_open_vnc and vnc_openable:
+            _open_url(vnc_openable)
 
         def _build_panel() -> Panel:
             elapsed = time.time() - self._start_time
             mins, secs = divmod(int(elapsed), 60)
 
             lines = []
-            if vnc_port:
-                vnc_url = f"vnc://localhost:{vnc_port}"
-                lines.append(f"  [bold]VNC[/bold]    {vnc_url}   password: {vnc_pw}")
+            if vnc_openable:
+                if vnc_openable.startswith("vnc://"):
+                    lines.append(f"  [bold]VNC[/bold]    {vnc_openable}   password: {vnc_pw}")
+                else:
+                    # Remote noVNC: opens in a browser; auth is gateway-side
+                    # (use.computer dashboard handles bearer tokens for you).
+                    lines.append(f"  [bold]VNC[/bold]    {vnc_openable}")
             if ssh_port:
                 lines.append(f"  [bold]SSH[/bold]    ssh -p {ssh_port} {ssh_user}@localhost   password: {ssh_pw}")
             if artifacts:
@@ -67,7 +80,7 @@ class InteractiveSession:
             lines.append("")
 
             hints = []
-            if vnc_port:
+            if vnc_openable:
                 hints.append("'v' open VNC")
             hints.append("Ctrl+C stop")
             lines.append(f"  [dim]{' | '.join(hints)}[/dim]")
@@ -104,8 +117,8 @@ class InteractiveSession:
                             r, _, _ = select.select([sys.stdin], [], [], 1.0)
                             if r:
                                 ch = sys.stdin.read(1)
-                                if ch == "v" and vnc_port:
-                                    _open_vnc(vnc_port, vnc_pw)
+                                if ch == "v" and vnc_openable:
+                                    _open_url(vnc_openable)
                                     console.print("  [green]Opening VNC viewer...[/green]")
                         except Exception:
                             time.sleep(1)

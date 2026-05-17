@@ -89,6 +89,12 @@ class GymAnythingEnv:
         spec_runner = getattr(spec, 'runner', None)
         spec_base = getattr(spec, 'base', None)
 
+        # --- use.computer runner (remote macOS sandboxes) ---
+        if runner_override == "use_computer" or spec_runner == "use_computer":
+            from .runtime.runners.use_computer import UseComputerRunner
+            logger.info("Using UseComputerRunner (remote macOS sandbox via use.computer)")
+            return UseComputerRunner(spec)
+
         # --- AVF runner (Apple Virtualization Framework + Rosetta) ---
         if runner_override == "avf" or spec_runner == "avf":
             from .runtime.runners.avf import AVFRunner
@@ -245,12 +251,14 @@ class GymAnythingEnv:
         if callable(getter):
             return getter()
         os_type = getattr(self.env_spec, "os_type", None)
-        if os_type in {"linux", "windows", "android"}:
+        if os_type in {"linux", "windows", "android", "macos"}:
             return os_type
         if getattr(self._runner, "is_android", False):
             return "android"
         if getattr(self._runner, "is_windows", False):
             return "windows"
+        if getattr(self._runner, "is_macos", False):
+            return "macos"
         return "linux"
 
     def _runtime_info(self) -> RunnerRuntimeInfo:
@@ -463,6 +471,8 @@ class GymAnythingEnv:
                     # Windows uses PowerShell
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
+                    elif self._platform_family() == "macos":
+                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/env_setup_pre_start.log 2>&1", timeout=1800)
                     else:
                         self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=1800)
                     if self._reporter:
@@ -504,6 +514,8 @@ class GymAnythingEnv:
                     # Windows uses PowerShell
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
+                    elif self._platform_family() == "macos":
+                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/env_setup_post_start.log 2>&1", timeout=1800)
                     else:
                         self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=1800)
                     if self._reporter:
@@ -552,6 +564,9 @@ class GymAnythingEnv:
                     # Windows uses PowerShell directly (hook_cmd already contains full PowerShell command)
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd, use_pty=False)
+                    elif self._platform_family() == "macos":
+                        hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
+                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/task_pre_task.log 2>&1", use_pty=False, timeout=hook_timeout)
                     else:
                         # Use configurable timeout for pre_task hook (default 600s, can be overridden in task.json)
                         hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
@@ -618,7 +633,10 @@ class GymAnythingEnv:
             container_name=runtime_info.container_name,
             instance_name=runtime_info.instance_name,
             vnc_port=runtime_info.vnc_port,
-            vnc_url=f"vnc://localhost:{runtime_info.vnc_port}" if runtime_info.vnc_port else None,
+            vnc_url=(
+                runtime_info.vnc_url
+                or (f"vnc://localhost:{runtime_info.vnc_port}" if runtime_info.vnc_port else None)
+            ),
             vnc_password=runtime_info.vnc_password,
             ssh_port=runtime_info.ssh_port,
             ssh_user=runtime_info.ssh_user,
@@ -896,6 +914,8 @@ class GymAnythingEnv:
                 self._runner.exec(hook_cmd)
             elif self._platform_family() == "windows":
                 self._runner.exec(hook_cmd)
+            elif self._platform_family() == "macos":
+                self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/task_post_task.log 2>&1")
             else:
                 self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/task_post_task.log 2>&1")
         except Exception:
@@ -1004,11 +1024,16 @@ class GymAnythingEnv:
                     "/tmp/fluxbox.log",
                     "/tmp/ffmpeg.log",
 
-                    # All hook logs
+                    # All hook logs (Linux + macOS paths; copy_from silently
+                    # skips non-existent files so listing both is safe).
                     "/home/ga/task_pre_task.log",
                     "/home/ga/task_post_task.log",
                     "/home/ga/env_setup_pre_start.log",
                     "/home/ga/env_setup_post_start.log",
+                    "/Users/lume/task_pre_task.log",
+                    "/Users/lume/task_post_task.log",
+                    "/Users/lume/env_setup_pre_start.log",
+                    "/Users/lume/env_setup_post_start.log",
                 ]
                 for lp in logs:
                     try:
@@ -1114,8 +1139,8 @@ class GymAnythingEnv:
         token = os.environ.get("DOCKERHUB_TOKEN", "")
         if not username or not token:
             return
-        # Skip for non-Linux guests (Windows/Android don't use Docker-in-Docker)
-        if self._platform_family() in ("windows", "android"):
+        # Skip for non-Linux guests (Windows/Android/macOS don't use Docker-in-Docker)
+        if self._platform_family() in ("windows", "android", "macos"):
             return
         try:
             self._runner.exec(

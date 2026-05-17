@@ -24,6 +24,10 @@ WINDOWS_PRESETS = (
     "windows-11",
 )
 
+MACOS_PRESETS = (
+    "macos",
+)
+
 # BlissOS-based Android (QEMU direct boot)
 ANDROID_BLISSOS_PRESETS = (
     "android-14",
@@ -37,7 +41,7 @@ ANDROID_AVD_PRESETS = (
 
 ANDROID_PRESETS = ANDROID_BLISSOS_PRESETS + ANDROID_AVD_PRESETS
 
-ALL_PRESETS = LINUX_PRESETS + WINDOWS_PRESETS + ANDROID_PRESETS
+ALL_PRESETS = LINUX_PRESETS + WINDOWS_PRESETS + ANDROID_PRESETS + MACOS_PRESETS
 
 
 def load_preset_env_dict(name: str) -> Dict[str, Any]:
@@ -57,6 +61,21 @@ def load_preset_env_dict(name: str) -> Dict[str, Any]:
 def is_windows_preset(name: str) -> bool:
     """Check if a preset is Windows-based."""
     return name in WINDOWS_PRESETS
+
+
+def is_macos_preset(name: str) -> bool:
+    """Check if a preset is macOS-based."""
+    return name in MACOS_PRESETS
+
+
+def is_macos_env(env_dict: Dict[str, Any]) -> bool:
+    """Check if an environment dict targets macOS (via os_type or base preset)."""
+    if env_dict.get("os_type") == "macos":
+        return True
+    base = env_dict.get("base", "")
+    if base and is_macos_preset(base):
+        return True
+    return False
 
 
 def get_os_type(preset_dict: Dict[str, Any]) -> str:
@@ -162,6 +181,7 @@ def list_presets() -> Dict[str, tuple]:
     return {
         "linux": LINUX_PRESETS,
         "windows": WINDOWS_PRESETS,
+        "macos": MACOS_PRESETS,
         "android_blissos": ANDROID_BLISSOS_PRESETS,
         "android_avd": ANDROID_AVD_PRESETS,
         "android": ANDROID_PRESETS,

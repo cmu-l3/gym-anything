@@ -298,8 +298,8 @@ class EnvSpec:
     diagnostics: bool = False
 
     # OS type and runner (for platform-specific handling)
-    os_type: Optional[str] = None  # "linux", "windows", "android"
-    runner: Optional[str] = None  # "docker", "qemu", "qemu_native", "avd", "avd_native", "local"
+    os_type: Optional[str] = None  # "linux", "windows", "android", "macos"
+    runner: Optional[str] = None  # "docker", "qemu", "qemu_native", "avd", "avd_native", "local", "use_computer"
 
     # Backends (optional hints)
     display_backend: Optional[str] = None

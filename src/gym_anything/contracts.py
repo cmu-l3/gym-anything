@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, Literal, Optional, Tuple
 
 
-PlatformFamily = Literal["linux", "windows", "android", "unknown"]
+PlatformFamily = Literal["linux", "windows", "android", "macos", "unknown"]
 
 
 @dataclass(frozen=True)
@@ -16,6 +16,10 @@ class RunnerRuntimeInfo:
     instance_name: Optional[str] = None
     vnc_port: Optional[int] = None
     vnc_password: Optional[str] = None
+    # vnc_url is for runners that expose VNC over a remote gateway (e.g. noVNC
+    # over HTTPS) rather than a local TCP port. Higher layers prefer this when
+    # set, falling back to constructing vnc://localhost:<vnc_port> otherwise.
+    vnc_url: Optional[str] = None
     ssh_port: Optional[int] = None
     ssh_user: Optional[str] = None
     ssh_password: Optional[str] = None
@@ -63,7 +67,7 @@ class SessionInfo:
                 resolved_resolution = None
 
         platform_family = data.get("platform_family")
-        if platform_family not in {"linux", "windows", "android", "unknown"}:
+        if platform_family not in {"linux", "windows", "android", "macos", "unknown"}:
             platform_family = "unknown"
 
         return cls(
