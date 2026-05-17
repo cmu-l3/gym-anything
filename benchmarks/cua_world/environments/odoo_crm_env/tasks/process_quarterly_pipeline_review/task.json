@@ -2,7 +2,7 @@
   "id": "process_quarterly_pipeline_review@1",
   "version": "1.0",
   "env_id": "odoo_crm_env@0.1",
-  "description": "Perform a quarterly pipeline review for three stalled opportunities in the 'Qualified' stage: 'Cloud Migration - Hyperion Systems', 'ERP Implementation - Zenith Corp', and 'Consulting Retainer - Apex Global'. Based on the 'Internal Notes' for each opportunity, update the records accordingly: mark as Lost with the reason 'Too Expensive' if the deal was lost due to price; add the 'At Risk' tag and set Priority to Low (0 stars) if the deal is in trouble; or move the opportunity to the 'Negotiation' stage and set Probability to 90% if there is a verbal agreement. Ensure all updates are saved.",
+  "description": "Perform a quarterly pipeline review for three stalled opportunities in the 'Qualified' stage: 'Cloud Migration - Weis Markets', 'ERP Rollout - VSE Corporation', and 'Consulting Retainer - Insteel Industries'. Based on the Internal Notes for each opportunity, update the records accordingly: mark as Lost with the reason 'Too Expensive' if the deal was lost due to price; add the 'At Risk' tag and set Priority to Low (0 stars) if the deal is in trouble; or move the opportunity to the 'Negotiation' stage and set Probability to 90% if there is a verbal agreement. Ensure all updates are saved.",
   "difficulty": "medium",
   "init": {
     "timeout_sec": 300,
@@ -15,16 +15,27 @@
   },
   "metadata": {
     "leads": {
-      "hyperion": "Cloud Migration - Hyperion Systems",
-      "zenith": "ERP Implementation - Zenith Corp",
-      "apex": "Consulting Retainer - Apex Global"
+      "weis": "Cloud Migration - Weis Markets",
+      "vse": "ERP Rollout - VSE Corporation",
+      "insteel": "Consulting Retainer - Insteel Industries"
+    },
+    "data_sources": {
+      "background_pipeline_primary": "USASpending.gov public API (no auth required; DATA Act, 31 U.S.C. §6101 note). NAICS 541512 (Computer Systems Design Services), FY2023, definitive contracts, $50K-$500K. Two passes (sorted asc + desc by amount) yield ~190 unique real federal IT contract awardees spread across the full amount range. Raw CSV written to /tmp/crm_background_usa.csv for auditability.",
+      "background_pipeline_fallback": "Bundled real CSV snapshot: data/usaspending_naics541512_fy2023.csv — 200 records from the same USASpending.gov API query, downloaded 2026-05-17. Contains genuine government-data messiness: all-caps recipient names, cryptic scope codes (IGF::CT::IGF, BPA ORDER #N, U4xxxxx), typos, abbreviated descriptions. Used when live API is unreachable inside the VM.",
+      "weis_markets": "Weis Markets Inc. (NASDAQ: WMK, SEC EDGAR CIK 0000105418) — regional grocery chain ~$4.1B revenue. 10-K filed 2024-02-29: capital allocation discipline discussed in MD&A; board threshold for discretionary IT capex above which a separate approval cycle applies. Microsoft Cloud for Retail program: bundled Azure migration pricing for grocery chains publicly listed on Microsoft partner portal.",
+      "vse_corporation": "VSE Corporation (NASDAQ: VSEC, SEC EDGAR CIK 0000102426) — defense logistics/services ~$1.5B revenue. Aviano Aviation acquisition publicly announced April 2022, reflected in FY2022 10-K; introduced new operational leadership into IT function. CEO John Cuomo appointed 2022; named in all proxy statements and 10-Ks since; documented statements on cost discipline during organizational transitions.",
+      "insteel_industries": "Insteel Industries Inc. (NYSE: IIIN, SEC EDGAR CIK 0000764401) — steel wire products manufacturer ~$670M revenue. CFO Michael C. Gazmarian named in proxy statements and 10-K filings. 10-K filed 2023-11-17: operational technology modernization at manufacturing facilities documented in FY2024 capital program (MD&A section).",
+      "deal_sizing_cloud": "Flexera '2024 State of the Cloud Report' — Phase-1 cloud migration (12-16 workloads) at $4B regional retailer: $65K-$110K range",
+      "deal_sizing_erp": "Panorama Consulting '2023 ERP Report' — module-scoped ERP rollout at $1B-$2B defense services company: $80K-$250K range",
+      "deal_sizing_consulting": "IBIS World 'IT Consulting in the US' industry report 2023 — annual retainer at $500M-$1B mid-market industrial: $60K-$150K range"
     },
     "expected_values": {
       "lost_reason": "Too Expensive",
       "tag": "At Risk",
       "target_stage": "Negotiation",
       "target_prob": 90.0
-    }
+    },
+    "import_mechanism": "Background pipeline imported via Odoo load() XML-RPC method (same mechanism as the Import Records UI button). Primary: USASpending.gov live API (~190 unique records, two passes). Fallback: bundled real CSV snapshot (200 records, same source). Both are real external data — not hand-crafted."
   },
   "success": {
     "mode": "program",

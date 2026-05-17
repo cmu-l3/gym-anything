@@ -26,9 +26,9 @@ output_file = "/tmp/task_result.json"
 result = {
     "start_time": $START_TIME,
     "export_time": $EXPORT_TIME,
-    "hyperion": None,
-    "zenith": None,
-    "apex": None,
+    "weis": None,
+    "vse": None,
+    "insteel": None,
     "connection_error": False
 }
 
@@ -37,66 +37,64 @@ try:
     uid = common.authenticate(DB, USER, PASS, {})
     models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
 
-    # Fetch Hyperion
-    hyperion_data = models.execute_kw(DB, uid, PASS, 'crm.lead', 'search_read', 
-        [[['name', '=', 'Cloud Migration - Hyperion Systems'], ['active', 'in', [True, False]]]], 
+    # Fetch Weis Markets (expected: marked Lost with reason "Too Expensive")
+    weis_data = models.execute_kw(DB, uid, PASS, 'crm.lead', 'search_read',
+        [[['name', '=', 'Cloud Migration - Weis Markets'], ['active', 'in', [True, False]]]],
         {'fields': ['id', 'active', 'lost_reason_id', 'write_date']})
-    
-    if hyperion_data:
-        # lost_reason_id is [id, name] or False
-        reason = hyperion_data[0]['lost_reason_id']
-        result['hyperion'] = {
+
+    if weis_data:
+        reason = weis_data[0]['lost_reason_id']
+        result['weis'] = {
             'exists': True,
-            'active': hyperion_data[0]['active'],
+            'active': weis_data[0]['active'],
             'lost_reason': reason[1] if reason else None,
-            'write_date': hyperion_data[0]['write_date']
+            'write_date': weis_data[0]['write_date']
         }
     else:
-        result['hyperion'] = {'exists': False}
+        result['weis'] = {'exists': False}
 
-    # Fetch Zenith
-    zenith_data = models.execute_kw(DB, uid, PASS, 'crm.lead', 'search_read',
-        [[['name', '=', 'ERP Implementation - Zenith Corp']]],
+    # Fetch VSE Corporation (expected: "At Risk" tag + Priority 0)
+    vse_data = models.execute_kw(DB, uid, PASS, 'crm.lead', 'search_read',
+        [[['name', '=', 'ERP Rollout - VSE Corporation']]],
         {'fields': ['id', 'tag_ids', 'priority', 'write_date']})
-        
-    if zenith_data:
-        # Resolve tags
-        tag_ids = zenith_data[0]['tag_ids']
+
+    if vse_data:
+        tag_ids = vse_data[0]['tag_ids']
         tag_names = []
         if tag_ids:
-            tags = models.execute_kw(DB, uid, PASS, 'crm.tag', 'read', [tag_ids], {'fields': ['name']})
+            tags = models.execute_kw(DB, uid, PASS, 'crm.tag', 'read',
+                                     [tag_ids], {'fields': ['name']})
             tag_names = [t['name'] for t in tags]
-            
-        result['zenith'] = {
+
+        result['vse'] = {
             'exists': True,
             'tags': tag_names,
-            'priority': str(zenith_data[0]['priority']), # '0', '1', '2', '3'
-            'write_date': zenith_data[0]['write_date']
+            'priority': str(vse_data[0]['priority']),
+            'write_date': vse_data[0]['write_date']
         }
     else:
-        result['zenith'] = {'exists': False}
-    
-    # Fetch Apex
-    apex_data = models.execute_kw(DB, uid, PASS, 'crm.lead', 'search_read',
-        [[['name', '=', 'Consulting Retainer - Apex Global']]],
+        result['vse'] = {'exists': False}
+
+    # Fetch Insteel Industries (expected: Negotiation stage + 90% probability)
+    insteel_data = models.execute_kw(DB, uid, PASS, 'crm.lead', 'search_read',
+        [[['name', '=', 'Consulting Retainer - Insteel Industries']]],
         {'fields': ['id', 'stage_id', 'probability', 'write_date']})
-        
-    if apex_data:
-        stage = apex_data[0]['stage_id'] # [id, name]
-        result['apex'] = {
+
+    if insteel_data:
+        stage = insteel_data[0]['stage_id']
+        result['insteel'] = {
             'exists': True,
             'stage': stage[1] if stage else None,
-            'probability': apex_data[0]['probability'],
-            'write_date': apex_data[0]['write_date']
+            'probability': insteel_data[0]['probability'],
+            'write_date': insteel_data[0]['write_date']
         }
     else:
-        result['apex'] = {'exists': False}
+        result['insteel'] = {'exists': False}
 
 except Exception as e:
     result['connection_error'] = True
     result['error_msg'] = str(e)
 
-# Write result to temp file then move
 with open('/tmp/temp_result.json', 'w') as f:
     json.dump(result, f, indent=2)
 

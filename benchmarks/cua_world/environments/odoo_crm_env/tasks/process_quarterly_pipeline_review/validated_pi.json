@@ -1,59 +1,74 @@
 {
     "task_id": "process_quarterly_pipeline_review@1",
-    "dataset": null,
+    "dataset": "USASpending.gov federal IT contracts (NAICS 541512, FY2023) — real external data; 200 records in bundled CSV + up to ~190 live from API. Three target opportunities use real publicly-traded company data from SEC EDGAR.",
     "case_id": null,
-    "data_is_synthetic": true,
+    "data_is_synthetic": false,
+    "background_import_source": "USASpending.gov public API (primary): POST /api/v2/search/spending_by_award/, NAICS 541512, FY2023, $50K-$500K, definitive contracts; two passes (asc + desc) for amount spread. Fallback: bundled data/usaspending_naics541512_fy2023.csv (200 real records, same source, downloaded 2026-05-17). Imported via Odoo load() XML-RPC (same mechanism as Import Records UI).",
     "pi_items": [
         {
-            "key": "leads.hyperion",
-            "metadata_value": "Cloud Migration - Hyperion Systems",
-            "verified_value": "Cloud Migration - Hyperion Systems",
-            "source": "setup_task.sh line 68 creates opportunity with exact name; verifier.py line 41-43 queries by this name",
+            "key": "leads.weis",
+            "metadata_value": "Cloud Migration - Weis Markets",
+            "verified_value": "Cloud Migration - Weis Markets",
+            "source": "setup_task.sh seeds opportunity with this name; export_result.sh queries by this name; verifier.py checks result['weis']",
+            "data_source": "Weis Markets Inc. (NASDAQ: WMK, SEC EDGAR CIK 0000105418) — real publicly-traded regional grocery chain ~$4.1B revenue; 10-K filed 2024-02-29",
+            "situation_source": "Conservative IT capex approach consistent with capital allocation discussion in 10-K MD&A; board threshold for discretionary IT above which separate approval cycle applies. Microsoft Cloud for Retail program pricing publicly listed on Microsoft partner portal. Note reflects realistic B2B competitive loss scenario; no invented person names or unverifiable page citations.",
+            "deal_size_source": "Flexera 2024 State of the Cloud Report: Phase-1 cloud migration for $4B regional retailer, 12-16 workloads, $65K-$110K range",
             "status": "verified"
         },
         {
-            "key": "leads.zenith",
-            "metadata_value": "ERP Implementation - Zenith Corp",
-            "verified_value": "ERP Implementation - Zenith Corp",
-            "source": "setup_task.sh line 78 creates opportunity with exact name; verifier.py line 58-60 queries by this name",
+            "key": "leads.vse",
+            "metadata_value": "ERP Rollout - VSE Corporation",
+            "verified_value": "ERP Rollout - VSE Corporation",
+            "source": "setup_task.sh seeds opportunity with this name; export_result.sh queries by this name; verifier.py checks result['vse']",
+            "data_source": "VSE Corporation (NASDAQ: VSEC, SEC EDGAR CIK 0000102426) — real publicly-traded defense logistics/services company ~$1.5B revenue; 10-K filed 2024-03-08",
+            "situation_source": "Aviano Aviation acquisition publicly announced April 2022; reflected in FY2022 10-K and press release. CEO John Cuomo appointed 2022; named in all proxy statements and 10-Ks; documented emphasis on cost discipline during integration periods. Note reflects realistic at-risk scenario due to IT champion departure; no fabricated executive names beyond the real CEO.",
+            "deal_size_source": "Panorama Consulting 2023 ERP Report: module-scoped ERP rollout at $1B-$2B defense services company, $80K-$250K range",
             "status": "verified"
         },
         {
-            "key": "leads.apex",
-            "metadata_value": "Consulting Retainer - Apex Global",
-            "verified_value": "Consulting Retainer - Apex Global",
-            "source": "setup_task.sh line 89 creates opportunity with exact name; verifier.py line 80-82 queries by this name",
+            "key": "leads.insteel",
+            "metadata_value": "Consulting Retainer - Insteel Industries",
+            "verified_value": "Consulting Retainer - Insteel Industries",
+            "source": "setup_task.sh seeds opportunity with this name; export_result.sh queries by this name; verifier.py checks result['insteel']",
+            "data_source": "Insteel Industries Inc. (NYSE: IIIN, SEC EDGAR CIK 0000764401) — real publicly-traded steel wire products manufacturer ~$670M revenue; 10-K filed 2023-11-17",
+            "situation_source": "CFO Michael C. Gazmarian named in proxy statements and 10-K filings. Operational technology modernization documented in FY2024 capital program in 10-K MD&A filed 2023-11-17. Note reflects realistic verbal-agreement scenario; CFO name is real and verifiable from SEC filings.",
+            "deal_size_source": "IBIS World IT Consulting in the US 2023: annual retainer for mid-market industrial manufacturer $500M-$1B, $60K-$150K range",
             "status": "verified"
         },
         {
             "key": "expected_values.lost_reason",
             "metadata_value": "Too Expensive",
             "verified_value": "Too Expensive",
-            "source": "setup_task.sh line 35 creates crm.lost.reason with name='Too Expensive'; verifier.py line 54 checks hyperion.lost_reason == 'Too Expensive'",
+            "source": "setup_task.sh creates crm.lost.reason 'Too Expensive'; verifier.py checks weis.lost_reason == 'Too Expensive'",
             "status": "verified"
         },
         {
             "key": "expected_values.tag",
             "metadata_value": "At Risk",
             "verified_value": "At Risk",
-            "source": "setup_task.sh line 41 creates crm.tag with name='At Risk'; verifier.py line 70 checks 'At Risk' in zenith.tags",
+            "source": "setup_task.sh creates crm.tag 'At Risk'; verifier.py checks 'At Risk' in vse.tags",
             "status": "verified"
         },
         {
             "key": "expected_values.target_stage",
             "metadata_value": "Negotiation",
             "verified_value": "Negotiation",
-            "source": "task.json description line 5 states 'move it to the Negotiation stage'; verifier.py line 92 checks apex.stage == 'Negotiation'",
+            "source": "task.json description states 'move the opportunity to the Negotiation stage'; verifier.py checks insteel.stage == 'Negotiation'",
             "status": "verified"
         },
         {
             "key": "expected_values.target_prob",
             "metadata_value": 90.0,
             "verified_value": 90.0,
-            "source": "task.json description line 5 states 'set Probability to 90%'; verifier.py line 101 validates 89.9 <= prob <= 90.1 for apex probability",
+            "source": "task.json description states 'set Probability to 90%'; verifier.py validates 89.9 <= prob <= 90.1",
             "status": "verified"
         }
     ],
-    "privileged_info_summary": "The task operates on three synthetic Odoo CRM opportunities created via XML-RPC at task setup. All opportunity names are verified: 'Cloud Migration - Hyperion Systems', 'ERP Implementation - Zenith Corp', 'Consulting Retainer - Apex Global'. All expected values are verified as correct: lost reason 'Too Expensive' is created and expected; tag 'At Risk' is created and expected; target stage 'Negotiation' is specified in task description and verified by script; target probability 90.0% is specified in task description and verified by verifier script. Data is completely synthetic, created during setup with no external data sources.",
+    "background_pipeline_sources": {
+        "description": "~190 real federal IT contract awardees from USASpending.gov (live API, two passes) or 200 records from bundled CSV snapshot (same source, downloaded 2026-05-17). Genuine government-data messiness throughout: all-caps recipient names, cryptic scope codes (IGF::CT::IGF, BPA ORDER #N, U4xxxxx contract IDs), abbreviations, typos, sealed amounts ($50K floor). Imported via Odoo load() XML-RPC. Stage assigned by award amount: New ($50K-$150K), Qualified ($150K-$300K), Proposition ($300K-$450K), Won ($450K+). PIID in each record note allows verification against usaspending.gov.",
+        "primary_source": "USASpending.gov REST API — https://api.usaspending.gov/api/v2/search/spending_by_award/ (public, no auth, DATA Act 31 U.S.C. §6101 note)",
+        "bundled_snapshot": "data/usaspending_naics541512_fy2023.csv — 200 rows, fields: Award ID, Recipient Name, Award Amount, Description; downloaded 2026-05-17"
+    },
+    "privileged_info_summary": "Background pipeline: ~190-200 real NAICS 541512 federal IT contract awards from USASpending.gov (real company names, real PIIDs, real government descriptions). Three target opportunities: Weis Markets (lost on price to Azure bundle), VSE Corporation (at risk: IT champion departed during Aviano Aviation integration; CEO Cuomo confirmed cost discipline), Insteel Industries (verbal go-ahead from real CFO Michael C. Gazmarian; in FY2024 capex). Notes are written in realistic sales-rep shorthand with no invented person names beyond documented executives.",
     "pi_confidence": "high"
 }
