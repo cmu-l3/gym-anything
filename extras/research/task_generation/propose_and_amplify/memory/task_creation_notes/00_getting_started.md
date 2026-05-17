@@ -13,6 +13,16 @@ This guide will help you create high-quality tasks for Gym-Anything environments
 
 ---
 
+## Mandatory First Step — Read Expert Feedback
+
+Before reading the rest of this guide, read @extras/research/task_generation/propose_and_amplify/memory/task_creation_notes/expert_feedback.md.
+
+That file collects notes from domain experts who have reviewed tasks produced by this pipeline. Scan it for any entry whose header matches the target env_dir (or specific task name), or that is marked `GLOBAL`. Treat each matching entry as a hard requirement that supersedes the defaults in the rest of these notes. If an expert note conflicts with anything below, follow the expert note.
+
+If the file is empty (no entries yet), continue with the rest of this guide as normal.
+
+---
+
 ## What You Can Run
 
 The Gym-Anything infrastructure supports **any operating system and any desktop application**:

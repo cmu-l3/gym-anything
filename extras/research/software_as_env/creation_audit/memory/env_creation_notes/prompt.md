@@ -4,6 +4,16 @@ This document provides a step-by-step workflow for creating new environments in 
 
 ---
 
+## Phase 0: Mandatory — Read Expert Feedback First
+
+Before any other phase, read @extras/research/software_as_env/creation_audit/memory/env_creation_notes/expert_feedback.md.
+
+That file collects notes from domain experts about specific environments and global rules. Scan it for any entry whose header matches the target env_dir, or that is marked `GLOBAL`. Treat every matching entry as a hard requirement that supersedes the defaults in this prompt. If an expert note conflicts with anything below, follow the expert note.
+
+If the file is empty (no entries yet), continue with Phase 1 as normal.
+
+---
+
 ## Phase 1: Understand the Framework
 
 Before creating any environment, you must understand how gym_anything works.

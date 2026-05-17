@@ -36,7 +36,10 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-from extras.research.task_generation.propose_and_amplify.pipeline import propose_cc
+from extras.research.task_generation.propose_and_amplify.pipeline import (
+    edit_task,
+    propose_cc,
+)
 from extras.research.task_generation.propose_and_amplify.pipeline.extract_tasks import (
     # Robust (4-fallback) name extractor that matches what the extract
     # stage uses to convert pickles to task folders. Returns the bare
@@ -277,12 +280,49 @@ def _stage_extract(args: argparse.Namespace, env_folder: Path,
 
 
 _STAGES = ("propose", "amplify", "extract")
+_EDIT_STAGE = "edit"  # not part of _STAGES; invoked only via --stage edit
 
 
 def run_pipeline(args: argparse.Namespace) -> int:
     workspace = (args.workspace or _default_workspace()).resolve()
     args.workspace_resolved = str(workspace)
     env_folder = _resolve_env_folder(args.env_dir, workspace).resolve()
+
+    # --- Edit mode short-circuits the pipeline ---------------------------
+    if args.stage == _EDIT_STAGE:
+        if not args.target_task:
+            raise ValueError("--stage edit requires --target-task <task_name>")
+        logs_dir = (
+            Path(args.output_dir).resolve()
+            if args.output_dir
+            else workspace / "edit_task_logs"
+        )
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        print(
+            f"\n=== Edit Task: {args.software} ({env_folder.name} / "
+            f"{args.target_task}) ==="
+        )
+        print(f"Workspace : {workspace}")
+        print(f"Env folder: {env_folder}")
+        print(f"Logs dir  : {logs_dir}")
+        print(f"Editor    : claude code (model={args.proposer_model})")
+        edit_task.run(
+            target_env_dir=env_folder.name,
+            target_task=args.target_task,
+            workspace=workspace,
+            logs_dir=logs_dir,
+            claude_bin=args.claude_bin,
+            model=args.proposer_model,
+            start_idx=args.propose_start_idx,
+            session_id=args.session_id,
+            timeout=args.timeout_sec,
+        )
+        print(
+            f"\n=== Edit Task complete: task at "
+            f"{env_folder / 'tasks' / args.target_task} ==="
+        )
+        return 0
+
     output_dir = (
         Path(args.output_dir).resolve()
         if args.output_dir else
@@ -339,8 +379,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--env-dir", required=True,
                    help="Env folder name under benchmarks/cua_world/environments/, "
                         "or absolute path")
-    p.add_argument("--stage", choices=("all", *_STAGES), default="all",
-                   help="Which stage to run (default: all)")
+    p.add_argument("--stage", choices=("all", *_STAGES, _EDIT_STAGE), default="all",
+                   help="Which stage to run (default: all). Use 'edit' to "
+                        "refactor an existing task in place; requires "
+                        "--target-task.")
+    p.add_argument("--target-task", default=None,
+                   help="Existing task folder name (under <env>/tasks/) to "
+                        "edit. Required with --stage edit.")
 
     # Proposer (agentic, Claude Code)
     p.add_argument("--proposer-model", default=DEFAULT_PROPOSER_MODEL,
