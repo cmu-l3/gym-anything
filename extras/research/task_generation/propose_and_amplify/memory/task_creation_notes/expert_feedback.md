@@ -45,3 +45,15 @@ followed by the expert's note. The note may include:
 ## Entries
 
 _(appended by the expert console as feedback is submitted)_
+
+## 2026-05-16T20:01:56Z — GLOBAL — promotion_and_department_update — i went through the task, and it seems data is fake/demo right now. that is not acceptable. we have to think of real data
+
+i went through the task, and it seems data is fake/demo right now. that is not acceptable. we have to think of real data from some real sources (multiple if possible). other envscurrently also have the issue, but we should fix it here first. think what sources can we get  real data, that is messy, big and so on, something similar to what we can expect in production.
+
+## 2026-05-17T02:34:07Z — odoo_crm_env — global
+
+i went through the task, and it seems data is fake/demo right now. that is not acceptable. we have to think of real data from some real sources (multiple if possible). other envscurrently also have the issue, but we should fix it here first. think what sources can we get  real data, that is messy, big and so on, something similar to what we can expect in production.
+
+## 2026-05-17T04:40:07Z — odoo_crm_env
+
+it still appears to hand-seed synthetic CRM records rather than importing actual messy data from external sources
