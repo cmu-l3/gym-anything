@@ -1,0 +1,44 @@
+{
+  "id": "ntfs_automount_agent@1",
+  "env_id": "macfuse_env@0.1",
+  "version": "1.0",
+  "description": "Set up automatic NTFS drive mounting for external Windows-formatted drives on this Mac using macFUSE (already installed) and ntfs-3g. The agent-user account is `lume` (home: /Users/lume). Step 1: ensure Homebrew is installed (re-use the system install if present at /opt/homebrew/bin/brew or /usr/local/bin/brew; otherwise run the official non-interactive installer). Step 2: add the gromgit/fuse tap and install the maintained NTFS-3G binary fork via `brew install gromgit/fuse/ntfs-3g-mac` (the upstream `ntfs-3g` Homebrew formula was disabled; this is the only working route on modern macOS). Step 3: create an executable shell script at ~/Documents/ntfs-automount.sh that accepts a single positional argument (a disk identifier such as `disk2s1`), looks the disk up with `diskutil info /dev/$1`, decides whether the filesystem is NTFS by grepping for `Windows_NTFS` or `NTFS` in the diskutil output, creates a mount point at /Volumes/NTFS_<VolumeName> if it does not already exist, and then mounts the disk read-write using `sudo ntfs-3g /dev/$1 /Volumes/NTFS_<VolumeName> -olocal,allow_other,auto_xattr` (preferred) or `sudo /usr/local/sbin/mount_ntfs -o rw,auto,nobrowse,nodev /dev/$1 /Volumes/NTFS_<VolumeName>` as a fallback when ntfs-3g is unavailable. The script must log each action with a timestamp to ~/Documents/ntfs-automount.log and must handle the not-NTFS and mount-failed cases gracefully. Step 4: create a companion script at ~/Documents/ntfs-unmount.sh that enumerates every currently mounted volume whose name starts with `NTFS_` and runs `diskutil unmount` on each one, also logging to ~/Documents/ntfs-automount.log. Both scripts must be `chmod +x`. Step 5: install a LaunchAgent plist at ~/Library/LaunchAgents/com.lume.ntfs-automount.plist with Label `com.lume.ntfs-automount`, `WatchPaths` set to `[\"/Volumes\"]` so launchd fires whenever a volume appears or disappears, `ProgramArguments` invoking /bin/bash to run /Users/lume/Documents/ntfs-automount.sh, `RunAtLoad` set to false, `StandardOutPath` /Users/lume/Documents/ntfs-automount.log, and `StandardErrorPath` /Users/lume/Documents/ntfs-automount.err. Finally `launchctl load` the plist. Because this sandbox is a remote Mac with no physical USB ports, the verifier does NOT require a live mount — it inspects the installed Homebrew + ntfs-3g binaries, the two shell scripts (existence, executability, required substrings), and the LaunchAgent plist's Label and WatchPaths keys.",
+  "natural_language": "Build an NTFS auto-mount system on this Mac: install Homebrew + the gromgit ntfs-3g-mac binary, write ~/Documents/ntfs-automount.sh and ~/Documents/ntfs-unmount.sh as described, and load a LaunchAgent at ~/Library/LaunchAgents/com.lume.ntfs-automount.plist that watches /Volumes.",
+  "difficulty": "hard",
+  "tags": [
+    "macfuse",
+    "ntfs",
+    "homebrew",
+    "launchd",
+    "sysadmin",
+    "filesystem",
+    "automation"
+  ],
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 70,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/Users/lume/workspace/tasks/ntfs_automount_agent/setup_task.sh",
+    "post_task": "/Users/lume/workspace/tasks/ntfs_automount_agent/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "occupation": "Mac power user / home media admin",
+    "user_home": "/Users/lume",
+    "required_files": [
+      "/Users/lume/Documents/ntfs-automount.sh",
+      "/Users/lume/Documents/ntfs-unmount.sh",
+      "/Users/lume/Library/LaunchAgents/com.lume.ntfs-automount.plist"
+    ],
+    "pass_threshold": 70,
+    "scoring_notes": "100 pts total across 7 criteria (C1..C7). Pass at 70. Sum of partial-only credit is 5 (only C3 has a partial), so an agent cannot cross the 70-point pass line on partial credit alone (Anti-Pattern 4 safety). The full-credit composition that passes (C1+C2+C3 = 45) requires the agent to install brew AND ntfs-3g AND write a real automount.sh — no shortcut of writing only files (without installing tools) and no shortcut of installing tools (without scripts) can pass."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_ntfs_automount_agent"
+    }
+  }
+}

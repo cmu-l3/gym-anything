@@ -15,14 +15,25 @@ Use this checklist for every task you create. Check off items as you complete th
 
 ## Phase 1: Research & Design
 
-### Look Up Occupation/Industry Context (REQUIRED BEFORE ANYTHING ELSE)
-- [ ] Ran the occupation lookup (Step 1 & 2 in `07_agent_prompt_template.md §0`) for this product
-- [ ] Identified the top 5 occupations by `product_gdp_usd`
-- [ ] Read `category_rationale` for each top occupation
-- [ ] Can state in one sentence: *"Real [occupation] professionals use this software to [do X]"*
-- [ ] Each task candidate reflects a workflow that a top-occupation user would recognise as realistic
+### Step 0 — Survey the Target Software's Power-User Workflows (REQUIRED FIRST, NON-NEGOTIABLE)
+- [ ] Read at least **8–10 web sources** about the target software: Reddit (`r/<app>`, `r/MacApps`, `r/productivity`), Hacker News, "how I use X" blog posts, official docs, GitHub issues (on the app and its extensions), dotfile repos, changelog announcements, and comparison articles vs competing apps
+- [ ] Extracted **pain points** (what users complain about — these reveal non-trivial capabilities)
+- [ ] Extracted **cool configs / shared dotfiles** (these are realistic *hard* workflows)
+- [ ] Extracted **chainable workflows** (deeplinks, AppleScript / Shortcuts.app / CLI integration, AI-extension composition, multi-app layouts) — usually the hardest and most realistic
+- [ ] Wrote a `research_notes.md` with URL → insight bullets; every proposed task can be traced back to a cited source
+- [ ] For utility / launcher / configuration / automation apps: identified the chaining and orchestration patterns used by power users
+- [ ] See `00_getting_started.md` Step 0 and `07_agent_prompt_template.md` Critical Requirement 0 for the full mandate
 
-> If the product is absent from `master_dataset.csv`/`selected_products.csv`, note that and proceed without this step.
+> Without this step, every task in the set will default to the "read a spec → create N items → save a file" archetype. That's a design-time failure (`14_task_design_antipatterns.md` §14) that is expensive to recover from after implementation.
+
+### Look Up the Personal-Use Context (REQUIRED BEFORE ANYTHING ELSE)
+- [ ] Read `CONSUMER_USE_CASES.md` — the consumer-corpus replacement for the enterprise O*NET CSVs
+- [ ] Identified at least one **scenario class** from that file that matches your target app
+- [ ] Identified 2–3 **hardness levers** that will make this task non-trivial (multi-stakeholder, household budget, multi-stage, geography, calendar, preferences, multi-source synthesis, conflicting info, output integrity)
+- [ ] Can state in one sentence: *"A real person planning/choosing/organizing [X] would use this app to [do Y], constrained by [hardness lever]"*
+- [ ] Each task candidate is something a person would actually do for a **personal** goal — not a job responsibility
+
+> Reminder: the consumer corpus has no occupation × software CSV by design. Do not try to load `master_dataset.csv` or `selected_products.csv` — they do not exist here.
 
 ### Understand the Environment
 - [ ] Environment is running and accessible
@@ -31,9 +42,11 @@ Use this checklist for every task you create. Check off items as you complete th
 - [ ] Do NOT use existing tasks as a difficulty reference — many existing tasks are too simple
 
 ### Identify Task Candidate
-- [ ] Task represents real professional workflow
+- [ ] Task represents a real personal-use scenario (matches a class in `CONSUMER_USE_CASES.md`)
+- [ ] Persona opener is personal ("you are planning..." / "your family needs..." / "you're trying to decide...") — NEVER "you are a [professional] at [firm]"
+- [ ] Output artifact is in the app's native format that a person would actually save (note, document, calendar event, photo album, signed PDF) — NOT a JSON report dumped to `~/Documents/`
 - [ ] Task is achievable in the environment
-- [ ] Litmus test: a power user who has never used this software could NOT solve this in under 10 minutes
+- [ ] Litmus test: someone with general technical literacy who has never used this specific app could NOT solve this in under 10 minutes by clicking around
 - [ ] Task requires 3+ distinct application features, not a single workflow
 - [ ] Agent must discover what to do (not just be told which record to find and what value to enter)
 - [ ] Complexity matches intended difficulty level

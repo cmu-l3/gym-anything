@@ -588,3 +588,178 @@ For each strategy, compute the exact score and verify:
 - [ ] Document the strategy enumeration table in the task's README.md (see `medication_safety_review/README.md` for an example)
 
 **Applies to**: Any task using the contamination-injection pattern, error-injection pattern, or any design where setup seeds a mix of correct and incorrect items that the agent must selectively act upon. Common in: medication management, data cleanup, security audit, code review (planted bugs), and configuration correction tasks.
+
+---
+
+## Anti-Pattern 14: Archetype Homogeneity ("Read-Spec-Write-Items" Across All Tasks)
+
+**What happens**: Each of the 5 tasks in a set follows the same archetype: `setup_task.sh` drops a spec document on the Desktop → agent reads the spec → agent creates N items (snippets, scripts, notes, contacts, calendar events, etc.) → agent exports/saves to a file → verifier checks the file contents. The feature-matrix check passes (each task uses different features). But the *workflow* the agent learns is identical: "find spec, parse spec, follow spec, save file." A capable agent learns one pattern and applies it mechanically to all 5 tasks. Worse, the benchmark tests file I/O and reading comprehension more than it tests the target software.
+
+**Why it's seductive**: The Specification-Driven Discovery pattern (in `01_core_principles.md`) is a legitimate `very_hard` archetype. It's also the *easiest* archetype to design and verify — just write a markdown spec, parse the agent's output file, compare. So when designing 5 tasks for an environment under time pressure, this pattern carries the entire set.
+
+**The litmus test**: Tabulate the 5 tasks by archetype, not just by feature:
+
+| Task | Archetype |
+|------|-----------|
+| T1   | spec-driven create → save |
+| T2   | spec-driven create → save |
+| T3   | spec-driven create → save |
+| T4   | spec-driven create → save |
+| T5   | spec-driven create → save |
+
+If every row reads the same, the task set is archetype-homogeneous regardless of feature diversity. Real benchmarks for utility software must mix archetypes.
+
+**Concrete archetypes that should be diversified across a 5-task set**:
+
+| Archetype | What the agent does | Example for a launcher/utility app |
+|-----------|---------------------|------------------------------------|
+| **Orchestration script** | Build a script that branches on input and chains 3+ subsystem calls (deeplinks, AppleScript, CLI, Shortcuts.app) | Workspace-switcher script with dropdown arg |
+| **Declarative configuration** | Use the app's own UI to create a named, reusable configuration entity (layout, profile, theme) and trigger it | Window Layout with multi-app + content |
+| **Dynamic template** | Build N templates that use the app's placeholder/argument syntax with modifiers (not just static text) | Quicklinks with `{argument}`/`{clipboard \| trim}` |
+| **Stateful pipeline** | Perform actions that depend on the app's runtime state (clipboard history, recent items, session) — not just file outputs | Copy → pin → paste-sequentially → save-as-snippet |
+| **Live expansion / live trigger** | Configure the app, then trigger the configured behavior in a *different* app and verify the effect | Snippet placeholders triggered in TextEdit |
+| **Error repair** | Diagnose and fix a broken configuration the setup deliberately seeded | Fix corrupted Karabiner config / broken script |
+| **Audit and annotate** | Add supplementary metadata (annotations, tags, comments) to existing real data | Tag-and-pin frequently-used commands |
+
+**The rule**: A 5-task set must use at least 3 distinct archetypes from the table above. If you find every task pulling from "Specification-Driven Discovery" + "Implement from Spec", redesign — replace at least 2 tasks with different archetypes.
+
+**Why feature diversity alone is insufficient**: Feature diversity prevents the agent from passing all 5 tasks by mastering one feature. Archetype diversity prevents the agent from passing all 5 tasks by mastering one *workflow pattern*. Both are required for a robust benchmark.
+
+**Applies to**: Any environment with 5+ tasks, but the failure mode is most common in utility/launcher/automation software where the obvious "create N items from a spec" archetype dominates initial designs (Raycast, Alfred, BetterTouchTool, Karabiner, Hammerspoon, Keyboard Maestro, Hazel).
+
+---
+
+## Anti-Pattern 15: Narrative Wrappers for Utility Software
+
+**What happens**: A task for a configuration/launcher/automation app (Raycast, Karabiner, Hammerspoon, Alfred, BetterTouchTool, Keyboard Maestro) is wrapped in a persona or backstory — "You're a podcaster preparing for a session," "Your family's health records are scattered," "You're an urban gardener managing raised beds." The agent must now both (a) parse the narrative and (b) translate it into the actual configuration to set up. The narrative adds words and apparent difficulty but doesn't make the test of the *software's intricacies* harder.
+
+**Why creators do it**: The consumer corpus rightly emphasizes "real personal-use scenarios" (`CONSUMER_USE_CASES.md`, `01_core_principles.md` Principle 1). For content-creation and browsing apps (Safari, Maps, Photos, Notes), narrative IS the scenario — a person genuinely does plan a vacation in Safari. Task creators reasonably apply the same framing to utility apps. But for a launcher/configurator, **the configuration is the personal-use task** — a person setting up a workspace-switcher script is doing exactly what the task describes, no story needed.
+
+**The symptom**: Task description starts with "You're a [role] who…" or "Your family needs…" or "You're planning…" for a task whose actual deliverable is a `.sh` file, a Quicklink, a hotkey binding, or a configuration export. Strip the narrative — if the remaining direct statement ("Build a Script Command that…") describes the same end state, the narrative was decoration.
+
+**The fix — direct statements for utility software**:
+
+| Wrong (narrative-wrapped) | Right (direct) |
+|--------------------------|----------------|
+| "You're a podcaster preparing for a session. Set up a Raycast script that arranges your audio apps…" | "Build a Raycast Script Command at `~/Documents/Raycast/Script Commands/Workspace/podcast.sh` that uses a dropdown argument to arrange Audio Hijack and Farrago…" |
+| "You're an urban gardener who wants to manage your raised beds…" | "Create 4 Script Commands in `~/Documents/Raycast/Script Commands/Garden/` with the following titles and bodies…" |
+| "Your family's health records are scattered. Create snippets so anyone can paste…" | "Create 5 Raycast Snippets with the following triggers and content…" |
+
+**Where narrative IS appropriate (do not strip)**:
+- Browsing/research apps (Safari, Maps, Wikipedia): the user genuinely has a goal that needs explanation
+- Content-creation apps (Photos, iMovie, Pages): the creative intent shapes the task
+- Communication apps (Mail, Messages, Calendar): the relationship/context determines the action
+- Multi-stakeholder decisions (real estate, school choice, vacation planning): the constraints are the difficulty
+
+**Where narrative is NOT appropriate (strip it)**:
+- Launchers (Raycast, Alfred, Spotlight, LaunchBar)
+- Keyboard/input remappers (Karabiner-Elements, Keyboard Maestro)
+- Window managers (Rectangle, Magnet, Amethyst)
+- Automation runtimes (Hammerspoon, Hazel, BetterTouchTool)
+- File-watching/syncing tools (Resilio Sync, Syncthing settings)
+- Terminal multiplexers / shell config (tmux, zsh config, oh-my-zsh)
+- Editor configuration (Vim, Emacs, VSCode `settings.json`)
+
+For these, the user setting up the configuration **is** the realistic scenario. Stating "build a Script Command that…" is exactly what a real user thinks when they sit down to do this. Adding "as a podcaster who…" makes the description longer without making the task more realistic — real users don't tell themselves backstories before opening their config.
+
+**The check**: For each task description, ask: "If I deleted the persona/backstory and stated the configuration goal directly, would a real power user of this app still recognize this as a task they'd actually do?" For utility software the answer is almost always yes — and the direct version is *more* realistic than the narrative-wrapped version. For content/browsing apps the answer is no — the narrative is the task.
+
+**Applies to**: Any task for utility, launcher, configuration, automation, or developer-tool software where the deliverable is a configuration artifact (script, binding, profile, layout, snippet, quicklink, alias, hotkey). Narrative wrappers belong in tasks for content-consumption, content-creation, communication, and decision-support apps.
+
+---
+
+## Anti-Pattern 16: Surface Diversity (Different Cover Stories, Same Underlying Workflow)
+
+**What happens**: A 5-task set "looks" diverse because each task is set in a different domain — vacation planning, family health, garden management, recipe storage, household contacts. The task creator argues the tasks are diverse because the *subject matter* differs. But under the cover stories, all 5 tasks reduce to the identical workflow ("read a spec document → create N items in the app → save/export a file"). The agent that can solve one of them can mechanically apply the same approach to the other four, regardless of how unrelated "vacation hotels" and "garden bed schedules" sound on the surface.
+
+**Why it's seductive**: Domain variation is the easiest kind of variation to invent. You sit down to design 5 tasks, you reach for "what are 5 personal-use scenarios?", and you get hotels / health / garden / recipes / contacts. Each *feels* different because the surface vocabulary is different. The framework's "diverse personal-use scenarios" guidance (Principle 1) sounds like it's asking for exactly this — diverse subject matter.
+
+**The rule — domain variation is not diversity. Workflow variation is.**
+
+Two tasks are "diverse" only when an agent that masters one cannot mechanically apply the same approach to the other. The relevant axes of variation are:
+
+1. **Features used** (which capabilities of the app are exercised)
+2. **Archetype** (orchestration script vs. declarative config vs. dynamic template vs. stateful pipeline vs. live expansion vs. error repair — see §14 table)
+3. **Pipeline shape** (single-step write vs. chained-call orchestration vs. trigger-then-verify-effect vs. configure-then-use-in-another-app)
+4. **Verification surface** (static file content vs. live runtime effect vs. window-position state vs. clipboard / OS state)
+
+**Surface domain (vacation / garden / recipes / health) is NOT one of these axes.** It is *seasoning* on top of a workflow. Five tasks differing only by surface domain are functionally one task with five costumes.
+
+**The check — strip the domain words and re-compare**:
+
+Take each task description, replace all domain nouns with generic placeholders ("hotel" → "item", "ingredient" → "field", "neighborhood" → "category"), and re-read the 5 tasks side by side. If the stripped versions are nearly identical (e.g., "Read spec at /Desktop/X.md, create N items in the app, save export to /Desktop/Y"), the set has surface diversity only and fails the diversity test — regardless of how the unstripped versions read.
+
+**Concrete failure example**:
+
+| Task | Cover story | Stripped workflow |
+|------|-------------|-------------------|
+| T1 | "Plan a road trip — create 5 snippets for hotels / car rental / emergency contacts" | Read spec → create 5 Snippets → export to file |
+| T2 | "Family health records — create 5 snippets for each member" | Read spec → create 5 Snippets → export to file |
+| T3 | "Garden management — create 4 script commands for watering / pest / harvest" | Read spec → create 4 Script Commands → save files |
+| T4 | "Kitchen staples — create 3 script commands for recipes" | Read spec → create 3 Script Commands → save files |
+| T5 | "House hunt — write a comparison note for 4 properties" | Read spec → write 1 note → save to file |
+
+Surface looks diverse (travel / health / hobby / cooking / real estate). Stripped, 4 of 5 are the same workflow ("read spec → create N items in feature X → save"), differing only in which feature (Snippets, Script Commands, Notes) gets exercised. Real diversity would require some tasks to be orchestration scripts, dynamic templates, stateful pipelines, or live-expansion verifications — not just "create N items" in a different feature.
+
+**The fix**: Apply both checks in order:
+1. **Archetype matrix** (§14): no more than 2 of 5 tasks share the same archetype
+2. **Stripped-description check** (this anti-pattern): write each task's description with domain words replaced by generic placeholders; verify the stripped versions are not near-duplicates
+
+A task set passes only when both checks hold. Domain variation on top of archetype variation is fine and welcome; domain variation *instead of* archetype variation is not diversity at all.
+
+**Applies to**: Any benchmark task set, but the failure mode is most common when designing 5 consumer / personal-use tasks for a single environment. The reflex to reach for "different personal scenarios" produces surface diversity but rarely produces workflow diversity unless the creator deliberately enforces archetype + pipeline variation as a hard constraint.
+
+---
+
+## Anti-Pattern 17: Context Padding as Pseudo-Difficulty
+
+**What happens**: A task description runs for several paragraphs of backstory, persona, scene-setting, or motivation before stating the operational requirement. The task creator believes the rich context makes the task "harder" or "more realistic." In reality, a capable agent skims past narrative to the operational verbs ("create", "configure", "save") and proceeds. The padding adds tokens to parse and brittleness (the agent may misread which detail is decorative vs. load-bearing), but it does not add technical difficulty. Worse, the padding can disguise a task that is actually trivial — "create 3 Snippets with these exact texts" is an easy task whether or not it is wrapped in three paragraphs about your podcasting workflow.
+
+**Why creators do it**: Long, vivid descriptions *feel* like rich tasks. They mirror the style of consumer-domain prose (real-estate listings, recipe blogs, trip planners) and signal effort on the creator's part. The framework's "realistic personal-use scenarios" guidance (Principle 1) can be misread as license to write maximally narrative descriptions.
+
+**The rule — difficulty must live in the operational requirements, not the surrounding prose.**
+
+A task description has two functions:
+1. **Specify the operational requirement** unambiguously (what configuration / state / artifact the agent must produce)
+2. **For content/browsing/communication apps**: provide the minimal personal framing that motivates the goal (1–2 sentences max)
+
+Anything beyond these two functions is decoration. For utility / launcher / configuration / automation apps, even function (2) is omitted — see §15.
+
+**The check — strip the description to its operational core**:
+
+Take the task description and delete every sentence that is *not* one of:
+- A configuration/output requirement ("Create a Script Command at …", "Export to …")
+- A specific value, name, ID, URL, path, keyword, or trigger the agent must use
+- A success criterion ("the file should contain …", "the layout should position …")
+
+What remains is the operational core. Now ask: **is the operational core a hard task on its own?** If you stripped 60% of the description and the remaining 40% is "create 3 items with these names in this folder", the original task was easy. Padding it with narrative did not make it harder.
+
+**Concrete failure example**:
+
+> *"You and your spouse spent the weekend touring four houses in Portland and you want to write up a quick comparison before you forget the details — these are the first houses you've toured since the move from Seattle, and you're trying to balance budget, school district, and your dog Cooper's need for a yard. A spec document on your Desktop has the address, price, and key notes for each property. Write a structured comparison covering all four properties in an always-on-top scratch pad, then save the content to ~/Desktop/house_notes.txt so you can share it with your partner."*
+
+**Stripped operational core**: "Open a scratch-pad note. Write a comparison covering 4 properties from a spec doc on the Desktop. Save to ~/Desktop/house_notes.txt."
+
+That's a 5-minute task for any agent. The dog, the spouse, the Seattle move, the school-district concern — none of it changes what the agent must do. The padding adds words but not difficulty.
+
+**The fix — make the operational core itself hard**:
+
+If the stripped description is easy, the task is easy. To make it harder, **change the operational requirements**, not the prose:
+
+| Easy operational core | Harder operational core |
+|----------------------|------------------------|
+| "Create 3 Snippets with these texts, export to file." | "Create 3 Snippets that use the `{date format=…}`, `{cursor}`, and `{clipboard}` dynamic placeholders, then trigger each in a TextEdit window and save the *expanded* output to a file." |
+| "Write a comparison note for 4 houses and save it." | "Create a Window Layout that opens Safari at URL X on the left half + Notes on the right half, assign a global hotkey, trigger it, and verify the resulting window state via AppleScript." |
+| "Read spec, create 4 Script Commands." | "Build a Script Command with a dropdown argument that branches between 2 modes; each mode chains Raycast window-mgmt deeplinks + osascript app activation + volume control." |
+
+The right-hand-column versions are hard because of *what* the agent must do (chaining, placeholder syntax, multi-step orchestration), not because of how much narrative surrounds it.
+
+**The relationship to anti-patterns §14, §15, §16**:
+- §14 (Archetype Homogeneity): all 5 tasks share one workflow → fix at the *set* level
+- §15 (Narrative Wrappers): wrong tasks have a persona at all → fix at the *single-task framing* level
+- §16 (Surface Diversity): different cover stories, same workflow → fix at the *set's variation axis*
+- §17 (Context Padding, this entry): even one task is bloated with prose to disguise an easy operational core → fix at the *single-task description length and the operational requirement itself*
+
+§17 is the most local failure: it can occur in a single well-archetype-ed, well-framed task that just happens to have a wordy description hiding a trivial core. Fixing it usually means deleting prose AND making the operational core harder — not just one or the other.
+
+**Applies to**: Any task where the description runs more than ~3 short sentences. For utility-software tasks, the description should be operational and direct (see §15) — making it long is itself a smell. For content/browsing-app tasks, 1–2 sentences of personal framing is the limit; anything beyond is decoration.

@@ -91,6 +91,52 @@ Read these documents in order:
 
 ## Quick Start: Creating Your First Task
 
+### Step 0: Research the Target Software's Power-User Workflows (REQUIRED, NON-NEGOTIABLE)
+
+**Do not skip this step.** Before exploring the environment, before reading
+`CONSUMER_USE_CASES.md`, before brainstorming any tasks — do an extensive web
+survey of the actual target software. The framework in this directory is
+generic; it cannot tell you what a *hard* task looks like for *your specific
+app*. Only research can.
+
+**Minimum research budget** (per environment):
+
+- **8–10 sources** from a mix of: Reddit (`r/<app>`, `r/MacApps`,
+  `r/productivity`), Hacker News discussions, blog posts (especially "how I
+  use X" personal-setup posts), official docs + manual, GitHub issues on the
+  app's repo or its extension repo, dotfile repositories that include the
+  app's config, and changelog posts that announce non-obvious features.
+- **Three angles to extract** from those sources:
+  1. **What people complain about** — pain points, missing features,
+     awkward workflows. These reveal which capabilities are non-trivial and
+     which the agent will plausibly mis-handle.
+  2. **What people share as cool configs** — power-user dotfiles, custom
+     scripts, multi-feature integrations. These are the realistic *hard*
+     workflows a benchmark should test.
+  3. **What's chainable across features** — orchestration patterns
+     (deeplinks invoking other commands, scripts calling AppleScript / CLI
+     / `shortcuts run`, AI extensions composing tool calls). Chained
+     workflows are usually the hardest and most representative.
+
+**Cite your sources before designing any task.** Keep a `research_notes.md`
+in your scratch area with a bulleted list of URLs + the specific insight
+each one contributed. If you cannot point to a source for *why* a task is
+hard, you have not researched enough.
+
+**Why this is non-negotiable**: Without research, the easiest archetype
+("read a spec document → create N items → save a file") will dominate every
+task design — see `14_task_design_antipatterns.md` §14 "Archetype Homogeneity".
+Real power-user workflows for any non-trivial app are surprising and
+chainable in ways the framework alone cannot suggest. Research is the only
+way to find them.
+
+**For utility / launcher / automation software specifically**: pay extra
+attention to whether the app's hardest workflows live in feature *chaining*
+(deeplinks, AppleScript integration, Shortcuts.app calls, AI-extension
+composition, multi-monitor layouts with content) rather than in repeated
+use of a single feature. If your 5 tasks all live in one feature area,
+research did not go deep enough.
+
 ### Step 1: Explore the Environment
 
 ```python
@@ -112,50 +158,35 @@ print(output)
 env.close()
 ```
 
-### Step 1b: Look Up Who Actually Uses This Software (REQUIRED)
+### Step 1b: Read the Personal-Use Scenario Reference (REQUIRED)
 
-Before choosing a task, consult the occupation/industry data shipped with
-this notes folder. The CSVs live at
-`extras/research/task_generation/propose_and_amplify/memory/task_creation_notes/`
-relative to the repo root:
+Before choosing a task, **read `CONSUMER_USE_CASES.md`** in this same
+`task_creation_notes/` directory. It is the consumer-corpus replacement
+for the enterprise O*NET occupation × software CSVs. It defines:
 
-```python
-import csv, ast
+- The core distinction between personal use and professional use
+- **Scenario classes** per app category (web browser, notes app, photo app, media player, PDF viewer, word processor, calendar, maps, mail)
+- **Hardness levers** for making consumer tasks genuinely difficult (multi-stakeholder constraints, household budget, multi-stage decisions, geography, calendar conflicts, personal preferences, multi-source synthesis, etc.)
+- Consumer-specific **anti-patterns** to avoid (no "you are a [professional]" personas, no JSON-report deliverables, no audit-flavor framing)
 
-NOTES_DIR = "extras/research/task_generation/propose_and_amplify/memory/task_creation_notes"
+Every task you design should map to at least one scenario class from
+`CONSUMER_USE_CASES.md` and use 2–3 of the listed hardness levers.
 
-# Quick lookup — replace PRODUCT_NAME with the exact name from selected_products.csv
-PRODUCT = "PRODUCT_NAME"
-
-# 1. Top-level context
-with open(f"{NOTES_DIR}/selected_products.csv") as f:
-    for r in csv.DictReader(f):
-        if r["product"].strip().lower() == PRODUCT.lower():
-            print("Categories:", ast.literal_eval(r["category"]))
-            print("SOC groups:", ast.literal_eval(r["soc_major_group"]))
-            break
-
-# 2. Top occupations by economic importance
-with open(f"{NOTES_DIR}/master_dataset.csv") as f:
-    rows = [r for r in csv.DictReader(f)
-            if r["product"].strip().lower() == PRODUCT.lower()]
-rows.sort(key=lambda r: float(r["product_gdp_usd"] or 0), reverse=True)
-for r in rows[:8]:
-    print(f"  {r['occupation_title']:50s}  imp={r['onet_importance']:4s}  "
-          f"why: {r['category_rationale']}")
-```
-
-Read the `category_rationale` fields carefully — they describe the *actual* pain points and workflows that justify this software's value to each occupation. Your tasks should feel natural to someone in those roles.
+> The consumer corpus has **no occupation × software CSV** by design. Do
+> not try to load `master_dataset.csv` or `selected_products.csv` — they
+> do not exist in this corpus. The consumer prior is qualitative
+> (scenarios + hardness levers), not quantitative (GDP × wage-bill).
 
 ### Step 2: Choose a Task
 
 Ask yourself:
-- What would a professional from the **top-occupation list** actually do with this software?
-- What data exists to support this task?
-- How would I verify the task was done correctly?
-- **Could a power user who has never used this software solve this in under 10 minutes by clicking around?** If yes, the task is too easy — go back and make it harder.
+- Which **scenario class** from `CONSUMER_USE_CASES.md` does this task instantiate? (If none, the task is probably enterprise-flavored — rethink it.)
+- Which 2–3 **hardness levers** will make this specific instance non-trivial?
+- What real-world data (actual products, actual cities, actual prices, actual reviews) supports this task? Real personal-use data, not professional standards / regulatory filings.
+- How would I verify the task — by structural properties of the saved artifact + citation support, not by exact-field match against a ground-truth list?
+- **Could someone with general technical literacy who has never used this specific app solve this in under 10 minutes by clicking around?** If yes, the task is too easy — go back and add more constraints.
 - Does the task require using 3+ distinct features of the application, or just one workflow?
-- Does the agent need to *discover* what's wrong, or am I just telling it what to fix?
+- Does the agent need to *discover* what to do (research, compare, decide), or am I just telling it the answer?
 
 ### Step 3: Document First
 
@@ -219,27 +250,27 @@ See **[01_core_principles.md](01_core_principles.md)** (especially the "Summary 
 
 ```
 task_creation_notes/
-├── 00_getting_started.md          # This file - entry point
+├── 00_getting_started.md          # This file — entry point
 ├── 01_core_principles.md          # Philosophy and requirements
 ├── 02_repository_structure.md     # Technical structure
 ├── 03_verification_patterns.md    # Robust verification
 ├── 04_evidence_documentation.md   # Proving tasks work
-├── 05_learnings_best_practices.md # Lessons learned
+├── 05_learnings_best_practices.md # Lessons learned (originally enterprise; patterns universal)
 ├── 06_task_creation_checklist.md  # Step-by-step checklist
 ├── 07_agent_prompt_template.md    # Prompt template for the task-creation agent
-├── 08_windows_environment_patterns.md  # Windows-specific script/verification patterns
-│                                       #   §11: xlsx verification (openpyxl); §12: docx/OOXML verification (zipfile+regex)
-├── 09_android_environment_patterns.md  # Android AVD-specific patterns
-├── 10_linux_desktop_environment_patterns.md  # Linux GUI desktop patterns (DISPLAY, su, wmctrl, etc.)
-├── 11_agent_behavior_patterns.md             # Agent failure modes & task design implications
-├── 12_new_environment_onboarding.md          # First-contact protocol for brand-new apps: stable
-│                                             #   baseline, scripting seam discovery, verifiable action
-│                                             #   mapping, pilot trajectory testing
-├── master_dataset.csv             # ~17k products × occupations; key cols: occupation_title,
-│                                  #   onet_importance (0-100), product_gdp_usd, category_rationale
-└── selected_products.csv          # ~488 products; category & soc_major_group are Python list
-                                   #   strings — parse with ast.literal_eval()
+├── 10_linux_desktop_environment_patterns.md  # Linux GUI patterns (kept; partly applies to macOS GUI work)
+├── 11_agent_behavior_patterns.md  # Agent failure modes & task design implications
+├── 12_new_environment_onboarding.md   # First-contact protocol for brand-new apps
+├── 13_file_content_verification_and_offline_testing.md
+├── 14_task_design_antipatterns.md     # Anti-patterns (originally enterprise; patterns universal)
+└── CONSUMER_USE_CASES.md          # Scenario classes + hardness levers for personal-use tasks
+                                   # (the consumer-corpus replacement for the enterprise O*NET CSVs)
 ```
+
+> The consumer corpus intentionally does NOT contain `master_dataset.csv`
+> or `selected_products.csv`. The enterprise corpus (in the sibling
+> `memory/` directory) does. Windows/Android-specific notes have also
+> been removed since the consumer corpus targets macOS first.
 
 ---
 

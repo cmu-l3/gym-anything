@@ -175,9 +175,21 @@ def run(
     # --- Step 2: Create 5 new tasks ---
     if not start_idx > 1:
         print("\n=== Step 2: Create New Tasks ===")
+        # Task-type-specific diversity hint. Enterprise: O*NET occupation ×
+        # industry prior (matches master_dataset.csv). Consumer: personal-use
+        # scenario classes (matches CONSUMER_USE_CASES.md). The rest of the
+        # prompt is identical across task types.
+        diversity_hint = {
+            "enterprise": "diverse environments (based on occupation and industry)",
+            "consumer": (
+                "diverse personal-use scenarios (household, family, hobby, "
+                "creative work, learning) — explicitly NOT enterprise / "
+                "professional / occupation-based framings"
+            ),
+        }[task_type]
         run_claude(binary, [
             "-p",
-            f"""now go through the starter tasks of {target_env_dir}. those are a.) very easy, and b.) not really realistic. we have to create "extremely hard" and "realistic" 5 new tasks, following the criteria mentioned in task_creation_notes. please follow it, and complete the job. Do not enter plan mode or ask me for any input at any time. Remember realistic tasks, diverse environments (based on occupation and industry), and extremely difficult tasks. Also note you are not compelled to use existing data and can download new ones per task as well. (Unrelated Context: remember to use the visual_grounding MCP tool to interact with the running environment)""",
+            f"""now go through the starter tasks of {target_env_dir}. those are a.) very easy, and b.) not really realistic. we have to create "extremely hard" and "realistic" 5 new tasks, following the criteria mentioned in task_creation_notes. please follow it, and complete the job. Do not enter plan mode or ask me for any input at any time. Remember realistic tasks, {diversity_hint}, and extremely difficult tasks. Also note you are not compelled to use existing data and can download new ones per task as well. (Unrelated Context: remember to use the visual_grounding MCP tool to interact with the running environment)""",
             "--dangerously-skip-permissions",
             "--resume", session_id,
             "--disallowedTools", "AskUserQuestion,EnterPlanMode,ExitPlanMode,Task(Plan)",

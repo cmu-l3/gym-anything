@@ -32,68 +32,101 @@ Create [NUMBER] complex, realistic tasks that test AI agent capabilities in [DOM
 
 ## Critical Requirements
 
-### 0. Understand Who Uses This Software (REQUIRED FIRST STEP)
+### 0. Research the Target Software's Power-User Workflows (THE VERY FIRST STEP — NON-NEGOTIABLE)
 
-Before brainstorming any tasks, look up the software's occupation and industry
-context from the dataset files shipped with this notes folder. The CSVs live
-at `extras/research/task_generation/propose_and_amplify/memory/task_creation_notes/`
-relative to the repo root. This takes 2 minutes and will transform the quality
-of your tasks.
+**Before doing anything else** — before reading `CONSUMER_USE_CASES.md`,
+before exploring the environment, before sketching any task ideas — do an
+extensive web survey of the actual target software. The framework here is
+generic; only research can tell you what a *hard* task for *this app* looks
+like.
 
-**Step 1 — Quick summary from `selected_products.csv`:**
-```python
-import csv, ast
+**Required research budget**: at least **8–10 sources** spanning:
+- Reddit (`r/<app>`, `r/MacApps`, `r/productivity`, related subs)
+- Hacker News discussions of the app
+- Personal "how I use X" blog posts (especially with dotfiles / config repos)
+- The app's official manual / documentation
+- GitHub issues on the app's repo and extension repos (real bug reports
+  reveal real edge cases)
+- Dotfile / config-sharing repos (search GitHub for `<app>.rayconfig`,
+  `karabiner.json`, etc.) — these are the actual workflows power users run
+- Changelogs / release notes (non-obvious features often live here)
+- Comparison articles (`<app> vs Alfred / Spotlight / …`) — they expose
+  what the app does *better or worse*, both of which are testable
 
-NOTES_DIR = "extras/research/task_generation/propose_and_amplify/memory/task_creation_notes"
+**Three things to extract from research**:
+1. **Pain points** — what people complain about; what's awkward; what
+   beginners trip on. These reveal non-trivial capabilities.
+2. **Cool configs** — shared dotfiles, custom scripts, multi-feature
+   integrations. These are realistic *hard* workflows worth testing.
+3. **Chainable workflows** — orchestration patterns: deeplinks invoking
+   other commands, scripts that call AppleScript / CLI / `shortcuts run`,
+   AI extensions composing tool calls, named layouts that bundle multiple
+   actions. Chained workflows are usually the hardest *and* the most
+   realistic power-user behavior.
 
-with open(f"{NOTES_DIR}/selected_products.csv") as f:
-    for r in csv.DictReader(f):
-        if r["product"].strip().lower() == "[PRODUCT_NAME]".lower():
-            print("Categories:", ast.literal_eval(r["category"]))
-            print("Top SOC groups:", ast.literal_eval(r["soc_major_group"]))
-            print("Total GDP: $" + r["product_total_gdp_usd"])
-            break
-```
-> Note: `category` and `soc_major_group` are stored as Python-list strings — use `ast.literal_eval()` to parse them.
+**Cite your sources.** Maintain a `research_notes.md` in your scratch area
+with bullet points: URL → the specific insight you took from it. If you
+cannot point to a source for *why* a proposed task is hard, the research
+is incomplete and you must continue researching, not start designing.
 
-**Step 2 — Top occupations from `master_dataset.csv`:**
-```python
-import csv
+**Why this is the very first step**: Without research, your task designs
+will default to the easiest archetype — the "read a spec document → create
+N items → save a file" pattern — for every task in the set. That archetype
+tests file I/O and reading comprehension more than it tests the actual
+software. See `14_task_design_antipatterns.md` §14 ("Archetype
+Homogeneity") and §15 ("Narrative Wrappers for Utility Software") for the
+specific failure modes that skipping research produces.
 
-with open(f"{NOTES_DIR}/master_dataset.csv") as f:
-    rows = [r for r in csv.DictReader(f)
-            if r["product"].strip().lower() == "[PRODUCT_NAME]".lower()]
-
-rows.sort(key=lambda r: float(r["product_gdp_usd"] or 0), reverse=True)
-for r in rows[:10]:
-    print(f"  {r['occupation_title']:50s}  importance={r['onet_importance']:4s}  "
-          f"gdp=${float(r['product_gdp_usd']):>15,.0f}")
-    print(f"      why: {r['category_rationale']}")
-```
-
-**Column meanings:**
-| Column | Meaning |
-|--------|---------|
-| `onet_importance` | 0–100 scale of how important this software is for this occupation |
-| `product_gdp_usd` | Economic output of this (occupation × software) pair — higher = more economically central |
-| `category_rationale` | Free text: WHY this occupation uses this software (read these!) |
-| `soc_major_group` | Occupational category (e.g., "Educational Instruction and Library") |
-| `job_zone_category` | `high_skill` or `low_skill` |
-
-**Step 3 — Contemplate before designing tasks:**
-
-Ask yourself: What do the top-5 occupations by `product_gdp_usd` actually do with this software? Not "what features does it have" but "what real problem does a [Health Specialties Teacher / Research Scientist / Policy Analyst] solve with it each week?" Read the `category_rationale` for each — they describe the real workflow pain points.
-
-Only after this reflection should you design tasks. Every task should be something a real member of one of these top occupations would recognise as "yes, that's a thing I genuinely need to do."
-
-> If the product is not found in `selected_products.csv` or `master_dataset.csv`, skip this step and rely on your own knowledge of the software.
+**For utility / launcher / configuration / automation software**: pay
+extra attention to chaining and orchestration. The hardest workflows for
+these apps almost always live in *composition across features*
+(deeplinks, AppleScript / Shortcuts.app integration, AI-extension
+chaining, named layouts with content loading, dynamic placeholder
+syntax with modifiers) — not in repeated use of a single feature.
 
 ---
 
-### 1. Realistic Professional Workflows
-- Tasks must represent actual work that professionals do
-- Ask yourself: "Would a [ROLE: doctor/analyst/designer] actually need to do this?"
+### 0a. Understand the Personal-Use Context (REQUIRED FIRST STEP)
+
+Before brainstorming any tasks, **read `CONSUMER_USE_CASES.md`** (next to this
+file in the same `task_creation_notes/` directory). It defines what
+"realistic" means for consumer / personal-use tasks and lists scenario classes
+per app category.
+
+Pay particular attention to:
+- The **core distinction** table (personal use ≠ professional use)
+- The **scenario classes** section for your target app's category
+- The **hardness levers** that make consumer tasks genuinely hard
+  (multi-stakeholder constraints, household budget, multi-stage decisions,
+  geography, calendar conflicts, personal preferences, etc.)
+- The **anti-patterns** at the bottom — especially:
+  - Don't open with *"You are a [professional role] at a [firm]"*
+  - Don't write the output as *"save findings to ~/Documents/X.json"*
+  - Don't frame the task as an *audit* or *compliance review*
+  - Don't require professional certifications / standards as ground truth
+
+Every task you design must map to at least one scenario class from that file
+and use 2–3 of the listed hardness levers. The task's persona should be a
+**person** with a **personal goal** (planning a family trip, choosing a
+pediatrician, organizing a vacation photo album), NOT an employee fulfilling
+a job responsibility.
+
+> The consumer corpus has **no occupation × software CSV**. Do not try to
+> load `master_dataset.csv` or `selected_products.csv` — they do not exist
+> in this corpus by design. The consumer prior is qualitative (scenarios +
+> hardness levers), not quantitative (GDP × wage-bill weights).
+
+---
+
+### 1. Realistic Personal-Use Scenarios
+- Tasks must represent actual things a real person would do for a personal goal — trip planning, comparison shopping, family medical research, household management, hobby projects, school assignments, creative work, learning, AND power-user configuration of utility software
+- Ask yourself: *"Would a real person actually need to do this for themselves or their family?"* — NOT *"Would a [professional] need to do this for their job?"*
+- **Framing depends on app category**:
+  - **Content / browsing / communication / decision-support apps** (Safari, Maps, Photos, Notes, Mail, Calendar): use a personal-narrative opener — *"You are planning..."* / *"Your family needs..."* / *"You're trying to decide between..."*. NEVER *"You are a [analyst / engineer / clinician] at..."*.
+  - **Utility / launcher / configuration / automation apps** (Raycast, Alfred, Karabiner, Hammerspoon, Keyboard Maestro, BetterTouchTool, Hazel, Rectangle, tmux / zsh / vim config): **state the configuration goal directly** — *"Build a Script Command at … that …"*, *"Create N Quicklinks that use … placeholder syntax"*, *"Set up a Window Layout named X that …"*. Do NOT wrap in a persona or backstory; the configuration IS the task. See `14_task_design_antipatterns.md` §15 for the wrong-vs-right table.
+- The output artifact should be in the app's native format that a person would actually save (a note, a saved itinerary, a calendar event with reminders, a signed PDF, a curated photo album, a Script Command `.sh` file, a Quicklink/Snippet JSON export, a window layout config) — NOT a JSON report dumped to `~/Documents/`
 - NEVER use synthetic, generated, simulated, or fabricated data or scenarios
+- **Archetype diversity across the 5-task set**: no more than 2 of 5 tasks share the same workflow archetype (spec-driven create, orchestration script, declarative configuration, dynamic template, stateful pipeline, live expansion, error repair, audit-and-annotate). See `14_task_design_antipatterns.md` §14.
 
 ### 2. Use REAL Data — No Exceptions
 - ALL data must be real. No synthetic data. No generated data. No fake data. Period.
@@ -142,6 +175,7 @@ tasks/<task_name>/
 
 ## Required Steps for Each Task
 
+0. **Complete the Step 0 research mandate** for the target software (Reddit / HN / blog posts / docs / GitHub issues / dotfiles). Cite sources. No design begins before this — see Critical Requirement 0 above.
 1. **Query data** to find a suitable target with appropriate characteristics
 2. **Write README.md** with full task documentation
 3. **Create task.json** with metadata containing ground truth
@@ -182,7 +216,19 @@ Ensure all code is complete and runnable.
 ## Quality Checklist
 
 Before finalizing each task:
-- [ ] Task reflects real professional workflow
+- [ ] **Step 0 research done**: 8–10 cited sources covering Reddit, HN, blog posts, official docs, GitHub issues, dotfiles. Sources point to *specifically why* each task is hard. (No design begins before this.)
+- [ ] Task reflects a real personal-use scenario (matches a class in `CONSUMER_USE_CASES.md`)
+- [ ] **Framing matches app category**:
+  - Content/browsing/communication apps → personal-narrative opener
+  - Utility/launcher/configuration apps → **direct configuration statement, no narrative wrapper** (see `14_task_design_antipatterns.md` §15)
+- [ ] Output artifact is in the app's native format a person would actually keep — NOT a JSON report dumped to `~/Documents/`
+- [ ] Uses 2+ hardness levers from `CONSUMER_USE_CASES.md` (multi-stakeholder, household budget, multi-stage, geography, calendar, preferences, multi-source synthesis, etc.)
+- [ ] **Both litmus tests pass**:
+  - [ ] Untrained human couldn't solve it in <10 minutes by clicking around
+  - [ ] **A frontier AI agent would find it genuinely challenging** — would NOT complete it on first attempt without exploration / iteration. If a capable LLM can one-shot it, the task produces no benchmark signal.
+- [ ] **Stripped-description test passes** (`14_task_design_antipatterns.md` §17): delete every sentence that isn't an operational requirement / specific value / success criterion. The remaining core must itself be hard. If the bare-bones core reads "create N items, save to file", the original was easy and the narrative was disguising it.
+- [ ] **Archetype diversity** (across 5-task set): no more than 2 of 5 tasks share the same archetype. See `14_task_design_antipatterns.md` §14. Concretely, avoid having all 5 tasks be "read spec doc → create N items → save file".
+- [ ] **Surface-diversity check passes** (`14_task_design_antipatterns.md` §16): strip domain nouns from each task's description and compare the 5 stripped versions side by side. If they're near-duplicates, the set has surface diversity only — redesign for archetype/pipeline/feature variation. Different cover stories (vacation / garden / recipes / health) are NOT diversity; different workflows are.
 - [ ] Uses REAL data only — absolutely NO synthetic/generated/fabricated data anywhere
 - [ ] Has 3+ verification criteria
 - [ ] Records baseline state
@@ -206,7 +252,7 @@ Fill in the `## Environment Information` section of the template with your envir
 2. **Design for genuine difficulty** - Read `01_core_principles.md` "START HERE" section before brainstorming tasks. Your first idea is almost always too simple. Ask: "Could a power user solve this by clicking around for 10 minutes?" If yes, redesign.
 3. **Combine multiple features** - Hard tasks require the agent to use 3+ distinct capabilities of the application
 4. **Make the agent discover, not execute** - The task description should state the goal and end state, not the path. For very_hard tasks, the agent should have to figure out even what's wrong.
-5. **Model real workflows** - Research how professionals use the application
+5. **Model real personal-use scenarios** - Think about how an actual person would use this app for a personal goal — what scenarios in `CONSUMER_USE_CASES.md` match this app's affordances?
 6. **Think adversarially** - How might an agent game this task?
 7. **Do not require yourself to complete the task** - You do not need to personally solve the task end-to-end to validate it. Validate the scaffolding (do-nothing returns 0, partial returns partial score). Tasks harder than what you can solve are perfectly valid.
 

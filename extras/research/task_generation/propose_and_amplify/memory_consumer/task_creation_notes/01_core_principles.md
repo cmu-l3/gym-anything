@@ -17,9 +17,19 @@ Tasks are the heart of the Gym-Anything benchmark. A well-designed task tests me
 
 Before reading the principles, internalize this: **most tasks you naturally think of will be too easy.** The first idea is almost always a single-workflow, single-feature operation — the kind of thing any user figures out in their first hour with software. That is not a hard task.
 
-### The litmus test
+### The litmus tests (BOTH must pass)
 
-Ask yourself: **"Could a competent professional who has never used this specific software complete this task in under 10 minutes by clicking around?"** If yes, the task is too easy.
+Ask yourself **both** of these:
+
+1. **"Could someone with general technical literacy who has never used this specific app complete this task in under 10 minutes by clicking around?"** If yes, the task is too easy.
+
+2. **"Would a frontier AI coding agent (Claude, GPT-5, Gemini Ultra) find this task genuinely challenging?"** If a top-tier LLM could plausibly complete the task on its first attempt with no exploration or iteration, the task is too easy — even if it would take a human 30+ minutes of clicking. The benchmark exists to *measure* frontier agents; if the task does not stretch them, it produces no signal.
+
+   In practice: if you, the task creator, can confidently describe the exact step sequence the agent should take without opening the app to investigate, the task is probably solvable by an agent on its first try. The hard tasks are the ones where *you yourself* would need to experiment in the app to figure out the right approach.
+
+For consumer tasks specifically, the inability to solve it in 10 minutes usually comes from **combined constraints** (multi-stakeholder preferences, household budget, multi-stage decisions, geography, calendar conflicts, multi-source synthesis) — see `CONSUMER_USE_CASES.md` for the full list of hardness levers — NOT from professional domain depth.
+
+For utility / launcher / configuration / automation software, the inability comes from **chained feature use** (deeplinks invoking other commands, scripts that call AppleScript + Shortcuts.app + CLI tools, dynamic placeholder syntax with modifiers, named layouts with content loading, AI-extension composition). Tasks for these apps must exercise the *chaining*, not just the existence of a feature.
 
 ### What makes a task genuinely hard
 
@@ -41,6 +51,8 @@ Hard tasks require the agent to:
 - Being told which records to fix and what the correct values are (that's a recipe, not a task)
 - Requiring the agent to type a longer string
 - Having a stricter pass threshold
+- **Wrapping the same workflow in a different cover story** (a "podcaster's session" task and a "gardener's checklist" task that both reduce to "create N script files from a spec" are the *same* task with different costumes). See `14_task_design_antipatterns.md` §16.
+- **Padding the description with backstory, persona, or scene-setting**. Long context does not make a task harder for a capable agent — the agent skims past narrative to the operational requirements. The hard part must be technical (chaining features, discovering the right approach, exercising non-obvious syntax), not parsing prose. See `14_task_design_antipatterns.md` §17.
 
 ### The self-check question
 
@@ -50,18 +62,26 @@ Before finalizing any hard/very_hard task, ask: **"If I removed all the UI instr
 
 ## Principle 1: Real-World Relevance
 
-**Tasks must reflect actual professional workflows.**
+**Tasks must reflect actual things a real person does for a personal goal.**
+
+This is the consumer corpus. Tasks here represent personal-use scenarios —
+trip planning, comparison shopping, family medical research, household
+management, hobby projects, school assignments, creative work, learning.
+They do NOT represent enterprise / professional / job-responsibility
+workflows. (For those, use the sibling enterprise corpus.)
 
 ### Why This Matters
-- Agents should learn skills transferable to real-world applications
+- Agents should learn skills transferable to how real people actually use software in their lives
 - Synthetic or contrived tasks don't test practical competence
-- Domain experts should recognize the task as legitimate work
+- A real person — not a professional auditor — should recognize the task as legitimate personal-use work
 
 ### How to Apply
-- Research how professionals actually use the software
-- Consult documentation, tutorials, and real-world use cases
-- Ask: "Would a professional ever need to do this task?"
-- Ask: "Does this task require the kind of judgment a professional would exercise, or just mechanical execution?"
+- Read `CONSUMER_USE_CASES.md` first — it lists scenario classes per app category
+- Ask: *"Would a real person actually need to do this for themselves or their family?"* — NOT *"Would a [professional] need to do this for their job?"*
+- For **content / browsing / communication / decision-support apps** (Safari, Maps, Photos, Notes, Mail, Calendar, calendar planners, real-estate browsers), open the task with personal framing: *"You are planning..."*, *"Your family needs..."*, *"You're trying to decide..."*. NEVER *"You are a [analyst / engineer / clinician] at [firm]"*.
+- For **utility / launcher / configuration / automation apps** (Raycast, Alfred, Karabiner, Hammerspoon, Keyboard Maestro, BetterTouchTool, Hazel, Rectangle, tmux/zsh/vim config) — **do NOT wrap the task in a persona or backstory**. The configuration IS the personal-use scenario. Real users of these apps sit down and think "build a script that does X", not "as a podcaster, I need…". State the goal directly: *"Build a Script Command at … that …"*, *"Create N Quicklinks that use …"*, *"Set up a Window Layout named 'Reading' that …"*. See `14_task_design_antipatterns.md` §15 "Narrative Wrappers for Utility Software" for the full rationale and a wrong-vs-right table.
+- Ask: *"Does this task require the kind of judgment a person makes for themselves (weighing budget × family preferences × geography × time), or just mechanical execution?"*
+- The output artifact should be in the app's native format that a person would actually save — a note, a document, a calendar event with reminders, a signed PDF, a curated photo album, a Script Command `.sh` file, a Quicklink/Snippet JSON export, a window layout config. NOT a JSON report dumped to `~/Documents/`.
 
 ---
 
@@ -480,10 +500,21 @@ If all 5 tasks use the same core feature (e.g., `PT_PT_DISTANCE` constraints) bu
 
 Before implementing any task, verify:
 
-- [ ] Task reflects real professional workflow
-- [ ] Task passes the litmus test: a power user couldn't solve it in under 10 minutes by clicking around
-- [ ] Uses REAL data from the environment or from real public datasets — absolutely NO synthetic/generated data
+- [ ] **Step 0 done**: extensive web research on the target software's power-user workflows is complete, with cited sources (see `00_getting_started.md` Step 0). No design begins before this.
+- [ ] Task reflects a real personal-use scenario (matches a class in `CONSUMER_USE_CASES.md`)
+- [ ] **Framing matches app category**:
+  - Content/browsing/communication apps → personal narrative ("you are planning / your family needs / you want to decide"). NEVER "you are a [professional] at [firm]".
+  - Utility/launcher/configuration/automation apps → **direct configuration statement** ("Build a Script Command at … that …"). NO narrative wrapper. See `14_task_design_antipatterns.md` §15.
+- [ ] Output artifact is in the app's native format a person would actually keep — NOT a JSON report dumped to `~/Documents/`
+- [ ] Uses 2+ hardness levers from `CONSUMER_USE_CASES.md` (multi-stakeholder, household budget, multi-stage, geography, calendar, preferences, multi-source synthesis, etc.)
+- [ ] Task passes **both** litmus tests:
+  - [ ] A person with general technical literacy couldn't solve it in under 10 minutes by clicking around
+  - [ ] **A frontier AI agent (Claude / GPT-5 / Gemini Ultra) would find it genuinely challenging**. If a top-tier LLM could plausibly complete it on its first attempt with no exploration, the task is too easy and produces no benchmark signal — *even if* a human would need 30+ minutes.
+- [ ] **Stripped-description test passes** (`14_task_design_antipatterns.md` §17): if you delete every sentence that isn't an operational requirement / specific value / success criterion, the *remaining* operational core is itself a hard task. If the core stripped to its bones is trivial ("create 3 items, save the file"), the original task was easy and the narrative was hiding it.
+- [ ] Uses REAL data — actual products, cities, prices, reviews, schools, services — NO synthetic/generated data
 - [ ] Starting state is distinct from other tasks in this environment (different records/content)
+- [ ] **Archetype diversity** (across the 5-task set): no more than 2 of 5 tasks share the same archetype (spec-driven create, orchestration script, declarative configuration, dynamic template, stateful pipeline, live expansion, error repair, audit-and-annotate). See `14_task_design_antipatterns.md` §14.
+- [ ] **Surface-diversity check passes** (`14_task_design_antipatterns.md` §16): strip domain nouns from each task description and re-read the 5 tasks side by side. The stripped versions must NOT be near-duplicates. Different cover stories (vacation / garden / recipes / health) on top of identical workflows do not constitute diversity — only different features, archetypes, pipelines, and verification surfaces do.
 - [ ] Has 3+ independent verification criteria
 - [ ] Records baseline state to detect new work
 - [ ] Rejects wrong-target actions with score=0
