@@ -5,6 +5,7 @@ from .qwen25vl import Qwen25VLAgent
 from .claude_gemini_qwen3 import GeminiQwen3Agent
 from .claude_gemini_qwen3_audit import GeminiQwen3AuditAgent
 from .claude_gemini import Gemini3Agent
+from .gemini_computer_use import GeminiComputerUseAgent
 from .kimi import KimiAzureAgent
 from .kimi_distill import KimiDistillAgent
 from .qwen3vl_audit import Qwen3VLAuditAgent
@@ -12,6 +13,7 @@ from .qwen3vl_audit import Qwen3VLAuditAgent
 __all__ = [
     "ClaudeAgent",
     "Gemini3Agent",
+    "GeminiComputerUseAgent",
     "GeminiQwen3Agent",
     "GeminiQwen3AuditAgent",
     "KimiAzureAgent",
