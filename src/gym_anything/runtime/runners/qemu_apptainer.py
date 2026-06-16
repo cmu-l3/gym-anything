@@ -24,6 +24,7 @@ import re
 import shlex
 import shutil
 import signal
+import socket
 import subprocess
 import tempfile
 import threading
@@ -164,7 +165,13 @@ class QemuApptainerRunner(BaseRunner):
 
         # Consecutive SSH failure tracking — abort after too many
         self._consecutive_ssh_failures = 0
-        self._max_consecutive_ssh_failures = 5
+        self._max_consecutive_ssh_failures = 20  # bumped from 5; QEMU user-net drops SSH under burst load
+
+        # Persistent SSH transport — reuse one TCP connection for all commands.
+        # Creating a new paramiko.SSHClient per command causes ~300 TCP+SSH
+        # handshakes per run, overwhelming QEMU's SLiRP user-mode network.
+        self._ssh_transport: Optional[Any] = None  # paramiko.Transport
+        self._ssh_stats = {"commands": 0, "reconnects": 0, "failures": 0}
 
         # Resources
         self.memory = f"{spec.resources.mem_gb or 8}G"
@@ -1358,12 +1365,21 @@ class QemuApptainerRunner(BaseRunner):
         return False
 
     def _run_ssh_cmd(self, port: int, cmd: str, timeout: int = 120) -> subprocess.CompletedProcess:
-        """Run SSH command to specific port using key or password auth."""
+        """Run SSH command to specific port using persistent transport or fresh connection."""
+        # Use persistent transport if port matches the main SSH port
+        if port == self.ssh_port and self.ssh_port is not None:
+            result = self._persistent_ssh_exec(cmd, timeout=timeout, use_pty=not self.is_windows)
+            if result.returncode != 0:
+                err_msg = (result.stderr or b"").decode()[:500]
+                if err_msg:
+                    print(f"[QemuApptainer] SSH cmd failed: {err_msg}")
+            return result
+
+        # Different port or no persistent transport — use fresh connection
         ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
         user = self._ssh_user
         password = self._ssh_password
 
-        # For Windows or if SSH key doesn't exist, prefer paramiko with password auth
         if self.is_windows or not ssh_key.exists():
             try:
                 import paramiko
@@ -1371,8 +1387,6 @@ class QemuApptainerRunner(BaseRunner):
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 client.connect("localhost", port=port, username=user,
                               password=password, timeout=15, look_for_keys=False)
-                # Don't use PTY for Windows - it causes terminal escape sequences that corrupt output
-                # PTY is mainly needed for Linux sudo/su compatibility
                 use_pty = not self.is_windows
                 stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=use_pty)
                 exit_code = stdout.channel.recv_exit_status()
@@ -1606,8 +1620,9 @@ class QemuApptainerRunner(BaseRunner):
         """Stop VM."""
         if not self._running and not self._process:
             return
-        
+
         print(f"[QemuApptainer] Stopping {self.instance_name}")
+        self._close_ssh_transport()
         self._stop_event.set()
 
         # Close pyautogui client (Windows)
@@ -2086,7 +2101,7 @@ class QemuApptainerRunner(BaseRunner):
                 "-i", str(ssh_key),
                 "-o", "StrictHostKeyChecking=no",
                 "-o", "UserKnownHostsFile=/dev/null",
-                "-o", "ConnectTimeout=10",
+                "-o", "ConnectTimeout=30",
                 "-p", str(self.ssh_port),
                 "ga@localhost",
                 cmd
@@ -2126,13 +2141,117 @@ class QemuApptainerRunner(BaseRunner):
             self._consecutive_ssh_failures = 0
         else:
             self._consecutive_ssh_failures += 1
+            # Back off before next attempt — QEMU user-net drops connections
+            # under burst load, a brief pause lets the backlog drain.
+            time.sleep(min(self._consecutive_ssh_failures * 2, 10))
             if self._consecutive_ssh_failures >= self._max_consecutive_ssh_failures:
                 raise RuntimeError(
                     f"VM unresponsive: {self._consecutive_ssh_failures} consecutive SSH failures. Aborting."
                 )
 
+    def _get_ssh_transport(self):
+        """Get or create a persistent SSH transport to the QEMU VM.
+
+        Reuses a single TCP connection for all SSH commands, avoiding the
+        ~300 handshakes/run that overwhelm QEMU's SLiRP network stack.
+        Automatically reconnects if the transport drops.
+        """
+        import paramiko
+
+        if self._ssh_transport is not None and self._ssh_transport.is_active():
+            return self._ssh_transport
+
+        # Need to (re)connect
+        if self._ssh_transport is not None:
+            self._ssh_stats["reconnects"] += 1
+            print(f"[SSH] Reconnecting (stats: {self._ssh_stats})")
+            try:
+                self._ssh_transport.close()
+            except Exception:
+                pass
+
+        ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
+        sock = socket.create_connection(("localhost", self.ssh_port), timeout=30)
+        transport = paramiko.Transport(sock)
+        transport.set_keepalive(15)  # send keepalive every 15s
+
+        try:
+            if not self.is_windows and ssh_key.exists():
+                pkey = paramiko.RSAKey.from_private_key_file(str(ssh_key))
+                transport.connect(username="ga", pkey=pkey)
+            else:
+                transport.connect(username=self._ssh_user, password=self._ssh_password)
+        except Exception:
+            # Key auth failed, try password
+            transport.close()
+            sock = socket.create_connection(("localhost", self.ssh_port), timeout=30)
+            transport = paramiko.Transport(sock)
+            transport.set_keepalive(15)
+            transport.connect(username=self._ssh_user, password=self._ssh_password)
+
+        self._ssh_transport = transport
+        return transport
+
+    def _persistent_ssh_exec(self, cmd: str, timeout: int = 600, use_pty: bool = True) -> subprocess.CompletedProcess:
+        """Execute command over the persistent SSH transport.
+
+        Opens a new channel on the existing transport (no TCP/SSH handshake).
+        Falls back to a fresh connection if the transport is dead.
+        """
+        self._ssh_stats["commands"] += 1
+        try:
+            transport = self._get_ssh_transport()
+            channel = transport.open_session()
+            if use_pty:
+                channel.get_pty()
+            channel.settimeout(timeout)
+            channel.exec_command(cmd)
+
+            out = b""
+            err = b""
+            while True:
+                if channel.recv_ready():
+                    out += channel.recv(65536)
+                if channel.recv_stderr_ready():
+                    err += channel.recv_stderr(65536)
+                if channel.exit_status_ready():
+                    # Drain remaining
+                    while channel.recv_ready():
+                        out += channel.recv(65536)
+                    while channel.recv_stderr_ready():
+                        err += channel.recv_stderr(65536)
+                    break
+                time.sleep(0.01)
+
+            exit_code = channel.recv_exit_status()
+            channel.close()
+            return subprocess.CompletedProcess([], exit_code, out, err)
+        except Exception as e:
+            self._ssh_stats["failures"] += 1
+            # Transport dead — clear it so next call reconnects
+            self._ssh_transport = None
+            print(f"[SSH] Persistent exec failed ({self._ssh_stats}): {e}")
+            return subprocess.CompletedProcess([], 1, b"", str(e).encode())
+
+    def _close_ssh_transport(self):
+        """Close the persistent SSH transport (call on VM shutdown)."""
+        if self._ssh_transport is not None:
+            print(f"[SSH] Closing transport (final stats: {self._ssh_stats})")
+            try:
+                self._ssh_transport.close()
+            except Exception:
+                pass
+            self._ssh_transport = None
+
     def _ssh_with_paramiko(self, cmd: str, capture: bool, timeout: int, use_pty: bool = True) -> subprocess.CompletedProcess:
-        """Fallback SSH using Python's paramiko with key or password authentication."""
+        """SSH using persistent transport (preferred) or fresh connection (fallback)."""
+        if self.ssh_port:
+            result = self._persistent_ssh_exec(cmd, timeout=timeout, use_pty=use_pty)
+            if result.returncode != 1 or b"paramiko" not in (result.stderr or b""):
+                return result
+            # Persistent failed, fall through to fresh connection
+
+        # Fallback: fresh connection (e.g., during early boot before transport is ready)
         try:
             import paramiko
             ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
@@ -2140,22 +2259,17 @@ class QemuApptainerRunner(BaseRunner):
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-            # For Windows, use password auth directly with configured credentials
             if self.is_windows:
                 client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                              password=self._ssh_password, timeout=10, look_for_keys=False)
+                              password=self._ssh_password, timeout=30, look_for_keys=False)
             else:
-                # Try key-based auth first for Linux
                 try:
                     client.connect("localhost", port=self.ssh_port, username="ga",
-                                  key_filename=str(ssh_key), timeout=10, look_for_keys=False)
+                                  key_filename=str(ssh_key), timeout=30, look_for_keys=False)
                 except:
-                    # Fallback to password
                     client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                                  password=self._ssh_password, timeout=10, look_for_keys=False)
+                                  password=self._ssh_password, timeout=30, look_for_keys=False)
 
-            # Only request PTY if needed (for sudo/su compatibility)
-            # Disable PTY for task init to prevent SIGHUP killing background processes
             stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=use_pty)
             exit_code = stdout.channel.recv_exit_status()
             out = stdout.read()

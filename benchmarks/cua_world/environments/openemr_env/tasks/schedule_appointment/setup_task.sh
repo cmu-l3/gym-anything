@@ -8,7 +8,7 @@ source /workspace/scripts/task_utils.sh
 
 # Target patient
 PATIENT_PID=2
-PATIENT_NAME="Maria Espinal"
+PATIENT_NAME="Alva Krajcik"
 
 # Record task start time for anti-gaming verification
 date +%s > /tmp/task_start_time.txt
@@ -29,7 +29,7 @@ echo "Patient found: $PATIENT_CHECK"
 echo "Recording initial appointment count..."
 INITIAL_APT_COUNT=$(openemr_query "SELECT COUNT(*) FROM openemr_postcalendar_events WHERE pc_pid=$PATIENT_PID" 2>/dev/null || echo "0")
 echo "$INITIAL_APT_COUNT" > /tmp/initial_apt_count.txt
-echo "Initial appointment count for Maria Espinal: $INITIAL_APT_COUNT"
+echo "Initial appointment count for Alva Krajcik: $INITIAL_APT_COUNT"
 
 # Also record total appointments to detect any appointment creation
 INITIAL_TOTAL_APT=$(openemr_query "SELECT COUNT(*) FROM openemr_postcalendar_events" 2>/dev/null || echo "0")
@@ -80,11 +80,11 @@ echo "Initial screenshot saved to /tmp/task_initial_state.png"
 echo ""
 echo "=== Schedule Appointment Task Setup Complete ==="
 echo ""
-echo "Task: Schedule an appointment for Maria Espinal"
+echo "Task: Schedule an appointment for Alva Krajcik"
 echo ""
 echo "Patient Details:"
-echo "  - Name: Maria Espinal"
-echo "  - DOB: 1964-08-17"
+echo "  - Name: Alva Krajcik"
+echo "  - DOB: 2016-08-01"
 echo "  - Patient ID: 2"
 echo ""
 echo "Appointment Requirements:"

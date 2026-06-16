@@ -124,7 +124,13 @@ class GymAnythingEnv:
             return LocalRunner(spec)
 
         if runner_override == "docker":
-            pass  # Fall through to docker runner
+            if self._check_docker_available() and (spec.image or spec.dockerfile):
+                logger.info("Using DockerRunner (GYM_ANYTHING_RUNNER=docker)")
+                return DockerRunner(spec)
+            raise RuntimeError(
+                "GYM_ANYTHING_RUNNER=docker but docker is not available or "
+                "env spec has no image/dockerfile"
+            )
         elif runner_override:
             logger.warning("Unknown runner '%s', using default", runner_override)
 
@@ -456,11 +462,8 @@ class GymAnythingEnv:
                 logger.info("Running pre_start hook")
                 try:
                     hook_cmd = self.env_spec.hooks['pre_start']
-                    # Android uses sh instead of bash, and different paths
-                    # Use longer timeout (180s) for Android hooks as game loading can take time
                     if self._platform_family() == "android":
                         self._runner.exec(f"sh {hook_cmd}", timeout=180)
-                    # Windows uses PowerShell
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     else:
@@ -468,9 +471,13 @@ class GymAnythingEnv:
                     if self._reporter:
                         self._reporter.stage_done("pre_start_hook")
                 except Exception as e:
-                    logger.warning("pre_start hook failed: %s", e)
+                    # Pre_start installs critical dependencies (Docker, Firefox).
+                    # A broken pre_start → broken checkpoint → every future run fails.
+                    # Raise instead of warning so the checkpoint is never created.
+                    logger.error("pre_start hook FAILED (fatal): %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("pre_start_hook", str(e))
+                    raise RuntimeError(f"pre_start hook failed: {e}") from e
 
         # Create checkpoint after pre_start if this is the target level
         # Also creates when we started from scratch with a higher cache_level target
@@ -509,9 +516,12 @@ class GymAnythingEnv:
                     if self._reporter:
                         self._reporter.stage_done("post_start_hook")
                 except Exception as e:
-                    logger.warning("post_start hook failed: %s", e)
+                    # Post_start starts services (OpenEMR, DB). If it fails,
+                    # the agent runs against a non-functional environment.
+                    logger.error("post_start hook FAILED (fatal): %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("post_start_hook", str(e))
+                    raise RuntimeError(f"post_start hook failed: {e}") from e
 
         # Create checkpoint after post_start if this is the target level
         # Also creates when we loaded from a lower level (e.g., pre_start fallback)
