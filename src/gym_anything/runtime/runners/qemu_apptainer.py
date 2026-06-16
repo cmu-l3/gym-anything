@@ -552,6 +552,9 @@ class QemuApptainerRunner(BaseRunner):
             port_forwards = f"hostfwd=tcp::{ssh_port}-:22"
             if self.is_windows:
                 port_forwards += f",hostfwd=tcp::{self.pyautogui_port}-:5555"
+        netdev_options = f"user,id=net0,{port_forwards}"
+        if getattr(getattr(self.spec, "resources", None), "net", None) is False:
+            netdev_options = f"user,id=net0,restrict=on,{port_forwards}"
 
         cmd.extend([
             "-m", self.memory,
@@ -571,7 +574,7 @@ class QemuApptainerRunner(BaseRunner):
                 "-display", "none",
                 "-monitor", "stdio",
                 "-device", "virtio-net-pci,netdev=net0",
-                "-netdev", f"user,id=net0,{port_forwards}",
+                "-netdev", netdev_options,
                 "-boot", "d",  # Boot from CD-ROM (live ISO)
                 # USB for keyboard/mouse (Android needs USB HID)
                 "-usb",
@@ -614,7 +617,7 @@ class QemuApptainerRunner(BaseRunner):
                 "-monitor", "stdio",
                 # Network with virtio
                 "-device", "virtio-net-pci,netdev=net0",
-                "-netdev", f"user,id=net0,{port_forwards}",
+                "-netdev", netdev_options,
                 "-boot", "c",
             ])
         else:
@@ -634,7 +637,7 @@ class QemuApptainerRunner(BaseRunner):
                 "-display", display_backend,
                 "-monitor", "stdio",
                 "-device", "virtio-net-pci,netdev=net0",
-                "-netdev", f"user,id=net0,{port_forwards}",
+                "-netdev", netdev_options,
                 "-boot", "c",
             ])
 

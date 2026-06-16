@@ -164,6 +164,9 @@ class QemuNativeRunner(QemuApptainerRunner):
         port_forwards = f"hostfwd=tcp::{ssh_port}-:22"
         if self.is_windows:
             port_forwards += f",hostfwd=tcp::{self.pyautogui_port}-:5555"
+        netdev_options = f"user,id=net0,{port_forwards}"
+        if getattr(getattr(self.spec, "resources", None), "net", None) is False:
+            netdev_options = f"user,id=net0,restrict=on,{port_forwards}"
 
         cmd = [
             "qemu-system-aarch64",
@@ -183,7 +186,7 @@ class QemuNativeRunner(QemuApptainerRunner):
             "-monitor", "stdio",
             # Network
             "-device", "virtio-net-pci,netdev=net0",
-            "-netdev", f"user,id=net0,{port_forwards}",
+            "-netdev", netdev_options,
             # USB controller + input devices (aarch64 virt has no PS/2)
             "-device", "qemu-xhci",
             "-device", "usb-kbd",
