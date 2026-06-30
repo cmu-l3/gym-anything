@@ -1,5 +1,5 @@
 ###############################################################################
-# setup_topocal.ps1 — post_start hook
+# setup_topocal.ps1 -- post_start hook
 # Configures TopoCal: starts HTTP server + PyAutoGUI server, sets activation
 # bypass registry, performs warm-up launch to handle the activation dialog.
 ###############################################################################
@@ -181,8 +181,8 @@ try {
     Set-ItemProperty -Path "$base\TopoCal Valores" -Name "mira"    -Value "0"
 
     New-Item -Path "$base\TopoCal Configuaracion" -Force | Out-Null
-    # NOTE: Do NOT set Idioma=EN — TopoCal 2025 has no EN translation file.
-    # Setting Idioma=EN causes "Traduce_Menu - Error nº 76: Path not found" crash.
+    # NOTE: Do NOT set Idioma=EN -- TopoCal 2025 has no EN translation file.
+    # Setting Idioma=EN causes "Traduce_Menu - Error no 76: Path not found" crash.
     # TopoCal UI stays in Spanish (Archivo, MDT, Curvas de nivel, Perfil, etc.).
 
     New-Item -Path "$base\TopoCal Preferencias" -Force | Out-Null
@@ -221,15 +221,15 @@ try {
     Write-Host "Updated launch_topocal.bat"
 
     # -------------------------------------------------------------------------
-    # Section 8: Warm-up launch — handle activation dialog
+    # Section 8: Warm-up launch -- handle activation dialog
     #
     # TopoCal activation flow (HTTP server returns version19=9.0.961, contador_25lite=*):
-    #  1. TopoCal starts → shows "Activar TopoCal 2025" dialog (VB6 form, modal)
+    #  1. TopoCal starts -> shows "Activar TopoCal 2025" dialog (VB6 form, modal)
     #  2. We click "Ejecutar Lite" icon (~835, 370)
-    #     → Transitions to the "Versión Lite / Continuar" page
+    #     -> Transitions to the "Version Lite / Continuar" page
     #  3. We click the green checkmark icon (~668, 200) to highlight it
     #  4. We click the "Continuar" text label (~668, 230) to trigger activation
-    #     → TopoCal requests topocal.com endpoints (redirected to localhost:80):
+    #     -> TopoCal requests topocal.com endpoints (redirected to localhost:80):
     #          contador_25lite   -> *     (Lite activation success)
     #          version19         -> 9.0.961
     #          fechaoferta       -> 01/01/2020
@@ -238,7 +238,7 @@ try {
     #
     # NOTE: The "Continuar" visual element is a VB6 PictureBox, NOT a CommandButton.
     #       The checkmark icon click (y~200) highlights; the text click (y~230) activates.
-    #       The NOP-patched DLL (6×NOP at 0x6CDE1) prevents a conditional exit that
+    #       The NOP-patched DLL (6xNOP at 0x6CDE1) prevents a conditional exit that
     #       otherwise fires after the PictureBox click event.
     # -------------------------------------------------------------------------
     Write-Host "--- Section 8: Warm-up launch with activation handling ---"
@@ -356,6 +356,24 @@ else:
         Write-Host "Warm-up complete"
     } else {
         Write-Host "WARNING: TopoCal executable not found, skipping warm-up"
+    }
+
+    # -------------------------------------------------------------------------
+    # Section 8b: Base launch -- leave TopoCal open at t=0 for every episode.
+    # Replaces the savevm checkpoint's baked-in running app; tasks that open a
+    # specific file relaunch TopoCal in their own pre_task.
+    # -------------------------------------------------------------------------
+    Write-Host "--- Section 8b: Base launch (TopoCal open at t=0) ---"
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        $tcLaunched = Start-TopoCalInteractive -WaitSeconds 25 -HandleActivation -MaxAttempts 4
+        if ($tcLaunched) {
+            Write-Host "Base TopoCal launch complete."
+        } else {
+            Write-Host "WARNING: Base TopoCal launch did not confirm window after all attempts."
+        }
+    } catch {
+        Write-Host "WARNING: Base TopoCal launch failed: $($_.Exception.Message)"
     }
 
     # -------------------------------------------------------------------------

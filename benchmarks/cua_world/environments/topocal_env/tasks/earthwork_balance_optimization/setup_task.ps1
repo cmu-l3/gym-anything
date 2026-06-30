@@ -1,5 +1,5 @@
 ###############################################################################
-# setup_task.ps1 — pre_task hook for earthwork_balance_optimization
+# setup_task.ps1 - pre_task hook for earthwork_balance_optimization
 # Downloads 300 real USGS NED 10m elevation points for El Paso County, CO,
 # converts to UTM Zone 13N, writes project CSV and spec, launches TopoCal.
 ###############################################################################
@@ -15,7 +15,7 @@ try {
 
     . "C:\workspace\scripts\task_utils.ps1"
 
-    # ── 1. Remove pre-existing output files ──
+    # -- 1. Remove pre-existing output files --
     Write-Host "[1/6] Cleaning up stale output files..."
     Remove-Item "C:\Users\Docker\Desktop\GradingStudy\grading_report.txt" -Force -ErrorAction SilentlyContinue
     Remove-Item "C:\Users\Docker\Desktop\GradingStudy\site_grading.dxf" -Force -ErrorAction SilentlyContinue
@@ -23,18 +23,18 @@ try {
     Remove-Item "C:\Users\Docker\earthwork_balance_optimization_result.json" -Force -ErrorAction SilentlyContinue
     Remove-Item "C:\Users\Docker\earthwork_bal_meta.json" -Force -ErrorAction SilentlyContinue
 
-    # ── 2. Record task start timestamp (AFTER cleanup) ──
+    # -- 2. Record task start timestamp (AFTER cleanup) --
     Write-Host "[2/6] Recording task start timestamp..."
     (Get-Date).ToString("o") | Set-Content -Path "C:\Users\Docker\earthwork_bal_start.txt" -Encoding utf8
 
-    # ── 3. Infrastructure ──
+    # -- 3. Infrastructure --
     Write-Host "[3/6] Starting infrastructure..."
     $edgeKiller = Start-EdgeKillerTask
     Close-Browsers
     Ensure-HTTPServer
     Ensure-PyAutoGUIServer
 
-    # Force activation bypass registry key (defensive — may not have been set during post_start warm-up)
+    # Force activation bypass registry key (defensive - may not have been set during post_start warm-up)
     $regPath = "HKCU:\Software\VB and VBA Program Settings\TopoCal\TopoCal Proceso"
     if (Test-Path $regPath) {
         Set-ItemProperty -Path $regPath -Name "Termina" -Value "1" -ErrorAction SilentlyContinue
@@ -80,7 +80,23 @@ codes = ["GND"] * 80 + ["CP"] * 5 + ["TP"] * 10 + ["BM"] * 5
 while len(codes) < 300:
     codes.append("GND")
 
-for grid_idx, grid in enumerate([grid1, grid2, grid3], 1):
+# Offline-safe + deterministic: if the gym ships a pre-baked survey (mounted at
+# C:\workspace\data\site_survey.csv) use it and skip the OpenTopoData network fetch,
+# which otherwise costs ~6 min of timeouts on offline nodes before its synthetic fallback.
+_bundled = r"C:\workspace\data\site_survey.csv"
+_grids = [grid1, grid2, grid3]
+if os.path.exists(_bundled):
+    print("Using bundled site_survey.csv (offline-safe, deterministic).", flush=True)
+    with open(_bundled, encoding="utf-8") as _bf:
+        _rows = _bf.read().splitlines()
+    for _ln in _rows[1:]:
+        _p = _ln.split(",")
+        if len(_p) >= 5:
+            points.append((int(_p[0]), float(_p[1]), float(_p[2]), float(_p[3]), _p[4]))
+    pt_num = len(points) + 1
+    _grids = []
+
+for grid_idx, grid in enumerate(_grids, 1):
     locs = "|".join(f"{lat},{lon}" for lat, lon in grid)
     url = f"https://api.opentopodata.org/v1/ned10m?locations={locs}"
     print(f"Fetching grid {grid_idx}/3 from OpenTopoData...", flush=True)
@@ -129,7 +145,7 @@ mean_elev = sum(elevs)/len(elevs) if elevs else 1950.0
 min_elev = min(elevs) if elevs else 1850.0
 max_elev = max(elevs) if elevs else 2100.0
 
-# Suggested starting elevation is NOT the answer — deliberately offset from true balance
+# Suggested starting elevation is NOT the answer - deliberately offset from true balance
 # Use mean rounded to 10m as the starting suggestion
 start_elev = round(mean_elev / 10) * 10
 print(f"Elevation range: {min_elev:.1f} - {max_elev:.1f} m", flush=True)
@@ -139,7 +155,7 @@ print(f"Suggested starting elevation: {start_elev} m", flush=True)
 # Write project specification
 out_spec = r"C:\Users\Docker\Desktop\GradingStudy\ProjectSpec.txt"
 with open(out_spec, "w", encoding="utf-8") as f:
-    f.write("EARTHWORK BALANCE OPTIMIZATION — PROJECT SPECIFICATION\n")
+    f.write("EARTHWORK BALANCE OPTIMIZATION - PROJECT SPECIFICATION\n")
     f.write("=" * 60 + "\n\n")
     f.write("Client: Pikes Peak Development Group\n")
     f.write("Project: Colorado Springs Residential Grading Study\n")
@@ -187,14 +203,14 @@ with open(r"C:\Users\Docker\earthwork_bal_meta.json", "w", encoding="utf-8") as 
 print("Setup complete.", flush=True)
 '@ | Set-Content -Path $pyPath -Encoding utf8
 
-    # ── 4. Download real USGS elevation data ──
+    # -- 4. Download real USGS elevation data --
     Write-Host "[4/6] Running data download script..."
     python.exe "$pyPath"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "WARNING: Python script exited with code $LASTEXITCODE"
     }
 
-    # ── 5. Launch TopoCal ──
+    # -- 5. Launch TopoCal --
     Write-Host "[5/6] Launching TopoCal..."
     $launched = Start-TopoCalInteractive -WaitSeconds 12
     if (-not $launched) {
@@ -203,7 +219,7 @@ print("Setup complete.", flush=True)
     Start-Sleep -Seconds 2
     Set-TopoCalForeground | Out-Null
 
-    # ── 6. Final cleanup ──
+    # -- 6. Final cleanup --
     Write-Host "[6/6] Final cleanup..."
     Stop-EdgeKillerTask -KillerInfo $edgeKiller
 

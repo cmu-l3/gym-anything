@@ -22,7 +22,7 @@ try {
 try {
     Write-Host "=== Setting up Copper Point of Sale environment ==="
 
-    # ── Step 1: Disable OneDrive ──────────────────────────────
+    # -- Step 1: Disable OneDrive ----------------------------------------
     Write-Host "Disabling OneDrive..."
     Get-Process OneDrive -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Get-Process OneDriveSetup -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -59,7 +59,7 @@ try {
     }
     Set-ItemProperty -Path $backupPath -Name "DisableWindowsConsumerFeatures" -Value 1 -Type DWord -Force
 
-    # ── Step 2: Install Copper if needed ──────────────────────
+    # -- Step 2: Install Copper if needed --------------------------------
     $copperExe = "C:\Program Files (x86)\NCH Software\Copper\copper.exe"
 
     if (-not (Test-Path $copperExe)) {
@@ -164,7 +164,7 @@ try {
     $copperExe | Out-File -FilePath "C:\Users\Docker\copper_exe_path.txt" -Encoding ASCII -Force
     Write-Host "Saved exe path to copper_exe_path.txt"
 
-    # ── Step 3: Kill Copper after install/wizard (warm-up complete) ──
+    # -- Step 3: Kill Copper after install/wizard (warm-up complete) -----
     Write-Host "Killing Copper after warm-up..."
     Get-Process copper -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Get-Process possetup -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -173,7 +173,7 @@ try {
     # Clean up installer file
     Remove-Item "C:\Windows\Temp\possetup.exe" -Force -ErrorAction SilentlyContinue
 
-    # ── Step 4: Second warm-up launch (ensures no more first-run dialogs) ──
+    # -- Step 4: Second warm-up launch (ensures no more first-run dialogs) --
     Write-Host "Second warm-up launch to verify clean startup..."
     Launch-CopperInteractive
     Start-Sleep -Seconds 15
@@ -188,8 +188,17 @@ try {
     Start-Sleep -Seconds 3
     Write-Host "Second warm-up complete."
 
-    # ── Step 5: Minimize terminals ──
+    # -- Step 5: Minimize terminals --------------------------------------
     Minimize-Terminals
+
+    # -- Step 6: Base launch -- leave Copper open at t=0 -----------------
+    # Replaces the savevm checkpoint's baked-in running app.
+    Write-Host "Base launch: opening Copper POS at t=0..."
+    try {
+        Launch-CopperInteractive -WaitSeconds 20
+        try { & "C:\workspace\scripts\dismiss_dialogs.ps1" } catch { }
+        Write-Host "Base Copper POS launch complete."
+    } catch { Write-Host "WARNING: base Copper POS launch failed: $($_.Exception.Message)" }
 
     Write-Host "=== Copper Point of Sale environment setup complete ==="
 } finally {

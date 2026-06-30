@@ -288,6 +288,21 @@ public class Win32 {
         [Win32]::ShowWindow($_.MainWindowHandle, 6) | Out-Null
     }
 
+    # Base launch: leave Talon running at t=0 for every episode.
+    # Replaces the savevm checkpoint's baked-in running app. Talon is a system-tray
+    # app; tasks that need specific voice commands configure them in pre_task.
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        $baseExe = $null
+        try { $baseExe = Find-TalonExe } catch { }
+        if ($baseExe) {
+            Launch-TalonInteractive -TalonExe $baseExe -WaitSeconds 25
+            Write-Host "Base Talon launch complete."
+        } else {
+            Write-Host "WARNING: talon.exe not found for base launch."
+        }
+    } catch { Write-Host "WARNING: Base Talon launch failed: $($_.Exception.Message)" }
+
     Write-Host "=== Talon Voice environment setup complete ==="
     Write-Host "Talon exe: $talonExe"
     Write-Host "Community dir: $communityDir"

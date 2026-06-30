@@ -36,17 +36,28 @@ function Find-ExcelExe {
     throw "Could not find EXCEL.EXE in standard Office locations."
 }
 
+function Test-ExcelRendered {
+    # True once Excel has a real window. A hung/early launch has no main window
+    # handle; a rendered Excel has a window handle (survives idle working-set trim).
+    $procs = Get-Process EXCEL -ErrorAction SilentlyContinue
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.MainWindowHandle -ne 0 -or $p.WorkingSet64 -gt 25MB) { return $true }
+    }
+    return $false
+}
+
 function Launch-ExcelDocumentInteractive {
     <#
-    Launch Excel with a workbook in the interactive desktop session.
-    SSH runs in Session 0 which cannot display GUI windows, so we use
-    schtasks with /IT to run in the interactive session.
+    Launch Excel with a workbook in the interactive desktop session via schtasks /IT
+    (Session 1). Retries until Excel actually renders, to survive cold-boot launch hangs.
     #>
     param(
         [Parameter(Mandatory = $true)]
         [string] $ExcelExe,
         [string] $DocumentPath = "",
-        [int] $WaitSeconds = 12
+        [int] $WaitSeconds = 25,
+        [int] $MaxAttempts = 4
     )
 
     if (-not (Test-Path $ExcelExe)) {
@@ -62,16 +73,33 @@ function Launch-ExcelDocumentInteractive {
     [System.IO.File]::WriteAllText($launchScript, $batchContent)
 
     $taskName = "LaunchExcel_GA"
-    $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
-
     $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
-        $ErrorActionPreference = "Continue"
-        schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
-        schtasks /Run /TN $taskName 2>$null
-        Start-Sleep -Seconds $WaitSeconds
+        # Cold-boot interactive sessions can hang the first GUI launch. Launch, verify
+        # Excel actually rendered a window, and retry (kill + relaunch) until it does.
+        # Replaces the savevm checkpoint that pre-baked a warmed, rendered Excel.
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            Get-Process EXCEL -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+            $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
+            schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
+            schtasks /Run /TN $taskName 2>$null
+            schtasks /Delete /TN $taskName /F 2>$null
+            $waited = 0
+            while ($waited -lt $WaitSeconds) {
+                Start-Sleep -Seconds 3
+                $waited += 3
+                if (Test-ExcelRendered) { break }
+            }
+            if (Test-ExcelRendered) {
+                Write-Host "Excel rendered on attempt $attempt."
+                return
+            }
+            Write-Host "Excel did not render on attempt $attempt (cold-boot hang); retrying..."
+        }
+        Write-Host "WARNING: Excel failed to render after $MaxAttempts attempts."
     } finally {
-        schtasks /Delete /TN $taskName /F 2>$null
         Remove-Item $launchScript -Force -ErrorAction SilentlyContinue
         $ErrorActionPreference = $prevEAP
     }

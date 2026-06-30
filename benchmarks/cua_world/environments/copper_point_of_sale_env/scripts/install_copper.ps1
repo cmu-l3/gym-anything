@@ -81,6 +81,18 @@ try {
     }
     Write-Host "Data files staged at: $dataDir"
 
+    # Warm-up: if Copper is already installed, launch once at build time to bake
+    # first-run state into the pre_start checkpoint. Local only, no network.
+    # Fails gracefully (try/catch) if Copper is not yet installed.
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        $warmExe = Find-CopperExe
+        Launch-CopperInteractive -WaitSeconds 20
+        Start-Sleep -Seconds 5
+        Stop-Copper
+        Write-Host "Warm-up complete: Copper first-run state baked into checkpoint."
+    } catch { Write-Host "WARNING: Copper warm-up skipped/failed: $($_.Exception.Message)" }
+
     Write-Host "=== Pre-start complete ==="
 
 } finally {
