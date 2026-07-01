@@ -85,11 +85,13 @@ class ModalRunner(BaseRunner):
         )
         self.sandbox_timeout = int(os.environ.get("GYM_ANYTHING_MODAL_TIMEOUT", "10800"))
 
-        # Guest sizing from spec; sandbox gets headroom on top
+        # Guest sizing from spec; sandbox gets headroom on top. Floor of 12 GiB /
+        # 5 CPUs because the one-time base image provision boots an 8G/4-cpu VM
+        # regardless of the env's own resources.
         mem_gb = int(spec.resources.mem_gb or 8)
         cpus = int(spec.resources.cpu or 4)
-        self.sandbox_cpu = cpus + 1
-        self.sandbox_memory_mb = (mem_gb + 3) * 1024
+        self.sandbox_cpu = max(cpus + 1, 5)
+        self.sandbox_memory_mb = max(mem_gb + 3, 12) * 1024
 
         self._sandbox = None
         self._shim_proc = None

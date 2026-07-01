@@ -416,6 +416,16 @@ class QemuNativeRunner(QemuApptainerRunner):
                     proc.wait(timeout=timeout)
                     elapsed = time.time() - start_time
                     print(f"[QemuNative] VM exited after {elapsed:.0f}s (code: {proc.returncode})")
+                    if proc.returncode != 0:
+                        tail = ""
+                        try:
+                            tail = log_file.read_text()[-1000:]
+                        except Exception:
+                            pass
+                        raise RuntimeError(
+                            f"Base image provisioning VM failed (exit {proc.returncode}). "
+                            f"Log tail:\n{tail}"
+                        )
                 except subprocess.TimeoutExpired:
                     proc.terminate()
                     try:
