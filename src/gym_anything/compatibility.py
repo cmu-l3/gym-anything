@@ -68,6 +68,20 @@ _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
             "Identical VM behavior to QemuApptainerRunner; only the QEMU launch mechanism differs.",
         ],
     ),
+    "modal": RunnerCompatibility(
+        runner="modal",
+        display_name="ModalRunner",
+        live_recording=False,
+        screenshot_video_assembly=True,
+        checkpoint_caching=True,
+        savevm=True,
+        user_accounts_mode="preprovisioned_accounts",
+        notes=[
+            "Runs QemuNativeRunner inside a Modal VM Sandbox (real kernel, /dev/kvm).",
+            "Base QCOW2 images and checkpoints persist in a Modal Volume across sandboxes.",
+            "Requires the modal package and modal token; billed on Modal compute.",
+        ],
+    ),
     "avd": RunnerCompatibility(
         runner="avd",
         display_name="AVDApptainerRunner",
@@ -158,6 +172,7 @@ def infer_runner_key_from_name(name: str) -> Optional[str]:
         "dockerrunner": "docker",
         "qemuapptainerrunner": "qemu",
         "qemunativerunner": "qemu_native",
+        "modalrunner": "modal",
         "avdapptainerrunner": "avd",
         "avdnativerunner": "avd_native",
         "avfrunner": "avf",

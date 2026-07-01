@@ -110,6 +110,12 @@ class GymAnythingEnv:
             from .runtime.runners.apptainer_direct import ApptainerDirectRunner
             return ApptainerDirectRunner(spec)
 
+        # --- Modal runner (QEMU inside a Modal VM Sandbox) ---
+        if runner_override == "modal" or spec_runner == "modal":
+            from .runtime.runners.modal_runner import ModalRunner
+            logger.info("Using ModalRunner (QemuNativeRunner in Modal VM Sandbox)")
+            return ModalRunner(spec)
+
         # --- QEMU runners ---
         if runner_override == "qemu_native":
             logger.info("Using QemuNativeRunner (GYM_ANYTHING_RUNNER=qemu_native)")

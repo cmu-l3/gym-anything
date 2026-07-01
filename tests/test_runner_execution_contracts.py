@@ -22,6 +22,7 @@ RUNNER_PROFILES: dict[str, RunnerProfile] = {
     "docker": "desktop_linux",
     "qemu": "desktop_linux",
     "qemu_native": "desktop_linux",
+    "modal": "desktop_linux",
     "apptainer": "desktop_linux",
     "avf": "desktop_linux",
     "avd": "android",
@@ -65,6 +66,10 @@ def _runner_class_for(runner_key: str):
         from gym_anything.runtime.runners.qemu_native import QemuNativeRunner
 
         return QemuNativeRunner
+    if runner_key == "modal":
+        from gym_anything.runtime.runners.modal_runner import ModalRunner
+
+        return ModalRunner
     if runner_key == "apptainer":
         from gym_anything.runtime.runners.apptainer_direct import ApptainerDirectRunner
 

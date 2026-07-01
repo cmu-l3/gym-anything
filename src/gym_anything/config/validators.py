@@ -6,7 +6,7 @@ from ..specs import EnvSpec, TaskSpec
 from dataclasses import asdict
 from ..verification.contracts import SUPPORTED_SUCCESS_MODES
 
-SUPPORTED_RUNNERS = {"docker", "qemu", "qemu_native", "avd", "avd_native", "avf", "local", "apptainer"}
+SUPPORTED_RUNNERS = {"docker", "qemu", "qemu_native", "avd", "avd_native", "avf", "local", "apptainer", "modal"}
 
 # Minimal JSON Schemas embedded for optional validation
 ENV_SCHEMA = {
