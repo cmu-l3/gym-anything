@@ -65,7 +65,13 @@ class ClaudeAgent(BaseAgent):
         response_content = response.content
         self.messages.append({'role': 'assistant', 'content': response_content})
         actions = self._get_actions_from_response(response_content)
-        if len(actions) == 0:
+
+        # Atomic-turn rollback (parse error) returns [] but should NOT end
+        # the trajectory; only a turn with zero tool_use blocks does.
+        had_tool_uses = any(
+            getattr(block, 'type', None) == 'tool_use' for block in response_content
+        )
+        if not had_tool_uses and len(actions) == 0:
             self.done = True
 
         return actions
@@ -80,35 +86,58 @@ class ClaudeAgent(BaseAgent):
             pickle.dump(info, open(f'{self.save_folder_custom}/info.pkl', 'wb'))
 
     def _get_actions_from_response(self, response_content):
-        all_actions = []
+        """All-or-nothing turn parsing. If any tool_use fails to parse, append
+        error tool_results for every tool_use in the turn (API requires one
+        result per tool_use_id) and return []. The trajectory survives; the
+        model retries on the next call."""
+        parsed = []
         for block in response_content:
             if block.type == "thinking":
                 if self.verbose:
                     print(f"Thinking: {block.thinking}")
-            elif block.type == "text":
+                continue
+            if block.type == "text":
                 if self.verbose:
                     print(f"Response: {block.text}")
-            elif block.type == "tool_use":
-                # Now, we need to parse the tool call, and create corresponding observations.
-                tool_id = block.id
-                action_json = block.input
-                try:
-                    actions = claude_parse_tool_result(action_json)
-                    if len(actions) == 1 and 'action' in actions[0] and actions[0]['action'] == 'terminate':
-                        self.done = True
-                        continue
-                    # Make sure that stop/wait logic is properly handled
-                    all_actions.append({
-                        'tool_id': tool_id,
-                        'actions': actions
-                    })
-                    if self.verbose:
-                        print(f"Actions: {actions} ; Tool ID: {tool_id}")
-                except Exception as e:
-                    self.done = True
-                    print(f"Exception in claude parse tool result {e}")
-                    return []
-        return all_actions
+                continue
+            if block.type != "tool_use":
+                continue
+            tool_id = block.id
+            try:
+                actions = claude_parse_tool_result(block.input)
+                parsed.append((tool_id, actions, None))
+                if self.verbose:
+                    print(f"Actions: {actions} ; Tool ID: {tool_id}")
+            except Exception as e:
+                err = f"{type(e).__name__}: {e}"
+                parsed.append((tool_id, None, err))
+                print(f"Parse error on tool_use {tool_id}: {err}")
+
+        if any(err is not None for (_, _, err) in parsed):
+            first_error = next(err for (_, _, err) in parsed if err is not None)
+            tool_results = []
+            for tool_id, _actions, err in parsed:
+                if err is not None:
+                    text = f"Tool input could not be parsed: {err}. No actions were executed this turn; please retry with a valid tool call."
+                else:
+                    text = (
+                        "Turn rolled back: a sibling tool_use in this same response failed "
+                        f"to parse ({first_error}). No actions were executed; please retry "
+                        "the intended sequence."
+                    )
+                tool_results.append({
+                    "type": "tool_result",
+                    "content": [{"type": "text", "text": text}],
+                    "tool_use_id": tool_id,
+                    "is_error": True,
+                })
+            self.messages.append({"role": "user", "content": tool_results})
+            return []
+
+        return [
+            {'tool_id': tool_id, 'actions': actions}
+            for (tool_id, actions, _) in parsed
+        ]
     
     def _get_screenshot_tool_content(self, action_output):
         """Generate tool content for screenshot actions."""
