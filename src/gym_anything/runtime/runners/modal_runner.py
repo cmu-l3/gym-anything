@@ -24,7 +24,6 @@ from __future__ import annotations
 import base64
 import dataclasses
 import io
-import json
 import os
 import tarfile
 import time
@@ -91,33 +90,6 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[4]
 
 
-# Env vars forwarded from the client into the in-sandbox shim so the verifier
-# (which runs inside the sandbox) can reach a VLM endpoint / pick its mode.
-_FORWARD_ENV_EXACT = {
-    "GYM_ANYTHING_VERIFIER_MODE",
-    "VLM_BACKEND",
-    "VLM_MODEL",
-    "VLM_BASE_URL",
-    "VLM_API_KEY",
-    "VLM_TIMEOUT",
-    "GEMINI_API_KEY",
-    "OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-}
-_FORWARD_ENV_PREFIXES = ("GYM_ANYTHING_VLM_CHECKLIST_",)
-
-
-def _forwarded_env_exports() -> str:
-    """Build a `KEY='val' ...` prefix for the shim exec from the client env."""
-    import shlex as _shlex
-
-    parts = []
-    for key, val in os.environ.items():
-        if key in _FORWARD_ENV_EXACT or any(key.startswith(p) for p in _FORWARD_ENV_PREFIXES):
-            parts.append(f"{key}={_shlex.quote(val)}")
-    return (" ".join(parts) + " ") if parts else ""
-
-
 class ModalRunner(BaseRunner):
     """Runs the QEMU stack (Linux/Windows/Android guests) on Modal VM Sandboxes."""
 
@@ -149,6 +121,7 @@ class ModalRunner(BaseRunner):
         self._base_url: Optional[str] = None
         self._vnc_tunnel: Optional[tuple] = None
         self._running = False
+        self._mount_sandbox_sources: Dict[str, str] = {}
 
         self.instance_name: Optional[str] = None
         # Populated from the shim after start for get_runtime_info fallbacks
@@ -217,23 +190,34 @@ class ModalRunner(BaseRunner):
         self._report_done("modal_sandbox", self.instance_name)
 
     def _upload_env_tree(self) -> None:
-        """Upload mount-source dirs to /repo so relative paths resolve there."""
-        sources: List[str] = []
+        """Upload mount-source dirs to /repo and remember their sandbox paths.
+
+        Sources are absolute after `from_config` resolves them; each existing
+        source is shipped under /repo/<path-without-leading-slash> and the
+        spec sent to the shim is rewritten accordingly (see
+        `_init_remote_runner`). Relative sources (specs built by hand via
+        `make`) keep their historical cwd-relative meaning.
+        """
+        uploads: List[tuple] = []  # (local path, arcname)
         for mount in getattr(self.spec, "mounts", []) or []:
             src = mount.get("source") if isinstance(mount, dict) else getattr(mount, "source", "")
-            if src and not Path(src).is_absolute():
-                sources.append(src)
+            if not src:
+                continue
+            path = Path(src)
+            local = path if path.is_absolute() else Path.cwd() / path
+            arcname = str(path).lstrip("/") if path.is_absolute() else src
+            if local.exists() and src not in self._mount_sandbox_sources:
+                uploads.append((local, arcname))
+                self._mount_sandbox_sources[src] = f"/repo/{arcname}"
 
-        if not sources:
+        if not uploads:
             return
 
-        self._report_start("modal_upload", f"{len(sources)} mount trees")
+        self._report_start("modal_upload", f"{len(uploads)} mount trees")
         buf = io.BytesIO()
         with tarfile.open(fileobj=buf, mode="w:gz") as tar:
-            for src in sources:
-                local = Path.cwd() / src
-                if local.exists():
-                    tar.add(str(local), arcname=src)
+            for local, arcname in uploads:
+                tar.add(str(local), arcname=arcname)
         data = buf.getvalue()
 
         proc = self._sandbox.exec("bash", "-c", "mkdir -p /repo && tar xzf - -C /repo")
@@ -277,15 +261,14 @@ class ModalRunner(BaseRunner):
             # Symlink so images and checkpoints persist across sandboxes.
             cache_setup = "mkdir -p /root/.cache && ln -sfn /cache/qemu /root/.cache/gym-anything && "
             health_timeout = 120
-        # Forward verifier/VLM config to the shim, since the verifier runs
-        # inside the sandbox (that is where env.step(mark_done=True) executes).
-        forwarded = _forwarded_env_exports()
+        # No verifier/VLM config is forwarded: VerifierRunner.evaluate runs in
+        # the client process (the shim only exposes the BaseRunner surface),
+        # so verifier configuration never needs to reach the sandbox.
         self._shim_proc = self._sandbox.exec(
             "bash",
             "-c",
             cache_setup + "cd /repo && "
-            + forwarded
-            + "GYM_ANYTHING_QEMU_CACHE=/cache/qemu "
+            "GYM_ANYTHING_QEMU_CACHE=/cache/qemu "
             "PYTHONPATH=/opt/ga "
             f"python3 -u -m gym_anything.runtime.runners.modal_shim --port {SHIM_PORT} "
             "> /cache/qemu/shim.log 2>&1",
@@ -305,6 +288,12 @@ class ModalRunner(BaseRunner):
 
     def _init_remote_runner(self) -> None:
         spec_dict = dataclasses.asdict(self.spec)
+        # Client-side mount sources don't exist in the sandbox; point the
+        # remote runner at the copies uploaded by _upload_env_tree.
+        for mount in spec_dict.get("mounts") or []:
+            sandbox_src = self._mount_sandbox_sources.get(mount.get("source", ""))
+            if sandbox_src:
+                mount["source"] = sandbox_src
         r = self._http(
             requests.post, f"{self._base_url}/init", json={"spec": spec_dict}, timeout=120
         )

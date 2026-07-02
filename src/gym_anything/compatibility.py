@@ -80,6 +80,7 @@ _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
             "Runs QemuNativeRunner inside a Modal VM Sandbox (real kernel, /dev/kvm).",
             "Base QCOW2 images and checkpoints persist in a Modal Volume across sandboxes.",
             "Requires the modal package and modal token; billed on Modal compute.",
+            "savevm applies to QEMU guests only; AVD Android guests do not support it.",
         ],
     ),
     "avd": RunnerCompatibility(
