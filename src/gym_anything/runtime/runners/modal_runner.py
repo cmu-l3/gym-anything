@@ -40,7 +40,9 @@ from .base import BaseRunner
 SHIM_PORT = 8377
 VNC_TUNNEL_PORT = 5900
 
-# Core deps the shim + QemuNativeRunner need inside the sandbox
+# Core deps the shim + QemuNativeRunner/AVDNativeRunner need inside the sandbox.
+# The X/audio libs are for the Android emulator (headless swiftshader still
+# links them); harmless for the QEMU path.
 _SANDBOX_APT = [
     "qemu-system-x86",
     "qemu-utils",
@@ -49,6 +51,26 @@ _SANDBOX_APT = [
     "adb",
     "ca-certificates",
     "procps",
+    "unzip",
+    "openjdk-17-jre-headless",
+    "libpulse0",
+    "libasound2",
+    "libgl1",
+    "libegl1",
+    "libnss3",
+    "libxkbcommon0",
+    "libglib2.0-0",
+    "libx11-6",
+    "libxext6",
+    "libxrender1",
+    "libxfixes3",
+    "libxdamage1",
+    "libxcomposite1",
+    "libxcursor1",
+    "libxi6",
+    "libxtst6",
+    "libxrandr2",
+    "libfontconfig1",
 ]
 _SANDBOX_PIP = [
     "jsonschema",
@@ -108,6 +130,9 @@ class ModalRunner(BaseRunner):
         base = getattr(spec, "base", "") or ""
         self.is_windows = (getattr(spec, "os_type", None) == "windows") or "windows" in base
         self.is_android = (getattr(spec, "os_type", None) == "android") or "android" in base
+        from ...presets import is_avd_preset
+
+        self.is_avd = is_avd_preset(base) or getattr(spec, "runner", None) in ("avd", "avd_native")
 
     # --- capability flags (delegated semantics of QemuNativeRunner) ---
 
@@ -118,7 +143,8 @@ class ModalRunner(BaseRunner):
         return True
 
     def supports_savevm(self) -> bool:
-        return True
+        # QEMU guests support savevm; the AVD emulator path does not.
+        return not self.is_avd
 
     # --- sandbox lifecycle ---
 
@@ -195,6 +221,9 @@ class ModalRunner(BaseRunner):
         self._shim_proc = self._sandbox.exec(
             "bash",
             "-c",
+            # AVD stack hardcodes ~/.cache/gym-anything; point it at the volume
+            # so the SDK, AVDs, and checkpoints persist across sandboxes.
+            "mkdir -p /root/.cache && ln -sfn /cache/qemu /root/.cache/gym-anything && "
             "cd /repo && "
             "GYM_ANYTHING_QEMU_CACHE=/cache/qemu "
             "PYTHONPATH=/opt/ga "

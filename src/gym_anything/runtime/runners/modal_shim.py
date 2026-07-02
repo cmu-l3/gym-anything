@@ -31,11 +31,20 @@ _job_queue: "queue.Queue" = queue.Queue()
 
 def _init_runner(spec_dict: dict) -> None:
     global _runner
+    from ...presets import is_avd_preset
     from ...specs import EnvSpec
-    from .qemu_native import QemuNativeRunner
 
     spec = EnvSpec.from_dict(spec_dict)
-    _runner = QemuNativeRunner(spec)
+    base = spec_dict.get("base") or ""
+    runner_name = spec_dict.get("runner") or ""
+    if runner_name in ("avd", "avd_native") or is_avd_preset(base):
+        from .avd_native import AVDNativeRunner
+
+        _runner = AVDNativeRunner(spec)
+    else:
+        from .qemu_native import QemuNativeRunner
+
+        _runner = QemuNativeRunner(spec)
 
 
 def _encode_result(result):
