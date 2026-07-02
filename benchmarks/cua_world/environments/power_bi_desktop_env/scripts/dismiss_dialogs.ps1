@@ -3,12 +3,12 @@
 #
 # Power BI Desktop startup flow:
 #   Phase 1 - Home screen (always shows on launch):
-#     - "Join us at FabCon Atlanta" banner — X at ~(1247, 64)
-#     - "Blank report" card at ~(328, 243) → click to enter report canvas
+#     - "Join us at FabCon Atlanta" banner - X at ~(1247, 64)
+#     - "Blank report" card at ~(328, 243) -> click to enter report canvas
 #   Phase 2 - Report canvas dialogs (may appear on first launch from checkpoint):
-#     1. "Dark mode is here" customization dialog — X at ~(884, 225)
-#     2. "Two ways to use sample data" tutorial dialog — X at ~(930, 147)
-#     3. "Live Edit semantic models in Direct Lake mode" green banner — X at ~(640, 32)
+#     1. "Dark mode is here" customization dialog - X at ~(884, 225)
+#     2. "Two ways to use sample data" tutorial dialog - X at ~(930, 147)
+#     3. "Live Edit semantic models in Direct Lake mode" green banner - X at ~(640, 32)
 #   Phase 3 - Cleanup:
 #     - OneDrive popup (on fresh Windows VMs)
 #     - Click safe canvas area to ensure focus
@@ -74,7 +74,7 @@ Start-Sleep -Seconds 5
 # ========== PHASE 2: Handle Report Canvas Dialogs ==========
 # These may or may not appear (first launch from checkpoint only)
 
-# Try Escape first — can dismiss the front-most modal dialog
+# Try Escape first - can dismiss the front-most modal dialog
 Focus-PowerBI
 [System.Windows.Forms.SendKeys]::SendWait("{ESCAPE}")
 Start-Sleep -Seconds 2
@@ -110,7 +110,7 @@ Focus-PowerBI
 Start-Sleep -Seconds 1
 
 # Click safe empty canvas area (well below import buttons at y~400)
-# IMPORTANT: (500, 400) hits "Import data from SQL Server" — use (535, 550) instead
+# IMPORTANT: (500, 400) hits "Import data from SQL Server" - use (535, 550) instead
 Focus-PowerBI
 Click-At -X 535 -Y 550
 Start-Sleep -Milliseconds 500

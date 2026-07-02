@@ -169,7 +169,7 @@ function Launch-CopperInteractive {
     $launchBat = "C:\Windows\Temp\launchcopper.cmd"
     [System.IO.File]::WriteAllText($launchBat, "@echo off`r`nstart `"`" `"$copperExe`"")
 
-    # ── Strategy 1: PyAutoGUI Win+R (runs directly in Session 1) ──────────
+    # -- Strategy 1: PyAutoGUI Win+R (runs directly in Session 1) ----------
     Write-Host "Attempt 1: Win+R via PyAutoGUI..."
     $pyguiOk = Send-PyAutoGUI -Command @{action="ping"}
     if ($pyguiOk) {
@@ -192,7 +192,7 @@ function Launch-CopperInteractive {
         Write-Host "  PyAutoGUI not available, skipping Win+R."
     }
 
-    # ── Strategy 2: schtasks with CMD batch ───────────────────────────────
+    # -- Strategy 2: schtasks with CMD batch ---------------------------------
     Write-Host "Attempt 2: schtasks CMD batch..."
     $taskName = "LaunchCopper_GA_$(Get-Random)"
     $prevEAP = $ErrorActionPreference
@@ -209,7 +209,7 @@ function Launch-CopperInteractive {
     schtasks /Delete /TN $taskName /F 2>$null
     Write-Host "  schtasks CMD attempt: process not detected."
 
-    # ── Strategy 3: schtasks with PowerShell Start-Process ────────────────
+    # -- Strategy 3: schtasks with PowerShell Start-Process -----------------
     Write-Host "Attempt 3: schtasks PowerShell..."
     $ps1File = "C:\Windows\Temp\launch_copper_ps.ps1"
     Set-Content -Path $ps1File -Value "Start-Process -FilePath `"$copperExe`""
@@ -230,7 +230,7 @@ function Launch-CopperInteractive {
     Remove-Item $ps1File -Force -ErrorAction SilentlyContinue
     Write-Host "  schtasks PowerShell attempt: process not detected."
 
-    # ── Strategy 4: Explorer launch ───────────────────────────────────────
+    # -- Strategy 4: Explorer launch -----------------------------------------
     Write-Host "Attempt 4: Explorer launch..."
     $taskName3 = "LaunchCopper_GA_$(Get-Random)"
     $ErrorActionPreference = "Continue"
@@ -286,6 +286,20 @@ function Wait-ForCopperProcess {
         $elapsed += 2
     }
     Write-Host "WARNING: Copper POS process not detected within ${TimeoutSeconds}s"
+    return $false
+}
+
+function Test-CopperRendered {
+    <#
+    .SYNOPSIS
+        True once Copper POS has actually rendered a window.
+        A hung cold-boot launch has no main window handle and low working set.
+    #>
+    $procs = Get-Process copper -ErrorAction SilentlyContinue
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.MainWindowHandle -ne 0 -or $p.WorkingSet64 -gt 20MB) { return $true }
+    }
     return $false
 }
 

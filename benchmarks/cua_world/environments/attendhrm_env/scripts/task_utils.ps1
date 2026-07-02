@@ -1,5 +1,5 @@
 # ==========================================================================
-# task_utils.ps1 — Shared utility functions for AttendHRM environment tasks
+# task_utils.ps1 -- Shared utility functions for AttendHRM environment tasks
 # ==========================================================================
 # NOTE: Do NOT use Set-StrictMode here; this file is sourced by setup_task.ps1
 # scripts and strict mode can cause issues when sourcing.
@@ -102,6 +102,19 @@ function Stop-AttendHRM {
         Stop-Process -Force -ErrorAction SilentlyContinue
     $ErrorActionPreference = $prevEAP
     Write-Host "AttendHRM stopped"
+}
+
+# --------------------------------------------------------------------------
+# Test-AttendRendered: True once Attend.exe has a real window.
+# A hung cold-boot launch has no main window handle and low working set.
+# --------------------------------------------------------------------------
+function Test-AttendRendered {
+    $procs = Get-Process -Name $ATTENDHRM_PROCESS_NAME -ErrorAction SilentlyContinue
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.MainWindowHandle -ne 0 -or $p.WorkingSet64 -gt 30MB) { return $true }
+    }
+    return $false
 }
 
 # --------------------------------------------------------------------------
@@ -278,10 +291,13 @@ function PyAG-Hotkey {
 # so the resulting window is automatically in the foreground.
 #
 # The AttendHRM icon is at (30, 469) on the left side of the desktop,
-# visible even when the terminal window is open (terminal starts at x≈52).
+# visible even when the terminal window is open (terminal starts at x~52).
 # --------------------------------------------------------------------------
 function Launch-AttendHRMInteractive {
-    param([int]$WaitSeconds = 30)
+    param(
+        [int]$WaitSeconds = 30,
+        [int]$MaxAttempts = 4
+    )
 
     # Wait for Firebird service (critical after cold boot from checkpoint)
     Write-Host "Waiting for Firebird service..."
@@ -305,13 +321,41 @@ function Launch-AttendHRMInteractive {
 
     Write-Host "Double-clicking AttendHRM desktop icon to launch in foreground..."
 
-    # Double-click the AttendHRM desktop shortcut via PyAutoGUI (Session 1).
-    # This launches Attend.exe AND brings the window to the foreground.
-    Invoke-PyAutoGUICommand -Command @{action="doubleClick"; x=30; y=469} | Out-Null
+    # Cold-boot interactive sessions can hang AttendHRM's first launch. Launch, verify
+    # it rendered a window, and retry (kill + relaunch) until it does.
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $prevEAP2 = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        Get-Process -Name $ATTENDHRM_PROCESS_NAME -ErrorAction SilentlyContinue |
+            Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
 
-    Write-Host "AttendHRM launch triggered, waiting ${WaitSeconds}s..."
-    Start-Sleep -Seconds $WaitSeconds
-    Write-Host "AttendHRM launched in interactive session"
+        # Launch AttendHRM via schtasks /IT (Session 1) - robust vs the fragile
+        # fixed-coordinate desktop-icon double-click (which missed on cold boot).
+        $attendBin = "C:\Program Files (x86)\Attend HRM\Bin"
+        $launchCmd = "C:\Windows\Temp\launch_attend.cmd"
+        # Launch FROM the Bin dir: AttendHRM checks for its CEF binaries relative to the
+        # working directory, so cwd must be Bin (the desktop shortcut sets this too).
+        # Launching the exe with any other cwd triggers a bogus "CEF binaries missing" error.
+        [System.IO.File]::WriteAllText($launchCmd, "@echo off`r`ncd /d `"$attendBin`"`r`nstart `"`" Attend.exe")
+        schtasks /Create /TN "LaunchAttend_GA" /TR "cmd /c $launchCmd" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
+        schtasks /Run /TN "LaunchAttend_GA" 2>$null
+        schtasks /Delete /TN "LaunchAttend_GA" /F 2>$null
+
+        $waited = 0
+        while ($waited -lt $WaitSeconds) {
+            Start-Sleep -Seconds 3
+            $waited += 3
+            if (Test-AttendRendered) { break }
+        }
+        $ErrorActionPreference = $prevEAP2
+        if (Test-AttendRendered) {
+            Write-Host "AttendHRM rendered on attempt $attempt."
+            return
+        }
+        Write-Host "AttendHRM did not render on attempt $attempt; retrying..."
+    }
+    Write-Host "WARNING: AttendHRM failed to render after $MaxAttempts attempts."
 }
 
 
@@ -359,7 +403,7 @@ function Set-AttendHRMForeground {
 # Login-AttendHRM: Perform coordinate-based login to AttendHRM.
 #
 # Verified login screen coordinates (1280x720):
-#   Password field: (665, 381) — username "admin" is pre-populated
+#   Password field: (665, 381) -- username "admin" is pre-populated
 #   Login button:   (618, 491)
 #
 # CEF error dialog appears on EVERY launch at x:533-752, y:0 (top of screen).
@@ -436,7 +480,7 @@ function Login-AttendHRM {
 # --------------------------------------------------------------------------
 function Handle-ConfirmDialog {
     param([int]$DelayMs = 500)
-    # Click Yes — harmless if dialog isn't showing (just clicks background)
+    # Click Yes -- harmless if dialog isn't showing (just clicks background)
     PyAG-Click -x 558 -y 371 -DelayMs $DelayMs
     Write-Host "Confirm dialog handled (Yes clicked)"
 }
@@ -555,7 +599,7 @@ function Close-AttendHRM {
     # Alt+F4 to close the window
     PyAG-Hotkey -keys @("alt", "F4") -DelayMs 1500
 
-    # Handle any "Save?" confirmation dialog — press Escape/No to cancel safely
+    # Handle any "Save?" confirmation dialog -- press Escape/No to cancel safely
     PyAG-Press -key "escape" -DelayMs 500
     PyAG-Press -key "n" -DelayMs 500
 

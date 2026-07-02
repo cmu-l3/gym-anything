@@ -144,6 +144,23 @@ try {
     Remove-Item "C:\Windows\Temp\community_extract" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item $nppInstaller -Force -ErrorAction SilentlyContinue
 
+    # Warm-up: launch Talon once at build time so first-run state (EULA acceptance,
+    # user-data directory initialisation) is baked into the pre_start checkpoint.
+    # Local only, no network.
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        $warmExe = $null
+        try { $warmExe = Find-TalonExe } catch { }
+        if ($warmExe) {
+            Launch-TalonInteractive -TalonExe $warmExe -WaitSeconds 25
+            Start-Sleep -Seconds 3
+            Kill-AllTalon
+            Write-Host "Warm-up complete: Talon first-run baked into checkpoint."
+        } else {
+            Write-Host "WARNING: talon.exe not found for warm-up."
+        }
+    } catch { Write-Host "WARNING: Talon warm-up failed: $($_.Exception.Message)" }
+
     Write-Host "=== Talon Voice installation complete ==="
 } finally {
     try { Stop-Transcript | Out-Null } catch { }

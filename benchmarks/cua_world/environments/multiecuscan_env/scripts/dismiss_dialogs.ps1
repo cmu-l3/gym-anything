@@ -69,7 +69,7 @@ function Kill-OneDrive {
     Stop-Process -Name "OneDriveSetup" -Force -ErrorAction SilentlyContinue
 }
 
-# ── Phase 0: Kill OneDrive, hide terminals, dismiss OneDrive popup ─────────
+# -- Phase 0: Kill OneDrive, hide terminals, dismiss OneDrive popup ---------
 Kill-OneDrive
 Start-Sleep -Milliseconds 500
 [Win32MES]::Click(1166, 626)
@@ -78,7 +78,7 @@ Start-Sleep -Milliseconds 200
 Start-Sleep -Milliseconds 200
 Hide-AllTerminals
 
-# ── Phase 1: Wait for Multiecuscan window with handle ──────────────────────
+# -- Phase 1: Wait for Multiecuscan window with handle ----------------------
 $maxWait = 45
 $waited = 0
 $mesHwnd = [IntPtr]::Zero
@@ -98,7 +98,7 @@ if ($mesHwnd -eq [IntPtr]::Zero) {
     exit 0
 }
 
-# ── Phase 2: Maximize MES and dismiss the Disclaimer embedded panel ────────
+# -- Phase 2: Maximize MES and dismiss the Disclaimer embedded panel --------
 # First maximize the MES window to ensure consistent positioning
 [Win32MES]::ShowWindow($mesHwnd, 3) | Out-Null  # SW_MAXIMIZE
 [Win32MES]::SetForegroundWindow($mesHwnd) | Out-Null
@@ -108,7 +108,7 @@ Start-Sleep -Seconds 3
 # window with a "Close" button near the bottom-right of the panel.
 #
 # In a maximized 1280x720 window:
-#   Panel is ~430px wide × ~410px tall, centered
+#   Panel is ~430px wide x ~410px tall, centered
 #   Close button is at approximately (810, 524) in screen coordinates
 #
 # We try multiple strategies to dismiss it:
@@ -126,9 +126,9 @@ for ($attempt = 1; $attempt -le 10; $attempt++) {
     $centerX = $rect.Left + [int]($winW / 2)
     $centerY = $rect.Top + [int]($winH / 2)
 
-    # The Disclaimer panel is ~430×410 and centered in the client area.
+    # The Disclaimer panel is ~430x410 and centered in the client area.
     # Close button is at approximately (panel_right - 40, panel_bottom - 15).
-    # Panel right ≈ centerX + 215, panel bottom ≈ centerY + 195 (from window center)
+    # Panel right ~ centerX + 215, panel bottom ~ centerY + 195 (from window center)
     $closeBtnX = $centerX + 175  # ~630 + 175 = ~805 for maximized
     $closeBtnY = $centerY + 175  # ~360 + 175 = ~535 for maximized
 
@@ -136,7 +136,7 @@ for ($attempt = 1; $attempt -le 10; $attempt++) {
     [Win32MES]::Click($closeBtnX, $closeBtnY)
     Start-Sleep -Milliseconds 500
 
-    # Strategy 2: Click slightly different positions (the button is ~70×20px)
+    # Strategy 2: Click slightly different positions (the button is ~70x20px)
     [Win32MES]::Click($closeBtnX - 20, $closeBtnY - 5)
     Start-Sleep -Milliseconds 300
     [Win32MES]::Click($closeBtnX + 10, $closeBtnY + 5)
@@ -172,7 +172,7 @@ for ($attempt = 1; $attempt -le 10; $attempt++) {
     # We can't easily check if the panel is gone from Session 1, so just try multiple times
 }
 
-# ── Phase 3: Wait for any loading to complete ──────────────────────────────
+# -- Phase 3: Wait for any loading to complete ------------------------------
 Start-Sleep -Seconds 5
 
 # Extra ESCAPE presses to dismiss any remaining popups
@@ -183,7 +183,7 @@ for ($i = 0; $i -lt 5; $i++) {
     Start-Sleep -Milliseconds 500
 }
 
-# ── Phase 4: Final cleanup ─────────────────────────────────────────────────
+# -- Phase 4: Final cleanup -------------------------------------------------
 Kill-OneDrive
 Start-Sleep -Milliseconds 200
 [Win32MES]::Click(1166, 626)
@@ -204,5 +204,5 @@ if ($mesProc) {
 # Hide all terminals
 Hide-AllTerminals
 
-# ── Write completion marker ────────────────────────────────────────────────
+# -- Write completion marker ------------------------------------------------
 "DONE" | Out-File "C:\Temp\dismiss_complete.txt"

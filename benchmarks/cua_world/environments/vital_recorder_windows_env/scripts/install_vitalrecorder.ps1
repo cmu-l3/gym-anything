@@ -102,6 +102,16 @@ try {
         Write-Host "Copied $fileCount .vital files to $dataDir"
     }
 
+    # Warm-up: launch Vital Recorder once at build time so first-run state is
+    # baked into the pre_start checkpoint. Local, no network.
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        $warmExe = Find-VitalRecorderExe
+        Launch-VitalRecorderInteractive -VitalRecorderExe $warmExe -WaitSeconds 20
+        Get-Process -Name "Vital" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        Write-Host "Warm-up complete: Vital Recorder first-run baked into checkpoint."
+    } catch { Write-Host "WARNING: Vital Recorder warm-up failed: $($_.Exception.Message)" }
+
     Write-Host "=== Vital Recorder installation complete ==="
 } finally {
     try { Stop-Transcript | Out-Null } catch { }

@@ -103,6 +103,15 @@ Start-Sleep -Milliseconds 500
     Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
     $ErrorActionPreference = $prevEAP
 
+    # Base launch: leave Vital Recorder open at t=0 for every episode (robust against
+    # cold-boot hang). Replaces the savevm checkpoint's baked-in running app.
+    # Tasks that need a specific file relaunch it in their own pre_task.
+    try {
+        $vrExeBase = Find-VitalRecorderExe
+        Launch-VitalRecorderInteractive -VitalRecorderExe $vrExeBase -WaitSeconds 20
+        Write-Host "Base Vital Recorder launch complete."
+    } catch { Write-Host "WARNING: Base Vital Recorder launch failed: $($_.Exception.Message)" }
+
     Write-Host "=== Vital Recorder setup complete ==="
 } finally {
     try { Stop-Transcript | Out-Null } catch { }

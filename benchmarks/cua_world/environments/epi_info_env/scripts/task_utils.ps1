@@ -165,11 +165,25 @@ function Stop-EdgeKillerTask {
 }
 
 # --------------------------------------------------------------------------
+# Test-EpiInfoRendered: True once Epi Info 7 has a real window rendered.
+# --------------------------------------------------------------------------
+function Test-EpiInfoRendered {
+    $procs = Get-Process -ErrorAction SilentlyContinue | Where-Object {
+        try { $_.Path -like "C:\EpiInfo7\*" } catch { $false }
+    }
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.MainWindowHandle -ne 0 -or $p.WorkingSet64 -gt 15MB) { return $true }
+    }
+    return $false
+}
+
+# --------------------------------------------------------------------------
 # Launch-EpiInfoInteractive: Launch Epi Info 7 in the interactive session
 # using schtasks /IT (required from SSH Session 0)
 # --------------------------------------------------------------------------
 function Launch-EpiInfoInteractive {
-    param([int] $WaitSeconds = 20)
+    param([int] $WaitSeconds = 20, [int] $MaxAttempts = 4)
 
     $launcherExe = Find-EpiInfoLauncher
     $launchDir = Split-Path $launcherExe -Parent
@@ -178,15 +192,32 @@ function Launch-EpiInfoInteractive {
     [System.IO.File]::WriteAllText($launchScript, $batchContent)
 
     $taskName = "LaunchEpiInfo_Task"
-    $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
-
     $prevEAP = $ErrorActionPreference
     try {
         $ErrorActionPreference = "Continue"
-        schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
-        schtasks /Run /TN $taskName 2>$null
-        Write-Host "Epi Info 7 launched. Waiting $WaitSeconds seconds for startup..."
-        Start-Sleep -Seconds $WaitSeconds
+        # Cold-boot interactive sessions can hang Epi Info 7's first launch. Launch,
+        # verify it actually rendered a window, and retry (kill + relaunch) until it
+        # does. Replaces the savevm checkpoint's baked-in running app.
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            Stop-EpiInfo
+            Start-Sleep -Seconds 2
+            $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
+            schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
+            schtasks /Run /TN $taskName 2>$null
+            schtasks /Delete /TN $taskName /F 2>$null
+            $waited = 0
+            while ($waited -lt $WaitSeconds) {
+                Start-Sleep -Seconds 3
+                $waited += 3
+                if (Test-EpiInfoRendered) { break }
+            }
+            if (Test-EpiInfoRendered) {
+                Write-Host "Epi Info 7 rendered on attempt $attempt."
+                return
+            }
+            Write-Host "Epi Info 7 did not render on attempt $attempt; retrying..."
+        }
+        Write-Host "WARNING: Epi Info 7 failed to render after $MaxAttempts attempts."
     } finally {
         schtasks /Delete /TN $taskName /F 2>$null
         Remove-Item $launchScript -Force -ErrorAction SilentlyContinue

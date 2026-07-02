@@ -244,11 +244,51 @@ try {
     }
     [System.Environment]::SetEnvironmentVariable("Path", $currentPath, "Machine")
 
+    # AttendHRM's dbExpress driver (Bin\dbxdrivers.ini -> VendorLib=GDS32.DLL) loads the Firebird
+    # client by the legacy InterBase name gds32.dll, which the silent install never provides, so
+    # the dashboard's DB connect throws ElenException at episode time (PATH alone is not enough).
+    # gds32.dll is the Firebird client under the legacy name (drop-in); place it in SysWOW64, the
+    # 32-bit system dir a by-name load resolves from.
+    $gdsSrc = "C:\Windows\SysWOW64\fbclient.dll"
+    if (-not (Test-Path $gdsSrc)) { $gdsSrc = "C:\Program Files (x86)\Firebird\Firebird_5_0\fbclient.dll" }
+    if (Test-Path $gdsSrc) {
+        Copy-Item $gdsSrc "C:\Windows\SysWOW64\gds32.dll" -Force -ErrorAction SilentlyContinue
+        Write-Host "Provided SysWOW64\gds32.dll (Firebird client under legacy name)."
+    }
+
     # -------------------------------------------------------------------
     # Phase 8: Cleanup installer to free disk space
     # -------------------------------------------------------------------
     Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
     Write-Host "Installer cleaned up"
+
+    # Warm-up: launch AttendHRM once at build time via schtasks so first-run state
+    # is baked into the pre_start checkpoint. Local only, no network.
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        $warmExe = Find-AttendHRMExe
+        $launchScript = "C:\Windows\Temp\launch_attend_warmup.cmd"
+        [System.IO.File]::WriteAllText($launchScript, "@echo off`r`nstart `"`" `"$warmExe`"")
+        $warmTask = "LaunchAttend_Warmup"
+        $prevEAP_w = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        $warmSt = (Get-Date).AddMinutes(1).ToString("HH:mm")
+        schtasks /Create /TN $warmTask /TR "cmd /c $launchScript" /SC ONCE /ST $warmSt /RL HIGHEST /IT /F 2>$null
+        schtasks /Run /TN $warmTask 2>$null
+        schtasks /Delete /TN $warmTask /F 2>$null
+        $ErrorActionPreference = $prevEAP_w
+        # Wait for process to appear (up to 30s)
+        $warmElapsed = 0
+        while ($warmElapsed -lt 30 -and -not (Get-Process -Name "Attend" -ErrorAction SilentlyContinue)) {
+            Start-Sleep -Seconds 3; $warmElapsed += 3
+        }
+        Start-Sleep -Seconds 5
+        # Close the warm-up instance
+        Get-Process -Name "Attend" -ErrorAction SilentlyContinue |
+            Stop-Process -Force -ErrorAction SilentlyContinue
+        Remove-Item $launchScript -Force -ErrorAction SilentlyContinue
+        Write-Host "Warm-up complete: AttendHRM first-run state baked into checkpoint."
+    } catch { Write-Host "WARNING: AttendHRM warm-up failed: $($_.Exception.Message)" }
 
     Write-Host "=== AttendHRM Installation Complete ==="
 
