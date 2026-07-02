@@ -232,22 +232,40 @@ def _parse_tool_calls(message: Any) -> list[tuple[str, dict[str, Any]]]:
 
 
 def _finalize_episode(state: "vf.State") -> None:
-    """Run the post-task hook + real verifier exactly once per episode."""
+    """Run the post-task hook + real verifier exactly once, while the VM is
+    still alive.
+
+    MUST run before the env is closed. verifiers runs cleanup handlers
+    (including env teardown) *before* rubric scoring, so the reward cannot be
+    computed from a rubric function that touches the live env -- it is
+    computed here (from a cleanup handler) and stashed in ``state`` for the
+    reward functions to read.
+    """
     if "episode_reward" in state:
         return
     env = state.get("ga_env")
     if env is None:
+        # No env means setup never succeeded; surface it rather than silently
+        # scoring 0 as if the task were merely failed.
         state["episode_reward"] = 0.0
         state["verifier"] = {"error": "environment was never booted"}
+        state["finalize_error"] = "ga_env missing at finalize time"
         return
-    _obs, reward, _done, step_info = env.step([], mark_done=True)
-    verifier = step_info.get("verifier")
-    if verifier is None:
-        summary_path = Path(env.episode_dir) / "summary.json"
-        if summary_path.exists():
-            verifier = json.loads(summary_path.read_text()).get("verifier")
-    state["episode_reward"] = float(reward or 0.0)
-    state["verifier"] = verifier or {}
+    try:
+        _obs, reward, _done, step_info = env.step([], mark_done=True)
+        verifier = step_info.get("verifier")
+        if verifier is None:
+            summary_path = Path(env.episode_dir) / "summary.json"
+            if summary_path.exists():
+                verifier = json.loads(summary_path.read_text()).get("verifier")
+        state["episode_reward"] = float(reward or 0.0)
+        state["verifier"] = verifier or {}
+    except Exception as e:  # surface the real failure instead of a silent 0
+        import traceback
+
+        state["episode_reward"] = 0.0
+        state["verifier"] = {"error": f"{e}"}
+        state["finalize_error"] = traceback.format_exc()[-2000:]
 
 
 def _screenshot_message(b64: str) -> dict[str, Any]:
@@ -404,7 +422,18 @@ class CuaWorldEnv(vf.MultiTurnEnv):
         messages = await super().get_prompt_messages(state)
         return _prune_screenshots(messages, self.keep_recent_screenshots)
 
-    @vf.cleanup
+    @vf.cleanup(priority=50)
+    async def finalize_reward(self, state: vf.State) -> None:
+        """Score the episode with the real verifier while the VM is alive.
+
+        Cleanup handlers run in descending priority and *before* rubric
+        scoring, so this (priority 50) runs before close_env (priority 0)
+        while ga_env is still open. Idempotent: no-op if the terminate path
+        already finalized.
+        """
+        await asyncio.to_thread(_finalize_episode, state)
+
+    @vf.cleanup(priority=0)
     async def close_env(self, state: vf.State) -> None:
         env = state.pop("ga_env", None)
         if env is not None:
@@ -446,9 +475,11 @@ def _prune_screenshots(messages: vf.Messages, keep_recent: int) -> vf.Messages:
 
 
 async def task_reward(state: vf.State) -> float:
-    """The benchmark's own reward: real verifier via the episode summary."""
-    if "episode_reward" not in state:
-        await asyncio.to_thread(_finalize_episode, state)
+    """The benchmark's own reward.
+
+    The episode is finalized (real verifier run) by the finalize_reward
+    cleanup handler while the VM is alive; this reads the stashed result.
+    """
     return float(state.get("episode_reward", 0.0))
 
 
@@ -539,6 +570,11 @@ def load_environment(
     use_cache: bool = True,
     cache_level: str = "post_start",
     use_savevm: bool = False,
+    verifier_mode: str | None = None,
+    vlm_backend: str | None = None,
+    vlm_model: str | None = None,
+    vlm_base_url: str | None = None,
+    vlm_api_key_var: str | None = None,
     **kwargs: Any,
 ) -> vf.Environment:
     """CUA-World computer-use environment.
@@ -557,9 +593,35 @@ def load_environment(
         keep_recent_screenshots: screenshots kept in context (older ones
             are replaced with placeholders to bound context growth).
         use_cache / cache_level / use_savevm: gym-anything checkpoint knobs.
+        verifier_mode: override the task's success mode for every task, e.g.
+            "vlm_checklist" to grade with a VLM against each task's
+            vlm_checklist.json instead of its programmatic verifier.py.
+            None keeps each task's declared mode (usually "program").
+        vlm_backend / vlm_model / vlm_base_url: VLM grader config when
+            verifier_mode="vlm_checklist". Use vlm_backend="local" with an
+            OpenAI-compatible vlm_base_url to route to any provider (e.g.
+            Prime Inference) with model like "google/gemini-3.5-flash".
+        vlm_api_key_var: name of an env var holding the VLM API key (its
+            value is read from the client env and forwarded to the grader).
     """
     if isinstance(env_names, str):
         env_names = [env_names]
+
+    # Verifier/VLM config is delivered to the verifier (which runs inside the
+    # runner's process) via gym-anything's env vars; the modal runner forwards
+    # these into the sandbox shim.
+    if verifier_mode:
+        os.environ["GYM_ANYTHING_VERIFIER_MODE"] = verifier_mode
+    if vlm_backend:
+        os.environ["VLM_BACKEND"] = vlm_backend
+    if vlm_model:
+        os.environ["VLM_MODEL"] = vlm_model
+    if vlm_base_url:
+        os.environ["VLM_BASE_URL"] = vlm_base_url
+    if vlm_api_key_var:
+        key_val = os.environ.get(vlm_api_key_var, "")
+        if key_val:
+            os.environ["VLM_API_KEY"] = key_val
 
     dataset = _build_dataset(env_names, split, surface, task_ids, max_examples)
     rubric = vf.Rubric(
@@ -587,6 +649,7 @@ def load_environment(
             "runner": runner,
             "coordinate_mode": coordinate_mode,
             "max_turns": max_turns,
+            "verifier_mode": verifier_mode,
         },
         **kwargs,
     )

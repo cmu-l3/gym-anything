@@ -91,6 +91,33 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[4]
 
 
+# Env vars forwarded from the client into the in-sandbox shim so the verifier
+# (which runs inside the sandbox) can reach a VLM endpoint / pick its mode.
+_FORWARD_ENV_EXACT = {
+    "GYM_ANYTHING_VERIFIER_MODE",
+    "VLM_BACKEND",
+    "VLM_MODEL",
+    "VLM_BASE_URL",
+    "VLM_API_KEY",
+    "VLM_TIMEOUT",
+    "GEMINI_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+}
+_FORWARD_ENV_PREFIXES = ("GYM_ANYTHING_VLM_CHECKLIST_",)
+
+
+def _forwarded_env_exports() -> str:
+    """Build a `KEY='val' ...` prefix for the shim exec from the client env."""
+    import shlex as _shlex
+
+    parts = []
+    for key, val in os.environ.items():
+        if key in _FORWARD_ENV_EXACT or any(key.startswith(p) for p in _FORWARD_ENV_PREFIXES):
+            parts.append(f"{key}={_shlex.quote(val)}")
+    return (" ".join(parts) + " ") if parts else ""
+
+
 class ModalRunner(BaseRunner):
     """Runs the QEMU stack (Linux/Windows/Android guests) on Modal VM Sandboxes."""
 
@@ -250,11 +277,15 @@ class ModalRunner(BaseRunner):
             # Symlink so images and checkpoints persist across sandboxes.
             cache_setup = "mkdir -p /root/.cache && ln -sfn /cache/qemu /root/.cache/gym-anything && "
             health_timeout = 120
+        # Forward verifier/VLM config to the shim, since the verifier runs
+        # inside the sandbox (that is where env.step(mark_done=True) executes).
+        forwarded = _forwarded_env_exports()
         self._shim_proc = self._sandbox.exec(
             "bash",
             "-c",
             cache_setup + "cd /repo && "
-            "GYM_ANYTHING_QEMU_CACHE=/cache/qemu "
+            + forwarded
+            + "GYM_ANYTHING_QEMU_CACHE=/cache/qemu "
             "PYTHONPATH=/opt/ga "
             f"python3 -u -m gym_anything.runtime.runners.modal_shim --port {SHIM_PORT} "
             "> /cache/qemu/shim.log 2>&1",
