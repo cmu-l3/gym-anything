@@ -26,6 +26,11 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
+# Timeout (seconds) for the pre_start/post_start provisioning hooks. Configurable so
+# envs with very long installs (e.g. virtualmin's installer) are not cut off when their
+# checkpoint is built. Default 1800s preserves prior behaviour.
+HOOK_TIMEOUT = int(os.environ.get("GYM_ANYTHING_HOOK_TIMEOUT", "1800"))
+
 
 class GymAnythingEnv:
     """Unified environment wrapper exposing Gym-like API.
@@ -464,7 +469,7 @@ class GymAnythingEnv:
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     else:
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=1800)
+                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     if self._reporter:
                         self._reporter.stage_done("pre_start_hook")
                 except Exception as e:
@@ -505,7 +510,7 @@ class GymAnythingEnv:
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     else:
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=1800)
+                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     if self._reporter:
                         self._reporter.stage_done("post_start_hook")
                 except Exception as e:
