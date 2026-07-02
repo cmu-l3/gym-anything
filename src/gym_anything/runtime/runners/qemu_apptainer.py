@@ -1795,6 +1795,20 @@ class QemuApptainerRunner(BaseRunner):
                 keys_norm = [self._normalize_key_name(k) for k in keys]
                 keys_str = ", ".join(f"'{k}'" for k in keys_norm)
                 commands.append(f"pyautogui.hotkey({keys_str})")
+            # keys_down / keys_up support modifier-held clicks and hold_key by
+            # decomposing those gestures into a held-modifier sequence.
+            if "keys_down" in keyboard:
+                keys = keyboard["keys_down"]
+                if isinstance(keys, str):
+                    keys = [keys]
+                for k in keys:
+                    commands.append(f"pyautogui.keyDown('{self._normalize_key_name(k)}')")
+            if "keys_up" in keyboard:
+                keys = keyboard["keys_up"]
+                if isinstance(keys, str):
+                    keys = [keys]
+                for k in keys:
+                    commands.append(f"pyautogui.keyUp('{self._normalize_key_name(k)}')")
 
         if commands:
             print(f"[QemuApptainer] Executing pyautogui commands: {commands}")
@@ -1858,6 +1872,19 @@ class QemuApptainerRunner(BaseRunner):
                     # Normalize key names
                     keys_norm = [self._normalize_key_name(k) for k in keys]
                     self._pyautogui_client.hotkey(*keys_norm)
+                # keys_down / keys_up support modifier-held clicks and hold_key.
+                if "keys_down" in keyboard:
+                    keys = keyboard["keys_down"]
+                    if isinstance(keys, str):
+                        keys = [keys]
+                    for k in keys:
+                        self._pyautogui_client.key_down(self._normalize_key_name(k))
+                if "keys_up" in keyboard:
+                    keys = keyboard["keys_up"]
+                    if isinstance(keys, str):
+                        keys = [keys]
+                    for k in keys:
+                        self._pyautogui_client.key_up(self._normalize_key_name(k))
 
         except PyAutoGUIClientError as e:
             print(f"[QemuApptainer] PyAutoGUI client error: {e}")

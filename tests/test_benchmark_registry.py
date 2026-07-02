@@ -63,6 +63,54 @@ class BenchmarkRegistryTests(unittest.TestCase):
             self.assertEqual(verified["demo_env"]["train"], ["task_c"])
             self.assertEqual(verified["demo_env"]["test"], ["task_b"])
 
+    def test_disk_split_lists_all_task_folders_ignoring_split_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            environments_root = root / "benchmarks" / "cua_world" / "environments"
+            splits_root = root / "benchmarks" / "cua_world" / "splits"
+            env_dir = environments_root / "demo_env"
+            # task_orphan exists on disk but is listed in no split.
+            for task_id in ("task_a", "task_b", "task_orphan"):
+                (env_dir / "tasks" / task_id).mkdir(parents=True)
+
+            _write_json(
+                splits_root / "demo_split.json",
+                {
+                    "env_folder": "benchmarks/cua_world/environments/demo_env",
+                    "train_tasks": ["task_a"],
+                    "test_tasks": ["task_b"],
+                },
+            )
+            _write_json(
+                splits_root / "verified.json",
+                {"by_environment": {"demo_env": ["task_a"]}},
+            )
+
+            for surface in ("raw", "verified"):
+                self.assertEqual(
+                    get_tasks_for_environment(
+                        "demo_env",
+                        split="disk",
+                        surface=surface,
+                        splits_root=splits_root,
+                        environments_root=environments_root,
+                    ),
+                    ["task_a", "task_b", "task_orphan"],
+                    msg=f"disk split should be surface-independent (surface={surface})",
+                )
+
+            # 'all' stays curated: union of train+test, no orphan.
+            self.assertEqual(
+                get_tasks_for_environment(
+                    "demo_env",
+                    split="all",
+                    surface="raw",
+                    splits_root=splits_root,
+                    environments_root=environments_root,
+                ),
+                ["task_a", "task_b"],
+            )
+
     def test_loader_discovers_missing_split_files_from_environment_dirs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

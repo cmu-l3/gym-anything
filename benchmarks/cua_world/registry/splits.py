@@ -8,6 +8,12 @@ from typing import Dict, Iterable, List, Mapping, MutableMapping, Optional
 DEFAULT_SPLITS_ROOT = Path(__file__).resolve().parents[1] / "splits"
 DEFAULT_ENVIRONMENTS_ROOT = Path(__file__).resolve().parents[1] / "environments"
 
+# Reserved split name: every task folder physically present under
+# ``<env>/tasks/``, regardless of split-file curation or surface. This is the
+# escape hatch for running tasks that exist on disk but were never listed in a
+# split file. Always reflects the directory, so split files cannot override it.
+DISK_SPLIT = "disk"
+
 
 def _dedupe_preserve_order(values: Iterable[str]) -> List[str]:
     ordered: List[str] = []
@@ -189,6 +195,11 @@ def load_environment_task_splits(
             "verified": list(task_ids),
         }
 
+    # Reserved 'disk' split: the literal directory listing, surface-independent.
+    # Reflects every task folder on disk even if it is absent from the split file.
+    for env_name in registry:
+        registry[env_name][DISK_SPLIT] = list(discovered_tasks.get(env_name, []))
+
     return {env_name: registry[env_name] for env_name in sorted(registry)}
 
 
@@ -217,6 +228,7 @@ def get_tasks_for_environment(
 __all__ = [
     "DEFAULT_ENVIRONMENTS_ROOT",
     "DEFAULT_SPLITS_ROOT",
+    "DISK_SPLIT",
     "get_tasks_for_environment",
     "load_environment_task_splits",
     "resolve_environment_dir",
