@@ -219,19 +219,31 @@ class ModalRunner(BaseRunner):
 
     def _start_shim(self) -> None:
         self._report_start("modal_shim", "starting runner shim")
+        if self.is_avd:
+            # The AVD stack (SDK + AVDs) is thousands of small files; the Modal
+            # volume is far too slow for that. Keep it as a single tar in the
+            # volume and extract to local NVMe at sandbox start (~3-5 min).
+            # Trade-off: AVD checkpoints made in this sandbox are local-only.
+            cache_setup = (
+                "mkdir -p /root/.cache/gym-anything && "
+                "tar -I zstd -xf /cache/qemu/avd_stack.tar.zst -C /root/.cache/gym-anything && "
+            )
+            health_timeout = 900
+        else:
+            # QEMU images are few large files; the volume handles them well.
+            # Symlink so images and checkpoints persist across sandboxes.
+            cache_setup = "mkdir -p /root/.cache && ln -sfn /cache/qemu /root/.cache/gym-anything && "
+            health_timeout = 120
         self._shim_proc = self._sandbox.exec(
             "bash",
             "-c",
-            # AVD stack hardcodes ~/.cache/gym-anything; point it at the volume
-            # so the SDK, AVDs, and checkpoints persist across sandboxes.
-            "mkdir -p /root/.cache && ln -sfn /cache/qemu /root/.cache/gym-anything && "
-            "cd /repo && "
+            cache_setup + "cd /repo && "
             "GYM_ANYTHING_QEMU_CACHE=/cache/qemu "
             "PYTHONPATH=/opt/ga "
             f"python3 -u -m gym_anything.runtime.runners.modal_shim --port {SHIM_PORT} "
             "> /cache/qemu/shim.log 2>&1",
         )
-        deadline = time.time() + 120
+        deadline = time.time() + health_timeout
         last_err = None
         while time.time() < deadline:
             try:
