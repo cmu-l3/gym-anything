@@ -1074,33 +1074,31 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
             raise RuntimeError(f"Failed to forward VNC port: {result.stderr.decode()}")
 
     def copy_from(self, remote_path: str, local_path: str) -> None:
-        """Copy file from device via ADB pull.
+        """Copy file from device.
 
-        A file just written under /sdcard by a hook (e.g. export_result.sh)
-        may not yet be visible to `adb pull` because the emulator's FUSE view
-        for pulls lags the shell view. Nudge a media scan and retry briefly.
+        `adb pull` uses adbd's FUSE view of /sdcard, which on the emulator can
+        fail to stat a file that a hook just wrote (owned by an app uid under
+        sdcardfs) even though the shell view sees it. Fall back to streaming the
+        bytes via `adb exec-out cat`, which uses the shell view and has no PTY
+        translation to corrupt binary data.
 
         Args:
             remote_path: Remote path on device
             local_path: Local file path
         """
-        last_err = ""
-        for attempt in range(5):
-            result = self._adb_command(["pull", remote_path, local_path])
-            if result.returncode == 0:
-                return
-            last_err = result.stderr.decode() if result.stderr else ""
-            if "No such file" in last_err and attempt < 4:
-                # Ask MediaScanner to index it, then wait for the FUSE view to catch up.
-                self._adb_command(
-                    ["shell", "am", "broadcast", "-a",
-                     "android.intent.action.MEDIA_SCANNER_SCAN_FILE",
-                     "-d", f"file://{remote_path}"],
-                )
-                time.sleep(2 * (attempt + 1))
-                continue
-            break
-        raise RuntimeError(f"adb pull failed: {last_err}")
+        result = self._adb_command(["pull", remote_path, local_path])
+        if result.returncode == 0:
+            return
+        pull_err = result.stderr.decode() if result.stderr else ""
+
+        # Fallback: stream via exec-out cat (shell view, raw bytes).
+        cat = self._adb_command(["exec-out", "cat", remote_path])
+        if cat.returncode == 0 and cat.stdout:
+            with open(local_path, "wb") as f:
+                f.write(cat.stdout)
+            return
+        cat_err = cat.stderr.decode() if cat.stderr else ""
+        raise RuntimeError(f"adb pull failed: {pull_err}; exec-out cat fallback failed: {cat_err}")
 
     def put_file(self, local_path: Path, remote_dir: str = "/sdcard") -> str:
         """Copy file to device and return remote path.
