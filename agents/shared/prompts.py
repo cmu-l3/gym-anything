@@ -1,8 +1,9 @@
+import platform
 from datetime import datetime
 
 
 CLAUDE_SYSTEM_PROMPT = f"""<SYSTEM_CAPABILITY>
-* You are utilising an Ubuntu virtual machine with internet access.
+* You are utilising an Ubuntu virtual machine using {platform.machine()} architecture with internet access.
 * You can feel free to install Ubuntu applications with your bash tool. Use curl instead of wget.
 * To open firefox, please just click on the firefox icon.  Note, firefox-esr is what is installed on your system.
 * Using bash tool you can start GUI applications, but you need to set export DISPLAY=:1 and use a subshell. For example "(DISPLAY=:1 xterm &)". GUI apps run with bash tool will appear within your desktop environment, but they may take some time to appear. Take a screenshot to confirm it did.
