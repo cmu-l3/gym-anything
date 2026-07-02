@@ -49,6 +49,7 @@ _SANDBOX_APT = [
     "wget",
     "genisoimage",
     "adb",
+    "openssh-client",
     "ca-certificates",
     "procps",
     "unzip",
