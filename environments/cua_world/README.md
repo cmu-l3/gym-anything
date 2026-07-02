@@ -28,7 +28,7 @@ does natively (sparse tasks give 0/1, partial/rubric give score/100).
 
 ### Quickstart
 ```bash
-vf-eval cua-world -m google/gemini-2.5-flash \
+vf-eval cua-world -m google/gemini-3.5-flash \
   -b https://api.pinference.ai/api/v1 -k PRIME_API_KEY \
   -n 1 -r 1 \
   -a '{"env_names": ["gimp_env"], "task_ids": ["horizontal_mirror"], "max_turns": 10}'
