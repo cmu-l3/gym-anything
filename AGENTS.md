@@ -8,7 +8,11 @@ computer-use environments for AI agents. Three pillars, joined by contracts:
 - **Agents** (`agents/`) — reference agent loops (Claude, Gemini, Qwen, Kimi)
 
 Each pillar can be replaced independently. Keep your change inside the pillar
-that owns it.
+that owns it. `extras/` sits alongside the pillars for adjacent tooling;
+`extras/hubs/<provider>/` holds the thin publishable packages that expose
+benchmarks to external training hubs (prime-rl/verifiers), built on the
+protocol adapters in `src/gym_anything/integrations/` — never on private
+core APIs.
 
 ## Before you edit
 

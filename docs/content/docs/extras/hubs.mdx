@@ -1,0 +1,84 @@
+---
+title: Training Hubs
+description: Publishable packages that expose gym-anything benchmarks to external RL stacks (prime-rl / verifiers today).
+---
+
+Training stacks like [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl)
+consume environments as installable packages that expose a
+`load_environment()` function (the
+[verifiers](https://github.com/PrimeIntellect-ai/verifiers) protocol). The
+`extras/hubs/` tree holds those packages: one folder per provider, one
+package per benchmark, each a thin shell over the library.
+
+## The three layers
+
+A hub package contains no rollout logic. The work is split so N providers
+times M benchmarks never costs N times M implementations:
+
+1. **Protocol adapter (core)** — `gym_anything.integrations.verifiers`
+   turns any gym-anything env into a verifiers `MultiTurnEnv`: screenshots
+   stream to the policy, the policy acts through one provider-agnostic
+   `computer` tool, and the episode is scored by the env's real verifier
+   while the VM is still alive. The tool schema and action translation live
+   in `gym_anything.integrations.computer_tool`. Installed with the
+   `prime-rl` extra: `pip install "gym-anything[prime-rl]"`.
+2. **Dataset binding (benchmarks)** — `benchmarks.cua_world.hub.build_task_rows`
+   turns the benchmark registry (environments, splits, task.json files) into
+   dataset rows with absolute paths.
+3. **Publishable shell (extras/hubs)** — `extras/hubs/prime/cua_world/` wires
+   the two together in a few dozen lines, plus the `pyproject.toml` and
+   `README.md` the hub ingests. The module name (`cua_world`) is the
+   environment id (`cua-world`) that `vf-eval` and prime-rl configs resolve.
+
+## Quickstart
+
+```bash
+# From the repo root; pulls gym-anything[modal,prime-rl] via a path source.
+uv pip install -e extras/hubs/prime/cua_world
+
+vf-eval cua-world -m google/gemini-3.5-flash \
+  -b https://api.pinference.ai/api/v1 -k PRIME_API_KEY \
+  -n 1 -r 1 \
+  -a '{"env_names": ["gimp_env"], "task_ids": ["horizontal_mirror"], "max_turns": 10}'
+```
+
+With the default `runner="modal"` each rollout boots a real Linux, Windows,
+or Android guest in a Modal VM Sandbox (see
+[Runners](/docs/core/runners#modal)). Pass `remote_url` instead to run
+rollouts on a gym-anything [remote cluster](/docs/core/remote); the worker
+then picks the runner.
+
+In a prime-rl training config the environment is referenced by id, and
+`args` is forwarded verbatim to `load_environment(**args)`:
+
+```toml
+[[orchestrator.train.env]]
+id = "cua-world"
+args = { env_names = ["gimp_env"], split = "train", max_turns = 15 }
+```
+
+## Rewards
+
+The reward is the benchmark's own. At episode end the task's `post_task`
+hook runs in the VM, the task's `verifier.py` produces
+`{passed, score, feedback}`, and the score maps to reward exactly as
+gym-anything does natively (sparse tasks give 0/1, partial/rubric give
+score/100). Zero-weight diagnostic metrics (`verifier_passed`,
+`verifier_score`, `actions_executed`, `parse_errors`) ride along. Pass
+`verifier_mode="vlm_checklist"` (plus `vlm_*` args) to grade against each
+task's `vlm_checklist.json` with a VLM instead.
+
+## Publishing
+
+`prime env push --path extras/hubs/prime/cua_world` publishes to the
+Environments Hub. Before publishing, switch the package's
+`[tool.uv.sources]` entry for `gym-anything` from the local path source to a
+git-pinned revision so the package installs standalone.
+
+## Adding a provider or benchmark
+
+A new provider gets `extras/hubs/<provider>/`, and if it speaks a different
+protocol, a sibling adapter module in `gym_anything/integrations/`. A new
+benchmark gets a dataset-binding module next to its registry and a shell
+folder here. Shells must consume core and benchmarks through the public API
+only.
