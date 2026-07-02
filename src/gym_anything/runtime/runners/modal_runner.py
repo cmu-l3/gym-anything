@@ -85,9 +85,10 @@ _SANDBOX_PIP = [
 ]
 
 
-def _repo_root() -> Path:
-    # src/gym_anything/runtime/runners/modal_runner.py -> repo root
-    return Path(__file__).resolve().parents[4]
+def _package_dir() -> Path:
+    # The gym_anything package directory; valid both in a repo checkout
+    # (src/gym_anything) and in an installed copy (site-packages/gym_anything).
+    return Path(__file__).resolve().parents[2]
 
 
 class ModalRunner(BaseRunner):
@@ -158,7 +159,7 @@ class ModalRunner(BaseRunner):
             .apt_install(*_SANDBOX_APT)
             .pip_install(*_SANDBOX_PIP)
             .add_local_dir(
-                str(_repo_root() / "src" / "gym_anything"),
+                str(_package_dir()),
                 remote_path="/opt/ga/gym_anything",
             )
         )
