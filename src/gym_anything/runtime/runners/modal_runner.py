@@ -209,7 +209,12 @@ class ModalRunner(BaseRunner):
         data = buf.getvalue()
 
         proc = self._sandbox.exec("bash", "-c", "mkdir -p /repo && tar xzf - -C /repo")
-        proc.stdin.write(data)
+        # Chunked writes: a single large write overflows the stream buffer
+        # (BufferError) for env trees with big assets like APKs.
+        chunk_size = 1 << 20
+        for off in range(0, len(data), chunk_size):
+            proc.stdin.write(data[off : off + chunk_size])
+            proc.stdin.drain()
         proc.stdin.write_eof()
         proc.stdin.drain()
         code = proc.wait()
