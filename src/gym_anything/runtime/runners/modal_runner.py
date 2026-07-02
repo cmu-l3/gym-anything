@@ -227,6 +227,16 @@ class ModalRunner(BaseRunner):
             cache_setup = (
                 "mkdir -p /root/.cache/gym-anything && "
                 "tar -I zstd -xf /cache/qemu/avd_stack.tar.zst -C /root/.cache/gym-anything && "
+                # AVD ini files and qcow2 backing chains carry absolute paths
+                # from the machine that built them. Rewrite the inis to the
+                # local cache and symlink the original prefix for everything
+                # else (e.g. qcow2 backing-file headers).
+                "AVDINI=$(ls /root/.cache/gym-anything/avd/*.ini 2>/dev/null | head -1) && "
+                "OLDBASE=$(sed -n 's|^path=\\(.*\\)/avd/[^/]*\\.avd$|\\1|p' \"$AVDINI\" | head -1) && "
+                "if [ -n \"$OLDBASE\" ] && [ \"$OLDBASE\" != /root/.cache/gym-anything ]; then "
+                "grep -rl \"$OLDBASE\" /root/.cache/gym-anything/avd --include='*.ini' | "
+                "xargs -r sed -i \"s|$OLDBASE|/root/.cache/gym-anything|g\"; "
+                "mkdir -p \"$(dirname \"$OLDBASE\")\" && ln -sfn /root/.cache/gym-anything \"$OLDBASE\"; fi && "
             )
             health_timeout = 900
         else:
