@@ -20,9 +20,15 @@ runs in the VM and the task's `verifier.py` produces
 natively (sparse tasks give 0/1, partial/rubric give score/100).
 
 ### Prerequisites
-1. This package: `uv pip install -e extras/hubs/prime/cua_world` from the
-   gym-anything repo root (pulls in `gym-anything[modal,prime-rl]` from the
-   repo via a path source).
+1. This package. For local development inside the repo, install gym-anything
+   editable first, then this shell without deps (so it resolves the already
+   installed gym-anything instead of the pinned git tag):
+   ```bash
+   uv pip install -e ".[modal,prime-rl,benchmark]"      # from repo root
+   uv pip install -e extras/hubs/prime/cua_world --no-deps
+   ```
+   Consumers install it standalone (`prime env install`, or from the wheel),
+   which pulls `gym-anything[modal,prime-rl,benchmark]` from the pinned tag.
 2. A Modal token (`modal token set ...`) for the default runner.
 3. Some environments need a one-time host-side asset fetch
    (`<env>/scripts/fetch_data.sh` or `download_apk.sh`); envs with

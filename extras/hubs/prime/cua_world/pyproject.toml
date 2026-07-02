@@ -7,8 +7,14 @@ dependencies = [
     # Pinned to a tag so the published package installs standalone (GitHub
     # only serves fetch-by-SHA for advertised ref tips, so a bare commit pin
     # fails once the branch moves on). Push a new tag and bump this when
-    # publishing a new version. The [tool.uv.sources] path below overrides
-    # this for local development inside the repo.
+    # publishing a new version.
+    #
+    # No [tool.uv.sources] override here on purpose: `prime env push` builds
+    # and installs the package FROM THIS SOURCE DIRECTORY, and uv honors
+    # tool.uv.sources at install time, so a local `path = ...` override
+    # breaks the hub integration test (the path does not exist in Prime's
+    # harness). For local development, install with --no-deps against an
+    # editable gym-anything already present in the venv (see README).
     "gym-anything[modal,prime-rl,benchmark] @ git+https://github.com/cmu-l3/gym-anything@gym-anything-cua-v0.1.1",
 ]
 tags = ["computer-use", "gui", "multi-turn", "vision", "tool-use", "multimodal", "real-world", "train", "eval"]
@@ -22,11 +28,6 @@ include = ["cua_world.py", "pyproject.toml", "README.md"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
-
-# Local development resolves gym-anything from this repo instead of the
-# pinned git revision above.
-[tool.uv.sources]
-gym-anything = { path = "../../../..", editable = true }
 
 [tool.verifiers.eval]
 num_examples = 1
