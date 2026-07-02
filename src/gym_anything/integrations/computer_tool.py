@@ -93,6 +93,10 @@ def make_computer_tool(coordinate_mode: str) -> Dict[str, Any]:
 
 
 def system_prompt(resolution: Tuple[int, int], coordinate_mode: str) -> str:
+    # Conventions ported from the proven reference agents
+    # (agents/agents/gemini_computer_use.py SYSTEM_INSTRUCTION): the target
+    # application is already open, and wandering off into browsers/terminals
+    # is the dominant failure mode to forbid explicitly.
     w, h = resolution
     if coordinate_mode == "norm1000":
         coords = (
@@ -103,14 +107,36 @@ def system_prompt(resolution: Tuple[int, int], coordinate_mode: str) -> str:
         coords = f"Coordinates are raw pixels on a {w}x{h} screen."
     return (
         "You are operating a real computer through the `computer` tool to "
-        "complete the task described by the user. The screen content is "
+        "complete the task described by the user. The application you need "
+        "is ALREADY OPEN on screen. Do not open a web browser, navigate to "
+        "URLs, use search, or switch to a terminal unless the task itself "
+        "requires it — interact directly with what is on screen using "
+        "clicks, typing, and keyboard shortcuts. The screen content is "
         "provided to you as screenshots; a fresh screenshot follows every "
-        f"action. {coords} Consult the latest screenshot before every click "
-        "and click at the center of targets. Applications can be slow: if "
-        "the screen has not caught up with your action, use wait and then "
-        "screenshot. When the task is complete (or impossible), call the "
-        "tool with action=terminate."
+        f"action. {coords} Look carefully at the latest screenshot before "
+        "every action and click at the center of targets. Applications can "
+        "be slow: if the screen has not caught up with your action, use "
+        "wait and then screenshot. Work step by step inside the open "
+        "application until the task is fully complete, then call the tool "
+        "with action=terminate."
     )
+
+
+# Key-name normalization -> env (X11 keysym-ish) names, ported from the
+# reference agents' keymap so models can use common names like "enter".
+KEYMAP = {
+    "control": "ctrl", "ctrl": "ctrl", "alt": "alt", "option": "alt",
+    "shift": "shift", "meta": "super", "cmd": "super", "command": "super",
+    "super": "super", "win": "super", "enter": "Return", "return": "Return",
+    "tab": "Tab", "escape": "Escape", "esc": "Escape", "backspace": "BackSpace",
+    "delete": "Delete", "del": "Delete", "space": "space", "spacebar": "space",
+    "up": "Up", "down": "Down", "left": "Left", "right": "Right",
+    "home": "Home", "end": "End", "pageup": "Prior", "pagedown": "Next",
+}
+
+
+def normalize_keys(keys: List[str]) -> List[str]:
+    return [KEYMAP.get(str(k).strip().lower(), str(k).strip()) for k in keys if str(k).strip()]
 
 
 def to_pixels(coord: Any, resolution: Tuple[int, int], mode: str) -> Tuple[int, int]:
@@ -151,7 +177,7 @@ def translate_action(
             keys = args.get("keys") or []
             if isinstance(keys, str):
                 keys = keys.replace("+", " ").split()
-            out["actions"] = [{"keyboard": {"keys": list(keys)}}]
+            out["actions"] = [{"keyboard": {"keys": normalize_keys(list(keys))}}]
         elif action == "type":
             out["actions"] = [{"keyboard": {"text": str(args.get("text", ""))}}]
         elif action == "wait":

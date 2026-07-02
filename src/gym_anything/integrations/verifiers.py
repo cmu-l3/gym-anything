@@ -309,7 +309,11 @@ def build_computer_env(
     remote_url: Optional[str] = None,
     coordinate_mode: str = "norm1000",
     max_turns: int = 15,
-    keep_recent_screenshots: int = 3,
+    # -1 = full untruncated screenshot history, matching the proven reference
+    # agents (agents/agents/gemini_computer_use.py: "deliberately do NOT
+    # compact per turn"). Set a positive value to bound context growth at the
+    # cost of the model losing visual history.
+    keep_recent_screenshots: int = -1,
     use_cache: bool = True,
     cache_level: str = "post_start",
     use_savevm: bool = False,

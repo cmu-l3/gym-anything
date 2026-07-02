@@ -27,7 +27,7 @@ def load_environment(
     remote_url: str | None = None,
     coordinate_mode: str = "norm1000",
     max_turns: int = 15,
-    keep_recent_screenshots: int = 3,
+    keep_recent_screenshots: int = -1,
     use_cache: bool = True,
     cache_level: str = "post_start",
     use_savevm: bool = False,
