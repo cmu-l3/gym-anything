@@ -108,16 +108,31 @@ def load_environment(
         use_savevm=use_savevm,
         verifier_overrides=verifier_overrides or None,
         env_id="cua-world",
+        # env_args must fully reconstruct this environment: prime-rl's env
+        # server re-instantiates the env in worker processes by calling
+        # load_environment(**env_args). Any load_environment kwarg that
+        # affects behavior MUST be here, or workers silently fall back to
+        # defaults. (The vlm_* fields were missing, so the VLM grader
+        # defaulted to http://localhost:8080/v1 and failed to connect.)
         env_args={
             "env_names": env_names,
             "split": split,
             "surface": surface,
             "task_ids": task_ids,
+            "max_examples": max_examples,
             "runner": runner,
             "remote_url": remote_url,
             "coordinate_mode": coordinate_mode,
             "max_turns": max_turns,
+            "keep_recent_screenshots": keep_recent_screenshots,
+            "use_cache": use_cache,
+            "cache_level": cache_level,
+            "use_savevm": use_savevm,
             "verifier_mode": verifier_mode,
+            "vlm_backend": vlm_backend,
+            "vlm_model": vlm_model,
+            "vlm_base_url": vlm_base_url,
+            "vlm_api_key_var": vlm_api_key_var,
         },
         **kwargs,
     )
