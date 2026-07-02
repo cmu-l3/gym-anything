@@ -198,7 +198,8 @@ class ModalRunner(BaseRunner):
             "cd /repo && "
             "GYM_ANYTHING_QEMU_CACHE=/cache/qemu "
             "PYTHONPATH=/opt/ga "
-            f"python3 -m gym_anything.runtime.runners.modal_shim --port {SHIM_PORT}",
+            f"python3 -u -m gym_anything.runtime.runners.modal_shim --port {SHIM_PORT} "
+            "> /cache/qemu/shim.log 2>&1",
         )
         deadline = time.time() + 120
         last_err = None
