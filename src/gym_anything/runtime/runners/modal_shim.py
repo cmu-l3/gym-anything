@@ -131,11 +131,13 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/submit":
                 body = self._read_body()
-                job_id = uuid.uuid4().hex
-                _jobs[job_id] = {"status": "pending", "result": None, "error": None}
-                _job_queue.put(
-                    (job_id, body["method"], body.get("args", []), body.get("kwargs", {}))
-                )
+                # Client may supply the id so retried submits are idempotent.
+                job_id = body.get("id") or uuid.uuid4().hex
+                if job_id not in _jobs:
+                    _jobs[job_id] = {"status": "pending", "result": None, "error": None}
+                    _job_queue.put(
+                        (job_id, body["method"], body.get("args", []), body.get("kwargs", {}))
+                    )
                 self._send_json({"id": job_id})
                 return
             if parsed.path == "/put_file":

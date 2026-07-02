@@ -268,27 +268,53 @@ class ModalRunner(BaseRunner):
 
     def _init_remote_runner(self) -> None:
         spec_dict = dataclasses.asdict(self.spec)
-        r = requests.post(
-            f"{self._base_url}/init", json={"spec": spec_dict}, timeout=120
+        r = self._http(
+            requests.post, f"{self._base_url}/init", json={"spec": spec_dict}, timeout=120
         )
         if not r.ok:
             raise RuntimeError(f"shim init failed: {r.text[:2000]}")
 
     # --- RPC plumbing ---
 
+    def _http(self, fn, *args, attempts: int = 6, **kwargs):
+        """Run a requests call with retries; Modal tunnels reset idle conns."""
+        delay = 2.0
+        for attempt in range(attempts):
+            try:
+                return fn(*args, **kwargs)
+            except (requests.ConnectionError, requests.Timeout) as e:
+                if attempt == attempts - 1:
+                    raise
+                print(f"[ModalRunner] transient HTTP error ({e}); retrying in {delay:.0f}s")
+                time.sleep(delay)
+                delay = min(delay * 2, 30.0)
+
     def _call(self, method: str, *args, poll_timeout: float = 3600.0, **kwargs) -> Any:
-        """Submit a runner method call and poll for its result."""
-        r = requests.post(
+        """Submit a runner method call and poll for its result.
+
+        The job id is generated client-side so a retried submit after a
+        connection reset never double-executes, and polling survives
+        transient tunnel resets.
+        """
+        import uuid as _uuid
+
+        job_id = _uuid.uuid4().hex
+        r = self._http(
+            requests.post,
             f"{self._base_url}/submit",
-            json={"method": method, "args": list(args), "kwargs": kwargs},
+            json={"id": job_id, "method": method, "args": list(args), "kwargs": kwargs},
             timeout=60,
         )
         r.raise_for_status()
-        job_id = r.json()["id"]
 
         deadline = time.time() + poll_timeout
         while time.time() < deadline:
-            jr = requests.get(f"{self._base_url}/result", params={"id": job_id}, timeout=60)
+            jr = self._http(
+                requests.get,
+                f"{self._base_url}/result",
+                params={"id": job_id},
+                timeout=60,
+            )
             job = jr.json()
             status = job.get("status")
             if status == "done":
@@ -340,7 +366,7 @@ class ModalRunner(BaseRunner):
 
     def capture_screenshot(self, host_path) -> bool:
         try:
-            r = requests.get(f"{self._base_url}/screenshot", timeout=120)
+            r = self._http(requests.get, f"{self._base_url}/screenshot", timeout=120)
             if r.ok and r.headers.get("Content-Type") == "application/octet-stream":
                 host_path = Path(host_path)
                 host_path.parent.mkdir(parents=True, exist_ok=True)
@@ -393,13 +419,13 @@ class ModalRunner(BaseRunner):
             "dst": container_dst,
             "data_b64": base64.b64encode(src.read_bytes()).decode(),
         }
-        r = requests.post(f"{self._base_url}/copy_to", json=payload, timeout=300)
+        r = self._http(requests.post, f"{self._base_url}/copy_to", json=payload, timeout=300)
         if not r.ok:
             raise RuntimeError(f"copy_to failed: {r.text[:1000]}")
 
     def copy_from(self, container_src: str, host_dst: str) -> None:
-        r = requests.post(
-            f"{self._base_url}/copy_from", json={"src": container_src}, timeout=600
+        r = self._http(
+            requests.post, f"{self._base_url}/copy_from", json={"src": container_src}, timeout=600
         )
         if not r.ok:
             raise RuntimeError(f"copy_from failed: {r.text[:1000]}")
@@ -420,7 +446,7 @@ class ModalRunner(BaseRunner):
             "name": src.name,
             "data_b64": base64.b64encode(src.read_bytes()).decode(),
         }
-        r = requests.post(f"{self._base_url}/put_file", json=payload, timeout=300)
+        r = self._http(requests.post, f"{self._base_url}/put_file", json=payload, timeout=300)
         if not r.ok:
             raise RuntimeError(f"put_file failed: {r.text[:1000]}")
         return r.json()["path"]
