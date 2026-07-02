@@ -2316,28 +2316,14 @@ class QemuApptainerRunner(BaseRunner):
     def _sftp_copy_to(self, host_src: str, container_dst: str) -> None:
         """Copy file/directory to VM using paramiko SFTP with password auth."""
         try:
-            import paramiko
-            ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
+            client = self._sftp_connect()
 
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            # Windows: Use configured credentials directly
             if self.is_windows:
-                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                              password=self._ssh_password, timeout=30, look_for_keys=False)
                 # Convert Windows path to SFTP format (forward slashes, no drive letter)
                 sftp_dst = container_dst.replace("\\", "/")
                 if len(sftp_dst) >= 2 and sftp_dst[1] == ':':
                     sftp_dst = sftp_dst[2:]  # Remove "C:" prefix for SFTP
             else:
-                # Linux: Try key first, then password
-                try:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  key_filename=str(ssh_key), timeout=10, look_for_keys=False)
-                except:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  password="password123", timeout=10, look_for_keys=False)
                 sftp_dst = container_dst
 
             sftp = client.open_sftp()
@@ -2416,27 +2402,49 @@ class QemuApptainerRunner(BaseRunner):
         # Fallback to SFTP via paramiko
         self._sftp_copy_from(container_src, host_dst)
 
+    def _sftp_connect(self):
+        """Open an SSH client with retries.
+
+        Rapid successive connections (hook + screenshots + verifier copies at
+        episode finalize) can trip sshd MaxStartups throttling, which
+        surfaces as 'Error reading SSH protocol banner'. Retry briefly.
+        """
+        import paramiko
+        ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
+
+        last_err = None
+        for attempt in range(4):
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                # Windows: Use configured credentials directly
+                if self.is_windows:
+                    client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                                  password=self._ssh_password, timeout=30, look_for_keys=False)
+                else:
+                    # Linux: Try key first, then password
+                    try:
+                        client.connect("localhost", port=self.ssh_port, username="ga",
+                                      key_filename=str(ssh_key), timeout=10, look_for_keys=False)
+                    except Exception:
+                        client.connect("localhost", port=self.ssh_port, username="ga",
+                                      password="password123", timeout=10, look_for_keys=False)
+                return client
+            except Exception as e:
+                last_err = e
+                try:
+                    client.close()
+                except Exception:
+                    pass
+                if attempt < 3:
+                    print(f"[QemuApptainer] SSH connect failed ({e}); retrying in {2 * (attempt + 1)}s")
+                    time.sleep(2 * (attempt + 1))
+        raise last_err
+
     def _sftp_copy_from(self, container_src: str, host_dst: str) -> None:
         """Copy file/directory from VM using paramiko SFTP with password auth."""
         try:
-            import paramiko
-            ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
-
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            # Windows: Use configured credentials directly
-            if self.is_windows:
-                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                              password=self._ssh_password, timeout=30, look_for_keys=False)
-            else:
-                # Linux: Try key first, then password
-                try:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  key_filename=str(ssh_key), timeout=10, look_for_keys=False)
-                except:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  password="password123", timeout=10, look_for_keys=False)
+            client = self._sftp_connect()
 
             sftp = client.open_sftp()
 
