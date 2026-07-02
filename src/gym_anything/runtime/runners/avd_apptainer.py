@@ -1076,13 +1076,31 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
     def copy_from(self, remote_path: str, local_path: str) -> None:
         """Copy file from device via ADB pull.
 
+        A file just written under /sdcard by a hook (e.g. export_result.sh)
+        may not yet be visible to `adb pull` because the emulator's FUSE view
+        for pulls lags the shell view. Nudge a media scan and retry briefly.
+
         Args:
             remote_path: Remote path on device
             local_path: Local file path
         """
-        result = self._adb_command(["pull", remote_path, local_path])
-        if result.returncode != 0:
-            raise RuntimeError(f"adb pull failed: {result.stderr.decode()}")
+        last_err = ""
+        for attempt in range(5):
+            result = self._adb_command(["pull", remote_path, local_path])
+            if result.returncode == 0:
+                return
+            last_err = result.stderr.decode() if result.stderr else ""
+            if "No such file" in last_err and attempt < 4:
+                # Ask MediaScanner to index it, then wait for the FUSE view to catch up.
+                self._adb_command(
+                    ["shell", "am", "broadcast", "-a",
+                     "android.intent.action.MEDIA_SCANNER_SCAN_FILE",
+                     "-d", f"file://{remote_path}"],
+                )
+                time.sleep(2 * (attempt + 1))
+                continue
+            break
+        raise RuntimeError(f"adb pull failed: {last_err}")
 
     def put_file(self, local_path: Path, remote_dir: str = "/sdcard") -> str:
         """Copy file to device and return remote path.
