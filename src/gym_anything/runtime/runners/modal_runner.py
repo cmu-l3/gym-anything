@@ -52,6 +52,7 @@ _SANDBOX_APT = [
     "ca-certificates",
     "procps",
     "unzip",
+    "zstd",
     "openjdk-17-jre-headless",
     "libpulse0",
     "libasound2",
