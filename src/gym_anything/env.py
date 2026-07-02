@@ -89,6 +89,15 @@ class GymAnythingEnv:
         spec_runner = getattr(spec, 'runner', None)
         spec_base = getattr(spec, 'base', None)
 
+        # --- Modal runner (guest VM inside a Modal VM Sandbox) ---
+        # Checked first: presets may pin spec.runner (e.g. android-avd-34 pins
+        # "avd"), and the explicit modal override must still win so the same
+        # env runs remotely unchanged.
+        if runner_override == "modal" or spec_runner == "modal":
+            from .runtime.runners.modal_runner import ModalRunner
+            logger.info("Using ModalRunner (guest VM in Modal VM Sandbox)")
+            return ModalRunner(spec)
+
         # --- AVF runner (Apple Virtualization Framework + Rosetta) ---
         if runner_override == "avf" or spec_runner == "avf":
             from .runtime.runners.avf import AVFRunner
@@ -109,12 +118,6 @@ class GymAnythingEnv:
             logger.info("Using ApptainerDirectRunner (GPU-enabled)")
             from .runtime.runners.apptainer_direct import ApptainerDirectRunner
             return ApptainerDirectRunner(spec)
-
-        # --- Modal runner (QEMU inside a Modal VM Sandbox) ---
-        if runner_override == "modal" or spec_runner == "modal":
-            from .runtime.runners.modal_runner import ModalRunner
-            logger.info("Using ModalRunner (QemuNativeRunner in Modal VM Sandbox)")
-            return ModalRunner(spec)
 
         # --- QEMU runners ---
         if runner_override == "qemu_native":
