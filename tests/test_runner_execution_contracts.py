@@ -231,6 +231,19 @@ def _assert_marker_visible(testcase: unittest.TestCase, screenshot_path: Path, r
     )
 
 
+class BaseImageProvisioningContractTests(unittest.TestCase):
+    def test_networkmanager_renderer_masks_wait_online_units(self) -> None:
+        """If provisioning hands interfaces to NetworkManager, both wait-online
+        units must be masked, or systemd-networkd-wait-online stalls every
+        boot for its full 120s timeout (measured: 2min5s vs 2.9s userspace)."""
+        from gym_anything.runtime.runners.qemu_native import NETPLAN_FIXUP
+
+        if "renderer: NetworkManager" in NETPLAN_FIXUP:
+            self.assertIn("systemctl mask", NETPLAN_FIXUP)
+            self.assertIn("systemd-networkd-wait-online.service", NETPLAN_FIXUP)
+            self.assertIn("NetworkManager-wait-online.service", NETPLAN_FIXUP)
+
+
 class RunnerContractClassificationTests(unittest.TestCase):
     def test_runner_profiles_cover_public_registry(self) -> None:
         self.assertEqual(set(list_supported_runners()), set(RUNNER_PROFILES))
