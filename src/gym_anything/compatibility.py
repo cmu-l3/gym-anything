@@ -145,7 +145,7 @@ _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
         savevm=False,
         user_accounts_mode="unsupported",
         notes=[
-            "LocalRunner is a smoke-test backend with synthetic observations only.",
+            "LocalRunner is a synthetic-observation backend for validating orchestration only.",
         ],
     ),
 }
