@@ -1,4 +1,5 @@
 from agents.agents.base import BaseAgent
+from agents.shared.drivable import DrivableAgentMixin
 from agents.shared.llm_clients import call_llm, smart_resize, parse_qwen3vl_response
 from PIL import Image
 import json
@@ -17,7 +18,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class Qwen3VLFixedAgent(BaseAgent):
+class Qwen3VLFixedAgent(DrivableAgentMixin, BaseAgent):
     """
     Qwen3VL agent with prompt aligned to osworld implementation.
     Uses relative coordinate scaling (1000x1000 grid) and osworld-matching action enum.

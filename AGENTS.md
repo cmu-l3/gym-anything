@@ -27,6 +27,8 @@ core APIs.
 
 - `src/gym_anything/contracts.py` — `SessionInfo`, `RunnerRuntimeInfo`.
 - `src/gym_anything/specs.py` — `EnvSpec`, `TaskSpec`, observation/action types.
+- `src/gym_anything/registry.py` — the benchmark layout contract
+  (`environments/` + `splits/`) every benchmark folder follows.
 - `src/gym_anything/__init__.py` — public API (`make`, `GymAnythingEnv`, etc.).
 - Task folder shape: `task.json` + a setup script + `verifier.py`. Verifiers
   return `{"passed": bool, "score": int, "feedback": str}`.

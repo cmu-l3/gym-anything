@@ -10,31 +10,45 @@ consume environments as installable packages that expose a
 `extras/hubs/` tree holds those packages: one folder per provider, one
 package per benchmark, each a thin shell over the library.
 
-## The three layers
+## The layers
 
-A hub package contains no rollout logic. The work is split so N providers
-times M benchmarks never costs N times M implementations:
+A hub package contains no logic at all. The work is split so N providers
+times M benchmarks costs one adapter per provider and one declaration per
+benchmark:
 
-1. **Protocol adapter (core)** — `gym_anything.integrations.verifiers`
+1. **Benchmark layout contract (core)** — `gym_anything.registry` enumerates
+   any benchmark root that follows the standard shape
+   (`environments/<env>/env.json` + `tasks/<id>/`, `splits/*_split.json`,
+   `splits/verified.json`). Adding a benchmark folder makes it consumable by
+   every downstream surface with no integration-specific binding code.
+2. **Protocol adapter (core)** — `gym_anything.integrations.verifiers`
    turns any gym-anything env into a verifiers `MultiTurnEnv`: screenshots
-   stream to the policy, the policy acts through one provider-agnostic
-   `computer` tool, and the episode is scored by the env's real verifier
-   while the VM is still alive. The tool schema and action translation live
-   in `gym_anything.integrations.computer_tool`. Installed with the
-   `prime-rl` extra: `pip install "gym-anything[prime-rl]"`.
-2. **Dataset binding (benchmarks)** — `benchmarks.cua_world.hub.build_task_rows`
-   turns the benchmark registry (environments, splits, task.json files) into
-   dataset rows with absolute paths.
-3. **Publishable shell (extras/hubs)** — `extras/hubs/prime/cua_world/` wires
-   the two together in a few dozen lines, plus the `pyproject.toml` and
-   `README.md` the hub ingests. The module name (`cua_world`) is the
-   environment id (`cua-world`) that `vf-eval` and prime-rl configs resolve.
+   stream to the policy, the policy acts through a pluggable *scaffold*
+   (default: the provider-agnostic `computer` tool from
+   `gym_anything.integrations.computer_tool`; `qwen3vl` and `kimi`
+   text-protocol scaffolds ship in `agents/scaffolds/`), and the episode is
+   scored by the env's real verifier while the VM is still alive.
+   `gym_anything.integrations.hub` supplies the dataset rows
+   (`build_task_rows`) and the canonical `load_environment` surface.
+   Installed with the `prime-rl` extra: `pip install "gym-anything[prime-rl]"`.
+3. **Publishable shell (extras/hubs)** — `extras/hubs/prime/cua_world/` is a
+   declaration: `make_hub_loader("cua_world", env_id="cua-world", ...)` plus
+   the `pyproject.toml` and `README.md` the hub ingests. `env_args` (what
+   prime-rl workers use to re-instantiate the environment) is derived from
+   the canonical signature, so it stays faithful by construction.
+
+Scaffolds mirror `--agent` / `--agent_args` on local evaluation: pass
+`scaffold` / `scaffold_args` in the env args to select how the policy sees
+the environment. Scaffolds registered by installed packages are discovered
+through the `gym_anything.scaffolds` entry-point group.
 
 ## Quickstart
 
 ```bash
-# From the repo root; pulls gym-anything[modal,prime-rl] via a path source.
-uv pip install -e extras/hubs/prime/cua_world
+# From the repo root: editable gym-anything, then the shell without deps so
+# it resolves your checkout instead of the git-tag pin.
+uv pip install -e ".[modal,prime-rl,benchmark]"
+uv pip install -e extras/hubs/prime/cua_world --no-deps
 
 vf-eval cua-world -m google/gemini-3.5-flash \
   -b https://api.pinference.ai/api/v1 -k PRIME_API_KEY \
@@ -71,14 +85,18 @@ task's `vlm_checklist.json` with a VLM instead.
 ## Publishing
 
 `prime env push --path extras/hubs/prime/cua_world` publishes to the
-Environments Hub. Before publishing, switch the package's
-`[tool.uv.sources]` entry for `gym-anything` from the local path source to a
-git-pinned revision so the package installs standalone.
+Environments Hub. The package depends on a git-tag-pinned `gym-anything` so
+it installs standalone (no `[tool.uv.sources]` path override: `prime env
+push` installs from the source directory, where a local path would not
+exist). To publish a new version, push a new `gym-anything-cua-v*` tag,
+bump the pin and the package version, and re-push.
 
 ## Adding a provider or benchmark
 
 A new provider gets `extras/hubs/<provider>/`, and if it speaks a different
 protocol, a sibling adapter module in `gym_anything/integrations/`. A new
-benchmark gets a dataset-binding module next to its registry and a shell
-folder here. Shells must consume core and benchmarks through the public API
-only.
+benchmark that follows the layout contract needs no integration code at
+all: pass its root or package name to `load_benchmark_environment`, or mint
+a declaration shell here (a `make_hub_loader` call plus packaging) if it
+should have its own hub listing. Shells must consume core through the
+public API only.

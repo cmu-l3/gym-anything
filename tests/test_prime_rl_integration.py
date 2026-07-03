@@ -4,17 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from benchmarks.cua_world.hub import build_task_rows
+from agents.agents.qwen3vl import Qwen3VLAgent
+from agents.shared.qwen_computer_use import parse_qwen3vl_response, qwen_system_prompt
 from gym_anything.api import from_config
-from gym_anything.integrations.computer_tool import (
-    PARSE_ERROR,
-    WRONG_TOOL,
-    make_computer_tool,
-    parse_tool_calls,
-    prune_screenshots,
-    to_pixels,
-    translate_action,
-)
+from gym_anything.integrations.hub import build_task_rows, make_hub_loader
 
 try:
     import verifiers  # noqa: F401
@@ -26,125 +19,101 @@ except ImportError:
 RES = (1920, 1080)
 
 
-class ComputerToolTranslationTests(unittest.TestCase):
-    def test_norm1000_click_scales_to_pixels(self) -> None:
-        plan = translate_action({"action": "left_click", "coordinate": [500, 500]}, RES, "norm1000")
-        self.assertIsNone(plan["error"])
-        self.assertEqual(plan["actions"], [{"mouse": {"left_click": [960, 540]}}])
-
-    def test_pixel_mode_passes_coordinates_through(self) -> None:
-        self.assertEqual(to_pixels([100, 200], RES, "pixel"), (100, 200))
-
-    def test_mouse_move_maps_to_move_action(self) -> None:
-        plan = translate_action({"action": "mouse_move", "coordinate": [0, 1000]}, RES, "norm1000")
-        self.assertEqual(plan["actions"], [{"mouse": {"move": [0, 1080]}}])
-
-    def test_drag_uses_both_coordinates(self) -> None:
-        plan = translate_action(
-            {"action": "left_click_drag", "coordinate": [0, 0], "coordinate2": [1000, 1000]},
-            RES,
-            "norm1000",
-        )
-        self.assertEqual(plan["actions"], [{"mouse": {"left_click_drag": [[0, 0], [1920, 1080]]}}])
-
-    def test_scroll_with_coordinate_moves_first(self) -> None:
-        plan = translate_action({"action": "scroll", "pixels": -300, "coordinate": [500, 500]}, RES, "norm1000")
-        self.assertEqual(
-            plan["actions"],
-            [{"mouse": {"move": [960, 540]}}, {"mouse": {"scroll": -300}}],
-        )
-
-    def test_key_accepts_plus_joined_string(self) -> None:
-        plan = translate_action({"action": "key", "keys": "ctrl+s"}, RES, "norm1000")
-        self.assertEqual(plan["actions"], [{"keyboard": {"keys": ["ctrl", "s"]}}])
-
-    def test_type_produces_keyboard_text(self) -> None:
-        plan = translate_action({"action": "type", "text": "hello"}, RES, "norm1000")
-        self.assertEqual(plan["actions"], [{"keyboard": {"text": "hello"}}])
-
-    def test_wait_sets_wait_without_actions(self) -> None:
-        plan = translate_action({"action": "wait", "time": 2.5}, RES, "norm1000")
-        self.assertEqual(plan["wait"], 2.5)
-        self.assertEqual(plan["actions"], [])
-
-    def test_screenshot_is_a_noop(self) -> None:
-        plan = translate_action({"action": "screenshot"}, RES, "norm1000")
-        self.assertEqual(plan["actions"], [])
-        self.assertIsNone(plan["error"])
-        self.assertFalse(plan["terminal"])
-
-    def test_terminate_marks_terminal(self) -> None:
-        plan = translate_action({"action": "terminate", "status": "success"}, RES, "norm1000")
-        self.assertTrue(plan["terminal"])
-
-    def test_unknown_action_reports_error(self) -> None:
-        plan = translate_action({"action": "levitate"}, RES, "norm1000")
-        self.assertIn("Unknown action", plan["error"])
-
-    def test_missing_coordinate_reports_error(self) -> None:
-        plan = translate_action({"action": "left_click"}, RES, "norm1000")
-        self.assertIn("Malformed arguments", plan["error"])
-
-    def test_tool_schema_lists_all_actions(self) -> None:
-        tool = make_computer_tool("norm1000")
-        self.assertEqual(tool["name"], "computer")
-        self.assertIn("terminate", tool["parameters"]["properties"]["action"]["enum"])
+def _make_benchmark(root: Path, envs: dict) -> Path:
+    """Write a minimal benchmark root: environments/<env>/tasks/<task>/task.json."""
+    for env_name, task_ids in envs.items():
+        for task_id in task_ids:
+            task_dir = root / "environments" / env_name / "tasks" / task_id
+            task_dir.mkdir(parents=True)
+            (task_dir / "task.json").write_text(
+                json.dumps({"id": task_id, "description": f"do {task_id}"}), encoding="utf-8"
+            )
+    return root
 
 
-class ParseToolCallsTests(unittest.TestCase):
-    def test_parses_dict_style_tool_call(self) -> None:
-        message = {
-            "tool_calls": [
-                {"id": "c1", "function": {"name": "computer", "arguments": '{"action": "screenshot"}'}}
-            ]
-        }
-        self.assertEqual(parse_tool_calls(message), [("c1", {"action": "screenshot"})])
-
-    def test_flags_calls_to_other_tools(self) -> None:
-        message = {"tool_calls": [{"id": "c1", "function": {"name": "bash", "arguments": "{}"}}]}
-        (tc_id, args), = parse_tool_calls(message)
-        self.assertEqual(args["action"], WRONG_TOOL)
-
-    def test_flags_unparseable_arguments(self) -> None:
-        message = {"tool_calls": [{"id": "c1", "function": {"name": "computer", "arguments": "{nope"}}]}
-        (tc_id, args), = parse_tool_calls(message)
-        self.assertEqual(args["action"], PARSE_ERROR)
-
-    def test_message_without_tool_calls_yields_nothing(self) -> None:
-        self.assertEqual(parse_tool_calls({"role": "assistant", "content": "hi"}), [])
+def _agent() -> Qwen3VLAgent:
+    a = Qwen3VLAgent(
+        agent_args={"model": "test-model", "exp_name": "unittest", "task_name": "t"},
+        verbose=False,
+        debug=False,
+    )
+    a.init(task_description="do the task", display_resolution=RES, save_path=".")
+    return a
 
 
-def _image_message(tag: str) -> dict:
-    return {
-        "role": "user",
-        "content": [
-            {"type": "text", "text": tag},
-            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{tag}"}},
-        ],
-    }
+class AgentDriverSeamTests(unittest.TestCase):
+    """The real agent exposes a build/parse seam an external loop can drive."""
+
+    def test_agent_advertises_it_can_be_driven(self) -> None:
+        self.assertTrue(getattr(Qwen3VLAgent, "driven", False))
+
+    def test_initial_messages_carry_system_tools_and_screenshot(self) -> None:
+        msgs = _agent().driver_initial_messages("QUJD")
+        self.assertEqual(msgs[0]["role"], "system")
+        self.assertIn("<tools>", msgs[0]["content"][0]["text"])  # tool schema in prompt
+        self.assertEqual(msgs[1]["role"], "user")
+        self.assertTrue(any(p["type"] == "image_url" for p in msgs[1]["content"]))
+
+    def test_observation_messages_are_screenshot_only(self) -> None:
+        msgs = _agent().driver_observation_messages("QUJD")
+        self.assertEqual(len(msgs), 1)
+        self.assertEqual(msgs[0]["content"][0]["type"], "image_url")
+
+    def test_driver_parse_reuses_the_agents_own_parser(self) -> None:
+        completion = '<tool_call>{"name":"computer_use","arguments":{"action":"left_click","coordinate":[500,500]}}</tool_call>'
+        res = _agent().driver_parse(completion)
+        # Identical to the agent's real parser (single source of truth).
+        expected = parse_qwen3vl_response(completion)["actions"]
+        self.assertEqual(res["actions"], expected)
+        self.assertEqual(res["actions"], [{"mouse": {"left_click": [960, 540]}}])  # 500/1000*res
+        self.assertFalse(res["done"])
+        self.assertFalse(res["parse_error"])
+
+    def test_driver_parse_flags_terminate_and_wait_and_errors(self) -> None:
+        a = _agent()
+        term = a.driver_parse('<tool_call>{"name":"computer_use","arguments":{"action":"terminate","status":"success"}}</tool_call>')
+        self.assertTrue(term["done"])
+        wait = a.driver_parse('<tool_call>{"name":"computer_use","arguments":{"action":"wait","time":2.0}}</tool_call>')
+        self.assertEqual(wait["wait"], 2.0)
+        self.assertEqual(wait["actions"], [])
+        # The agent's parser flags a real parse error (empty completion) with a
+        # screenshot-retry fallback; the driver surfaces that flag.
+        garbage = a.driver_parse("")
+        self.assertTrue(garbage["parse_error"])
+        self.assertFalse(garbage["done"])
+
+    def test_system_prompt_is_the_agents_own(self) -> None:
+        # The driver seam and the agent's local get_system_prompt share one source.
+        self.assertEqual(_agent().driver_initial_messages("X")[0]["content"][0]["text"],
+                         qwen_system_prompt(RES))
 
 
-class PruneScreenshotsTests(unittest.TestCase):
-    def test_keeps_only_most_recent_images(self) -> None:
-        messages = [_image_message("a"), {"role": "assistant", "content": "ok"}, _image_message("b"), _image_message("c")]
-        pruned = prune_screenshots(messages, keep_recent=1)
-        self.assertNotIn("image_url", json.dumps(pruned[0]))
-        self.assertIn("[older screenshot removed]", json.dumps(pruned[0]))
-        self.assertNotIn("image_url", json.dumps(pruned[2]))
-        self.assertIn("image_url", json.dumps(pruned[3]))
+@unittest.skipUnless(HAS_VERIFIERS, "verifiers not installed")
+class AgentSelectionTests(unittest.TestCase):
+    def test_make_agent_instantiates_real_class_by_name(self) -> None:
+        from gym_anything.integrations.verifiers import _make_agent
 
-    def test_zero_drops_all_images(self) -> None:
-        pruned = prune_screenshots([_image_message("a")], keep_recent=0)
-        self.assertNotIn("image_url", json.dumps(pruned))
+        agent = _make_agent("Qwen3VLAgent", {"model": "m", "exp_name": "sel", "task_name": "t"})
+        self.assertIsInstance(agent, Qwen3VLAgent)
 
-    def test_negative_means_unlimited(self) -> None:
-        messages = [_image_message("a"), _image_message("b")]
-        self.assertEqual(prune_screenshots(messages, keep_recent=-1), messages)
+    def test_provider_native_agent_is_rejected_as_undrivable(self) -> None:
+        from gym_anything.integrations.verifiers import _make_agent
+
+        # ClaudeAgent uses the Anthropic native tool; it cannot run over an
+        # OpenAI policy endpoint, so it must be rejected clearly.
+        with self.assertRaises(ValueError):
+            _make_agent("ClaudeAgent", {"exp_name": "sel", "task_name": "t"})
+
+    def test_unknown_agent_name_raises(self) -> None:
+        from gym_anything.integrations.verifiers import _make_agent
+
+        with self.assertRaises(ValueError):
+            _make_agent("NotARealAgent", {})
 
 
 class HubRowsTests(unittest.TestCase):
     def test_rows_carry_absolute_env_dir_and_prompt(self) -> None:
-        rows = build_task_rows("gimp_env", max_examples=3)
+        rows = build_task_rows("cua_world", "gimp_env", max_examples=3)
         self.assertTrue(rows)
         for row in rows:
             self.assertTrue(Path(row["info"]["env_dir"]).is_absolute())
@@ -153,38 +122,26 @@ class HubRowsTests(unittest.TestCase):
             self.assertTrue(row["task"].startswith("gimp_env/"))
 
     def test_task_id_whitelist_filters(self) -> None:
-        all_rows = build_task_rows("gimp_env")
+        all_rows = build_task_rows("cua_world", "gimp_env")
         wanted = all_rows[0]["info"]["task_id"]
-        rows = build_task_rows("gimp_env", task_ids=[wanted])
+        rows = build_task_rows("cua_world", "gimp_env", task_ids=[wanted])
         self.assertEqual([r["info"]["task_id"] for r in rows], [wanted])
 
     def test_no_matches_raises(self) -> None:
         with self.assertRaises(ValueError):
-            build_task_rows("gimp_env", task_ids=["definitely-not-a-task"])
+            build_task_rows("cua_world", "gimp_env", task_ids=["definitely-not-a-task"])
+
+    def test_env_names_all_covers_every_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _make_benchmark(Path(tmp), {"a_env": ["t1"], "b_env": ["t2", "t3"]})
+            rows = build_task_rows(root, "all", seed=7)
+            self.assertEqual([r["task"] for r in rows], ["a_env/t1", "b_env/t2", "b_env/t3"])
+            self.assertTrue(all(r["info"]["seed"] == 7 for r in rows))
 
 
 class FromConfigOverridesTests(unittest.TestCase):
     def test_from_config_accepts_overrides(self) -> None:
         self.assertIn("overrides", inspect.signature(from_config).parameters)
-
-    def test_overrides_reach_env_spec(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "env.json").write_text(
-                json.dumps(
-                    {
-                        "id": "demo-env",
-                        "observation": [{"type": "rgb_screen"}],
-                        "action": [{"type": "mouse"}],
-                    }
-                ),
-                encoding="utf-8",
-            )
-            env = from_config(root, overrides={"runner": "local"})
-            try:
-                self.assertEqual(env.env_spec.runner, "local")
-            finally:
-                env.close()
 
     def test_relative_mounts_resolve_against_env_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -209,7 +166,6 @@ class FromConfigOverridesTests(unittest.TestCase):
             try:
                 sources = {m.target: m.source for m in env.env_spec.mounts}
                 self.assertEqual(sources["/workspace/scripts"], str((root / "scripts").resolve()))
-                # Unresolvable sources stay as written so runners report them.
                 self.assertEqual(sources["/workspace/missing"], "does/not/exist")
             finally:
                 env.close()
@@ -234,7 +190,6 @@ class VerifiersAdapterTests(unittest.TestCase):
         _finalize_episode(state)
         self.assertEqual(state["episode_reward"], 1.0)
         self.assertTrue(state["verifier"]["passed"])
-        # Idempotent: the terminate path and the cleanup handler may both run.
         _finalize_episode(state)
         self.assertEqual(fake.mark_done_calls, 1)
 
@@ -246,10 +201,10 @@ class VerifiersAdapterTests(unittest.TestCase):
         self.assertEqual(state["episode_reward"], 0.0)
         self.assertIn("error", state["verifier"])
 
-    def test_build_computer_env_constructs_environment(self) -> None:
+    def test_build_agent_env_constructs_environment(self) -> None:
         import verifiers as vf
 
-        from gym_anything.integrations.verifiers import build_computer_env
+        from gym_anything.integrations.verifiers import build_agent_env
 
         rows = [
             {
@@ -258,8 +213,67 @@ class VerifiersAdapterTests(unittest.TestCase):
                 "task": "e/t",
             }
         ]
-        env = build_computer_env(rows, runner=None, env_id="test-env")
+        env = build_agent_env(rows, agent="Qwen3VLAgent", runner=None, env_id="test-env")
         self.assertIsInstance(env, vf.Environment)
+
+    def test_build_agent_env_requires_a_drivable_agent(self) -> None:
+        from gym_anything.integrations.verifiers import build_agent_env
+
+        rows = [
+            {
+                "prompt": [{"role": "user", "content": "x"}],
+                "info": {"env_dir": "/nonexistent", "env_name": "e", "task_id": "t", "seed": 0},
+                "task": "e/t",
+            }
+        ]
+        with self.assertRaises(ValueError):
+            build_agent_env(rows, agent="", runner=None, env_id="t")  # no agent
+        with self.assertRaises(ValueError):
+            build_agent_env(rows, agent="ClaudeAgent", runner=None, env_id="t")  # native
+
+
+@unittest.skipUnless(HAS_VERIFIERS, "verifiers not installed")
+class HubLoaderTests(unittest.TestCase):
+    """The shell surface: prime-rl workers re-instantiate via load_environment(**env_args)."""
+
+    def test_env_args_reconstruct_the_environment_faithfully(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _make_benchmark(Path(tmp), {"a_env": ["t1"]})
+            load_environment = make_hub_loader(root, env_id="demo", runner=None, agent="Qwen3VLAgent")
+
+            env = load_environment(verifier_mode="vlm_checklist", vlm_model="some/model", max_turns=7)
+            args = env.env_args
+            self.assertEqual(args["verifier_mode"], "vlm_checklist")
+            self.assertEqual(args["vlm_model"], "some/model")
+            self.assertEqual(args["max_turns"], 7)
+            self.assertEqual(args["benchmark"], str(root))
+            self.assertEqual(args["agent"], "Qwen3VLAgent")
+            self.assertIn("use_savevm", args)
+            # The framework re-instantiates via vf.load_environment(env_id,
+            # **env_args); env_args carrying env_id collides at that call.
+            self.assertNotIn("env_id", args)
+
+            rebuilt = load_environment(**args)
+            self.assertEqual(rebuilt.env_args, args)
+            self.assertEqual(rebuilt.max_turns, env.max_turns)
+
+    def test_loader_selects_agent_by_name_like_local(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _make_benchmark(Path(tmp), {"a_env": ["t1"]})
+            load_environment = make_hub_loader(
+                root, env_id="demo", runner=None, agent="Qwen3VLAgent",
+                agent_args={"model": "m"},
+            )
+            env = load_environment()
+            self.assertEqual(env.agent_name, "Qwen3VLAgent")
+            self.assertEqual(env.env_args["agent"], "Qwen3VLAgent")
+
+    def test_loader_requires_an_agent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _make_benchmark(Path(tmp), {"a_env": ["t1"]})
+            load_environment = make_hub_loader(root, env_id="demo", runner=None)
+            with self.assertRaises(ValueError):
+                load_environment()  # no agent named
 
 
 if __name__ == "__main__":

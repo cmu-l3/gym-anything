@@ -1,4 +1,5 @@
 from agents.agents.base import BaseAgent
+from agents.shared.drivable import DrivableAgentMixin
 from agents.shared.llm_clients import call_llm, smart_resize, parse_qwen3vl_response
 from PIL import Image
 import json
@@ -7,7 +8,7 @@ from io import BytesIO
 import base64
 
 
-class Qwen25VLAgent(BaseAgent):
+class Qwen25VLAgent(DrivableAgentMixin, BaseAgent):
     """
     Qwen2.5-VL agent using Qwen2.5-VL vision-language models via OpenAI-compatible API.
     Maintains a history-based prompting approach with image preprocessing.
