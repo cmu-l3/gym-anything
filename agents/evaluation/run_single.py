@@ -175,6 +175,8 @@ def run_single(args: argparse.Namespace) -> int:
 
     logger.info("Episode started. Artifacts will be saved under: %s", env.episode_dir)
     task_description = _load_task_description(env, args.env_dir, args.task)
+    if task_description:
+        task_description += "\nUnless explicitly mentioned, you are required to use the UI to complete the task not terminal."
 
     agent_cls = getattr(agent_registry, args.agent)
     agent = agent_cls(agent_args=json.loads(args.agent_args), verbose=args.verbose, debug=args.debug)
@@ -210,6 +212,14 @@ def run_single(args: argparse.Namespace) -> int:
                     {
                         **action_result,
                         "tool_id": action["tool_id"],
+                        # Per-action observation, captured after THIS tool_use's
+                        # env.step. Agents that want per-action visual feedback
+                        # (e.g. ClaudeFixedAgent, matching the official
+                        # computer-use loop) attach this image to the matching
+                        # tool_result. Agents that only consume the final
+                        # observation can keep using the `obs` argument to
+                        # agent.step and ignore this field.
+                        "obs": obs,
                     }
                 )
 

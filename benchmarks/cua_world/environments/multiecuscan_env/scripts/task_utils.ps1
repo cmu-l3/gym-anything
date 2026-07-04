@@ -34,6 +34,17 @@ function Find-MultiecuscanExe {
     return $null
 }
 
+function Test-MultiecuscanRendered {
+    # True once Multiecuscan has an active window or a non-trivial working set.
+    # A hung cold-boot launch has no window handle and a tiny working set.
+    $procs = Get-Process | Where-Object { $_.ProcessName -match "Multiecuscan" -or $_.ProcessName -match "b-mes" } -ErrorAction SilentlyContinue
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.MainWindowHandle -ne 0 -or $p.WorkingSet64 -gt 20MB) { return $true }
+    }
+    return $false
+}
+
 # =====================================================================
 # PyAutoGUI TCP Communication (for Session 1 GUI automation)
 # =====================================================================
@@ -117,7 +128,7 @@ function Launch-MultiecuscanInteractive {
         }
     } catch { }
 
-    # ── Strategy 0: PyAutoGUI Win+R (most reliable, runs in Session 1) ────
+    # -- Strategy 0: PyAutoGUI Win+R (most reliable, runs in Session 1) ----
     Write-Host "Attempt 0: Win+R via PyAutoGUI..."
     $pyguiOk = Send-PyAutoGUI -Command @{action="ping"}
     if ($pyguiOk) {
@@ -151,7 +162,7 @@ function Launch-MultiecuscanInteractive {
         Write-Host "  PyAutoGUI not available, skipping Win+R."
     }
 
-    # ── Strategy 0b: schtasks with simple CMD batch (fewer moving parts) ──
+    # -- Strategy 0b: schtasks with simple CMD batch (fewer moving parts) --
     Write-Host "Attempt 0b: schtasks CMD batch..."
     $launchBat2 = "$tempDir\launchmes_cmd.cmd"
     [System.IO.File]::WriteAllText($launchBat2, "@echo off`r`nstart `"`" `"$MesExe`"")

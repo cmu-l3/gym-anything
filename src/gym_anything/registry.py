@@ -33,6 +33,12 @@ import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, MutableMapping, Optional, Union
 
+# Reserved split name: every task folder physically present under
+# ``<env>/tasks/``, regardless of split-file curation or surface. This is the
+# escape hatch for running tasks that exist on disk but were never listed in a
+# split file. Always reflects the directory, so split files cannot override it.
+DISK_SPLIT = "disk"
+
 
 def resolve_benchmark_root(benchmark: Union[str, Path]) -> Path:
     """Resolve a benchmark reference (path or package name) to its root folder."""
@@ -263,6 +269,11 @@ def load_environment_task_splits(
             "verified": list(task_ids),
         }
 
+    # Reserved 'disk' split: the literal directory listing, surface-independent.
+    # Reflects every task folder on disk even if it is absent from the split file.
+    for env_name in registry:
+        registry[env_name][DISK_SPLIT] = list(discovered_tasks.get(env_name, []))
+
     return {env_name: registry[env_name] for env_name in sorted(registry)}
 
 
@@ -309,6 +320,7 @@ def get_tasks_for_environment(
 
 
 __all__ = [
+    "DISK_SPLIT",
     "get_tasks_for_environment",
     "list_environments",
     "load_environment_task_splits",

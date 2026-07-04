@@ -158,5 +158,23 @@ Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 
 Set-Content -Path "C:\Users\Docker\cameo_install_complete.marker" -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -Encoding UTF8
 
+# Warm-up: launch CAMEO once at build time to bake first-run state into the pre_start
+# checkpoint. Local only, no network. Closes after warm-up.
+try {
+    . C:\workspace\scripts\task_utils.ps1
+    Launch-CAMEOInteractive -WaitSeconds 20
+    Start-Sleep -Seconds 5
+    # Dismiss any first-run dialogs (best-effort, catches errors).
+    try { Dismiss-CAMEODialogs -Retries 2 } catch { }
+    Start-Sleep -Seconds 3
+    # Close CAMEO.
+    Get-Process | Where-Object {
+        $_.ProcessName -like "*CAMEO*" -or $_.ProcessName -like "*cameo*" -or $_.ProcessName -like "*DataManager*"
+    } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Write-Host "Warm-up complete: CAMEO first-run state baked into pre_start checkpoint."
+} catch {
+    Write-Host "WARNING: CAMEO warm-up failed: $($_.Exception.Message)"
+}
+
 Write-Host "`n=== CAMEO Data Manager installation complete ==="
 Stop-Transcript

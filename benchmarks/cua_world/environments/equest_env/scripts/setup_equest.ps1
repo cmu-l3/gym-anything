@@ -81,6 +81,15 @@ Start-Sleep -Milliseconds 500
     Write-Host "Available building models:"
     Get-ChildItem $projectsDir -Filter "*.inp" | ForEach-Object { Write-Host "  - $($_.Name)" }
 
+    # Launch eQUEST so EVERY episode reaches t=0 with the app open and rendered
+    # (robust against cold-boot hang). This replaces the savevm checkpoint's baked-in
+    # running app. Tasks that need a specific model relaunch it in their own pre_task;
+    # for the majority of tasks (no setup_task.ps1) this base launch is the t=0 state.
+    if ($eqExe) {
+        Launch-EqProjectInteractive -EqExe $eqExe -WaitSeconds 25
+        Write-Host "Base eQUEST launch complete."
+    }
+
     Write-Host "=== eQUEST environment setup complete ==="
 } finally {
     try { Stop-Transcript | Out-Null } catch { }

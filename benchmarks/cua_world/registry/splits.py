@@ -17,6 +17,11 @@ resolve_environment_key = _core.resolve_environment_key
 DEFAULT_SPLITS_ROOT = Path(__file__).resolve().parents[1] / "splits"
 DEFAULT_ENVIRONMENTS_ROOT = Path(__file__).resolve().parents[1] / "environments"
 
+# Reserved 'disk' split name (see gym_anything.registry.DISK_SPLIT): every
+# task folder physically present under ``<env>/tasks/``, regardless of
+# split-file curation or surface.
+DISK_SPLIT = _core.DISK_SPLIT
+
 
 def resolve_environment_dir(
     env_ref: Union[str, Path],
@@ -58,6 +63,7 @@ def get_tasks_for_environment(
 __all__ = [
     "DEFAULT_ENVIRONMENTS_ROOT",
     "DEFAULT_SPLITS_ROOT",
+    "DISK_SPLIT",
     "get_tasks_for_environment",
     "load_environment_task_splits",
     "resolve_environment_dir",

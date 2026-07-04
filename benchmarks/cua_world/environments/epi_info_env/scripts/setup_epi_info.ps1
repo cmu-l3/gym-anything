@@ -347,6 +347,17 @@ Start-Sleep -Milliseconds 500
     Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
     $ErrorActionPreference = $prevEAP5
 
+    # Base launch: leave Epi Info 7 open at t=0 for every episode (robust against
+    # cold-boot hang). Replaces the savevm checkpoint's baked-in running app.
+    # Tasks that need a specific module relaunch it in their own pre_task.
+    try {
+        $utils = "C:\workspace\scripts\task_utils.ps1"
+        if (Test-Path $utils) { . $utils }
+        Launch-EpiInfoInteractive -WaitSeconds 20
+        Dismiss-EpiInfoDialogs -Retries 3 -WaitSeconds 2
+        Write-Host "Base Epi Info 7 launch complete."
+    } catch { Write-Host "WARNING: Base Epi Info 7 launch failed: $($_.Exception.Message)" }
+
     Write-Host "=== Epi Info 7 Environment Setup Complete ==="
 
 } catch {

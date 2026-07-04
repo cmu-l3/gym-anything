@@ -29,7 +29,8 @@ function Launch-VitalRecorderInteractive {
     param(
         [string]$VitalRecorderExe,
         [string]$FileToOpen = "",
-        [int]$WaitSeconds = 15
+        [int]$WaitSeconds = 20,
+        [int]$MaxAttempts = 4
     )
 
     $launchScript = "C:\Windows\Temp\launch_vitalrecorder.cmd"
@@ -43,17 +44,34 @@ function Launch-VitalRecorderInteractive {
     [System.IO.File]::WriteAllText($launchScript, $batchContent)
 
     $taskName = "LaunchVitalRecorder_GA"
-    $schedTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
-
     $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
-        $ErrorActionPreference = "Continue"
-        schtasks /Delete /TN $taskName /F 2>$null
-        schtasks /Create /TN $taskName /TR "cmd /c `"$launchScript`"" /SC ONCE /ST $schedTime /RL HIGHEST /IT /F 2>$null
-        schtasks /Run /TN $taskName 2>$null
-        Start-Sleep -Seconds $WaitSeconds
+        # Cold-boot interactive sessions can hang Vital Recorder's first launch.
+        # Launch, verify it actually rendered a window, and retry (kill + relaunch)
+        # until it does. Replaces the savevm checkpoint's baked-in running app.
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            Get-Process Vital -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+            $schedTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
+            schtasks /Delete /TN $taskName /F 2>$null
+            schtasks /Create /TN $taskName /TR "cmd /c `"$launchScript`"" /SC ONCE /ST $schedTime /RL HIGHEST /IT /F 2>$null
+            schtasks /Run /TN $taskName 2>$null
+            schtasks /Delete /TN $taskName /F 2>$null
+            $waited = 0
+            while ($waited -lt $WaitSeconds) {
+                Start-Sleep -Seconds 3
+                $waited += 3
+                if (Test-VitalRecorderRendered) { break }
+            }
+            if (Test-VitalRecorderRendered) {
+                Write-Host "Vital Recorder rendered on attempt $attempt."
+                return
+            }
+            Write-Host "Vital Recorder did not render on attempt $attempt; retrying..."
+        }
+        Write-Host "WARNING: Vital Recorder failed to render after $MaxAttempts attempts."
     } finally {
-        schtasks /Delete /TN $taskName /F 2>$null
         Remove-Item $launchScript -Force -ErrorAction SilentlyContinue
         $ErrorActionPreference = $prevEAP
     }
@@ -116,6 +134,18 @@ function Send-Keys {
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.SendKeys]::SendWait($Keys)
     Start-Sleep -Milliseconds 300
+}
+
+function Test-VitalRecorderRendered {
+    # True once Vital Recorder has a real window handle or meaningful working set.
+    # A hung cold-boot launch leaves the process tiny with no window; a rendered
+    # Vital Recorder has a main window handle or working set above the idle baseline.
+    $procs = Get-Process Vital -ErrorAction SilentlyContinue
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.MainWindowHandle -ne 0 -or $p.WorkingSet64 -gt 20MB) { return $true }
+    }
+    return $false
 }
 
 # Check if Vital Recorder process is running (process name is "Vital", not "VitalRecorder")

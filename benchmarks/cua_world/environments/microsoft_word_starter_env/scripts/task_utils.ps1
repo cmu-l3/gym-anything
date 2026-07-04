@@ -40,25 +40,32 @@ function Find-WordExe {
     throw "Could not find WINWORD.EXE in standard Office locations."
 }
 
+function Test-WordRendered {
+    $procs = Get-Process WINWORD -ErrorAction SilentlyContinue
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.MainWindowHandle -ne 0 -or $p.WorkingSet64 -gt 25MB) { return $true }
+    }
+    return $false
+}
+
 function Launch-WordDocumentInteractive {
     <#
-    Launch Word with a document in the interactive desktop session.
-    SSH runs in Session 0 which cannot display GUI windows, so we use
-    schtasks with /IT to run in the interactive session.
+    Launch Word with a document in the interactive desktop session via schtasks /IT
+    (Session 1). Retries until Word actually renders, to survive cold-boot launch hangs.
     #>
     param(
         [Parameter(Mandatory = $true)]
         [string] $WordExe,
         [string] $DocumentPath = "",
-        [int] $WaitSeconds = 12
+        [int] $WaitSeconds = 25,
+        [int] $MaxAttempts = 4
     )
 
     if (-not (Test-Path $WordExe)) {
         throw "Word executable not found at: $WordExe"
     }
 
-    # Create a launcher batch file so schtasks doesn't have to deal with
-    # quoting paths containing spaces (e.g., Program Files (x86)).
     $launchScript = "C:\Windows\Temp\launch_word.cmd"
     if ($DocumentPath -and (Test-Path $DocumentPath)) {
         $batchContent = "@echo off`r`nstart `"`" `"$WordExe`" `"$DocumentPath`""
@@ -68,18 +75,33 @@ function Launch-WordDocumentInteractive {
     [System.IO.File]::WriteAllText($launchScript, $batchContent)
 
     $taskName = "LaunchWord_GA"
-    $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
-
-    # schtasks writes informational output to stderr which triggers
-    # terminating errors under $ErrorActionPreference = "Stop".
     $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
-        $ErrorActionPreference = "Continue"
-        schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
-        schtasks /Run /TN $taskName 2>$null
-        Start-Sleep -Seconds $WaitSeconds
+        # Cold-boot interactive sessions can hang the first GUI launch. Launch, verify
+        # Word actually rendered a window, and retry (kill + relaunch) until it does.
+        # Replaces the savevm checkpoint that pre-baked a warmed, rendered Word.
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            Get-Process WINWORD -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+            $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
+            schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
+            schtasks /Run /TN $taskName 2>$null
+            schtasks /Delete /TN $taskName /F 2>$null
+            $waited = 0
+            while ($waited -lt $WaitSeconds) {
+                Start-Sleep -Seconds 3
+                $waited += 3
+                if (Test-WordRendered) { break }
+            }
+            if (Test-WordRendered) {
+                Write-Host "Word rendered on attempt $attempt."
+                return
+            }
+            Write-Host "Word did not render on attempt $attempt (cold-boot hang); retrying..."
+        }
+        Write-Host "WARNING: Word failed to render after $MaxAttempts attempts."
     } finally {
-        schtasks /Delete /TN $taskName /F 2>$null
         Remove-Item $launchScript -Force -ErrorAction SilentlyContinue
         $ErrorActionPreference = $prevEAP
     }

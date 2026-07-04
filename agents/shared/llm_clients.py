@@ -176,6 +176,42 @@ def call_claude_with_retry(
     return response
 
 
+# Models that support the 2025-11-24 computer-use beta and computer_20251124
+# tool schema. Anything else falls back to the 2025-01-24 stack.
+_NEW_COMPUTER_USE_MODELS = ("opus-4-5", "opus-4-6", "opus-4-7", "sonnet-4-6")
+
+# Models whose API rejects the legacy `thinking.type.enabled` + `budget_tokens`
+# pair and instead require `thinking.type.adaptive` + `output_config.effort`.
+# Currently confirmed for the 4.7 family. 4.6 still accepts the legacy form.
+_ADAPTIVE_THINKING_MODELS = ("opus-4-7", "sonnet-4-7", "haiku-4-7")
+
+
+def _pick_computer_tool_version(model: str) -> tuple[str, str]:
+    """Return (tool_type, beta_flag) appropriate for the requested model."""
+    if any(tag in model for tag in _NEW_COMPUTER_USE_MODELS):
+        return "computer_20251124", "computer-use-2025-11-24"
+    return "computer_20250124", "computer-use-2025-01-24"
+
+
+def _uses_adaptive_thinking(model: str) -> bool:
+    return any(tag in model for tag in _ADAPTIVE_THINKING_MODELS)
+
+
+def _budget_to_effort(budget: int) -> str:
+    """Map legacy thinking_budget tokens to the new effort tiers.
+
+    Anthropic's computer-use guidance recommends `high` as the default for
+    Opus 4.7. Callers that pass a smaller budget get scaled down accordingly.
+    """
+    if budget <= 0:
+        return "low"
+    if budget <= 4096:
+        return "low"
+    if budget <= 12000:
+        return "medium"
+    return "high"
+
+
 def call_claude(
     messages,
     model,
@@ -188,19 +224,37 @@ def call_claude(
 ):
     del top_p
     client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    tool_version = "20250124"
-    beta_flag = "computer-use-2025-01-24"
+    tool_type, beta_flag = _pick_computer_tool_version(model)
+    # Declare the dims we actually SEND (resized 1280x720) rather than the
+    # native env display (1920x1080). Anthropic's published guidance for 16:9
+    # sources is to resize before sending; we then scale Claude's coordinates
+    # back up to the env's native resolution via convert_point_format_claude.
+    # Cuts image token cost roughly in half compared with sending native.
     tools = [
         {
-            "type": f"computer_{tool_version}",
+            "type": tool_type,
             "name": "computer",
-            "display_width_px": 1920,
-            "display_height_px": 1080,
+            "display_width_px": 1280,
+            "display_height_px": 720,
         },
-        {"type": f"bash_{tool_version}", "name": "bash"},
+        {"type": "bash_20250124", "name": "bash"},
     ][: 1 if not use_all_tools else None]
 
-    kwargs = {"thinking": {"type": "enabled", "budget_tokens": thinking_budget}} if thinking_budget != -1 else {}
+    if thinking_budget == -1:
+        kwargs = {}
+    elif _uses_adaptive_thinking(model):
+        # Opus/Sonnet/Haiku 4.7 reject the legacy thinking.type.enabled +
+        # budget_tokens form and require adaptive thinking + an effort tier.
+        # See https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        # Anthropic's guidance for computer-use on Opus 4.7 is "high" as the
+        # default; we derive the effort from the requested thinking_budget so
+        # callers can still tune cost/quality the same way as before.
+        kwargs = {
+            "thinking": {"type": "adaptive"},
+            "extra_body": {"output_config": {"effort": _budget_to_effort(thinking_budget)}},
+        }
+    else:
+        kwargs = {"thinking": {"type": "enabled", "budget_tokens": thinking_budget}}
     response = call_claude_with_retry(
         client,
         model,
@@ -235,66 +289,147 @@ def convert_point_format_claude(x, y):
     return int(x * 1920 / 1280), int(y * 1080 / 720)
 
 
-def claude_parse_tool_result(action_json):
+def claude_parse_tool_result(action_json, coord_scale=convert_point_format_claude):
+    """Translate one Claude computer-use tool_use into the wire actions the env runner expects.
+
+    `coord_scale(x, y)` maps a coordinate from Claude's image space into the
+    native screen space. Default matches the legacy 1280x720 -> 1920x1080 path
+    so existing callers are unchanged; new callers (e.g. ClaudeFixedAgent that
+    sends native-resolution screenshots) can pass an identity function.
+    """
+
+    # Bash tool result (only fires when bash tool is enabled at call_claude time).
     if "command" in action_json:
         return [{"action": "bash", "command": action_json["command"]}]
-    if action_json["action"] == "screenshot":
+
+    action = action_json.get("action")
+
+    # Pure observation actions.
+    if action == "screenshot":
+        return [{"action": "screenshot"}]
+    if action == "cursor_position":
+        # The env wire protocol has no cursor-position primitive; return a
+        # screenshot so the model can read the cursor visually rather than
+        # have the call silently dropped.
+        return [{"action": "screenshot"}]
+    if action == "zoom":
+        # computer_20251124 zoom is not implemented locally; fall back to a
+        # plain screenshot so the model still gets visual feedback.
         return [{"action": "screenshot"}]
 
-    if action_json["action"] == "key":
-        actions = [{"keyboard": {"keys": action_json["text"]}}]
-    elif action_json["action"] == "type":
-        actions = []
-        if action_json.get("clear"):
-            actions.append({"keyboard": {"keys": ["ctrl", "a"]}})
-        actions.append({"keyboard": {"text": action_json["text"]}})
-        if action_json.get("enter"):
-            actions.append({"keyboard": {"keys": ["Return"]}})
-    elif action_json["action"] == "mouse_move":
-        x, y = convert_point_format_claude(action_json["coordinate"][0], action_json["coordinate"][1])
-        actions = [{"mouse": {"move": [x, y]}}]
-    elif action_json["action"] in {"left_click", "click"}:
-        x, y = convert_point_format_claude(action_json["coordinate"][0], action_json["coordinate"][1])
-        actions = [{"mouse": {"left_click": [x, y]}}]
-    elif action_json["action"] == "right_click":
-        x, y = convert_point_format_claude(action_json["coordinate"][0], action_json["coordinate"][1])
-        actions = [{"mouse": {"right_click": [x, y]}}]
-    elif action_json["action"] == "double_click":
-        x, y = convert_point_format_claude(action_json["coordinate"][0], action_json["coordinate"][1])
-        actions = [{"mouse": {"double_click": [x, y]}}]
-    elif action_json["action"] in {"left_click_drag", "drag"}:
+    # Keyboard.
+    if action == "key":
+        keys = action_json.get("text", action_json.get("keys"))
+        return [{"keyboard": {"keys": keys}}] if keys else []
+    if action == "type":
+        text = action_json.get("text", "")
+        return [{"keyboard": {"text": text}}] if text else []
+    if action == "hold_key":
+        keys = action_json.get("text") or action_json.get("keys")
+        duration = float(action_json.get("duration", 1.0))
+        if not keys:
+            return []
+        keys_list = [keys] if isinstance(keys, str) else list(keys)
+        return [
+            {"keyboard": {"keys_down": keys_list}},
+            {"action": "wait", "time": duration},
+            {"keyboard": {"keys_up": keys_list}},
+        ]
+
+    # Fine-grained mouse buttons.
+    if action == "left_mouse_down":
+        return [{"mouse": {"buttons": {"left_down": True}}}]
+    if action == "left_mouse_up":
+        return [{"mouse": {"buttons": {"left_up": True}}}]
+
+    if action == "mouse_move":
+        x, y = coord_scale(action_json["coordinate"][0], action_json["coordinate"][1])
+        return [{"mouse": {"move": [x, y]}}]
+
+    if action == "wait":
+        # Emit the env's recognised control-action shape ({"action":"wait","time":...}).
+        # The previous shape ({"wait":{...}}) was a silent no-op.
+        seconds = float(action_json.get("duration", action_json.get("time", 1.0)))
+        return [{"action": "wait", "time": seconds}]
+
+    # Click/scroll family. Per the official spec, these can carry a `text`
+    # field naming a modifier key (shift/ctrl/alt/super) that must be held
+    # for the duration of the click/scroll. We expand it as
+    # [keys_down] + click + [keys_up] so the modifier is held end-to-end.
+    modifier = action_json.get("text") if action in {
+        "left_click", "click", "right_click", "middle_click",
+        "double_click", "triple_click", "scroll",
+        "left_click_drag", "drag",
+    } else None
+
+    def _wrap(inner):
+        if not modifier:
+            return inner
+        mod_list = [modifier] if isinstance(modifier, str) else list(modifier)
+        return (
+            [{"keyboard": {"keys_down": mod_list}}]
+            + inner
+            + [{"keyboard": {"keys_up": mod_list}}]
+        )
+
+    if action in {"left_click", "click"}:
+        x, y = coord_scale(action_json["coordinate"][0], action_json["coordinate"][1])
+        return _wrap([{"mouse": {"left_click": [x, y]}}])
+    if action == "right_click":
+        x, y = coord_scale(action_json["coordinate"][0], action_json["coordinate"][1])
+        return _wrap([{"mouse": {"right_click": [x, y]}}])
+    if action == "middle_click":
+        x, y = coord_scale(action_json["coordinate"][0], action_json["coordinate"][1])
+        return _wrap([{"mouse": {"middle_click": [x, y]}}])
+    if action == "double_click":
+        x, y = coord_scale(action_json["coordinate"][0], action_json["coordinate"][1])
+        return _wrap([{"mouse": {"double_click": [x, y]}}])
+    if action == "triple_click":
+        x, y = coord_scale(action_json["coordinate"][0], action_json["coordinate"][1])
+        return _wrap([{"mouse": {"triple_click": [x, y]}}])
+
+    if action in {"left_click_drag", "drag"}:
         if "start_coordinate" in action_json:
-            x1, y1 = convert_point_format_claude(action_json["start_coordinate"][0], action_json["start_coordinate"][1])
-            if "end_coordinate" in action_json:
-                x2, y2 = convert_point_format_claude(action_json["end_coordinate"][0], action_json["end_coordinate"][1])
+            x1, y1 = coord_scale(action_json["start_coordinate"][0], action_json["start_coordinate"][1])
+            if "coordinate" in action_json:
+                x2, y2 = coord_scale(action_json["coordinate"][0], action_json["coordinate"][1])
+            elif "end_coordinate" in action_json:
+                x2, y2 = coord_scale(action_json["end_coordinate"][0], action_json["end_coordinate"][1])
             else:
-                x2, y2 = convert_point_format_claude(action_json["coordinate"][0], action_json["coordinate"][1])
+                x2, y2 = x1, y1
         else:
-            x1, y1 = convert_point_format_claude(action_json["coordinate"][0], action_json["coordinate"][1])
-            x2, y2 = convert_point_format_claude(action_json["coordinate2"][0], action_json["coordinate2"][1])
-        actions = [
+            x1, y1 = coord_scale(action_json["coordinate"][0], action_json["coordinate"][1])
+            x2, y2 = coord_scale(action_json["coordinate2"][0], action_json["coordinate2"][1])
+        return _wrap([
             {"mouse": {"move": [x1, y1]}},
             {"mouse": {"buttons": {"left_down": True}}},
             {"mouse": {"move": [x2, y2]}},
             {"mouse": {"buttons": {"left_up": True}}},
-        ]
-    elif action_json["action"] == "scroll":
-        if "coordinate" in action_json:
-            x, y = convert_point_format_claude(action_json["coordinate"][0], action_json["coordinate"][1])
-            actions = [
-                {"mouse": {"move": [x, y]}},
-                {"mouse": {"scroll": action_json["pixels"] if "pixels" in action_json else action_json.get("scroll", 0)}},
-            ]
-        else:
-            actions = [{"mouse": {"scroll": action_json["pixels"] if "pixels" in action_json else action_json.get("scroll", 0)}}]
-    elif action_json["action"] == "wait":
-        actions = [{"wait": {"time": action_json.get("time", 1.0)}}]
-    elif action_json["action"] == "terminate":
-        actions = [{"terminate": {"status": action_json.get("status", "success")}}]
-    else:
-        actions = []
+        ])
 
-    return actions
+    if action == "scroll":
+        direction = action_json.get("scroll_direction", "down")
+        # Official spec uses scroll_amount; legacy callers may still pass pixels/scroll.
+        amount = int(action_json.get(
+            "scroll_amount",
+            action_json.get("pixels", action_json.get("scroll", 3)),
+        ))
+        if direction == "up":
+            dy = -amount
+        elif direction == "down":
+            dy = amount
+        else:
+            # left/right have no env primitive; default to vertical so the
+            # call is not a silent no-op.
+            dy = amount
+        inner = []
+        if "coordinate" in action_json:
+            x, y = coord_scale(action_json["coordinate"][0], action_json["coordinate"][1])
+            inner.append({"mouse": {"move": [x, y]}})
+        inner.append({"mouse": {"scroll": dy}})
+        return _wrap(inner)
+
+    return []
 
 
 def smart_resize(height, width, factor=32, max_pixels=16 * 16 * 4 * 1280):

@@ -57,7 +57,7 @@ Write-Host "OneDrive disabled from autostart."
 Remove-Item $markerDone -ErrorAction SilentlyContinue
 Remove-Item "$toolDir\setup_error.txt" -ErrorAction SilentlyContinue
 
-# ─── Write the interactive setup script (runs in Session 1) ───────
+# --- Write the interactive setup script (runs in Session 1) -------
 $interactiveScript = @'
 # interactive_setup.ps1 - runs in Session 1 via schtasks /IT
 # Uses SendKeys to interact with BaseCamp GUI
@@ -302,6 +302,16 @@ schtasks /Run /TN "CleanupDesktop_GA" 2>$null
 Start-Sleep -Seconds 5
 schtasks /Delete /TN "CleanupDesktop_GA" /F 2>$null
 Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
+
+# Base launch: restore backed-up database and leave BaseCamp open at t=0 for
+# every episode (robust against cold-boot hang). Replaces the savevm checkpoint's
+# baked-in running app. Tasks that need a specific state relaunch in their pre_task.
+try {
+    . C:\workspace\scripts\task_utils.ps1
+    Restore-BaseCampData | Out-Null
+    $bcOk = Launch-BaseCampInteractive -WaitSeconds 80
+    if ($bcOk) { Write-Host "Base BaseCamp launch complete." }
+} catch { Write-Host "WARNING: Base BaseCamp launch failed: $($_.Exception.Message)" }
 
 Write-Host "=== Garmin BaseCamp setup complete ==="
 Stop-Transcript | Out-Null

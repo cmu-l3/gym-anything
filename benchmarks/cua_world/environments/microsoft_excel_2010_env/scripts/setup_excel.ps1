@@ -158,6 +158,16 @@ Start-Sleep -Milliseconds 500
     Write-Host "Available data files in ${TasksDir}:"
     Get-ChildItem $TasksDir -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  - $($_.Name)" }
 
+    # Base launch: leave Excel open and rendered at t=0 for EVERY episode (robust
+    # against cold-boot hang). Replaces the savevm checkpoint's baked-in running app;
+    # tasks that open a specific workbook relaunch it in their own pre_task.
+    try {
+        $baseExe = Find-ExcelExe
+        Launch-ExcelDocumentInteractive -ExcelExe $baseExe -WaitSeconds 25
+        try { Dismiss-ExcelDialogsBestEffort } catch { }
+        Write-Host "Base Excel launch complete."
+    } catch { Write-Host "WARNING: base Excel launch failed: $($_.Exception.Message)" }
+
     Write-Host "=== Excel 2010 environment setup complete ==="
 } finally {
     try { Stop-Transcript | Out-Null } catch { }
