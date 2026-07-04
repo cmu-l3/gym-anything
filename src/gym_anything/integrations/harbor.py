@@ -112,6 +112,14 @@ class GymAnythingEnvironment(BaseEnvironment):
         )
         # Harbor owns the trial's step/time budget.
         env.set_episode_limits(max_steps=100_000, timeout_sec=10**9)
+        # Docker images get these from harbor's mount structure; a guest VM
+        # must create them so phase log/artifact transfers have a target.
+        env.runner.exec(
+            self._root_shell(
+                "mkdir -p /logs/agent /logs/verifier /logs/artifacts && chmod -R 777 /logs"
+            ),
+            use_pty=False,
+        )
         self._env = env
 
     async def stop(self, delete: bool):
