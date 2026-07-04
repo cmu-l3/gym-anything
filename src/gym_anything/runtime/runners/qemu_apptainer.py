@@ -2159,42 +2159,67 @@ class QemuApptainerRunner(BaseRunner):
                 )
 
     def _ssh_with_paramiko(self, cmd: str, capture: bool, timeout: int, use_pty: bool = True) -> subprocess.CompletedProcess:
-        """Fallback SSH using Python's paramiko with key or password authentication."""
+        """Fallback SSH using Python's paramiko with key or password authentication.
+
+        Connection setup is retried: back-to-back SSH sessions (hooks, exec,
+        screenshots, verifier copies) can trip sshd MaxStartups throttling or
+        drop the banner, which otherwise surfaces as a silent empty result.
+        """
         try:
             import paramiko
-            ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
-
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            # For Windows, use password auth directly with configured credentials
-            if self.is_windows:
-                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                              password=self._ssh_password, timeout=10, look_for_keys=False)
-            else:
-                # Try key-based auth first for Linux
-                try:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  key_filename=str(ssh_key), timeout=10, look_for_keys=False)
-                except:
-                    # Fallback to password
-                    client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                                  password=self._ssh_password, timeout=10, look_for_keys=False)
-
-            # Only request PTY if needed (for sudo/su compatibility)
-            # Disable PTY for task init to prevent SIGHUP killing background processes
-            stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=use_pty)
-            exit_code = stdout.channel.recv_exit_status()
-            out = stdout.read()
-            err = stderr.read()
-            client.close()
-            return subprocess.CompletedProcess([], exit_code, out, err)
         except ImportError:
             print("[QemuApptainer] Warning: paramiko not available, SSH commands may fail")
             return subprocess.CompletedProcess([], 1, b"", b"paramiko not available")
-        except Exception as e:
-            print(f"[QemuApptainer] Paramiko error: {e}")
-            return subprocess.CompletedProcess([], 1, b"", str(e).encode())
+
+        ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
+        last_err = None
+        for attempt in range(4):
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                # For Windows, use password auth directly with configured credentials
+                if self.is_windows:
+                    client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                                  password=self._ssh_password, timeout=15, look_for_keys=False)
+                else:
+                    # Try key-based auth first for Linux
+                    try:
+                        client.connect("localhost", port=self.ssh_port, username="ga",
+                                      key_filename=str(ssh_key), timeout=15, look_for_keys=False)
+                    except Exception:
+                        # Fallback to password
+                        client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                                      password=self._ssh_password, timeout=15, look_for_keys=False)
+            except Exception as e:
+                last_err = e
+                try:
+                    client.close()
+                except Exception:
+                    pass
+                if attempt < 3:
+                    print(f"[QemuApptainer] Paramiko connect failed ({e}); retry in {2 * (attempt + 1)}s")
+                    time.sleep(2 * (attempt + 1))
+                    continue
+                print(f"[QemuApptainer] Paramiko error: {e}")
+                return subprocess.CompletedProcess([], 1, b"", str(e).encode())
+
+            try:
+                # Only request PTY if needed (for sudo/su compatibility)
+                # Disable PTY for task init to prevent SIGHUP killing background processes
+                stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=use_pty)
+                exit_code = stdout.channel.recv_exit_status()
+                out = stdout.read()
+                err = stderr.read()
+                client.close()
+                return subprocess.CompletedProcess([], exit_code, out, err)
+            except Exception as e:
+                try:
+                    client.close()
+                except Exception:
+                    pass
+                print(f"[QemuApptainer] Paramiko exec error: {e}")
+                return subprocess.CompletedProcess([], 1, b"", str(e).encode())
+        return subprocess.CompletedProcess([], 1, b"", str(last_err).encode())
     
     def exec(self, cmd: str, env: Optional[Dict[str, str]] = None, user: Optional[str] = None, use_pty: bool = True, timeout: int = 600) -> int:
         """Execute command via SSH or ADB shell.
@@ -2343,28 +2368,14 @@ class QemuApptainerRunner(BaseRunner):
     def _sftp_copy_to(self, host_src: str, container_dst: str) -> None:
         """Copy file/directory to VM using paramiko SFTP with password auth."""
         try:
-            import paramiko
-            ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
+            client = self._sftp_connect()
 
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            # Windows: Use configured credentials directly
             if self.is_windows:
-                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                              password=self._ssh_password, timeout=30, look_for_keys=False)
                 # Convert Windows path to SFTP format (forward slashes, no drive letter)
                 sftp_dst = container_dst.replace("\\", "/")
                 if len(sftp_dst) >= 2 and sftp_dst[1] == ':':
                     sftp_dst = sftp_dst[2:]  # Remove "C:" prefix for SFTP
             else:
-                # Linux: Try key first, then password
-                try:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  key_filename=str(ssh_key), timeout=10, look_for_keys=False)
-                except:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  password="password123", timeout=10, look_for_keys=False)
                 sftp_dst = container_dst
 
             sftp = client.open_sftp()
@@ -2443,27 +2454,49 @@ class QemuApptainerRunner(BaseRunner):
         # Fallback to SFTP via paramiko
         self._sftp_copy_from(container_src, host_dst)
 
+    def _sftp_connect(self):
+        """Open an SSH client with retries.
+
+        Rapid successive connections (hook + screenshots + verifier copies at
+        episode finalize) can trip sshd MaxStartups throttling, which
+        surfaces as 'Error reading SSH protocol banner'. Retry briefly.
+        """
+        import paramiko
+        ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
+
+        last_err = None
+        for attempt in range(4):
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                # Windows: Use configured credentials directly
+                if self.is_windows:
+                    client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                                  password=self._ssh_password, timeout=30, look_for_keys=False)
+                else:
+                    # Linux: Try key first, then password
+                    try:
+                        client.connect("localhost", port=self.ssh_port, username="ga",
+                                      key_filename=str(ssh_key), timeout=10, look_for_keys=False)
+                    except Exception:
+                        client.connect("localhost", port=self.ssh_port, username="ga",
+                                      password="password123", timeout=10, look_for_keys=False)
+                return client
+            except Exception as e:
+                last_err = e
+                try:
+                    client.close()
+                except Exception:
+                    pass
+                if attempt < 3:
+                    print(f"[QemuApptainer] SSH connect failed ({e}); retrying in {2 * (attempt + 1)}s")
+                    time.sleep(2 * (attempt + 1))
+        raise last_err
+
     def _sftp_copy_from(self, container_src: str, host_dst: str) -> None:
         """Copy file/directory from VM using paramiko SFTP with password auth."""
         try:
-            import paramiko
-            ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
-
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            # Windows: Use configured credentials directly
-            if self.is_windows:
-                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                              password=self._ssh_password, timeout=30, look_for_keys=False)
-            else:
-                # Linux: Try key first, then password
-                try:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  key_filename=str(ssh_key), timeout=10, look_for_keys=False)
-                except:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  password="password123", timeout=10, look_for_keys=False)
+            client = self._sftp_connect()
 
             sftp = client.open_sftp()
 

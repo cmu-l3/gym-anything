@@ -1,0 +1,109 @@
+---
+title: Training Hubs
+description: Publishable packages that expose gym-anything benchmarks to external RL stacks (prime-rl / verifiers today).
+---
+
+Training stacks like [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl)
+consume environments as installable packages that expose a
+`load_environment()` function (the
+[verifiers](https://github.com/PrimeIntellect-ai/verifiers) protocol). The
+`extras/hubs/` tree holds those packages: one folder per provider, one
+package per benchmark, each a thin shell over the library.
+
+## The layers
+
+A hub package contains no logic at all. The work is split so N providers
+times M benchmarks costs one adapter per provider and one declaration per
+benchmark:
+
+1. **Benchmark layout contract (core)** — `gym_anything.registry` enumerates
+   any benchmark root that follows the standard shape
+   (`environments/<env>/env.json` + `tasks/<id>/`, `splits/*_split.json`,
+   `splits/verified.json`). Adding a benchmark folder makes it consumable by
+   every downstream surface with no integration-specific binding code.
+2. **Protocol adapter (core)** — `gym_anything.integrations.verifiers`
+   turns any gym-anything env into a verifiers `MultiTurnEnv` that runs a
+   **real reference agent's `step()` verbatim** — the same class `--agent`
+   selects locally. The one substitution is the agent's model call
+   (`self.llm_call`): a bridge suspends `step()`, hands the messages the
+   agent just built to the framework as the turn's prompt, and resumes it
+   with the sampled completion. Message construction, history management,
+   and parsing are the agent's own code, so the local and driven harnesses
+   cannot diverge (`tests/test_agent_driver_parity.py` pins this). The
+   episode is scored by the env's real verifier while the VM is still
+   alive. `gym_anything.integrations.hub` supplies the dataset rows
+   (`build_task_rows`) and the canonical `load_environment` surface.
+   Installed with the `prime-rl` extra: `pip install "gym-anything[prime-rl]"`.
+3. **Publishable shell (extras/hubs)** — `extras/hubs/prime/cua_world/` is a
+   declaration: `make_hub_loader("cua_world", env_id="cua-world", ...)` plus
+   the `pyproject.toml` and `README.md` the hub ingests. `env_args` (what
+   prime-rl workers use to re-instantiate the environment) is derived from
+   the canonical signature, so it stays faithful by construction.
+
+Agents mirror `--agent` / `--agent_args` on local evaluation: pass `agent`
+(a class name from `agents/agents/`, e.g. `"Qwen3VLAgent"`) and `agent_args`
+in the env args. Any agent whose `step()` routes its model call through
+`self.llm_call` and speaks OpenAI messages is drivable; provider-native
+agents (Anthropic/Google native tools) are rejected with a clear error.
+Because agents may rebuild their prompt each turn (windowed history), use
+prime-rl's `trajectory_strategy = "branching"` when training with such
+agents; append-only agents also work with `"interleaved"`.
+
+## Quickstart
+
+```bash
+# From the repo root: editable gym-anything, then the shell without deps so
+# it resolves your checkout instead of the git-tag pin.
+uv pip install -e ".[modal,prime-rl,benchmark]"
+uv pip install -e extras/hubs/prime/cua_world --no-deps
+
+vf-eval cua-world -m google/gemini-3.5-flash \
+  -b https://api.pinference.ai/api/v1 -k PRIME_API_KEY \
+  -n 1 -r 1 \
+  -a '{"env_names": ["gimp_env"], "task_ids": ["horizontal_mirror"], "max_turns": 10}'
+```
+
+With the default `runner="modal"` each rollout boots a real Linux, Windows,
+or Android guest in a Modal VM Sandbox (see
+[Runners](/docs/core/runners#modal)). Pass `remote_url` instead to run
+rollouts on a gym-anything [remote cluster](/docs/core/remote); the worker
+then picks the runner.
+
+In a prime-rl training config the environment is referenced by id, and
+`args` is forwarded verbatim to `load_environment(**args)`:
+
+```toml
+[[orchestrator.train.env]]
+id = "cua-world"
+args = { env_names = ["gimp_env"], split = "train", max_turns = 15 }
+```
+
+## Rewards
+
+The reward is the benchmark's own. At episode end the task's `post_task`
+hook runs in the VM, the task's `verifier.py` produces
+`{passed, score, feedback}`, and the score maps to reward exactly as
+gym-anything does natively (sparse tasks give 0/1, partial/rubric give
+score/100). Zero-weight diagnostic metrics (`verifier_passed`,
+`verifier_score`, `actions_executed`, `parse_errors`) ride along. Pass
+`verifier_mode="vlm_checklist"` (plus `vlm_*` args) to grade against each
+task's `vlm_checklist.json` with a VLM instead.
+
+## Publishing
+
+`prime env push --path extras/hubs/prime/cua_world` publishes to the
+Environments Hub. The package depends on a git-tag-pinned `gym-anything` so
+it installs standalone (no `[tool.uv.sources]` path override: `prime env
+push` installs from the source directory, where a local path would not
+exist). To publish a new version, push a new `gym-anything-cua-v*` tag,
+bump the pin and the package version, and re-push.
+
+## Adding a provider or benchmark
+
+A new provider gets `extras/hubs/<provider>/`, and if it speaks a different
+protocol, a sibling adapter module in `gym_anything/integrations/`. A new
+benchmark that follows the layout contract needs no integration code at
+all: pass its root or package name to `load_benchmark_environment`, or mint
+a declaration shell here (a `make_hub_loader` call plus packaging) if it
+should have its own hub listing. Shells must consume core through the
+public API only.

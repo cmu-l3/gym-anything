@@ -180,5 +180,41 @@ class BenchmarkRegistryTests(unittest.TestCase):
             )
 
 
+class CoreRegistryContractTests(unittest.TestCase):
+    """The benchmark layout contract in core (gym_anything.registry)."""
+
+    def test_resolve_benchmark_root_by_path_and_package(self) -> None:
+        from gym_anything.registry import resolve_benchmark_root
+
+        by_name = resolve_benchmark_root("cua_world")
+        self.assertTrue((by_name / "environments").is_dir())
+        self.assertEqual(resolve_benchmark_root(by_name), by_name)
+        with self.assertRaises(ValueError):
+            resolve_benchmark_root("not_a_benchmark_anywhere")
+
+    def test_list_environments_from_a_bare_root(self) -> None:
+        from gym_anything.registry import get_tasks_for_environment, list_environments
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for env, tasks in {"b_env": ["t1"], "a_env": ["t2", "t3"], "empty_env": []}.items():
+                for task in tasks:
+                    (root / "environments" / env / "tasks" / task).mkdir(parents=True)
+                (root / "environments" / env).mkdir(parents=True, exist_ok=True)
+            self.assertEqual(list_environments(root), ["a_env", "b_env"])
+            self.assertEqual(get_tasks_for_environment("a_env", root), ["t2", "t3"])
+
+    def test_cua_world_registry_is_a_thin_binding(self) -> None:
+        # The wrapper and core must agree on the real corpus.
+        from benchmarks.cua_world.registry import DEFAULT_ENVIRONMENTS_ROOT, DEFAULT_SPLITS_ROOT
+        from gym_anything.registry import load_environment_task_splits as core_splits
+
+        wrapped = load_environment_task_splits(surface="raw")
+        direct = core_splits(
+            splits_root=DEFAULT_SPLITS_ROOT, environments_root=DEFAULT_ENVIRONMENTS_ROOT
+        )
+        self.assertEqual(wrapped, direct)
+
+
 if __name__ == "__main__":
     unittest.main()
