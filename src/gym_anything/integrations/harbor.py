@@ -172,8 +172,12 @@ class GymAnythingEnvironment(BaseEnvironment):
             use_pty=False,
             timeout=int(timeout_sec or 600),
         )
-        stdout = runner.exec_capture(f"cat {out_path} 2>/dev/null; rm -f {out_path}")
-        stderr = runner.exec_capture(f"cat {err_path} 2>/dev/null; rm -f {err_path}")
+        stdout = runner.exec_capture(
+            self._root_shell(f"cat {out_path} 2>/dev/null; rm -f {out_path}")
+        )
+        stderr = runner.exec_capture(
+            self._root_shell(f"cat {err_path} 2>/dev/null; rm -f {err_path}")
+        )
         return ExecResult(stdout=stdout, stderr=stderr, return_code=return_code)
 
     # -- verification ----------------------------------------------------------
@@ -234,7 +238,13 @@ class GymAnythingEnvironment(BaseEnvironment):
     # The runner's transfer channel runs as the unprivileged guest user, while
     # Harbor's contract paths are root-owned. Every transfer therefore stages
     # through /tmp in the guest and lets the runner's privileged exec do the
-    # final move (or the initial copy-out).
+    # final move (or the initial copy-out). Compound commands must go through
+    # _root_shell: the runner elevates by prefixing ``sudo -E`` onto the
+    # command string, so a bare ``a && b`` would run only ``a`` as root.
+
+    @staticmethod
+    def _root_shell(command: str) -> str:
+        return f"sh -c {shlex.quote(command)}"
 
     async def upload_file(self, source_path: Path | str, target_path: str):
         await asyncio.to_thread(self._upload_file_sync, str(source_path), str(target_path))
@@ -245,8 +255,10 @@ class GymAnythingEnvironment(BaseEnvironment):
         runner.copy_to(source_path, stage)
         parent = str(PurePosixPath(target_path).parent)
         rc = runner.exec(
-            f"mkdir -p {shlex.quote(parent)} && mv {stage} {shlex.quote(target_path)} "
-            f"&& chmod 644 {shlex.quote(target_path)}",
+            self._root_shell(
+                f"mkdir -p {shlex.quote(parent)} && mv {stage} {shlex.quote(target_path)} "
+                f"&& chmod 644 {shlex.quote(target_path)}"
+            ),
             use_pty=False,
         )
         if rc != 0:
@@ -261,8 +273,10 @@ class GymAnythingEnvironment(BaseEnvironment):
         runner.copy_to(source_dir, stage)
         quoted_target = shlex.quote(target_dir)
         rc = runner.exec(
-            f"mkdir -p {quoted_target} && cp -a {stage}/. {quoted_target}/ "
-            f"&& rm -rf {stage} && chmod -R 777 {quoted_target}",
+            self._root_shell(
+                f"mkdir -p {quoted_target} && cp -a {stage}/. {quoted_target}/ "
+                f"&& rm -rf {stage} && chmod -R 777 {quoted_target}"
+            ),
             use_pty=False,
         )
         if rc != 0:
@@ -275,7 +289,9 @@ class GymAnythingEnvironment(BaseEnvironment):
         runner = self._runner
         stage = f"/tmp/.hb-out-{uuid.uuid4().hex}"
         rc = runner.exec(
-            f"cp -a {shlex.quote(source_path)} {stage} && chmod 644 {stage}",
+            self._root_shell(
+                f"cp -a {shlex.quote(source_path)} {stage} && chmod 644 {stage}"
+            ),
             use_pty=False,
         )
         if rc != 0:
@@ -292,8 +308,10 @@ class GymAnythingEnvironment(BaseEnvironment):
         runner = self._runner
         stage = f"/tmp/.hb-out-{uuid.uuid4().hex}"
         rc = runner.exec(
-            f"rm -rf {stage} && cp -a {shlex.quote(source_dir)} {stage} "
-            f"&& chmod -R 755 {stage}",
+            self._root_shell(
+                f"rm -rf {stage} && cp -a {shlex.quote(source_dir)} {stage} "
+                f"&& chmod -R 755 {stage}"
+            ),
             use_pty=False,
         )
         if rc != 0:
