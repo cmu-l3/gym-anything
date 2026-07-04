@@ -115,6 +115,27 @@ class HarborBackendTests(unittest.TestCase):
         self.assertTrue(issubclass(GymAnythingEnvironment, BaseEnvironment))
         self.assertEqual(GymAnythingEnvironment.type(), "gym-anything")
 
+    def test_agent_is_loadable_by_import_path(self) -> None:
+        """Same contract for the parity agent (--agent-import-path)."""
+        from harbor.agents.base import BaseAgent
+
+        from gym_anything.integrations.harbor_agent import CuaWorldAgent
+
+        self.assertTrue(issubclass(CuaWorldAgent, BaseAgent))
+        self.assertEqual(CuaWorldAgent.name(), "cua-world-agent")
+
+    def test_agent_rejects_foreign_environments(self) -> None:
+        """The parity agent needs the gym-anything backend and says so."""
+        import tempfile as _tempfile
+
+        from gym_anything.integrations.harbor_agent import CuaWorldAgent
+
+        with _tempfile.TemporaryDirectory() as tmp:
+            agent = CuaWorldAgent(logs_dir=Path(tmp), model_name="m")
+            with self.assertRaises(RuntimeError) as ctx:
+                agent._run_sync("do it", object())
+        self.assertIn("GymAnythingEnvironment", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
