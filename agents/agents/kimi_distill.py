@@ -20,8 +20,6 @@ class CustomJSONEncoder(json.JSONEncoder):
 
 
 class KimiDistillAgent(DrivableAgentMixin, KimiAzureAgent):
-    # Kimi emits fractional (0-1) coordinates, scaled straight to pixels.
-    _driver_parse_ratio = (1920, 1080)
     """
     Kimi Azure agent with prompt aligned to osworld implementation.
     Uses relative coordinate scaling (1000x1000 grid) and osworld-matching action enum.
@@ -107,7 +105,7 @@ class KimiDistillAgent(DrivableAgentMixin, KimiAzureAgent):
         #     self.top_k,
         #     # self.max_tokens
         # )
-        response = call_llm(
+        response = self.llm_call(
             messages,
             self.model,
             self.temperature,

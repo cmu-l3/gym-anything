@@ -282,10 +282,10 @@ Previous actions:
 
         # Call LLM
         print(f"Calling LLM with temperature: {self.temperature}")
-        response = call_llm(
-            messages, 
-            self.model, 
-            self.temperature, 
+        response = self.llm_call(
+            messages,
+            self.model,
+            self.temperature,
             self.top_p,
             self.top_k,
             # self.max_tokens

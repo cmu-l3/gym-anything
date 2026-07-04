@@ -356,7 +356,7 @@ Rules:
 
         # Call LLM
         print(f"Calling LLM with temperature: {self.temperature}")
-        response = call_llm(
+        response = self.llm_call(
             messages,
             self.model,
             self.temperature,

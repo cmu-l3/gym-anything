@@ -4,14 +4,25 @@ Prime-rl serves the policy over an OpenAI-compatible endpoint and OWNS the
 sampling loop: it calls `env.rollout(client=<policy>, ...)` and trains on the
 tokens the policy generates. The environment never makes its own model call.
 
-So this adapter drives a **real reference agent** (the same class you select
-locally with `--agent`, e.g. `Qwen3VLAgent`) by reusing exactly its two
-model-facing halves — building the prompt messages and parsing the completion
-into env actions — while the framework does the sampling in between. There is
-no separate "scaffold": prime-rl uses the agent definition itself. Only
-OpenAI-message agents (those exposing the `driver_*` seam) can be driven this
-way; provider-native agents (Anthropic/Google native tools) cannot be served
-over an OpenAI policy endpoint.
+So this adapter runs a **real reference agent's `step()` verbatim** — the
+same class you select locally with `--agent` (e.g. `Qwen3VLAgent`) — with
+exactly one substitution: the agent's model call (`self.llm_call`, see
+`BaseAgent.llm_call`) is a bridge that suspends `step()`, hands the messages
+the agent just built to the framework as the turn's prompt, and resumes
+`step()` with the completion the framework sampled. Message construction,
+history management, screenshot handling, and parsing are therefore the
+agent's own code — the local harness and the driven harness cannot diverge
+because they are the same lines (`tests/test_agent_driver_parity.py` pins
+this).
+
+Because the agent rebuilds its prompt each turn (e.g. windowed history),
+each trajectory step carries its own prompt. For training, use prime-rl's
+`trajectory_strategy = "branching"` with windowed agents; agents whose
+prompts grow append-only work with `"interleaved"` as well.
+
+Only agents marked drivable (`driven = True`, OpenAI-message `llm_call`
+seam) can be run this way; provider-native agents (Anthropic/Google native
+tools) cannot be served over an OpenAI policy endpoint and are rejected.
 
 Dataset rows come from `hub.build_task_rows`. Requires the `prime-rl` extra.
 """
@@ -21,6 +32,10 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import queue
+import tempfile
+import threading
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -28,6 +43,8 @@ import verifiers as vf
 from datasets import Dataset
 
 DEFAULT_RESOLUTION = (1920, 1080)
+
+_BRIDGE_ABORT = object()
 
 
 def _make_agent(name: str, agent_args: Optional[Dict[str, Any]]):
@@ -48,7 +65,8 @@ def _make_agent(name: str, agent_args: Optional[Dict[str, Any]]):
         raise ValueError(
             f"Agent {name!r} cannot be driven by prime-rl: its model call is provider-native "
             "(Anthropic/Google/Azure) and does not run over an OpenAI policy endpoint. "
-            f"Pick an OpenAI-compatible agent (has the DrivableAgentMixin seam): {', '.join(drivable)}."
+            f"Pick an OpenAI-compatible agent (routes its model call through llm_call): "
+            f"{', '.join(drivable)}."
         )
     return agent
 
@@ -67,18 +85,121 @@ def _task_text(prompt_rows: Any) -> str:
     return "\n".join(p for p in parts if p).strip()
 
 
-def _obs_screenshot_b64(env: Any, obs: Optional[Dict[str, Any]]) -> str:
-    """Base64 PNG from an observation, for local and remote envs alike."""
+def _completion_text(completion: Any) -> str:
+    """Assistant text from a sampled completion (message list, dict, or str)."""
+    if isinstance(completion, str):
+        return completion
+    if isinstance(completion, list):
+        return "".join(_completion_text(m) for m in completion)
+    content = getattr(completion, "content", None)
+    if content is None and isinstance(completion, dict):
+        content = completion.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(
+            part.get("text", "") for part in content if isinstance(part, dict) and part.get("type") == "text"
+        )
+    return str(content or "")
+
+
+class RolloutAborted(Exception):
+    """Raised inside the agent thread when the rollout is torn down."""
+
+
+class _StepBridge:
+    """Suspends the agent's model call so the framework can sample.
+
+    agent thread                         async rollout loop
+    ------------                         ------------------
+    llm_call(messages) --requests-->     get_prompt_messages -> turn prompt
+      blocks                             framework samples the policy
+      returns text   <--completions--    send_completion(text)
+
+    The agent thread ends by putting a ("finished", error_or_None) request.
+    """
+
+    def __init__(self, call_timeout: float = 3600.0):
+        self._requests: "queue.Queue" = queue.Queue()
+        self._completions: "queue.Queue" = queue.Queue()
+        self._call_timeout = call_timeout
+        self.actions_executed = 0
+        self.parse_errors = 0
+
+    # -- agent-thread side --------------------------------------------------
+
+    def llm_call(self, messages, *args: Any, **kwargs: Any) -> str:
+        self._requests.put(("messages", messages))
+        item = self._completions.get(timeout=self._call_timeout)
+        if item is _BRIDGE_ABORT:
+            raise RolloutAborted()
+        return item
+
+    def finish(self, error: Optional[str] = None) -> None:
+        self._requests.put(("finished", error))
+
+    # -- rollout-loop side ---------------------------------------------------
+
+    def next_request(self, timeout: float = 1800.0) -> Tuple[str, Any]:
+        return self._requests.get(timeout=timeout)
+
+    def send_completion(self, text: str) -> None:
+        self._completions.put(text)
+
+    def abort(self) -> None:
+        self._completions.put(_BRIDGE_ABORT)
+
+
+def _localize_screen(env: Any, obs: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Ensure obs['screen']['path'] is a local file, as agents expect."""
     screen = (obs or {}).get("screen") or {}
-    b64 = screen.get("png_b64")
-    if b64:
-        return b64
     path = screen.get("path")
-    if not path:
-        raise RuntimeError("observation carries no screen image")
-    if screen.get("remote"):
-        path = env.fetch_path(path)
-    return base64.b64encode(Path(path).read_bytes()).decode()
+    if path and screen.get("remote"):
+        screen["path"] = env.fetch_path(path)
+        screen.pop("remote", None)
+    elif not path and screen.get("png_b64"):
+        tmp = Path(tempfile.mkdtemp()) / "screen.png"
+        tmp.write_bytes(base64.b64decode(screen["png_b64"]))
+        screen["path"] = str(tmp)
+    return obs
+
+
+def _episode_loop(env: Any, agent: Any, bridge: _StepBridge, first_obs: Any) -> None:
+    """The local evaluation loop, verbatim (mirrors run_single's inner loop).
+
+    Runs on a worker thread. The only difference from a local run is that
+    agent.step()'s model call suspends on the bridge instead of hitting a
+    client. Keep this in lockstep with agents/evaluation/run_single.py; the
+    parity test compares the two.
+    """
+    error: Optional[str] = None
+    try:
+        obs = _localize_screen(env, first_obs)
+        action_outputs: List[Dict[str, Any]] = []
+        while not agent.done:
+            actions = agent.step(obs, action_outputs)
+            action_outputs = []
+            done = False
+            for action in actions or []:
+                obs, _reward, done, info = env.step(action.get("actions") or [])
+                obs = _localize_screen(env, obs)
+                action_result = (info or {}).get(
+                    "action_result",
+                    {"action": "other", "output": "Executed the action"},
+                )
+                action_outputs.append({**action_result, "tool_id": action.get("tool_id")})
+                bridge.actions_executed += len(action.get("actions") or [])
+                metadata = action.get("metadata") or {}
+                if metadata.get("parse_error"):
+                    bridge.parse_errors += 1
+            if done:
+                break
+    except RolloutAborted:
+        return
+    except Exception:
+        error = traceback.format_exc()[-2000:]
+    finally:
+        bridge.finish(error)
 
 
 def _finalize_episode(state: "vf.State") -> None:
@@ -110,15 +231,13 @@ def _finalize_episode(state: "vf.State") -> None:
         state["episode_reward"] = float(reward or 0.0)
         state["verifier"] = verifier or {}
     except Exception as e:
-        import traceback
-
         state["episode_reward"] = 0.0
         state["verifier"] = {"error": f"{e}"}
         state["finalize_error"] = traceback.format_exc()[-2000:]
 
 
 class GymAnythingAgentEnv(vf.MultiTurnEnv):
-    """verifiers MultiTurnEnv that drives a real reference agent."""
+    """verifiers MultiTurnEnv that runs a real reference agent's step()."""
 
     def __init__(
         self,
@@ -145,7 +264,7 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
 
     # -- boot / teardown ---------------------------------------------------
 
-    def _boot(self, info: Dict[str, Any]) -> Tuple[Any, str, Tuple[int, int]]:
+    def _boot(self, info: Dict[str, Any]) -> Tuple[Any, Any]:
         env_dir = info["env_dir"]
         task_id = info["task_id"]
         if self.remote_url:
@@ -171,67 +290,89 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
             use_savevm=self.use_savevm,
         )
         env.set_episode_limits(max_steps=100000, timeout_sec=10**9)
-        screen = (obs or {}).get("screen") or {}
-        resolution = tuple(screen.get("resolution") or DEFAULT_RESOLUTION)
-        b64 = _obs_screenshot_b64(env, obs)
-        return env, b64, resolution
-
-    def _observe(self, env: Any) -> str:
-        return _obs_screenshot_b64(env, env.capture_observation())
+        return env, obs
 
     # -- verifiers hooks -----------------------------------------------------
 
     async def setup_state(self, state: vf.State) -> None:
         info = state.get("info", {})
         task_description = _task_text(state.get("prompt"))
-        env, b64, resolution = await asyncio.to_thread(self._boot, dict(info))
+        env, obs = await asyncio.to_thread(self._boot, dict(info))
         state["ga_env"] = env
-        state["resolution"] = resolution
         state["actions_executed"] = 0
         state["parse_errors"] = 0
 
+        screen = (obs or {}).get("screen") or {}
+        resolution = tuple(screen.get("resolution") or DEFAULT_RESOLUTION)
+
+        bridge = _StepBridge()
         agent = _make_agent(self.agent_name, self.agent_args)
+        agent.llm_call = bridge.llm_call  # the one substitution vs a local run
         agent.init(
             task_description=task_description,
             display_resolution=resolution,
             save_path=str(getattr(env, "episode_dir", ".") or "."),
         )
         state["agent"] = agent
-        # The agent builds its own opening messages (system prompt + first
-        # screenshot), using its real logic — the framework samples from these.
-        state["prompt"] = agent.driver_initial_messages(b64)
+        state["bridge"] = bridge
+
+        thread = threading.Thread(
+            target=_episode_loop, args=(env, agent, bridge, obs), daemon=True
+        )
+        state["agent_thread"] = thread
+        thread.start()
+
+        # The opening prompt is whatever the agent's own step() builds for
+        # its first model call — the framework samples from exactly that.
+        event, payload = await asyncio.to_thread(bridge.next_request)
+        if event == "finished":
+            state["finalize_error_loop"] = payload or "agent finished before first model call"
+            await asyncio.to_thread(_finalize_episode, state)
+            state["final_env_response"] = [{"role": "user", "content": "Episode terminated."}]
+            return
+        state["prompt"] = payload
+
+    async def get_prompt_messages(self, state: vf.State) -> "vf.Messages":
+        if not state["trajectory"]:
+            return state["prompt"]
+
+        bridge: _StepBridge = state["bridge"]
+
+        # Enforce the model-turn budget ourselves: resume the agent only if
+        # budget remains, otherwise terminate and score.
+        if self.max_turns > 0 and len(state["trajectory"]) >= self.max_turns:
+            state["is_truncated"] = True
+            return await self._terminate(state)
+
+        # Resume the suspended step() with the completion the framework
+        # sampled; the agent parses and acts, then either requests the next
+        # model call (its next turn's messages) or finishes.
+        completion = state["trajectory"][-1]["completion"]
+        bridge.send_completion(_completion_text(completion))
+        event, payload = await asyncio.to_thread(bridge.next_request)
+        state["actions_executed"] = bridge.actions_executed
+        state["parse_errors"] = bridge.parse_errors
+        if event == "messages":
+            return payload
+        if payload:
+            state["finalize_error_loop"] = payload
+        return await self._terminate(state)
 
     async def env_response(
-        self, messages: vf.Messages, state: vf.State, **kwargs: Any
-    ) -> vf.Messages:
-        env = state["ga_env"]
-        agent = state["agent"]
-        # messages[-1] is the completion the framework just sampled from the
-        # policy. Parse it with the agent's own parser.
-        result = await asyncio.to_thread(agent.driver_parse, messages[-1])
-        actions = result.get("actions") or []
-        if result.get("parse_error"):
-            state["parse_errors"] += 1
+        self, messages: "vf.Messages", state: vf.State, **kwargs: Any
+    ) -> "vf.Messages":
+        raise NotImplementedError(
+            "unused: get_prompt_messages is overridden; each turn's messages "
+            "come from the agent's own step()"
+        )
 
-        last_obs: Optional[Dict[str, Any]] = None
-        wait = result.get("wait")
-        if wait is not None:
-            await asyncio.sleep(min(float(wait), 30.0))
-        if actions and not result.get("done"):
-            last_obs, _r, _d, _i = await asyncio.to_thread(env.step, actions)
-            state["actions_executed"] += len(actions)
-
-        if result.get("done"):
-            await asyncio.to_thread(_finalize_episode, state)
-            resp = [{"role": "user", "content": "Episode terminated."}]
-            state["final_env_response"] = resp
-            return resp
-
-        if last_obs is not None:
-            b64 = _obs_screenshot_b64(env, last_obs)
-        else:
-            b64 = await asyncio.to_thread(self._observe, env)
-        return agent.driver_observation_messages(b64)
+    async def _terminate(self, state: vf.State) -> "vf.Messages":
+        """Score while the VM is alive, then signal rollout completion."""
+        await asyncio.to_thread(_finalize_episode, state)
+        state["final_env_response"] = [{"role": "user", "content": "Episode terminated."}]
+        # Never sampled from: the rollout loop skips sampling once
+        # final_env_response is set. Return the last prompt as a placeholder.
+        return state["trajectory"][-1]["prompt"] if state["trajectory"] else state["prompt"]
 
     @vf.cleanup(priority=50)
     async def finalize_reward(self, state: vf.State) -> None:
@@ -240,6 +381,12 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
 
     @vf.cleanup(priority=0)
     async def close_env(self, state: vf.State) -> None:
+        bridge: Optional[_StepBridge] = state.pop("bridge", None)
+        if bridge is not None:
+            bridge.abort()
+        thread: Optional[threading.Thread] = state.pop("agent_thread", None)
+        if thread is not None and thread.is_alive():
+            await asyncio.to_thread(thread.join, 30.0)
         env = state.pop("ga_env", None)
         if env is not None:
             await asyncio.to_thread(env.close)
@@ -291,12 +438,12 @@ def build_agent_env(
     env_args: Optional[Dict[str, Any]] = None,
     **kwargs: Any,
 ) -> vf.Environment:
-    """Build a verifiers Environment that drives a real reference agent.
+    """Build a verifiers Environment that runs a real reference agent.
 
     Args:
         rows: dataset rows (`prompt`/`info`/`task`), from `hub.build_task_rows`.
         agent: reference agent class name, exactly as `--agent` locally
-            (e.g. "Qwen3VLAgent"). Must be OpenAI-compatible (drivable).
+            (e.g. "Qwen3VLAgent"). Must be drivable (llm_call seam).
         agent_args: the agent's own args dict, exactly as `--agent_args`
             (model, temperature, decoding_params, ...).
         runner: gym-anything runner ("modal" boots VMs on Modal; None

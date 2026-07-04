@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from agents.agents.qwen3vl import Qwen3VLAgent
-from agents.shared.qwen_computer_use import parse_qwen3vl_response, qwen_system_prompt
+from agents.shared.qwen_computer_use import qwen_system_prompt
 from gym_anything.api import from_config
 from gym_anything.integrations.hub import build_task_rows, make_hub_loader
 
@@ -41,51 +41,73 @@ def _agent() -> Qwen3VLAgent:
     return a
 
 
+def _png_bytes() -> bytes:
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (64, 64), color=(120, 40, 200)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+_PNG_BYTES = _png_bytes()
+
+
 class AgentDriverSeamTests(unittest.TestCase):
-    """The real agent exposes a build/parse seam an external loop can drive."""
+    """step() routes its model call through self.llm_call — the driven seam.
+
+    An external loop (prime-rl) injects its own llm_call and runs the agent's
+    real step() verbatim; these tests pin that seam. Full local-vs-driven
+    harness parity is pinned in tests/test_agent_driver_parity.py.
+    """
 
     def test_agent_advertises_it_can_be_driven(self) -> None:
         self.assertTrue(getattr(Qwen3VLAgent, "driven", False))
 
-    def test_initial_messages_carry_system_tools_and_screenshot(self) -> None:
-        msgs = _agent().driver_initial_messages("QUJD")
+    def test_default_llm_call_is_the_local_client(self) -> None:
+        from agents.shared.llm_clients import call_llm
+
+        self.assertIs(Qwen3VLAgent.llm_call, call_llm)
+
+    def test_step_routes_model_call_through_injected_seam(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            screen = Path(tmp) / "s.png"
+            screen.write_bytes(_PNG_BYTES)
+            a = _agent()
+            seen: dict = {}
+
+            def fake_llm(messages, *args, **kwargs):
+                seen["messages"] = messages
+                return (
+                    '<tool_call>{"name":"computer_use","arguments":'
+                    '{"action":"left_click","coordinate":[500,500]}}</tool_call>'
+                )
+
+            a.llm_call = fake_llm
+            groups = a.step({"screen": {"path": str(screen)}}, [])
+
+        # The messages the seam sees are the agent's own build_messages output.
+        msgs = seen["messages"]
         self.assertEqual(msgs[0]["role"], "system")
-        self.assertIn("<tools>", msgs[0]["content"][0]["text"])  # tool schema in prompt
-        self.assertEqual(msgs[1]["role"], "user")
-        self.assertTrue(any(p["type"] == "image_url" for p in msgs[1]["content"]))
+        self.assertEqual(msgs[0]["content"][0]["text"], qwen_system_prompt(RES))
+        self.assertTrue(any(p.get("type") == "image_url" for p in msgs[1]["content"]))
+        # The returned actions come from the agent's own parser (500/1000 * res).
+        self.assertEqual(groups[0]["actions"], [{"mouse": {"left_click": [960, 540]}}])
+        self.assertFalse(a.done)
 
-    def test_observation_messages_are_screenshot_only(self) -> None:
-        msgs = _agent().driver_observation_messages("QUJD")
-        self.assertEqual(len(msgs), 1)
-        self.assertEqual(msgs[0]["content"][0]["type"], "image_url")
-
-    def test_driver_parse_reuses_the_agents_own_parser(self) -> None:
-        completion = '<tool_call>{"name":"computer_use","arguments":{"action":"left_click","coordinate":[500,500]}}</tool_call>'
-        res = _agent().driver_parse(completion)
-        # Identical to the agent's real parser (single source of truth).
-        expected = parse_qwen3vl_response(completion)["actions"]
-        self.assertEqual(res["actions"], expected)
-        self.assertEqual(res["actions"], [{"mouse": {"left_click": [960, 540]}}])  # 500/1000*res
-        self.assertFalse(res["done"])
-        self.assertFalse(res["parse_error"])
-
-    def test_driver_parse_flags_terminate_and_wait_and_errors(self) -> None:
-        a = _agent()
-        term = a.driver_parse('<tool_call>{"name":"computer_use","arguments":{"action":"terminate","status":"success"}}</tool_call>')
-        self.assertTrue(term["done"])
-        wait = a.driver_parse('<tool_call>{"name":"computer_use","arguments":{"action":"wait","time":2.0}}</tool_call>')
-        self.assertEqual(wait["wait"], 2.0)
-        self.assertEqual(wait["actions"], [])
-        # The agent's parser flags a real parse error (empty completion) with a
-        # screenshot-retry fallback; the driver surfaces that flag.
-        garbage = a.driver_parse("")
-        self.assertTrue(garbage["parse_error"])
-        self.assertFalse(garbage["done"])
-
-    def test_system_prompt_is_the_agents_own(self) -> None:
-        # The driver seam and the agent's local get_system_prompt share one source.
-        self.assertEqual(_agent().driver_initial_messages("X")[0]["content"][0]["text"],
-                         qwen_system_prompt(RES))
+    def test_terminate_completion_marks_agent_done(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            screen = Path(tmp) / "s.png"
+            screen.write_bytes(_PNG_BYTES)
+            a = _agent()
+            a.llm_call = lambda *args, **kwargs: (
+                '<tool_call>{"name":"computer_use","arguments":'
+                '{"action":"terminate","status":"success"}}</tool_call>'
+            )
+            groups = a.step({"screen": {"path": str(screen)}}, [])
+        self.assertTrue(a.done)
+        self.assertEqual(groups[0]["actions"], [])
 
 
 @unittest.skipUnless(HAS_VERIFIERS, "verifiers not installed")

@@ -22,13 +22,16 @@ benchmark:
    `splits/verified.json`). Adding a benchmark folder makes it consumable by
    every downstream surface with no integration-specific binding code.
 2. **Protocol adapter (core)** — `gym_anything.integrations.verifiers`
-   turns any gym-anything env into a verifiers `MultiTurnEnv`: screenshots
-   stream to the policy, the policy acts through a pluggable *scaffold*
-   (default: the provider-agnostic `computer` tool from
-   `gym_anything.integrations.computer_tool`; `qwen3vl` and `kimi`
-   text-protocol scaffolds ship in `agents/scaffolds/`), and the episode is
-   scored by the env's real verifier while the VM is still alive.
-   `gym_anything.integrations.hub` supplies the dataset rows
+   turns any gym-anything env into a verifiers `MultiTurnEnv` that runs a
+   **real reference agent's `step()` verbatim** — the same class `--agent`
+   selects locally. The one substitution is the agent's model call
+   (`self.llm_call`): a bridge suspends `step()`, hands the messages the
+   agent just built to the framework as the turn's prompt, and resumes it
+   with the sampled completion. Message construction, history management,
+   and parsing are the agent's own code, so the local and driven harnesses
+   cannot diverge (`tests/test_agent_driver_parity.py` pins this). The
+   episode is scored by the env's real verifier while the VM is still
+   alive. `gym_anything.integrations.hub` supplies the dataset rows
    (`build_task_rows`) and the canonical `load_environment` surface.
    Installed with the `prime-rl` extra: `pip install "gym-anything[prime-rl]"`.
 3. **Publishable shell (extras/hubs)** — `extras/hubs/prime/cua_world/` is a
@@ -37,10 +40,14 @@ benchmark:
    prime-rl workers use to re-instantiate the environment) is derived from
    the canonical signature, so it stays faithful by construction.
 
-Scaffolds mirror `--agent` / `--agent_args` on local evaluation: pass
-`scaffold` / `scaffold_args` in the env args to select how the policy sees
-the environment. Scaffolds registered by installed packages are discovered
-through the `gym_anything.scaffolds` entry-point group.
+Agents mirror `--agent` / `--agent_args` on local evaluation: pass `agent`
+(a class name from `agents/agents/`, e.g. `"Qwen3VLAgent"`) and `agent_args`
+in the env args. Any agent whose `step()` routes its model call through
+`self.llm_call` and speaks OpenAI messages is drivable; provider-native
+agents (Anthropic/Google native tools) are rejected with a clear error.
+Because agents may rebuild their prompt each turn (windowed history), use
+prime-rl's `trajectory_strategy = "branching"` when training with such
+agents; append-only agents also work with `"interleaved"`.
 
 ## Quickstart
 

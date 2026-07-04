@@ -9,10 +9,12 @@
 This package is a declaration over the gym-anything library: the dataset is
 enumerated by `gym_anything.registry` (the benchmark layout contract), the
 rollout logic lives in `gym_anything.integrations.verifiers`, and the
-`load_environment` surface comes from `gym_anything.integrations.hub`. The
-policy drives the episode through a pluggable scaffold (default: the
-provider-agnostic `computer` tool; `qwen3vl` and `kimi` text-protocol
-scaffolds ship with the library). With the default `runner="modal"`, the
+`load_environment` surface comes from `gym_anything.integrations.hub`. Each
+rollout runs a real reference agent's `step()` verbatim (select it with
+`agent`, exactly like `--agent` locally; default `Qwen3VLAgent`) — the
+framework does the sampling through the agent's `llm_call` seam, so the
+prompts, history handling, and parsing are the agent's own code, identical
+to a local run. With the default `runner="modal"`, the
 VM (QEMU with KVM, or the Android emulator) runs inside a Modal VM Sandbox in
 the cloud, so nothing is needed locally beyond a Modal token. Base disk images
 and checkpoints persist in a Modal Volume, so after the first boot of an
@@ -57,11 +59,9 @@ vf-eval cua-world -m google/gemini-3.5-flash \
 | `seed` | int | 0 | Reset seed carried in each dataset row |
 | `runner` | str | `"modal"` | gym-anything runner; `qemu_native`/`docker`/`avd_native` run locally, None auto-selects |
 | `remote_url` | str | None | Run on a gym-anything remote cluster instead of in-process (ignores `runner`) |
-| `scaffold` | str | `"computer"` | Model-facing scaffold (`computer`, `qwen3vl`, `kimi`), mirroring `--agent` on local evals |
-| `scaffold_args` | dict | None | Extra scaffold kwargs |
-| `coordinate_mode` | str | `"norm1000"` | `norm1000` (0-1000 normalized) or `pixel` |
+| `agent` | str | `"Qwen3VLAgent"` | Reference agent class name from `agents/agents/`, exactly like `--agent` locally |
+| `agent_args` | dict | `{"model": "gemini-3.5-flash", "temperature": 1.0}` | The agent's own args dict, exactly like `--agent_args` |
 | `max_turns` | int | 15 | Model-turn budget per rollout |
-| `keep_recent_screenshots` | int | -1 | Screenshots kept in context (-1 keeps all); older ones become placeholders |
 | `use_cache` | bool | True | Reuse/create gym-anything checkpoints |
 | `cache_level` | str | `"post_start"` | Checkpoint level |
 | `use_savevm` | bool | False | Full VM-state snapshots (QEMU Linux guests) |
