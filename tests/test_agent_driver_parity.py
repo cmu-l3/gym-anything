@@ -186,6 +186,72 @@ class HarnessParityTests(unittest.TestCase):
 
         self.assertEqual(local_actions, driven_actions, "executed env actions diverged")
 
+    def test_driven_run_samples_with_the_agents_own_params(self) -> None:
+        """The bridge forwards the agent's sampling params, so a driven run
+        samples with exactly what the agent passes to its model call — not the
+        endpoint defaults. This is what made local (top_k=20) and driven
+        (top_k unset) diverge."""
+        from gym_anything.integrations.verifiers import _sampling_args_from_call
+
+        with tempfile.TemporaryDirectory() as tmp:
+            _run_driven(tmp)  # exercises the bridge on a real agent's step()
+            agent = _make_agent(tmp)
+
+        # What the bridge would capture equals call_llm's mapping of the agent's
+        # own (temperature, top_p, top_k) — for Qwen3VL: top_k in extra_body.
+        expected = _sampling_args_from_call(
+            (agent.model, agent.temperature, agent.top_p, agent.top_k), {}
+        )
+        self.assertEqual(expected["temperature"], agent.temperature)
+        self.assertEqual(expected["top_p"], agent.top_p)
+        self.assertEqual(expected["extra_body"]["top_k"], agent.top_k)
+
+    def test_caller_sampling_args_win_per_key(self) -> None:
+        """A prime-rl training sampling config overrides the agent's defaults
+        per key, so training keeps control while eval gets parity by default."""
+        from gym_anything.integrations.verifiers import _sampling_args_from_call
+
+        agent_sa = _sampling_args_from_call(("m", 1.0, 0.95, 20), {})
+        caller = {"temperature": 0.6, "extra_body": {"top_k": 50}}
+        merged = {**agent_sa, **caller}
+        merged["extra_body"] = {**agent_sa.get("extra_body", {}), **caller["extra_body"]}
+        self.assertEqual(merged["temperature"], 0.6)          # caller wins
+        self.assertEqual(merged["top_p"], 0.95)               # agent fills the rest
+        self.assertEqual(merged["extra_body"]["top_k"], 50)   # caller wins
+
+    def test_setup_state_writes_agent_sampling_into_state(self) -> None:
+        """End-to-end wiring, no VM: the real setup_state populates
+        state['sampling_args'] with the agent's params, which is exactly the
+        field verifiers' get_model_response samples with."""
+        import asyncio
+
+        from gym_anything.integrations.verifiers import build_agent_env
+
+        rows = [{
+            "prompt": [{"role": "user", "content": "do it"}],
+            "info": {"env_dir": "/x", "env_name": "e", "task_id": "t", "seed": 0},
+            "task": "e/t",
+        }]
+        env = build_agent_env(rows, agent="Qwen3VLAgent",
+                              agent_args={"model": "m", "exp_name": "s", "task_name": "t"},
+                              runner=None, env_id="t")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = _FakeEnv(tmp)
+            fake.episode_dir = tmp
+            fake.set_episode_limits = lambda **kw: None
+            env._boot = lambda info: (fake, fake.capture_observation())
+
+            state = {"info": rows[0]["info"], "prompt": rows[0]["prompt"],
+                     "sampling_args": {"n": 1, "extra_body": {}}}
+            asyncio.run(env.setup_state(state))
+            sa = state["sampling_args"]
+
+        ref = _make_agent(tmp)
+        self.assertEqual(sa["temperature"], ref.temperature)
+        self.assertEqual(sa["top_p"], ref.top_p)
+        self.assertEqual(sa["extra_body"]["top_k"], ref.top_k)  # the param that was being lost
+
 
 if __name__ == "__main__":
     unittest.main()

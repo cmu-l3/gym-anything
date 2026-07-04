@@ -125,10 +125,15 @@ class _StepBridge:
         self._call_timeout = call_timeout
         self.actions_executed = 0
         self.parse_errors = 0
+        # Sampling params the agent passed to its model call, so the framework
+        # samples with exactly what the agent specified (see _sampling_args_from_call).
+        self.sampling_args: Dict[str, Any] = {}
 
     # -- agent-thread side --------------------------------------------------
 
     def llm_call(self, messages, *args: Any, **kwargs: Any) -> str:
+        if not self.sampling_args:
+            self.sampling_args = _sampling_args_from_call(args, kwargs)
         self._requests.put(("messages", messages))
         item = self._completions.get(timeout=self._call_timeout)
         if item is _BRIDGE_ABORT:
@@ -148,6 +153,45 @@ class _StepBridge:
 
     def abort(self) -> None:
         self._completions.put(_BRIDGE_ABORT)
+
+
+def _sampling_args_from_call(args: tuple, kwargs: dict) -> Dict[str, Any]:
+    """Translate the arguments an agent passed to ``llm_call`` into verifiers
+    sampling_args, using ``call_llm``'s signature as the single source of truth.
+
+    The seam contract is that ``self.llm_call`` is a ``call_llm``-compatible
+    callable, so the positional args after ``messages`` mean
+    ``(model, temperature, top_p, top_k, max_tokens, repetition_penalty)``.
+    We map them the exact way ``call_llm`` maps them onto the OpenAI call
+    (temperature/top_p/max_tokens at top level, top_k/repetition_penalty in
+    ``extra_body``), so a driven rollout samples with the same params the agent
+    would have used locally — for any agent, with no per-agent code.
+    """
+    import inspect
+
+    from agents.shared.llm_clients import call_llm
+
+    params = list(inspect.signature(call_llm).parameters.values())[1:]  # drop messages
+    bound: Dict[str, Any] = {}
+    for i, p in enumerate(params):
+        if i < len(args):
+            bound[p.name] = args[i]
+        elif p.name in kwargs:
+            bound[p.name] = kwargs[p.name]
+        elif p.default is not inspect.Parameter.empty:
+            bound[p.name] = p.default
+
+    sampling: Dict[str, Any] = {}
+    for key in ("temperature", "top_p", "max_tokens"):
+        if bound.get(key) is not None:
+            sampling[key] = bound[key]
+    extra: Dict[str, Any] = {}
+    for key in ("top_k", "repetition_penalty"):
+        if bound.get(key) is not None:
+            extra[key] = bound[key]
+    if extra:
+        sampling["extra_body"] = extra
+    return sampling
 
 
 def _localize_screen(env: Any, obs: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -331,6 +375,22 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
             state["final_env_response"] = [{"role": "user", "content": "Episode terminated."}]
             return
         state["prompt"] = payload
+
+        # Sample with the params the agent passed to its own model call, so a
+        # driven rollout matches a local run. state is per-rollout (no race);
+        # anything the framework/caller set explicitly (e.g. a prime-rl training
+        # sampling config) wins per-key, so training keeps control.
+        agent_sampling = bridge.sampling_args
+        if agent_sampling:
+            caller = dict(state.get("sampling_args") or {})
+            merged = {**agent_sampling, **caller}
+            merged_extra = {
+                **agent_sampling.get("extra_body", {}),
+                **(caller.get("extra_body") or {}),
+            }
+            if merged_extra:
+                merged["extra_body"] = merged_extra
+            state["sampling_args"] = merged
 
     async def get_prompt_messages(self, state: vf.State) -> "vf.Messages":
         if not state["trajectory"]:
