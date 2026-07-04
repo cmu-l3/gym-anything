@@ -36,17 +36,54 @@ natively (sparse tasks give 0/1, partial/rubric give score/100).
    Consumers install it standalone (`prime env install`, or from the wheel),
    which pulls `gym-anything[modal,prime-rl,benchmark]` from the pinned tag.
 2. A Modal token (`modal token set ...`) for the default runner.
-3. Some environments need a one-time host-side asset fetch
+3. API keys. There are two distinct roles:
+   - **Grader**: with this package's defaults every episode is judged by a
+     VLM checklist (`verifier_mode="vlm_checklist"`) using gemini-3.5-flash,
+     so `GEMINI_API_KEY` must be set even when your policy is not gemini.
+     Without it, rollouts still run (and bill Modal time) but scoring fails
+     at the end. Change the grader with `vlm_model`, `vlm_base_url`, and
+     `vlm_api_key_var`.
+   - **Policy**: the key for whatever OpenAI-compatible endpoint serves the
+     model under evaluation (the `-b` and `-k` flags), for example
+     `PRIME_API_KEY` for Prime inference.
+4. Some environments need a one-time host-side asset fetch
    (`<env>/scripts/fetch_data.sh` or `download_apk.sh`); envs with
-   `MANUAL_DOWNLOAD.md` need manually supplied assets.
+   `MANUAL_DOWNLOAD.md` need manually supplied assets. Tasks in those
+   environments fail for a fresh install until the assets are supplied.
 
 ### Quickstart
+A single-task validation run (one rollout, one VM):
 ```bash
+export GEMINI_API_KEY=...   # grader key, see Prerequisites
+export PRIME_API_KEY=...    # policy endpoint key
 vf-eval cua-world -m google/gemini-3.5-flash \
   -b https://api.pinference.ai/api/v1 -k PRIME_API_KEY \
   -n 1 -r 1 \
   -a '{"env_names": ["gimp_env"], "task_ids": ["horizontal_mirror"], "max_turns": 10}'
 ```
+
+### Evaluating a split (example: long-horizon with gemini)
+`split` selects any named split from the benchmark's `splits/` files
+(`train`, `test`, `long_horizon`, or `all`). The `long_horizon` split is one
+long-horizon task per application, 201 tasks total. Running gemini as the
+policy on Google's OpenAI-compatible endpoint means one key covers both the
+policy and the grader:
+```bash
+vf-eval cua-world -m gemini-3.5-flash \
+  -b https://generativelanguage.googleapis.com/v1beta/openai/ -k GEMINI_API_KEY \
+  -n 10 -r 1 -c 2 \
+  -a '{"env_names": "all", "split": "long_horizon", "max_turns": 15}'
+```
+Start with a small `-n` (it caps the number of tasks). The first rollout in
+each new environment pays a one-time provisioning boot (minutes to tens of
+minutes) before its checkpoint makes later rollouts fast, and `-c` bounds how
+many VMs run (and bill) at once. Narrow `env_names` to a list to stay inside
+specific applications.
+
+The default agent scaffold (`Qwen3VLAgent`) is model-agnostic and is what the
+recorded gemini baselines used. Add `"agent": "GeminiQwen3Agent"` to the `-a`
+JSON to use the gemini-tuned variant of the same loop (screenshots resized to
+the display resolution, coordinates scaled from it).
 
 ### Environment Arguments
 | Arg | Type | Default | Description |
@@ -59,15 +96,15 @@ vf-eval cua-world -m google/gemini-3.5-flash \
 | `seed` | int | 0 | Reset seed carried in each dataset row |
 | `runner` | str | `"modal"` | gym-anything runner; `qemu_native`/`docker`/`avd_native` run locally, None auto-selects |
 | `remote_url` | str | None | Run on a gym-anything remote cluster instead of in-process (ignores `runner`) |
-| `agent` | str | `"Qwen3VLAgent"` | Reference agent class name from `agents/agents/`, exactly like `--agent` locally |
+| `agent` | str | `"Qwen3VLAgent"` | Reference agent class name from `agents/agents/`, exactly like `--agent` locally (e.g. `GeminiQwen3Agent` for the gemini-tuned scaffold) |
 | `agent_args` | dict | `{"model": "gemini-3.5-flash", "temperature": 1.0}` | The agent's own args dict, exactly like `--agent_args` |
 | `max_turns` | int | 15 | Model-turn budget per rollout |
 | `use_cache` | bool | True | Reuse/create gym-anything checkpoints |
 | `cache_level` | str | `"post_start"` | Checkpoint level |
 | `use_savevm` | bool | False | Full VM-state snapshots (QEMU Linux guests) |
-| `verifier_mode` | str | None | Override every task's success mode (e.g. `vlm_checklist`) |
-| `vlm_backend` / `vlm_model` / `vlm_base_url` | str | None | VLM grader config for `verifier_mode="vlm_checklist"` |
-| `vlm_api_key_var` | str | None | Env var name holding the VLM API key |
+| `verifier_mode` | str | `"vlm_checklist"` | Task success mode. This package defaults to VLM-checklist grading; set None to use each task's own programmatic verifier |
+| `vlm_backend` / `vlm_model` / `vlm_base_url` | str | `"local"` / `"gemini-3.5-flash"` / Google's OpenAI endpoint | VLM grader config for `verifier_mode="vlm_checklist"` |
+| `vlm_api_key_var` | str | `"GEMINI_API_KEY"` | Env var name holding the VLM grader key (required with the defaults, see Prerequisites) |
 
 ### Metrics
 | Metric | Weight | Meaning |
