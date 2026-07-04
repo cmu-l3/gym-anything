@@ -253,5 +253,48 @@ class HarnessParityTests(unittest.TestCase):
         self.assertEqual(sa["extra_body"]["top_k"], ref.top_k)  # the param that was being lost
 
 
+class GeminiSeamTests(unittest.TestCase):
+    """GeminiQwen3Agent honors the drivable contract (no verifiers needed)."""
+
+    def test_gemini_agent_routes_through_the_seam(self) -> None:
+        """An injected llm_call receives the model call with call_llm-compatible
+        args, and the seam messages are plain OpenAI chat format (the cache
+        hint lives in the local default client, not on the messages). This is
+        what lets prime-rl drive this agent instead of it silently calling
+        gemini itself from inside the worker."""
+        from agents.agents.claude_gemini_qwen3 import GeminiQwen3Agent
+
+        with tempfile.TemporaryDirectory() as tmp:
+            env = _FakeEnv(tmp)
+            agent = GeminiQwen3Agent(
+                agent_args={"model": "gemini-test", "exp_name": "parity", "task_name": "t"},
+                verbose=False,
+                debug=False,
+            )
+            agent.init(
+                task_description="do the task", display_resolution=RESOLUTION, save_path=tmp
+            )
+
+            captured = []
+
+            def scripted_llm(messages, *args, **kwargs):
+                captured.append((json.loads(json.dumps(messages)), args))
+                return SCRIPT[len(captured) - 1]
+
+            agent.llm_call = scripted_llm
+
+            actions = agent.step(env.capture_observation(), [])
+
+        self.assertEqual(len(captured), 1, "step() must make exactly one seam call")
+        messages, args = captured[0]
+        self.assertTrue(
+            all("cache_control" not in m for m in messages),
+            "seam messages must be plain OpenAI chat format",
+        )
+        self.assertEqual(args[:4], ("gemini-test", agent.temperature, agent.top_p, agent.top_k))
+        # Coordinates decode with the agent's dynamic display ratio (1920/1000, 1080/1000).
+        self.assertEqual(actions[0]["actions"], [{"mouse": {"left_click": [960, 324]}}])
+
+
 if __name__ == "__main__":
     unittest.main()
