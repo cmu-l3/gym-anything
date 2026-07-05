@@ -54,6 +54,7 @@ _DOCKERFILE = """# Generic runtime for gym-anything Harbor tasks: QEMU inside th
 FROM python:3.12-slim-bookworm
 
 RUN apt-get update && apt-get install --no-install-recommends -y \\
+        git \\
         qemu-system-x86 \\
         qemu-utils \\
         wget \\
