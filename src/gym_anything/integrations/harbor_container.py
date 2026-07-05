@@ -204,9 +204,14 @@ def serve(config_path: str, port: int) -> None:
         config,
         default_runner=os.environ.get("GA_HARBOR_RUNNER", DEFAULT_CONTAINER_RUNNER),
     )
-    # Harbor expects its log dirs to exist for phase transfers.
+    # Harbor expects its log dirs to exist for phase transfers. Best-effort:
+    # in the task container this runs as root; a bare process (validation
+    # runs outside docker) has no business writing at /.
     for path in ("/logs/agent", "/logs/verifier", "/logs/artifacts"):
-        Path(path).mkdir(parents=True, exist_ok=True)
+        try:
+            Path(path).mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
 
     _Handler.runtime = _Runtime(env)
     server = ThreadingHTTPServer(("0.0.0.0", port), _Handler)
