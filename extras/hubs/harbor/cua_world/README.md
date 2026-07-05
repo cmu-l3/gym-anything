@@ -25,7 +25,7 @@ CUA-World-Long is the headline evaluation of [Gym-Anything](https://github.com/c
 - Shared image-cache volume (`harbor-gym-anything-cache`): the guest image is provisioned once per host and reused across trials via copy-on-write overlays.
 - In-container grading through the benchmark's real verifier pipeline (post-task export hook + per-task `verifier.py`), isolated from the agent-controlled VM.
 - A reference computer-use agent (`cua-world-agent`, selected via `--agent-import-path gym_anything.integrations.harbor:CuaWorldAgent`) that drives the guest through the runtime API and records ATIF-v1.7 trajectories.
-- Per-task budgets derived from the benchmark's own limits (agent timeouts scale with each task's `timeout_sec`; step budgets carried in task metadata).
+- Uniform protocol budgets on every task: 500 model steps and a 6-hour agent window (the paper's evaluation protocol).
 
 ## Generated Task Structure
 
@@ -164,7 +164,7 @@ Reproduction requirements and steps (mandatory):
 - **No scripted oracle solutions.** Tasks are interactive GUI episodes graded by verifiers against live application state; `solution/solve.sh` is an explanatory stub, following the merged OSWorld and TheAgentCompany precedent.
 - **KVM required.** The task container boots a guest VM via QEMU; hosts must expose `/dev/kvm` (identical to the OSWorld adapter's requirement). x86_64 hosts only (the guests are x86 images).
 - **Shared cache volume.** Create once per host: `docker volume create harbor-gym-anything-cache`. The first boot of an environment provisions its guest image (minutes to tens of minutes); later trials reuse it via copy-on-write overlays.
-- **Long budgets.** Per-task agent timeouts derive from the benchmark's own limits (1 to 3+ hours); the reference protocol allows 500 model steps.
+- **Long budgets.** Every task carries the benchmark's uniform protocol budget: 500 model steps and a 6-hour agent timeout.
 - **Grading trust boundary.** The verifier runs in the container, not in the agent-controlled VM, so a compromised guest cannot rewrite its own grades.
 - **Platform coverage.** Of the 201 tasks: 168 run Linux guests (images provision automatically from recipes on first boot), 25 run Windows guests and 8 run Android guests. Windows and Android guest images cannot be redistributed for licensing reasons; running those subsets requires supplying the base images into the shared cache volume (the Linux majority needs nothing).
 - The task count (201) is the registry's `long_horizon` split; the paper text says 200.
@@ -196,7 +196,7 @@ Environment setup specific to this adapter:
 
 - `AddTestsDirError` or immediate Docker validation failure: the host lacks `/dev/kvm`, or the `harbor-gym-anything-cache` volume was not created.
 - Environment start timeout on a fresh host: the first boot provisions the guest image inside the container; the compose healthcheck allows 40 minutes (`start_period: 2400s`). Subsequent boots are minutes.
-- Agent timeouts on hard tasks: budgets are per-task from the benchmark's own limits; override with `--override-timeout-sec` or the job YAML if experimenting with smaller step budgets.
+- Agent timeouts: every task allows 6 hours; override with `--override-timeout-sec` or the job YAML if experimenting with smaller step budgets.
 - Disk pressure: guest images and overlays live in the shared volume; prune old overlays with `docker volume` inspection if a host runs many environments.
 
 ## Citation

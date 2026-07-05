@@ -73,8 +73,8 @@ class AdapterGenerationTests(unittest.TestCase):
             self.assertEqual(config["schema_version"], "1.0")
             self.assertTrue(config["task"]["name"].startswith("cua-world/"))
             self.assertNotIn("__TASK_NAME__", config["task"]["name"], "no unsubstituted markers")
-            self.assertGreaterEqual(config["agent"]["timeout_sec"], 3600.0)
-            self.assertGreaterEqual(config["metadata"]["max_steps"], 100)
+            self.assertEqual(config["agent"]["timeout_sec"], 21600.0)
+            self.assertEqual(config["metadata"]["max_steps"], 500)
 
             ga = json.loads((out / "environment" / "gym-anything.json").read_text())
             self.assertEqual(ga["benchmark"], "cua_world")

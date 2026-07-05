@@ -28,10 +28,11 @@ ORG = "cua-world"
 # agreed with the Harbor team; see the README parity section.
 PARITY_TASK_NAMES: List[str] = []
 
-# Budget floors. Per-task budgets derive from each task.json's own limits
-# (max_steps 100-500, timeout_sec 600-6000 across the split).
-MIN_AGENT_TIMEOUT_SEC = 3600.0
-AGENT_TIMEOUT_FACTOR = 2.0
+# Uniform protocol budgets for every task (the paper's model-side protocol):
+# 500 steps and a 6-hour agent window. The per-task limits inside each
+# task.json are not the benchmark protocol and are deliberately not used.
+MAX_STEPS = 500
+AGENT_TIMEOUT_SEC = 21600.0
 VERIFIER_TIMEOUT_SEC = 1800.0
 BUILD_TIMEOUT_SEC = 7200.0
 
@@ -103,11 +104,6 @@ class CuaWorldAdapter:
         description = str(task_json.get("description") or "").strip()
         if not description:
             raise ValueError(f"{env_name}/{task_id} has no description")
-        init = task_json.get("init") or {}
-        max_steps = int(init.get("max_steps") or 500)
-        agent_timeout = max(
-            MIN_AGENT_TIMEOUT_SEC, AGENT_TIMEOUT_FACTOR * float(init.get("timeout_sec") or 0)
-        )
         tags = task_json.get("tags") or task_json.get("metadata", {}).get("tags") or []
 
         substitutions = {
@@ -116,8 +112,8 @@ class CuaWorldAdapter:
             "__INSTRUCTION__": description,
             "__ENV_NAME__": env_name,
             "__TASK_ID__": task_id,
-            "__MAX_STEPS__": str(max_steps),
-            "__AGENT_TIMEOUT_SEC__": f"{agent_timeout:.1f}",
+            "__MAX_STEPS__": str(MAX_STEPS),
+            "__AGENT_TIMEOUT_SEC__": f"{AGENT_TIMEOUT_SEC:.1f}",
             "__VERIFIER_TIMEOUT_SEC__": f"{VERIFIER_TIMEOUT_SEC:.1f}",
             "__BUILD_TIMEOUT_SEC__": f"{BUILD_TIMEOUT_SEC:.1f}",
             "__TAGS__": ", ".join(_toml_string(str(t)) for t in tags),
