@@ -143,7 +143,7 @@ Tasks are written to `datasets/cua-world/` with one directory per task. Each tas
 
 ## Comparison with Original Benchmark (Parity)
 
-Parity experiments are pending coordination with the Harbor team. Because CUA-World-Long episodes are long-horizon (multi-hour budgets across 201 VM-backed tasks), parity will run on a representative subset per the adapter guide's subset mechanism (`--split parity`, published under the `parity` tag); the subset composition, agents, models, and run counts will be agreed with the team before any runs, and this section plus `parity_experiment.json` will be filled from those results.
+Parity experiments are pending coordination with the Harbor team. Because CUA-World-Long episodes are long-horizon (multi-hour budgets across 201 VM-backed tasks), parity will run on a representative subset per the adapter guide's subset mechanism (`--split parity`, published under the `parity` tag). We will select and document the subset (stratified across application domains and guest platforms); the parity plan built on it (agents, models, run counts) is agreed with the team before any runs, and this section plus `parity_experiment.json` will be filled from those results.
 
 | Agent | Model | Metric | Number of Runs | Dataset Size | Original Benchmark Performance | Harbor Adapter Performance |
 |-------|-------|--------|------------------|--------------|------------------------------|----------------------------|

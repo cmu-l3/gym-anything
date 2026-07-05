@@ -24,8 +24,10 @@ BENCHMARK = "cua_world"
 SPLIT = "long_horizon"
 ORG = "cua-world"
 
-# Parity subset (``--split parity``). Populated once the composition is
-# agreed with the Harbor team; see the README parity section.
+# Parity subset (``--split parity``). We select and document the subset
+# (the adapter guide's representative-subset mechanism); the parity plan
+# built on it (agents, models, run counts) is agreed with the Harbor team
+# before any runs. Populated when that selection is made.
 PARITY_TASK_NAMES: List[str] = []
 
 # Uniform protocol budgets for every task (the paper's model-side protocol):
@@ -69,8 +71,8 @@ class CuaWorldAdapter:
         if self.split == "parity":
             if not PARITY_TASK_NAMES:
                 raise SystemExit(
-                    "The parity subset is not defined yet; its composition is "
-                    "agreed with the Harbor team before parity runs (see README)."
+                    "The parity subset is not defined yet (see the README "
+                    "parity section for how it will be selected)."
                 )
             wanted = set(PARITY_TASK_NAMES)
             pairs = [p for p in pairs if _task_name(*p) in wanted]
