@@ -45,12 +45,32 @@ class HarborCompileTests(unittest.TestCase):
             self.assertTrue((out_dir / "instruction.md").is_file())
             self.assertTrue((out_dir / "task.toml").is_file())
             self.assertTrue((out_dir / "environment" / "gym-anything.json").is_file())
+            self.assertTrue((out_dir / "environment" / "Dockerfile").is_file())
+            self.assertTrue((out_dir / "environment" / "docker-compose.yaml").is_file())
             test_path = out_dir / "tests" / "test.sh"
             self.assertTrue(test_path.is_file())
             self.assertTrue(test_path.stat().st_mode & stat.S_IXUSR, "test.sh must be executable")
 
             instruction = (out_dir / "instruction.md").read_text()
             self.assertIn("border", instruction.lower())
+
+    def test_docker_packaging_is_generic_and_wired(self) -> None:
+        """The Dockerfile carries the pinned ref and the container entrypoint;
+        test.sh invokes the in-container finalize; compose passes KVM and the
+        shared cache volume (the OSWorld adapter's runtime shape)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = self._compile_add_border(Path(tmp))
+            dockerfile = (out_dir / "environment" / "Dockerfile").read_text()
+            compose = (out_dir / "environment" / "docker-compose.yaml").read_text()
+            test_sh = (out_dir / "tests" / "test.sh").read_text()
+
+        self.assertIn("gym_anything.integrations.harbor_container", dockerfile)
+        self.assertIn("ARG GYM_ANYTHING_REF=", dockerfile)
+        self.assertIn("COPY gym-anything.json", dockerfile)
+        self.assertIn("/dev/kvm", compose)
+        self.assertIn("harbor-gym-anything-cache", compose)
+        self.assertIn("harbor_container finalize", test_sh)
+        self.assertIn("/logs/verifier/reward.json", test_sh)
 
     def test_task_toml_parses_and_carries_identity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -124,17 +144,74 @@ class HarborBackendTests(unittest.TestCase):
         self.assertTrue(issubclass(CuaWorldAgent, BaseAgent))
         self.assertEqual(CuaWorldAgent.name(), "cua-world-agent")
 
-    def test_agent_rejects_foreign_environments(self) -> None:
-        """The parity agent needs the gym-anything backend and says so."""
-        import tempfile as _tempfile
+    def test_driver_selection(self) -> None:
+        """gym-anything backend gets the direct driver, exec-capable envs get
+        the container driver, anything else is rejected loudly."""
+        from gym_anything.integrations.harbor_agent import (
+            _ContainerDriver,
+            _DirectDriver,
+            _make_driver,
+        )
 
-        from gym_anything.integrations.harbor_agent import CuaWorldAgent
+        class _WithGymEnv:
+            gym_env = object()
 
-        with _tempfile.TemporaryDirectory() as tmp:
-            agent = CuaWorldAgent(logs_dir=Path(tmp), model_name="m")
+        class _ExecOnly:
+            async def exec(self, *a, **k):  # pragma: no cover - shape only
+                raise NotImplementedError
+
+        with tempfile.TemporaryDirectory() as tmp:
+            images = Path(tmp) / "images"
+            self.assertIsInstance(_make_driver(_WithGymEnv(), images, 7317), _DirectDriver)
+            self.assertIsInstance(_make_driver(_ExecOnly(), images, 7317), _ContainerDriver)
             with self.assertRaises(RuntimeError) as ctx:
-                agent._run_sync("do it", object())
+                _make_driver(object(), images, 7317)
         self.assertIn("GymAnythingEnvironment", str(ctx.exception))
+
+    def test_atif_trajectory_is_valid_and_written(self) -> None:
+        """The recorder produces a trajectory Harbor's own models validate,
+        with tool calls and image observations referencing files under the
+        logs dir."""
+        from harbor.models.trajectories import Trajectory
+
+        from gym_anything.integrations.harbor_agent import _TrajectoryRecorder
+
+        with tempfile.TemporaryDirectory() as tmp:
+            logs_dir = Path(tmp)
+            images = logs_dir / "images"
+            images.mkdir()
+            shot = images / "obs_0001.png"
+            shot.write_bytes(b"png")
+
+            recorder = _TrajectoryRecorder(logs_dir, "cua-world-agent", "0.2.0", "gemini")
+            recorder.record_turn(
+                response_text="Action: click the menu",
+                groups=[{"tool_id": "t0", "actions": [{"mouse": {"left_click": [1, 2]}}]}],
+                screenshot_path=shot,
+            )
+            recorder.write("session-1")
+
+            raw = json.loads((logs_dir / "trajectory.json").read_text())
+            parsed = Trajectory.model_validate(raw)
+
+        self.assertEqual(raw["schema_version"], "ATIF-v1.7")
+        self.assertEqual(parsed.final_metrics.total_steps, 1)
+        step = parsed.steps[0]
+        self.assertEqual(step.tool_calls[0].function_name, "computer_use")
+        self.assertEqual(
+            step.observation.results[0].content[0].source.path, "images/obs_0001.png"
+        )
+
+    def test_container_finalize_reward_mapping(self) -> None:
+        """rewards_from_verdict maps gym-anything verdicts onto Harbor's
+        named-rewards dict exactly like the backend does."""
+        from gym_anything.integrations.harbor_container import rewards_from_verdict
+
+        self.assertEqual(
+            rewards_from_verdict(1.0, {"passed": True, "score": 75, "feedback": "x"}),
+            {"reward": 1.0, "passed": 1.0, "score": 75.0},
+        )
+        self.assertEqual(rewards_from_verdict(0.0, None), {"reward": 0.0})
 
 
 if __name__ == "__main__":

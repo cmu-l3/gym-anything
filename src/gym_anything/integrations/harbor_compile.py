@@ -5,15 +5,24 @@ A compiled task has the standard Harbor shape::
     <out>/<env_name>__<task_id>/
     ├── instruction.md                    # task.json description
     ├── task.toml                         # Harbor TaskConfig (schema 1.3)
-    ├── environment/gym-anything.json     # boot config for GymAnythingEnvironment
-    └── tests/test.sh                     # contract marker (see below)
+    ├── environment/
+    │   ├── Dockerfile                    # generic runtime (QEMU-in-container)
+    │   ├── docker-compose.yaml           # KVM passthrough + image cache volume
+    │   └── gym-anything.json             # task identity / boot config
+    └── tests/test.sh                     # grades via the in-container runtime
 
-The tasks are runnable only on the gym-anything backend
-(``harbor run ... --env gym_anything.integrations.harbor:GymAnythingEnvironment``).
-That environment intercepts the Verifier's ``test.sh`` invocation and runs the
-task's real grading pipeline (post_task hook + verifier.py) on the host, so
-``tests/test.sh`` is a marker that fails loudly if the task is executed on an
-environment type that cannot grade it.
+The tasks run two ways from the same directory:
+
+* **Standard Harbor path** (any docker-capable backend with KVM): the
+  Dockerfile boots the task's guest via QEMU inside the container (the
+  ModalRunner sandbox shape, see ``harbor_container``), and ``tests/test.sh``
+  runs the task's real grading pipeline in the container. Requires the shared
+  image-cache volume once per host: ``docker volume create
+  harbor-gym-anything-cache`` (the OSWorld adapter uses the same pattern).
+* **gym-anything backend fast path** (``--env
+  gym_anything.integrations.harbor:GymAnythingEnvironment``): the backend
+  boots the guest directly through the local runner stack, ignores the
+  Dockerfile, and intercepts the verifier invocation to grade host-side.
 
 This module deliberately imports neither ``harbor`` nor anything heavier than
 the gym-anything registry, so compilation (and its tests) run everywhere.
@@ -28,17 +37,76 @@ from typing import Any, Dict, List, Optional
 from ..registry import get_tasks_for_environment, resolve_environment_dir
 
 _TEST_SH = """#!/bin/bash
-# Contract marker for gym-anything Harbor tasks.
-#
-# When this task runs on the gym-anything Harbor backend
-# (--env gym_anything.integrations.harbor:GymAnythingEnvironment), the backend
-# intercepts this script's invocation and runs the task's real grading
-# pipeline (post_task export hook + verifier.py) on the host, writing
-# /logs/verifier/reward.json itself. This script only executes if the task was
-# started on an environment type that cannot grade it.
-echo "cua-world tasks must run on the gym-anything Harbor backend:" >&2
-echo "  --env gym_anything.integrations.harbor:GymAnythingEnvironment" >&2
-exit 1
+# Grades the episode via the in-container gym-anything runtime: runs the
+# task's real pipeline (post_task export hook + verifier.py) against the
+# guest VM and writes /logs/verifier/reward.json for Harbor's Verifier.
+# On the gym-anything custom backend this script is not executed: the
+# backend intercepts the invocation and runs the same pipeline host-side.
+exec python -m gym_anything.integrations.harbor_container finalize \\
+  --reward-path /logs/verifier/reward.json \\
+  --verifier-path /logs/verifier/verifier.json
+"""
+
+_DOCKERFILE = """# Generic runtime for gym-anything Harbor tasks: QEMU inside the container
+# boots the task's guest VM (the same shape gym-anything's ModalRunner
+# sandbox uses). This file is identical across tasks; the task identity
+# lives in gym-anything.json.
+FROM python:3.12-slim-bookworm
+
+RUN apt-get update && apt-get install --no-install-recommends -y \\
+        qemu-system-x86 \\
+        qemu-utils \\
+        wget \\
+        curl \\
+        ca-certificates \\
+        genisoimage \\
+        openssh-client \\
+        procps \\
+        unzip \\
+        zstd \\
+        tini \\
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ARG GYM_ANYTHING_REF={ref}
+RUN pip install --no-cache-dir \\
+    "gym-anything{extras} @ git+https://github.com/cmu-l3/gym-anything@${{GYM_ANYTHING_REF}}"
+
+COPY gym-anything.json /harbor-task/gym-anything.json
+
+ENV GYM_ANYTHING_QEMU_CACHE=/gym-anything-cache/qemu \\
+    GA_HARBOR_PORT=7317 \\
+    GA_HARBOR_RUNNER=qemu_native
+
+ENTRYPOINT ["tini", "-s", "--", "python", "-m", "gym_anything.integrations.harbor_container", "serve"]
+"""
+
+_DOCKER_COMPOSE = """# Mirrors the OSWorld adapter's runtime shape: KVM passthrough plus a shared
+# cache volume so the guest image is provisioned once per host and reused
+# across trials. Create the volume once:
+#   docker volume create harbor-gym-anything-cache
+services:
+  main:
+    command: []
+    devices:
+      - /dev/kvm
+    environment:
+      GA_HARBOR_PORT: "7317"
+      GA_HARBOR_RUNNER: qemu_native
+      GYM_ANYTHING_QEMU_CACHE: /gym-anything-cache/qemu
+    volumes:
+      - gym-anything-cache:/gym-anything-cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:7317/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 720
+      start_period: 2400s
+    stop_grace_period: 2m
+
+volumes:
+  gym-anything-cache:
+    external: true
+    name: harbor-gym-anything-cache
 """
 
 _DEFAULT_KEYWORDS = ["computer-use", "gui", "gym-anything"]
@@ -99,11 +167,16 @@ def compile_task(
     build_timeout_sec: int = 3600,
     agent_timeout_sec: int = 1800,
     verifier_timeout_sec: int = 1800,
+    gym_anything_ref: str = "harbor-integration",
+    pip_extras: str = "",
 ) -> Path:
     """Compile one benchmark task into a Harbor task directory.
 
     ``build_timeout_sec`` defaults high because the first boot of an
-    environment provisions it; later boots load from checkpoint.
+    environment provisions it; later boots load from the cache volume.
+    ``gym_anything_ref`` pins the gym-anything git ref installed into the
+    task image; ``pip_extras`` adds extras (e.g. ``"benchmark"`` for the
+    full verifier dependency corpus — core deps already cover PIL/numpy).
     """
     resolved_env_dir = (
         Path(env_dir) if env_dir else resolve_environment_dir(env_name, benchmark)
@@ -135,6 +208,12 @@ def compile_task(
     (out_dir / "environment" / "gym-anything.json").write_text(
         json.dumps(ga_config, indent=2) + "\n"
     )
+
+    extras = f"[{pip_extras}]" if pip_extras else ""
+    (out_dir / "environment" / "Dockerfile").write_text(
+        _DOCKERFILE.format(ref=gym_anything_ref, extras=extras)
+    )
+    (out_dir / "environment" / "docker-compose.yaml").write_text(_DOCKER_COMPOSE)
 
     test_path = out_dir / "tests" / "test.sh"
     test_path.write_text(_TEST_SH)

@@ -94,24 +94,9 @@ class GymAnythingEnvironment(BaseEnvironment):
         await asyncio.to_thread(self._start_sync, force_build)
 
     def _start_sync(self, force_build: bool) -> None:
-        from ..config.loading import from_config
-        from ..registry import resolve_environment_dir
+        from .harbor_container import boot_env
 
-        config = self._ga_config
-        env_dir = config.get("env_dir") or resolve_environment_dir(
-            config["env_name"], config.get("benchmark")
-        )
-        runner = config.get("runner")
-        overrides = {"runner": runner} if runner else None
-        env = from_config(env_dir, task_id=config["task_id"], overrides=overrides)
-        env.reset(
-            seed=int(config.get("seed", 0)),
-            use_cache=bool(config.get("use_cache", True)) and not force_build,
-            cache_level=config.get("cache_level", "post_start"),
-            use_savevm=bool(config.get("use_savevm", False)),
-        )
-        # Harbor owns the trial's step/time budget.
-        env.set_episode_limits(max_steps=100_000, timeout_sec=10**9)
+        env = boot_env(self._ga_config, force_build=force_build)
         # Docker images get these from harbor's mount structure; a guest VM
         # must create them so phase log/artifact transfers have a target.
         env.runner.exec(
@@ -191,21 +176,12 @@ class GymAnythingEnvironment(BaseEnvironment):
     # -- verification ----------------------------------------------------------
 
     def _verify_sync(self) -> ExecResult:
+        from .harbor_container import finalize_episode, rewards_from_verdict
+
         if self._verify_result is not None:
             return self._verify_result
-        env = self.gym_env
-        _obs, reward, _done, step_info = env.step([], mark_done=True)
-        verifier = step_info.get("verifier")
-        if verifier is None:
-            verifier = self._read_summary_verifier(env)
-
-        rewards: Dict[str, float] = {"reward": float(reward or 0.0)}
-        if isinstance(verifier, dict):
-            if "passed" in verifier:
-                rewards["passed"] = 1.0 if verifier.get("passed") else 0.0
-            score = verifier.get("score")
-            if isinstance(score, (int, float)):
-                rewards["score"] = float(score)
+        reward, verifier = finalize_episode(self.gym_env)
+        rewards = rewards_from_verdict(reward, verifier)
 
         self._write_guest_file(_REWARD_JSON_PATH, json.dumps(rewards))
         if isinstance(verifier, dict):
@@ -218,17 +194,6 @@ class GymAnythingEnvironment(BaseEnvironment):
             stdout=str(feedback or ""), stderr=None, return_code=0
         )
         return self._verify_result
-
-    @staticmethod
-    def _read_summary_verifier(env) -> Optional[Dict[str, Any]]:
-        episode_dir = env.episode_dir
-        if not episode_dir:
-            return None
-        summary_path = Path(episode_dir) / "summary.json"
-        try:
-            return json.loads(summary_path.read_text()).get("verifier")
-        except (OSError, ValueError):
-            return None
 
     def _write_guest_file(self, guest_path: str, content: str) -> None:
         with tempfile.NamedTemporaryFile(
