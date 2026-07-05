@@ -795,6 +795,11 @@ class GymAnythingEnv:
         return self._task_root
 
     @property
+    def runner(self) -> BaseRunner:
+        """The active runner: the runtime exec/transfer surface integrations build on."""
+        return self._runner
+
+    @property
     def runner_name(self) -> str:
         return type(self._runner).__name__
 

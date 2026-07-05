@@ -8,8 +8,8 @@
 ### How it works
 This package is a declaration over the gym-anything library: the dataset is
 enumerated by `gym_anything.registry` (the benchmark layout contract), the
-rollout logic lives in `gym_anything.integrations.verifiers`, and the
-`load_environment` surface comes from `gym_anything.integrations.hub`. Each
+rollout logic lives in `gym_anything.integrations.prime_rl.verifiers`, and the
+`load_environment` surface comes from `gym_anything.integrations.prime_rl.hub`. Each
 rollout runs a real reference agent's `step()` verbatim (select it with
 `agent`, exactly like `--agent` locally; default `Qwen3VLAgent`) — the
 framework does the sampling through the agent's `llm_call` seam, so the

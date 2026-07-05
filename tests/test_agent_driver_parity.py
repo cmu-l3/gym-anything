@@ -4,7 +4,7 @@ The contract this file pins: for the same agent, environment, and scripted
 model completions, the message sequences the model would see and the actions
 the environment executes are IDENTICAL between (a) the local evaluation loop
 (agents/evaluation/run_single.py) and (b) the driven loop the verifiers
-adapter runs (gym_anything.integrations.verifiers._episode_loop + bridge).
+adapter runs (gym_anything.integrations.prime_rl.verifiers._episode_loop + bridge).
 The only permitted difference is who performs the sampling.
 
 If this test fails after an agent or adapter change, the two harnesses have
@@ -141,7 +141,7 @@ def _run_local(tmp: str):
 
 def _run_driven(tmp: str):
     """The adapter's episode loop, completions fed through the bridge."""
-    from gym_anything.integrations.verifiers import _episode_loop, _StepBridge
+    from gym_anything.integrations.prime_rl.verifiers import _episode_loop, _StepBridge
 
     env = _FakeEnv(tmp)
     agent = _make_agent(tmp)
@@ -191,7 +191,7 @@ class HarnessParityTests(unittest.TestCase):
         samples with exactly what the agent passes to its model call — not the
         endpoint defaults. This is what made local (top_k=20) and driven
         (top_k unset) diverge."""
-        from gym_anything.integrations.verifiers import _sampling_args_from_call
+        from gym_anything.integrations.prime_rl.verifiers import _sampling_args_from_call
 
         with tempfile.TemporaryDirectory() as tmp:
             _run_driven(tmp)  # exercises the bridge on a real agent's step()
@@ -209,7 +209,7 @@ class HarnessParityTests(unittest.TestCase):
     def test_caller_sampling_args_win_per_key(self) -> None:
         """A prime-rl training sampling config overrides the agent's defaults
         per key, so training keeps control while eval gets parity by default."""
-        from gym_anything.integrations.verifiers import _sampling_args_from_call
+        from gym_anything.integrations.prime_rl.verifiers import _sampling_args_from_call
 
         agent_sa = _sampling_args_from_call(("m", 1.0, 0.95, 20), {})
         caller = {"temperature": 0.6, "extra_body": {"top_k": 50}}
@@ -225,7 +225,7 @@ class HarnessParityTests(unittest.TestCase):
         field verifiers' get_model_response samples with."""
         import asyncio
 
-        from gym_anything.integrations.verifiers import build_agent_env
+        from gym_anything.integrations.prime_rl.verifiers import build_agent_env
 
         rows = [{
             "prompt": [{"role": "user", "content": "do it"}],

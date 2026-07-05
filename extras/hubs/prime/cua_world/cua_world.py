@@ -5,8 +5,8 @@ real reference agent from `agents/agents/` (selected by name, exactly like
 `--agent` locally) and reuses that agent's own system prompt and parser. All
 logic lives in the gym-anything library:
   * dataset enumeration — `gym_anything.registry`
-  * rollout that drives the agent — `gym_anything.integrations.verifiers`
-  * the `load_environment` surface — `gym_anything.integrations.hub`
+  * rollout that drives the agent — `gym_anything.integrations.prime_rl.verifiers`
+  * the `load_environment` surface — `gym_anything.integrations.prime_rl.hub`
   * the agent itself — `agents/agents/qwen3vl.py`
 
 Defaults mirror how you would run this locally:
@@ -24,7 +24,7 @@ Usage:
         -a '{"env_names": ["gimp_env"], "task_ids": ["horizontal_mirror"]}'
 """
 
-from gym_anything.integrations.hub import make_hub_loader
+from gym_anything.integrations.prime_rl.hub import make_hub_loader
 
 load_environment = make_hub_loader(
     "cua_world",

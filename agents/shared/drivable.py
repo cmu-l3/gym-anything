@@ -11,7 +11,7 @@ real ``step()`` verbatim. The contract is:
 
 The external loop injects its own ``llm_call`` and runs the unmodified agent,
 so the driven harness and the local harness are the same code by construction
-(``gym_anything.integrations.verifiers`` is the loop that does this).
+(``gym_anything.integrations.prime_rl.verifiers`` is the loop that does this).
 
 Provider-native agents (Anthropic/Google/Azure native tools) do not mix this
 in: their model call cannot be served over an OpenAI policy endpoint.
