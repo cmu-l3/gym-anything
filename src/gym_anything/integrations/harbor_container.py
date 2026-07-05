@@ -42,7 +42,7 @@ from urllib.request import Request, urlopen
 
 DEFAULT_TASK_CONFIG_PATH = "/harbor-task/gym-anything.json"
 DEFAULT_PORT = 7317
-DEFAULT_CONTAINER_RUNNER = "qemu_native"
+DEFAULT_CONTAINER_RUNNER = "qemu"  # auto-selects apptainer/native per host
 
 _REWARD_JSON_PATH = "/logs/verifier/reward.json"
 _VERIFIER_JSON_PATH = "/logs/verifier/verifier.json"

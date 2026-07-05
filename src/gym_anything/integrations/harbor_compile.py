@@ -75,7 +75,7 @@ COPY gym-anything.json /harbor-task/gym-anything.json
 
 ENV GYM_ANYTHING_QEMU_CACHE=/gym-anything-cache/qemu \\
     GA_HARBOR_PORT=7317 \\
-    GA_HARBOR_RUNNER=qemu_native
+    GA_HARBOR_RUNNER=qemu
 
 ENTRYPOINT ["tini", "-s", "--", "python", "-m", "gym_anything.integrations.harbor_container", "serve"]
 """
@@ -91,7 +91,7 @@ services:
       - /dev/kvm
     environment:
       GA_HARBOR_PORT: "7317"
-      GA_HARBOR_RUNNER: qemu_native
+      GA_HARBOR_RUNNER: qemu
       GYM_ANYTHING_QEMU_CACHE: /gym-anything-cache/qemu
     volumes:
       - gym-anything-cache:/gym-anything-cache
