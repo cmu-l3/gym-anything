@@ -20,7 +20,7 @@ CUA-World-Long is the headline evaluation of [Gym-Anything](https://github.com/c
 
 ## Adapter Features
 
-- Programmatic task generation from the gym-anything registry (task IDs, instructions, tags, and per-task budgets are read from each task's `task.json`; task IDs are preserved as `{env_name}__{task_id}`).
+- Programmatic task generation from the gym-anything registry (task IDs, instructions, and tags are read from each task's `task.json`; task IDs are preserved as `{env_name}__{task_id}`).
 - Self-contained task images: a generic Dockerfile installs gym-anything at a pinned ref and boots the task's guest VM via QEMU inside the container (the same runtime shape the OSWorld adapter uses).
 - Shared image-cache volume (`harbor-gym-anything-cache`): the guest image is provisioned once per host and reused across trials via copy-on-write overlays.
 - In-container grading through the benchmark's real verifier pipeline (post-task export hook + per-task `verifier.py`), isolated from the agent-controlled VM.
@@ -33,7 +33,7 @@ CUA-World-Long is the headline evaluation of [Gym-Anything](https://github.com/c
 ```
 cua-world/
 ├── {env_name}__{task_id}/
-│   ├── task.toml                 # Task configuration (per-task budgets, metadata)
+│   ├── task.toml                 # Task configuration (uniform protocol budgets, metadata)
 │   ├── instruction.md            # Task instructions for the agent
 │   ├── environment/              # Container definition
 │   │   ├── Dockerfile            # QEMU-in-container runtime (generic)
