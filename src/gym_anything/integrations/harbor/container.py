@@ -200,6 +200,46 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"error": f"{type(exc).__name__}: {exc}"}, status=500)
 
 
+_AGENT_MANUAL = """# GUI control API
+
+This container runs a desktop VM with the task's application open. You cannot
+see the VM directly; drive it through the local HTTP API:
+
+- `curl -s -X POST http://127.0.0.1:{port}/observe` returns
+  `{{"screenshot_path": "...", "resolution": [width, height]}}`. Read the PNG
+  at that path to see the current screen.
+- `curl -s -X POST -H 'Content-Type: application/json' -d '{{"actions": [...]}}'
+  http://127.0.0.1:{port}/step` executes actions and returns the new
+  screenshot path. Coordinates are real pixels at the given resolution.
+
+Action objects:
+
+- `{{"mouse": {{"left_click": [x, y]}}}}` (also `double_click`, `right_click`,
+  `move`)
+- `{{"mouse": {{"scroll": -3}}}}` (negative scrolls down)
+- `{{"keyboard": {{"text": "hello"}}}}` types text;
+  `{{"keyboard": {{"keys": ["ctrl", "s"]}}}}` presses a chord
+- `{{"action": "wait", "time": 2}}` waits
+
+Observe after every step; the screen changes asynchronously. Complete the task
+in the GUI; grading runs automatically afterwards against application state.
+"""
+
+
+def _write_agent_manual(port: int) -> None:
+    """Give installed CLI agents (Claude Code, Codex, ...) the GUI-control
+    affordance: they auto-read AGENTS.md/CLAUDE.md from their working
+    directory and are multimodal, so with this manual they can drive the VM
+    by reading screenshots and curling actions. Best-effort: root-owned
+    paths do not exist outside the task container."""
+    content = _AGENT_MANUAL.format(port=port)
+    for path in ("/AGENTS.md", "/CLAUDE.md"):
+        try:
+            Path(path).write_text(content)
+        except OSError:
+            pass
+
+
 def serve(config_path: str, port: int) -> None:
     config = json.loads(Path(config_path).read_text())
     print(f"[harbor-container] booting {config.get('env_name')}/{config.get('task_id')}")
@@ -207,6 +247,7 @@ def serve(config_path: str, port: int) -> None:
         config,
         default_runner=os.environ.get("GA_HARBOR_RUNNER", DEFAULT_CONTAINER_RUNNER),
     )
+    _write_agent_manual(port)
     # Harbor expects its log dirs to exist for phase transfers. Best-effort:
     # in the task container this runs as root; a bare process (validation
     # runs outside docker) has no business writing at /.

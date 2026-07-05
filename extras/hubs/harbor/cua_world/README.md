@@ -25,6 +25,7 @@ CUA-World-Long is the headline evaluation of [Gym-Anything](https://github.com/c
 - Shared image-cache volume (`harbor-gym-anything-cache`): the guest image is provisioned once per host and reused across trials via copy-on-write overlays.
 - In-container grading through the benchmark's real verifier pipeline (post-task export hook + per-task `verifier.py`), isolated from the agent-controlled VM.
 - A reference computer-use agent (`cua-world-agent`, selected via `--agent-import-path gym_anything.integrations.harbor:CuaWorldAgent`) that drives the guest through the runtime API and records ATIF-v1.7 trajectories.
+- Standard multimodal CLI agents (Claude Code, Codex, Gemini CLI) can also attempt tasks: the container ships an `AGENTS.md`/`CLAUDE.md` documenting the GUI-control API (observe returns a screenshot file to read; step executes mouse/keyboard actions), so any agent that reads images from disk can drive the VM.
 - Uniform protocol budgets on every task: 500 model steps and a 6-hour agent window (the paper's evaluation protocol).
 
 ## Generated Task Structure
