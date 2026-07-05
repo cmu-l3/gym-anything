@@ -150,8 +150,6 @@ Parity experiments are pending coordination with the Harbor team. Because CUA-Wo
 |-------|-------|--------|------------------|--------------|------------------------------|----------------------------|
 | pending | pending | pass@1 | pending | pending | pending | pending |
 
-Preliminary harness-parity evidence (not the formal protocol): on the smoke task `gimp_env_all_fast/add_border`, the same agent+model produced identical outcomes on the original harness and through Harbor on both runtime shapes (do-nothing agent reproduces the verifier's exact partial-credit fingerprint; gemini-3.5-flash passes on both sides), with the identical agent code driving both sides by construction.
-
 Reproduction requirements and steps (mandatory):
 - Original benchmark side: https://github.com/cmu-l3/gym-anything at the pinned ref; run `gym-anything benchmark <env> --task <task> --agent GeminiQwen3Agent --model <model> --steps 500` with `GEMINI_API_KEY` set.
 - Harbor side:

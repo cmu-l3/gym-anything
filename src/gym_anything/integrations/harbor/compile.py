@@ -197,7 +197,7 @@ def compile_task(
     agent_timeout_sec: int = 1800,
     verifier_timeout_sec: int = 1800,
     gym_anything_ref: str = "main",
-    pip_extras: str = "",
+    pip_extras: str = "vlm",
     verifier: Optional[Dict[str, Any]] = _UNSET,  # type: ignore[assignment]
 ) -> Path:
     """Compile one benchmark task into a Harbor task directory.

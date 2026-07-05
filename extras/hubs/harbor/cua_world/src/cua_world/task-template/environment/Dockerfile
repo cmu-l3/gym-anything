@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 ARG GYM_ANYTHING_REF=__GYM_ANYTHING_REF__
 RUN pip install --no-cache-dir \
-    "gym-anything @ git+https://github.com/cmu-l3/gym-anything@${GYM_ANYTHING_REF}"
+    "gym-anything[vlm] @ git+https://github.com/cmu-l3/gym-anything@${GYM_ANYTHING_REF}"
 
 COPY gym-anything.json /harbor-task/gym-anything.json
 
