@@ -78,6 +78,11 @@ class AdapterGenerationTests(unittest.TestCase):
 
             ga = json.loads((out / "environment" / "gym-anything.json").read_text())
             self.assertEqual(ga["benchmark"], "cua_world")
+            self.assertEqual(ga["verifier"]["mode"], "vlm_checklist")
+            self.assertEqual(ga["verifier"]["vlm_api_key_var"], "GEMINI_API_KEY")
+            self.assertIn(
+                'GEMINI_API_KEY = "${GEMINI_API_KEY:-}"', (out / "task.toml").read_text()
+            )
             self.assertEqual(
                 out.name, f"{ga['env_name']}__{ga['task_id']}", "id mapping preserved"
             )

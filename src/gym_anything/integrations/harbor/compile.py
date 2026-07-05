@@ -36,6 +36,8 @@ from typing import Any, Dict, List, Optional
 
 from ...registry import get_tasks_for_environment, resolve_environment_dir
 
+_UNSET: Dict[str, Any] = {"__unset__": True}
+
 _TEST_SH = """#!/bin/bash
 # Grades the episode via the in-container gym-anything runtime: runs the
 # task's real pipeline (post_task export hook + verifier.py) against the
@@ -122,6 +124,19 @@ volumes:
 
 _DEFAULT_KEYWORDS = ["computer-use", "gui", "gym-anything"]
 
+# Default grading: the VLM checklist (a VLM judges the trajectory against
+# each task's vlm_checklist.json). The programmatic verifiers read live,
+# agent-mutable application state for some tasks, so the prime hub shell
+# made the same choice for the same reason. Set "mode" to None to restore
+# each task's declared (usually programmatic) mode.
+_DEFAULT_VERIFIER = {
+    "mode": "vlm_checklist",
+    "vlm_backend": "local",
+    "vlm_base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+    "vlm_model": "gemini-3.5-flash",
+    "vlm_api_key_var": "GEMINI_API_KEY",
+}
+
 
 def _toml_string(value: str) -> str:
     # JSON string escaping is a valid TOML basic string for the fields we emit.
@@ -158,6 +173,9 @@ timeout_sec = {agent_timeout_sec}
 [verifier]
 timeout_sec = {verifier_timeout_sec}
 
+[verifier.env]
+GEMINI_API_KEY = "${{GEMINI_API_KEY:-}}"
+
 [metadata.gym_anything]
 {metadata_lines}
 """
@@ -180,6 +198,7 @@ def compile_task(
     verifier_timeout_sec: int = 1800,
     gym_anything_ref: str = "main",
     pip_extras: str = "",
+    verifier: Optional[Dict[str, Any]] = _UNSET,  # type: ignore[assignment]
 ) -> Path:
     """Compile one benchmark task into a Harbor task directory.
 
@@ -216,6 +235,11 @@ def compile_task(
     }
     if runner:
         ga_config["runner"] = runner
+    if verifier is not _UNSET:
+        if verifier:
+            ga_config["verifier"] = dict(verifier)
+    else:
+        ga_config["verifier"] = dict(_DEFAULT_VERIFIER)
     (out_dir / "environment" / "gym-anything.json").write_text(
         json.dumps(ga_config, indent=2) + "\n"
     )
