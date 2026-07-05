@@ -74,7 +74,35 @@ def boot_env(config: Dict[str, Any], *, force_build: bool = False, default_runne
         use_savevm=bool(config.get("use_savevm", False)),
     )
     env.set_episode_limits(max_steps=100_000, timeout_sec=10**9)
+    apply_verifier_config(env, config)
     return env
+
+
+def apply_verifier_config(
+    env, config: Dict[str, Any], extra_env: Optional[Dict[str, str]] = None
+) -> None:
+    """(Re)apply the task's verifier overrides (same shape the prime hub
+    loader builds). ``extra_env`` overlays os.environ for the key lookup:
+    Harbor delivers the grader key via ``[verifier.env]`` to the verifier
+    phase's process, so the key may only become available at finalize time.
+    """
+    verifier = config.get("verifier") or {}
+    if not verifier:
+        return
+    lookup = {**os.environ, **(extra_env or {})}
+    overrides: Dict[str, str] = {}
+    if verifier.get("mode"):
+        overrides["GYM_ANYTHING_VERIFIER_MODE"] = verifier["mode"]
+    if verifier.get("vlm_backend"):
+        overrides["VLM_BACKEND"] = verifier["vlm_backend"]
+    if verifier.get("vlm_model"):
+        overrides["VLM_MODEL"] = verifier["vlm_model"]
+    if verifier.get("vlm_base_url"):
+        overrides["VLM_BASE_URL"] = verifier["vlm_base_url"]
+    key_var = verifier.get("vlm_api_key_var")
+    if key_var and lookup.get(key_var):
+        overrides["VLM_API_KEY"] = lookup[key_var]
+    env.set_verifier_overrides(overrides)
 
 
 def finalize_episode(env) -> Tuple[float, Optional[Dict[str, Any]]]:
@@ -117,8 +145,9 @@ def _read_summary_verifier(env) -> Optional[Dict[str, Any]]:
 class _Runtime:
     """Owns the booted environment behind a lock; one trial per container."""
 
-    def __init__(self, env):
+    def __init__(self, env, config: Optional[Dict[str, Any]] = None):
         self.env = env
+        self.config = config or {}
         self.lock = threading.Lock()
         self._finalize_result: Optional[Dict[str, Any]] = None
 
@@ -140,9 +169,12 @@ class _Runtime:
         )
         return payload
 
-    def finalize(self) -> Dict[str, Any]:
+    def finalize(self, extra_env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         with self.lock:
             if self._finalize_result is None:
+                # The grader key arrives with the verifier phase (Harbor's
+                # [verifier.env]); re-resolve overrides before grading.
+                apply_verifier_config(self.env, self.config, extra_env)
                 reward, verifier = finalize_episode(self.env)
                 self._finalize_result = {"reward": reward, "verifier": verifier}
         return self._finalize_result
@@ -193,11 +225,52 @@ class _Handler(BaseHTTPRequestHandler):
                 request = self._read_json()
                 self._send_json(self.runtime.step(request.get("actions") or []))
             elif self.path == "/finalize":
-                self._send_json(self.runtime.finalize())
+                request = self._read_json()
+                self._send_json(self.runtime.finalize(request.get("env") or None))
             else:
                 self._send_json({"error": f"unknown path {self.path}"}, status=404)
         except Exception as exc:  # surface errors to the caller, keep serving
             self._send_json({"error": f"{type(exc).__name__}: {exc}"}, status=500)
+
+
+_AGENT_MANUAL = """# GUI control API
+
+This container runs a desktop VM with the task's application open. You cannot
+see the VM directly; drive it through the local HTTP API:
+
+- `curl -s -X POST http://127.0.0.1:{port}/observe` returns
+  `{{"screenshot_path": "...", "resolution": [width, height]}}`. Read the PNG
+  at that path to see the current screen.
+- `curl -s -X POST -H 'Content-Type: application/json' -d '{{"actions": [...]}}'
+  http://127.0.0.1:{port}/step` executes actions and returns the new
+  screenshot path. Coordinates are real pixels at the given resolution.
+
+Action objects:
+
+- `{{"mouse": {{"left_click": [x, y]}}}}` (also `double_click`, `right_click`,
+  `move`)
+- `{{"mouse": {{"scroll": -3}}}}` (negative scrolls down)
+- `{{"keyboard": {{"text": "hello"}}}}` types text;
+  `{{"keyboard": {{"keys": ["ctrl", "s"]}}}}` presses a chord
+- `{{"action": "wait", "time": 2}}` waits
+
+Observe after every step; the screen changes asynchronously. Complete the task
+in the GUI; grading runs automatically afterwards against application state.
+"""
+
+
+def _write_agent_manual(port: int) -> None:
+    """Give installed CLI agents (Claude Code, Codex, ...) the GUI-control
+    affordance: they auto-read AGENTS.md/CLAUDE.md from their working
+    directory and are multimodal, so with this manual they can drive the VM
+    by reading screenshots and curling actions. Best-effort: root-owned
+    paths do not exist outside the task container."""
+    content = _AGENT_MANUAL.format(port=port)
+    for path in ("/AGENTS.md", "/CLAUDE.md"):
+        try:
+            Path(path).write_text(content)
+        except OSError:
+            pass
 
 
 def serve(config_path: str, port: int) -> None:
@@ -207,6 +280,7 @@ def serve(config_path: str, port: int) -> None:
         config,
         default_runner=os.environ.get("GA_HARBOR_RUNNER", DEFAULT_CONTAINER_RUNNER),
     )
+    _write_agent_manual(port)
     # Harbor expects its log dirs to exist for phase transfers. Best-effort:
     # in the task container this runs as root; a bare process (validation
     # runs outside docker) has no business writing at /.
@@ -216,7 +290,7 @@ def serve(config_path: str, port: int) -> None:
         except OSError:
             pass
 
-    _Handler.runtime = _Runtime(env)
+    _Handler.runtime = _Runtime(env, config)
     server = ThreadingHTTPServer(("0.0.0.0", port), _Handler)
     print(f"[harbor-container] ready on :{port}")
     try:
@@ -229,7 +303,12 @@ def serve(config_path: str, port: int) -> None:
 
 
 def finalize_main(port: int, reward_path: str, verifier_path: str) -> int:
-    request = Request(f"http://127.0.0.1:{port}/finalize", data=b"{}", method="POST")
+    # Harbor resolves [verifier.env] into THIS process's environment; the
+    # serve process booted earlier without it, so forward the credentials.
+    payload = json.dumps(
+        {"env": {k: v for k, v in os.environ.items() if k.endswith("_API_KEY")}}
+    ).encode()
+    request = Request(f"http://127.0.0.1:{port}/finalize", data=payload, method="POST")
     with urlopen(request, timeout=1800) as response:
         result = json.loads(response.read())
     if "error" in result:

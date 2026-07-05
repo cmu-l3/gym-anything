@@ -139,7 +139,7 @@ class GymAnythingEnvironment(BaseEnvironment):
         user: str | int | None = None,
     ) -> ExecResult:
         if _is_verifier_invocation(command):
-            return await asyncio.to_thread(self._verify_sync)
+            return await asyncio.to_thread(self._verify_sync, env)
         return await asyncio.to_thread(
             self._exec_sync, command, cwd, env, timeout_sec, user
         )
@@ -175,11 +175,14 @@ class GymAnythingEnvironment(BaseEnvironment):
 
     # -- verification ----------------------------------------------------------
 
-    def _verify_sync(self) -> ExecResult:
-        from .container import finalize_episode, rewards_from_verdict
+    def _verify_sync(self, verifier_env: dict[str, str] | None = None) -> ExecResult:
+        from .container import apply_verifier_config, finalize_episode, rewards_from_verdict
 
         if self._verify_result is not None:
             return self._verify_result
+        # Harbor resolves [verifier.env] (the grader credentials) into the
+        # verifier phase; re-apply the task's verifier overrides with it.
+        apply_verifier_config(self.gym_env, self._ga_config, verifier_env)
         reward, verifier = finalize_episode(self.gym_env)
         rewards = rewards_from_verdict(reward, verifier)
 
