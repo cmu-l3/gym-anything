@@ -312,7 +312,7 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
         env_dir = info["env_dir"]
         task_id = info["task_id"]
         if self.remote_url:
-            from ..remote.client import RemoteGymEnv
+            from ...remote.client import RemoteGymEnv
 
             env = RemoteGymEnv.from_config(
                 self.remote_url,
@@ -321,7 +321,7 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
                 verifier_env=(self.verifier_overrides or None),
             )
         else:
-            from ..config.loading import from_config
+            from ...config.loading import from_config
 
             overrides = {"runner": self.runner} if self.runner else None
             env = from_config(env_dir, task_id=task_id, overrides=overrides)

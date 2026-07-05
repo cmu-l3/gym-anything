@@ -7,7 +7,7 @@ from pathlib import Path
 from agents.agents.qwen3vl import Qwen3VLAgent
 from agents.shared.qwen_computer_use import qwen_system_prompt
 from gym_anything.api import from_config
-from gym_anything.integrations.hub import build_task_rows, make_hub_loader
+from gym_anything.integrations.prime_rl.hub import build_task_rows, make_hub_loader
 
 try:
     import verifiers  # noqa: F401
@@ -113,13 +113,13 @@ class AgentDriverSeamTests(unittest.TestCase):
 @unittest.skipUnless(HAS_VERIFIERS, "verifiers not installed")
 class AgentSelectionTests(unittest.TestCase):
     def test_make_agent_instantiates_real_class_by_name(self) -> None:
-        from gym_anything.integrations.verifiers import _make_agent
+        from gym_anything.integrations.prime_rl.verifiers import _make_agent
 
         agent = _make_agent("Qwen3VLAgent", {"model": "m", "exp_name": "sel", "task_name": "t"})
         self.assertIsInstance(agent, Qwen3VLAgent)
 
     def test_provider_native_agent_is_rejected_as_undrivable(self) -> None:
-        from gym_anything.integrations.verifiers import _make_agent
+        from gym_anything.integrations.prime_rl.verifiers import _make_agent
 
         # ClaudeAgent uses the Anthropic native tool; it cannot run over an
         # OpenAI policy endpoint, so it must be rejected clearly.
@@ -127,7 +127,7 @@ class AgentSelectionTests(unittest.TestCase):
             _make_agent("ClaudeAgent", {"exp_name": "sel", "task_name": "t"})
 
     def test_unknown_agent_name_raises(self) -> None:
-        from gym_anything.integrations.verifiers import _make_agent
+        from gym_anything.integrations.prime_rl.verifiers import _make_agent
 
         with self.assertRaises(ValueError):
             _make_agent("NotARealAgent", {})
@@ -196,7 +196,7 @@ class FromConfigOverridesTests(unittest.TestCase):
 @unittest.skipUnless(HAS_VERIFIERS, "verifiers not installed")
 class VerifiersAdapterTests(unittest.TestCase):
     def test_finalize_runs_verifier_once_while_env_alive(self) -> None:
-        from gym_anything.integrations.verifiers import _finalize_episode
+        from gym_anything.integrations.prime_rl.verifiers import _finalize_episode
 
         class FakeEnv:
             def __init__(self) -> None:
@@ -216,7 +216,7 @@ class VerifiersAdapterTests(unittest.TestCase):
         self.assertEqual(fake.mark_done_calls, 1)
 
     def test_finalize_without_env_surfaces_boot_failure(self) -> None:
-        from gym_anything.integrations.verifiers import _finalize_episode
+        from gym_anything.integrations.prime_rl.verifiers import _finalize_episode
 
         state = {}
         _finalize_episode(state)
@@ -226,7 +226,7 @@ class VerifiersAdapterTests(unittest.TestCase):
     def test_build_agent_env_constructs_environment(self) -> None:
         import verifiers as vf
 
-        from gym_anything.integrations.verifiers import build_agent_env
+        from gym_anything.integrations.prime_rl.verifiers import build_agent_env
 
         rows = [
             {
@@ -239,7 +239,7 @@ class VerifiersAdapterTests(unittest.TestCase):
         self.assertIsInstance(env, vf.Environment)
 
     def test_build_agent_env_requires_a_drivable_agent(self) -> None:
-        from gym_anything.integrations.verifiers import build_agent_env
+        from gym_anything.integrations.prime_rl.verifiers import build_agent_env
 
         rows = [
             {

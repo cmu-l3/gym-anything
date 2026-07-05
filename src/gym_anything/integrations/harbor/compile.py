@@ -15,7 +15,7 @@ The tasks run two ways from the same directory:
 
 * **Standard Harbor path** (any docker-capable backend with KVM): the
   Dockerfile boots the task's guest via QEMU inside the container (the
-  ModalRunner sandbox shape, see ``harbor_container``), and ``tests/test.sh``
+  ModalRunner sandbox shape, see ``container``), and ``tests/test.sh``
   runs the task's real grading pipeline in the container. Requires the shared
   image-cache volume once per host: ``docker volume create
   harbor-gym-anything-cache`` (the OSWorld adapter uses the same pattern).
@@ -34,7 +34,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ..registry import get_tasks_for_environment, resolve_environment_dir
+from ...registry import get_tasks_for_environment, resolve_environment_dir
 
 _TEST_SH = """#!/bin/bash
 # Grades the episode via the in-container gym-anything runtime: runs the
@@ -42,7 +42,7 @@ _TEST_SH = """#!/bin/bash
 # guest VM and writes /logs/verifier/reward.json for Harbor's Verifier.
 # On the gym-anything custom backend this script is not executed: the
 # backend intercepts the invocation and runs the same pipeline host-side.
-exec python -m gym_anything.integrations.harbor_container finalize \\
+exec python -m gym_anything.integrations.harbor.container finalize \\
   --reward-path /logs/verifier/reward.json \\
   --verifier-path /logs/verifier/verifier.json
 """
@@ -88,7 +88,7 @@ ENV GYM_ANYTHING_QEMU_CACHE=/gym-anything-cache/qemu \\
     GA_HARBOR_PORT=7317 \\
     GA_HARBOR_RUNNER=qemu
 
-ENTRYPOINT ["tini", "-s", "--", "python", "-m", "gym_anything.integrations.harbor_container", "serve"]
+ENTRYPOINT ["tini", "-s", "--", "python", "-m", "gym_anything.integrations.harbor.container", "serve"]
 """
 
 _DOCKER_COMPOSE = """# Mirrors the OSWorld adapter's runtime shape: KVM passthrough plus a shared

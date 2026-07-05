@@ -15,7 +15,7 @@ import tomllib
 import unittest
 from pathlib import Path
 
-from gym_anything.integrations.harbor_compile import compile_environment, compile_task
+from gym_anything.integrations.harbor.compile import compile_environment, compile_task
 
 try:
     import harbor  # noqa: F401
@@ -67,12 +67,12 @@ class HarborCompileTests(unittest.TestCase):
             compose = (out_dir / "environment" / "docker-compose.yaml").read_text()
             test_sh = (out_dir / "tests" / "test.sh").read_text()
 
-        self.assertIn("gym_anything.integrations.harbor_container", dockerfile)
+        self.assertIn("gym_anything.integrations.harbor.container", dockerfile)
         self.assertIn("ARG GYM_ANYTHING_REF=", dockerfile)
         self.assertIn("COPY gym-anything.json", dockerfile)
         self.assertIn("/dev/kvm", compose)
         self.assertIn("harbor-gym-anything-cache", compose)
-        self.assertIn("harbor_container finalize", test_sh)
+        self.assertIn("harbor.container finalize", test_sh)
         self.assertIn("/logs/verifier/reward.json", test_sh)
 
     def test_task_toml_parses_and_carries_identity(self) -> None:
@@ -117,7 +117,7 @@ class HarborBackendTests(unittest.TestCase):
     def test_verifier_invocation_discrimination(self) -> None:
         """The exec intercept fires for the Verifier's test-script run and for
         nothing else Harbor execs around it (chmod, agent commands)."""
-        from gym_anything.integrations.harbor import _is_verifier_invocation
+        from gym_anything.integrations.harbor.environment import _is_verifier_invocation
 
         self.assertTrue(
             _is_verifier_invocation(
@@ -142,7 +142,7 @@ class HarborBackendTests(unittest.TestCase):
         """Same contract for the parity agent (--agent-import-path)."""
         from harbor.agents.base import BaseAgent
 
-        from gym_anything.integrations.harbor_agent import CuaWorldAgent
+        from gym_anything.integrations.harbor import CuaWorldAgent
 
         self.assertTrue(issubclass(CuaWorldAgent, BaseAgent))
         self.assertEqual(CuaWorldAgent.name(), "cua-world-agent")
@@ -150,7 +150,7 @@ class HarborBackendTests(unittest.TestCase):
     def test_driver_selection(self) -> None:
         """gym-anything backend gets the direct driver, exec-capable envs get
         the container driver, anything else is rejected loudly."""
-        from gym_anything.integrations.harbor_agent import (
+        from gym_anything.integrations.harbor.agent import (
             _ContainerDriver,
             _DirectDriver,
             _make_driver,
@@ -177,7 +177,7 @@ class HarborBackendTests(unittest.TestCase):
         logs dir."""
         from harbor.models.trajectories import Trajectory
 
-        from gym_anything.integrations.harbor_agent import _TrajectoryRecorder
+        from gym_anything.integrations.harbor.agent import _TrajectoryRecorder
 
         with tempfile.TemporaryDirectory() as tmp:
             logs_dir = Path(tmp)
@@ -208,7 +208,7 @@ class HarborBackendTests(unittest.TestCase):
     def test_container_finalize_reward_mapping(self) -> None:
         """rewards_from_verdict maps gym-anything verdicts onto Harbor's
         named-rewards dict exactly like the backend does."""
-        from gym_anything.integrations.harbor_container import rewards_from_verdict
+        from gym_anything.integrations.harbor.container import rewards_from_verdict
 
         self.assertEqual(
             rewards_from_verdict(1.0, {"passed": True, "score": 75, "feedback": "x"}),

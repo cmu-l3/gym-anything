@@ -13,18 +13,18 @@ localhost:
     POST /finalize  -> run the task's real grading pipeline once;
                        returns {"reward": float, "verifier": {...}}
 
-``tests/test.sh`` calls ``python -m gym_anything.integrations.harbor_container
+``tests/test.sh`` calls ``python -m gym_anything.integrations.harbor.container
 finalize`` inside the container, which hits ``/finalize`` and writes
 ``/logs/verifier/reward.json`` in the shape Harbor's Verifier reads. Harbor
 agents on the host drive the guest through the same API via
-``environment.exec`` + curl (see ``harbor_agent.ContainerDriver``).
+``environment.exec`` + curl (see ``agent.ContainerDriver``).
 
 Grading runs in the container, not in the guest: the same trust boundary the
 OSWorld adapter uses (the container wraps the agent-controlled VM).
 
 This module must not import ``harbor``: it runs inside task containers where
 only gym-anything is installed. The Harbor-facing backend
-(``integrations/harbor.py``) imports the shared boot/grading helpers from
+(``integrations/harbor/environment.py``) imports the shared boot/grading helpers from
 here.
 """
 
@@ -58,8 +58,8 @@ def boot_env(config: Dict[str, Any], *, force_build: bool = False, default_runne
     included. Harbor owns the trial's step/time budget, so episode limits are
     effectively disabled.
     """
-    from ..config.loading import from_config
-    from ..registry import resolve_environment_dir
+    from ...config.loading import from_config
+    from ...registry import resolve_environment_dir
 
     env_dir = config.get("env_dir") or resolve_environment_dir(
         config["env_name"], config.get("benchmark")
@@ -249,7 +249,7 @@ def finalize_main(port: int, reward_path: str, verifier_path: str) -> int:
 
 
 def main(argv: Optional[list] = None) -> int:
-    parser = argparse.ArgumentParser(prog="gym_anything.integrations.harbor_container")
+    parser = argparse.ArgumentParser(prog="gym_anything.integrations.harbor.container")
     sub = parser.add_subparsers(dest="mode", required=True)
 
     serve_parser = sub.add_parser("serve", help="boot the task environment and serve the API")

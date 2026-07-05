@@ -4,7 +4,7 @@ Harbor (github.com/laude-institute/harbor) drives each trial's environment
 through its ``BaseEnvironment`` interface: ``start``/``stop`` for lifecycle,
 ``exec`` plus file transfer for the agent and verifier phases. This adapter
 implements that interface on top of the gym-anything runtime, so Harbor tasks
-compiled from a gym-anything benchmark (see ``harbor_compile``) boot the real
+compiled from a gym-anything benchmark (see ``compile``) boot the real
 guest (QEMU, AVD, ...) through the standard runner stack instead of a Docker
 container.
 
@@ -94,7 +94,7 @@ class GymAnythingEnvironment(BaseEnvironment):
         await asyncio.to_thread(self._start_sync, force_build)
 
     def _start_sync(self, force_build: bool) -> None:
-        from .harbor_container import boot_env
+        from .container import boot_env
 
         env = boot_env(self._ga_config, force_build=force_build)
         # Docker images get these from harbor's mount structure; a guest VM
@@ -176,7 +176,7 @@ class GymAnythingEnvironment(BaseEnvironment):
     # -- verification ----------------------------------------------------------
 
     def _verify_sync(self) -> ExecResult:
-        from .harbor_container import finalize_episode, rewards_from_verdict
+        from .container import finalize_episode, rewards_from_verdict
 
         if self._verify_result is not None:
             return self._verify_result

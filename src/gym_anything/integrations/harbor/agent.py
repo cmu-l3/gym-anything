@@ -12,13 +12,13 @@ It works on two environment shapes, auto-detected:
 * ``GymAnythingEnvironment`` (the custom backend): drives the booted
   ``GymAnythingEnv`` directly through ``environment.gym_env``.
 * Docker-shaped tasks on any standard backend: drives the in-container
-  runtime API (see ``harbor_container``) through ``environment.exec`` + curl,
+  runtime API (see ``container``) through ``environment.exec`` + curl,
   downloading each screenshot to the host.
 
 Usage::
 
     harbor run --path <compiled-task> \\
-        --agent-import-path gym_anything.integrations.harbor_agent:CuaWorldAgent \\
+        --agent-import-path gym_anything.integrations.harbor:CuaWorldAgent \\
         --model gemini-3.5-flash \\
         [--env gym_anything.integrations.harbor:GymAnythingEnvironment]
 

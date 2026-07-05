@@ -20,7 +20,7 @@ import os
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from ..registry import (
+from ...registry import (
     get_tasks_for_environment,
     list_environments,
     resolve_benchmark_root,
