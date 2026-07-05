@@ -47,6 +47,9 @@ class HarborCompileTests(unittest.TestCase):
             self.assertTrue((out_dir / "environment" / "gym-anything.json").is_file())
             self.assertTrue((out_dir / "environment" / "Dockerfile").is_file())
             self.assertTrue((out_dir / "environment" / "docker-compose.yaml").is_file())
+            solve_path = out_dir / "solution" / "solve.sh"
+            self.assertTrue(solve_path.is_file(), "oracle stub must exist (OSWorld precedent)")
+            self.assertIn("does not ship oracle", solve_path.read_text())
             test_path = out_dir / "tests" / "test.sh"
             self.assertTrue(test_path.is_file())
             self.assertTrue(test_path.stat().st_mode & stat.S_IXUSR, "test.sh must be executable")

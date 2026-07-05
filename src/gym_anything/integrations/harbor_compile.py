@@ -47,6 +47,16 @@ exec python -m gym_anything.integrations.harbor_container finalize \\
   --verifier-path /logs/verifier/verifier.json
 """
 
+_SOLVE_SH = """#!/usr/bin/env bash
+set -euo pipefail
+
+# cua-world tasks are interactive GUI tasks graded by per-task verifiers
+# against live application state; no scripted oracle solution is shipped.
+# This follows the precedent of the OSWorld and TheAgentCompany adapters.
+echo "cua-world does not ship oracle solve scripts." >&2
+exit 1
+"""
+
 _DOCKERFILE = """# Generic runtime for gym-anything Harbor tasks: QEMU inside the container
 # boots the task's guest VM (the same shape gym-anything's ModalRunner
 # sandbox uses). This file is identical across tasks; the task identity
@@ -215,6 +225,12 @@ def compile_task(
         _DOCKERFILE.format(ref=gym_anything_ref, extras=extras)
     )
     (out_dir / "environment" / "docker-compose.yaml").write_text(_DOCKER_COMPOSE)
+
+    solution_dir = out_dir / "solution"
+    solution_dir.mkdir(exist_ok=True)
+    solve_path = solution_dir / "solve.sh"
+    solve_path.write_text(_SOLVE_SH)
+    solve_path.chmod(0o755)
 
     test_path = out_dir / "tests" / "test.sh"
     test_path.write_text(_TEST_SH)
