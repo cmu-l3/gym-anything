@@ -178,7 +178,7 @@ def compile_task(
     build_timeout_sec: int = 3600,
     agent_timeout_sec: int = 1800,
     verifier_timeout_sec: int = 1800,
-    gym_anything_ref: str = "harbor-integration",
+    gym_anything_ref: str = "main",
     pip_extras: str = "",
 ) -> Path:
     """Compile one benchmark task into a Harbor task directory.
