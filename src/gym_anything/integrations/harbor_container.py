@@ -150,8 +150,11 @@ class _Runtime:
 
 def _obs_payload(obs: Dict[str, Any]) -> Dict[str, Any]:
     screen = (obs or {}).get("screen") or {}
+    path = screen.get("path")
     return {
-        "screenshot_path": screen.get("path"),
+        # Absolute: callers (test.sh, the host-side driver) have a different
+        # working directory than the serve process.
+        "screenshot_path": str(Path(path).resolve()) if path else None,
         "resolution": list(screen.get("resolution") or []),
     }
 
