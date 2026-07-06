@@ -280,17 +280,22 @@ def _capture_provisioned_screenshot(env) -> None:
     hooks actually opened the target application. Best-effort.
     """
     import shutil
+    import time
 
-    try:
-        obs = env.capture_observation()
-        source = ((obs or {}).get("screen") or {}).get("path")
-        if source and Path(source).exists():
-            dest = Path("/logs/verifier/provisioned.png")
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, dest)
-            print(f"[harbor-container] provisioned screenshot -> {dest}")
-    except Exception as exc:  # never block serving on the capture
-        print(f"[harbor-container] provisioned screenshot skipped: {exc}")
+    dest = Path("/logs/verifier/provisioned.png")
+    for attempt in range(5):
+        try:
+            obs = env.capture_observation()
+            source = ((obs or {}).get("screen") or {}).get("path")
+            if source and Path(source).exists() and Path(source).stat().st_size > 0:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, dest)
+                print(f"[harbor-container] provisioned screenshot -> {dest}")
+                return
+        except Exception as exc:  # never block serving on the capture
+            print(f"[harbor-container] provisioned screenshot attempt {attempt} failed: {exc}")
+        time.sleep(3)
+    print("[harbor-container] provisioned screenshot: no valid frame after retries")
 
 
 def serve(config_path: str, port: int) -> None:
