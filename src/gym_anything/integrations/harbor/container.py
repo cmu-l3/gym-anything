@@ -282,6 +282,13 @@ def _capture_provisioned_screenshot(env) -> None:
     import shutil
     import time
 
+    # Give the app time to finish launching after the desktop is ready
+    # (slow JVM IDEs, heavy web stacks render seconds after boot). This is a
+    # capture-timing concern only; the task itself has the full agent budget.
+    settle = int(os.environ.get("GA_HARBOR_SHOT_SETTLE_SEC", "0"))
+    if settle > 0:
+        time.sleep(settle)
+
     dest = Path("/logs/verifier/provisioned.png")
     for attempt in range(5):
         try:
