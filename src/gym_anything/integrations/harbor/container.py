@@ -273,6 +273,26 @@ def _write_agent_manual(port: int) -> None:
             pass
 
 
+def _capture_provisioned_screenshot(env) -> None:
+    """Persist the just-provisioned screen to /logs/verifier so it survives
+    container teardown (Harbor downloads /logs/verifier). This is the boot
+    state BEFORE any agent action — used to inspect whether the env's setup
+    hooks actually opened the target application. Best-effort.
+    """
+    import shutil
+
+    try:
+        obs = env.capture_observation()
+        source = ((obs or {}).get("screen") or {}).get("path")
+        if source and Path(source).exists():
+            dest = Path("/logs/verifier/provisioned.png")
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, dest)
+            print(f"[harbor-container] provisioned screenshot -> {dest}")
+    except Exception as exc:  # never block serving on the capture
+        print(f"[harbor-container] provisioned screenshot skipped: {exc}")
+
+
 def serve(config_path: str, port: int) -> None:
     config = json.loads(Path(config_path).read_text())
     print(f"[harbor-container] booting {config.get('env_name')}/{config.get('task_id')}")
@@ -289,6 +309,8 @@ def serve(config_path: str, port: int) -> None:
             Path(path).mkdir(parents=True, exist_ok=True)
         except OSError:
             pass
+
+    _capture_provisioned_screenshot(env)
 
     _Handler.runtime = _Runtime(env, config)
     server = ThreadingHTTPServer(("0.0.0.0", port), _Handler)
