@@ -56,6 +56,8 @@ def make(
     env: Union[str, os.PathLike, Dict[str, Any], EnvSpec],
     task: Optional[Union[str, os.PathLike, Dict[str, Any], TaskSpec]] = None,
     overrides: Optional[Dict[str, Any]] = None,
+    *,
+    fast_io: bool = False,
 ) -> GymAnythingEnv:
     """Create an environment instance from spec.
 
@@ -73,7 +75,7 @@ def make(
     if task_spec is not None:
         validate_task_spec(task_spec)
 
-    return GymAnythingEnv(env_spec=env_spec, task_spec=task_spec)
+    return GymAnythingEnv(env_spec=env_spec, task_spec=task_spec, fast_io=fast_io)
 
 
 def _resolve_mount_sources(env_spec: EnvSpec, env_root: Path) -> None:
@@ -104,6 +106,8 @@ def from_config(
     env_dir: Union[str, os.PathLike],
     task_id: Optional[str] = None,
     overrides: Optional[Dict[str, Any]] = None,
+    *,
+    fast_io: bool = False,
 ) -> GymAnythingEnv:
     """Load `env.yaml|yml|json` (and optional `tasks/<task_id>/task.yaml|yml|json`) from a folder.
 
@@ -139,7 +143,7 @@ def from_config(
             if len(candidates) == 1:
                 task_spec_path = candidates[0]
 
-    env = make(env_spec_path, task_spec_path, overrides=overrides)
+    env = make(env_spec_path, task_spec_path, overrides=overrides, fast_io=fast_io)
     _resolve_mount_sources(env.env_spec, env_dir)
     # Attach roots for verifiers and assets resolution
     env.set_roots(env_root=env_dir, task_root=(task_spec_path.parent if task_spec_path else None))

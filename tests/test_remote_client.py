@@ -100,6 +100,36 @@ class RemoteClientResetPolicyTests(unittest.TestCase):
         self.assertEqual(payload["verifier_env"], verifier_env)
         self.assertNotIn("verifier_env", payload.get("metadata", {}))
 
+    def test_create_remote_env_sends_fast_io(self) -> None:
+        response = mock.Mock()
+        response.json.return_value = {"env_id": "env-123"}
+
+        with mock.patch("gym_anything.remote.client.requests.request", return_value=response) as post, \
+             mock.patch.object(RemoteGymEnv, "_setup_cache"):
+            RemoteGymEnv.from_config(
+                remote_url="http://localhost:5000",
+                env_dir="demo-env",
+                task_id="demo-task",
+                fast_io=True,
+            )
+
+        payload = post.call_args.kwargs["json"]
+        self.assertTrue(payload["fast_io"])
+
+    def test_worker_serializes_fast_io_image_observation(self) -> None:
+        from PIL import Image
+
+        from gym_anything.remote.worker import serialize_observation, serialize_response
+
+        image = Image.new("RGB", (2, 3), "white")
+        serialized = serialize_observation({"screen": {"image": image, "format": "pil"}})
+
+        self.assertNotIn("image", serialized["screen"])
+        self.assertEqual(serialized["screen"]["format"], "png")
+        self.assertEqual(serialized["screen"]["resolution"], [2, 3])
+        self.assertIn("png_b64", serialized["screen"])
+        self.assertEqual(serialize_response(image)["resolution"], [2, 3])
+
 
 if __name__ == "__main__":
     unittest.main()

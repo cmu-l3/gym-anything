@@ -26,6 +26,8 @@ class _FakeRunner:
         self.stop_calls = 0
         self.exec_commands = []
         self.injected_actions = []
+        self.fast_io = False
+        self.image_capture_calls = 0
 
     def start(self, seed=None) -> None:
         self.start_calls += 1
@@ -49,6 +51,12 @@ class _FakeRunner:
     def supports_live_recording(self) -> bool:
         return False
 
+    def supports_fast_io(self) -> bool:
+        return False
+
+    def set_fast_io(self, enabled: bool) -> None:
+        self.fast_io = enabled
+
     def exec(self, command: str, **kwargs) -> int:
         self.exec_commands.append(command)
         return 0
@@ -62,6 +70,13 @@ class _FakeRunner:
     def capture_screenshot(self, host_path) -> bool:
         Path(host_path).write_bytes(_PNG_BYTES)
         return True
+
+    def capture_screenshot_image(self):
+        from PIL import Image
+        import io
+
+        self.image_capture_calls += 1
+        return Image.open(io.BytesIO(_PNG_BYTES))
 
     def capture_audio_raw(self, duration_sec: float, rate: int, channels: int) -> bytes:
         return b""
@@ -99,6 +114,11 @@ class _PartialScoreVerifier:
 
     def evaluate(self, **kwargs):
         return {"passed": self.score > 0, "score": self.score}
+
+
+class _FastFakeRunner(_FakeRunner):
+    def supports_fast_io(self) -> bool:
+        return True
 
 
 def _make_env_spec(output_dir: str, *, runner: str | None = None, recording: bool = False) -> EnvSpec:
@@ -151,6 +171,104 @@ class RuntimeBehaviorTests(unittest.TestCase):
                 self.assertEqual(info["action_result"]["action"], "screenshot")
                 self.assertEqual(info["action_result"]["output"], obs["screen"]["path"])
                 self.assertEqual(runner.injected_actions, [])
+            finally:
+                env.close()
+
+    def test_fast_io_requires_runner_support(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                with self.assertRaisesRegex(RuntimeError, "does not support fast_io"):
+                    GymAnythingEnv(_make_env_spec(tmp), None, fast_io=True)
+
+    def test_fast_io_enables_runner_and_exposes_image_capture(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FastFakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None, fast_io=True)
+            try:
+                image = env.capture_screenshot_image()
+                self.assertTrue(runner.fast_io)
+                self.assertEqual(image.size, (1, 1))
+            finally:
+                env.close()
+
+    def test_fast_io_capture_observation_returns_image_object(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FastFakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None, fast_io=True)
+
+            try:
+                obs = env.reset(seed=1)
+
+                self.assertIn("image", obs["screen"])
+                self.assertNotIn("path", obs["screen"])
+                self.assertEqual(obs["screen"]["format"], "pil")
+                self.assertEqual(obs["screen"]["image"].size, (1, 1))
+                self.assertEqual(obs["screen"]["mode"], obs["screen"]["image"].mode)
+                self.assertGreaterEqual(runner.image_capture_calls, 1)
+            finally:
+                env.close()
+
+    def test_fast_io_screenshot_control_action_outputs_image_object(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FastFakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None, fast_io=True)
+
+            try:
+                env.reset(seed=1)
+                obs, reward, done, info = env.step([{"action": "screenshot"}])
+
+                self.assertEqual(reward, 0.0)
+                self.assertFalse(done)
+                self.assertEqual(info["action_result"]["action"], "screenshot")
+                self.assertIs(info["action_result"]["output"], obs["screen"]["image"])
+                self.assertNotIn("path", obs["screen"])
+                self.assertEqual(runner.injected_actions, [])
+            finally:
+                env.close()
+
+    def test_fast_io_step_does_not_apply_default_action_sleeps(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FastFakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None, fast_io=True)
+
+            try:
+                env.reset(seed=1)
+                with mock.patch.dict("os.environ", {}, clear=False), \
+                     mock.patch("gym_anything.env.time.sleep") as sleep_mock:
+                    env.step([{"mouse": {"move": [1, 2]}}])
+
+                sleep_mock.assert_not_called()
+                self.assertEqual(runner.injected_actions, [{"mouse": {"move": [1, 2]}}])
+            finally:
+                env.close()
+
+    def test_fast_io_step_uses_explicit_settle_env_vars(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FastFakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None, fast_io=True)
+
+            try:
+                env.reset(seed=1)
+                with mock.patch.dict(
+                    "os.environ",
+                    {
+                        "GYM_ANYTHING_FAST_IO_ACTION_SETTLE_MS": "7",
+                        "GYM_ANYTHING_FAST_IO_STEP_CYCLE_MS": "11",
+                    },
+                    clear=False,
+                ), mock.patch("gym_anything.env.time.sleep") as sleep_mock:
+                    env.step([{"mouse": {"move": [1, 2]}}])
+
+                self.assertEqual(
+                    [call.args[0] for call in sleep_mock.call_args_list],
+                    [0.007, 0.011],
+                )
             finally:
                 env.close()
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -46,6 +47,7 @@ class _FakeEnv:
         self.env_spec = SimpleNamespace(observation=[SimpleNamespace(resolution=(64, 64))])
         self.max_steps = 2
         self.step_calls = []
+        self.capture_calls = 0
         self.closed = False
 
     def reset(self, **kwargs):
@@ -53,7 +55,8 @@ class _FakeEnv:
         return {"screen": {"path": "reset.png"}}
 
     def capture_observation(self):
-        return {"screen": {"path": "initial.png"}}
+        self.capture_calls += 1
+        return {"screen": {"path": f"capture_{self.capture_calls}.png"}}
 
     def step(self, actions, mark_done=False, **kwargs):
         self.step_calls.append((actions, mark_done))
@@ -127,6 +130,56 @@ class AgentEvaluationContractTests(unittest.TestCase):
             )
             self.assertEqual(policy.finish_info["verifier"]["score"], 100)
 
+    def test_run_single_can_delay_and_refresh_model_observations(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_env = _FakeEnv(Path(tmp))
+            args = SimpleNamespace(
+                env_dir="demo-env",
+                seed=42,
+                task="demo-task",
+                steps=2,
+                agent="FakePolicy",
+                agent_args=json.dumps({"model": "demo-model"}),
+                debug=False,
+                debug_low=False,
+                verbose=False,
+                setup_code="none",
+                use_cache=False,
+                cache_level="pre_start",
+                use_savevm=False,
+                fast_io=True,
+                disable_thinking=True,
+                timing_jsonl=None,
+                post_reset_observation_delay=15.0,
+                post_step_observation_delay=0.3,
+                vlm_backend="local",
+                vlm_base_url="http://localhost:8080/v1",
+                vlm_model="demo-model",
+                remote_url=None,
+                remote_timeout=300,
+                remote_worker_reset_policy="core",
+            )
+
+            with mock.patch.object(run_single_module, "from_config", return_value=fake_env), \
+                 mock.patch.object(run_single_module.agent_registry, "FakePolicy", _FakePolicy, create=True), \
+                 mock.patch.object(run_single_module.time, "sleep") as sleep:
+                _FakePolicy.instances.clear()
+                result = run_single_module.run_single(args)
+
+            self.assertEqual(result, 0)
+            sleep.assert_any_call(15.0)
+            sleep.assert_any_call(0.3)
+            self.assertGreaterEqual(fake_env.capture_calls, 2)
+
+            policy = _FakePolicy.instances[0]
+            self.assertEqual(policy.step_calls[0][0]["screen"]["path"], "capture_1.png")
+            self.assertEqual(policy.step_calls[1][0]["screen"]["path"], "capture_2.png")
+
+            records = [json.loads(line) for line in (Path(tmp) / "timing.jsonl").read_text().splitlines()]
+            self.assertTrue(any(record.get("event") == "post_reset_observation_delay" for record in records))
+            iteration = next(record for record in records if record.get("event") == "iteration")
+            self.assertGreater(iteration["post_step_observation_total_ms"], 0)
+
     def test_run_single_can_create_remote_environment(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fake_env = _FakeEnv(Path(tmp))
@@ -164,7 +217,53 @@ class AgentEvaluationContractTests(unittest.TestCase):
                 task_id="demo-task",
                 timeout=12,
                 worker_reset_policy="baseline_setup",
+                fast_io=False,
             )
+
+    def test_run_single_passes_fast_io_and_writes_timing_log(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_env = _FakeEnv(Path(tmp))
+            args = SimpleNamespace(
+                env_dir="demo-env",
+                seed=42,
+                task="demo-task",
+                steps=1,
+                agent="FakePolicy",
+                agent_args=json.dumps({"model": "demo-model"}),
+                debug=False,
+                debug_low=False,
+                verbose=False,
+                setup_code="none",
+                use_cache=False,
+                cache_level="pre_start",
+                use_savevm=False,
+                fast_io=True,
+                disable_thinking=True,
+                timing_jsonl=None,
+                vlm_backend="local",
+                vlm_base_url="http://localhost:8080/v1",
+                vlm_model="demo-model",
+                remote_url=None,
+                remote_timeout=300,
+                remote_worker_reset_policy="core",
+            )
+
+            with mock.patch.object(run_single_module, "from_config", return_value=fake_env) as make_env, \
+                 mock.patch.object(run_single_module.agent_registry, "FakePolicy", _FakePolicy, create=True), \
+                 mock.patch.dict("os.environ", {}, clear=True):
+                _FakePolicy.instances.clear()
+                result = run_single_module.run_single(args)
+                self.assertEqual(os.environ["VLM_DISABLE_THINKING"], "1")
+
+            self.assertEqual(result, 0)
+            make_env.assert_called_once_with("demo-env", task_id="demo-task", fast_io=True)
+            timing_path = Path(tmp) / "timing.jsonl"
+            summary_path = Path(tmp) / "timing_summary.json"
+            self.assertTrue(timing_path.exists())
+            self.assertTrue(summary_path.exists())
+            records = [json.loads(line) for line in timing_path.read_text().splitlines()]
+            self.assertEqual(records[0]["event"], "setup")
+            self.assertTrue(any(record.get("event") == "iteration" for record in records))
 
 
 if __name__ == "__main__":

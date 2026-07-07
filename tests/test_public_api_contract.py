@@ -55,6 +55,9 @@ class PublicApiContractTests(unittest.TestCase):
     def test_env_exposes_public_capture_observation(self) -> None:
         self.assertTrue(callable(getattr(GymAnythingEnv, "capture_observation", None)))
 
+    def test_env_exposes_public_capture_screenshot_image(self) -> None:
+        self.assertTrue(callable(getattr(GymAnythingEnv, "capture_screenshot_image", None)))
+
     def test_env_exposes_public_episode_dir_property(self) -> None:
         self.assertIsInstance(getattr(GymAnythingEnv, "episode_dir", None), property)
 
@@ -91,6 +94,10 @@ class PublicApiContractTests(unittest.TestCase):
     def test_remote_from_config_exposes_worker_reset_policy_override(self) -> None:
         params = inspect.signature(RemoteGymEnv.from_config).parameters
         self.assertIn("worker_reset_policy", params)
+
+    def test_remote_from_config_exposes_fast_io_flag(self) -> None:
+        params = inspect.signature(RemoteGymEnv.from_config).parameters
+        self.assertIn("fast_io", params)
 
     def test_public_runner_compatibility_helpers_exist(self) -> None:
         self.assertTrue(callable(get_runner_compatibility))

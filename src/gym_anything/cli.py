@@ -493,6 +493,14 @@ def _run_benchmark_batch(args) -> int:
             cmd.append("--use-cache")
         if args.use_savevm:
             cmd.append("--use-savevm")
+        if getattr(args, "fast_io", False):
+            cmd.append("--fast-io")
+        if getattr(args, "disable_thinking", False):
+            cmd.append("--disable-thinking")
+        if getattr(args, "post_reset_observation_delay", 0.0):
+            cmd.extend(["--post-reset-observation-delay", str(args.post_reset_observation_delay)])
+        if getattr(args, "post_step_observation_delay", 0.0):
+            cmd.extend(["--post-step-observation-delay", str(args.post_step_observation_delay)])
         if getattr(args, "temperature", None) is not None:
             cmd.extend(["--temperature", str(args.temperature)])
         if getattr(args, "remote_url", None):
@@ -572,6 +580,8 @@ def cmd_benchmark(args) -> int:
     info.add_row("Model", args.model or "[dim]default[/dim]")
     info.add_row("Max steps", str(args.steps) if args.steps is not None else "[dim]from task.json[/dim]")
     info.add_row("Seed", str(args.seed))
+    info.add_row("Fast I/O", "on" if args.fast_io else "off")
+    info.add_row("Disable thinking", "on" if args.disable_thinking else "off")
     if args.remote_url:
         info.add_row("Remote", args.remote_url)
 
@@ -599,9 +609,14 @@ def cmd_benchmark(args) -> int:
         use_cache=args.use_cache,
         cache_level=args.cache_level,
         use_savevm=args.use_savevm,
+        fast_io=args.fast_io,
+        disable_thinking=args.disable_thinking,
+        post_reset_observation_delay=getattr(args, "post_reset_observation_delay", 0.0),
+        post_step_observation_delay=getattr(args, "post_step_observation_delay", 0.0),
+        timing_jsonl=args.timing_jsonl,
         vlm_backend=os.environ.get("VLM_BACKEND", "local"),
         vlm_base_url=os.environ.get("VLM_BASE_URL", "http://localhost:8080/v1"),
-        vlm_model=os.environ.get("VLM_MODEL", "Qwen/Qwen3-VL-4B-Thinking"),
+        vlm_model=os.environ.get("VLM_MODEL") or args.model or "Qwen/Qwen3-VL-4B-Thinking",
         verifier_mode=args.verifier_mode,
         vlm_checklist_model=args.vlm_checklist_model,
         vlm_checklist_backend=args.vlm_checklist_backend,
@@ -1194,6 +1209,28 @@ def main(argv=None):
     p_bench.add_argument("--use-cache", action="store_true")
     p_bench.add_argument("--cache-level", default="pre_start")
     p_bench.add_argument("--use-savevm", action="store_true")
+    p_bench.add_argument("--fast-io", action="store_true", help="Enable runner-native fast screenshot/input paths")
+    p_bench.add_argument(
+        "--disable-thinking",
+        action="store_true",
+        help="Disable Qwen/vLLM thinking with chat_template_kwargs.enable_thinking=false",
+    )
+    p_bench.add_argument(
+        "--post-reset-observation-delay",
+        type=float,
+        default=0.0,
+        help="Seconds to wait after env.reset before capturing the first model observation",
+    )
+    p_bench.add_argument(
+        "--post-step-observation-delay",
+        type=float,
+        default=0.0,
+        help="Seconds to wait after each env.step before refreshing the model observation",
+    )
+    p_bench.add_argument(
+        "--timing-jsonl",
+        help="Optional per-iteration timing JSONL path for single-task benchmark runs",
+    )
     p_bench.add_argument("--remote-url", help="Remote master or worker URL for environment execution")
     p_bench.add_argument("--remote-timeout", type=int, default=300, help="Remote HTTP request timeout")
     p_bench.add_argument(
