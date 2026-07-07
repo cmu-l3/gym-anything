@@ -16,16 +16,21 @@ if pm list packages | grep -q "com.darkempire78.opencalculator"; then
     echo "OpenCalc already installed"
 else
     echo "Installing OpenCalc APK..."
-    # APK should be pushed to device via mounts
+    # APK should be pushed to device via mounts. pm cannot read APKs from
+    # /sdcard on modern Android, so stage it in /data/local/tmp first.
     if [ -f /sdcard/scripts/apks/opencalculator.apk ]; then
-        pm install -r /sdcard/scripts/apks/opencalculator.apk
+        cp /sdcard/scripts/apks/opencalculator.apk /data/local/tmp/opencalculator.apk
+        pm install -r /data/local/tmp/opencalculator.apk
         if [ $? -eq 0 ]; then
             echo "OpenCalc installed successfully"
         else
-            echo "Failed to install OpenCalc"
+            echo "ERROR: Failed to install OpenCalc"
+            exit 1
         fi
+        rm -f /data/local/tmp/opencalculator.apk
     else
-        echo "Warning: OpenCalc APK not found at /sdcard/scripts/apks/opencalculator.apk"
+        echo "ERROR: OpenCalc APK not found at /sdcard/scripts/apks/opencalculator.apk"
+        exit 1
     fi
 fi
 

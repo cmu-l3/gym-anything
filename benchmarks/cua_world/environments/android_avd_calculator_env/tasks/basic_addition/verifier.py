@@ -78,26 +78,37 @@ def check_calculator_result(traj: Dict[str, Any], env_info: Dict[str, Any], task
                 "feedback": f"UI dump is empty or too small (length: {len(ui_xml) if ui_xml else 0})"
             }
 
-        # Search for the expected result in various UI attributes
-        # Calculator apps typically show result in text attribute
+        # Only consider UI nodes that belong to the calculator app itself.
+        # Matching against the whole dump produces false positives from
+        # incidental text elsewhere on screen (status bar, launcher, clock).
+        calc_package = "com.darkempire78.opencalculator"
+        calc_nodes = re.findall(rf'<node[^>]*package="{calc_package}"[^>]*>', ui_xml)
+        if not calc_nodes:
+            return {
+                "passed": False,
+                "score": 0,
+                "feedback": "Calculator app is not on screen at verification time"
+            }
+        calc_xml = "\n".join(calc_nodes)
+
+        # Search for the expected result in the calculator's own nodes
         patterns = [
             # Exact match
             rf'text="{expected_result}"',
             rf'text="= {expected_result}"',
-            rf'text="{expected_result}.0"',
+            rf'text="{expected_result}\.0"',
             rf'text="={expected_result}"',
             # With spaces
             rf'text="\s*{expected_result}\s*"',
             # Content description
             rf'content-desc="{expected_result}"',
-            rf'content-desc=".*{expected_result}.*"',
             # Resource ID patterns for calculator result display
             rf'resource-id=".*result.*"[^>]*text="[^"]*{expected_result}[^"]*"',
             rf'resource-id=".*formula.*"[^>]*text="[^"]*{expected_result}[^"]*"',
         ]
 
         for pattern in patterns:
-            if re.search(pattern, ui_xml, re.IGNORECASE):
+            if re.search(pattern, calc_xml, re.IGNORECASE):
                 return {
                     "passed": True,
                     "score": 100,
@@ -105,13 +116,14 @@ def check_calculator_result(traj: Dict[str, Any], env_info: Dict[str, Any], task
                 }
 
         # Try to find any numbers that might be displayed
-        # Look for text attributes containing numbers
-        numbers_found = re.findall(r'text="([0-9.=+\-*/×÷\s]+)"', ui_xml)
+        # Look for text attributes containing numbers, calculator nodes only
+        numbers_found = re.findall(r'text="([0-9.=+\-*/×÷\s]+)"', calc_xml)
 
-        # Check if any of the found numbers contain our expected result
+        # Check if any of the found numbers contain our expected result as a
+        # standalone number (42, but not 142 or 425)
         for num_str in numbers_found:
             clean_str = num_str.replace(" ", "").replace("×", "*").replace("÷", "/")
-            if expected_result in clean_str:
+            if re.search(rf'(?<![0-9]){expected_result}(?![0-9])', clean_str):
                 return {
                     "passed": True,
                     "score": 100,
