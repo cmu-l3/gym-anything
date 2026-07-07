@@ -1271,6 +1271,17 @@ class GymAnythingEnv:
     def set_roots(self, env_root: Optional[os.PathLike], task_root: Optional[os.PathLike]) -> None:
         self._env_root = Path(env_root) if env_root else None
         self._task_root = Path(task_root) if task_root else None
+        # Mounts belong to the env definition: resolve relative sources
+        # against the env root so they work regardless of the caller's cwd
+        # (locally that is the repo root; in a remote sandbox the env dir
+        # lands somewhere else entirely).
+        if self._env_root is not None:
+            for m in getattr(self.env_spec, "mounts", None) or []:
+                source = getattr(m, "source", "") or ""
+                if source and not Path(source).is_absolute():
+                    candidate = self._env_root / source
+                    if candidate.exists():
+                        m.source = str(candidate)
         # Runners resolve relative mount/config paths; give them the env root
         # so resolution does not depend on the caller's working directory.
         if getattr(self, "_runner", None) is not None:
