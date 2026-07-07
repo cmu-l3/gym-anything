@@ -113,11 +113,27 @@ def _find_free_port_pair(start: int = AVD_PORT_RANGE_START,
 
     # Use file lock to prevent race conditions in parallel starts
     lock_file = None
+    reservations_file = AVD_PORT_LOCK_FILE.with_suffix(".reservations.json")
     try:
         lock_file = open(AVD_PORT_LOCK_FILE, "w")
         fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
 
+        # A bind-check alone is not a reservation: the emulator that owns a
+        # just-allocated pair takes ~20s to actually bind its console port,
+        # and a concurrent allocation in that window sees the port as free
+        # and hands out the same pair (two runners then drive one device).
+        # Track recent allocations in a ledger under the same lock, with a
+        # TTL so crashed launches do not leak ports forever.
+        now = time.time()
+        try:
+            reservations = json.loads(reservations_file.read_text())
+        except (OSError, ValueError):
+            reservations = {}
+        reservations = {p: t for p, t in reservations.items() if now - t < 600}
+
         for port in range(start, end, 2):
+            if str(port) in reservations:
+                continue
             try:
                 # Check both ports are free by actually binding to them
                 # We create sockets, bind, and keep them open briefly to reserve
@@ -132,6 +148,8 @@ def _find_free_port_pair(start: int = AVD_PORT_RANGE_START,
                 for s in sockets:
                     s.close()
 
+                reservations[str(port)] = now
+                reservations_file.write_text(json.dumps(reservations))
                 return port, port + 1
             except OSError:
                 continue
@@ -592,10 +610,21 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
             if not source or not target:
                 continue
 
-            # Resolve source path relative to workspace
+            # Resolve source path relative to workspace. Mount sources in env
+            # specs are written relative to the repo root, so when the caller's
+            # working directory is elsewhere, fall back to searching upward
+            # from the env root for a directory that contains the path.
             source_path = Path(source)
             if not source_path.is_absolute():
                 source_path = Path.cwd() / source_path
+                if not source_path.exists():
+                    env_root = getattr(self, "env_root", None)
+                    if env_root:
+                        for ancestor in [Path(env_root), *Path(env_root).parents]:
+                            candidate = ancestor / source
+                            if candidate.exists():
+                                source_path = candidate
+                                break
 
             if not source_path.exists():
                 print(f"[AVD Runner] Mount source not found: {source_path}")
@@ -862,9 +891,23 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
         if keyboard:
             if "text" in keyboard:
                 text = keyboard["text"]
-                # ADB text input - escape special characters
-                escaped = text.replace(" ", "%s").replace("'", "\\'").replace('"', '\\"')
-                self._adb_command(["shell", "input", "text", escaped])
+                # ADB `input text` for a whole string can drop or reorder
+                # characters under load (observed: "74-63" injected as
+                # "47-63"). Inject one character per call so ordering is
+                # exact; a short settle keeps the input dispatcher from
+                # coalescing events out of order. Each character is escaped
+                # for the device shell, because a lone metacharacter (notably
+                # "*") would otherwise be glob-expanded before reaching
+                # `input text` (observed: "15*16" losing the "*16").
+                for ch in text:
+                    if ch == " ":
+                        arg = "%s"
+                    elif ch in "*?[]()${}&|;<>~!#`\\'\" \t":
+                        arg = "\\" + ch
+                    else:
+                        arg = ch
+                    self._adb_command(["shell", "input", "text", arg])
+                    time.sleep(0.05)
 
             if "keys" in keyboard:
                 keys = keyboard["keys"]
@@ -1618,16 +1661,19 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
 
             self._create_avd_cow_copy(src_avd_dir, dst_avd_dir)
             if src_avd_ini.exists():
-                # Update the ini file to point to new location
-                with open(src_avd_ini) as f:
-                    ini_content = f.read()
-                # Update path in ini file
-                ini_content = ini_content.replace(
-                    str(checkpoint_dir / "avd"),
-                    str(self._checkpoint_avd_home)
-                )
-                with open(dst_avd_ini, "w") as f:
-                    f.write(ini_content)
+                # Rewrite the AVD ini to point at this instance's work copy.
+                # The checkpoint's ini carries the path of whichever instance
+                # created the checkpoint (a deleted temp dir by now), so a
+                # string replace against the checkpoint path matches nothing
+                # and the emulator would resolve the AVD to a dead directory,
+                # fail to read config.ini, and abort with a bogus 'arm' CPU
+                # FATAL. Set path= explicitly instead.
+                ini_lines = []
+                for line in src_avd_ini.read_text().splitlines():
+                    if line.startswith("path="):
+                        line = f"path={dst_avd_dir.absolute()}"
+                    ini_lines.append(line)
+                dst_avd_ini.write_text("\n".join(ini_lines) + "\n")
 
             # Mark that we're loading from checkpoint
             self._loaded_from_checkpoint = True
@@ -1679,6 +1725,14 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
         for item in src_dir.iterdir():
             src_path = item
             dst_path = dst_dir / item.name
+
+            # Never copy lock files: they are runtime state of the emulator
+            # instance the checkpoint was taken from. A stale copied lock
+            # (multiinstance.lock in particular) makes the restored emulator
+            # unable to read config.ini, and it dies with a bogus FATAL
+            # about the 'arm' CPU architecture.
+            if item.name.endswith(".lock"):
+                continue
 
             if item.is_dir():
                 # Recursively handle directories

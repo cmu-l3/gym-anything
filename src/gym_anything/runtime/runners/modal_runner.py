@@ -335,6 +335,10 @@ class ModalRunner(BaseRunner):
         r.raise_for_status()
 
         deadline = time.time() + poll_timeout
+        # Adaptive poll interval: start tight so fast calls (step, observe on
+        # the timed path) return promptly instead of paying a fixed 2s poll
+        # tax, then back off so long calls (boot) do not hammer the tunnel.
+        poll_delay = 0.05
         while time.time() < deadline:
             jr = self._http(
                 requests.get,
@@ -353,7 +357,8 @@ class ModalRunner(BaseRunner):
                 return result
             if status == "error":
                 raise RuntimeError(f"remote {method} failed:\n{job.get('error')}")
-            time.sleep(2)
+            time.sleep(poll_delay)
+            poll_delay = min(poll_delay * 1.5, 2.0)
         raise TimeoutError(f"remote {method} timed out after {poll_timeout}s")
 
     # --- BaseRunner interface ---

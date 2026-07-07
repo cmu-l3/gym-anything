@@ -653,7 +653,11 @@ class GymAnythingEnv:
         # First observation (capture initial screen/audio as frame_00000)
         return self._capture_observation()
 
-    def step(self, actions: List[Dict[str, Any]], wait_between_actions: float = 0.2, mark_done: bool = False) -> Tuple[Dict[str, Any], float, bool, Dict[str, Any]]:
+    def step(self, actions: List[Dict[str, Any]], wait_between_actions: float = 0.2, mark_done: bool = False, settle_sec: Optional[float] = None) -> Tuple[Dict[str, Any], float, bool, Dict[str, Any]]:
+        # settle_sec is an explicit override for the pause after injecting
+        # actions, before the screenshot. When None, the env's own configured
+        # settle applies (_post_action_settle_seconds); a speed-focused caller
+        # passes a small value and lets the agent wait explicitly instead.
         # Multi-agent: accept mapping role->action, else annotate turn-based role
         if isinstance(actions, dict):
             actions = [actions]
@@ -691,7 +695,8 @@ class GymAnythingEnv:
             if wait_between_actions and action_num < len(actions) - 1:
                 time.sleep(wait_between_actions)
         if injected_actions:
-            settle_seconds = self._post_action_settle_seconds()
+            # An explicit settle_sec overrides the env's configured settle.
+            settle_seconds = self._post_action_settle_seconds() if settle_sec is None else settle_sec
             if settle_seconds > 0:
                 time.sleep(settle_seconds)
         # For synchronous envs, wait for the step cycle unless fast I/O asked for immediate observation.
@@ -1265,6 +1270,10 @@ class GymAnythingEnv:
     def set_roots(self, env_root: Optional[os.PathLike], task_root: Optional[os.PathLike]) -> None:
         self._env_root = Path(env_root) if env_root else None
         self._task_root = Path(task_root) if task_root else None
+        # Runners resolve relative mount/config paths; give them the env root
+        # so resolution does not depend on the caller's working directory.
+        if getattr(self, "_runner", None) is not None:
+            self._runner.env_root = self._env_root
 
     # Controls & helpers (M4)
     def pause_recording(self) -> None:
