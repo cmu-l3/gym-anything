@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import signal
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from gym_anything.runtime.runners.qemu_apptainer import QemuApptainerRunner
+from gym_anything.runtime.runners.qemu_dbus_display import QemuDbusDisplayCapture
 
 
 class QemuDbusFastIoTests(unittest.TestCase):
@@ -76,6 +78,38 @@ class QemuDbusFastIoTests(unittest.TestCase):
         ), mock.patch.object(runner, "_container_supports_dbus_display", return_value=False):
             with self.assertRaisesRegex(RuntimeError, "D-Bus display backend requested"):
                 runner._ensure_dbus_display_container()
+
+    def test_dbus_capture_stops_forked_daemon_pid(self) -> None:
+        class FakeLauncher:
+            returncode = 0
+
+            def wait(self, timeout: float) -> int:
+                return 0
+
+            def poll(self) -> int:
+                return 0
+
+            def terminate(self) -> None:
+                raise AssertionError("launcher process should already be exited")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            capture = QemuDbusDisplayCapture(Path(tmp))
+
+            def popen(_args, stdout, stderr):
+                stdout.write(f"{capture.bus_address}\n12345\n".encode())
+                return FakeLauncher()
+
+            with mock.patch("subprocess.Popen", side_effect=popen):
+                capture.start_bus()
+
+            self.assertEqual(capture._dbus_pid, 12345)
+
+            with mock.patch.object(capture, "_dbus_daemon_running", side_effect=[True, False]), \
+                 mock.patch("gym_anything.runtime.runners.qemu_dbus_display.os.kill") as kill:
+                capture.stop()
+
+        kill.assert_called_once_with(12345, signal.SIGTERM)
+        self.assertIsNone(capture._dbus_pid)
 
     def test_fast_qmp_input_uses_absolute_pointer_coordinates(self) -> None:
         runner = self._runner()

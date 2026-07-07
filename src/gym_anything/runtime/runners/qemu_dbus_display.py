@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import signal
 import socket
 import subprocess
 import threading
@@ -16,6 +17,7 @@ class QemuDbusDisplayCapture:
         self.bus_path = work_dir / "display-bus.sock"
         self.bus_address = f"unix:path={self.bus_path}"
         self._dbus_process: Optional[subprocess.Popen] = None
+        self._dbus_pid: Optional[int] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._thread: Optional[threading.Thread] = None
         self._registered = threading.Event()
@@ -31,6 +33,7 @@ class QemuDbusDisplayCapture:
         self._last_update_ns = 0
 
     def start_bus(self) -> None:
+        self._dbus_pid = None
         try:
             self.bus_path.unlink()
         except FileNotFoundError:
@@ -50,9 +53,13 @@ class QemuDbusDisplayCapture:
                 stderr=subprocess.STDOUT,
             )
             proc.wait(timeout=5)
+        output = out_path.read_text(errors="replace")
         if proc.returncode != 0:
-            raise RuntimeError(out_path.read_text(errors="replace"))
+            raise RuntimeError(output)
         self._dbus_process = proc
+        self._dbus_pid = self._parse_dbus_pid(output)
+        if self._dbus_pid is None:
+            raise RuntimeError(f"dbus-daemon did not report a daemon pid:\n{output}")
 
     def start_listener(self, timeout: float = 10.0) -> None:
         self._thread = threading.Thread(target=self._run_loop, name="qemu-dbus-display", daemon=True)
@@ -72,9 +79,58 @@ class QemuDbusDisplayCapture:
         if self._thread:
             self._thread.join(timeout=2)
             self._thread = None
+        self._terminate_dbus_daemon()
+        self._dbus_process = None
+        self._dbus_pid = None
+        try:
+            self.bus_path.unlink()
+        except FileNotFoundError:
+            pass
+
+    @staticmethod
+    def _parse_dbus_pid(output: str) -> Optional[int]:
+        for line in reversed(output.splitlines()):
+            line = line.strip()
+            if line.isdigit():
+                return int(line)
+        return None
+
+    def _dbus_daemon_running(self, pid: int) -> bool:
+        proc_cmdline = Path("/proc") / str(pid) / "cmdline"
+        if proc_cmdline.exists():
+            try:
+                cmdline = proc_cmdline.read_bytes().replace(b"\x00", b" ").decode(errors="replace")
+            except OSError:
+                cmdline = ""
+            if cmdline and ("dbus-daemon" not in cmdline or str(self.bus_path) not in cmdline):
+                return False
+        try:
+            os.kill(pid, 0)
+            return True
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+
+    def _terminate_dbus_daemon(self) -> None:
+        if self._dbus_pid and self._dbus_daemon_running(self._dbus_pid):
+            try:
+                os.kill(self._dbus_pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            deadline = time.time() + 2.0
+            while time.time() < deadline:
+                if not self._dbus_daemon_running(self._dbus_pid):
+                    break
+                time.sleep(0.05)
+            else:
+                try:
+                    os.kill(self._dbus_pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
         if self._dbus_process and self._dbus_process.poll() is None:
             self._dbus_process.terminate()
-        self._dbus_process = None
 
     def capture_image(self):
         from PIL import Image
