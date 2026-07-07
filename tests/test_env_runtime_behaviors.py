@@ -290,7 +290,7 @@ class RuntimeBehaviorTests(unittest.TestCase):
             env.close()
 
             self.assertIn(
-                "bash -lc echo exported > /home/ga/task_post_task.log 2>&1",
+                "bash -lc 'echo exported' > /home/ga/task_post_task.log 2>&1",
                 runner.exec_commands,
             )
             self.assertEqual(runner.stop_calls, 1)

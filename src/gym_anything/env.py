@@ -22,6 +22,7 @@ from .runtime.runners.qemu_native import QemuNativeRunner
 from .utils.jsonl import JSONLWriter
 from .verification.runner import VerifierRunner
 import base64
+import shlex
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -486,7 +487,7 @@ class GymAnythingEnv:
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     else:
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=HOOK_TIMEOUT)
+                        self._runner.exec(f"bash -lc {shlex.quote(hook_cmd)} > /home/ga/env_setup_pre_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     if self._reporter:
                         self._reporter.stage_done("pre_start_hook")
                 except Exception as e:
@@ -527,7 +528,7 @@ class GymAnythingEnv:
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     else:
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=HOOK_TIMEOUT)
+                        self._runner.exec(f"bash -lc {shlex.quote(hook_cmd)} > /home/ga/env_setup_post_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     if self._reporter:
                         self._reporter.stage_done("post_start_hook")
                 except Exception as e:
@@ -554,7 +555,7 @@ class GymAnythingEnv:
                 if self._platform_family() == "windows":
                     self._runner.exec(hook_cmd)
                 else:
-                    self._runner.exec(f"bash -lc {hook_cmd}")
+                    self._runner.exec(f"bash -lc {shlex.quote(hook_cmd)}")
             except Exception:
                 pass
 
@@ -577,7 +578,7 @@ class GymAnythingEnv:
                     else:
                         # Use configurable timeout for pre_task hook (default 600s, can be overridden in task.json)
                         hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/task_pre_task.log 2>&1", use_pty=False, timeout=hook_timeout)
+                        self._runner.exec(f"bash -lc {shlex.quote(hook_cmd)} > /home/ga/task_pre_task.log 2>&1", use_pty=False, timeout=hook_timeout)
                     self._capture_observation()
                     if self._reporter:
                         self._reporter.stage_done("pre_task_hook")
@@ -962,7 +963,7 @@ class GymAnythingEnv:
             elif self._platform_family() == "windows":
                 self._runner.exec(hook_cmd)
             else:
-                self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/task_post_task.log 2>&1")
+                self._runner.exec(f"bash -lc {shlex.quote(hook_cmd)} > /home/ga/task_post_task.log 2>&1")
         except Exception:
             pass
 
