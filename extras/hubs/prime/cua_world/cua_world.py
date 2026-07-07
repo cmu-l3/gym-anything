@@ -21,7 +21,7 @@ Usage:
     vf-eval cua-world -m gemini-3.5-flash \
         -b https://generativelanguage.googleapis.com/v1beta/openai/ \
         -k GEMINI_API_KEY -n 1 -r 1 \
-        -a '{"env_names": ["gimp_env"], "task_ids": ["horizontal_mirror"]}'
+        -a '{"env_names": ["gimp_env_all_fast"], "task_ids": ["add_border"]}'
 """
 
 from gym_anything.integrations.prime_rl.hub import make_hub_loader
@@ -29,7 +29,7 @@ from gym_anything.integrations.prime_rl.hub import make_hub_loader
 load_environment = make_hub_loader(
     "cua_world",
     env_id="cua-world",
-    env_names="gimp_env",
+    env_names="gimp_env_all_fast",
     runner="modal",
     # Drive a real reference agent by name, exactly like --agent locally.
     agent="Qwen3VLAgent",
