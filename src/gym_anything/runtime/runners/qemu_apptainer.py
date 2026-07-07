@@ -304,6 +304,15 @@ class QemuApptainerRunner(BaseRunner):
         self._consecutive_ssh_failures = 0
         self._max_consecutive_ssh_failures = 5
 
+        # Persistent SSH transport, one per VM. Opening a fresh connection
+        # per command hammers sshd's MaxStartups throttle, whose random
+        # drops ("Error reading SSH protocol banner") used to cost a fixed
+        # 2/4/6s retry sleep INSIDE timed step/observe windows. One
+        # authenticated transport reused via per-command channels removes
+        # both the handshake cost and the throttle pressure.
+        self._pk_client = None
+        self._pk_lock = threading.Lock()
+
         # Resources
         self.memory = f"{spec.resources.mem_gb or 8}G"
         self.cpus = int(spec.resources.cpu or 4)
@@ -2139,6 +2148,14 @@ class QemuApptainerRunner(BaseRunner):
                 pass
             self._pyautogui_client = None
 
+        with self._pk_lock:
+            if self._pk_client is not None:
+                try:
+                    self._pk_client.close()
+                except Exception:
+                    pass
+                self._pk_client = None
+
         if self._vnc_pool:
             self._vnc_pool.close()
             self._vnc_pool = None
@@ -3180,11 +3197,15 @@ class QemuApptainerRunner(BaseRunner):
 
             try:
                 result = subprocess.run(full_cmd, capture_output=capture, timeout=timeout)
-                if result.returncode == 0:
+                if result.returncode != 255:
+                    # ssh(1) exits 255 only for its own transport/auth
+                    # failures; any other code is the REMOTE command's real
+                    # exit status. Falling through on those re-executed the
+                    # command a second time via paramiko (side effects twice)
+                    # and misread ordinary nonzero exits as auth failures.
                     self._consecutive_ssh_failures = 0
                     return result
-                # Key auth failed, fall through to paramiko
-                print(f"[QemuApptainer] SSH key auth failed (code {result.returncode}), trying paramiko with password...")
+                print(f"[QemuApptainer] SSH transport failed (exit 255), trying paramiko...")
             except subprocess.TimeoutExpired:
                 print(f"[QemuApptainer] SSH command timed out: {cmd[:50]}...")
                 self._consecutive_ssh_failures += 1
@@ -3212,18 +3233,15 @@ class QemuApptainerRunner(BaseRunner):
                     f"VM unresponsive: {self._consecutive_ssh_failures} consecutive SSH failures. Aborting."
                 )
 
-    def _ssh_with_paramiko(self, cmd: str, capture: bool, timeout: int, use_pty: bool = True) -> subprocess.CompletedProcess:
-        """Fallback SSH using Python's paramiko with key or password authentication.
+    def _pk_connect_locked(self):
+        """(Re)establish the persistent paramiko client; caller holds _pk_lock.
 
-        Connection setup is retried: back-to-back SSH sessions (hooks, exec,
-        screenshots, verifier copies) can trip sshd MaxStartups throttling or
-        drop the banner, which otherwise surfaces as a silent empty result.
-        """
-        try:
-            import paramiko
-        except ImportError:
-            print("[QemuApptainer] Warning: paramiko not available, SSH commands may fail")
-            return subprocess.CompletedProcess([], 1, b"", b"paramiko not available")
+        With a reused transport, connects happen once per VM boot plus rare
+        reconnects, never per command, so the backoff here is short: the old
+        per-command 2/4/6s ladder used to sit inside timed step/observe
+        windows and dominated run-to-run time variance (measured July 4,
+        2026: 19 vs 37 banner drops fully explained a 63s vs 172s task)."""
+        import paramiko
 
         ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
         last_err = None
@@ -3231,19 +3249,21 @@ class QemuApptainerRunner(BaseRunner):
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             try:
-                # For Windows, use password auth directly with configured credentials
-                if self.is_windows:
-                    client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                                  password=self._ssh_password, timeout=15, look_for_keys=False)
-                else:
-                    # Try key-based auth first for Linux
+                if not self.is_windows and ssh_key.exists():
                     try:
                         client.connect("localhost", port=self.ssh_port, username="ga",
                                       key_filename=str(ssh_key), timeout=15, look_for_keys=False)
                     except Exception:
-                        # Fallback to password
                         client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
                                       password=self._ssh_password, timeout=15, look_for_keys=False)
+                else:
+                    client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                                  password=self._ssh_password, timeout=15, look_for_keys=False)
+                transport = client.get_transport()
+                if transport is not None:
+                    transport.set_keepalive(15)
+                self._pk_client = client
+                return client
             except Exception as e:
                 last_err = e
                 try:
@@ -3251,29 +3271,69 @@ class QemuApptainerRunner(BaseRunner):
                 except Exception:
                     pass
                 if attempt < 3:
-                    print(f"[QemuApptainer] Paramiko connect failed ({e}); retry in {2 * (attempt + 1)}s")
-                    time.sleep(2 * (attempt + 1))
-                    continue
-                print(f"[QemuApptainer] Paramiko error: {e}")
-                return subprocess.CompletedProcess([], 1, b"", str(e).encode())
+                    delay = 0.5 * (attempt + 1)
+                    print(f"[QemuApptainer] Paramiko connect failed ({e}); retry in {delay}s")
+                    time.sleep(delay)
+        raise last_err
 
+    def _ssh_with_paramiko(self, cmd: str, capture: bool, timeout: int, use_pty: bool = True) -> subprocess.CompletedProcess:
+        """SSH via the persistent paramiko client: one authenticated transport
+        per VM, one channel per command.
+
+        The old implementation opened a fresh connection for every command,
+        which tripped sshd's MaxStartups throttle under back-to-back sessions
+        (actions, screenshots, verifier reads) and paid a fixed retry ladder
+        per drop on the timed path. The exit wait is deadline-polled because
+        paramiko's recv_exit_status blocks past the channel timeout (same
+        failure class the AVF runner fixed)."""
+        try:
+            import paramiko  # noqa: F401
+        except ImportError:
+            print("[QemuApptainer] Warning: paramiko not available, SSH commands may fail")
+            return subprocess.CompletedProcess([], 1, b"", b"paramiko not available")
+
+        for round_num in range(2):
+            timed_out = False
             try:
-                # Only request PTY if needed (for sudo/su compatibility)
-                # Disable PTY for task init to prevent SIGHUP killing background processes
-                stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=use_pty)
+                with self._pk_lock:
+                    client = self._pk_client
+                    transport = client.get_transport() if client else None
+                    if transport is None or not transport.is_active():
+                        client = self._pk_connect_locked()
+                    stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=use_pty)
+                deadline = time.time() + timeout
+                while not stdout.channel.exit_status_ready():
+                    if time.time() > deadline:
+                        timed_out = True
+                        break
+                    time.sleep(0.05)
+                if timed_out:
+                    # Kill the channel, keep the transport: the command hung,
+                    # not the connection. 124 matches the shell convention.
+                    try:
+                        stdout.channel.close()
+                    except Exception:
+                        pass
+                    print(f"[QemuApptainer] SSH command timed out after {timeout}s: {cmd[:80]}")
+                    return subprocess.CompletedProcess([], 124, b"", b"timeout")
                 exit_code = stdout.channel.recv_exit_status()
                 out = stdout.read()
                 err = stderr.read()
-                client.close()
                 return subprocess.CompletedProcess([], exit_code, out, err)
             except Exception as e:
-                try:
-                    client.close()
-                except Exception:
-                    pass
-                print(f"[QemuApptainer] Paramiko exec error: {e}")
+                with self._pk_lock:
+                    try:
+                        if self._pk_client is not None:
+                            self._pk_client.close()
+                    except Exception:
+                        pass
+                    self._pk_client = None
+                if round_num == 0:
+                    print(f"[QemuApptainer] Paramiko exec error: {e}; reconnecting once")
+                    continue
+                print(f"[QemuApptainer] Paramiko error: {e}")
                 return subprocess.CompletedProcess([], 1, b"", str(e).encode())
-        return subprocess.CompletedProcess([], 1, b"", str(last_err).encode())
+        return subprocess.CompletedProcess([], 1, b"", b"unreachable")
     
     def exec(self, cmd: str, env: Optional[Dict[str, str]] = None, user: Optional[str] = None, use_pty: bool = True, timeout: int = 600) -> int:
         """Execute command via SSH or ADB shell.
