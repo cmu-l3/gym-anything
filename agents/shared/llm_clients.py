@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import pickle
 import time
@@ -17,6 +18,33 @@ from agents.shared.prompts import CLAUDE_SYSTEM_PROMPT
 load_dotenv()
 
 LOG_DUMPS = "log_dumps_claude"
+logger = logging.getLogger(__name__)
+
+
+class _DisableThinkingViolation(RuntimeError):
+    pass
+
+
+def _env_flag_enabled(name: str) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _openai_extra_body(
+    *,
+    top_k: int,
+    repetition_penalty: float,
+    disable_thinking: bool,
+    session_id: str | None = None,
+) -> dict:
+    extra_body = {"repetition_penalty": repetition_penalty, "top_k": top_k}
+    if disable_thinking:
+        extra_body["chat_template_kwargs"] = {"enable_thinking": False}
+    if session_id:
+        extra_body["session_id"] = session_id
+    return extra_body
 
 
 def _dump_usage(prefix: str, model: str, usage) -> None:
@@ -68,10 +96,22 @@ def call_kimi_azure(
     raise RuntimeError(f"Failed to get response from Kimi Azure after {max_attempts} attempts")
 
 
-def call_llm(messages, model, temperature, top_p, top_k=-1, max_tokens=4096, repetition_penalty=1.0):
+def call_llm(
+    messages,
+    model,
+    temperature,
+    top_p,
+    top_k=-1,
+    max_tokens=4096,
+    repetition_penalty=1.0,
+    disable_thinking=None,
+    session_id=None,
+):
+    if disable_thinking is None:
+        disable_thinking = _env_flag_enabled("VLM_DISABLE_THINKING")
     for attempt in range(10):
         try:
-            print("model: ", model)
+            logger.debug("Calling local OpenAI-compatible model: %s", model)
             client = openai.OpenAI(
                 base_url=os.environ.get("VLM_BASE_URL", "http://localhost:8080/v1"),
                 api_key="EMPTY",
@@ -81,16 +121,36 @@ def call_llm(messages, model, temperature, top_p, top_k=-1, max_tokens=4096, rep
                 messages=messages,
                 temperature=temperature,
                 top_p=top_p,
-                extra_body={"repetition_penalty": repetition_penalty, "top_k": top_k},
+                extra_body=_openai_extra_body(
+                    top_k=top_k,
+                    repetition_penalty=repetition_penalty,
+                    disable_thinking=bool(disable_thinking),
+                    session_id=session_id,
+                ),
                 max_tokens=max_tokens,
             )
-            print("Raw response from llm: ", response)
+            logger.debug("Raw response from local LLM: %s", response)
+
+            message = response.choices[0].message
+            reasoning_content = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None)
+            content = message.content
+            if disable_thinking and reasoning_content:
+                raise _DisableThinkingViolation(
+                    "VLM_DISABLE_THINKING requested, but the model response included reasoning content"
+                )
+            if disable_thinking and content and "<think" in str(content).lower():
+                raise _DisableThinkingViolation(
+                    "VLM_DISABLE_THINKING requested, but the model response content included a <think> block"
+                )
 
             if model in {"Qwen/Qwen3.5-397B-A17B", "Qwen/Qwen3.5-122B-A10B"}:
-                reasoning_content = getattr(response.choices[0].message, "reasoning", None)
                 if reasoning_content:
-                    return f"<think>{reasoning_content}</think>\n{response.choices[0].message.content}"
-            return response.choices[0].message.content
+                    return f"<think>{reasoning_content}</think>\n{content}"
+            return content
+        except _DisableThinkingViolation:
+            raise
+        except openai.BadRequestError:
+            raise
         except Exception as exc:
             print(f"Error calling llm (attempt {attempt + 1}/10): {exc}")
             time.sleep(2 ** (attempt + 1))
