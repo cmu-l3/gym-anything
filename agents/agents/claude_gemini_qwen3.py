@@ -1,9 +1,7 @@
 from agents.shared.llm_clients import parse_qwen3vl_response, call_gemini_with_retry
 from agents.agents.qwen3vl import Qwen3VLAgent
-from PIL import Image
 import json
 import os
-import base64
 import numpy as np
 
 
@@ -26,16 +24,6 @@ class GeminiQwen3Agent(Qwen3VLAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def process_image(self, image_path, resize_to=None):
-        image = Image.open(image_path)
-        if resize_to is not None:
-            image = image.resize((resize_to[0], resize_to[1]))
-        processed_path = f"{self.save_folder_custom}/observation_{self.step_idx}.png"
-        image.save(processed_path, format="PNG")
-        with open(processed_path, "rb") as handle:
-            processed_bytes = handle.read()
-        return base64.b64encode(processed_bytes).decode("utf-8")
-
     def step(self, obs, action_outputs):
         """
         Execute one agent step.
@@ -47,13 +35,12 @@ class GeminiQwen3Agent(Qwen3VLAgent):
         Returns:
             List of action groups to execute
         """
-        # Save current observation
-        self.save_observation(obs)
         self.step_idx += 1
         
         # Process image
-        processed_image_b64 = self.process_image(obs['screen']['path'], resize_to = (self.display_resolution[0], self.display_resolution[1]))
-        self.screenshots.append(processed_image_b64)
+        processed_image_b64, processed_path = self.process_image(obs['screen'])
+        self._remember_screenshot(processed_image_b64)
+        self.b64_to_path[processed_image_b64] = processed_path
         
         # Build messages
         messages = self.build_messages(processed_image_b64)

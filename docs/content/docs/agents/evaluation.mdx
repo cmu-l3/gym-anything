@@ -48,6 +48,38 @@ Common optional arguments are:
   by default single-task runs write `timing.jsonl` and `timing_summary.json`
   under the episode directory
 
+For `Qwen3VLAgent`, `Qwen35VLAgent`, `Qwen35RealAgent`, `Qwen35DSLAgent`,
+`Qwen35DSLActionAgent`, `KimiAzureAgent`, and `KimiDistillAgent`, processed
+screenshots are encoded in memory before the VLM call and image artifacts are
+written asynchronously by default. The default payload/artifact format is JPEG
+quality 85; override with `--agent-arg image_format=png`,
+`--agent-arg jpeg_quality=90`, or `--agent-arg async_image_save=false` when you
+need a different behavior. The same defaults can be controlled with
+`GYM_ANYTHING_AGENT_IMAGE_FORMAT`, `GYM_ANYTHING_AGENT_JPEG_QUALITY`, and
+`GYM_ANYTHING_AGENT_ASYNC_IMAGE_SAVE`.
+
+`Qwen35DSLAgent` uses the compact CUA-DSL response format and defaults to
+incremental session transport. Each run gets a generated session ID and sends
+only the new messages for that turn: the first request sends `system + user`,
+then later requests send `assistant + user` deltas. Override with
+`--agent-arg incremental_messages=false`, `--agent-arg session_id=<id>`, or
+`GYM_ANYTHING_AGENT_SESSION_ID=<id>`.
+
+For servers that accept raw RGB image payloads, pass
+`--agent-arg image_format=prime_rgb`. The request payload uses
+`data:application/x.prime-rgb;w=960;h=540;base64,...`; the saved artifact in
+`all_runs/.../observation_*.jpg` remains a viewable JPEG. Override the raw
+dimensions with `--agent-arg prime_rgb_width=<w>` and
+`--agent-arg prime_rgb_height=<h>`.
+
+For vLLM servers that support image UUID caching, pass
+`--agent-arg image_cache_uuids=true` or set
+`GYM_ANYTHING_AGENT_IMAGE_CACHE_UUIDS=1`. The first request that contains a
+frame sends both `uuid` and image bytes. Later requests reference old frames as
+`{"type": "image_url", "uuid": "...", "image_url": null}` while still sending
+bytes for the newest frame. This is a vLLM extension and is disabled by default
+for compatibility with standard OpenAI-compatible servers.
+
 ## What `run_single` Does
 
 At a high level, `run_single` does this:

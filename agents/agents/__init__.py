@@ -8,6 +8,10 @@ from .claude_gemini import Gemini3Agent
 from .kimi import KimiAzureAgent
 from .kimi_distill import KimiDistillAgent
 from .qwen3vl_audit import Qwen3VLAuditAgent
+from .qwen35vl import Qwen35VLAgent
+from .qwen35_real import Qwen35RealAgent, qwen35RealAgent
+from .qwen35_dsl import Qwen35DSLAgent, qwen35DSLAgent
+from .qwen35_dsl_action import Qwen35DSLActionAgent, qwen35DSLActionAgent
 
 __all__ = [
     "ClaudeAgent",
@@ -20,4 +24,11 @@ __all__ = [
     "Qwen3VLAgent",
     "Qwen3VLAuditAgent",
     "Qwen3VLFixedAgent",
+    "Qwen35VLAgent",
+    "Qwen35RealAgent",
+    "qwen35RealAgent",
+    "Qwen35DSLAgent",
+    "qwen35DSLAgent",
+    "Qwen35DSLActionAgent",
+    "qwen35DSLActionAgent",
 ]

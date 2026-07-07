@@ -82,10 +82,7 @@ class GeminiQwen3AuditAgent(GeminiQwen3Agent):
         # Build image content list (NO action history - only visual evidence)
         image_content = []
         for img in sampled_screenshots:
-            image_content.append({
-                "type": "image_url",
-                "image_url": {"url": f"data:image/png;base64,{img}"}
-            })
+            image_content.append(self._image_content(img, include_bytes=False))
 
         num_images = len(sampled_screenshots)
 
@@ -373,26 +370,18 @@ Do NOT use the terminate action until you have fully addressed the feedback.
                 if idx < len(history_screenshots):
                     screenshot_b64 = history_screenshots[idx]
                     if idx == 0:
-                        img_url = f"data:image/png;base64,{screenshot_b64}"
                         messages.append({
                             "role": "user",
                             "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": img_url},
-                                },
+                                self._image_content(screenshot_b64, include_bytes=False),
                                 {"type": "text", "text": instruction_prompt},
                             ],
                         })
                     else:
-                        img_url = f"data:image/png;base64,{screenshot_b64}"
                         messages.append({
                             "role": "user",
                             "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": img_url},
-                                }
+                                self._image_content(screenshot_b64, include_bytes=False)
                             ],
                         })
 
@@ -403,25 +392,17 @@ Do NOT use the terminate action until you have fully addressed the feedback.
                     ],
                 })
 
-            curr_img_url = f"data:image/png;base64,{current_screenshot_b64}"
             messages.append({
                 "role": "user",
                 "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": curr_img_url},
-                    },
+                    self._image_content(current_screenshot_b64, include_bytes=True),
                 ],
             })
         else:
-            curr_img_url = f"data:image/png;base64,{current_screenshot_b64}"
             messages.append({
                 "role": "user",
                 "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": curr_img_url},
-                    },
+                    self._image_content(current_screenshot_b64, include_bytes=True),
                     {"type": "text", "text": instruction_prompt},
                 ],
             })
@@ -435,13 +416,12 @@ Do NOT use the terminate action until you have fully addressed the feedback.
         OVERRIDE: When agent attempts to terminate, runs audit first.
         If audit says task incomplete, injects feedback and continues.
         """
-        # Save current observation
-        self.save_observation(obs)
         self.step_idx += 1
 
         # Process image
-        processed_image_b64 = self.process_image(obs['screen']['path'], resize_to=(1920, 1080))
-        self.screenshots.append(processed_image_b64)
+        processed_image_b64, processed_path = self.process_image(obs['screen'])
+        self._remember_screenshot(processed_image_b64)
+        self.b64_to_path[processed_image_b64] = processed_path
 
         # Build messages (will include audit feedback if present)
         messages = self.build_messages(processed_image_b64)

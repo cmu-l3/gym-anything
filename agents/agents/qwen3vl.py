@@ -1,11 +1,11 @@
 from agents.agents.base import BaseAgent
-from agents.shared.llm_clients import call_llm, smart_resize, parse_qwen3vl_response
+from agents.agents.image_pipeline import ImagePipelineMixin
+from agents.shared.llm_clients import call_llm, parse_qwen3vl_response
 from PIL import Image
 import json
 import os
 import copy
-from io import BytesIO
-import base64
+import time
 import numpy as np
 
 
@@ -17,7 +17,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class Qwen3VLAgent(BaseAgent):
+class Qwen3VLAgent(ImagePipelineMixin, BaseAgent):
     """
     Qwen3VL agent using Qwen vision-language models via OpenAI-compatible API.
     Maintains a history-based prompting approach with image preprocessing.
@@ -29,7 +29,6 @@ class Qwen3VLAgent(BaseAgent):
         # TODO: Fix this confusion
         self.decoding_params = self.agent_args.get('decoding_params', {})
         # self.temperature = self.decoding_params.get('temperature', 1.0)
-        print('Agent args are: ', self.agent_args, 'and temperature is: ', self.agent_args.get('temperature', 1.0))
         self.temperature = self.agent_args.get('temperature', 1.0)
 
         self.top_p = self.decoding_params.get('top_p', 0.95)
@@ -61,6 +60,7 @@ class Qwen3VLAgent(BaseAgent):
 
         self.debug = kwargs.get('debug', False)
         self.verbose = kwargs.get('verbose', False)
+        self._init_image_pipeline()
     
     def setup_custom_logger(self):
         """Setup custom save folder for agent artifacts."""
@@ -90,7 +90,16 @@ class Qwen3VLAgent(BaseAgent):
             for content in msg['content']:
                 if content.get('type') != 'image_url':
                     continue
-                url = content['image_url'].get('url', '')
+                image_url = content.get('image_url')
+                if image_url is None:
+                    image_uuid = content.get('uuid')
+                    if image_uuid in self.uuid_to_path:
+                        content['image_url'] = {
+                            "url": self.uuid_to_path[image_uuid],
+                            "cached": True,
+                        }
+                    continue
+                url = image_url.get('url', '') if isinstance(image_url, dict) else ''
                 if 'base64,' in url:
                     b64 = url.split('base64,')[1]
                     if b64 in self.b64_to_path:
@@ -104,40 +113,6 @@ class Qwen3VLAgent(BaseAgent):
         self.task_description = task_description
         self.display_resolution = display_resolution
         self.save_path = save_path
-    
-    def process_image(self, image_path):
-        """
-        Process an image for Qwen VL models with smart resize.
-        Returns tuple of (base64_string, processed_image_path).
-        """
-        image = Image.open(image_path)
-        width, height = image.size
-
-        if self.verbose:
-            print(f"Original screen resolution: {width}x{height}")
-
-        # Apply smart resize
-        resized_height, resized_width = smart_resize(
-            height=height,
-            width=width,
-            factor=32,
-            max_pixels=16 * 16 * 4 * 1280,
-        )
-        print('Resized image resolution: ', resized_width, resized_height)
-        image = image.resize((resized_width, resized_height))
-
-        if self.verbose:
-            print(f"Processed image resolution: {resized_width}x{resized_height}")
-
-        # Save processed image to disk (replaces separate observation save)
-        processed_path = f'{self.save_folder_custom}/observation_{self.step_idx}.png'
-        image.save(processed_path, format="PNG")
-
-        # Convert to base64 by reading the saved file (ensures exact match)
-        with open(processed_path, 'rb') as f:
-            processed_bytes = f.read()
-
-        return base64.b64encode(processed_bytes).decode("utf-8"), processed_path
     
     def build_messages(self, current_screenshot_b64):
         """
@@ -157,7 +132,8 @@ class Qwen3VLAgent(BaseAgent):
         previous_actions_str = (
             "\n".join(previous_actions) if previous_actions else "None"
         )
-        print('Len of previous actions: ', len(previous_actions))
+        if self.verbose:
+            print('Len of previous actions: ', len(previous_actions))
         
         instruction_prompt = f"""Please generate the next move according to the UI screenshot, instruction and previous actions.
 
@@ -180,33 +156,35 @@ Previous actions:
         if history_len > 0:
             history_responses = self.responses[-history_len:]
             history_screenshots = self.screenshots[-history_len - 1:-1]
+            history_uuids = self.screenshot_uuids[-history_len - 1:-1]
             
             for idx in range(history_len):
                 if idx < len(history_screenshots):
                     screenshot_b64 = history_screenshots[idx]
+                    screenshot_uuid = history_uuids[idx] if idx < len(history_uuids) else None
                     if idx == 0:
                         # First turn includes the instruction
-                        img_url = f"data:image/png;base64,{screenshot_b64}"
                         messages.append({
                             "role": "user",
                             "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": img_url},
-                                },
+                                self._image_content(
+                                    screenshot_b64,
+                                    include_bytes=False,
+                                    image_uuid=screenshot_uuid,
+                                ),
                                 {"type": "text", "text": instruction_prompt},
                             ],
                         })
                     else:
                         # Subsequent turns only include screenshot
-                        img_url = f"data:image/png;base64,{screenshot_b64}"
                         messages.append({
                             "role": "user",
                             "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": img_url},
-                                }
+                                self._image_content(
+                                    screenshot_b64,
+                                    include_bytes=False,
+                                    image_uuid=screenshot_uuid,
+                                )
                             ],
                         })
                 
@@ -219,27 +197,27 @@ Previous actions:
                 })
             
             # Add current screenshot
-            curr_img_url = f"data:image/png;base64,{current_screenshot_b64}"
             messages.append({
                 "role": "user",
                 "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": curr_img_url},
-                    },
+                    self._image_content(
+                        current_screenshot_b64,
+                        include_bytes=True,
+                        image_uuid=self.screenshot_uuids[-1] if self.screenshot_uuids else None,
+                    ),
                     # {"type": "text", "text": instruction_prompt},
                 ],
             })
         else:
             # First turn
-            curr_img_url = f"data:image/png;base64,{current_screenshot_b64}"
             messages.append({
                 "role": "user",
                 "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": curr_img_url},
-                    },
+                    self._image_content(
+                        current_screenshot_b64,
+                        include_bytes=True,
+                        image_uuid=self.screenshot_uuids[-1] if self.screenshot_uuids else None,
+                    ),
                     {"type": "text", "text": instruction_prompt},
                 ],
             })
@@ -341,21 +319,32 @@ Rules:
         self.step_idx += 1
 
         # Process image and save to disk (also saves as observation)
-        processed_image_b64, processed_path = self.process_image(obs['screen']['path'])
-        self.screenshots.append(processed_image_b64)
+        step_timing = {}
+        step_start = time.perf_counter()
+
+        t0 = time.perf_counter()
+        processed_image_b64, processed_path = self.process_image(obs['screen'])
+        step_timing["process_observation_ms"] = (time.perf_counter() - t0) * 1000.0
+        self._remember_screenshot(processed_image_b64)
 
         # Store mapping for efficient message saving
         self.b64_to_path[processed_image_b64] = processed_path
         
         # Build messages
+        t0 = time.perf_counter()
         messages = self.build_messages(processed_image_b64)
+        step_timing["build_messages_ms"] = (time.perf_counter() - t0) * 1000.0
 
 
         # Save messages with file paths instead of base64
+        t0 = time.perf_counter()
         self.save_messages(messages)
+        step_timing["save_messages_ms"] = (time.perf_counter() - t0) * 1000.0
 
         # Call LLM
-        print(f"Calling LLM with temperature: {self.temperature}")
+        if self.verbose:
+            print(f"Calling LLM with temperature: {self.temperature}")
+        t0 = time.perf_counter()
         response = call_llm(
             messages, 
             self.model, 
@@ -364,14 +353,18 @@ Rules:
             self.top_k,
             # self.max_tokens
         )
+        step_timing["llm_call_ms"] = (time.perf_counter() - t0) * 1000.0
         
         
         # Store response for history
         self.responses.append(response)
         
         # Parse response using existing parse_owl_response function
+        t0 = time.perf_counter()
         parsed_response = parse_qwen3vl_response(response)
+        step_timing["parse_response_ms"] = (time.perf_counter() - t0) * 1000.0
         
+        t0 = time.perf_counter()
         # Store responses for later dumping
         self.all_model_responses.append(response)
         self.all_parsed_responses.append(parsed_response)
@@ -389,6 +382,11 @@ Rules:
             print(f"  Conclusion: {metadata['conclusion']}")
             print(f"  Action Type: {metadata['action_type']}")
             print(f"  Actions: {actions}")
+        step_timing["postprocess_ms"] = (time.perf_counter() - t0) * 1000.0
+        step_timing["total_ms"] = (time.perf_counter() - step_start) * 1000.0
+        step_timing["llm_response_chars"] = len(response or "")
+        step_timing["actions_count"] = len(actions)
+        self.last_step_timing = step_timing
         
         # Check if terminal
         if metadata['is_terminal']:
@@ -416,6 +414,8 @@ Rules:
     
     def finish(self, *args, **kwargs):
         """Save all agent artifacts."""
+        self._wait_for_image_saves()
+
         # Save responses as JSON
         json.dump(
             {

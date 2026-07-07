@@ -5,6 +5,7 @@ from PIL import Image
 import json
 import os
 import copy
+import time
 from io import BytesIO
 import base64
 import numpy as np
@@ -30,7 +31,6 @@ class KimiDistillAgent(KimiAzureAgent):
         # TODO: Fix this confusion
         self.decoding_params = self.agent_args.get('decoding_params', {})
         # self.temperature = self.decoding_params.get('temperature', 1.0)
-        print('Agent args are: ', self.agent_args, 'and temperature is: ', self.agent_args.get('temperature', 1.0))
         self.temperature = self.agent_args.get('temperature', 1.0)
 
         self.top_p = self.decoding_params.get('top_p', 0.95)
@@ -63,6 +63,7 @@ class KimiDistillAgent(KimiAzureAgent):
 
         self.debug = kwargs.get('debug', False)
         self.verbose = kwargs.get('verbose', False)
+        self._init_image_pipeline()
 
 
 
@@ -80,22 +81,32 @@ class KimiDistillAgent(KimiAzureAgent):
         """
         self.step_idx += 1
 
+        step_timing = {}
+        step_start = time.perf_counter()
+
         # Process image and save to disk (also saves as observation)
-        processed_image_b64, processed_path = self.process_image(obs['screen']['path'])
-        self.screenshots.append(processed_image_b64)
+        t0 = time.perf_counter()
+        processed_image_b64, processed_path = self.process_image(obs['screen'])
+        step_timing["process_observation_ms"] = (time.perf_counter() - t0) * 1000.0
+        self._remember_screenshot(processed_image_b64)
 
         # Store mapping for efficient message saving
         self.b64_to_path[processed_image_b64] = processed_path
 
         # Build messages
+        t0 = time.perf_counter()
         messages = self.build_messages(processed_image_b64)
+        step_timing["build_messages_ms"] = (time.perf_counter() - t0) * 1000.0
 
 
         # Save messages with file paths instead of base64
+        t0 = time.perf_counter()
         self.save_messages(messages)
+        step_timing["save_messages_ms"] = (time.perf_counter() - t0) * 1000.0
 
         # Call LLM
-        print(f"Calling LLM with temperature: {self.temperature}")
+        if self.verbose:
+            print(f"Calling LLM with temperature: {self.temperature}")
         # response = call_kimi_azure(
         #     messages,
         #     self.model,
@@ -104,6 +115,7 @@ class KimiDistillAgent(KimiAzureAgent):
         #     self.top_k,
         #     # self.max_tokens
         # )
+        t0 = time.perf_counter()
         response = call_llm(
             messages,
             self.model,
@@ -112,14 +124,18 @@ class KimiDistillAgent(KimiAzureAgent):
             self.top_k,
             self.max_tokens
         )
+        step_timing["llm_call_ms"] = (time.perf_counter() - t0) * 1000.0
 
 
         # Store response for history
         self.responses.append(response)
 
         # Parse response using existing parse_qwen3vl_response function
+        t0 = time.perf_counter()
         parsed_response = parse_qwen3vl_response(response, scale_dims=True, scale_dims_ratio=(1920, 1080))
+        step_timing["parse_response_ms"] = (time.perf_counter() - t0) * 1000.0
 
+        t0 = time.perf_counter()
         # Store responses for later dumping
         self.all_model_responses.append(response)
         self.all_parsed_responses.append(parsed_response)
@@ -137,6 +153,11 @@ class KimiDistillAgent(KimiAzureAgent):
             print(f"  Conclusion: {metadata['conclusion']}")
             print(f"  Action Type: {metadata['action_type']}")
             print(f"  Actions: {actions}")
+        step_timing["postprocess_ms"] = (time.perf_counter() - t0) * 1000.0
+        step_timing["total_ms"] = (time.perf_counter() - step_start) * 1000.0
+        step_timing["llm_response_chars"] = len(response or "")
+        step_timing["actions_count"] = len(actions)
+        self.last_step_timing = step_timing
 
         # Check if terminal
         if metadata['is_terminal']:

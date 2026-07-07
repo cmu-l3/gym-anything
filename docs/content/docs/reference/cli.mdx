@@ -83,6 +83,29 @@ Important flags:
 - `--verifier-mode`: override `task.json` verifier mode for the run, for example `vlm_checklist`
 - `--vlm-checklist-model`: model used by the VLM checklist verifier
 
+For vLLM image-cache experiments with Qwen-family agents, add
+`--agent-arg image_cache_uuids=true`. This sends stable UUIDs for image parts
+and references previous frames with `image_url: null`, which is a vLLM-specific
+extension rather than standard OpenAI API behavior.
+
+For `Qwen35DSLAgent` session-cache experiments, use the DSL agent with the
+server URL and raw RGB payload format:
+
+```bash
+VLM_BASE_URL=http://localhost:8026/v1 gym-anything benchmark gimp_env_all_fast \
+  --task add_border \
+  --agent Qwen35DSLAgent \
+  --model qwen3.5-2b-residual-drop-step635-fastdiff-fastprocessor \
+  --fast-io \
+  --disable-thinking \
+  --agent-arg image_format=prime_rgb \
+  --agent-arg image_cache_uuids=true
+```
+
+`Qwen35DSLAgent` sends a generated `session_id` and only per-turn message
+deltas by default. The first turn sends `system + user`; later turns send
+`assistant + user`.
+
 <Callout type="info">
 When `--task` is omitted, the CLI enters batch mode and runs all tasks for the given environment and split. Each task runs in its own process for fault isolation.
 </Callout>
