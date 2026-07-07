@@ -380,6 +380,25 @@ class AVFRunner(BaseRunner):
         else:
             self._report_skip("mounts", "none configured")
 
+        # The desktop can be visually ready while systemd is still settling.
+        # A sudo through PAM in that window blocks forever on the logind
+        # D-Bus conversation (observed: a task pre_task hook's sudo sat in
+        # poll() for 25+ minutes; the byte-identical command succeeded once
+        # boot finished). Hooks run right after start() returns, so wait for
+        # systemd to report a settled state first.
+        self._log("[AVF] Waiting for systemd to settle (PAM/logind readiness)...")
+        settle_deadline = time.time() + 180
+        while time.time() < settle_deadline:
+            state = (self._ssh_exec(
+                "systemctl is-system-running 2>/dev/null || true",
+                timeout=15, capture=True) or "").strip()
+            if state in ("running", "degraded"):
+                self._log(f"[AVF] systemd state: {state}")
+                break
+            time.sleep(2)
+        else:
+            self._log("[AVF] systemd did not settle within 180s; proceeding anyway")
+
         self._running = True
         self._report_done("ready")
         self._log(f"[AVF] VM ready!")
@@ -757,6 +776,17 @@ class AVFRunner(BaseRunner):
             client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
                           password=self._ssh_password, timeout=15, look_for_keys=False)
             _, stdout, stderr = client.exec_command(wrapped_cmd, timeout=timeout, get_pty=use_pty)
+            # paramiko's timeout does not cover recv_exit_status(), which
+            # blocks indefinitely if the remote command never exits (a hung
+            # PAM sudo turned a 600s hook budget into a 25+ minute stall).
+            # Enforce the deadline ourselves.
+            deadline = time.time() + timeout
+            while not stdout.channel.exit_status_ready():
+                if time.time() > deadline:
+                    client.close()
+                    print(f"[AVF] exec timed out after {timeout}s: {cmd[:100]}")
+                    return 124
+                time.sleep(0.5)
             exit_code = stdout.channel.recv_exit_status()
             err = stderr.read().decode()
             client.close()
