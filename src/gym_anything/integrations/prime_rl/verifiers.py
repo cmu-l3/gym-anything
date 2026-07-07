@@ -103,6 +103,13 @@ def _completion_text(completion: Any) -> str:
     return str(content or "")
 
 
+def _role(message: Any) -> Optional[str]:
+    """Role of an OpenAI-style message (dict) or a vf.Message object."""
+    if isinstance(message, dict):
+        return message.get("role")
+    return getattr(message, "role", None)
+
+
 class RolloutAborted(Exception):
     """Raised inside the agent thread when the rollout is torn down."""
 
@@ -425,6 +432,35 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
             "unused: get_prompt_messages is overridden; each turn's messages "
             "come from the agent's own step()"
         )
+
+    async def render_completion(self, state: "vf.State") -> None:
+        """Record the FULL multi-turn trajectory, not just the last windowed turn.
+
+        verifiers' default ``render_completion`` serialises only
+        ``state["trajectory"][-1]`` because it assumes append-only prompts. Our
+        agent rebuilds a windowed prompt each turn, so the default drops every
+        prior screenshot and action, leaving a single-turn log. Every turn is
+        already in ``state["trajectory"]``; stitch each turn's new observation
+        (the trailing user message of its windowed prompt) and action into one
+        conversation so the recorded completion is the whole episode.
+
+        Logging-only: this runs from a ``@cleanup`` handler after the rollout, so
+        it never feeds the agent, and it does not affect the reward (which comes
+        from the env verifier via ``state["episode_reward"]``).
+        """
+        traj = state.get("trajectory") or []
+        if not traj:
+            state["completion"] = []
+            return
+        # Turn 0's action answers the observation already carried by state["prompt"].
+        conversation: List[Any] = list(traj[0]["completion"])
+        for step in traj[1:]:
+            user_msgs = [m for m in step["prompt"] if _role(m) == "user"]
+            conversation += user_msgs[-1:] + list(step["completion"])
+        final_resp = state.get("final_env_response")
+        if final_resp:
+            conversation += final_resp if isinstance(final_resp, list) else [final_resp]
+        state["completion"] = conversation
 
     async def _terminate(self, state: vf.State) -> "vf.Messages":
         """Score while the VM is alive, then signal rollout completion."""
