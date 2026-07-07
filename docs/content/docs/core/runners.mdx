@@ -58,6 +58,7 @@ If your question is simply "does this support caching?" or "can I use savevm her
 | Docker | Yes | No | Yes |
 | Apptainer direct | No | No | No |
 | QEMU | Yes | Yes | No |
+| Modal | Yes | Yes | No |
 | AVD | Yes | No | No |
 | AVF | No | No | No |
 | Local | No | No | No |
@@ -221,3 +222,26 @@ export GYM_ANYTHING_QEMU_FAST_IO_BACKEND=dbus
 
 Keep QMP as the default unless you need the lowest screenshot latency and the
 host can support the D-Bus runtime requirements.
+
+## Modal
+
+`GYM_ANYTHING_RUNNER=modal` runs the QEMU stack inside a
+[Modal](https://modal.com) VM Sandbox instead of on your own machine. The
+sandbox has a real Linux kernel with a working `/dev/kvm`, so the same Linux,
+Windows, and Android guests that the QEMU runner boots run there unchanged —
+this is the OS-agnostic path for hosted, cloud-side environments.
+
+Under the hood `ModalRunner` starts a `QemuNativeRunner` inside the sandbox and
+proxies to it over a small HTTP shim, so no runner logic is duplicated. Base
+QCOW2 images and checkpoints live in a Modal Volume (`gym-anything-qemu-cache`)
+and are built or uploaded once, then reused by every later sandbox.
+
+Requirements: `pip install "gym-anything[modal]"` and a configured Modal token
+(`modal token set ...`). Relevant environment variables:
+
+- `GYM_ANYTHING_MODAL_APP` — Modal app name (default `gym-anything-runner`)
+- `GYM_ANYTHING_MODAL_VOLUME` — cache volume name (default `gym-anything-qemu-cache`)
+- `GYM_ANYTHING_MODAL_TIMEOUT` — sandbox lifetime in seconds (default `10800`)
+
+This runner is also the default backend when a benchmark runs as a
+prime-rl / verifiers environment; see [Training Hubs](/docs/extras/hubs).

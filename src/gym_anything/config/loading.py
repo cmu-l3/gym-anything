@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional, Union
 
 from ..env import GymAnythingEnv
 from ..security import load_secret_env
-from ..specs import EnvSpec, TaskSpec
+from ..specs import EnvSpec, MountSpec, TaskSpec
 from ..utils.merge import deep_merge_env_dict
 from ..utils.yaml import load_structured_file
 from .presets import load_preset_env_dict
@@ -78,15 +78,41 @@ def make(
     return GymAnythingEnv(env_spec=env_spec, task_spec=task_spec, fast_io=fast_io)
 
 
+def _resolve_mount_sources(env_spec: EnvSpec, env_root: Path) -> None:
+    """Resolve relative mount sources to absolute paths at load time.
+
+    Mount sources in env configs are commonly written relative to the repo
+    root that contains the env folder, and runners would otherwise resolve
+    them against the process working directory. Resolution order matches the
+    static spec verifier (`verification.specs._candidate_source_paths`):
+    cwd first (preserves historical behavior), then the env root's ancestors,
+    then the env root itself. Unresolvable sources are left as-is so runners
+    report them.
+    """
+    resolved = []
+    for m in env_spec.mounts:
+        src = Path(m.source)
+        if m.source and not src.is_absolute():
+            for base in (Path.cwd(), *env_root.parents, env_root):
+                candidate = base / src
+                if candidate.exists():
+                    m = MountSpec(target=m.target, source=str(candidate.resolve()), mode=m.mode)
+                    break
+        resolved.append(m)
+    env_spec.mounts = resolved
+
+
 def from_config(
     env_dir: Union[str, os.PathLike],
     task_id: Optional[str] = None,
+    overrides: Optional[Dict[str, Any]] = None,
     *,
     fast_io: bool = False,
 ) -> GymAnythingEnv:
     """Load `env.yaml|yml|json` (and optional `tasks/<task_id>/task.yaml|yml|json`) from a folder.
 
     If `task_id` is omitted and there is exactly one task folder, that task is used.
+    `overrides` is forwarded to `make` (e.g. `{"runner": "modal"}`).
     """
     env_dir = Path(env_dir)
     env_spec_path: Optional[Path] = None
@@ -117,7 +143,8 @@ def from_config(
             if len(candidates) == 1:
                 task_spec_path = candidates[0]
 
-    env = make(env_spec_path, task_spec_path, fast_io=fast_io)
+    env = make(env_spec_path, task_spec_path, overrides=overrides, fast_io=fast_io)
+    _resolve_mount_sources(env.env_spec, env_dir)
     # Attach roots for verifiers and assets resolution
     env.set_roots(env_root=env_dir, task_root=(task_spec_path.parent if task_spec_path else None))
     return env

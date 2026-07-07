@@ -75,26 +75,38 @@ function Restore-EqRegistration {
     }
 }
 
+function Test-EqRendered {
+    <#
+    True once eQUEST has actually rendered a window. A hung cold-boot launch
+    leaves the process at ~5MB working set with no window; a rendered eQUEST is
+    ~25-30MB and/or has a main window handle.
+    #>
+    $procs = Get-Process eQUEST -ErrorAction SilentlyContinue
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.WorkingSet64 -gt 15MB -or $p.MainWindowHandle -ne 0) { return $true }
+    }
+    return $false
+}
+
 function Launch-EqProjectInteractive {
     <#
     Launch eQUEST with a project file in the interactive desktop session.
     Uses schtasks /IT to run in Session 1 (visible on VNC).
-    Automatically restores registration values before launch.
+    Restores registration before each launch and retries until eQUEST renders.
     #>
     param(
         [Parameter(Mandatory = $true)]
         [string] $EqExe,
         [Parameter(Mandatory = $false)]
         [string] $ProjectPath = "",
-        [int] $WaitSeconds = 15
+        [int] $WaitSeconds = 25,
+        [int] $MaxAttempts = 4
     )
 
     if (-not (Test-Path $EqExe)) {
         throw "eQUEST executable not found at: $EqExe"
     }
-
-    # Restore registration values before every launch to prevent "Invalid PreviousRunDate"
-    Restore-EqRegistration
 
     # Create a launcher batch file to avoid quoting issues with schtasks
     $launchScript = "C:\Windows\Temp\launch_equest.cmd"
@@ -106,16 +118,41 @@ function Launch-EqProjectInteractive {
     [System.IO.File]::WriteAllText($launchScript, $batchContent)
 
     $taskName = "LaunchEquest_GA"
-    $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
-
     $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
-        $ErrorActionPreference = "Continue"
-        schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
-        schtasks /Run /TN $taskName 2>$null
-        Start-Sleep -Seconds $WaitSeconds
+        # Cold-boot interactive sessions can hang eQUEST's first launch (the process
+        # starts but its window never renders; working set stuck ~5MB). Launch, verify
+        # it actually rendered (working set climbs past the hung baseline), and retry
+        # (kill + relaunch) until it does. This is what makes a cold post_start boot
+        # equivalent to a savevm checkpoint that pre-bakes a warmed, rendered eQUEST.
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            # eQUEST corrupts its registration on every run; restore before each launch.
+            Restore-EqRegistration
+            # Clear any prior (possibly hung) eQUEST before (re)launching.
+            Get-Process | Where-Object { $_.ProcessName -like "*quest*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+
+            $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
+            schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
+            schtasks /Run /TN $taskName 2>$null
+            schtasks /Delete /TN $taskName /F 2>$null
+
+            # Poll for eQUEST to render.
+            $waited = 0
+            while ($waited -lt $WaitSeconds) {
+                Start-Sleep -Seconds 3
+                $waited += 3
+                if (Test-EqRendered) { break }
+            }
+            if (Test-EqRendered) {
+                Write-Host "eQUEST rendered on attempt $attempt."
+                return
+            }
+            Write-Host "eQUEST did not render on attempt $attempt (cold-boot hang); retrying..."
+        }
+        Write-Host "WARNING: eQUEST failed to render after $MaxAttempts attempts."
     } finally {
-        schtasks /Delete /TN $taskName /F 2>$null
         Remove-Item $launchScript -Force -ErrorAction SilentlyContinue
         $ErrorActionPreference = $prevEAP
     }

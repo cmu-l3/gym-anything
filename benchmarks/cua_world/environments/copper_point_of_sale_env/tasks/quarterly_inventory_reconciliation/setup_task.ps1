@@ -52,6 +52,17 @@ try {
 
     Wait-ForCopperProcess -TimeoutSeconds 30
 
+    # Stop-Copper force-kills Copper, leaving NCH's unclean-exit flag; the relaunch then
+    # shows an "Abnormal Termination Detected" dialog that blocks the main window. The
+    # earlier dismiss_dialogs pass runs before this dialog appears, so dismiss it here
+    # (click "No" - do not report) once Copper has come up, so the main window is at t=0.
+    Start-Sleep -Seconds 3
+    try { PyAutoGUI-Press -Key "escape" } catch { }
+    Start-Sleep -Seconds 1
+    try { PyAutoGUI-Click -X 772 -Y 373 } catch { }
+    Start-Sleep -Seconds 1
+    try { PyAutoGUI-Press -Key "escape" } catch { }
+
     Minimize-Terminals
 
     Write-Host "=== quarterly_inventory_reconciliation setup complete ==="

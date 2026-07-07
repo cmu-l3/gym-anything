@@ -227,27 +227,30 @@ try {
     # Clean up installer file
     Remove-Item "C:\Windows\Temp\designsetup.exe" -Force -ErrorAction SilentlyContinue
 
-    # -- Step 4: Full warm-up launch (download samples, open Contemporary House, dismiss tutorial) --
-    # Leave DreamPlan OPEN at end so the QEMU savevm checkpoint captures it running with project loaded.
-    # The checkpoint will show: DreamPlan with Contemporary House in 3D view, no tutorial overlay.
-    Write-Host "Starting full warm-up launch (opens Contemporary House and dismisses tutorial)..."
-    # WaitSeconds=45: DreamPlan on this VM can take 40+ seconds to show its window
-    # SampleWaitSec=60: first-time download of sample projects takes 30-60 seconds
-    $launchSuccess = Launch-DreamPlanWithSample -WaitSeconds 45 -SampleWaitSec 60
-    if ($launchSuccess) {
-        Write-Host "Warm-up complete. Contemporary House is loaded."
-    } else {
-        Write-Host "WARNING: Warm-up launch reported failure. DreamPlan may not be in correct state."
-    }
+    # -- Step 4: Base launch -- leave DreamPlan open with Contemporary House at t=0 --
+    # Opens Contemporary House sample project and dismisses tutorial overlay.
+    # DreamPlan is left OPEN so every episode starts with the project already loaded.
+    # WaitSeconds=45: DreamPlan on this VM can take 40+ seconds to show its window.
+    # SampleWaitSec=60: first-time download of sample projects takes 30-60 seconds.
+    try {
+        $launchSuccess = Launch-DreamPlanWithSample -WaitSeconds 45 -SampleWaitSec 60
+        if ($launchSuccess) {
+            Write-Host "Base launch complete. Contemporary House is loaded."
+        } else {
+            Write-Host "WARNING: Base launch reported failure. DreamPlan may not be in correct state."
+        }
 
-    # Verify Contemporary House is open (uses VBScript in Session 1 via AppActivate)
-    $verified = Test-ContemporaryHouseOpen
-    if ($verified) {
-        Write-Host "VERIFIED: Contemporary House is open and ready."
-    } else {
-        Write-Host "WARNING: Could not verify Contemporary House is open. Checkpoint may be in wrong state."
+        # Verify Contemporary House is open (uses PowerShell via schtasks in Session 1).
+        $verified = Test-ContemporaryHouseOpen
+        if ($verified) {
+            Write-Host "VERIFIED: Contemporary House is open and ready."
+        } else {
+            Write-Host "WARNING: Could not verify Contemporary House is open."
+        }
+        Write-Host "NOTE: DreamPlan is left OPEN at t=0 for every episode."
+    } catch {
+        Write-Host "WARNING: Base DreamPlan launch failed: $($_.Exception.Message)"
     }
-    Write-Host "NOTE: DreamPlan is left OPEN for checkpoint savevm."
 
     # -- Step 5: Kill remaining Edge processes and minimize terminals --
     Get-Process msedge -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue

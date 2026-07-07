@@ -137,6 +137,40 @@ try {
     # Cleanup installer files
     Remove-Item -Path $workDir -Recurse -Force -ErrorAction SilentlyContinue
 
+    # === Bake first-launch state into the pre_start checkpoint ===
+    # eQUEST initializes its user Data dir (Air System Diagram definitions, screens,
+    # libraries, etc.) only on its first launch. Do that warm-up here, at build time,
+    # so the cold post_start boot already has it on disk. All local (no network), so
+    # episode-time (post_start on an offline node) never needs to download or init it.
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        $projectsDir = "C:\Users\Docker\Desktop\eQUEST_Projects"
+        New-Item -ItemType Directory -Force -Path $projectsDir | Out-Null
+        if (Test-Path "C:\workspace\data") {
+            Copy-Item "C:\workspace\data\*" -Destination $projectsDir -Force -ErrorAction SilentlyContinue
+        }
+        $eqExe = $null
+        try { $eqExe = Find-EqExe } catch { }
+        if ($eqExe) {
+            $eqInstDir = Split-Path $eqExe -Parent
+            $dataPath = "C:\Users\Docker\Documents\eQUEST 3-65-7175 Data\"
+            $projPath = "C:\Users\Docker\Documents\eQUEST 3-65 Projects\"
+            New-Item -ItemType Directory -Force -Path $projPath -ErrorAction SilentlyContinue | Out-Null
+            $iniContent = "[paths]`r`nDataPath=`"$dataPath`"`r`nProjPath=`"$projPath`"`r`n`r`n[Registration]`r`nCode=9349417631702397005-001`r`nStatus=1000`r`nSpecial=581413115`r`n"
+            [System.IO.File]::WriteAllText("$eqInstDir\eQUEST.ini", $iniContent, [System.Text.Encoding]::ASCII)
+            # Warm-up launch (robust against cold-boot hang) initializes the Data dir.
+            Launch-EqProjectInteractive -EqExe $eqExe -WaitSeconds 25
+            Dismiss-EqDialogsBestEffort -Retries 3 -InitialWaitSeconds 5
+            Start-Sleep -Seconds 3
+            Get-Process | Where-Object { $_.ProcessName -like "*quest*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+            Write-Host "Warm-up complete: eQUEST Data dir initialized on disk."
+        } else {
+            Write-Host "WARNING: eQUEST.exe not found for warm-up."
+        }
+    } catch {
+        Write-Host "WARNING: warm-up launch failed: $($_.Exception.Message)"
+    }
+
     Write-Host "=== eQUEST installation complete ==="
 } finally {
     try { Stop-Transcript | Out-Null } catch { }

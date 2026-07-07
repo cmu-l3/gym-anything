@@ -95,6 +95,25 @@ try {
         Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
         Write-Host "Installer cleaned up."
 
+        # Warm-up: launch Power BI Desktop once at build time so first-run state
+        # (telemetry dialogs, splash) is baked into the pre_start checkpoint.
+        # Local only, no network.
+        try {
+            . C:\workspace\scripts\task_utils.ps1
+            $warmExe = $null
+            try { $warmExe = Find-PowerBIExe } catch { }
+            if ($warmExe) {
+                Launch-PowerBIInteractive -PowerBIExe $warmExe -WaitSeconds 30
+                Start-Sleep -Seconds 3
+                Get-Process PBIDesktop -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+                Get-Process msmdsrv -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds 2
+                Write-Host "Warm-up complete: Power BI Desktop first-run baked into checkpoint."
+            } else {
+                Write-Host "WARNING: PBIDesktop.exe not found for warm-up."
+            }
+        } catch { Write-Host "WARNING: Power BI Desktop warm-up failed: $($_.Exception.Message)" }
+
         Write-Host "=== Power BI Desktop installation complete ==="
     }
 } finally {

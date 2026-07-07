@@ -796,13 +796,25 @@ class AVFRunner(BaseRunner):
             elif "right_click" in mouse:
                 x, y = mouse["right_click"]
                 self._ssh_exec(f"DISPLAY=:1 xdotool mousemove {x} {y} click 3", timeout=10)
+            elif "double_click" in mouse:
+                x, y = mouse["double_click"]
+                self._ssh_exec(f"DISPLAY=:1 xdotool mousemove {x} {y} click --repeat 2 --delay 80 1", timeout=10)
             elif "move" in mouse:
                 x, y = mouse["move"]
                 self._ssh_exec(f"DISPLAY=:1 xdotool mousemove {x} {y}", timeout=10)
+            elif "buttons" in mouse:
+                # press/release for drags
+                btns = mouse["buttons"]
+                if btns.get("left_down"):
+                    self._ssh_exec("DISPLAY=:1 xdotool mousedown 1", timeout=10)
+                if btns.get("left_up"):
+                    self._ssh_exec("DISPLAY=:1 xdotool mouseup 1", timeout=10)
             elif "scroll" in mouse:
-                clicks = mouse["scroll"]
-                btn = 4 if clicks > 0 else 5
-                for _ in range(abs(clicks)):
+                amt = mouse["scroll"]
+                btn = 4 if amt > 0 else 5
+                # scroll values are pixel-ish magnitudes; map to a few wheel clicks
+                clicks = max(1, min(10, abs(int(amt)) // 120)) if abs(int(amt)) >= 12 else abs(int(amt))
+                for _ in range(clicks):
                     self._ssh_exec(f"DISPLAY=:1 xdotool click {btn}", timeout=10)
         if "keyboard" in action:
             kb = action["keyboard"]
@@ -810,8 +822,14 @@ class AVFRunner(BaseRunner):
                 text = kb["text"]
                 self._ssh_exec(f"DISPLAY=:1 xdotool type -- {repr(text)}", timeout=10)
             elif "key" in kb:
-                key = kb["key"]
-                self._ssh_exec(f"DISPLAY=:1 xdotool key {key}", timeout=10)
+                self._ssh_exec(f"DISPLAY=:1 xdotool key {kb['key']}", timeout=10)
+            elif "keys" in kb:
+                # Agents emit a list (chord), e.g. ["ctrl","a"] or ["Return"], or a
+                # pre-joined string like "ctrl+s". xdotool wants a "+"-joined combo.
+                keys = kb["keys"]
+                combo = "+".join(str(k) for k in keys) if isinstance(keys, (list, tuple)) else str(keys)
+                if combo.strip():
+                    self._ssh_exec(f"DISPLAY=:1 xdotool key {combo}", timeout=10)
 
     def capture_observation(self) -> Dict[str, Any]:
         return {}

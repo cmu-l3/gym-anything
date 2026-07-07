@@ -1,4 +1,4 @@
-"""Smoke tests for the gym-anything-extras dispatcher."""
+"""Contract tests for the gym-anything-extras dispatcher."""
 
 from __future__ import annotations
 

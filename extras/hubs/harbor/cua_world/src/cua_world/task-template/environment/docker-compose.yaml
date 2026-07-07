@@ -1,0 +1,27 @@
+# Mirrors the OSWorld adapter's runtime shape: KVM passthrough plus a shared
+# cache volume so the guest image is provisioned once per host and reused
+# across trials. Create the volume once:
+#   docker volume create harbor-gym-anything-cache
+services:
+  main:
+    command: []
+    devices:
+      - /dev/kvm
+    environment:
+      GA_HARBOR_PORT: "7317"
+      GA_HARBOR_RUNNER: qemu
+      GYM_ANYTHING_QEMU_CACHE: /gym-anything-cache/qemu
+    volumes:
+      - gym-anything-cache:/gym-anything-cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:7317/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 720
+      start_period: 2400s
+    stop_grace_period: 2m
+
+volumes:
+  gym-anything-cache:
+    external: true
+    name: harbor-gym-anything-cache

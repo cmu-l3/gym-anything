@@ -112,7 +112,7 @@ function Launch-CAMEOInteractive {
     Start-Sleep -Seconds 2
     $ErrorActionPreference = "Stop"
 
-    # Create VBScript launcher (invisible — no cmd.exe window)
+    # Create VBScript launcher (invisible -- no cmd.exe window)
     $launchVbs = "C:\Windows\Temp\launch_cameo_task.vbs"
     $vbsContent = "CreateObject(`"Wscript.Shell`").Run `"`"`"$cameoExe`"`"`", 1, False"
     [System.IO.File]::WriteAllText($launchVbs, $vbsContent)

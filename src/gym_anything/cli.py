@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import os
+import random
 import subprocess
 import sys
 import time
@@ -432,6 +434,40 @@ def _run_benchmark_batch(args) -> int:
     if not pairs:
         print(f"No tasks found for split '{args.split}'.", file=sys.stderr)
         return 1
+
+    min_runs = getattr(args, "min_runs", None)
+
+    def _runs_done(task_id: str) -> bool:
+        # With --min-runs N: a task is "done" once it has N completed runs
+        # (run_*/info.json). Otherwise (plain --skip-existing): done if any run_* exists.
+        base = f"all_runs/{args.exp_name}/{args.model}/{task_id}"
+        if min_runs:
+            return len(glob.glob(f"{base}/run_*/info.json")) >= int(min_runs)
+        return bool(glob.glob(f"{base}/run_*"))
+
+    if getattr(args, "skip_existing", False) or min_runs:
+        if not args.exp_name or not args.model:
+            print("--skip-existing/--min-runs ignored: requires --exp-name and --model to locate output dirs.",
+                  file=sys.stderr)
+        else:
+            # Mirror the reference agents' save path: all_runs/<exp>/<model>/<task>/run_*
+            kept, skipped = [], 0
+            for task_id, env_dir in pairs:
+                if _runs_done(task_id):
+                    skipped += 1
+                else:
+                    kept.append((task_id, env_dir))
+            label = f"--min-runs {min_runs}" if min_runs else "--skip-existing"
+            print(f"{label}: skipping {skipped} satisfied task(s), {len(kept)} remain")
+            pairs = kept
+            if not pairs:
+                print("All tasks already satisfied; nothing to run.")
+                return 0
+            # Randomize order so concurrent workers diverge instead of marching the
+            # list in lockstep (which would re-do the same tasks). Combined with the
+            # per-task recheck below, this lets many parallel workers share the load.
+            random.shuffle(pairs)
+
     max_tasks = getattr(args, "max_tasks", None)
     if max_tasks is not None:
         pairs = pairs[:max_tasks]
@@ -477,6 +513,12 @@ def _run_benchmark_batch(args) -> int:
         return cmd
 
     def run_one(index: int, task_id: str, env_dir: str) -> tuple[int, str, str, int]:
+        # Re-check right before launch: another concurrent worker may have produced
+        # output for this task since the startup filter ran.
+        if ((getattr(args, "skip_existing", False) or min_runs) and args.exp_name and args.model
+                and _runs_done(task_id)):
+            print(f"[{index}/{len(pairs)}] SKIP {Path(env_dir).name} / {task_id} (satisfied)", flush=True)
+            return index, task_id, env_dir, 0
         print(f"\n[{index}/{len(pairs)}] START {Path(env_dir).name} / {task_id}", flush=True)
         result = subprocess.run(build_command(task_id, env_dir), check=False)
         return index, task_id, env_dir, result.returncode
@@ -1156,9 +1198,13 @@ def main(argv=None):
     p_bench.add_argument("--steps", type=int, help="Max steps per task (overrides task.json; falls back to task.json, then 50)")
     p_bench.add_argument("--seed", type=int, default=42)
     p_bench.add_argument("--temperature", type=float, help="Sampling temperature")
-    p_bench.add_argument("--split", default="test", help="Task split for batch mode (default: test)")
+    p_bench.add_argument("--split", default="test", help="Task split for batch mode (default: test). Use 'disk' to run every task folder on disk, ignoring split files.")
     p_bench.add_argument("--parallel", "--jobs", type=int, default=1, help="Batch task processes to run at once")
     p_bench.add_argument("--max-tasks", type=int, help="Limit the number of tasks in batch mode")
+    p_bench.add_argument("--skip-existing", action="store_true",
+                         help="In batch mode, skip tasks that already have output at all_runs/<exp>/<model>/<task>/run_* (requires --exp-name and --model).")
+    p_bench.add_argument("--min-runs", type=int, default=None,
+                         help="In batch mode, run each task until it has N completed trajectories (run_*/info.json), then skip it. Drives multi-trajectory sampling with many parallel workers (requires --exp-name and --model).")
     p_bench.add_argument("--surface", choices=("raw", "verified"), default="raw")
     p_bench.add_argument("--use-cache", action="store_true")
     p_bench.add_argument("--cache-level", default="pre_start")

@@ -29,7 +29,28 @@ echo "🎨 Opening GIMP with the sample image..."
 # Launch GIMP with the image
 su - ga -c "DISPLAY=:1 gimp /home/ga/Desktop/sample_image.jpg > /tmp/gimp_task.log 2>&1 &"
 
-sleep 3
+# Wait for GIMP's window to actually render with the image loaded before the
+# episode starts. A blind `sleep 3` races GIMP's launch (it is heavy and often
+# needs longer); if the first observation lands on a bare desktop, the task
+# premise ("the image is already open in GIMP") is broken and the agent cannot
+# recover. Poll for the main window whose title carries the image filename
+# (this appears only once the image is loaded, i.e. past the splash screen).
+echo "⏳ Waiting for GIMP to open the image..."
+gimp_ready=0
+for _ in $(seq 1 60); do
+    if su - ga -c "DISPLAY=:1 xdotool search --name 'sample_image.*GIMP'" >/dev/null 2>&1; then
+        gimp_ready=1
+        break
+    fi
+    sleep 1
+done
+if [ "$gimp_ready" -eq 1 ]; then
+    echo "✅ GIMP window is up with the image loaded"
+else
+    echo "⚠️ GIMP window not detected after 60s; continuing anyway"
+fi
+# Brief settle so the canvas and menu bar finish drawing.
+sleep 2
 
 echo "=== Add border task setup completed! ==="
 echo "💡 Instructions for agent:"

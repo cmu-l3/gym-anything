@@ -105,6 +105,25 @@ try {
         }
     }
 
+    # Warm-up: if DreamPlan is already installed, launch once to bake first-run state.
+    # If not yet installed (setup_dreamplan.ps1 installs it in post_start), skip.
+    # LOCAL ONLY -- does NOT open Contemporary House (sample download needs network).
+    if ($dreamplanExe) {
+        try {
+            . C:\workspace\scripts\task_utils.ps1
+            Launch-DreamPlanInteractive -WaitSeconds 30
+            Start-Sleep -Seconds 5
+            Dismiss-DreamPlanStartupDialogs
+            Start-Sleep -Seconds 3
+            Stop-DreamPlan
+            Write-Host "Warm-up complete: DreamPlan first-run state baked into pre_start checkpoint."
+        } catch {
+            Write-Host "WARNING: DreamPlan warm-up failed: $($_.Exception.Message)"
+        }
+    } else {
+        Write-Host "DreamPlan not yet installed; skipping warm-up (setup_dreamplan.ps1 installs it in post_start)."
+    }
+
     Write-Host "=== Pre-start complete ==="
 
 } finally {

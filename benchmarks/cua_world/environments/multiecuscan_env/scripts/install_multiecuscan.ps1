@@ -5,7 +5,7 @@ Write-Host "=== Installing Multiecuscan Environment ==="
 
 New-Item -ItemType Directory -Path "C:\Temp" -Force | Out-Null
 
-# ── 1. Enable .NET Framework 3.5 (Multiecuscan uses CLR v2.0) ──────────────
+# -- 1. Enable .NET Framework 3.5 (Multiecuscan uses CLR v2.0) --------------
 Write-Host "[1/5] Enabling .NET Framework 3.5..."
 $needsDotnet = $true
 $ndpKey = "HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5"
@@ -51,7 +51,7 @@ if ($needsDotnet) {
     Remove-Item "C:\Temp\run_dism.bat", "C:\Temp\dism_exit.txt", "C:\Temp\dism_out.txt" -Force -ErrorAction SilentlyContinue
 }
 
-# ── 1b. Force .NET native image generation (ngen) ────────────────────────────
+# -- 1b. Force .NET native image generation (ngen) ----------------------------
 # CRITICAL: DISM triggers ngen asynchronously in the background. Multiecuscan is
 # a .NET CLR v2 app and will crash immediately if native images aren't compiled.
 # We must run ngen executeQueuedItems to force completion BEFORE launching MES.
@@ -79,7 +79,7 @@ try {
     Write-Host "  .NET CLR v2 test skipped (powershell -Version 2 not available)"
 }
 
-# ── 2. Download Multiecuscan installer ──────────────────────────────────────
+# -- 2. Download Multiecuscan installer --------------------------------------
 Write-Host "[2/5] Downloading Multiecuscan installer..."
 $installer = "C:\Temp\SetupMultiecuscan.msi"
 $downloaded = $false
@@ -148,7 +148,7 @@ if (-not $downloaded) {
     Write-Host "To fix: place SetupMultiecuscan.msi in the data/ directory."
 }
 
-# ── 3. Install Multiecuscan (if downloaded) ────────────────────────────────
+# -- 3. Install Multiecuscan (if downloaded) --------------------------------
 if ($downloaded) {
     Write-Host "[3/5] Installing Multiecuscan..."
     try {
@@ -195,7 +195,7 @@ if ($downloaded) {
     Write-Host "[3/5] Skipping installation (no installer available)"
 }
 
-# ── 4. Set up data directory ───────────────────────────────────────────────
+# -- 4. Set up data directory -----------------------------------------------
 Write-Host "[4/5] Setting up data directory..."
 $dataDir = "C:\Users\Docker\Desktop\MultiecuscanData"
 New-Item -ItemType Directory -Path $dataDir -Force | Out-Null
@@ -216,9 +216,24 @@ try {
     Write-Host "  Note: GitHub DTC download skipped (mounted data available)"
 }
 
-# ── 5. Create directory structure ──────────────────────────────────────────
+# -- 5. Create directory structure ------------------------------------------
 Write-Host "[5/5] Creating task directory structure..."
 New-Item -ItemType Directory -Path "C:\Users\Docker\Desktop\MultiecuscanTasks" -Force | Out-Null
+
+# Warm-up: launch Multiecuscan once at build time so first-run state is baked
+# into the pre_start checkpoint. Local only, no network.
+try {
+    . C:\workspace\scripts\task_utils.ps1
+    $warmExe = Find-MultiecuscanExe
+    if ($warmExe) {
+        Launch-MultiecuscanInteractive -MesExe $warmExe -WaitSeconds 25
+        Start-Sleep -Seconds 3
+        Stop-Multiecuscan
+        Write-Host "Warm-up complete: Multiecuscan first-run baked into checkpoint."
+    } else {
+        Write-Host "WARNING: Multiecuscan.exe not found for warm-up."
+    }
+} catch { Write-Host "WARNING: Multiecuscan warm-up failed: $($_.Exception.Message)" }
 
 Write-Host "=== Multiecuscan installation complete ==="
 Write-Host "Data directory: $dataDir"

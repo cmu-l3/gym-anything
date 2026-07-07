@@ -26,6 +26,11 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
+# Timeout (seconds) for the pre_start/post_start provisioning hooks. Configurable so
+# envs with very long installs (e.g. virtualmin's installer) are not cut off when their
+# checkpoint is built. Default 1800s preserves prior behaviour.
+HOOK_TIMEOUT = int(os.environ.get("GYM_ANYTHING_HOOK_TIMEOUT", "1800"))
+
 
 class GymAnythingEnv:
     """Unified environment wrapper exposing Gym-like API.
@@ -84,96 +89,102 @@ class GymAnythingEnv:
     def _select_runner(self, spec: EnvSpec) -> BaseRunner:
         """Select the appropriate runner based on environment and configuration.
 
-        Runner selection:
-        - GYM_ANYTHING_RUNNER=avd : Use AVD runner (auto-selects native on macOS)
-        - GYM_ANYTHING_RUNNER=avd_native : Force AVDNativeRunner
-        - GYM_ANYTHING_RUNNER=qemu : Use QEMU runner (auto-selects native on macOS)
-        - GYM_ANYTHING_RUNNER=qemu_native : Force QemuNativeRunner
-        - GYM_ANYTHING_RUNNER=apptainer : Use ApptainerDirectRunner (GPU-enabled, no QEMU)
-        - GYM_ANYTHING_RUNNER=docker : Use DockerRunner (explicit)
-        - Default: Auto-detect based on spec.runner field, then Docker, fallback to QEMU
+        Precedence, uniform for every runner key:
+        1. GYM_ANYTHING_RUNNER (explicit override) — always wins, even when a
+           preset pins spec.runner (e.g. GYM_ANYTHING_RUNNER=modal on
+           android-avd-34 runs the same env remotely unchanged).
+        2. spec.runner (env.json or preset pin).
+        3. Platform auto-detect.
 
         The SAME env.json files work with all runners!
         """
         runner_override = os.environ.get("GYM_ANYTHING_RUNNER", "").lower()
+        spec_runner = (getattr(spec, "runner", None) or "").lower()
 
-        spec_runner = getattr(spec, 'runner', None)
-        spec_base = getattr(spec, 'base', None)
+        if runner_override:
+            runner = self._runner_for_key(runner_override, spec)
+            if runner is not None:
+                return runner
+            logger.warning(
+                "Unknown runner override '%s'; falling back to spec/auto-detect",
+                runner_override,
+            )
 
-        # --- AVF runner (Apple Virtualization Framework + Rosetta) ---
-        if runner_override == "avf" or spec_runner == "avf":
+        if spec_runner:
+            runner = self._runner_for_key(spec_runner, spec)
+            if runner is not None:
+                return runner
+            logger.warning(
+                "Unknown spec runner '%s'; falling back to auto-detect", spec_runner
+            )
+
+        # --- Auto-detect: pick the best available runner for this platform ---
+        import sys as _sys
+        import platform as _platform
+
+        if _sys.platform == "darwin" and _platform.machine() == "arm64":
+            # Apple Silicon: prefer AVF (Rosetta) > QemuNative (aarch64+HVF) > Docker
+            if self._check_avf_available():
+                from .runtime.runners.avf import AVFRunner
+                logger.info("Using AVFRunner (Apple Silicon, auto-detected)")
+                return AVFRunner(spec)
+            if self._check_qemu_native_available():
+                logger.info("Using QemuNativeRunner (Apple Silicon, auto-detected)")
+                return QemuNativeRunner(spec)
+        elif _sys.platform == "darwin":
+            # Intel Mac: prefer QemuNative (x86+HVF) > Docker
+            if self._check_qemu_native_available():
+                logger.info("Using QemuNativeRunner (Intel Mac, auto-detected)")
+                return QemuNativeRunner(spec)
+        else:
+            # Linux: prefer QemuApptainer > QemuNative > Docker
+            if self._check_apptainer_available():
+                logger.info("Using QemuApptainerRunner (auto-detected)")
+                return QemuApptainerRunner(spec)
+            if self._check_qemu_native_available():
+                logger.info("Using QemuNativeRunner (auto-detected)")
+                return QemuNativeRunner(spec)
+
+        # Fallback: Docker
+        if self._check_docker_available() and (spec.image or spec.dockerfile):
+            logger.info("Using DockerRunner (fallback)")
+            return DockerRunner(spec)
+
+        logger.warning("No suitable runtime found. Run: gym-anything doctor")
+        return LocalRunner(spec)
+
+    def _runner_for_key(self, key: str, spec: EnvSpec) -> Optional[BaseRunner]:
+        """Instantiate the runner an explicit key names, or None if unknown."""
+        if key == "modal":
+            from .runtime.runners.modal_runner import ModalRunner
+            logger.info("Using ModalRunner (guest VM in Modal VM Sandbox)")
+            return ModalRunner(spec)
+        if key == "avf":
             from .runtime.runners.avf import AVFRunner
             logger.info("Using AVFRunner (Apple Virtualization Framework + Rosetta)")
             return AVFRunner(spec)
-
-        # --- AVD runners ---
-        if runner_override == "avd_native" or spec_runner == "avd_native":
+        if key == "avd_native":
             from .runtime.runners.avd_native import AVDNativeRunner
             logger.info("Using AVDNativeRunner (no Apptainer)")
             return AVDNativeRunner(spec)
-
-        if runner_override == "avd" or spec_runner == "avd":
+        if key == "avd":
             return self._make_avd_runner(spec)
-
-        # --- Direct Apptainer runner (GPU-enabled, no QEMU) ---
-        if runner_override == "apptainer" or spec_runner == "apptainer":
+        if key == "apptainer":
             logger.info("Using ApptainerDirectRunner (GPU-enabled)")
             from .runtime.runners.apptainer_direct import ApptainerDirectRunner
             return ApptainerDirectRunner(spec)
-
-        # --- QEMU runners ---
-        if runner_override == "qemu_native":
-            logger.info("Using QemuNativeRunner (GYM_ANYTHING_RUNNER=qemu_native)")
+        if key == "qemu_native":
+            logger.info("Using QemuNativeRunner")
             return QemuNativeRunner(spec)
-
-        if runner_override == "qemu" or spec_runner == "qemu":
+        if key == "qemu":
             return self._make_qemu_runner(spec)
-
-        # --- Explicit simple runners ---
-        if runner_override == "local" or spec_runner == "local":
+        if key == "local":
             logger.info("Using LocalRunner")
             return LocalRunner(spec)
-
-        if runner_override == "docker":
-            pass  # Fall through to docker runner
-        elif runner_override:
-            logger.warning("Unknown runner '%s', using default", runner_override)
-
-        # --- Auto-detect: pick the best available runner for this platform ---
-        if not runner_override:
-            import sys as _sys
-            import platform as _platform
-
-            if _sys.platform == "darwin" and _platform.machine() == "arm64":
-                # Apple Silicon: prefer AVF (Rosetta) > QemuNative (aarch64+HVF) > Docker
-                if self._check_avf_available():
-                    from .runtime.runners.avf import AVFRunner
-                    logger.info("Using AVFRunner (Apple Silicon, auto-detected)")
-                    return AVFRunner(spec)
-                if self._check_qemu_native_available():
-                    logger.info("Using QemuNativeRunner (Apple Silicon, auto-detected)")
-                    return QemuNativeRunner(spec)
-            elif _sys.platform == "darwin":
-                # Intel Mac: prefer QemuNative (x86+HVF) > Docker
-                if self._check_qemu_native_available():
-                    logger.info("Using QemuNativeRunner (Intel Mac, auto-detected)")
-                    return QemuNativeRunner(spec)
-            else:
-                # Linux: prefer QemuApptainer > QemuNative > Docker
-                if self._check_apptainer_available():
-                    logger.info("Using QemuApptainerRunner (auto-detected)")
-                    return QemuApptainerRunner(spec)
-                if self._check_qemu_native_available():
-                    logger.info("Using QemuNativeRunner (auto-detected)")
-                    return QemuNativeRunner(spec)
-
-            # Fallback: Docker
-            if self._check_docker_available() and (spec.image or spec.dockerfile):
-                logger.info("Using DockerRunner (fallback)")
-                return DockerRunner(spec)
-
-            logger.warning("No suitable runtime found. Run: gym-anything doctor")
-            return LocalRunner(spec)
+        if key == "docker":
+            logger.info("Using DockerRunner")
+            return DockerRunner(spec)
+        return None
 
     def _make_qemu_runner(self, spec: EnvSpec) -> BaseRunner:
         """Auto-select between QemuApptainerRunner and QemuNativeRunner."""
@@ -475,7 +486,7 @@ class GymAnythingEnv:
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     else:
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=1800)
+                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     if self._reporter:
                         self._reporter.stage_done("pre_start_hook")
                 except Exception as e:
@@ -516,7 +527,7 @@ class GymAnythingEnv:
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     else:
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=1800)
+                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     if self._reporter:
                         self._reporter.stage_done("post_start_hook")
                 except Exception as e:
@@ -824,6 +835,11 @@ class GymAnythingEnv:
     @property
     def task_root(self) -> Optional[Path]:
         return self._task_root
+
+    @property
+    def runner(self) -> BaseRunner:
+        """The active runner: the runtime exec/transfer surface integrations build on."""
+        return self._runner
 
     @property
     def runner_name(self) -> str:

@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 
 # Post-start setup for Blue Sky Plan environment.
 # Performs warm-up launch to dismiss first-run dialogs, then force-kills BSP.
-# Pattern: same as NinjaTrader, Power BI, Excel — force-kill after warm-up.
+# Pattern: same as NinjaTrader, Power BI, Excel - force-kill after warm-up.
 # The pre_task hook handles crash dialogs on each launch.
 
 $logPath = "C:\Users\Docker\env_setup_post_start.log"
@@ -113,6 +113,15 @@ Start-Sleep -Milliseconds 500
     schtasks /Delete /TN "CleanupDesktop_GA" /F 2>$null
     Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
     $ErrorActionPreference = $prevEAP2
+
+    # Base launch: leave Blue Sky Plan open at t=0 for every episode (robust against
+    # cold-boot hang). Replaces the savevm checkpoint's baked-in running app.
+    # Tasks that need a specific file relaunch it in their own pre_task.
+    try {
+        $bspExeBase = Find-BlueSkyPlanExe
+        Launch-BlueSkyPlanInteractive -BSPExe $bspExeBase -WaitSeconds 30
+        Write-Host "Base Blue Sky Plan launch complete."
+    } catch { Write-Host "WARNING: Base Blue Sky Plan launch failed: $($_.Exception.Message)" }
 
     Write-Host "=== Blue Sky Plan setup complete ==="
 } finally {

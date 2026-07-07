@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -447,6 +448,32 @@ class RuntimeBehaviorTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "does not support checkpoint caching"):
             env.reset(use_cache=True)
+
+
+class RunnerSelectionPrecedenceTests(unittest.TestCase):
+    """GYM_ANYTHING_RUNNER always wins over spec/preset pins, for every key."""
+
+    def test_explicit_override_beats_spec_pin(self) -> None:
+        from gym_anything.runtime.runners.local import LocalRunner
+
+        with mock.patch.dict(os.environ, {"GYM_ANYTHING_RUNNER": "local"}):
+            env = GymAnythingEnv(_make_env_spec("./artifacts", runner="avd"), None)
+        self.assertIsInstance(env._runner, LocalRunner)
+
+    def test_spec_pin_honored_without_override(self) -> None:
+        from gym_anything.runtime.runners.local import LocalRunner
+
+        with mock.patch.dict(os.environ):
+            os.environ.pop("GYM_ANYTHING_RUNNER", None)
+            env = GymAnythingEnv(_make_env_spec("./artifacts", runner="local"), None)
+        self.assertIsInstance(env._runner, LocalRunner)
+
+    def test_unknown_override_falls_back_to_spec_pin(self) -> None:
+        from gym_anything.runtime.runners.local import LocalRunner
+
+        with mock.patch.dict(os.environ, {"GYM_ANYTHING_RUNNER": "not-a-runner"}):
+            env = GymAnythingEnv(_make_env_spec("./artifacts", runner="local"), None)
+        self.assertIsInstance(env._runner, LocalRunner)
 
 
 if __name__ == "__main__":

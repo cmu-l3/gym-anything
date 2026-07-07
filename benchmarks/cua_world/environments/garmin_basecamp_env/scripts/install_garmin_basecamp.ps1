@@ -146,5 +146,16 @@ Write-Host "Pre-created BaseCamp data directory: $bcDataDir"
 Remove-Item "$tmpDir\BaseCamp_475.exe"       -ErrorAction SilentlyContinue
 Remove-Item "$tmpDir\python-3.11.9-amd64.exe" -ErrorAction SilentlyContinue
 
+# Warm-up: launch BaseCamp once at build time so first-run state (license
+# acceptance, initial dialogs) is baked into the pre_start checkpoint. Local,
+# no network, so episode-time (post_start on an offline node) stays clean.
+try {
+    . C:\workspace\scripts\task_utils.ps1
+    Launch-BaseCampInteractive -WaitSeconds 80
+    Start-Sleep -Seconds 3
+    Close-BaseCamp
+    Write-Host "Warm-up complete: BaseCamp first-run baked into checkpoint."
+} catch { Write-Host "WARNING: BaseCamp warm-up failed: $($_.Exception.Message)" }
+
 Write-Host "=== Garmin BaseCamp install complete ==="
 Stop-Transcript | Out-Null

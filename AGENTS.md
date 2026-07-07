@@ -8,7 +8,11 @@ computer-use environments for AI agents. Three pillars, joined by contracts:
 - **Agents** (`agents/`) — reference agent loops (Claude, Gemini, Qwen, Kimi)
 
 Each pillar can be replaced independently. Keep your change inside the pillar
-that owns it.
+that owns it. `extras/` sits alongside the pillars for adjacent tooling;
+`extras/hubs/<provider>/` holds the thin publishable packages that expose
+benchmarks to external training hubs (prime-rl/verifiers), built on the
+protocol adapters in `src/gym_anything/integrations/` — never on private
+core APIs.
 
 ## Before you edit
 
@@ -23,6 +27,8 @@ that owns it.
 
 - `src/gym_anything/contracts.py` — `SessionInfo`, `RunnerRuntimeInfo`.
 - `src/gym_anything/specs.py` — `EnvSpec`, `TaskSpec`, observation/action types.
+- `src/gym_anything/registry.py` — the benchmark layout contract
+  (`environments/` + `splits/`) every benchmark folder follows.
 - `src/gym_anything/__init__.py` — public API (`make`, `GymAnythingEnv`, etc.).
 - Task folder shape: `task.json` + a setup script + `verifier.py`. Verifiers
   return `{"passed": bool, "score": int, "feedback": str}`.
