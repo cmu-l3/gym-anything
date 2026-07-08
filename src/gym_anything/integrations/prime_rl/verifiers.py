@@ -287,6 +287,33 @@ def _finalize_episode(state: "vf.State") -> None:
         state["finalize_error"] = traceback.format_exc()[-2000:]
 
 
+def _surface_verifier_info(state: "vf.State") -> None:
+    """Persist the verifier's full verdict into ``state["info"]``.
+
+    ``state["info"]`` is always serialised into the saved rollout output
+    (``state_to_output``), unlike arbitrary state keys, so this makes the score
+    breakdown and reasoning visible in the eval samples/dashboard instead of
+    being computed and dropped. Logging-only; does not touch the reward.
+    """
+    verifier = state.get("verifier") or {}
+    scores = verifier.get("scores") or {}
+    info = state.get("info")
+    if not isinstance(info, dict):
+        info = {}
+    info["verifier"] = {
+        "score": verifier.get("score"),
+        "passed": verifier.get("passed"),
+        "completion_score": scores.get("score_a"),
+        "integrity_passed": scores.get("score_b"),
+        "integrity_pass_rate": scores.get("integrity_pass_rate"),
+        "completion_details": scores.get("completion_details"),
+        "integrity_details": scores.get("integrity_details"),
+        "feedback": verifier.get("feedback"),
+        "error": verifier.get("error"),
+    }
+    state["info"] = info
+
+
 class GymAnythingAgentEnv(vf.MultiTurnEnv):
     """verifiers MultiTurnEnv that runs a real reference agent's step()."""
 
@@ -474,6 +501,7 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
     async def finalize_reward(self, state: vf.State) -> None:
         """Score with the real verifier while the VM is alive (before close)."""
         await asyncio.to_thread(_finalize_episode, state)
+        _surface_verifier_info(state)
 
     @vf.cleanup(priority=0)
     async def close_env(self, state: vf.State) -> None:
@@ -511,6 +539,17 @@ async def actions_executed(state: vf.State) -> float:
 
 async def parse_errors(state: vf.State) -> float:
     return float(state.get("parse_errors", 0))
+
+
+async def verifier_completion(state: vf.State) -> float:
+    """Checklist completion score (0-100), before the integrity gate is applied."""
+    return float(((state.get("verifier") or {}).get("scores") or {}).get("score_a") or 0.0)
+
+
+async def verifier_integrity(state: vf.State) -> float:
+    """1.0 if every integrity check passed, else 0.0. A 0 here hard-zeros the score
+    even when verifier_completion is high (integrity_threshold is all-or-nothing)."""
+    return 1.0 if ((state.get("verifier") or {}).get("scores") or {}).get("score_b") else 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -558,8 +597,16 @@ def build_agent_env(
 
     dataset = Dataset.from_list(rows)
     rubric = vf.Rubric(
-        funcs=[task_reward, verifier_passed, verifier_score, actions_executed, parse_errors],
-        weights=[1.0, 0.0, 0.0, 0.0, 0.0],
+        funcs=[
+            task_reward,
+            verifier_passed,
+            verifier_score,
+            verifier_completion,
+            verifier_integrity,
+            actions_executed,
+            parse_errors,
+        ],
+        weights=[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     )
     return GymAnythingAgentEnv(
         dataset=dataset,
