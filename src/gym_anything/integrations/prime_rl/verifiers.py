@@ -375,7 +375,18 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
     async def setup_state(self, state: vf.State) -> None:
         info = state.get("info", {})
         task_description = _task_text(state.get("prompt"))
-        env, obs = await asyncio.to_thread(self._boot, dict(info))
+        try:
+            env, obs = await asyncio.to_thread(self._boot, dict(info))
+        except Exception as e:
+            # Record the real cause for scoring/logging first, then hand the
+            # framework a vf.Error: the rollout loop catches only vf.Error and
+            # records the rollout as an aborted has_error sample, so one failed
+            # boot (missing Modal credentials, provisioning failure) does not
+            # crash the whole eval or training batch.
+            state["episode_reward"] = 0.0
+            state["verifier"] = {"error": f"environment boot failed: {e}"}
+            state["boot_error"] = traceback.format_exc()[-2000:]
+            raise vf.SandboxError(f"environment boot failed: {e}") from e
         state["ga_env"] = env
         state["actions_executed"] = 0
         state["parse_errors"] = 0
