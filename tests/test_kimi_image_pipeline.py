@@ -97,7 +97,7 @@ class AgentImagePipelineTests(unittest.TestCase):
 </tool_call>"""
 
         with tempfile.TemporaryDirectory() as tmp, \
-             mock.patch("agents.agents.qwen35vl.call_llm", return_value=response):
+             mock.patch.object(Qwen35VLAgent, "llm_call", staticmethod(lambda *a, **k: response)):
             save_dir = Path(tmp)
             agent = self._make_agent(
                 Qwen35VLAgent,
