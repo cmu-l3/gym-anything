@@ -151,7 +151,7 @@ _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
     "use_computer": RunnerCompatibility(
         runner="use_computer",
         display_name="UseComputerRunner",
-        live_recording=True,
+        live_recording=False,
         screenshot_video_assembly=True,
         checkpoint_caching=False,
         savevm=False,

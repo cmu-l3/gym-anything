@@ -61,6 +61,7 @@ If your question is simply "does this support caching?" or "can I use savevm her
 | Modal | Yes | Yes | No |
 | AVD | Yes | No | No |
 | AVF | No | No | No |
+| use.computer (macOS) | No | No | No |
 | Local | No | No | No |
 
 This reflects our current runner behavior.
@@ -245,3 +246,28 @@ Requirements: `pip install "gym-anything[modal]"` and a configured Modal token
 
 This runner is also the default backend when a benchmark runs as a
 prime-rl / verifiers environment; see [Training Hubs](/docs/extras/hubs).
+
+## use.computer (macOS)
+
+`runner: use_computer` (set by the `macos` preset) runs environments on remote
+macOS sandboxes from [use.computer](https://use.computer): ephemeral M4 Mac
+VMs (4 cores / 8 GB) cloned from a base image, with `lume` as the only login
+(passwordless sudo). This is the macOS counterpart to Modal — macOS guests
+cannot be self-hosted on non-Apple hardware, so a vendor fleet is the hosted
+path.
+
+`UseComputerRunner` talks to the sandbox through the use.computer SDK:
+commands run over gateway-proxied SSH (`exec_ssh`), screenshots come from the
+SDK's screenshot API, and mouse/keyboard actions map to its input API. Spec
+`mounts` are uploaded into the sandbox at start (read-only modes become
+plain copies inside the throwaway VM). Checkpoint caching and `savevm` are
+unsupported (the upstream API has no snapshot endpoint), and audio capture
+is unavailable.
+
+Requirements: `pip install "gym-anything[use_computer]"` and an API key.
+Relevant environment variables:
+
+- `USE_COMPUTER_API_KEY` — API key (`mk_live_*`), minted at use.computer
+- `USE_COMPUTER_BASE_URL` — optional; defaults to the production fleet
+
+Environments targeting this runner live in `benchmarks/cua_world-macos/`.
