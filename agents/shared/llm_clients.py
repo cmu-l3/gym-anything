@@ -495,3 +495,82 @@ def claude_parse_tool_result(action_json, coord_scale=convert_point_format_claud
 def smart_resize(height, width, factor=32, max_pixels=16 * 16 * 4 * 1280):
     del factor, max_pixels
     return height, width
+
+
+# ---------------------------------------------------------------------------
+# GPT-5.x computer use (OpenAI Responses API, native `computer` tool)
+# ---------------------------------------------------------------------------
+
+# OpenAI's computer-use models emit uppercase key names (ENTER, CTRL,
+# ARROWUP, ...); the env layer wants xdotool-style keysyms (Return, ctrl,
+# Up, ...). Single characters and unknown names pass through lowercased on
+# the letter path so chords like CTRL+A become ctrl+a.
+_GPT_CU_KEYMAP = {
+    "ENTER": "Return", "RETURN": "Return", "TAB": "Tab",
+    "ESC": "Escape", "ESCAPE": "Escape", "BACKSPACE": "BackSpace",
+    "DELETE": "Delete", "DEL": "Delete", "SPACE": "space",
+    "CTRL": "ctrl", "CONTROL": "ctrl", "ALT": "alt", "OPTION": "alt",
+    "SHIFT": "shift", "META": "super", "CMD": "super", "COMMAND": "super",
+    "WIN": "super", "SUPER": "super",
+    "ARROWUP": "Up", "ARROWDOWN": "Down", "ARROWLEFT": "Left",
+    "ARROWRIGHT": "Right", "UP": "Up", "DOWN": "Down", "LEFT": "Left",
+    "RIGHT": "Right",
+    "PAGEUP": "Prior", "PAGEDOWN": "Next", "HOME": "Home", "END": "End",
+    "INSERT": "Insert", "CAPSLOCK": "Caps_Lock", "PRINTSCREEN": "Print",
+}
+
+
+def convert_gpt_key(key):
+    """Map an OpenAI computer-use key name to the env's xdotool-style name."""
+    k = str(key).strip()
+    mapped = _GPT_CU_KEYMAP.get(k.upper())
+    if mapped:
+        return mapped
+    if k.upper().startswith("F") and k[1:].isdigit():
+        return k.upper()  # F1..F12
+    if len(k) == 1 and k.isalpha():
+        return k.lower()
+    return k
+
+
+def call_gpt54_computer_use(
+    client,
+    model,
+    tools,
+    input_items,
+    previous_response_id=None,
+    compaction_threshold=None,
+):
+    """Call the OpenAI Responses API with the native computer tool.
+
+    ``compaction_threshold`` enables server-side compaction
+    (context_management type 'compaction'): when the rendered token count
+    crosses the threshold the server folds prior state into a compaction
+    item. Passed through extra_body so the call works on SDK versions that
+    predate the typed parameter.
+    """
+    kwargs = {
+        "model": model,
+        "tools": tools,
+        "input": input_items,
+        # Surface reasoning summaries so the agent can log the model's
+        # thinking alongside each action.
+        "reasoning": {"summary": "auto"},
+    }
+    if previous_response_id is not None:
+        kwargs["previous_response_id"] = previous_response_id
+    if compaction_threshold is not None:
+        kwargs["extra_body"] = {
+            "context_management": [
+                {"type": "compaction", "compact_threshold": int(compaction_threshold)}
+            ]
+        }
+
+    for attempt in range(5):
+        try:
+            return client.responses.create(**kwargs)
+        except Exception as exc:
+            print(f"Error calling GPT computer use (attempt {attempt + 1}/5): {exc}")
+            time.sleep(2 ** (attempt + 1))
+
+    raise RuntimeError("Failed to get response from GPT computer use after 5 attempts")
