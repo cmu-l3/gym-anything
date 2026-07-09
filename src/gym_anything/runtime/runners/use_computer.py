@@ -357,8 +357,9 @@ class UseComputerRunner(BaseRunner):
     # ------------------------------------------------------------------
     def _create_with_image(self, image: str):
         # Reuse the SDK's HTTP client + post-create plumbing instead of duplicating it.
-        import httpx
-        from use_computer.sandbox import MacOSSandbox
+        # MacOSSandbox moved to the package top level in newer SDK releases
+        # (use_computer.sandbox no longer exists as of 0.0.44).
+        from use_computer import MacOSSandbox
 
         http = self._client._http  # internal but stable; the SDK's create() uses it the same way
         resp = http.post("/v1/sandboxes", json={"type": "macos", "image": image}, timeout=180.0)
