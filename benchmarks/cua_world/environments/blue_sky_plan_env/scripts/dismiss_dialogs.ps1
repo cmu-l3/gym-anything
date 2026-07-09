@@ -4,12 +4,12 @@
 # Dialog types and how they're handled:
 # - Hardware warning ("Your hardware doesn't meet..."): Click "Don't show again" + OK
 #   * Checkbox at (398, 355), OK at (835, 355)
-#   * When no dialog, clicks hit hex grid — but Back button click reverts
+#   * When no dialog, clicks hit hex grid - but Back button click reverts
 # - Crash report dialog (after force-kill): Click X button at (957, 71)
-#   * When no crash dialog, (957,71) hits empty toolbar area — harmless
+#   * When no crash dialog, (957,71) hits empty toolbar area - harmless
 # - Login popup ("Please login"): Click X button at (814, 255)
 #   * ONLY clicked when Edge was detected (indicates login flow is active)
-#   * When no popup, hits hex grid area — avoided by gating on Edge detection
+#   * When no popup, hits hex grid area - avoided by gating on Edge detection
 # - Edge browser (opened by login flow): Kill process
 # - Update notification: Escape closes it
 #
@@ -57,7 +57,7 @@ Start-Sleep -Seconds 3
 # --- Phase 2: Close crash report dialog (if present) ---
 # The crash dialog X button is at (957, 71).
 # When no crash dialog is present, (957, 71) hits empty toolbar space (between
-# "Help" and "Credits: 0") — completely harmless.
+# "Help" and "Credits: 0") - completely harmless.
 # Closing the crash dialog triggers BSP to continue loading and open Edge login page.
 Write-Host "Phase 2: Closing crash report dialog..."
 PyAutoGUI-Click -X 957 -Y 71

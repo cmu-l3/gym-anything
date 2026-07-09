@@ -314,8 +314,35 @@ _RUNNER_DEPS: Dict[str, List[str]] = {
     "avd": ["apptainer"],
     "avd_native": ["adb"],
     "apptainer": ["apptainer"],
+    "use_computer": [],  # Python SDK + API key probed below
     "local": [],
+    "modal": [],  # python package + token, checked specially in get_runner_status
 }
+
+
+def _modal_status() -> Dict:
+    """Availability check for ModalRunner: modal package + configured token."""
+    try:
+        import modal  # noqa: F401
+    except ImportError:
+        return {
+            "available": False,
+            "reason": "modal package not installed (pip install modal)",
+            "deps": {},
+        }
+    import os as _os
+    from pathlib import Path as _Path
+
+    has_token = bool(_os.environ.get("MODAL_TOKEN_ID")) or (
+        _Path("~/.modal.toml").expanduser().exists()
+    )
+    if not has_token:
+        return {
+            "available": False,
+            "reason": "modal token not configured (run: modal token set)",
+            "deps": {},
+        }
+    return {"available": True, "reason": None, "deps": {}}
 
 
 def _docker_daemon_alive() -> bool:
@@ -349,6 +376,9 @@ def get_runner_status() -> Dict[str, Dict]:
             continue
         if runner_key == "apptainer" and _IS_MACOS:
             results[runner_key] = {"available": False, "reason": "Linux only", "deps": {}}
+            continue
+        if runner_key == "modal":
+            results[runner_key] = _modal_status()
             continue
 
         dep_status = {}
@@ -405,6 +435,30 @@ def get_runner_status() -> Dict[str, Dict]:
                 "install": _INSTALL_HINTS.get(qemu_bin, {}).get("macos" if _IS_MACOS else "linux", ""),
             }
             if not found:
+                all_ok = False
+
+        # Special: use_computer needs the Python SDK + an API key env var
+        if runner_key == "use_computer":
+            sdk_ok = False
+            try:
+                import use_computer  # noqa: F401
+                sdk_ok = True
+            except ImportError:
+                sdk_ok = False
+            dep_status["use-computer-sdk"] = {
+                "installed": sdk_ok,
+                "path": None,
+                "desc": "use.computer Python SDK",
+                "install": "pip install use-computer",
+            }
+            api_key_set = bool(os.environ.get("USE_COMPUTER_API_KEY") or os.environ.get("MMINI_API_KEY"))
+            dep_status["USE_COMPUTER_API_KEY"] = {
+                "installed": api_key_set,
+                "path": None,
+                "desc": "API key for use.computer (mk_live_*)",
+                "install": "Mint a key at https://use.computer and export USE_COMPUTER_API_KEY",
+            }
+            if not (sdk_ok and api_key_set):
                 all_ok = False
 
         # Special: avf needs base image or ability to build

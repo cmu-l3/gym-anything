@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from agents.agents.qwen3vl import Qwen3VLAgent
-from agents.shared.llm_clients import call_llm, parse_qwen3vl_response
+from agents.shared.llm_clients import parse_qwen3vl_response
 
 
 class Qwen35VLAgent(Qwen3VLAgent):
@@ -216,7 +216,7 @@ class Qwen35VLAgent(Qwen3VLAgent):
         if self.verbose:
             print(f"Calling LLM with temperature: {self.temperature}")
         t0 = time.perf_counter()
-        response = call_llm(
+        response = self.llm_call(
             messages,
             self.model,
             self.temperature,

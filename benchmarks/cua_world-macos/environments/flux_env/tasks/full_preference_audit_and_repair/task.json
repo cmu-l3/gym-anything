@@ -1,0 +1,52 @@
+{
+  "id": "full_preference_audit_and_repair@1",
+  "version": "1.0",
+  "env_id": "flux_env@0.1",
+  "description": "Audit ~/Library/Preferences/org.herf.Flux.plist for configuration drift and repair all deviations. The correct target state is: (1) wakeTime == 480 (8:00 AM standard schedule); (2) SUEnableAutomaticChecks == false (no background update polling); (3) SUSendProfileInfo == false (no telemetry). Read the current plist, identify which of these three values are wrong, and correct them all. The location keys (lat, lng, place) and SUHasLaunchedBefore must be preserved. The task is complete only when all three target values are simultaneously correct in the plist.",
+  "difficulty": "hard",
+  "natural_language": "Audit f.lux plist for drift: fix wakeTime to 480 (8 AM), SUEnableAutomaticChecks to false, SUSendProfileInfo to false. Three values are seeded wrong \u2014 find and fix all of them.",
+  "tags": [
+    "flux",
+    "preferences",
+    "plist",
+    "audit",
+    "multi-param",
+    "repair",
+    "utility"
+  ],
+  "init": {
+    "timeout_sec": 360,
+    "max_steps": 40,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/Users/lume/workspace/tasks/full_preference_audit_and_repair/setup_task.sh",
+    "post_task": "/Users/lume/workspace/tasks/full_preference_audit_and_repair/export_result.sh",
+    "pre_task_timeout": 90
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_full_preference_audit_and_repair"
+    }
+  },
+  "metadata": {
+    "pref_domain": "org.herf.Flux",
+    "drift_count": 3,
+    "target_wakeTime": 480,
+    "baseline_wakeTime": 660,
+    "target_SUEnableAutomaticChecks": false,
+    "baseline_SUEnableAutomaticChecks": true,
+    "target_SUSendProfileInfo": false,
+    "baseline_SUSendProfileInfo": true,
+    "preserved_keys": [
+      "lat",
+      "lng",
+      "place",
+      "SUHasLaunchedBefore"
+    ],
+    "post_task_settle_sec": 2,
+    "baseline_value": 660,
+    "baseline_clock_time": "11:00 AM (drifted)"
+  }
+}

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 
@@ -298,8 +298,8 @@ class EnvSpec:
     diagnostics: bool = False
 
     # OS type and runner (for platform-specific handling)
-    os_type: Optional[str] = None  # "linux", "windows", "android"
-    runner: Optional[str] = None  # "docker", "qemu", "qemu_native", "avd", "avd_native", "local"
+    os_type: Optional[str] = None  # "linux", "windows", "android", "macos"
+    runner: Optional[str] = None  # "docker", "qemu", "qemu_native", "avd", "avd_native", "local", "use_computer"
 
     # Backends (optional hints)
     display_backend: Optional[str] = None
@@ -421,24 +421,27 @@ class EnvSpec:
         )
 
     def merge_overrides(self, overrides: Dict[str, Any]) -> "EnvSpec":
-        # Simple shallow merge for common tweaks
-        d = self.__dict__.copy()
+        # Simple shallow merge for common tweaks. Field values are replaced
+        # in-kind (no round-trip through from_dict, which cannot re-parse
+        # already-constructed nested spec objects).
+        updates: Dict[str, Any] = {}
         for k, v in overrides.items():
             if k in ("resources", "security", "recording") and isinstance(v, dict):
-                nested = d[k].__dict__.copy()
+                nested = getattr(self, k).__dict__.copy()
                 nested.update(v)
-                d[k] = type(d[k])(**nested)
+                updates[k] = type(getattr(self, k))(**nested)
             elif k == "apptainer" and isinstance(v, dict):
-                base_appt = d.get("apptainer")
-                if isinstance(base_appt, ApptainerSpec):
-                    merged = base_appt.__dict__.copy()
+                if isinstance(self.apptainer, ApptainerSpec):
+                    merged = self.apptainer.__dict__.copy()
                     merged.update(v)
-                    d[k] = ApptainerSpec(**merged)
+                    updates[k] = ApptainerSpec(**merged)
                 else:
-                    d[k] = ApptainerSpec(**v)
+                    updates[k] = ApptainerSpec(**v)
+            elif k == "mounts" and isinstance(v, list):
+                updates[k] = [m if isinstance(m, MountSpec) else MountSpec(**m) for m in v]
             else:
-                d[k] = v
-        return EnvSpec.from_dict({**d, "id": self.id, "version": self.version})
+                updates[k] = v
+        return replace(self, **updates)
 
 
 @dataclass

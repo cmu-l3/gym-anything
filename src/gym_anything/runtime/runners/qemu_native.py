@@ -50,6 +50,45 @@ def _find_aarch64_firmware() -> Optional[Path]:
     return None
 
 
+# Append wildcard netplan config so the image works on both QEMU and vfkit.
+# QEMU uses ens3/enp0s*, vfkit uses enp0s* or different names.
+# A renderer: NetworkManager config with a match-all rule handles both.
+NETPLAN_FIXUP = """
+  - |
+    cat > /etc/netplan/99-wildcard-dhcp.yaml << 'NPEOF'
+    network:
+      version: 2
+      renderer: NetworkManager
+      ethernets:
+        all-en:
+          match:
+            name: "en*"
+          dhcp4: true
+          dhcp6: true
+    NPEOF
+  - netplan generate || true
+  # With NetworkManager as renderer, systemd-networkd manages no links, so
+  # systemd-networkd-wait-online blocks every boot for its full 120s timeout
+  # (measured: userspace boot 2min5s stalled vs 2.9s masked). Nothing in these
+  # guests needs network-online gating; mask both wait-online units.
+  - systemctl mask systemd-networkd-wait-online.service NetworkManager-wait-online.service || true
+  # Install x11vnc for AVFRunner VNC support (x0vncserver not available on arm64)
+  - apt-get install -y -qq x11vnc || true
+  # Enable multi-arch amd64 so x86_64 .deb packages can be installed (Rosetta handles execution)
+  - dpkg --add-architecture amd64
+  - sed -i 's|^deb http://ports|deb [arch=arm64] http://ports|g' /etc/apt/sources.list
+  - |
+    cat > /etc/apt/sources.list.d/amd64.list << 'AMDEOF'
+    deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse
+    deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse
+    deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-security main restricted universe multiverse
+    AMDEOF
+  - apt-get update -qq || true
+  # Install x86_64 core runtime + common GUI libs for Rosetta binary translation
+  - apt-get install -y -qq libc6:amd64 libstdc++6:amd64 libx11-6:amd64 libxext6:amd64 libxrender1:amd64 libxtst6:amd64 libxi6:amd64 libxrandr2:amd64 libxcursor1:amd64 libxfixes3:amd64 libxinerama1:amd64 libxcomposite1:amd64 libxdamage1:amd64 libfreetype6:amd64 libfontconfig1:amd64 libgl1:amd64 libglx-mesa0:amd64 libglu1-mesa:amd64 libsm6:amd64 libice6:amd64 || true
+"""
+
+
 class QemuNativeRunner(QemuApptainerRunner):
     """QEMU runner for macOS and bare-metal Linux (no Apptainer).
 
@@ -168,6 +207,10 @@ class QemuNativeRunner(QemuApptainerRunner):
         if self._fast_uinput_keyboard_enabled() and fast_input_host_port:
             port_forwards += f",hostfwd=tcp::{fast_input_host_port}-:{self._fast_input_guest_port}"
 
+        netdev_options = f"user,id=net0,{port_forwards}"
+        if getattr(getattr(getattr(self, "spec", None), "resources", None), "net", None) is False:
+            netdev_options = f"user,id=net0,restrict=on,{port_forwards}"
+
         cmd = [
             "qemu-system-aarch64",
             "-accel", self._accel_type,
@@ -186,7 +229,7 @@ class QemuNativeRunner(QemuApptainerRunner):
             "-monitor", "stdio",
             # Network
             "-device", "virtio-net-pci,netdev=net0",
-            "-netdev", f"user,id=net0,{port_forwards}",
+            "-netdev", netdev_options,
             # USB controller + input devices (aarch64 virt has no PS/2)
             "-device", "qemu-xhci",
             "-device", "usb-kbd",
@@ -263,38 +306,6 @@ class QemuNativeRunner(QemuApptainerRunner):
             get_cloud_init_meta_data,
         )
 
-        # Append wildcard netplan config so the image works on both QEMU and vfkit.
-        # QEMU uses ens3/enp0s*, vfkit uses enp0s* or different names.
-        # A renderer: NetworkManager config with a match-all rule handles both.
-        NETPLAN_FIXUP = """
-  - |
-    cat > /etc/netplan/99-wildcard-dhcp.yaml << 'NPEOF'
-    network:
-      version: 2
-      renderer: NetworkManager
-      ethernets:
-        all-en:
-          match:
-            name: "en*"
-          dhcp4: true
-          dhcp6: true
-    NPEOF
-  - netplan generate || true
-  # Install x11vnc for AVFRunner VNC support (x0vncserver not available on arm64)
-  - apt-get install -y -qq x11vnc || true
-  # Enable multi-arch amd64 so x86_64 .deb packages can be installed (Rosetta handles execution)
-  - dpkg --add-architecture amd64
-  - sed -i 's|^deb http://ports|deb [arch=arm64] http://ports|g' /etc/apt/sources.list
-  - |
-    cat > /etc/apt/sources.list.d/amd64.list << 'AMDEOF'
-    deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse
-    deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse
-    deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-security main restricted universe multiverse
-    AMDEOF
-  - apt-get update -qq || true
-  # Install x86_64 core runtime + common GUI libs for Rosetta binary translation
-  - apt-get install -y -qq libc6:amd64 libstdc++6:amd64 libx11-6:amd64 libxext6:amd64 libxrender1:amd64 libxtst6:amd64 libxi6:amd64 libxrandr2:amd64 libxcursor1:amd64 libxfixes3:amd64 libxinerama1:amd64 libxcomposite1:amd64 libxdamage1:amd64 libfreetype6:amd64 libfontconfig1:amd64 libgl1:amd64 libglx-mesa0:amd64 libglu1-mesa:amd64 libsm6:amd64 libice6:amd64 || true
-"""
         # Insert before the final_message line
         cloud_init = CLOUD_INIT_USER_DATA.replace(
             "\nfinal_message:",
@@ -416,6 +427,16 @@ class QemuNativeRunner(QemuApptainerRunner):
                     proc.wait(timeout=timeout)
                     elapsed = time.time() - start_time
                     print(f"[QemuNative] VM exited after {elapsed:.0f}s (code: {proc.returncode})")
+                    if proc.returncode != 0:
+                        tail = ""
+                        try:
+                            tail = log_file.read_text()[-1000:]
+                        except Exception:
+                            pass
+                        raise RuntimeError(
+                            f"Base image provisioning VM failed (exit {proc.returncode}). "
+                            f"Log tail:\n{tail}"
+                        )
                 except subprocess.TimeoutExpired:
                     proc.terminate()
                     try:

@@ -1,5 +1,5 @@
 ###############################################################################
-# install_topocal.ps1 — pre_start hook
+# install_topocal.ps1 -- pre_start hook
 # Downloads and installs TopoCal topographic CAD software on Windows 11
 # TopoCal 2025 v9.0.961 (InnoSetup installer, installs to Program Files (x86))
 ###############################################################################
@@ -146,7 +146,7 @@ try {
     # -------------------------------------------------------------------------
     # Phase 5b: Install NOP-patched Tpc4_Printer.dll
     # The original DLL has a conditional exit (JZ) at offset 0x6CDE1 that fires
-    # during the Lite activation PictureBox click handler. The NOP patch (6×0x90)
+    # during the Lite activation PictureBox click handler. The NOP patch (6x0x90)
     # replaces the JZ instruction so the code always falls through to the
     # activation path, allowing the Lite license check to proceed.
     # -------------------------------------------------------------------------
@@ -204,7 +204,7 @@ try {
     Write-Host "--- Phase 5d: Writing license HTTP server ---"
 
     $httpServerScript = @'
-# TopoCal license HTTP server — listens on port 80
+# TopoCal license HTTP server -- listens on port 80
 # Intercepts requests via hosts file redirect (127.0.0.1 topocal.com)
 $logFile = "C:\Users\Docker\http_server.log"
 try {
@@ -246,10 +246,10 @@ try {
 
     # -------------------------------------------------------------------------
     # Phase 5e: Register startup scheduled tasks
-    # HTTPServer  — SYSTEM, at startup (binds port 80)
-    # LaunchTC    — Docker, interactive (TopoCal launcher)
+    # HTTPServer  -- SYSTEM, at startup (binds port 80)
+    # LaunchTC    -- Docker, interactive (TopoCal launcher)
     # NOTE: PyAutoGUI server is managed by the gym_anything runner
-    #       (windows_pyautogui_server.py) — do NOT register it here.
+    #       (windows_pyautogui_server.py) -- do NOT register it here.
     # -------------------------------------------------------------------------
     Write-Host "--- Phase 5e: Registering scheduled tasks ---"
 
@@ -267,7 +267,7 @@ try {
         -Settings $httpSettings -Principal $httpPrincipal -Force | Out-Null
     Write-Host "Registered HTTPServer task"
 
-    # TopoCal launcher batch file (placeholder — updated by setup_topocal.ps1)
+    # TopoCal launcher batch file (placeholder -- updated by setup_topocal.ps1)
     $installDirForBatch = "C:\Program Files (x86)\TopoCal 2025"
     $exeForBatch = "TopoCal 2025.exe"
     $batchContent = "@echo off`r`ncd /d `"$installDirForBatch`"`r`nstart `"`" `"$exeForBatch`""
@@ -325,6 +325,35 @@ try {
     Write-Host "--- Phase 8: Cleanup ---"
     Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
     Set-Content -Path "C:\Windows\Temp\topocal_install_complete.marker" -Value "$(Get-Date)"
+
+    # Warm-up: launch TopoCal once at build time to bake first-run activation state into
+    # the pre_start checkpoint. Local only (HTTP server redirects topocal.com to 127.0.0.1).
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        # Start the license HTTP server (registered in Phase 5e above; needed for activation).
+        $ErrorActionPreference = "Continue"
+        schtasks /Run /TN "HTTPServer" 2>$null
+        $ErrorActionPreference = "Stop"
+        # Wait for HTTP server to be ready on port 80.
+        for ($h = 0; $h -lt 15; $h++) {
+            try {
+                $hTcp = New-Object System.Net.Sockets.TcpClient
+                $hTcp.Connect("127.0.0.1", 80)
+                $hTcp.Close()
+                Write-Host "HTTP server ready on port 80."
+                break
+            } catch { Start-Sleep -Seconds 2 }
+        }
+        $warmResult = Start-TopoCalInteractive -WaitSeconds 20 -HandleActivation -MaxAttempts 2
+        Write-Host "Warm-up launch result: $warmResult"
+        Start-Sleep -Seconds 3
+        # Close TopoCal (HTTP server stays running until next reboot -- post_start restarts it).
+        Get-Process | Where-Object { $_.ProcessName -match "TopoCal|Topo3" } |
+            Stop-Process -Force -ErrorAction SilentlyContinue
+        Write-Host "Warm-up complete: TopoCal first-run state baked into pre_start checkpoint."
+    } catch {
+        Write-Host "WARNING: TopoCal warm-up failed: $($_.Exception.Message)"
+    }
 
     Write-Host "=== TopoCal installation complete ==="
 

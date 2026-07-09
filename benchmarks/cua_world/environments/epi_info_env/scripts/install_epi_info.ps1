@@ -56,126 +56,18 @@ try {
         Write-Host ".NET 4 registry key not found - Windows 11 should have it built-in."
     }
 
-    # 3. Download Epi Info 7 ZIP from CDC using curl.exe
-    #    CDC serves Epi Info 7.2.7 (March 2025, ~81MB ZIP)
-    Write-Host "--- Downloading Epi Info 7 from CDC ---"
+    # 3. Download the pre-built Epi Info 7 install from the gym-anything mirror.
+    #    The upstream CDC installer (cdc.gov/.../EI7_Setup.zip) is dead (404). Epi Info is
+    #    US CDC public domain, so we host the extracted install (the EpiInfo7 folder) ourselves.
+    Write-Host "--- Downloading Epi Info 7 from gym-anything mirror ---"
+    $epiTgz = "$tempDir\EpiInfo7.tgz"
+    $size = Download-File -Url "https://storage.googleapis.com/gym-anything-data-public/assets/epi_info/EpiInfo7.tgz" -OutFile $epiTgz -TimeoutSec 600
+    Write-Host "Downloaded: $([math]::Round($size/1MB,1)) MB"
 
-    $epiZip = "$tempDir\Epi_Info_7.zip"
-    $downloaded = $false
-
-    $downloadUrls = @(
-        "https://www.cdc.gov/epiinfo/software/Epi_Info_7.zip",
-        "https://restoredcdc.org/www.cdc.gov/epiinfo/software/Epi_Info_7.zip"
-    )
-
-    foreach ($url in $downloadUrls) {
-        try {
-            Write-Host "Trying: $url"
-            $size = Download-File -Url $url -OutFile $epiZip -TimeoutSec 600
-            if ($size -gt 10MB) {
-                Write-Host "Downloaded: $([math]::Round($size/1MB,1)) MB"
-                $downloaded = $true
-                break
-            } else {
-                Write-Host "File too small, trying next..."
-                Remove-Item $epiZip -Force -ErrorAction SilentlyContinue
-            }
-        } catch {
-            Write-Host "Failed from $url : $($_.Exception.Message)"
-            Remove-Item $epiZip -Force -ErrorAction SilentlyContinue
-        }
-    }
-
-    if (-not $downloaded) {
-        try {
-            Write-Host "Trying EI7_Setup.zip..."
-            $setupZip = "$tempDir\EI7_Setup.zip"
-            $size = Download-File -Url "https://www.cdc.gov/epiinfo/software/EI7_Setup.zip" -OutFile $setupZip -TimeoutSec 600
-            if ($size -gt 5MB) {
-                $epiZip = $setupZip
-                $downloaded = $true
-                Write-Host "Downloaded setup variant: $([math]::Round($size/1MB,1)) MB"
-            }
-        } catch {
-            Write-Host "Setup ZIP also failed: $($_.Exception.Message)"
-        }
-    }
-
-    if (-not $downloaded) {
-        throw "ERROR: Could not download Epi Info 7 from any source."
-    }
-
-    # 4. Extract Epi Info 7
-    Write-Host "--- Extracting Epi Info 7 ---"
-    $extractDir = "$tempDir\epi_info_extracted"
-    New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
-    Expand-Archive -Path $epiZip -DestinationPath $extractDir -Force
+    # 4. Extract to C:\ (the archive's top-level entry is the EpiInfo7 folder)
+    Write-Host "--- Extracting Epi Info 7 to C:\EpiInfo7 ---"
+    & tar.exe -xzf $epiTgz -C C:\ 2>&1 | Out-Null
     Write-Host "Extraction complete."
-
-    Write-Host "Extracted contents (top level):"
-    Get-ChildItem $extractDir | ForEach-Object { Write-Host "  $($_.Name)" }
-
-    # Detect ZIP structure:
-    # Modern: root has "Launch Epi Info 7.exe" + "Epi Info 7\" subdirectory
-    # Legacy: EpiInfo7Launcher.exe or EpiInfo7.exe somewhere in hierarchy
-    $launcherAtRoot = Get-ChildItem $extractDir -Filter "Launch Epi Info 7.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-    $appSubDir = Get-ChildItem $extractDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq "Epi Info 7" } | Select-Object -First 1
-    $legacyLauncher = Get-ChildItem $extractDir -Recurse -Filter "EpiInfo7Launcher.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $legacyLauncher) {
-        $legacyLauncher = Get-ChildItem $extractDir -Recurse -Filter "EpiInfo7.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-    }
-
-    if ($launcherAtRoot -or $appSubDir) {
-        # Modern portable ZIP: "Epi Info 7\" dir + "Launch Epi Info 7.exe" at root
-        Write-Host "Found modern Epi Info 7 portable structure"
-        $existingCount = (Get-ChildItem "C:\EpiInfo7" -ErrorAction SilentlyContinue | Measure-Object).Count
-        if ($existingCount -gt 0) {
-            Remove-Item "C:\EpiInfo7\*" -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        if ($appSubDir) {
-            Copy-Item "$($appSubDir.FullName)\*" "C:\EpiInfo7\" -Recurse -Force
-            Write-Host "Copied app files from: $($appSubDir.FullName)"
-        }
-        if ($launcherAtRoot) {
-            Copy-Item $launcherAtRoot.FullName "C:\EpiInfo7\" -Force
-            Write-Host "Copied launcher: $($launcherAtRoot.Name)"
-        }
-        $launcherDest = "C:\EpiInfo7\Launch Epi Info 7.exe"
-        if (Test-Path $launcherDest) {
-            Set-Content -Path "C:\Users\Docker\epi_info_launcher_path.txt" -Value $launcherDest -Encoding UTF8
-            Write-Host "Launcher path saved: $launcherDest"
-        }
-    } elseif ($legacyLauncher) {
-        # Legacy portable ZIP: EpiInfo7Launcher.exe inside a directory
-        Write-Host "Found legacy launcher: $($legacyLauncher.FullName)"
-        $sourceRoot = $legacyLauncher.DirectoryName
-        Write-Host "Copying to C:\EpiInfo7..."
-        $existingCount = (Get-ChildItem "C:\EpiInfo7" -ErrorAction SilentlyContinue | Measure-Object).Count
-        if ($existingCount -gt 0) {
-            Remove-Item "C:\EpiInfo7\*" -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        Copy-Item "$sourceRoot\*" "C:\EpiInfo7\" -Recurse -Force
-        Write-Host "Files copied to C:\EpiInfo7"
-    } else {
-        # Setup variant: look for setup.exe or MSI
-        $setupExe = Get-ChildItem $extractDir -Recurse -Filter "setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-        $msiFile = Get-ChildItem $extractDir -Recurse -Filter "*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($msiFile) {
-            Write-Host "Running MSI installer: $($msiFile.FullName)"
-            $msiResult = Start-Process "msiexec" -ArgumentList "/i `"$($msiFile.FullName)`" /qn /norestart INSTALLDIR=C:\EpiInfo7" -Wait -PassThru
-            $msiCode = $msiResult.ExitCode
-            Write-Host "MSI exit code: $msiCode"
-            if ($msiCode -ne 0 -and $msiCode -ne 3010) {
-                Write-Host "WARNING: MSI returned $msiCode"
-            }
-        } elseif ($setupExe) {
-            Write-Host "Running setup.exe: $($setupExe.FullName)"
-            $result = Start-Process $setupExe.FullName -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=C:\EpiInfo7" -Wait -PassThru
-            Write-Host "setup.exe exit code: $($result.ExitCode)"
-        } else {
-            Write-Host "WARNING: No installer found in extracted content."
-        }
-    }
 
     # 5. Verify installation and find key files
     Write-Host "--- Verifying Epi Info 7 installation ---"
@@ -237,6 +129,16 @@ try {
     # 6. List Epi Info 7 directory structure
     Write-Host "--- Epi Info 7 directory structure ---"
     Get-ChildItem "C:\EpiInfo7" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.Name)" }
+
+    # Warm-up: launch Epi Info 7 once at build time so first-run state is
+    # baked into the pre_start checkpoint. Local, no network.
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        Launch-EpiInfoInteractive -WaitSeconds 20
+        Start-Sleep -Seconds 3
+        Stop-EpiInfo
+        Write-Host "Warm-up complete: Epi Info 7 first-run baked into checkpoint."
+    } catch { Write-Host "WARNING: Epi Info 7 warm-up failed: $($_.Exception.Message)" }
 
     Write-Host "=== Epi Info 7 Installation Complete ==="
 

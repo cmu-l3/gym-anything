@@ -1,8 +1,8 @@
 """
 Verifier for multicriteria_suitability_mapping task.
 
-Stub verifier — real evaluation is done via vlm_checklist_verifier.
-Basic programmatic checks are included for CI/smoke-test purposes.
+Real evaluation is done via vlm_checklist_verifier. Basic programmatic
+checks are included so the task still reports a result without a VLM.
 """
 
 import json

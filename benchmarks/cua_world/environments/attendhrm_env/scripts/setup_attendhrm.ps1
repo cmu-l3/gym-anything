@@ -103,7 +103,7 @@ try {
         Write-Host "Desktop shortcut created: C:\Users\Docker\Desktop\AttendHRM.lnk"
 
         # -------------------------------------------------------------------
-        # Phase 3: Warm-up launch — handle any first-run dialogs and verify
+        # Phase 3: Warm-up launch -- handle any first-run dialogs and verify
         # the Demo database + admin/admin login works.
         #
         # IMPORTANT: Double-click the desktop shortcut via PyAutoGUI (Session 1)
@@ -117,7 +117,7 @@ try {
 
             # Double-click the desktop shortcut to launch AttendHRM in foreground.
             # The shortcut was created in Phase 2 at C:\Users\Docker\Desktop\AttendHRM.lnk
-            # Desktop icon position: (30, 469) — visible to the left of the terminal window.
+            # Desktop icon position: (30, 469) -- visible to the left of the terminal window.
             Write-Host "Double-clicking AttendHRM desktop icon..."
             try {
                 $sock0 = New-Object System.Net.Sockets.TcpClient
@@ -201,7 +201,7 @@ try {
                     # -------------------------------------------------------
                     # Windows Firewall dialog (appears on first launch):
                     #   "Do you want to allow AttendHRMAPI on all networks?"
-                    #   Allow button: (538, 579) — verified via visual_grounding
+                    #   Allow button: (538, 579) -- verified via visual_grounding
                     # Try clicking Allow; harmless if dialog is not present.
                     # -------------------------------------------------------
                     Write-Host "Handling Windows Firewall dialog (if present)..."
@@ -375,18 +375,18 @@ try {
         }
 
         if (-not $isqlExe) {
-            Write-Host "WARNING: isql.exe not found — skipping database extension"
+            Write-Host "WARNING: isql.exe not found -- skipping database extension"
         } elseif (-not $demoFdb) {
-            Write-Host "WARNING: DEMO.FDB not found — skipping database extension"
+            Write-Host "WARNING: DEMO.FDB not found -- skipping database extension"
         } else {
             Write-Host "isql.exe: $isqlExe"
             Write-Host "DEMO.FDB: $demoFdb"
 
-            # Write the SQL to a temp file (ASCII — Firebird isql needs plain text)
+            # Write the SQL to a temp file (ASCII -- Firebird isql needs plain text)
             $sqlFile = "C:\Windows\Temp\attendhrm_db_extend.sql"
             $sqlLines = @(
                 "/* Add locations needed by add_employee and import_employees tasks */",
-                "/* UPDATE OR INSERT is Firebird UPSERT — safe to run multiple times  */",
+                "/* UPDATE OR INSERT is Firebird UPSERT -- safe to run multiple times  */",
                 "UPDATE OR INSERT INTO WGR_BRA (BRA_ID, BRA_NAME, BRA_CODE, BRA_WGR_ID)",
                 "  VALUES (10, 'COCHIN', 'COCHIN', 1) MATCHING (BRA_ID);",
                 "UPDATE OR INSERT INTO WGR_BRA (BRA_ID, BRA_NAME, BRA_CODE, BRA_WGR_ID)",
@@ -407,13 +407,13 @@ try {
             )
             [System.IO.File]::WriteAllLines($sqlFile, $sqlLines, [System.Text.Encoding]::ASCII)
 
-            # Run isql.exe — connect to DB and execute the SQL file
+            # Run isql.exe -- connect to DB and execute the SQL file
             $isqlArgs = "-user SYSDBA -password masterkey `"$demoFdb`" -i `"$sqlFile`""
             $proc = Start-Process $isqlExe -ArgumentList $isqlArgs -Wait -PassThru -ErrorAction SilentlyContinue
             if ($proc -and $proc.ExitCode -eq 0) {
                 Write-Host "Database extension succeeded (COCHIN/Texas/Chennai + Senior Developer/Office Assistant/Account Executive/Account Manager added)"
             } else {
-                Write-Host "WARNING: isql.exe returned exit code $($proc.ExitCode) — check DB extension manually"
+                Write-Host "WARNING: isql.exe returned exit code $($proc.ExitCode) -- check DB extension manually"
             }
 
             Remove-Item $sqlFile -Force -ErrorAction SilentlyContinue
@@ -429,6 +429,18 @@ try {
     # -------------------------------------------------------------------
     Set-Content -Path "C:\Users\Docker\attendhrm_ready.marker" `
         -Value "Ready at $(Get-Date)" -Encoding UTF8
+
+    # -------------------------------------------------------------------
+    # Base launch: leave AttendHRM open and logged in at t=0 for every
+    # episode. Replaces the savevm checkpoint's baked-in running app.
+    # -------------------------------------------------------------------
+    Write-Host "--- Base launch of AttendHRM (will remain open at t=0) ---"
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        Launch-AttendHRMInteractive -WaitSeconds 30
+        try { Login-AttendHRM } catch { Write-Host "WARNING: base login failed: $($_.Exception.Message)" }
+        Write-Host "Base AttendHRM launch complete."
+    } catch { Write-Host "WARNING: base AttendHRM launch failed: $($_.Exception.Message)" }
 
     Write-Host "=== AttendHRM Environment Setup Complete ==="
 

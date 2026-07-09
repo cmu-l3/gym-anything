@@ -20,7 +20,16 @@ class GeminiQwen3Agent(Qwen3VLAgent):
     Gemini agent using the Qwen-style multimodal prompting loop.
     Maintains a history-based prompting approach with image preprocessing.
     """
-    
+
+    # Local default for the model-call seam (see BaseAgent.llm_call): gemini
+    # via litellm with retries. The ephemeral cache hint is applied here, not
+    # in step(), so the messages passed through the seam stay plain OpenAI
+    # chat format and a driven run (prime-rl) can inject its own callable.
+    @staticmethod
+    def llm_call(messages, model, temperature, top_p, top_k=-1, **kwargs):
+        messages = [dict(messages[0], cache_control={"type": "ephemeral"}), *messages[1:]]
+        return call_gemini_with_retry(messages, model, temperature, top_p, top_k, **kwargs)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -45,8 +54,6 @@ class GeminiQwen3Agent(Qwen3VLAgent):
         # Build messages
         messages = self.build_messages(processed_image_b64)
 
-        messages[0]['cache_control'] = {"type": "ephemeral"}
-
         # Save messages for debugging
         try:
             message_file_path = os.path.join(
@@ -60,10 +67,10 @@ class GeminiQwen3Agent(Qwen3VLAgent):
         self.save_messages(messages)
         # Call LLM
         print(f"Calling LLM with temperature: {self.temperature}")
-        response = call_gemini_with_retry(
-            messages, 
-            self.model, 
-            self.temperature, 
+        response = self.llm_call(
+            messages,
+            self.model,
+            self.temperature,
             self.top_p,
             self.top_k,
             # self.max_tokens

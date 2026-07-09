@@ -1756,7 +1756,7 @@ def _close_enough(text, expected_float, tolerance=0.02):
 
 **Fix**: After inserting test data via SQL, always confirm the records are visible through the application's own query path. At minimum:
 - Run the same `SELECT` query the application UI executes (not a simplified raw-table query)
-- If possible, do a brief UI smoke-check (screenshot of the relevant list/page) in `setup_task.sh` after seeding
+- If possible, do a brief UI check (screenshot of the relevant list/page) in `setup_task.sh` after seeding
 - Set every status/active/deleted column explicitly in the `INSERT` — never rely on DB defaults matching the application's expected defaults
 
 **Applies to**: Any environment where `setup_task.sh` seeds data via direct SQL into a web application's database (TimeTrex, ERPNext, OpenProject, etc.)

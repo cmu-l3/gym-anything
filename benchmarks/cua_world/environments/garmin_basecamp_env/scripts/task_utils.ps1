@@ -45,6 +45,17 @@ function Find-BaseCampExe {
 }
 
 
+function Test-BaseCampRendered {
+    # True once BaseCamp has a real window handle or meaningful working set.
+    $procs = Get-Process BaseCamp -ErrorAction SilentlyContinue
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.MainWindowHandle -ne 0 -or $p.WorkingSet64 -gt 30MB) { return $true }
+    }
+    return $false
+}
+
+
 # --- Kill BaseCamp ---
 function Close-BaseCamp {
     Stop-Process -Name "BaseCamp" -Force -ErrorAction SilentlyContinue
@@ -87,7 +98,7 @@ function Invoke-PyAutoGUI {
 # NOTE: The Task Launcher in BaseCamp IS the main window - closing it closes BaseCamp.
 # The correct way to dismiss it is to click "Plan a Trip" (not ESC/Close button).
 function Launch-BaseCampInteractive {
-    param([int]$WaitSeconds = 80)
+    param([int]$WaitSeconds = 80, [int]$MaxAttempts = 4)
 
     $bcExe = Find-BaseCampExe
     if (-not $bcExe) {
@@ -229,22 +240,36 @@ Start-Sleep -Seconds 3
     $launchScript | Set-Content $psScript -Encoding UTF8
     "@echo off`r`npowershell -ExecutionPolicy Bypass -File `"$psScript`"`r`n" | Set-Content $batchFile -Encoding ASCII
 
-    Write-Host "Scheduling BaseCamp launch via schtasks /IT..."
     $taskName = "LaunchBaseCamp_Task"
-    $runTime  = (Get-Date).AddMinutes(1).ToString("HH:mm")
-    schtasks /Create /SC ONCE /IT /TR "$batchFile" /TN $taskName /ST $runTime /F 2>&1 | Out-Null
-
-    Write-Host "  Waiting $WaitSeconds seconds..."
-    Start-Sleep -Seconds $WaitSeconds
-    schtasks /Delete /TN $taskName /F 2>&1 | Out-Null
-
-    $procs = Get-Process "BaseCamp" -ErrorAction SilentlyContinue
-    if ($procs) {
-        Write-Host "  BaseCamp running (PID $($procs[0].Id))."
-        return $true
-    } else {
-        Write-Host "  WARNING: BaseCamp not detected after launch."
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        # Cold-boot interactive sessions can hang BaseCamp's first launch. Launch, verify
+        # it actually rendered a window, and retry (kill + relaunch) until it does.
+        # Replaces the savevm checkpoint that pre-baked a warmed, rendered BaseCamp.
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            Stop-Process -Name "BaseCamp" -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+            $runTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
+            schtasks /Create /SC ONCE /IT /TR "$batchFile" /TN $taskName /ST $runTime /F 2>&1 | Out-Null
+            schtasks /Run /TN $taskName 2>&1 | Out-Null
+            schtasks /Delete /TN $taskName /F 2>&1 | Out-Null
+            $waited = 0
+            while ($waited -lt $WaitSeconds) {
+                Start-Sleep -Seconds 3
+                $waited += 3
+                if (Test-BaseCampRendered) { break }
+            }
+            if (Test-BaseCampRendered) {
+                Write-Host "BaseCamp rendered on attempt $attempt."
+                return $true
+            }
+            Write-Host "BaseCamp did not render on attempt $attempt; retrying..."
+        }
+        Write-Host "WARNING: BaseCamp failed to render after $MaxAttempts attempts."
         return $false
+    } finally {
+        $ErrorActionPreference = $prevEAP
     }
 }
 

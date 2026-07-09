@@ -1,0 +1,55 @@
+{
+  "id": "macfuse_python_passthrough@1",
+  "env_id": "macfuse_env@0.1",
+  "version": "1.0",
+  "description": "You are a hobbyist macOS developer who wants to understand which files your development tools actually touch when they run. Build a transparent FUSE passthrough filesystem in Python that mirrors a source directory at a separate mount point AND logs every file operation to a logfile with timestamps, so you can tail the log while your tool runs and see exactly which paths it opened, read, or wrote. Concretely: (1) Install the mfusepy library (an actively maintained fusepy fork that works with macFUSE 4.x — `pip install mfusepy` or `pip3 install mfusepy`). It exposes its API under the `fuse` module name (`from fuse import FUSE, Operations, FuseOSError`). (2) Create the source directory at /Users/lume/Documents/source/ and put at least two real files inside it (for example a README.txt and a notes.txt — the content does not matter, just that the files exist with non-trivial content). (3) Create the user-level mount-point directory at /Users/lume/Volumes/watched_source/ (note: the user-level ~/Volumes/, not the system /Volumes/, since macFUSE userspace mounts on this sandbox cannot use the root-owned /Volumes/). (4) Write a Python script at /Users/lume/Documents/passthrough_fuse.py that defines a `PassthroughFS` class subclassing `Operations` from the `fuse` module. The class must implement at least 5 of the standard FUSE operations: access, getattr, readdir, open, read, write, create, release. Each implemented operation must log a line to /Users/lume/Documents/fuse-access.log via Python's logging module (format string `%(asctime)s %(message)s`), including the operation name and the path argument so the developer can read the log and reconstruct what happened. Operations should otherwise be transparent passthroughs that delegate to the corresponding `os` call against the source root (e.g. `os.lstat`, `os.listdir`, `os.open`, `os.pread`, `os.pwrite`). (5) Add an `if __name__ == '__main__'` block that parses sys.argv for a source directory and a mount point (with a usage message if invoked wrong) and instantiates `FUSE(PassthroughFS(source), mountpoint, nothreads=True, foreground=True, allow_other=True, volname='WatchedSource')`. (6) Verify the script compiles cleanly with `python3 -m py_compile /Users/lume/Documents/passthrough_fuse.py`. Note: you do NOT need to actually mount the filesystem — the macFUSE kernel extension cannot be loaded on this sandbox. The deliverable is the working source code, the installed library, the source directory with files, the empty mount point, and a passing syntax check.",
+  "difficulty": "very_hard",
+  "tags": [
+    "macfuse",
+    "fuse",
+    "python",
+    "mfusepy",
+    "passthrough",
+    "filesystem",
+    "developer-tools",
+    "logging",
+    "hobby"
+  ],
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/Users/lume/workspace/tasks/macfuse_python_passthrough/setup_task.sh",
+    "post_task": "/Users/lume/workspace/tasks/macfuse_python_passthrough/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "required_script_path": "/Users/lume/Documents/passthrough_fuse.py",
+    "required_log_path": "/Users/lume/Documents/fuse-access.log",
+    "required_source_dir": "/Users/lume/Documents/source",
+    "required_mount_dir": "/Users/lume/Volumes/watched_source",
+    "required_method_min_count": 5,
+    "candidate_methods": [
+      "access",
+      "getattr",
+      "readdir",
+      "open",
+      "read",
+      "write",
+      "create",
+      "release",
+      "flush"
+    ],
+    "min_script_bytes": 500,
+    "occupation": "Hobbyist macOS Developer / Indie Tooling Hacker",
+    "pass_threshold": 70
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_macfuse_python_passthrough"
+    }
+  }
+}

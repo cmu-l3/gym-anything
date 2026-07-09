@@ -97,12 +97,14 @@ class BaseRunner(abc.ABC):
 
     def get_platform_family(self) -> PlatformFamily:
         os_type = getattr(self.spec, "os_type", None)
-        if os_type in {"linux", "windows", "android"}:
+        if os_type in {"linux", "windows", "android", "macos"}:
             return os_type
         if getattr(self, "is_android", False):
             return "android"
         if getattr(self, "is_windows", False):
             return "windows"
+        if getattr(self, "is_macos", False):
+            return "macos"
         return "linux"
 
     def get_runtime_info(self) -> RunnerRuntimeInfo:
@@ -122,6 +124,7 @@ class BaseRunner(abc.ABC):
             instance_name=getattr(self, "instance_name", None),
             vnc_port=vnc_port,
             vnc_password=vnc_password,
+            vnc_url=getattr(self, "vnc_url", None),
             ssh_port=getattr(self, "ssh_port", None),
             ssh_user=getattr(self, "_ssh_user", None),
             ssh_password=getattr(self, "_ssh_password", None),

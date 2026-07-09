@@ -1,4 +1,4 @@
-"""Smoke tests for the propose_and_amplify driver.
+"""Contract tests for the propose_and_amplify driver.
 
 Verify the parser, path resolution, prefix construction, and stage
 plumbing without invoking real LLM APIs or agent CLIs.

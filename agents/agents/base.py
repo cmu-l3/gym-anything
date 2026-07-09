@@ -1,7 +1,15 @@
 from typing import Tuple, Dict, Any, List
 
+from agents.shared.llm_clients import call_llm
+
+
 class BaseAgent:
 
+    # Model-call seam. step() must route its LLM call through self.llm_call
+    # (never call the client directly) so an external loop that owns sampling
+    # (e.g. prime-rl) can inject its own callable and drive the agent's real
+    # step() verbatim. Defaults to the local OpenAI-compatible client.
+    llm_call = staticmethod(call_llm)
 
     def __init__(self, *args, **kwargs):
         """

@@ -1,5 +1,5 @@
 ###############################################################################
-# task_utils.ps1 — Shared utility functions for TopoCal tasks
+# task_utils.ps1 -- Shared utility functions for TopoCal tasks
 ###############################################################################
 
 Set-StrictMode -Version Latest
@@ -44,6 +44,17 @@ function Get-TopoCalExePath {
     $exe = Get-TopoCalExeName
     if ($dir) { return Join-Path $dir $exe }
     return $null
+}
+
+function Test-TopoCalRendered {
+    # Returns $true once TopoCal has a real window or significant working-set.
+    # A hung cold-boot launch stays at <10 MB; a rendered TopoCal exceeds 20 MB.
+    $procs = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match "TopoCal|Topo3" }
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.WorkingSet64 -gt 20MB -or $p.MainWindowHandle -ne 0) { return $true }
+    }
+    return $false
 }
 
 # --- PyAutoGUI Communication ---
@@ -104,7 +115,7 @@ function Ensure-HTTPServer {
         Write-Host "License HTTP server confirmed on port 80"
         return
     } catch {}
-    # Not running — start it
+    # Not running -- start it
     Write-Host "Starting HTTPServer scheduled task..."
     $ErrorActionPreference = "Continue"
     Start-ScheduledTask -TaskName "HTTPServer" -ErrorAction SilentlyContinue
@@ -176,7 +187,7 @@ function Handle-TopoCalActivation {
     Start-Sleep -Seconds 8
 
     # Step 4: Use win32 API to hide activation dialog and show main CAD window
-    # NOTE: Do NOT press Escape or close the dialog normally — that triggers exit.
+    # NOTE: Do NOT press Escape or close the dialog normally -- that triggers exit.
     Write-Host "Switching to main CAD window..."
     $showScript = @'
 import ctypes
@@ -223,7 +234,8 @@ function Start-TopoCalInteractive {
     param(
         [string]$FilePath = "",
         [int]$WaitSeconds = 15,
-        [switch]$HandleActivation = $true
+        [switch]$HandleActivation = $true,
+        [int]$MaxAttempts = 4
     )
 
     $exePath = Get-TopoCalExePath
@@ -232,64 +244,76 @@ function Start-TopoCalInteractive {
         return $false
     }
 
-    # Kill any existing TopoCal processes
-    Get-Process | Where-Object { $_.ProcessName -match "TopoCal|Topo3" } |
-        Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 2
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        Write-Host "Start-TopoCalInteractive attempt $attempt of $MaxAttempts..."
 
-    # If a specific file should be opened, update the launch batch file
-    if ($FilePath -and (Test-Path $FilePath)) {
-        $dir = Get-TopoCalInstallDir
-        $exe = Get-TopoCalExeName
-        $batchContent = "@echo off`r`ncd /d `"$dir`"`r`nstart `"`" `"$exe`" `"$FilePath`""
-        Set-Content -Path "C:\Users\Docker\launch_topocal.bat" -Value $batchContent -Encoding ASCII
-    } else {
-        $dir = Get-TopoCalInstallDir
-        $exe = Get-TopoCalExeName
-        $batchContent = "@echo off`r`ncd /d `"$dir`"`r`nstart `"`" `"$exe`""
-        Set-Content -Path "C:\Users\Docker\launch_topocal.bat" -Value $batchContent -Encoding ASCII
-    }
-
-    $ErrorActionPreference = "Continue"
-    Start-ScheduledTask -TaskName "LaunchTC" -ErrorAction SilentlyContinue
-    $ErrorActionPreference = "Stop"
-
-    Write-Host "Waiting for TopoCal to launch ($WaitSeconds seconds)..."
-    Start-Sleep -Seconds $WaitSeconds
-
-    # Check if TopoCal process appeared
-    $tcFound = $false
-    for ($w = 0; $w -lt 15; $w++) {
-        if (Get-Process | Where-Object { $_.ProcessName -match "TopoCal|Topo3" }) {
-            $tcFound = $true
-            break
-        }
+        # Kill any existing TopoCal processes at the top of each attempt
+        Get-Process | Where-Object { $_.ProcessName -match "TopoCal|Topo3" } |
+            Stop-Process -Force -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 2
-    }
 
-    if (-not $tcFound) {
-        Write-Host "WARNING: TopoCal process not detected"
-        return $false
-    }
-
-    # Handle activation dialog (always present on launch)
-    if ($HandleActivation) {
-        Handle-TopoCalActivation
-    }
-
-    # Check if main window is now visible
-    $windowFound = $false
-    for ($w = 0; $w -lt 15; $w++) {
-        $procs = Get-Process | Where-Object { $_.ProcessName -match "TopoCal|Topo3" -and $_.MainWindowTitle -ne "" }
-        if ($procs) {
-            Write-Host "TopoCal window detected: $($procs[0].MainWindowTitle)"
-            $windowFound = $true
-            break
+        # If a specific file should be opened, update the launch batch file
+        if ($FilePath -and (Test-Path $FilePath)) {
+            $dir = Get-TopoCalInstallDir
+            $exe = Get-TopoCalExeName
+            $batchContent = "@echo off`r`ncd /d `"$dir`"`r`nstart `"`" `"$exe`" `"$FilePath`""
+            Set-Content -Path "C:\Users\Docker\launch_topocal.bat" -Value $batchContent -Encoding ASCII
+        } else {
+            $dir = Get-TopoCalInstallDir
+            $exe = Get-TopoCalExeName
+            $batchContent = "@echo off`r`ncd /d `"$dir`"`r`nstart `"`" `"$exe`""
+            Set-Content -Path "C:\Users\Docker\launch_topocal.bat" -Value $batchContent -Encoding ASCII
         }
-        Start-Sleep -Seconds 2
+
+        $ErrorActionPreference = "Continue"
+        Start-ScheduledTask -TaskName "LaunchTC" -ErrorAction SilentlyContinue
+        $ErrorActionPreference = "Stop"
+
+        Write-Host "Waiting for TopoCal to launch ($WaitSeconds seconds)..."
+        Start-Sleep -Seconds $WaitSeconds
+
+        # Check if TopoCal process appeared
+        $tcFound = $false
+        for ($w = 0; $w -lt 15; $w++) {
+            if (Get-Process | Where-Object { $_.ProcessName -match "TopoCal|Topo3" }) {
+                $tcFound = $true
+                break
+            }
+            Start-Sleep -Seconds 2
+        }
+
+        if (-not $tcFound) {
+            Write-Host "WARNING: TopoCal process not detected on attempt $attempt; retrying..."
+            continue
+        }
+
+        # Handle activation dialog (always present on launch)
+        if ($HandleActivation) {
+            Handle-TopoCalActivation
+        }
+
+        # Check if main window is now visible
+        $windowFound = $false
+        for ($w = 0; $w -lt 15; $w++) {
+            $procs = Get-Process | Where-Object { $_.ProcessName -match "TopoCal|Topo3" -and $_.MainWindowTitle -ne "" }
+            if ($procs) {
+                Write-Host "TopoCal window detected: $($procs[0].MainWindowTitle)"
+                $windowFound = $true
+                break
+            }
+            Start-Sleep -Seconds 2
+        }
+
+        if (Test-TopoCalRendered) {
+            Write-Host "TopoCal rendered on attempt $attempt."
+            return $true
+        }
+
+        Write-Host "TopoCal did not render on attempt $attempt; retrying..."
     }
 
-    return $windowFound
+    Write-Host "WARNING: TopoCal failed to render after $MaxAttempts attempts."
+    return $false
 }
 
 # --- Close Browsers and Suppress Edge ---

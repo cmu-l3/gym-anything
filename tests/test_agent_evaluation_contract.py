@@ -119,7 +119,14 @@ class AgentEvaluationContractTests(unittest.TestCase):
             self.assertEqual(len(policy.step_calls), 2)
             self.assertEqual(
                 policy.step_calls[1][1],
-                [{"action": "screenshot", "output": "synthetic.png", "tool_id": "tool-1"}],
+                [{
+                    "action": "screenshot",
+                    "output": "synthetic.png",
+                    "tool_id": "tool-1",
+                    # Per-action observation captured after this tool_use's env.step
+                    # (consumed by agents that want per-action visual feedback).
+                    "obs": {"screen": {"path": "synthetic.png"}},
+                }],
             )
             self.assertEqual(policy.finish_info["verifier"]["score"], 100)
 

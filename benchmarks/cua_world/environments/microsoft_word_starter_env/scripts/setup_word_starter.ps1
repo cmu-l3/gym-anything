@@ -103,6 +103,94 @@ try {
     }
     Set-ItemProperty -Path $updatePath -Name "UpdatesEnabled" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
 
+    # Warm up Word
+    Write-Host "Warming up Word 2010 (first-run cycle)..."
+
+    $utils = "C:\workspace\scripts\task_utils.ps1"
+    if (Test-Path $utils) {
+        . $utils
+    } else {
+        Write-Host "WARNING: task_utils.ps1 not found. Skipping warm-up."
+        return
+    }
+
+    $wordExe = $null
+    try {
+        $wordExe = Find-WordExe
+        Write-Host "Word executable: $wordExe"
+    } catch {
+        Write-Host "WARNING: Could not find Word executable. Skipping warm-up."
+        Write-Host "Error: $($_.Exception.Message)"
+    }
+
+    if ($wordExe) {
+        $warmupScript = "C:\Windows\Temp\warmup_word.cmd"
+        $warmupContent = "@echo off`r`nstart `"`" `"$wordExe`""
+        [System.IO.File]::WriteAllText($warmupScript, $warmupContent)
+
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        $warmupStartTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
+        schtasks /Create /TN "WarmupWord" /TR "cmd /c $warmupScript" /SC ONCE /ST $warmupStartTime /RL HIGHEST /IT /F 2>$null
+        schtasks /Run /TN "WarmupWord" 2>$null
+        Start-Sleep -Seconds 15
+
+        try {
+            Dismiss-WordDialogsBestEffort -Retries 2 -InitialWaitSeconds 2 -BetweenRetriesSeconds 1
+            Write-Host "First-run dialog dismissal attempted."
+        } catch {
+            Write-Host "WARNING: Dialog dismissal failed: $($_.Exception.Message)"
+        }
+
+        Get-Process WINWORD -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 3
+        schtasks /Delete /TN "WarmupWord" /F 2>$null
+        Remove-Item $warmupScript -Force -ErrorAction SilentlyContinue
+        $ErrorActionPreference = $prevEAP
+        Write-Host "Word warm-up complete."
+    }
+
+    # Clean up desktop in Session 1 (minimize terminals, close Start menu)
+    $cleanupScript = "C:\Windows\Temp\cleanup_desktop.ps1"
+    @'
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+[System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+Start-Sleep -Milliseconds 500
+(New-Object -ComObject Shell.Application).MinimizeAll()
+'@ | Set-Content $cleanupScript -Encoding UTF8
+    $prevEAP2 = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    schtasks /Create /TN "CleanupDesktop_GA" /TR "powershell -ExecutionPolicy Bypass -File $cleanupScript" /SC ONCE /ST 00:00 /RL HIGHEST /IT /F 2>$null
+    schtasks /Run /TN "CleanupDesktop_GA" 2>$null
+    Start-Sleep -Seconds 5
+    schtasks /Delete /TN "CleanupDesktop_GA" /F 2>$null
+    Remove-Item $cleanupScript -Force -ErrorAction SilentlyContinue
+    $ErrorActionPreference = $prevEAP2
+
+    Write-Host "Available data files in ${TasksDir}:"
+    Get-ChildItem $TasksDir -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  - $($_.Name)" }
+
+    # Base launch: leave Word open and rendered at t=0 for EVERY episode (robust
+    # against cold-boot hang). Replaces the savevm checkpoint's baked-in running app;
+    # tasks that open a specific document relaunch it in their own pre_task.
+    try {
+        $baseExe = Find-WordExe
+        Launch-WordDocumentInteractive -WordExe $baseExe -WaitSeconds 25
+        try { Dismiss-WordDialogsBestEffort } catch { }
+        Write-Host "Base Word launch complete."
+    } catch { Write-Host "WARNING: base Word launch failed: $($_.Exception.Message)" }
+
+    Write-Host "=== Word 2010 environment setup complete ==="
+} catch {
+    Write-Host "ERROR: $($_.Exception.Message)"
+    Write-Host $_.ScriptStackTrace
+    exit 1
+} finally {
+    try { Stop-Transcript | Out-Null } catch { }
+}
+
 
 <system-reminder>
 Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.

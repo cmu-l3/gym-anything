@@ -144,7 +144,7 @@ for ($i = 0; $i -lt 30; $i++) {
 if ($pyagReady) {
     Write-Host "PyAutoGUI server is ready"
 
-    # Launch CAMEO in interactive session (VBScript launcher — no cmd.exe window)
+    # Launch CAMEO in interactive session (VBScript launcher -- no cmd.exe window)
     $launchVbs = "C:\Windows\Temp\launch_cameo_warmup.vbs"
     $vbsContent = "CreateObject(`"Wscript.Shell`").Run `"`"`"$cameoExe`"`"`", 1, False"
     [System.IO.File]::WriteAllText($launchVbs, $vbsContent)
@@ -221,42 +221,26 @@ if ($pyagReady) {
 }
 
 # ============================================================
-# Phase 3b: Relaunch CAMEO Data Manager (leave it open for user)
+# Phase 3b: Base launch -- leave CAMEO open at t=0 with Tier II data loaded.
+# Replaces the savevm checkpoint's baked-in running app.
 # ============================================================
-Write-Host "`n--- Phase 3b: Relaunching CAMEO Data Manager ---"
-if ($pyagReady -and $cameoExe) {
-    Start-Sleep -Seconds 3
-
-    $launchVbs2 = "C:\Windows\Temp\launch_cameo_final.vbs"
-    $vbsContent2 = "CreateObject(`"Wscript.Shell`").Run `"`"`"$cameoExe`"`"`", 1, False"
-    [System.IO.File]::WriteAllText($launchVbs2, $vbsContent2)
-
-    $taskName2 = "LaunchCAMEO_Final"
-    $ErrorActionPreference = "Continue"
-    schtasks /Delete /TN $taskName2 /F 2>$null
-    $startTime2 = (Get-Date).AddMinutes(1).ToString("HH:mm")
-    schtasks /Create /TN $taskName2 /TR "wscript.exe $launchVbs2" /SC ONCE /ST $startTime2 /RL HIGHEST /IT /F 2>$null
-    schtasks /Run /TN $taskName2 2>$null
-    $ErrorActionPreference = "Stop"
-
-    Write-Host "Waiting for CAMEO to start..."
-    Start-Sleep -Seconds 15
-
-    # Dismiss any dialogs that appear on relaunch
-    if ($pyagReady) {
-        for ($d2 = 0; $d2 -lt 3; $d2++) {
-            Send-PyAGCommand '{"action":"press","keys":"escape"}' | Out-Null
-            Start-Sleep -Seconds 1
-            Send-PyAGCommand '{"action":"press","keys":"enter"}' | Out-Null
-            Start-Sleep -Seconds 1
-        }
+Write-Host "`n--- Phase 3b: Base launch (CAMEO open at t=0) ---"
+try {
+    . C:\workspace\scripts\task_utils.ps1
+    Launch-CAMEOInteractive -WaitSeconds 25
+    # Dismiss any post-launch dialogs (best-effort).
+    try { Dismiss-CAMEODialogs -Retries 3 } catch { }
+    Start-Sleep -Seconds 5
+    # Load Tier II data project via GUI automation (requires PyAutoGUI).
+    try {
+        Import-TierIIData
+        Write-Host "Tier II data import complete."
+    } catch {
+        Write-Host "WARNING: Tier II data import failed (CAMEO left open without project): $($_.Exception.Message)"
     }
-
-    # Clean up scheduled task (but leave CAMEO running)
-    $ErrorActionPreference = "Continue"
-    schtasks /Delete /TN $taskName2 /F 2>$null
-    $ErrorActionPreference = "Stop"
-    Write-Host "CAMEO Data Manager relaunched and ready"
+    Write-Host "CAMEO Data Manager base launch complete."
+} catch {
+    Write-Host "WARNING: Base CAMEO launch failed: $($_.Exception.Message)"
 }
 
 # ============================================================

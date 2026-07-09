@@ -10,7 +10,7 @@ from .base import BaseRunner
 
 
 class LocalRunner(BaseRunner):
-    """A minimal local runner for smoke tests.
+    """A minimal local runner with synthetic observations.
 
     Produces blank observations and no-ops on actions. Useful for validating the
     orchestration and API without external dependencies.
