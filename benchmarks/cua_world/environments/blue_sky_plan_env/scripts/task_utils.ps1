@@ -56,7 +56,7 @@ function Setup-MesaOpenGL {
     .SYNOPSIS
         Copies Mesa software OpenGL renderer (opengl32sw.dll -> opengl32.dll) into BSP directories.
         Required because QEMU's virtio-vga only provides OpenGL ~3.x, but BSP needs 4.3+.
-        The installer only ships opengl32sw.dll in Launcher/ — must also copy to BlueSkyPlan4/.
+        The installer only ships opengl32sw.dll in Launcher/ - must also copy to BlueSkyPlan4/.
     #>
     # Source: the installer puts opengl32sw.dll in the Launcher directory
     $sourceDll = "C:\Program Files\BlueSkyPlan\Launcher\opengl32sw.dll"
@@ -86,6 +86,19 @@ function Setup-MesaOpenGL {
     [System.Environment]::SetEnvironmentVariable("MESA_GL_VERSION_OVERRIDE", "4.5", "Machine")
 }
 
+function Test-BlueSkyPlanRendered {
+    # True once Blue Sky Plan has a real window handle or meaningful working set.
+    # A hung cold-boot launch has no window; a rendered BSP has a main window handle.
+    $procs = Get-Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.ProcessName -like "*BlueSky*" -or $_.ProcessName -like "*Launcher*"
+    }
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.MainWindowHandle -ne 0 -or $p.WorkingSet64 -gt 50MB) { return $true }
+    }
+    return $false
+}
+
 function Launch-BlueSkyPlanInteractive {
     <#
     .SYNOPSIS
@@ -94,41 +107,61 @@ function Launch-BlueSkyPlanInteractive {
         Full path to BlueSkyPlan executable.
     .PARAMETER WaitSeconds
         Seconds to wait for Blue Sky Plan to fully load (default 25).
+    .PARAMETER MaxAttempts
+        Number of retry attempts if BSP fails to render (default 4).
     #>
     param(
         [Parameter(Mandatory=$true)]
         [string]$BSPExe,
-        [int]$WaitSeconds = 25
+        [int]$WaitSeconds = 25,
+        [int]$MaxAttempts = 4
     )
 
     if (-not (Test-Path $BSPExe)) {
         throw "Blue Sky Plan executable not found at: $BSPExe"
     }
 
-    # Create a launcher batch file so schtasks doesn't have to deal with quoting
-    # Must set QT_OPENGL and MESA env vars for software rendering in QEMU
+    # Create a launcher batch file so schtasks doesn't have to deal with quoting.
+    # Must set QT_OPENGL and MESA env vars for software rendering in QEMU.
     $launchScript = "C:\Windows\Temp\launch_bsp.cmd"
     $batchContent = "@echo off`r`nset QT_OPENGL=software`r`nset MESA_GL_VERSION_OVERRIDE=4.5`r`nstart `"`" `"$BSPExe`""
     [System.IO.File]::WriteAllText($launchScript, $batchContent)
 
     $taskName = "LaunchBSP_GA"
-    $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
-
     # schtasks writes informational output to stderr which triggers
     # terminating errors under $ErrorActionPreference = "Stop".
     $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
-        $ErrorActionPreference = "Continue"
-        schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
-        schtasks /Run /TN $taskName 2>$null
-        Start-Sleep -Seconds $WaitSeconds
+        # Cold-boot interactive sessions can hang BSP's first launch. Launch, verify
+        # it actually rendered a window, and retry (kill + relaunch) until it does.
+        # Replaces the savevm checkpoint that pre-baked a warmed, rendered BSP.
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            Get-Process -ErrorAction SilentlyContinue | Where-Object {
+                $_.ProcessName -like "*BlueSky*" -or $_.ProcessName -like "*Launcher*" -or $_.ProcessName -like "*nats-server*"
+            } | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+            $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
+            schtasks /Create /TN $taskName /TR "cmd /c $launchScript" /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
+            schtasks /Run /TN $taskName 2>$null
+            schtasks /Delete /TN $taskName /F 2>$null
+            $waited = 0
+            while ($waited -lt $WaitSeconds) {
+                Start-Sleep -Seconds 3
+                $waited += 3
+                if (Test-BlueSkyPlanRendered) { break }
+            }
+            if (Test-BlueSkyPlanRendered) {
+                Write-Host "Blue Sky Plan rendered on attempt $attempt."
+                return
+            }
+            Write-Host "Blue Sky Plan did not render on attempt $attempt; retrying..."
+        }
+        Write-Host "WARNING: Blue Sky Plan failed to render after $MaxAttempts attempts."
     } finally {
-        schtasks /Delete /TN $taskName /F 2>$null
         Remove-Item $launchScript -Force -ErrorAction SilentlyContinue
         $ErrorActionPreference = $prevEAP
     }
-
-    Write-Host "Blue Sky Plan launched (waited ${WaitSeconds}s)."
 }
 
 function Launch-BlueSkyPlanWithFile {

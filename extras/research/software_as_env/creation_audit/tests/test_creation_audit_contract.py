@@ -1,4 +1,4 @@
-"""Smoke tests for the creation_audit method.
+"""Contract tests for the creation_audit method.
 
 These tests verify the wiring (parser, path resolution, prompt assembly)
 without invoking the actual agent CLI.

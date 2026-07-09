@@ -34,15 +34,29 @@ function Find-Editor {
     return "notepad.exe"
 }
 
+function Test-TalonRunning {
+    # True once Talon is running with a non-trivial working set.
+    # Talon is a system-tray app with no main window, so we check process
+    # existence and working set rather than MainWindowHandle.
+    $procs = Get-Process talon -ErrorAction SilentlyContinue
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.WorkingSet64 -gt 10MB -or $p.MainWindowHandle -ne 0) { return $true }
+    }
+    return $false
+}
+
 function Launch-TalonInteractive {
     <#
     .SYNOPSIS
-    Launches Talon in the interactive desktop session via schtasks.
+    Launches Talon in the interactive desktop session via schtasks /IT (Session 1).
+    Retries until Talon is confirmed running, to survive cold-boot launch hangs.
     Talon is a system-tray app so it won't have a visible main window.
     #>
     param(
         [string] $TalonExe = "",
-        [int] $WaitSeconds = 15
+        [int] $WaitSeconds = 25,
+        [int] $MaxAttempts = 4
     )
 
     if (-not $TalonExe) {
@@ -58,17 +72,33 @@ function Launch-TalonInteractive {
     [System.IO.File]::WriteAllText($launchScript, $batchContent)
 
     $taskName = "LaunchTalon_GA"
-    $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
-
     $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
-        $ErrorActionPreference = "Continue"
-        schtasks /Create /TN $taskName /TR "cmd /c $launchScript" `
-            /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
-        schtasks /Run /TN $taskName 2>$null
-        Start-Sleep -Seconds $WaitSeconds
+        # Cold-boot interactive sessions can hang the first launch. Launch, verify
+        # Talon is actually running (working set climbs past the hung baseline),
+        # and retry (kill + relaunch) until it does.
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            Kill-AllTalon
+            $startTime = (Get-Date).AddMinutes(1).ToString("HH:mm")
+            schtasks /Create /TN $taskName /TR "cmd /c $launchScript" `
+                /SC ONCE /ST $startTime /RL HIGHEST /IT /F 2>$null
+            schtasks /Run /TN $taskName 2>$null
+            schtasks /Delete /TN $taskName /F 2>$null
+            $waited = 0
+            while ($waited -lt $WaitSeconds) {
+                Start-Sleep -Seconds 3
+                $waited += 3
+                if (Test-TalonRunning) { break }
+            }
+            if (Test-TalonRunning) {
+                Write-Host "Talon running on attempt $attempt."
+                return
+            }
+            Write-Host "Talon did not start on attempt $attempt (cold-boot hang); retrying..."
+        }
+        Write-Host "WARNING: Talon failed to start after $MaxAttempts attempts."
     } finally {
-        schtasks /Delete /TN $taskName /F 2>$null
         Remove-Item $launchScript -Force -ErrorAction SilentlyContinue
         $ErrorActionPreference = $prevEAP
     }

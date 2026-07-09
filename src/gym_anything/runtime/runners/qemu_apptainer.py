@@ -24,6 +24,7 @@ import re
 import shlex
 import shutil
 import signal
+import socket
 import subprocess
 import tempfile
 import threading
@@ -31,7 +32,7 @@ import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from ...config.presets import is_android_preset, is_windows_preset
 from ...security import wrap_posix_command_with_env, wrap_powershell_command_with_env
@@ -71,6 +72,24 @@ def _find_free_port(start: int = 5900) -> int:
     raise RuntimeError("No free port")
 
 
+def _find_free_qemu_hostfwd_port(start: int = 45500) -> int:
+    """Find a hostfwd port using the same bind constraints QEMU will use."""
+    import socket
+    import random
+    offset = random.randint(0, 200)
+    for i in range(300):
+        port = start + offset + i
+        if port > 65535:
+            port = start + (i % 300)
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("0.0.0.0", port))
+                return port
+        except OSError:
+            continue
+    raise RuntimeError("No free QEMU hostfwd port")
+
+
 def _check_apptainer() -> bool:
     try:
         return subprocess.run(["apptainer", "--version"], capture_output=True, timeout=5).returncode == 0
@@ -92,6 +111,125 @@ def _get_env_hash(spec: EnvSpec) -> str:
         str(getattr(spec, "hooks", {})),
     ]
     return hashlib.sha256("|".join(key_parts).encode()).hexdigest()[:16]
+
+
+class _QMPClient:
+    """Small synchronous QMP client for host-side fast I/O commands."""
+
+    def __init__(self, socket_path: Path, timeout: float = 5.0):
+        self.socket_path = socket_path
+        self.timeout = timeout
+        self._socket: Optional[socket.socket] = None
+        self._buffer = b""
+        self._lock = threading.RLock()
+
+    def connect(self) -> None:
+        if self._socket is not None:
+            return
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(self.timeout)
+        sock.connect(str(self.socket_path))
+        self._socket = sock
+        self._read_message()  # QMP greeting
+        self.execute("qmp_capabilities")
+
+    def close(self) -> None:
+        if self._socket is None:
+            return
+        try:
+            self._socket.close()
+        finally:
+            self._socket = None
+            self._buffer = b""
+
+    def execute(self, command: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        with self._lock:
+            try:
+                return self._execute_once(command, arguments)
+            except OSError:
+                self.close()
+                return self._execute_once(command, arguments)
+
+    def _execute_once(self, command: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        self.connect()
+        payload: Dict[str, Any] = {"execute": command}
+        if arguments:
+            payload["arguments"] = arguments
+        assert self._socket is not None
+        self._socket.sendall(json.dumps(payload, separators=(",", ":")).encode("utf-8") + b"\r\n")
+        while True:
+            message = self._read_message()
+            if "event" in message:
+                continue
+            if "error" in message:
+                raise RuntimeError(f"QMP {command} failed: {message['error']}")
+            return message.get("return", {})
+
+    def _read_message(self) -> Dict[str, Any]:
+        assert self._socket is not None
+        while b"\n" not in self._buffer:
+            chunk = self._socket.recv(65536)
+            if not chunk:
+                raise RuntimeError("QMP connection closed")
+            self._buffer += chunk
+        line, self._buffer = self._buffer.split(b"\n", 1)
+        return json.loads(line.strip().decode("utf-8"))
+
+
+class _FastInputAgentClient:
+    """Persistent host-side client for the Linux guest uinput input service."""
+
+    def __init__(self, host: str, port: int, timeout: float = 1.0):
+        self.host = host
+        self.port = int(port)
+        self.timeout = timeout
+        self._socket: Optional[socket.socket] = None
+        self._buffer = b""
+        self._lock = threading.RLock()
+
+    def connect(self) -> None:
+        if self._socket is not None:
+            return
+        sock = socket.create_connection((self.host, self.port), timeout=self.timeout)
+        sock.settimeout(self.timeout)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self._socket = sock
+
+    def close(self) -> None:
+        if self._socket is None:
+            return
+        try:
+            self._socket.close()
+        finally:
+            self._socket = None
+            self._buffer = b""
+
+    def request(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        with self._lock:
+            try:
+                return self._request_once(payload)
+            except OSError:
+                self.close()
+                return self._request_once(payload)
+
+    def _request_once(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        self.connect()
+        assert self._socket is not None
+        self._socket.sendall(json.dumps(payload, separators=(",", ":")).encode("utf-8") + b"\n")
+        response = self._read_line()
+        if not response.get("ok"):
+            raise RuntimeError(f"fast input agent error: {response.get('error', response)}")
+        return response
+
+    def _read_line(self) -> Dict[str, Any]:
+        assert self._socket is not None
+        while b"\n" not in self._buffer:
+            chunk = self._socket.recv(65536)
+            if not chunk:
+                raise RuntimeError("fast input agent connection closed")
+            self._buffer += chunk
+        line, self._buffer = self._buffer.split(b"\n", 1)
+        return json.loads(line.decode("utf-8"))
 
 
 class QemuApptainerRunner(BaseRunner):
@@ -192,6 +330,15 @@ class QemuApptainerRunner(BaseRunner):
         self._running = False
         self._process: Optional[subprocess.Popen] = None
         self._vnc_pool: Optional[VNCConnectionPool] = None
+        self._qmp_socket_path: Optional[Path] = None
+        self._qmp_client: Optional[_QMPClient] = None
+        self._fast_input_client: Optional[_FastInputAgentClient] = None
+        self._fast_input_host_port: Optional[int] = None
+        self._fast_input_guest_port = int(os.environ.get("GYM_ANYTHING_QEMU_FAST_INPUT_GUEST_PORT", "5599"))
+        self._fast_input_device_name = "GymAnything Fast Keyboard"
+        self._fast_io_dir: Optional[Path] = None
+        self._fast_io_container_dir: Optional[Path] = None
+        self._dbus_display = None
         self._work_dir: Optional[Path] = None
         self._instance_qcow2: Optional[Path] = None
         self._artifacts_root = os.path.abspath(spec.recording.output_dir)
@@ -206,6 +353,7 @@ class QemuApptainerRunner(BaseRunner):
         # When True: saves full VM state (instant restore, preserves running processes)
         # When False: only saves disk state (requires full reboot on restore)
         self._use_savevm: bool = False
+        self._container_image = QEMU_CONTAINER
 
     def _check_prerequisites(self) -> None:
         """Check that required system tools are available. Subclasses override."""
@@ -244,7 +392,7 @@ class QemuApptainerRunner(BaseRunner):
             if os.path.exists(path):
                 cmd.extend(["--bind", f"{path}:{path}"])
 
-        cmd.append(QEMU_CONTAINER)
+        cmd.append(self._container_image)
         cmd.extend(["qemu-img"] + args)
 
         return subprocess.run(cmd, capture_output=True, text=True)
@@ -254,6 +402,16 @@ class QemuApptainerRunner(BaseRunner):
 
     def supports_savevm(self) -> bool:
         return True
+
+    def supports_fast_io(self) -> bool:
+        return True
+
+    def set_fast_io(self, enabled: bool) -> None:
+        super().set_fast_io(enabled)
+        if self._fast_io:
+            self._validate_fast_keyboard_backend()
+        if self._fast_io and self._fast_io_backend() == "dbus":
+            self._ensure_dbus_display_container()
 
     def _detect_windows(self, spec: EnvSpec) -> bool:
         """Detect if this is a Windows environment."""
@@ -292,8 +450,9 @@ class QemuApptainerRunner(BaseRunner):
             self._create_base_qcow2()
 
         # Step 2: Create work directory and COW overlay (from base, not checkpoint)
-        # Use cache directory for work instead of /tmp (which may be full)
-        work_base = QEMU_WORK_DIR
+        # Use cache directory for work instead of /tmp (which may be full).
+        # In fast_io mode, prefer local scratch for screenshot exchange and COW overlays.
+        work_base = self._get_work_base()
         work_base.mkdir(parents=True, exist_ok=True)
         self._work_dir = Path(tempfile.mkdtemp(prefix=f"ga_qemu_{self.instance_id}_", dir=work_base))
         self._instance_qcow2 = self._work_dir / "disk.qcow2"
@@ -319,12 +478,15 @@ class QemuApptainerRunner(BaseRunner):
                 self.ssh_port = _find_free_port(2222)
             if self.is_windows:
                 self.pyautogui_port = _find_free_port(5555)
+            self._assign_fast_input_port()
         if self.is_android:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, ADB: {self.adb_port}")
         elif self.is_windows:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}, PyAutoGUI: {self.pyautogui_port}")
         else:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}")
+            if self._fast_input_host_port:
+                print(f"[QemuApptainer] Fast input: {self._fast_input_host_port}->{self._fast_input_guest_port}")
         
         # Step 5: Start VM
         self._start_vm()
@@ -387,6 +549,7 @@ class QemuApptainerRunner(BaseRunner):
                 if self.is_windows and not self._pyautogui_client:
                     print("[QemuApptainer] Attempting to connect to PyAutoGUI server...")
                     self._try_connect_pyautogui_client()
+            self._ensure_fast_input_agent()
 
         # Step 10: Connect VNC (now should get proper desktop resolution)
         self._vnc_pool = VNCConnectionPool(
@@ -498,13 +661,347 @@ class QemuApptainerRunner(BaseRunner):
         cmd.extend(["--bind", f"{work_dir_abs}:{work_dir_abs}"])
         cmd.extend(["--bind", f"{cache_dir_abs}:{cache_dir_abs}"])
 
+        if self._fast_io:
+            self._fast_io_dir, self._fast_io_container_dir = self._make_fast_io_dirs(work_dir)
+
         artifacts_dir = Path(self._artifacts_root)
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         artifacts_abs = str(artifacts_dir.absolute())
         cmd.extend(["--bind", f"{artifacts_abs}:{artifacts_abs}"])
 
-        cmd.append(QEMU_CONTAINER)
+        cmd.append(self._container_image)
         return cmd
+
+    def _get_work_base(self) -> Path:
+        if not self._fast_io:
+            return QEMU_WORK_DIR
+
+        override = os.environ.get("GYM_ANYTHING_FAST_IO_WORK_DIR")
+        if override:
+            base = Path(override).expanduser()
+            return base if self._usable_work_base(base) else QEMU_WORK_DIR
+
+        if _work_dir_env:
+            return QEMU_WORK_DIR
+
+        base = Path(tempfile.gettempdir()) / "gym-anything-qemu-work"
+        return base if self._usable_work_base(base) else QEMU_WORK_DIR
+
+    def _usable_work_base(self, base: Path) -> bool:
+        try:
+            base.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return False
+        if not os.access(base, os.W_OK | os.X_OK):
+            return False
+        try:
+            required = 512 * 1024 * 1024
+            if self._use_savevm:
+                checkpoint_path = self._get_checkpoint_path()
+                if checkpoint_path.exists():
+                    required += checkpoint_path.stat().st_size
+            free = shutil.disk_usage(base).free
+        except OSError:
+            return False
+        return free >= required
+
+    def _make_fast_io_dirs(self, work_dir: Path) -> tuple[Path, Path]:
+        host_path = work_dir / self.instance_id
+        host_path.mkdir(parents=True, exist_ok=True)
+        return host_path, host_path
+
+    def _fast_io_backend(self) -> str:
+        return os.environ.get("GYM_ANYTHING_QEMU_FAST_IO_BACKEND", "qmp").strip().lower()
+
+    def _fast_keyboard_backend(self) -> str:
+        if getattr(self, "is_android", False):
+            return "adb"
+        if getattr(self, "is_windows", False):
+            return os.environ.get("GYM_ANYTHING_QEMU_FAST_KEYBOARD_BACKEND", "qmp-experimental").strip().lower()
+        return os.environ.get("GYM_ANYTHING_QEMU_FAST_KEYBOARD_BACKEND", "uinput").strip().lower()
+
+    def _fast_uinput_keyboard_enabled(self) -> bool:
+        return (
+            self._fast_io
+            and not getattr(self, "is_android", False)
+            and not getattr(self, "is_windows", False)
+            and self._fast_keyboard_backend() == "uinput"
+        )
+
+    def _validate_fast_keyboard_backend(self) -> None:
+        backend = self._fast_keyboard_backend()
+        if getattr(self, "is_android", False):
+            return
+        allowed = {"uinput", "qmp-experimental"} if not getattr(self, "is_windows", False) else {"qmp-experimental"}
+        if backend not in allowed:
+            raise RuntimeError(
+                f"Unsupported QEMU fast keyboard backend {backend!r}. "
+                f"Allowed values for this guest are: {', '.join(sorted(allowed))}."
+            )
+
+    def _assign_fast_input_port(self) -> None:
+        self._fast_input_host_port = _find_free_qemu_hostfwd_port(45500) if self._fast_uinput_keyboard_enabled() else None
+
+    def _dbus_auto_install_enabled(self) -> bool:
+        value = os.environ.get("GYM_ANYTHING_QEMU_DBUS_AUTO_INSTALL", "1")
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+
+    def _dbus_sandbox_path(self) -> Path:
+        override = os.environ.get("GYM_ANYTHING_QEMU_DBUS_SANDBOX")
+        if override:
+            return Path(override).expanduser()
+        source_hash = hashlib.sha256(QEMU_CONTAINER.encode("utf-8")).hexdigest()[:16]
+        return QEMU_CACHE / "containers" / f"qemu-dbus-{source_hash}"
+
+    def _container_supports_dbus_display(self, container: str) -> bool:
+        try:
+            result = subprocess.run(
+                [
+                    "apptainer",
+                    "exec",
+                    "--contain",
+                    container,
+                    "qemu-system-x86_64",
+                    "-display",
+                    "help",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except Exception:
+            return False
+        output = f"{result.stdout}\n{result.stderr}"
+        return any(line.strip() == "dbus" for line in output.splitlines())
+
+    def _ensure_dbus_display_container(self) -> None:
+        sandbox = self._dbus_sandbox_path()
+        if sandbox.exists() and self._container_supports_dbus_display(str(sandbox)):
+            self._container_image = str(sandbox)
+            return
+
+        if self._container_supports_dbus_display(self._container_image):
+            return
+        if not self._dbus_auto_install_enabled():
+            raise RuntimeError(
+                "QEMU D-Bus display backend requested, but the Apptainer image "
+                "does not provide '-display dbus'. Install qemu-system-modules-opengl "
+                "in the image or unset GYM_ANYTHING_QEMU_DBUS_AUTO_INSTALL=0."
+            )
+
+        lock_path = sandbox.with_suffix(".lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "w") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                if self._container_supports_dbus_display(str(sandbox)):
+                    self._container_image = str(sandbox)
+                    return
+
+                tmp_sandbox = sandbox.with_name(f".{sandbox.name}.tmp-{os.getpid()}")
+                shutil.rmtree(tmp_sandbox, ignore_errors=True)
+                print(f"[QemuApptainer] Preparing D-Bus-capable QEMU sandbox: {sandbox}")
+
+                try:
+                    build = subprocess.run(
+                        [
+                            "apptainer",
+                            "build",
+                            "--fakeroot",
+                            "--sandbox",
+                            str(tmp_sandbox),
+                            QEMU_CONTAINER,
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=1800,
+                    )
+                    if build.returncode != 0:
+                        raise RuntimeError(
+                            "Failed to build QEMU D-Bus sandbox:\n"
+                            + (build.stderr or build.stdout)
+                        )
+
+                    install = subprocess.run(
+                        [
+                            "apptainer",
+                            "exec",
+                            "--fakeroot",
+                            "--writable",
+                            str(tmp_sandbox),
+                            "bash",
+                            "-lc",
+                            (
+                                "apt-get update && "
+                                "DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "
+                                "qemu-system-modules-opengl dbus && "
+                                "rm -rf /var/lib/apt/lists/*"
+                            ),
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=1800,
+                    )
+                    if install.returncode != 0:
+                        raise RuntimeError(
+                            "Failed to install QEMU D-Bus display modules:\n"
+                            + (install.stderr or install.stdout)
+                        )
+
+                    if not self._container_supports_dbus_display(str(tmp_sandbox)):
+                        raise RuntimeError(
+                            "QEMU D-Bus sandbox was prepared, but '-display dbus' is still unavailable"
+                        )
+                except Exception:
+                    shutil.rmtree(tmp_sandbox, ignore_errors=True)
+                    raise
+
+                shutil.rmtree(sandbox, ignore_errors=True)
+                tmp_sandbox.rename(sandbox)
+                self._container_image = str(sandbox)
+            finally:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+    def _display_backend_arg(self, work_dir: Path) -> str:
+        if not self._fast_io or self._fast_io_backend() != "dbus":
+            return "none"
+        if self._dbus_display is None:
+            from .qemu_dbus_display import QemuDbusDisplayCapture
+
+            self._dbus_display = QemuDbusDisplayCapture(work_dir)
+            self._dbus_display.start_bus()
+        return f"dbus,addr={self._dbus_display.bus_address}"
+
+    def _start_fast_io_display_listener(self) -> None:
+        if self._fast_io and self._fast_io_backend() == "dbus":
+            if self._dbus_display is None:
+                raise RuntimeError("QEMU D-Bus display was not initialized")
+            self._dbus_display.start_listener()
+
+    def _fast_input_agent_script(self) -> Path:
+        return Path(__file__).parent / "linux_uinput_fast_inputd.py"
+
+    def _ensure_fast_input_agent(self) -> None:
+        if not self._fast_uinput_keyboard_enabled():
+            return
+        if not self.ssh_port or not self._fast_input_host_port:
+            raise RuntimeError("fast uinput keyboard requested before SSH and host forwarding were configured")
+
+        script_path = self._fast_input_agent_script()
+        if not script_path.exists():
+            raise RuntimeError(f"fast input agent script is missing: {script_path}")
+
+        remote_tmp = "/tmp/gym_anything_fast_inputd.py"
+        remote_bin = "/usr/local/bin/gym-anything-fast-inputd"
+        log_path = "/tmp/gym_anything_fast_inputd.log"
+
+        self._sftp_copy_to(str(script_path), remote_tmp)
+        install_cmd = (
+            f"sudo -n install -m 0755 {shlex.quote(remote_tmp)} {shlex.quote(remote_bin)} && "
+            "(sudo -n modprobe uinput 2>/dev/null || true); "
+            "test -e /dev/uinput"
+        )
+        result = self._ssh_command(f"bash -lc {shlex.quote(install_cmd)}", timeout=30, use_pty=False)
+        if result.returncode != 0:
+            stderr = result.stderr.decode(errors="replace") if result.stderr else ""
+            raise RuntimeError(f"fast uinput keyboard requires /dev/uinput in the guest: {stderr[:500]}")
+
+        try:
+            self._connect_fast_input_agent(timeout=1.0)
+        except RuntimeError:
+            if self._fast_input_client:
+                self._fast_input_client.close()
+                self._fast_input_client = None
+        else:
+            self._validate_fast_input_agent()
+            return
+
+        start_cmd = (
+            f"sudo -n env PYTHONUNBUFFERED=1 DISPLAY=:1 XAUTHORITY=/home/ga/.Xauthority "
+            f"nohup python3 {shlex.quote(remote_bin)} "
+            f"--host 0.0.0.0 "
+            f"--port {int(self._fast_input_guest_port)} "
+            f"--device-name {shlex.quote(self._fast_input_device_name)} "
+            f"--x11-display :1 "
+            f"--require-x11 "
+            f"> {shlex.quote(log_path)} 2>&1 < /dev/null &"
+        )
+        result = self._ssh_command(f"bash -lc {shlex.quote(start_cmd)}", timeout=10, use_pty=False)
+        try:
+            self._connect_fast_input_agent(timeout=15.0)
+        except RuntimeError as exc:
+            stdout = result.stdout.decode(errors="replace") if result.stdout else ""
+            stderr = result.stderr.decode(errors="replace") if result.stderr else ""
+            raise RuntimeError(
+                "failed to start fast input agent "
+                f"(ssh exit={result.returncode}, stdout={stdout[:500]!r}, stderr={stderr[:500]!r}): {exc}"
+            ) from exc
+        self._validate_fast_input_agent()
+
+    def _connect_fast_input_agent(self, timeout: float = 15.0) -> None:
+        if not self._fast_input_host_port:
+            raise RuntimeError("fast input host port is not configured")
+        deadline = time.time() + timeout
+        last_error: Optional[Exception] = None
+        while time.time() < deadline:
+            client = _FastInputAgentClient("127.0.0.1", self._fast_input_host_port, timeout=1.0)
+            try:
+                response = client.request({"op": "ping"})
+                if response.get("version") != 1 or response.get("backend") != "uinput":
+                    raise RuntimeError(f"unexpected fast input agent handshake: {response}")
+                self._fast_input_client = client
+                return
+            except Exception as exc:
+                last_error = exc
+                client.close()
+                time.sleep(0.2)
+
+        log = self._read_fast_input_agent_log()
+        raise RuntimeError(
+            "fast input agent did not become reachable "
+            f"on localhost:{self._fast_input_host_port}: {last_error}\n{log}"
+        )
+
+    def _read_fast_input_agent_log(self) -> str:
+        if not self.ssh_port:
+            return ""
+        result = self._ssh_command("tail -n 80 /tmp/gym_anything_fast_inputd.log 2>/dev/null || true", timeout=10, use_pty=False)
+        stdout = result.stdout.decode(errors="replace") if result.stdout else ""
+        stderr = result.stderr.decode(errors="replace") if result.stderr else ""
+        return (stdout + "\n" + stderr).strip()
+
+    def _validate_fast_input_agent(self) -> None:
+        if not self.ssh_port:
+            raise RuntimeError("cannot validate fast input agent without SSH")
+        deadline = time.time() + 8.0
+        last_xinput = ""
+        last_devices = ""
+        while time.time() < deadline:
+            xinput_result = self._ssh_command("DISPLAY=:1 xinput list --short", timeout=5, use_pty=False)
+            devices_result = self._ssh_command("cat /proc/bus/input/devices", timeout=5, use_pty=False)
+            last_xinput = xinput_result.stdout.decode(errors="replace") if xinput_result.stdout else ""
+            last_devices = devices_result.stdout.decode(errors="replace") if devices_result.stdout else ""
+            combined = f"{last_xinput}\n{last_devices}".lower()
+            if self._fast_input_device_name.lower() in combined and "usb tablet" in combined:
+                return
+            time.sleep(0.25)
+
+        log = self._read_fast_input_agent_log()
+        raise RuntimeError(
+            "fast input agent started, but the expected uinput keyboard/tablet devices "
+            "were not visible in the guest.\n"
+            f"xinput:\n{last_xinput[-2000:]}\n"
+            f"/proc/bus/input/devices:\n{last_devices[-2000:]}\n"
+            f"agent log:\n{log}"
+        )
+
+    def _get_fast_input_client(self) -> _FastInputAgentClient:
+        if not self._fast_uinput_keyboard_enabled():
+            raise RuntimeError("fast input agent is only available for the uinput keyboard backend")
+        if self._fast_input_client is None:
+            self._connect_fast_input_agent(timeout=3.0)
+        assert self._fast_input_client is not None
+        return self._fast_input_client
 
     def _get_accel_args(self) -> List[str]:
         """Return QEMU acceleration arguments. Subclasses override for HVF etc."""
@@ -519,6 +1016,13 @@ class QemuApptainerRunner(BaseRunner):
     def _get_linux_display_device(self, width: int, height: int) -> str:
         """Return the display device for Linux guests. Subclasses override for TCG."""
         return f"virtio-vga,xres={width},yres={height}"
+
+    def _fast_input_hid_args(self) -> List[str]:
+        return [
+            "-device", "qemu-xhci,id=fastio_xhci",
+            "-device", "usb-kbd,id=fastio_kbd,bus=fastio_xhci.0",
+            "-device", "usb-tablet,id=fastio_tablet,bus=fastio_xhci.0",
+        ]
 
     def _post_boot_settle_seconds(self) -> int:
         """Seconds to wait after desktop is ready for compositor to render.
@@ -544,6 +1048,7 @@ class QemuApptainerRunner(BaseRunner):
 
         # Use virtio-gpu with specific resolution for proper display
         width, height = self.resolution
+        display_backend = self._display_backend_arg(work_dir)
 
         # Build netdev with port forwards
         if self.is_android:
@@ -552,12 +1057,27 @@ class QemuApptainerRunner(BaseRunner):
             port_forwards = f"hostfwd=tcp::{ssh_port}-:22"
             if self.is_windows:
                 port_forwards += f",hostfwd=tcp::{self.pyautogui_port}-:5555"
+            fast_input_host_port = getattr(self, "_fast_input_host_port", None)
+            if self._fast_uinput_keyboard_enabled() and fast_input_host_port:
+                port_forwards += f",hostfwd=tcp::{fast_input_host_port}-:{self._fast_input_guest_port}"
+
+        netdev_options = f"user,id=net0,{port_forwards}"
+        if getattr(getattr(getattr(self, "spec", None), "resources", None), "net", None) is False:
+            netdev_options = f"user,id=net0,restrict=on,{port_forwards}"
 
         cmd.extend([
             "-m", self.memory,
             "-smp", str(self.cpus),
             "-cpu", self._get_cpu_model(),
         ])
+
+        if self._fast_io:
+            self._qmp_socket_path = work_dir / "qmp.sock"
+            try:
+                self._qmp_socket_path.unlink()
+            except FileNotFoundError:
+                pass
+            cmd.extend(["-qmp", f"unix:{self._qmp_socket_path},server=on,wait=off"])
 
         if self.is_android:
             # Android (BlissOS): Boot from live ISO with virtio disk for persistence
@@ -568,10 +1088,10 @@ class QemuApptainerRunner(BaseRunner):
                 "-cdrom", str(iso_path),
                 "-device", f"virtio-vga,xres={width},yres={height}",
                 "-vnc", f":{vnc_display},password=on",
-                "-display", "none",
+                "-display", display_backend,
                 "-monitor", "stdio",
                 "-device", "virtio-net-pci,netdev=net0",
-                "-netdev", f"user,id=net0,{port_forwards}",
+                "-netdev", netdev_options,
                 "-boot", "d",  # Boot from CD-ROM (live ISO)
                 # USB for keyboard/mouse (Android needs USB HID)
                 "-usb",
@@ -610,13 +1130,15 @@ class QemuApptainerRunner(BaseRunner):
                 # Display with virtio-vga
                 "-device", "virtio-vga",
                 "-vnc", f":{vnc_display},password=on",
-                "-display", "none",
+                "-display", display_backend,
                 "-monitor", "stdio",
                 # Network with virtio
                 "-device", "virtio-net-pci,netdev=net0",
-                "-netdev", f"user,id=net0,{port_forwards}",
+                "-netdev", netdev_options,
                 "-boot", "c",
             ])
+            if self._fast_io:
+                cmd.extend(self._fast_input_hid_args())
         else:
             # Linux: Use virtio for better performance
             # Note: VirGL with egl-headless requires qemu-system-modules-opengl
@@ -625,7 +1147,6 @@ class QemuApptainerRunner(BaseRunner):
             # GPU devices are still passed through for applications that
             # access them directly (e.g., DaVinci Resolve uses OpenCL).
             display_device = self._get_linux_display_device(width, height)
-            display_backend = "none"
 
             cmd.extend([
                 "-drive", f"file={disk_abs},format=qcow2,if=virtio",
@@ -634,9 +1155,11 @@ class QemuApptainerRunner(BaseRunner):
                 "-display", display_backend,
                 "-monitor", "stdio",
                 "-device", "virtio-net-pci,netdev=net0",
-                "-netdev", f"user,id=net0,{port_forwards}",
+                "-netdev", netdev_options,
                 "-boot", "c",
             ])
+            if self._fast_io:
+                cmd.extend(self._fast_input_hid_args())
 
         # Load VM state from snapshot (the correct way to restore savevm snapshots)
         if loadvm_snapshot:
@@ -658,6 +1181,7 @@ class QemuApptainerRunner(BaseRunner):
                 cmd, stdin=subprocess.PIPE, stdout=lf, stderr=subprocess.STDOUT,
                 cwd=str(self._work_dir), preexec_fn=os.setsid
             )
+        self._start_fast_io_display_listener()
 
         # Set VNC password via QEMU monitor (required for macOS Screen Sharing compatibility)
         self._set_vnc_password()
@@ -1618,6 +2142,18 @@ class QemuApptainerRunner(BaseRunner):
         if self._vnc_pool:
             self._vnc_pool.close()
             self._vnc_pool = None
+
+        if self._fast_input_client:
+            self._fast_input_client.close()
+            self._fast_input_client = None
+
+        if self._qmp_client:
+            self._qmp_client.close()
+            self._qmp_client = None
+
+        if self._dbus_display:
+            self._dbus_display.stop()
+            self._dbus_display = None
         
         if self._process and self._process.poll() is None:
             try:
@@ -1637,6 +2173,10 @@ class QemuApptainerRunner(BaseRunner):
         
         if self._work_dir and self._work_dir.exists():
             shutil.rmtree(self._work_dir, ignore_errors=True)
+        if self._fast_io_dir and self._fast_io_dir.exists():
+            shutil.rmtree(self._fast_io_dir, ignore_errors=True)
+        self._fast_io_dir = None
+        self._fast_io_container_dir = None
     
     # === Actions via pyautogui (SSH) ===
 
@@ -1677,9 +2217,147 @@ class QemuApptainerRunner(BaseRunner):
         "f9": "f9", "f10": "f10", "f11": "f11", "f12": "f12",
     }
 
+    _QMP_POINTER_MAX = 0x7FFF
+    _QMP_TEXT_CHUNK_EVENTS = 256
+    _QMP_DRAG_STEPS = 8
+    # Experimental QMP keyboard pacing defaults. These are temporary margins
+    # around QEMU's asynchronous send-key release scheduling, not a correctness
+    # contract for production input.
+    _QMP_EXPERIMENTAL_KEY_HOLD_MS_DEFAULT = 5
+    _QMP_EXPERIMENTAL_KEY_GAP_MS_DEFAULT = 10
+
+    _QMP_KEY_NAME_MAP = {
+        "ctrl": "ctrl",
+        "control": "ctrl",
+        "alt": "alt",
+        "shift": "shift",
+        "super": "meta_l",
+        "win": "meta_l",
+        "meta": "meta_l",
+        "command": "meta_l",
+        "cmd": "meta_l",
+        "enter": "ret",
+        "return": "ret",
+        "esc": "esc",
+        "escape": "esc",
+        "backspace": "backspace",
+        "delete": "delete",
+        "del": "delete",
+        "tab": "tab",
+        "space": "spc",
+        "up": "up",
+        "down": "down",
+        "left": "left",
+        "right": "right",
+        "home": "home",
+        "end": "end",
+        "pageup": "pgup",
+        "pagedown": "pgdn",
+        "pgup": "pgup",
+        "pgdn": "pgdn",
+        "insert": "insert",
+        "ins": "insert",
+        "plus": "equal",
+        "minus": "minus",
+        "comma": "comma",
+        "period": "dot",
+        "dot": "dot",
+        "slash": "slash",
+        "backslash": "backslash",
+        "semicolon": "semicolon",
+        "apostrophe": "apostrophe",
+        "quote": "apostrophe",
+        "grave": "grave_accent",
+        "backtick": "grave_accent",
+        "f1": "f1", "f2": "f2", "f3": "f3", "f4": "f4",
+        "f5": "f5", "f6": "f6", "f7": "f7", "f8": "f8",
+        "f9": "f9", "f10": "f10", "f11": "f11", "f12": "f12",
+    }
+
+    _QMP_CHAR_KEY_MAP = {
+        " ": ("spc", False),
+        "\n": ("ret", False),
+        "\r": ("ret", False),
+        "\t": ("tab", False),
+        "`": ("grave_accent", False),
+        "~": ("grave_accent", True),
+        "1": ("1", False),
+        "!": ("1", True),
+        "2": ("2", False),
+        "@": ("2", True),
+        "3": ("3", False),
+        "#": ("3", True),
+        "4": ("4", False),
+        "$": ("4", True),
+        "5": ("5", False),
+        "%": ("5", True),
+        "6": ("6", False),
+        "^": ("6", True),
+        "7": ("7", False),
+        "&": ("7", True),
+        "8": ("8", False),
+        "*": ("8", True),
+        "9": ("9", False),
+        "(": ("9", True),
+        "0": ("0", False),
+        ")": ("0", True),
+        "-": ("minus", False),
+        "_": ("minus", True),
+        "=": ("equal", False),
+        "+": ("equal", True),
+        "[": ("bracket_left", False),
+        "{": ("bracket_left", True),
+        "]": ("bracket_right", False),
+        "}": ("bracket_right", True),
+        "\\": ("backslash", False),
+        "|": ("backslash", True),
+        ";": ("semicolon", False),
+        ":": ("semicolon", True),
+        "'": ("apostrophe", False),
+        '"': ("apostrophe", True),
+        ",": ("comma", False),
+        "<": ("comma", True),
+        ".": ("dot", False),
+        ">": ("dot", True),
+        "/": ("slash", False),
+        "?": ("slash", True),
+    }
+
     def _normalize_key_name(self, key: str) -> str:
         """Normalize key name for pyautogui compatibility."""
         return self._KEY_NAME_MAP.get(key.lower(), key.lower())
+
+    def _normalize_qmp_key_name(self, key: str) -> str:
+        normalized = self._QMP_KEY_NAME_MAP.get(key.lower(), key.lower())
+        if len(normalized) == 1:
+            return normalized.lower()
+        return normalized
+
+    @staticmethod
+    def _read_nonnegative_int_env(name: str, default: int) -> int:
+        raw = os.environ.get(name)
+        if raw is None or raw.strip() == "":
+            return default
+        try:
+            value = int(raw)
+        except ValueError as exc:
+            raise RuntimeError(f"{name} must be an integer number of milliseconds, got {raw!r}") from exc
+        if value < 0:
+            raise RuntimeError(f"{name} must be >= 0 milliseconds, got {value}")
+        return value
+
+    def _qmp_experimental_key_hold_ms(self) -> int:
+        return self._read_nonnegative_int_env(
+            "GYM_ANYTHING_QEMU_QMP_KEY_HOLD_MS",
+            self._QMP_EXPERIMENTAL_KEY_HOLD_MS_DEFAULT,
+        )
+
+    def _qmp_experimental_key_gap_seconds(self) -> float:
+        gap_ms = self._read_nonnegative_int_env(
+            "GYM_ANYTHING_QEMU_QMP_KEY_GAP_MS",
+            self._QMP_EXPERIMENTAL_KEY_GAP_MS_DEFAULT,
+        )
+        return gap_ms / 1000.0
 
     def _build_pyautogui_script(self, commands: List[str]) -> str:
         """Build a pyautogui script from a list of commands."""
@@ -1713,6 +2391,243 @@ class QemuApptainerRunner(BaseRunner):
 
         self._ssh_command(cmd, timeout=timeout)
 
+    def _qmp_key_event(self, qcode: str, down: bool) -> Dict[str, Any]:
+        return {
+            "type": "key",
+            "data": {
+                "down": down,
+                "key": {"type": "qcode", "data": qcode},
+            },
+        }
+
+    def _qmp_button_event(self, button: str, down: bool) -> Dict[str, Any]:
+        return {
+            "type": "btn",
+            "data": {"down": down, "button": button},
+        }
+
+    def _qmp_abs_event(self, axis: str, value: int) -> Dict[str, Any]:
+        return {
+            "type": "abs",
+            "data": {"axis": axis, "value": value},
+        }
+
+    def _qmp_pointer_value(self, coordinate: int, axis_size: int) -> int:
+        if axis_size <= 1:
+            return 0
+        clipped = max(0, min(int(coordinate), axis_size - 1))
+        return round(clipped * self._QMP_POINTER_MAX / (axis_size - 1))
+
+    def _qmp_move_events(self, x: int, y: int) -> List[Dict[str, Any]]:
+        width, height = self.resolution
+        return [
+            self._qmp_abs_event("x", self._qmp_pointer_value(x, width)),
+            self._qmp_abs_event("y", self._qmp_pointer_value(y, height)),
+        ]
+
+    def _qmp_key_tap_events(self, qcode: str) -> List[Dict[str, Any]]:
+        return [
+            self._qmp_key_event(qcode, True),
+            self._qmp_key_event(qcode, False),
+        ]
+
+    def _qmp_key_combo_events(self, keys: List[str]) -> List[Dict[str, Any]]:
+        qcodes = [self._normalize_qmp_key_name(str(key)) for key in keys]
+        events: List[Dict[str, Any]] = []
+        for qcode in qcodes:
+            events.append(self._qmp_key_event(qcode, True))
+        for qcode in reversed(qcodes):
+            events.append(self._qmp_key_event(qcode, False))
+        return events
+
+    def _qmp_text_event_groups(self, text: str) -> List[List[Dict[str, Any]]]:
+        groups: List[List[Dict[str, Any]]] = []
+        for char in text:
+            if "a" <= char <= "z":
+                qcode, shifted = char, False
+            elif "A" <= char <= "Z":
+                qcode, shifted = char.lower(), True
+            else:
+                mapped = self._QMP_CHAR_KEY_MAP.get(char)
+                if mapped is None:
+                    raise ValueError(f"QMP fast input cannot type character {char!r}")
+                qcode, shifted = mapped
+            events: List[Dict[str, Any]] = []
+            if shifted:
+                events.append(self._qmp_key_event("shift", True))
+            events.extend(self._qmp_key_tap_events(qcode))
+            if shifted:
+                events.append(self._qmp_key_event("shift", False))
+            groups.append(events)
+        return groups
+
+    def _qmp_text_key_groups(self, text: str) -> List[List[str]]:
+        groups: List[List[str]] = []
+        for char in text:
+            if "a" <= char <= "z":
+                qcode, shifted = char, False
+            elif "A" <= char <= "Z":
+                qcode, shifted = char.lower(), True
+            else:
+                mapped = self._QMP_CHAR_KEY_MAP.get(char)
+                if mapped is None:
+                    raise ValueError(f"QMP fast input cannot type character {char!r}")
+                qcode, shifted = mapped
+            groups.append(["shift", qcode] if shifted else [qcode])
+        return groups
+
+    def _qmp_text_events(self, text: str) -> List[Dict[str, Any]]:
+        events: List[Dict[str, Any]] = []
+        for group in self._qmp_text_event_groups(text):
+            events.extend(group)
+        return events
+
+    def _qmp_send_key_combo(self, qcodes: List[str]) -> None:
+        if not qcodes:
+            return
+        client = self._get_qmp_client()
+        client.execute(
+            "send-key",
+            {
+                "keys": [{"type": "qcode", "data": qcode} for qcode in qcodes],
+                "hold-time": self._qmp_experimental_key_hold_ms(),
+            },
+        )
+        time.sleep(self._qmp_experimental_key_gap_seconds())
+
+
+    def _qmp_send_input_events(self, events: List[Dict[str, Any]]) -> None:
+        if not events:
+            return
+        client = self._get_qmp_client()
+        for index in range(0, len(events), self._QMP_TEXT_CHUNK_EVENTS):
+            client.execute("input-send-event", {"events": events[index:index + self._QMP_TEXT_CHUNK_EVENTS]})
+
+    def _inject_action_via_qmp(self, action: Dict[str, Any]) -> None:
+        events: List[Dict[str, Any]] = []
+
+        def flush_events() -> None:
+            nonlocal events
+            if events:
+                self._qmp_send_input_events(events)
+                events = []
+
+        def send_pointer_move(x: int, y: int) -> None:
+            events.extend(self._qmp_move_events(int(x), int(y)))
+            flush_events()
+
+        def send_button_tap(button: str) -> None:
+            events.append(self._qmp_button_event(button, True))
+            flush_events()
+            events.append(self._qmp_button_event(button, False))
+            flush_events()
+
+        mouse = action.get("mouse")
+        if mouse:
+            if "move" in mouse:
+                x, y = mouse["move"]
+                send_pointer_move(int(x), int(y))
+            if "left_click" in mouse:
+                x, y = mouse["left_click"]
+                send_pointer_move(int(x), int(y))
+                send_button_tap("left")
+            if "right_click" in mouse:
+                x, y = mouse["right_click"]
+                send_pointer_move(int(x), int(y))
+                send_button_tap("right")
+            if "middle_click" in mouse:
+                x, y = mouse["middle_click"]
+                send_pointer_move(int(x), int(y))
+                send_button_tap("middle")
+            if "double_click" in mouse:
+                x, y = mouse["double_click"]
+                send_pointer_move(int(x), int(y))
+                for _ in range(2):
+                    send_button_tap("left")
+            if "triple_click" in mouse:
+                x, y = mouse["triple_click"]
+                send_pointer_move(int(x), int(y))
+                for _ in range(3):
+                    send_button_tap("left")
+            if "left_click_drag" in mouse:
+                (x1, y1), (x2, y2) = mouse["left_click_drag"]
+                send_pointer_move(int(x1), int(y1))
+                events.append(self._qmp_button_event("left", True))
+                flush_events()
+                for step in range(1, self._QMP_DRAG_STEPS + 1):
+                    x = int(x1 + (x2 - x1) * step / self._QMP_DRAG_STEPS)
+                    y = int(y1 + (y2 - y1) * step / self._QMP_DRAG_STEPS)
+                    events.extend(self._qmp_move_events(x, y))
+                flush_events()
+                events.append(self._qmp_button_event("left", False))
+                flush_events()
+            if "right_click_drag" in mouse:
+                (x1, y1), (x2, y2) = mouse["right_click_drag"]
+                send_pointer_move(int(x1), int(y1))
+                events.append(self._qmp_button_event("right", True))
+                flush_events()
+                for step in range(1, self._QMP_DRAG_STEPS + 1):
+                    x = int(x1 + (x2 - x1) * step / self._QMP_DRAG_STEPS)
+                    y = int(y1 + (y2 - y1) * step / self._QMP_DRAG_STEPS)
+                    events.extend(self._qmp_move_events(x, y))
+                flush_events()
+                events.append(self._qmp_button_event("right", False))
+                flush_events()
+            buttons = mouse.get("buttons", {})
+            if buttons.get("left_down"):
+                events.append(self._qmp_button_event("left", True))
+            if buttons.get("left_up"):
+                events.append(self._qmp_button_event("left", False))
+            if buttons.get("right_down"):
+                events.append(self._qmp_button_event("right", True))
+            if buttons.get("right_up"):
+                events.append(self._qmp_button_event("right", False))
+            if buttons.get("middle_down"):
+                events.append(self._qmp_button_event("middle", True))
+            if buttons.get("middle_up"):
+                events.append(self._qmp_button_event("middle", False))
+            flush_events()
+            if "scroll" in mouse:
+                dy = int(mouse["scroll"])
+                button = "wheel-down" if dy > 0 else "wheel-up"
+                for _ in range(abs(dy)):
+                    events.extend([self._qmp_button_event(button, True), self._qmp_button_event(button, False)])
+                flush_events()
+
+        keyboard = action.get("keyboard")
+        if keyboard:
+            if "text" in keyboard:
+                flush_events()
+                for group in self._qmp_text_key_groups(str(keyboard["text"])):
+                    self._qmp_send_key_combo(group)
+            if "keys" in keyboard:
+                keys = keyboard["keys"]
+                if isinstance(keys, str):
+                    keys = [keys]
+                qcodes = [self._normalize_qmp_key_name(str(key)) for key in keys]
+                flush_events()
+                self._qmp_send_key_combo(qcodes)
+
+        flush_events()
+
+    def _inject_keyboard_via_fast_input_agent(self, keyboard: Dict[str, Any]) -> None:
+        client = self._get_fast_input_client()
+        client.request({"op": "keyboard", "keyboard": keyboard})
+
+    def _inject_action_via_fast_io(self, action: Dict[str, Any]) -> None:
+        mouse = action.get("mouse")
+        if mouse:
+            self._inject_action_via_qmp({"mouse": mouse})
+
+        keyboard = action.get("keyboard")
+        if keyboard:
+            if self._fast_uinput_keyboard_enabled():
+                self._inject_keyboard_via_fast_input_agent(keyboard)
+            elif self._fast_keyboard_backend() == "qmp-experimental":
+                self._inject_action_via_qmp({"keyboard": keyboard})
+            else:
+                self._validate_fast_keyboard_backend()
+
     def inject_action(self, action: Dict[str, Any]) -> None:
         """Inject keyboard/mouse actions via pyautogui or ADB.
 
@@ -1720,6 +2635,10 @@ class QemuApptainerRunner(BaseRunner):
         On Android: Uses ADB input commands.
         On Linux: Uses pyautogui over SSH with DISPLAY=:1.
         """
+        if self._fast_io and not self.is_android:
+            self._inject_action_via_fast_io(action)
+            return
+
         # Windows: Use the pyautogui client (TCP server protocol)
         if self.is_windows and self._pyautogui_client:
             self._inject_action_via_client(action)
@@ -1792,6 +2711,20 @@ class QemuApptainerRunner(BaseRunner):
                 keys_norm = [self._normalize_key_name(k) for k in keys]
                 keys_str = ", ".join(f"'{k}'" for k in keys_norm)
                 commands.append(f"pyautogui.hotkey({keys_str})")
+            # keys_down / keys_up support modifier-held clicks and hold_key by
+            # decomposing those gestures into a held-modifier sequence.
+            if "keys_down" in keyboard:
+                keys = keyboard["keys_down"]
+                if isinstance(keys, str):
+                    keys = [keys]
+                for k in keys:
+                    commands.append(f"pyautogui.keyDown('{self._normalize_key_name(k)}')")
+            if "keys_up" in keyboard:
+                keys = keyboard["keys_up"]
+                if isinstance(keys, str):
+                    keys = [keys]
+                for k in keys:
+                    commands.append(f"pyautogui.keyUp('{self._normalize_key_name(k)}')")
 
         if commands:
             print(f"[QemuApptainer] Executing pyautogui commands: {commands}")
@@ -1855,6 +2788,19 @@ class QemuApptainerRunner(BaseRunner):
                     # Normalize key names
                     keys_norm = [self._normalize_key_name(k) for k in keys]
                     self._pyautogui_client.hotkey(*keys_norm)
+                # keys_down / keys_up support modifier-held clicks and hold_key.
+                if "keys_down" in keyboard:
+                    keys = keyboard["keys_down"]
+                    if isinstance(keys, str):
+                        keys = [keys]
+                    for k in keys:
+                        self._pyautogui_client.key_down(self._normalize_key_name(k))
+                if "keys_up" in keyboard:
+                    keys = keyboard["keys_up"]
+                    if isinstance(keys, str):
+                        keys = [keys]
+                    for k in keys:
+                        self._pyautogui_client.key_up(self._normalize_key_name(k))
 
         except PyAutoGUIClientError as e:
             print(f"[QemuApptainer] PyAutoGUI client error: {e}")
@@ -1949,6 +2895,135 @@ class QemuApptainerRunner(BaseRunner):
         if screen_spec:
             obs["screen"] = {"format": "rgb", "fps": screen_spec.fps, "resolution": self.resolution}
         return obs
+
+    @staticmethod
+    def _ppm_token(data: bytes, index: int) -> tuple[bytes, int]:
+        while index < len(data):
+            byte = data[index]
+            if byte == 35:  # '#'
+                index = data.find(b"\n", index)
+                if index < 0:
+                    raise ValueError("unterminated PPM comment")
+                index += 1
+                continue
+            if byte not in b" \t\r\n":
+                break
+            index += 1
+        start = index
+        while index < len(data) and data[index] not in b" \t\r\n":
+            index += 1
+        return data[start:index], index
+
+    @classmethod
+    def _load_ppm_rgb_fast(cls, path: Path):
+        from PIL import Image
+
+        data = path.read_bytes()
+        magic, index = cls._ppm_token(data, 0)
+        if magic != b"P6":
+            raise ValueError(f"unsupported PPM magic: {magic!r}")
+        width_token, index = cls._ppm_token(data, index)
+        height_token, index = cls._ppm_token(data, index)
+        maxval_token, index = cls._ppm_token(data, index)
+        if maxval_token != b"255":
+            raise ValueError(f"unsupported PPM maxval: {maxval_token!r}")
+        if data[index:index + 2] == b"\r\n":
+            index += 2
+        elif index < len(data) and data[index] in b" \t\r\n":
+            index += 1
+        width = int(width_token)
+        height = int(height_token)
+        expected = width * height * 3
+        payload = data[index:index + expected]
+        if len(payload) != expected:
+            raise ValueError(f"truncated PPM payload: expected {expected}, got {len(payload)}")
+        return Image.frombuffer("RGB", (width, height), payload, "raw", "RGB", 0, 1)
+
+    def _get_qmp_client(self) -> _QMPClient:
+        if not self._fast_io:
+            raise RuntimeError("QMP screenshot capture requires fast_io=True")
+        if self._qmp_socket_path is None:
+            raise RuntimeError("QMP socket was not configured for this QEMU instance")
+        if self._qmp_client is not None and self._qmp_client.socket_path != self._qmp_socket_path:
+            self._qmp_client.close()
+            self._qmp_client = None
+        if self._qmp_client is None:
+            deadline = time.time() + 5
+            last_error: Optional[Exception] = None
+            while time.time() < deadline:
+                try:
+                    client = _QMPClient(self._qmp_socket_path, timeout=1.0)
+                    client.connect()
+                    self._qmp_client = client
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    time.sleep(0.05)
+            if self._qmp_client is None:
+                raise RuntimeError(f"QMP fast I/O connection failed: {last_error}")
+        return self._qmp_client
+
+    def _capture_screenshot_image_qmp(self, image_format: str = "ppm", parser: str = "pil"):
+        """Capture via QMP screendump and return a loaded PIL Image."""
+        host_output_dir = self._fast_io_dir or self._work_dir
+        qmp_output_dir = self._fast_io_container_dir or host_output_dir
+        if not host_output_dir or not qmp_output_dir:
+            raise RuntimeError("QEMU work directory is not initialized")
+        from PIL import Image
+
+        image_format = image_format.lower()
+        suffix = "png" if image_format == "png" else "ppm"
+        filename = f"fast_screenshot_{uuid.uuid4().hex[:8]}.{suffix}"
+        host_path = host_output_dir / filename
+        qmp_path = qmp_output_dir / filename
+        args: Dict[str, Any] = {"filename": str(qmp_path)}
+        if image_format != "ppm":
+            args["format"] = image_format
+        client = self._get_qmp_client()
+        client.execute("screendump", args)
+        try:
+            if image_format == "ppm" and parser == "fast":
+                return self._load_ppm_rgb_fast(host_path)
+            image = Image.open(host_path)
+            image.load()
+            return image.convert("RGB")
+        finally:
+            try:
+                host_path.unlink()
+            except FileNotFoundError:
+                pass
+
+    def _capture_screenshot_image_legacy(self):
+        """Capture through the runner's existing screenshot path and return PIL Image."""
+        tmp_dir = Path(tempfile.mkdtemp(prefix=f"ga_capture_{self.instance_id}_", dir=str(QEMU_WORK_DIR)))
+        try:
+            out_path = tmp_dir / "screenshot.png"
+            fast_io_enabled = self._fast_io
+            self._fast_io = False
+            try:
+                if not self.capture_screenshot(out_path):
+                    raise RuntimeError("screenshot capture failed")
+            finally:
+                self._fast_io = fast_io_enabled
+            from PIL import Image
+
+            image = Image.open(out_path)
+            image.load()
+            return image.convert("RGB")
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def capture_screenshot_image(self):
+        """Capture the display as a PIL Image without guest SSH, ffmpeg, or VNC."""
+        if self._fast_io:
+            if self._fast_io_backend() == "dbus":
+                if self._dbus_display is None:
+                    raise RuntimeError("QEMU D-Bus display capture is not initialized")
+                return self._dbus_display.capture_image()
+            image_format = os.environ.get("GYM_ANYTHING_QEMU_SCREENSHOT_FORMAT", "ppm")
+            parser = os.environ.get("GYM_ANYTHING_QEMU_SCREENSHOT_PARSER", "pil")
+            return self._capture_screenshot_image_qmp(image_format=image_format, parser=parser)
+        return self._capture_screenshot_image_legacy()
     
     def capture_screenshot(self, host_path) -> bool:
         """Capture a screenshot.
@@ -1960,6 +3035,15 @@ class QemuApptainerRunner(BaseRunner):
         """
         host_path = Path(host_path)
         host_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if self._fast_io:
+            try:
+                img = self.capture_screenshot_image()
+                img.save(str(host_path), "PNG")
+                return True
+            except Exception as e:
+                print(f"[QemuApptainer] QMP fast screenshot failed: {e}")
+                return False
 
         # --- Android: Use ADB screencap ---
         if self.is_android:
@@ -2129,42 +3213,67 @@ class QemuApptainerRunner(BaseRunner):
                 )
 
     def _ssh_with_paramiko(self, cmd: str, capture: bool, timeout: int, use_pty: bool = True) -> subprocess.CompletedProcess:
-        """Fallback SSH using Python's paramiko with key or password authentication."""
+        """Fallback SSH using Python's paramiko with key or password authentication.
+
+        Connection setup is retried: back-to-back SSH sessions (hooks, exec,
+        screenshots, verifier copies) can trip sshd MaxStartups throttling or
+        drop the banner, which otherwise surfaces as a silent empty result.
+        """
         try:
             import paramiko
-            ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
-
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            # For Windows, use password auth directly with configured credentials
-            if self.is_windows:
-                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                              password=self._ssh_password, timeout=10, look_for_keys=False)
-            else:
-                # Try key-based auth first for Linux
-                try:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  key_filename=str(ssh_key), timeout=10, look_for_keys=False)
-                except:
-                    # Fallback to password
-                    client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                                  password=self._ssh_password, timeout=10, look_for_keys=False)
-
-            # Only request PTY if needed (for sudo/su compatibility)
-            # Disable PTY for task init to prevent SIGHUP killing background processes
-            stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=use_pty)
-            exit_code = stdout.channel.recv_exit_status()
-            out = stdout.read()
-            err = stderr.read()
-            client.close()
-            return subprocess.CompletedProcess([], exit_code, out, err)
         except ImportError:
             print("[QemuApptainer] Warning: paramiko not available, SSH commands may fail")
             return subprocess.CompletedProcess([], 1, b"", b"paramiko not available")
-        except Exception as e:
-            print(f"[QemuApptainer] Paramiko error: {e}")
-            return subprocess.CompletedProcess([], 1, b"", str(e).encode())
+
+        ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
+        last_err = None
+        for attempt in range(4):
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                # For Windows, use password auth directly with configured credentials
+                if self.is_windows:
+                    client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                                  password=self._ssh_password, timeout=15, look_for_keys=False)
+                else:
+                    # Try key-based auth first for Linux
+                    try:
+                        client.connect("localhost", port=self.ssh_port, username="ga",
+                                      key_filename=str(ssh_key), timeout=15, look_for_keys=False)
+                    except Exception:
+                        # Fallback to password
+                        client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                                      password=self._ssh_password, timeout=15, look_for_keys=False)
+            except Exception as e:
+                last_err = e
+                try:
+                    client.close()
+                except Exception:
+                    pass
+                if attempt < 3:
+                    print(f"[QemuApptainer] Paramiko connect failed ({e}); retry in {2 * (attempt + 1)}s")
+                    time.sleep(2 * (attempt + 1))
+                    continue
+                print(f"[QemuApptainer] Paramiko error: {e}")
+                return subprocess.CompletedProcess([], 1, b"", str(e).encode())
+
+            try:
+                # Only request PTY if needed (for sudo/su compatibility)
+                # Disable PTY for task init to prevent SIGHUP killing background processes
+                stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=use_pty)
+                exit_code = stdout.channel.recv_exit_status()
+                out = stdout.read()
+                err = stderr.read()
+                client.close()
+                return subprocess.CompletedProcess([], exit_code, out, err)
+            except Exception as e:
+                try:
+                    client.close()
+                except Exception:
+                    pass
+                print(f"[QemuApptainer] Paramiko exec error: {e}")
+                return subprocess.CompletedProcess([], 1, b"", str(e).encode())
+        return subprocess.CompletedProcess([], 1, b"", str(last_err).encode())
     
     def exec(self, cmd: str, env: Optional[Dict[str, str]] = None, user: Optional[str] = None, use_pty: bool = True, timeout: int = 600) -> int:
         """Execute command via SSH or ADB shell.
@@ -2313,28 +3422,14 @@ class QemuApptainerRunner(BaseRunner):
     def _sftp_copy_to(self, host_src: str, container_dst: str) -> None:
         """Copy file/directory to VM using paramiko SFTP with password auth."""
         try:
-            import paramiko
-            ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
+            client = self._sftp_connect()
 
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            # Windows: Use configured credentials directly
             if self.is_windows:
-                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                              password=self._ssh_password, timeout=30, look_for_keys=False)
                 # Convert Windows path to SFTP format (forward slashes, no drive letter)
                 sftp_dst = container_dst.replace("\\", "/")
                 if len(sftp_dst) >= 2 and sftp_dst[1] == ':':
                     sftp_dst = sftp_dst[2:]  # Remove "C:" prefix for SFTP
             else:
-                # Linux: Try key first, then password
-                try:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  key_filename=str(ssh_key), timeout=10, look_for_keys=False)
-                except:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  password="password123", timeout=10, look_for_keys=False)
                 sftp_dst = container_dst
 
             sftp = client.open_sftp()
@@ -2413,27 +3508,49 @@ class QemuApptainerRunner(BaseRunner):
         # Fallback to SFTP via paramiko
         self._sftp_copy_from(container_src, host_dst)
 
+    def _sftp_connect(self):
+        """Open an SSH client with retries.
+
+        Rapid successive connections (hook + screenshots + verifier copies at
+        episode finalize) can trip sshd MaxStartups throttling, which
+        surfaces as 'Error reading SSH protocol banner'. Retry briefly.
+        """
+        import paramiko
+        ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
+
+        last_err = None
+        for attempt in range(4):
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                # Windows: Use configured credentials directly
+                if self.is_windows:
+                    client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                                  password=self._ssh_password, timeout=30, look_for_keys=False)
+                else:
+                    # Linux: Try key first, then password
+                    try:
+                        client.connect("localhost", port=self.ssh_port, username="ga",
+                                      key_filename=str(ssh_key), timeout=10, look_for_keys=False)
+                    except Exception:
+                        client.connect("localhost", port=self.ssh_port, username="ga",
+                                      password="password123", timeout=10, look_for_keys=False)
+                return client
+            except Exception as e:
+                last_err = e
+                try:
+                    client.close()
+                except Exception:
+                    pass
+                if attempt < 3:
+                    print(f"[QemuApptainer] SSH connect failed ({e}); retrying in {2 * (attempt + 1)}s")
+                    time.sleep(2 * (attempt + 1))
+        raise last_err
+
     def _sftp_copy_from(self, container_src: str, host_dst: str) -> None:
         """Copy file/directory from VM using paramiko SFTP with password auth."""
         try:
-            import paramiko
-            ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
-
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            # Windows: Use configured credentials directly
-            if self.is_windows:
-                client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
-                              password=self._ssh_password, timeout=30, look_for_keys=False)
-            else:
-                # Linux: Try key first, then password
-                try:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  key_filename=str(ssh_key), timeout=10, look_for_keys=False)
-                except:
-                    client.connect("localhost", port=self.ssh_port, username="ga",
-                                  password="password123", timeout=10, look_for_keys=False)
+            client = self._sftp_connect()
 
             sftp = client.open_sftp()
 
@@ -2828,7 +3945,7 @@ class QemuApptainerRunner(BaseRunner):
             print(f"[QemuApptainer] GPU: enabled ({gpu_type})")
 
         # Create work directory
-        work_base = QEMU_WORK_DIR
+        work_base = self._get_work_base()
         work_base.mkdir(parents=True, exist_ok=True)
         self._work_dir = Path(tempfile.mkdtemp(prefix=f"ga_qemu_{self.instance_id}_", dir=work_base))
         self._instance_qcow2 = self._work_dir / "disk.qcow2"
@@ -2865,12 +3982,15 @@ class QemuApptainerRunner(BaseRunner):
                 self.ssh_port = _find_free_port(2222)
             if self.is_windows:
                 self.pyautogui_port = _find_free_port(5555)
+            self._assign_fast_input_port()
         if self.is_android:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, ADB: {self.adb_port}")
         elif self.is_windows:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}, PyAutoGUI: {self.pyautogui_port}")
         else:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}")
+            if self._fast_input_host_port:
+                print(f"[QemuApptainer] Fast input: {self._fast_input_host_port}->{self._fast_input_guest_port}")
 
         # Start VM
         self._start_vm()
@@ -2914,6 +4034,7 @@ class QemuApptainerRunner(BaseRunner):
                 if self.is_windows and not self._pyautogui_client:
                     print("[QemuApptainer] Attempting to connect to PyAutoGUI server...")
                     self._try_connect_pyautogui_client()
+            self._ensure_fast_input_agent()
 
         # Connect VNC
         self._vnc_pool = VNCConnectionPool(
@@ -2956,11 +4077,14 @@ class QemuApptainerRunner(BaseRunner):
                 self.ssh_port = _find_free_port(2222)
             if self.is_windows:
                 self.pyautogui_port = _find_free_port(5555)
+            self._assign_fast_input_port()
 
         if self.is_windows:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}, PyAutoGUI: {self.pyautogui_port}")
         else:
             print(f"[QemuApptainer] VNC: {self.vnc_port}, SSH: {self.ssh_port}")
+            if self._fast_input_host_port:
+                print(f"[QemuApptainer] Fast input: {self._fast_input_host_port}->{self._fast_input_guest_port}")
 
         # Start VM with -loadvm option - QEMU automatically restores state before running
         print(f"[QemuApptainer] Starting QEMU with -loadvm {SAVEVM_SNAPSHOT_NAME}...")
@@ -2985,6 +4109,10 @@ class QemuApptainerRunner(BaseRunner):
             # Now wait for SSH to be actually reachable
             ssh_timeout = 60 if self.is_windows else 30  # Shorter timeout since VM is already running
             if not self._wait_for_ssh(self.ssh_port, timeout=ssh_timeout):
+                if self._fast_uinput_keyboard_enabled():
+                    self._dump_log()
+                    self.stop()
+                    raise RuntimeError("SSH not responding after loadvm; cannot start required fast input agent")
                 print(f"[QemuApptainer] Warning: SSH not responding after loadvm, continuing anyway...")
             else:
                 print(f"[QemuApptainer] SSH is ready after loadvm")
@@ -2992,6 +4120,7 @@ class QemuApptainerRunner(BaseRunner):
             # Setup mounts - still needed because host paths may have changed
             # But this is fast since files are likely already there
             self._setup_mounts(self.ssh_port)
+            self._ensure_fast_input_agent()
 
         # Connect VNC pool to new port
         self._vnc_pool = VNCConnectionPool(

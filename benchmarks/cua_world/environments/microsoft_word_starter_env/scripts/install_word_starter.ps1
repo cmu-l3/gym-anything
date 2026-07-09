@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 #
 # The ISO is an MSI-based installer (NOT Click-to-Run). It installs
 # Word only via a custom config.xml that disables all other Office apps.
-# No product key is needed — Office 2010 runs in grace/trial mode.
+# No product key is needed - Office 2010 runs in grace/trial mode.
 # No activation prompts appear on fresh installs.
 
 $logPath = "C:\Users\Docker\env_setup_pre_start.log"
@@ -211,6 +211,19 @@ try {
     # Ensure SSH stays running
     Start-Service -Name sshd -ErrorAction SilentlyContinue
     Write-Host "Reboot suppression complete."
+
+    # Warm-up: launch Word once at build time so Office first-run state (license
+    # acceptance, first-run dialogs) is baked into the pre_start checkpoint. Local,
+    # no network, so episode-time (post_start on an offline node) stays clean.
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        $warmExe = Find-WordExe
+        Launch-WordDocumentInteractive -WordExe $warmExe -WaitSeconds 25
+        try { Dismiss-WordDialogsBestEffort } catch { }
+        Start-Sleep -Seconds 3
+        Get-Process WINWORD -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        Write-Host "Warm-up complete: Office first-run baked into checkpoint."
+    } catch { Write-Host "WARNING: Word warm-up failed: $($_.Exception.Message)" }
 
     Write-Host "=== Word 2010 installation complete ==="
 } finally {

@@ -1,4 +1,5 @@
 from agents.agents.base import BaseAgent
+from agents.shared.drivable import DrivableAgentMixin
 from agents.shared.llm_clients import call_llm, smart_resize, parse_qwen3vl_response
 from agents.agents.kimi import KimiAzureAgent
 from PIL import Image
@@ -18,7 +19,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class KimiDistillAgent(KimiAzureAgent):
+class KimiDistillAgent(DrivableAgentMixin, KimiAzureAgent):
     """
     Kimi Azure agent with prompt aligned to osworld implementation.
     Uses relative coordinate scaling (1000x1000 grid) and osworld-matching action enum.
@@ -104,7 +105,7 @@ class KimiDistillAgent(KimiAzureAgent):
         #     self.top_k,
         #     # self.max_tokens
         # )
-        response = call_llm(
+        response = self.llm_call(
             messages,
             self.model,
             self.temperature,

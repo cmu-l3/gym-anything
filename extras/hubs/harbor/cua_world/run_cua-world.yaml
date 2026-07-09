@@ -1,0 +1,22 @@
+jobs_dir: jobs
+n_attempts: 1
+n_concurrent_trials: 4
+environment:
+  type: docker
+  delete: true
+agents:
+  # The reference computer-use agent: drives the guest VM through the
+  # in-container gym-anything runtime and records ATIF trajectories.
+  # (The oracle agent is not applicable: CUA-World-Long ships no scripted
+  # oracle solutions; see README Notes.)
+  - name: cua-world-agent
+    import_path: gym_anything.integrations.harbor:CuaWorldAgent
+    model_name: gemini-3.5-flash
+    env:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    kwargs:
+      # The paper's model-side protocol budget.
+      max_steps: 500
+      reference_agent: GeminiQwen3Agent
+datasets:
+  - path: datasets/cua-world

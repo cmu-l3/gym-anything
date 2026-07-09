@@ -32,6 +32,27 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max_repetitions", type=int, default=-1)
     parser.add_argument("--surface", type=str, choices=("raw", "verified"), default="raw")
     parser.add_argument("--use_savevm", action="store_true", help="Use QEMU savevm to speed up env initialization")
+    parser.add_argument("--fast_io", "--fast-io", action="store_true", help="Enable runner-native fast screenshot/input paths")
+    parser.add_argument(
+        "--disable_thinking",
+        "--disable-thinking",
+        action="store_true",
+        help="Disable Qwen/vLLM thinking with chat_template_kwargs.enable_thinking=false",
+    )
+    parser.add_argument(
+        "--post_reset_observation_delay",
+        "--post-reset-observation-delay",
+        type=float,
+        default=0.0,
+        help="Seconds to wait after env.reset before capturing the first model observation",
+    )
+    parser.add_argument(
+        "--post_step_observation_delay",
+        "--post-step-observation-delay",
+        type=float,
+        default=0.0,
+        help="Seconds to wait after each env.step before refreshing the model observation",
+    )
     return parser
 
 
@@ -106,6 +127,14 @@ def run_batch(args: argparse.Namespace) -> int:
                 command.append("--use_cache")
             if args.use_savevm:
                 command.append("--use_savevm")
+            if args.fast_io:
+                command.append("--fast_io")
+            if args.disable_thinking:
+                command.append("--disable_thinking")
+            if args.post_reset_observation_delay:
+                command.extend(["--post_reset_observation_delay", str(args.post_reset_observation_delay)])
+            if args.post_step_observation_delay:
+                command.extend(["--post_step_observation_delay", str(args.post_step_observation_delay)])
             print(" ".join(command))
             subprocess.run(command, check=False)
 

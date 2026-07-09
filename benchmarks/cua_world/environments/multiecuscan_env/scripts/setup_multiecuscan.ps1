@@ -3,7 +3,7 @@ $ErrorActionPreference = "Continue"
 
 Write-Host "=== Setting up Multiecuscan environment ==="
 
-# ── 1. Disable OneDrive and other distractions ─────────────────────────────
+# -- 1. Disable OneDrive and other distractions -----------------------------
 Write-Host "[1/5] Disabling OneDrive and system distractions..."
 Get-Process -Name "OneDrive" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Get-Process -Name "OneDriveSetup" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -26,7 +26,7 @@ if (Test-Path $oneDrivePath) {
 # Kill Edge update processes
 Get-Process -Name "MicrosoftEdgeUpdate*" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
-# ── 2. Set up Desktop directory structure ──────────────────────────────────
+# -- 2. Set up Desktop directory structure ----------------------------------
 Write-Host "[2/5] Setting up Desktop directory..."
 $desktop = "C:\Users\Docker\Desktop"
 $dataDir = "$desktop\MultiecuscanData"
@@ -34,7 +34,7 @@ $tasksDir = "$desktop\MultiecuscanTasks"
 New-Item -ItemType Directory -Path $dataDir -Force | Out-Null
 New-Item -ItemType Directory -Path $tasksDir -Force | Out-Null
 
-# ── 3. Find Multiecuscan executable ────────────────────────────────────────
+# -- 3. Find Multiecuscan executable ----------------------------------------
 Write-Host "[3/5] Locating Multiecuscan executable..."
 . C:\workspace\scripts\task_utils.ps1
 $mesExe = Find-MultiecuscanExe
@@ -47,7 +47,7 @@ if ($mesExe) {
     exit 1
 }
 
-# ── 3b. Ensure .NET ngen queue is drained ────────────────────────────────────
+# -- 3b. Ensure .NET ngen queue is drained ------------------------------------
 # If .NET 3.5 was installed recently (even from a cached image), ngen may still
 # be processing queued items on this boot. MES will crash if ngen hasn't finished.
 Write-Host "[3b/5] Ensuring .NET native images are compiled..."
@@ -62,7 +62,7 @@ foreach ($ngen in $ngenPaths) {
     }
 }
 
-# ── 4. Warm-up launch (triggers first-run dialogs, then kill) ──────────────
+# -- 4. Warm-up launch (triggers first-run dialogs, then kill) --------------
 Write-Host "[4/5] Performing warm-up launch to clear first-run dialogs..."
 
 $launched = Launch-MultiecuscanInteractive -MesExe $mesExe -WaitSeconds 25
@@ -76,7 +76,7 @@ Start-Sleep -Seconds 3
 
 Write-Host "Warm-up launch completed"
 
-# ── 5. Minimize terminal windows ──────────────────────────────────────────
+# -- 5. Minimize terminal windows ------------------------------------------
 Write-Host "[5/5] Minimizing terminal windows..."
 
 # Use SW_HIDE (0) instead of SW_MINIMIZE (6) to fully hide terminal windows
@@ -109,5 +109,18 @@ try {
 } catch {
     Write-Host "  Terminal minimize: $($_.Exception.Message)"
 }
+
+# Base launch: leave Multiecuscan open and running at t=0 for every episode.
+# Replaces the savevm checkpoint's baked-in running app. Tasks that need a
+# specific state relaunch it in their own pre_task.
+try {
+    $baseExe = Find-MultiecuscanExe
+    if ($baseExe) {
+        Launch-MultiecuscanInteractive -MesExe $baseExe -WaitSeconds 25
+        Write-Host "Base Multiecuscan launch complete."
+    } else {
+        Write-Host "WARNING: Multiecuscan.exe not found for base launch."
+    }
+} catch { Write-Host "WARNING: Base Multiecuscan launch failed: $($_.Exception.Message)" }
 
 Write-Host "=== Multiecuscan environment setup complete ==="

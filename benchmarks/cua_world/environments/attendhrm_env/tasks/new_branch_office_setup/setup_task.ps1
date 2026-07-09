@@ -100,6 +100,17 @@ DELETE FROM WGR_BRA WHERE UPPER(BRA_NAME) LIKE '%MANCHESTER%';
     $edgeKiller = Start-EdgeKillerTask
 
     try {
+        # AttendHRM's dbExpress driver (Bin\dbxdrivers.ini -> VendorLib=GDS32.DLL) loads the DB
+        # client by the legacy InterBase name gds32.dll, which the silent install never provides
+        # -> the dashboard throws ElenException ("fbclient.dll ... gds32.dll not loadable") on
+        # its DB connect. gds32.dll is the Firebird client under the legacy name (drop-in), so
+        # provide it in SysWOW64 (the 32-bit system dir a by-name load resolves from).
+        $gdsSrc = "C:\Windows\SysWOW64\fbclient.dll"
+        if (-not (Test-Path $gdsSrc)) { $gdsSrc = "C:\Program Files (x86)\Firebird\Firebird_5_0\fbclient.dll" }
+        if (Test-Path $gdsSrc) {
+            Copy-Item $gdsSrc "C:\Windows\SysWOW64\gds32.dll" -Force -ErrorAction SilentlyContinue
+            Write-Host "Provided SysWOW64\gds32.dll (Firebird client under legacy name)."
+        }
         Launch-AttendHRMInteractive
         $started = Wait-ForAttendHRM -TimeoutSec 30
         if (-not $started) {

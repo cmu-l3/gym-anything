@@ -1074,15 +1074,52 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
             raise RuntimeError(f"Failed to forward VNC port: {result.stderr.decode()}")
 
     def copy_from(self, remote_path: str, local_path: str) -> None:
-        """Copy file from device via ADB pull.
+        """Copy file from device.
+
+        A file a hook just wrote under /sdcard (sdcardfs/FUSE) can take tens of
+        seconds to become visible to a fresh adb connection on the emulator:
+        `adb pull` fails to stat it, and `adb exec-out cat` on the missing file
+        returns the shell's error text on stdout with a success code. So we
+        `sync`, then retry both retrieval paths, and only accept non-empty
+        output whose size matches the on-device size.
 
         Args:
             remote_path: Remote path on device
             local_path: Local file path
         """
-        result = self._adb_command(["pull", remote_path, local_path])
-        if result.returncode != 0:
-            raise RuntimeError(f"adb pull failed: {result.stderr.decode()}")
+        self._adb_command(["shell", "sync"])
+        last = ""
+        for attempt in range(8):
+            # Expected size from the shell view (authoritative once visible).
+            st = self._adb_command(["shell", "stat", "-c", "%s", remote_path])
+            expected = st.stdout.decode().strip() if st.returncode == 0 else ""
+            expected_n = int(expected) if expected.isdigit() else -1
+
+            if expected_n > 0:
+                # Try a plain pull first (fast, exact bytes when the view agrees).
+                pull = self._adb_command(["pull", remote_path, local_path])
+                if pull.returncode == 0:
+                    try:
+                        if Path(local_path).stat().st_size == expected_n:
+                            return
+                    except OSError:
+                        pass
+                # Fallback: stream via exec-out with remote stderr suppressed so a
+                # transient error can't masquerade as file content.
+                cat = self._adb_command(
+                    ["exec-out", "sh", "-c", f"cat '{remote_path}' 2>/dev/null"]
+                )
+                if cat.returncode == 0 and len(cat.stdout) == expected_n and expected_n > 0:
+                    with open(local_path, "wb") as f:
+                        f.write(cat.stdout)
+                    return
+                last = f"size mismatch (expected {expected_n}, pull/cat did not match)"
+            else:
+                last = f"file not yet visible: {st.stderr.decode().strip() if st.stderr else 'stat failed'}"
+
+            time.sleep(3 * (attempt + 1))
+            self._adb_command(["shell", "sync"])
+        raise RuntimeError(f"adb copy_from failed after retries: {last}")
 
     def put_file(self, local_path: Path, remote_dir: str = "/sdcard") -> str:
         """Copy file to device and return remote path.

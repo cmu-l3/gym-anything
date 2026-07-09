@@ -8,6 +8,12 @@ recording. See `make` and `from_config` to construct environments.
 from .api import make, from_config
 from .compatibility import get_runner_compatibility, get_runner_compatibility_matrix
 from .contracts import PlatformFamily, RunnerRuntimeInfo, SessionInfo
+from .registry import (
+    get_tasks_for_environment,
+    list_environments,
+    resolve_benchmark_root,
+    resolve_environment_dir,
+)
 from .specs import EnvSpec, TaskSpec
 from .env import GymAnythingEnv
 from .remote import RemoteGymEnv
@@ -18,6 +24,10 @@ __all__ = [
     "from_config",
     "get_runner_compatibility",
     "get_runner_compatibility_matrix",
+    "get_tasks_for_environment",
+    "list_environments",
+    "resolve_benchmark_root",
+    "resolve_environment_dir",
     "PlatformFamily",
     "RunnerRuntimeInfo",
     "SessionInfo",

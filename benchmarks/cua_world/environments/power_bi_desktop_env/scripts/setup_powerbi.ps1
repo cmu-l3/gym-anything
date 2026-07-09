@@ -161,6 +161,20 @@ Start-Sleep -Milliseconds 500
     Write-Host "Available data files in $TasksDir :"
     Get-ChildItem $TasksDir | ForEach-Object { Write-Host "  - $($_.Name)" }
 
+    # Base launch: leave Power BI Desktop open and rendered at t=0 for every episode.
+    # Replaces the savevm checkpoint's baked-in running app. Tasks that need a specific
+    # report relaunch it in their own pre_task.
+    try {
+        $baseExe = $null
+        try { $baseExe = Find-PowerBIExe } catch { }
+        if ($baseExe) {
+            Launch-PowerBIInteractive -PowerBIExe $baseExe -WaitSeconds 30
+            Write-Host "Base Power BI Desktop launch complete."
+        } else {
+            Write-Host "WARNING: PBIDesktop.exe not found for base launch."
+        }
+    } catch { Write-Host "WARNING: Base Power BI Desktop launch failed: $($_.Exception.Message)" }
+
     Write-Host "=== Power BI Desktop environment setup complete ==="
 } finally {
     try { Stop-Transcript | Out-Null } catch { }

@@ -26,6 +26,11 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
+# Timeout (seconds) for the pre_start/post_start provisioning hooks. Configurable so
+# envs with very long installs (e.g. virtualmin's installer) are not cut off when their
+# checkpoint is built. Default 1800s preserves prior behaviour.
+HOOK_TIMEOUT = int(os.environ.get("GYM_ANYTHING_HOOK_TIMEOUT", "1800"))
+
 
 class GymAnythingEnv:
     """Unified environment wrapper exposing Gym-like API.
@@ -35,11 +40,22 @@ class GymAnythingEnv:
     observation dicts keyed by modality (e.g., `screen`, `audio`, `ui_tree`).
     """
 
-    def __init__(self, env_spec: EnvSpec, task_spec: Optional[TaskSpec] = None):
+    def __init__(
+        self,
+        env_spec: EnvSpec,
+        task_spec: Optional[TaskSpec] = None,
+        *,
+        fast_io: bool = False,
+    ):
         self.env_spec = env_spec
         self.task_spec = task_spec
+        self.fast_io = bool(fast_io)
         self._reporter = None
         self._runner: BaseRunner = self._select_runner(env_spec)
+        if self.fast_io:
+            if not self._runner.supports_fast_io():
+                raise RuntimeError(f"{self.runner_name} does not support fast_io=True")
+            self._runner.set_fast_io(True)
         self._recorder: Optional[FFmpegRecorder] = None
         self._rec_handle: Optional[RecordingHandle] = None
         self._episode_dir: Optional[Path] = None
@@ -73,102 +89,106 @@ class GymAnythingEnv:
     def _select_runner(self, spec: EnvSpec) -> BaseRunner:
         """Select the appropriate runner based on environment and configuration.
 
-        Runner selection:
-        - GYM_ANYTHING_RUNNER=avd : Use AVD runner (auto-selects native on macOS)
-        - GYM_ANYTHING_RUNNER=avd_native : Force AVDNativeRunner
-        - GYM_ANYTHING_RUNNER=qemu : Use QEMU runner (auto-selects native on macOS)
-        - GYM_ANYTHING_RUNNER=qemu_native : Force QemuNativeRunner
-        - GYM_ANYTHING_RUNNER=apptainer : Use ApptainerDirectRunner (GPU-enabled, no QEMU)
-        - GYM_ANYTHING_RUNNER=docker : Use DockerRunner (explicit)
-        - Default: Auto-detect based on spec.runner field, then Docker, fallback to QEMU
+        Precedence, uniform for every runner key:
+        1. GYM_ANYTHING_RUNNER (explicit override) — always wins, even when a
+           preset pins spec.runner (e.g. GYM_ANYTHING_RUNNER=modal on
+           android-avd-34 runs the same env remotely unchanged).
+        2. spec.runner (env.json or preset pin).
+        3. Platform auto-detect.
 
         The SAME env.json files work with all runners!
         """
         runner_override = os.environ.get("GYM_ANYTHING_RUNNER", "").lower()
+        spec_runner = (getattr(spec, "runner", None) or "").lower()
 
-        spec_runner = getattr(spec, 'runner', None)
-        spec_base = getattr(spec, 'base', None)
+        if runner_override:
+            runner = self._runner_for_key(runner_override, spec)
+            if runner is not None:
+                return runner
+            logger.warning(
+                "Unknown runner override '%s'; falling back to spec/auto-detect",
+                runner_override,
+            )
 
-        # --- use.computer runner (remote macOS sandboxes) ---
-        if runner_override == "use_computer" or spec_runner == "use_computer":
+        if spec_runner:
+            runner = self._runner_for_key(spec_runner, spec)
+            if runner is not None:
+                return runner
+            logger.warning(
+                "Unknown spec runner '%s'; falling back to auto-detect", spec_runner
+            )
+
+        # --- Auto-detect: pick the best available runner for this platform ---
+        import sys as _sys
+        import platform as _platform
+
+        if _sys.platform == "darwin" and _platform.machine() == "arm64":
+            # Apple Silicon: prefer AVF (Rosetta) > QemuNative (aarch64+HVF) > Docker
+            if self._check_avf_available():
+                from .runtime.runners.avf import AVFRunner
+                logger.info("Using AVFRunner (Apple Silicon, auto-detected)")
+                return AVFRunner(spec)
+            if self._check_qemu_native_available():
+                logger.info("Using QemuNativeRunner (Apple Silicon, auto-detected)")
+                return QemuNativeRunner(spec)
+        elif _sys.platform == "darwin":
+            # Intel Mac: prefer QemuNative (x86+HVF) > Docker
+            if self._check_qemu_native_available():
+                logger.info("Using QemuNativeRunner (Intel Mac, auto-detected)")
+                return QemuNativeRunner(spec)
+        else:
+            # Linux: prefer QemuApptainer > QemuNative > Docker
+            if self._check_apptainer_available():
+                logger.info("Using QemuApptainerRunner (auto-detected)")
+                return QemuApptainerRunner(spec)
+            if self._check_qemu_native_available():
+                logger.info("Using QemuNativeRunner (auto-detected)")
+                return QemuNativeRunner(spec)
+
+        # Fallback: Docker
+        if self._check_docker_available() and (spec.image or spec.dockerfile):
+            logger.info("Using DockerRunner (fallback)")
+            return DockerRunner(spec)
+
+        logger.warning("No suitable runtime found. Run: gym-anything doctor")
+        return LocalRunner(spec)
+
+    def _runner_for_key(self, key: str, spec: EnvSpec) -> Optional[BaseRunner]:
+        """Instantiate the runner an explicit key names, or None if unknown."""
+        if key == "modal":
+            from .runtime.runners.modal_runner import ModalRunner
+            logger.info("Using ModalRunner (guest VM in Modal VM Sandbox)")
+            return ModalRunner(spec)
+        if key == "use_computer":
             from .runtime.runners.use_computer import UseComputerRunner
             logger.info("Using UseComputerRunner (remote macOS sandbox via use.computer)")
             return UseComputerRunner(spec)
-
-        # --- AVF runner (Apple Virtualization Framework + Rosetta) ---
-        if runner_override == "avf" or spec_runner == "avf":
+        if key == "avf":
             from .runtime.runners.avf import AVFRunner
             logger.info("Using AVFRunner (Apple Virtualization Framework + Rosetta)")
             return AVFRunner(spec)
-
-        # --- AVD runners ---
-        if runner_override == "avd_native" or spec_runner == "avd_native":
+        if key == "avd_native":
             from .runtime.runners.avd_native import AVDNativeRunner
             logger.info("Using AVDNativeRunner (no Apptainer)")
             return AVDNativeRunner(spec)
-
-        if runner_override == "avd" or spec_runner == "avd":
+        if key == "avd":
             return self._make_avd_runner(spec)
-
-        # --- Direct Apptainer runner (GPU-enabled, no QEMU) ---
-        if runner_override == "apptainer" or spec_runner == "apptainer":
+        if key == "apptainer":
             logger.info("Using ApptainerDirectRunner (GPU-enabled)")
             from .runtime.runners.apptainer_direct import ApptainerDirectRunner
             return ApptainerDirectRunner(spec)
-
-        # --- QEMU runners ---
-        if runner_override == "qemu_native":
-            logger.info("Using QemuNativeRunner (GYM_ANYTHING_RUNNER=qemu_native)")
+        if key == "qemu_native":
+            logger.info("Using QemuNativeRunner")
             return QemuNativeRunner(spec)
-
-        if runner_override == "qemu" or spec_runner == "qemu":
+        if key == "qemu":
             return self._make_qemu_runner(spec)
-
-        # --- Explicit simple runners ---
-        if runner_override == "local" or spec_runner == "local":
+        if key == "local":
             logger.info("Using LocalRunner")
             return LocalRunner(spec)
-
-        if runner_override == "docker":
-            pass  # Fall through to docker runner
-        elif runner_override:
-            logger.warning("Unknown runner '%s', using default", runner_override)
-
-        # --- Auto-detect: pick the best available runner for this platform ---
-        if not runner_override:
-            import sys as _sys
-            import platform as _platform
-
-            if _sys.platform == "darwin" and _platform.machine() == "arm64":
-                # Apple Silicon: prefer AVF (Rosetta) > QemuNative (aarch64+HVF) > Docker
-                if self._check_avf_available():
-                    from .runtime.runners.avf import AVFRunner
-                    logger.info("Using AVFRunner (Apple Silicon, auto-detected)")
-                    return AVFRunner(spec)
-                if self._check_qemu_native_available():
-                    logger.info("Using QemuNativeRunner (Apple Silicon, auto-detected)")
-                    return QemuNativeRunner(spec)
-            elif _sys.platform == "darwin":
-                # Intel Mac: prefer QemuNative (x86+HVF) > Docker
-                if self._check_qemu_native_available():
-                    logger.info("Using QemuNativeRunner (Intel Mac, auto-detected)")
-                    return QemuNativeRunner(spec)
-            else:
-                # Linux: prefer QemuApptainer > QemuNative > Docker
-                if self._check_apptainer_available():
-                    logger.info("Using QemuApptainerRunner (auto-detected)")
-                    return QemuApptainerRunner(spec)
-                if self._check_qemu_native_available():
-                    logger.info("Using QemuNativeRunner (auto-detected)")
-                    return QemuNativeRunner(spec)
-
-            # Fallback: Docker
-            if self._check_docker_available() and (spec.image or spec.dockerfile):
-                logger.info("Using DockerRunner (fallback)")
-                return DockerRunner(spec)
-
-            logger.warning("No suitable runtime found. Run: gym-anything doctor")
-            return LocalRunner(spec)
+        if key == "docker":
+            logger.info("Using DockerRunner")
+            return DockerRunner(spec)
+        return None
 
     def _make_qemu_runner(self, spec: EnvSpec) -> BaseRunner:
         """Auto-select between QemuApptainerRunner and QemuNativeRunner."""
@@ -472,9 +492,9 @@ class GymAnythingEnv:
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     elif self._platform_family() == "macos":
-                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/env_setup_pre_start.log 2>&1", timeout=1800)
+                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/env_setup_pre_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     else:
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=1800)
+                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     if self._reporter:
                         self._reporter.stage_done("pre_start_hook")
                 except Exception as e:
@@ -515,9 +535,9 @@ class GymAnythingEnv:
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
                     elif self._platform_family() == "macos":
-                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/env_setup_post_start.log 2>&1", timeout=1800)
+                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/env_setup_post_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     else:
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=1800)
+                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     if self._reporter:
                         self._reporter.stage_done("post_start_hook")
                 except Exception as e:
@@ -687,10 +707,13 @@ class GymAnythingEnv:
             if wait_between_actions and action_num < len(actions) - 1:
                 time.sleep(wait_between_actions)
         if injected_actions:
-            time.sleep(2)
-        # For synchronous envs, wait for the step cycle
-        if injected_actions and self.env_spec.synchronous and self.env_spec.step_cycle_ms:
-            time.sleep(self.env_spec.step_cycle_ms / 1000.0)
+            settle_seconds = self._post_action_settle_seconds()
+            if settle_seconds > 0:
+                time.sleep(settle_seconds)
+        # For synchronous envs, wait for the step cycle unless fast I/O asked for immediate observation.
+        cycle_seconds = self._step_cycle_settle_seconds(injected_actions)
+        if cycle_seconds > 0:
+            time.sleep(cycle_seconds)
         obs: Dict[str, Any] = self._capture_observation()
 
         # Log step
@@ -708,7 +731,11 @@ class GymAnythingEnv:
         if actions:
             if control_result is not None and injected_actions == 0 and len(actions) == 1:
                 if control_result["action"] == "screenshot":
-                    control_result["output"] = obs.get("screen", {}).get("path")
+                    screen = obs.get("screen", {})
+                    if "image" in screen:
+                        control_result["output"] = screen["image"]
+                    else:
+                        control_result["output"] = screen.get("path")
                 info["action_result"] = control_result
             else:
                 info["action_result"] = {
@@ -746,6 +773,26 @@ class GymAnythingEnv:
         self._step_idx += 1
         return obs, reward, done, info
 
+    def _post_action_settle_seconds(self) -> float:
+        if not self.fast_io:
+            return 2.0
+        value = os.environ.get("GYM_ANYTHING_FAST_IO_ACTION_SETTLE_MS", "0")
+        try:
+            return max(0.0, float(value) / 1000.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _step_cycle_settle_seconds(self, injected_actions: int) -> float:
+        if not injected_actions or not self.env_spec.synchronous or not self.env_spec.step_cycle_ms:
+            return 0.0
+        if self.fast_io:
+            value = os.environ.get("GYM_ANYTHING_FAST_IO_STEP_CYCLE_MS", "0")
+            try:
+                return max(0.0, float(value) / 1000.0)
+            except (TypeError, ValueError):
+                return 0.0
+        return self.env_spec.step_cycle_ms / 1000.0
+
     def _parse_control_action(self, action: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if not isinstance(action, dict):
             return None
@@ -766,6 +813,10 @@ class GymAnythingEnv:
     def capture_observation(self) -> Dict[str, Any]:
         """Capture the current observation without advancing the episode."""
         return self._capture_observation()
+
+    def capture_screenshot_image(self):
+        """Capture the current screen as an in-process Python image object."""
+        return self._runner.capture_screenshot_image()
 
     def set_episode_limits(
         self,
@@ -800,6 +851,11 @@ class GymAnythingEnv:
     @property
     def task_root(self) -> Optional[Path]:
         return self._task_root
+
+    @property
+    def runner(self) -> BaseRunner:
+        """The active runner: the runtime exec/transfer surface integrations build on."""
+        return self._runner
 
     @property
     def runner_name(self) -> str:
@@ -843,6 +899,8 @@ class GymAnythingEnv:
             try:
                 self._recorder.stop(self._rec_handle)
             except Exception:
+                if self.fast_io:
+                    raise
                 pass
         try:
             self._ensure_recording_artifact()
@@ -1157,18 +1215,29 @@ class GymAnythingEnv:
         obs: Dict[str, Any] = {}
         screen_spec = next((o for o in self.env_spec.observation if o.type == "rgb_screen"), None)
         if screen_spec and self._episode_dir:
-            frame_path = self._episode_dir / f"frame_{self._step_idx:05d}.png"
             try:
-                if self._runner.capture_screenshot(frame_path):
-                    # breakpoint()
-                    item: Dict[str, Any] = {"path": str(frame_path)}
+                if self.fast_io:
+                    image = self._runner.capture_screenshot_image()
+                    item: Dict[str, Any] = {"image": image, "format": "pil"}
                     if screen_spec.resolution:
                         item["resolution"] = list(screen_spec.resolution)
-                    if screen_spec.inline:
-                        with open(frame_path, "rb") as fh:
-                            item["png_b64"] = base64.b64encode(fh.read()).decode("ascii")
+                    else:
+                        item["resolution"] = [image.size[0], image.size[1]]
+                    item["mode"] = image.mode
                     obs["screen"] = item
+                else:
+                    frame_path = self._episode_dir / f"frame_{self._step_idx:05d}.png"
+                    if self._runner.capture_screenshot(frame_path):
+                        item = {"path": str(frame_path)}
+                        if screen_spec.resolution:
+                            item["resolution"] = list(screen_spec.resolution)
+                        if screen_spec.inline:
+                            with open(frame_path, "rb") as fh:
+                                item["png_b64"] = base64.b64encode(fh.read()).decode("ascii")
+                        obs["screen"] = item
             except Exception:
+                if self.fast_io:
+                    raise
                 pass
         audio_spec = next((o for o in self.env_spec.observation if o.type == "audio_waveform"), None)
         if audio_spec:

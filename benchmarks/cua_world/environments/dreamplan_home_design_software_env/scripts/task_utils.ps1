@@ -184,7 +184,7 @@ function Test-ContemporaryHouseOpen {
     $psPath = "C:\Windows\Temp\check_dp_state.ps1"
     $resultPath = "C:\Windows\Temp\dp_state_result.txt"
 
-    # PowerShell runs in Session 1 via schtasks /IT — MainWindowTitle IS accessible there.
+    # PowerShell runs in Session 1 via schtasks /IT -- MainWindowTitle IS accessible there.
     $psContent = 'Start-Sleep -Seconds 2' + "`n" +
         '$proc = Get-Process dreamplan -ErrorAction SilentlyContinue | Select-Object -First 1' + "`n" +
         'if ($proc) {' + "`n" +
@@ -328,6 +328,17 @@ function Find-DreamPlanExe {
         if ($found) { return $found.FullName }
     }
     throw "DreamPlan executable not found. Is it installed?"
+}
+
+function Test-DreamPlanRendered {
+    # Returns $true when DreamPlan has loaded enough to be usable.
+    # Working-set check works from Session 0; MainWindowHandle is 0 from Session 0 for GUI windows in Session 1.
+    $procs = Get-Process dreamplan, DreamPlan -ErrorAction SilentlyContinue
+    if (-not $procs) { return $false }
+    foreach ($p in @($procs)) {
+        if ($p.WorkingSet64 -gt 100MB) { return $true }
+    }
+    return $false
 }
 
 # =====================================================================
@@ -490,7 +501,7 @@ function Open-ContemporaryHouseFromStartScreen {
     <#
     .SYNOPSIS
         Navigates DreamPlan's start screen to open the Contemporary House sample project.
-        Uses fixed sleeps (NOT window title polling — MainWindowTitle is always empty from Session 0).
+        Uses fixed sleeps (NOT window title polling -- MainWindowTitle is always empty from Session 0).
         - "View Sample Project": (768, 260)
         - "Contemporary House" thumbnail: (452, 324)
         - "Open Project" button: (857, 570)
@@ -610,7 +621,7 @@ function Launch-DreamPlanWithSample {
     Dismiss-DreamPlanStartupDialogs
 
     # Detect and dismiss "DreamPlan Free Version" non-commercial license dialog.
-    # CRITICAL: Must be conditional — blind click at (640, 360) hits "Open Saved Project"
+    # CRITICAL: Must be conditional -- blind click at (640, 360) hits "Open Saved Project"
     # when the dialog is absent, derailing the entire navigation sequence.
     Dismiss-DreamPlanLicenseDialog
 
@@ -652,7 +663,7 @@ function Ensure-DreamPlanReadyForTask {
         recovery steps.
 
         IMPORTANT: Uses Test-ContemporaryHouseOpen (VBScript via schtasks in Session 1)
-        to detect state — NOT Get-DreamPlanTitle (MainWindowTitle from Session 0 is
+        to detect state -- NOT Get-DreamPlanTitle (MainWindowTitle from Session 0 is
         always empty for GUI windows in Session 1).
     #>
 
@@ -666,12 +677,12 @@ function Ensure-DreamPlanReadyForTask {
 
     # Dismiss any startup dialogs that may appear after loadvm restore
     # (e.g. "Abnormal Termination" or "Open Auto-save Project" dialogs).
-    # This must happen BEFORE checking window state — dialogs block the Contemporary House window.
+    # This must happen BEFORE checking window state -- dialogs block the Contemporary House window.
     Dismiss-DreamPlanStartupDialogs
 
     # Check if DreamPlan is already in the correct state using PowerShell in Session 1.
     # CRITICAL: MainWindowTitle is only accessible from Session 1, not from Session 0/SSH.
-    # VBScript AppActivate was WRONG — it requires title to start with the search string,
+    # VBScript AppActivate was WRONG -- it requires title to start with the search string,
     # but DreamPlan's title is "DreamPlan by NCH Software - Contemporary House - ..."
     Write-Host "Checking if Contemporary House is already open (via PowerShell in Session 1)..."
     $alreadyOpen = Test-ContemporaryHouseOpen

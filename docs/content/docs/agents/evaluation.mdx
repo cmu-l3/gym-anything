@@ -37,6 +37,16 @@ Common optional arguments are:
 - `--temperature`: sampling temperature
 - `--agent-arg KEY=VALUE`: extra agent arguments (repeatable)
 - `--use-cache`, `--cache-level`, `--use-savevm`
+- `--fast-io`: enable runner-native fast screenshot/input paths
+- `--disable-thinking`: pass `chat_template_kwargs.enable_thinking=false` to
+  OpenAI-compatible VLM calls
+- `--post-reset-observation-delay`: wait this many seconds after `env.reset`
+  before capturing the first model observation
+- `--post-step-observation-delay`: after each `env.step`, wait this many
+  seconds and capture a fresh observation for the next model turn
+- `--timing-jsonl`: write per-iteration timing records to a chosen JSONL path;
+  by default single-task runs write `timing.jsonl` and `timing_summary.json`
+  under the episode directory
 
 ## What `run_single` Does
 
@@ -54,6 +64,12 @@ At a high level, `run_single` does this:
 7. finish the task with `mark_done=True`
 8. close the environment
 9. call `agent.finish(...)`
+
+Single-task runs also write timing records. The outer loop records environment
+creation, reset, initial capture, each policy iteration, and each `env.step`.
+Agents can add an `agent.last_step_timing` dictionary for internal policy
+breakdowns such as image processing, message construction, VLM call time, and
+response parsing.
 
 If you're trying to understand how the loop works, `agents/evaluation/run_single.py` is the file to read.
 

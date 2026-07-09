@@ -23,11 +23,25 @@ Usage:
 from __future__ import annotations
 
 import json
+import logging
 import os
+import random
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
+
+logger = logging.getLogger(__name__)
+
+# Transient failure retry policy. Tuned for a flaky master/worker link (5xx
+# from the master when no healthy worker is momentarily available, dropped
+# connections, idle-timeout reads on long resets, etc.). 4xx and other
+# requests.exceptions are not retried.
+_RETRYABLE_STATUSES = frozenset({500, 502, 503, 504})
+_DEFAULT_RETRY_ATTEMPTS = int(os.environ.get("GYM_ANYTHING_REMOTE_RETRY_ATTEMPTS", "5"))
+_DEFAULT_RETRY_BASE_SEC = float(os.environ.get("GYM_ANYTHING_REMOTE_RETRY_BASE_SEC", "1.0"))
+_DEFAULT_RETRY_MAX_SEC = float(os.environ.get("GYM_ANYTHING_REMOTE_RETRY_MAX_SEC", "30.0"))
 
 from gym_anything.contracts import SessionInfo
 from gym_anything.config.loading import _load_envspec, _load_taskspec
@@ -89,7 +103,8 @@ class RemoteGymEnv:
                  task_spec: Optional[Union[TaskSpec, Dict[str, Any]]] = None,
                  env_dir: Optional[str] = None, task_id: Optional[str] = None,
                  timeout: int = 300, worker_reset_policy: Optional[str] = "core",
-                 verifier_env: Optional[Dict[str, Any]] = None):
+                 verifier_env: Optional[Dict[str, Any]] = None,
+                 fast_io: bool = False):
         """Initialize remote environment client.
         
         Args:
@@ -103,6 +118,7 @@ class RemoteGymEnv:
                 "core" so remote reset matches local reset behavior.
             verifier_env: Optional per-environment verifier/VLM overrides sent
                 to the worker. Defaults to the current process verifier env.
+            fast_io: Request runner-native low-latency I/O paths.
         """
         self.remote_url = remote_url.rstrip('/')
         self.timeout = timeout
@@ -114,6 +130,7 @@ class RemoteGymEnv:
         self._timeout_sec_override: Optional[int] = None
         self._closed = False
         self.worker_reset_policy = worker_reset_policy
+        self.fast_io = bool(fast_io)
         self.verifier_env = (
             _capture_verifier_env()
             if verifier_env is None
@@ -168,6 +185,8 @@ class RemoteGymEnv:
 
         if self.verifier_env:
             data["verifier_env"] = self.verifier_env
+        if self.fast_io:
+            data["fast_io"] = True
 
         # Hint the master at which runner this env needs so it can route to a
         # worker that advertises support. Best-effort: when the spec doesn't
@@ -177,13 +196,12 @@ class RemoteGymEnv:
         if runner_hint:
             data["runner"] = runner_hint
 
-        # Send request
-        response = requests.post(
+        # Send request (with transient-error retries)
+        response = self._http_with_retries(
+            "POST",
             f"{self.remote_url}/envs/create",
             json=data,
-            timeout=self.timeout
         )
-        response.raise_for_status()
 
         result = response.json()
         self.env_id = result["env_id"]
@@ -242,23 +260,71 @@ class RemoteGymEnv:
 
         return env_spec, task_spec
         
-    def _request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
-        """Make HTTP request to remote server with error handling."""
-        if self._closed:
-            raise RuntimeError("Environment has been closed")
-        
-        url = f"{self.remote_url}{endpoint}"
-        
-        # Add default timeout if not specified
+    def _http_with_retries(self, method: str, url: str, **kwargs) -> requests.Response:
+        """Issue an HTTP request, retrying transient failures with exponential
+        backoff + full jitter. Retries on connection errors, timeouts, and
+        5xx responses (500/502/503/504). 4xx errors are surfaced immediately.
+
+        Caveat: /envs/create and /envs/<id>/step are not strictly idempotent;
+        a retry after a partial success may produce a duplicate side effect.
+        That is preferable to losing the whole run on a transient master/worker
+        hiccup; tune attempts via GYM_ANYTHING_REMOTE_RETRY_ATTEMPTS=0 to
+        disable.
+        """
         if 'timeout' not in kwargs:
             kwargs['timeout'] = self.timeout
-        
-        try:
-            response = requests.request(method, url, **kwargs)
-            response.raise_for_status()
-            return response
-        except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Remote request failed: {e}") from e
+
+        attempts = max(1, _DEFAULT_RETRY_ATTEMPTS)
+        last_exc: Optional[BaseException] = None
+        for attempt in range(1, attempts + 1):
+            try:
+                response = requests.request(method, url, **kwargs)
+                if response.status_code in _RETRYABLE_STATUSES and attempt < attempts:
+                    body = (response.text or "")[:200]
+                    delay = min(_DEFAULT_RETRY_MAX_SEC,
+                                _DEFAULT_RETRY_BASE_SEC * (2 ** (attempt - 1)))
+                    delay = random.uniform(0, delay)
+                    logger.warning(
+                        "remote %s %s -> HTTP %d (attempt %d/%d); retrying in %.1fs: %s",
+                        method, url, response.status_code, attempt, attempts, delay, body,
+                    )
+                    time.sleep(delay)
+                    continue
+                response.raise_for_status()
+                return response
+            except (
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                requests.exceptions.ChunkedEncodingError,
+            ) as exc:
+                last_exc = exc
+                if attempt >= attempts:
+                    break
+                delay = min(_DEFAULT_RETRY_MAX_SEC,
+                            _DEFAULT_RETRY_BASE_SEC * (2 ** (attempt - 1)))
+                delay = random.uniform(0, delay)
+                logger.warning(
+                    "remote %s %s -> %s (attempt %d/%d); retrying in %.1fs",
+                    method, url, type(exc).__name__, attempt, attempts, delay,
+                )
+                time.sleep(delay)
+                continue
+            except requests.exceptions.HTTPError as exc:
+                # 4xx (or 5xx on the final attempt) — do not retry further.
+                raise RuntimeError(f"Remote request failed: {exc}") from exc
+            except requests.exceptions.RequestException as exc:
+                raise RuntimeError(f"Remote request failed: {exc}") from exc
+
+        raise RuntimeError(
+            f"Remote request failed after {attempts} attempts: {last_exc}"
+        ) from last_exc
+
+    def _request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
+        """Make HTTP request to remote server with retries on transient errors."""
+        if self._closed:
+            raise RuntimeError("Environment has been closed")
+        url = f"{self.remote_url}{endpoint}"
+        return self._http_with_retries(method, url, **kwargs)
     
     # ========================================================================
     # Main Gym Interface
@@ -360,6 +426,10 @@ class RemoteGymEnv:
         
         result = response.json()
         return result["observation"]
+
+    def capture_screenshot_image(self):
+        """Remote screenshot object capture is not available over JSON."""
+        raise NotImplementedError("capture_screenshot_image requires a local GymAnythingEnv")
 
     def _capture_observation(self) -> Dict[str, Any]:
         """Compatibility shim for older callers using the private method."""
@@ -597,7 +667,8 @@ class RemoteGymEnv:
     def from_config(cls, remote_url: str, env_dir: Union[str, os.PathLike],
                     task_id: Optional[str] = None, timeout: int = 300,
                     worker_reset_policy: Optional[str] = "core",
-                    verifier_env: Optional[Dict[str, Any]] = None) -> RemoteGymEnv:
+                    verifier_env: Optional[Dict[str, Any]] = None,
+                    fast_io: bool = False) -> RemoteGymEnv:
         """Create remote environment from config directory.
         
         This mirrors the gym_anything.api.from_config() interface.
@@ -609,6 +680,7 @@ class RemoteGymEnv:
             timeout: Request timeout in seconds
             worker_reset_policy: Worker-local post-reset policy
             verifier_env: Optional per-environment verifier/VLM overrides
+            fast_io: Request runner-native low-latency I/O paths.
             
         Returns:
             RemoteGymEnv instance
@@ -620,13 +692,15 @@ class RemoteGymEnv:
             timeout=timeout,
             worker_reset_policy=worker_reset_policy,
             verifier_env=verifier_env,
+            fast_io=fast_io,
         )
     
     @classmethod
     def make(cls, remote_url: str, env: Union[str, os.PathLike, Dict[str, Any], EnvSpec],
              task: Optional[Union[str, os.PathLike, Dict[str, Any], TaskSpec]] = None,
              timeout: int = 300, worker_reset_policy: Optional[str] = "core",
-             verifier_env: Optional[Dict[str, Any]] = None) -> RemoteGymEnv:
+             verifier_env: Optional[Dict[str, Any]] = None,
+             fast_io: bool = False) -> RemoteGymEnv:
         """Create remote environment from spec.
         
         This mirrors the gym_anything.api.make() interface.
@@ -638,6 +712,7 @@ class RemoteGymEnv:
             timeout: Request timeout in seconds
             worker_reset_policy: Worker-local post-reset policy
             verifier_env: Optional per-environment verifier/VLM overrides
+            fast_io: Request runner-native low-latency I/O paths.
             
         Returns:
             RemoteGymEnv instance
@@ -658,6 +733,7 @@ class RemoteGymEnv:
             timeout=timeout,
             worker_reset_policy=worker_reset_policy,
             verifier_env=verifier_env,
+            fast_io=fast_io,
         )
     
     def __repr__(self) -> str:

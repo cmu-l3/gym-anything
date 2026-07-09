@@ -18,6 +18,7 @@ class BaseRunner(abc.ABC):
     def __init__(self, spec: EnvSpec):
         self.spec = spec
         self._reporter = None
+        self._fast_io = False
 
     def set_reporter(self, reporter) -> None:
         self._reporter = reporter
@@ -78,6 +79,12 @@ class BaseRunner(abc.ABC):
 
     def supports_savevm(self) -> bool:
         return False
+
+    def supports_fast_io(self) -> bool:
+        return False
+
+    def set_fast_io(self, enabled: bool) -> None:
+        self._fast_io = bool(enabled)
 
     def default_exec_env(self) -> Dict[str, str]:
         return dict(getattr(self.spec.security, "resolved_env", {}) or {})
@@ -149,6 +156,10 @@ class BaseRunner(abc.ABC):
 
     # Optional: capture a single screenshot PNG into a host path
     def capture_screenshot(self, host_path) -> bool:
+        raise NotImplementedError
+
+    # Optional: capture a screenshot as an in-process Python image object.
+    def capture_screenshot_image(self):
         raise NotImplementedError
 
     # Optional: capture short audio chunk as raw s16le bytes

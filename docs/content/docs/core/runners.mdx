@@ -58,8 +58,190 @@ If your question is simply "does this support caching?" or "can I use savevm her
 | Docker | Yes | No | Yes |
 | Apptainer direct | No | No | No |
 | QEMU | Yes | Yes | No |
+| Modal | Yes | Yes | No |
 | AVD | Yes | No | No |
 | AVF | No | No | No |
 | Local | No | No | No |
 
 This reflects our current runner behavior.
+
+## QEMU Fast I/O
+
+QEMU supports `fast_io=True` for low-latency screenshot observations and fast
+keyboard/mouse input:
+
+```python
+from gym_anything import from_config
+
+env = from_config(
+    "benchmarks/cua_world/environments/google_earth_env",
+    task_id="take_screenshot",
+    fast_io=True,
+)
+```
+
+In fast mode, `env.capture_observation()` and `env.step(...)` return
+`obs["screen"]["image"]` as a PIL image object. `env.step(...)` also sends
+mouse and keyboard actions through persistent fast paths instead of the guest
+SSH/PyAutoGUI path.
+Non-fast mode keeps the file-backed `obs["screen"]["path"]` behavior and the
+legacy input path.
+
+### Default: QMP Screendump
+
+The default QEMU fast backend is QMP:
+
+```bash
+export GYM_ANYTHING_QEMU_FAST_IO_BACKEND=qmp
+```
+
+This is the stable default. It asks QEMU for a `screendump`, exchanges the
+frame through local scratch space, and decodes it in-process.
+
+When `fast_io=True`, the QEMU runner prefers local scratch under
+`/tmp/gym-anything-qemu-work` when there is enough free space. Override this
+with:
+
+```bash
+export GYM_ANYTHING_FAST_IO_WORK_DIR=/local/ssd/gym-anything-qemu-work
+```
+
+### Fast Input
+
+Fast mouse input uses QMP `input-send-event`. For Linux and Windows guests,
+`fast_io=True` also starts QEMU with an explicit xHCI USB keyboard and USB
+tablet. This makes the guest see standard virtual HID devices instead of relying
+on QEMU's default PS/2/VMMouse path.
+
+The runner emits absolute pointer coordinates for move, click, double-click,
+right-click, drag, and scroll actions. For click semantics, pointer movement,
+button down, and button up are sent as separate QMP commands so the guest sees
+ordered HID events through the virtual input devices.
+
+Linux keyboard input uses a required guest-side uinput agent by default. The
+runner starts `gym-anything-fast-inputd`, validates `/dev/uinput`, validates the
+`GymAnything Fast Keyboard` device in the guest input stack, and then sends
+keyboard actions over a persistent forwarded TCP connection. If that contract is
+not available, `fast_io=True` fails loudly instead of falling back silently.
+
+The previous QMP keyboard path is still available only as an explicit
+experimental backend:
+
+```bash
+export GYM_ANYTHING_QEMU_FAST_KEYBOARD_BACKEND=qmp-experimental
+```
+
+That backend uses QMP `send-key` with a 5 ms hold time and a 10 ms gap between
+key submissions. These values are temporary safety margins around QEMU's
+asynchronous key-release scheduling; they are not the intended production
+correctness contract.
+
+The QMP timing margins can be adjusted when testing that experimental backend:
+
+```bash
+export GYM_ANYTHING_QEMU_QMP_KEY_HOLD_MS=5
+export GYM_ANYTHING_QEMU_QMP_KEY_GAP_MS=10
+```
+
+Input latency benchmarks report two timed boundaries:
+
+- `runner_inject_action`: starts before `runner.inject_action(...)` and ends
+  after the fast input backend acknowledges the command sequence. For QMP mouse
+  this includes QMP socket write/flush and response. For Linux keyboard this
+  includes the uinput agent acknowledgement.
+- `env_step`: starts before `env.step([action], wait_between_actions=0.0)` and
+  ends after the observation is returned. In fast mode this includes fast input
+  dispatch and fast screenshot capture.
+
+Use app-level evidence to prove that the target application consumed the event.
+The benchmark under `benchmarks/cua_world/tools/measure_input_latency.py`
+records the guest input device list, XInput event counts, a Google Earth search
+field semantic readback, saved gedit file contents for click, double-click,
+drag selection, triple-click, text, and hotkey behavior, plus contact-sheet
+screenshots for right-click menus and Google Earth zoom/drag behavior.
+
+QEMU `savevm` snapshots capture device state. A snapshot created before a QEMU
+device-topology change can fail to load after fast input devices are added.
+Regenerate `savevm` checkpoints when changing QEMU devices; disk-only
+checkpoints do not serialize the live device state in the same way.
+
+`fast_io=True` removes the legacy fixed two-second post-action sleep and the
+default synchronous step-cycle wait from `env.step(...)`. Use explicit wait
+actions when a task needs app-level settling:
+
+```python
+env.step([{"action": "wait", "time": 0.5}])
+```
+
+You can also restore a fixed fast-mode settle delay with environment variables:
+
+```bash
+export GYM_ANYTHING_FAST_IO_ACTION_SETTLE_MS=25
+export GYM_ANYTHING_FAST_IO_STEP_CYCLE_MS=50
+```
+
+### Optional: D-Bus Display
+
+The D-Bus backend is faster because QEMU pushes display updates to a listener
+thread and the API returns the latest in-memory frame:
+
+```bash
+export GYM_ANYTHING_QEMU_FAST_IO_BACKEND=dbus
+```
+
+QEMU's D-Bus display backend requires `qemu-system-modules-opengl` inside the
+Apptainer QEMU image. If the configured image does not provide `-display dbus`,
+Gym Anything prepares a cached sandbox automatically on first use. The sandbox
+is built from `GYM_ANYTHING_QEMU_CONTAINER`, installs the missing QEMU display
+module and `dbus`, and is reused from:
+
+```text
+~/.cache/gym-anything/qemu/containers/
+```
+
+The first D-Bus run can therefore take longer and needs network access plus
+Apptainer fakeroot support. Disable automatic sandbox preparation if you want
+the runner to fail fast instead:
+
+```bash
+export GYM_ANYTHING_QEMU_DBUS_AUTO_INSTALL=0
+```
+
+Use a specific managed sandbox cache path with:
+
+```bash
+export GYM_ANYTHING_QEMU_DBUS_SANDBOX=/path/to/qemu-dbus-sandbox
+```
+
+You can also point directly at a prebuilt image:
+
+```bash
+export GYM_ANYTHING_QEMU_CONTAINER=docker://your-registry/qemu-dbus:latest
+export GYM_ANYTHING_QEMU_FAST_IO_BACKEND=dbus
+```
+
+Keep QMP as the default unless you need the lowest screenshot latency and the
+host can support the D-Bus runtime requirements.
+
+## Modal
+
+`GYM_ANYTHING_RUNNER=modal` runs the QEMU stack inside a
+[Modal](https://modal.com) VM Sandbox instead of on your own machine. The
+sandbox has a real Linux kernel with a working `/dev/kvm`, so the same Linux,
+Windows, and Android guests that the QEMU runner boots run there unchanged —
+this is the OS-agnostic path for hosted, cloud-side environments.
+
+Under the hood `ModalRunner` starts a `QemuNativeRunner` inside the sandbox and
+proxies to it over a small HTTP shim, so no runner logic is duplicated. Base
+QCOW2 images and checkpoints live in a Modal Volume (`gym-anything-qemu-cache`)
+and are built or uploaded once, then reused by every later sandbox.
+
+Requirements: `pip install "gym-anything[modal]"` and a configured Modal token
+(`modal token set ...`). Relevant environment variables:
+
+- `GYM_ANYTHING_MODAL_APP` — Modal app name (default `gym-anything-runner`)
+- `GYM_ANYTHING_MODAL_VOLUME` — cache volume name (default `gym-anything-qemu-cache`)
+- `GYM_ANYTHING_MODAL_TIMEOUT` — sandbox lifetime in seconds (default `10800`)
+
+This runner is also the default backend when a benchmark runs as a
+prime-rl / verifiers environment; see [Training Hubs](/docs/extras/hubs).

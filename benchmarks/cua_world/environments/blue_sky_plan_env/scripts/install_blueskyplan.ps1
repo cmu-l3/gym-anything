@@ -215,6 +215,19 @@ try {
     # Cleanup installer files
     Remove-Item -Path "C:\BSPSetup" -Recurse -Force -ErrorAction SilentlyContinue
 
+    # Warm-up: launch Blue Sky Plan once at build time so first-run state is
+    # baked into the pre_start checkpoint. Local, no network.
+    try {
+        . C:\workspace\scripts\task_utils.ps1
+        $warmExe = Find-BlueSkyPlanExe
+        Launch-BlueSkyPlanInteractive -BSPExe $warmExe -WaitSeconds 30
+        Start-Sleep -Seconds 3
+        Get-Process -ErrorAction SilentlyContinue | Where-Object {
+            $_.ProcessName -like "*BlueSky*" -or $_.ProcessName -like "*Launcher*" -or $_.ProcessName -like "*nats-server*"
+        } | Stop-Process -Force -ErrorAction SilentlyContinue
+        Write-Host "Warm-up complete: Blue Sky Plan first-run baked into checkpoint."
+    } catch { Write-Host "WARNING: Blue Sky Plan warm-up failed: $($_.Exception.Message)" }
+
     Write-Host "=== Blue Sky Plan installation complete ==="
 } finally {
     try { Stop-Transcript | Out-Null } catch { }

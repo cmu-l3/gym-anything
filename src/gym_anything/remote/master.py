@@ -511,14 +511,79 @@ class WorkerRegistry:
                         f"(envs={worker.env_count}, pending={worker.pending_count})")
             return True
 
-    async def reset_pending_counts(self):
-        """Reset all pending counts to 0 (for recovery from stuck state)."""
+    async def reset_pending_counts(
+        self,
+        *,
+        min_age_sec: float = 0.0,
+        dry_run: bool = False,
+    ) -> Dict[str, Any]:
+        """Reset stale pending reservations and return a recovery summary.
+
+        Pending reservations are scheduler bookkeeping for in-flight env
+        creation. If the client connection dies after reserving a slot, the
+        worker may never receive a request and the reservation can block
+        scheduling even though the worker has actual capacity. This endpoint is
+        intentionally separate from closing environments.
+        """
+        now = time.time()
+        reset_workers: List[Dict[str, Any]] = []
+        total_pending_before = 0
+        total_reset = 0
+
         async with self._lock:
             for worker in self._workers.values():
-                if worker.pending_count > 0:
-                    logger.warning(f"Resetting pending_count={worker.pending_count} on {worker.worker_id}")
-                    worker.pending_count = 0
-            self._pending_timestamps.clear()
+                pending_before = worker.pending_count
+                total_pending_before += pending_before
+                if pending_before <= 0:
+                    continue
+
+                timestamps = self._pending_timestamps.get(worker.worker_id, [])
+                if min_age_sec <= 0:
+                    reset_count = pending_before
+                    remaining_timestamps: List[float] = []
+                elif timestamps:
+                    stale_timestamps = [ts for ts in timestamps if now - ts >= min_age_sec]
+                    reset_count = min(len(stale_timestamps), pending_before)
+                    remaining_timestamps = [ts for ts in timestamps if now - ts < min_age_sec]
+                else:
+                    reset_count = 0
+                    remaining_timestamps = []
+
+                if reset_count <= 0:
+                    continue
+
+                total_reset += reset_count
+                reset_workers.append({
+                    "worker_id": worker.worker_id,
+                    "hostname": worker.hostname,
+                    "pending_before": pending_before,
+                    "pending_reset": reset_count,
+                    "pending_after": pending_before - reset_count,
+                    "env_count": worker.env_count,
+                    "max_envs": worker.max_envs,
+                })
+
+                if dry_run:
+                    continue
+
+                worker.pending_count = max(0, pending_before - reset_count)
+                if worker.pending_count == 0:
+                    self._pending_timestamps.pop(worker.worker_id, None)
+                else:
+                    self._pending_timestamps[worker.worker_id] = remaining_timestamps[-worker.pending_count:]
+
+                logger.warning(
+                    f"Reset {reset_count} pending reservation(s) on {worker.worker_id} "
+                    f"(pending {pending_before}->{worker.pending_count}, min_age_sec={min_age_sec})"
+                )
+
+        return {
+            "dry_run": dry_run,
+            "min_age_sec": min_age_sec,
+            "total_pending_before": total_pending_before,
+            "total_pending_reset": total_reset,
+            "workers": reset_workers,
+        }
 
     async def cleanup_stale_pending(self):
         """Clean up stale pending reservations.
@@ -1272,6 +1337,32 @@ async def list_workers():
         return jsonify(stats)
     except Exception as e:
         logger.error(f"List workers error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/admin/pending/reset', methods=['POST'])
+async def reset_pending_reservations_endpoint():
+    """Reset stale pending scheduler reservations.
+
+    This recovers capacity after client or tunnel failures during env creation.
+    It does not close environments or alter worker processes.
+    """
+    try:
+        data = await request.get_json(silent=True) or {}
+        min_age_sec = float(data.get("min_age_sec", 0.0))
+        dry_run = bool(data.get("dry_run", False))
+
+        if min_age_sec < 0:
+            return jsonify({"error": "min_age_sec must be non-negative"}), 400
+
+        summary = await registry.reset_pending_counts(
+            min_age_sec=min_age_sec,
+            dry_run=dry_run,
+        )
+        return jsonify(summary)
+
+    except Exception as e:
+        logger.error(f"Reset pending reservations error: {e}")
         return jsonify({"error": str(e)}), 500
 
 
