@@ -1,0 +1,47 @@
+{
+  "id": "sshfs_home_nas_setup@1",
+  "version": "1.0",
+  "env_id": "macfuse_env@0.1",
+  "description": "Set up a persistent SSHFS mount for a home NAS so your Raspberry Pi's shared folder appears at /Users/lume/NAS/ every time you log in. End state required on this Mac: (1) Homebrew is installed and on PATH (the `brew` binary is at /opt/homebrew/bin/brew on Apple Silicon or /usr/local/bin/brew on Intel). (2) The third-party tap `gromgit/fuse` is added (visible in `brew tap`). (3) The `sshfs` binary is installed via that tap (typically as `sshfs-mac`) and resolvable on PATH. (4) The mount point /Users/lume/NAS/ exists as an empty directory. (5) /Users/lume/.ssh/config contains a `Host homeserver` block with `HostName 192.168.1.100`, `User pi`, `Port 22`, `IdentityFile ~/.ssh/id_ed25519`, `ServerAliveInterval 15`, `ServerAliveCountMax 3`. (6) /Users/lume/Documents/mount_nas.sh exists, is executable (chmod +x), and invokes `sshfs` to mount `homeserver:/home/pi/shared` onto /Users/lume/NAS with the macFUSE option set including at least `volname=HomeNAS`, `reconnect`, `defer_permissions`, `ServerAliveInterval=15`, `IdentityFile=/Users/lume/.ssh/id_ed25519`, and `allow_other`; the script also sanity-checks that the mount point and sshfs binary exist before running. (7) /Users/lume/Library/LaunchAgents/com.lume.sshfs.homeserver.plist exists with `Label = com.lume.sshfs.homeserver`, `ProgramArguments` pointing at the mount script, `RunAtLoad = true`, `KeepAlive = true`, and `StandardOutPath`+`StandardErrorPath` pointing at log files under /Users/lume/Library/Logs/ (e.g. sshfs.homeserver.log / sshfs.homeserver.err). The agent-user account is `lume`. Do not attempt to actually mount the NAS — the macFUSE kext cannot load in this sandbox; the verifier only inspects the configuration artifacts on disk.",
+  "difficulty": "very_hard",
+  "tags": [
+    "macfuse",
+    "sshfs",
+    "homebrew",
+    "launchd",
+    "ssh",
+    "filesystem",
+    "homelab"
+  ],
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/Users/lume/workspace/tasks/sshfs_home_nas_setup/setup_task.sh",
+    "post_task": "/Users/lume/workspace/tasks/sshfs_home_nas_setup/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "expected_brew_tap": "gromgit/fuse",
+    "expected_mount_point": "/Users/lume/NAS",
+    "expected_launchagent_plist": "/Users/lume/Library/LaunchAgents/com.lume.sshfs.homeserver.plist",
+    "expected_mount_script": "/Users/lume/Documents/mount_nas.sh",
+    "expected_ssh_host": "homeserver",
+    "expected_ssh_hostname": "192.168.1.100",
+    "expected_ssh_user": "pi",
+    "expected_ssh_identity_file": "~/.ssh/id_ed25519",
+    "expected_plist_label": "com.lume.sshfs.homeserver",
+    "expected_remote_path": "/home/pi/shared",
+    "occupation": "Homelab user / hobbyist sysadmin",
+    "pass_threshold": 70,
+    "scoring_notes": "Per-bucket scoring with binary 5-pt sub-checks within C5/C6/C7. Anti-Pattern 4: maximum partial-only credit (do-nothing artifacts: empty NAS/ dir, empty mount script, empty plist file) is bounded around 25, well below the 70 pass threshold. The toolchain installation chain (Homebrew -> gromgit tap -> sshfs binary) alone is 35 points; the SSH config + mount script + launchagent chain is 60. Either chain alone is below pass."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_sshfs_home_nas_setup"
+    }
+  }
+}

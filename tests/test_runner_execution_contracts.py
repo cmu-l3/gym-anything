@@ -16,7 +16,7 @@ from gym_anything.doctor import get_runner_status
 from gym_anything.specs import EnvSpec
 
 
-RunnerProfile = Literal["desktop_linux", "android", "synthetic"]
+RunnerProfile = Literal["desktop_linux", "android", "macos_remote", "synthetic"]
 
 RUNNER_PROFILES: dict[str, RunnerProfile] = {
     "docker": "desktop_linux",
@@ -27,6 +27,7 @@ RUNNER_PROFILES: dict[str, RunnerProfile] = {
     "avf": "desktop_linux",
     "avd": "android",
     "avd_native": "android",
+    "use_computer": "macos_remote",
     "local": "synthetic",
 }
 

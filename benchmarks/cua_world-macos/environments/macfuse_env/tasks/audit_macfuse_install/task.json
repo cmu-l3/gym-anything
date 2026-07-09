@@ -1,0 +1,51 @@
+{
+  "id": "audit_macfuse_install@1",
+  "env_id": "macfuse_env@0.1",
+  "version": "1.0",
+  "description": "You are a macOS sysadmin completing a security and compliance audit of the macFUSE filesystem framework that is installed on this workstation. Open Terminal and produce a JSON audit report at /Users/lume/Documents/macfuse_audit_report.json. The JSON must be a single top-level object with the following keys (exact spelling, exact types) populated from the live state of THIS machine — not values you have memorized from documentation: `bundle_version` (string: the macFUSE filesystem bundle's CFBundleShortVersionString), `bundle_identifier` (string: the macFUSE filesystem bundle's CFBundleIdentifier), `pkg_core_version` (string: the version of the `io.macfuse.installer.components.core` installer package as reported by pkgutil), `core_pkg_install_time` (integer: the Unix epoch `install-time` of the io.macfuse.installer.components.core package as reported by `pkgutil --pkg-info`), `prefpane_pkg_install_time` (integer: the Unix epoch `install-time` of the io.macfuse.installer.components.preferencepane package as reported by `pkgutil --pkg-info`), `kext_currently_loaded` (boolean: whether any macFUSE kernel extension is currently loaded in the running kernel), `mount_helper_path` (string: the absolute path to the macFUSE mount helper binary inside the bundle), `supported_macos_versions_count` (integer: the number of macOS-version-named subdirectories under the bundle's Contents/Extensions/ folder), `libfuse_dylib_count` (integer: the count of files in /usr/local/lib/ whose names match the glob libfuse*.dylib), `prefpane_installed` (boolean: whether the macFUSE preference pane bundle is present at its standard /Library/PreferencePanes/ location).",
+  "difficulty": "medium",
+  "tags": [
+    "macfuse",
+    "sysadmin",
+    "audit",
+    "terminal",
+    "json",
+    "compliance",
+    "filesystem"
+  ],
+  "init": {
+    "timeout_sec": 600,
+    "max_steps": 60,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/Users/lume/workspace/tasks/audit_macfuse_install/setup_task.sh",
+    "post_task": "/Users/lume/workspace/tasks/audit_macfuse_install/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "required_output_file": "/Users/lume/Documents/macfuse_audit_report.json",
+    "required_fields": [
+      "bundle_version",
+      "bundle_identifier",
+      "pkg_core_version",
+      "core_pkg_install_time",
+      "prefpane_pkg_install_time",
+      "kext_currently_loaded",
+      "mount_helper_path",
+      "supported_macos_versions_count",
+      "libfuse_dylib_count",
+      "prefpane_installed"
+    ],
+    "occupation": "Systems Administrator / Endpoint Security Auditor",
+    "install_time_tolerance_sec": 2,
+    "pass_threshold": 70,
+    "scoring_notes": "Per-field scoring is binary (full or 0). Two fields (core_pkg_install_time, prefpane_pkg_install_time) are sandbox-specific and unfakable — together they account for 40 of 100 points, so an agent that only guesses public macFUSE facts without probing the live install cannot reach the 70-point pass threshold."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_audit_macfuse_install"
+    }
+  }
+}

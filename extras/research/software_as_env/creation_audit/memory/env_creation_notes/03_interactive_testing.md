@@ -337,6 +337,108 @@ pkill -f "ga_qemu_"
 
 ---
 
+## macOS Interactive Testing
+
+For macOS environments (UseComputerRunner + use.computer fleet), the
+Linux-centric workflow above does **not apply**. There is no DISPLAY, no
+xdotool, no scrot, no /home/ga. Use this workflow instead:
+
+### Setup
+
+```bash
+# Required env vars (mint USE_COMPUTER_API_KEY at https://use.computer)
+export USE_COMPUTER_API_KEY=mk_live_…
+export USE_COMPUTER_BASE_URL=https://api.use.computer  # or .../api.dev.use.computer
+
+# visual_grounding MCP — pre-configured in .mcp.json at the repo root for
+# Claude Code. For Codex CLI or direct Python use, see
+# extras/research/software_as_env/creation_audit/mcp/README.md.
+```
+
+### Persistent-sandbox driver
+
+The macOS runner doesn't expose `env._runner.ssh_port` to localhost; you
+drive the sandbox via the use.computer SDK. Across many small bash calls,
+keep the sandbox alive via the
+`extras/research/software_as_env/creation_audit/macos_session.py` driver,
+which holds session state in `/tmp/session_state.json` and re-attaches on
+each invocation. The 2-minute idle reaper resets on every API call, so any
+operation keeps the sandbox warm.
+
+```bash
+SESSION=python3\ extras/research/software_as_env/creation_audit/macos_session.py
+
+# Boot: provisions sandbox, mkdir /Users/lume/workspace, uploads env's
+# scripts/ + tasks/ as mounts, runs install_*.sh + setup_*.sh + setup_task.sh.
+$SESSION boot
+
+# Operations
+$SESSION screenshot /tmp/s.png
+$SESSION ground "Where is the Save button?" /tmp/s.png
+$SESSION click 960 75            # uses display-native coords (1920x1080)
+$SESSION click 100 200 --from1280  # scales from 1280x720 grounding-space
+$SESSION type "hello world"
+$SESSION key Enter               # NOTE: Enter ≠ Return — see below
+$SESSION exec "ls -la /Users/lume/Documents"
+$SESSION readfile /Users/lume/Documents/x.json /tmp/x.json
+
+# Finalize: runs post_task hook + verifier, copies artifacts
+$SESSION finalize --out-dir benchmarks/cua_world-macos/environments/<env>/evidence_docs/<task>/interactive_pilot
+$SESSION destroy
+```
+
+### The Interactive Loop (macOS variant)
+
+```
+1. Boot:        $SESSION boot
+2. Screenshot:  $SESSION screenshot /tmp/s.png
+3. Ground:      $SESSION ground "Where do I click for X?" /tmp/s.png
+                → Gemini returns (x, y) coordinates
+4. Click:       $SESSION click <x> <y>
+                (or click <x> <y> --from1280 if Gemini gave 1280x720 coords)
+5. Screenshot:  $SESSION screenshot /tmp/s2.png
+                Open /tmp/s2.png yourself with `Read /tmp/s2.png` and verify
+                visually what happened — don't trust the screenshot just
+                exists.
+6. Iterate 2-5 until the task state is correct
+7. Finalize:    $SESSION finalize --out-dir <evidence_dir>
+8. Destroy:     $SESSION destroy
+```
+
+### macOS-specific Gotchas (live-tested)
+
+| Issue | Symptom | Fix |
+|---|---|---|
+| **`Enter` ≠ `Return`** in form-submit contexts | URL bar updates visually but page doesn't navigate after `keyboard.press("Return")`. `osascript get URL of front document` reports the old URL. | Use `keyboard.press("Enter")` for "submit". `Return` works for text-field newline but not form-submit. |
+| **Cmd+Space (Spotlight) is disabled** | `keyboard.press("space", modifiers=["cmd"])` returns 200 but Spotlight never appears. | Launch apps via Dock click (use `ground` for coords), `osascript -e 'tell application "X" to activate'`, or `open -a X` via `exec`. |
+| **Clicking a window title bar can hide it** | Both Safari and Terminal vanished from screen after clicking inside Terminal's title bar; `pgrep` confirmed processes still alive. | `osascript -e 'tell application "X" to activate'` reliably brings the app back from hidden/minimized. |
+| **`osascript ... tell System Events`** | Returns error -25211 ("not allowed assistive access"). | TCC blocks the sshd-keygen-wrapper responsibility chain. Use `pgrep` + `lsappinfo` + `defaults read` + `plistlib`/`sqlite3` reads for verifier state. |
+| **Visual grounding is approximate** | Gemini returned correct (960, 75) for Safari URL bar but wrong (807, 1024) for Terminal in Dock; actual was (980, 1037). | Trust → click → screenshot → verify → iterate. Don't accept Gemini's first answer without visual confirmation. |
+| **`final.png` shows app quit** when `export_result.sh` runs `osascript quit` to flush WAL | The captured final frame is post-export, not pre-export. | Use the pre-finalize screenshot you took manually as "real" final state; the framework's `final.png` is post-export-quit. |
+| **`keyboard.type` with embedded `\n` works in heredocs** | A 1053-char heredoc with 21 newlines typed cleanly with shell `heredoc>` continuations and a `PYEOF` terminator. | Multi-line script typing via Terminal is practical. |
+
+### Verifier patterns
+
+| Need | macOS approach |
+|---|---|
+| Is the app running? | `pgrep -x <AppName>` (use `-x` — `-f /Applications/<App>.app` matches helper processes too) |
+| Is the app window registered? | `/usr/bin/lsappinfo list | grep -iE '<App>( |$)'` |
+| App preference value | `defaults read com.<vendor>.<app> <key>` (and check the sandboxed container path too: `~/Library/Containers/com.<vendor>.<app>/Data/Library/Preferences/...`) |
+| App's persisted state (bookmarks, history, etc.) | `~/Library/Application Support/<App>/` files. Binary plists: `plistlib.load(open(p,"rb"))`. SQLite: `sqlite3.connect`. |
+| HTTP work | `curl -sIL <url>` (don't try Web Inspector — see `12_macos_environments.md` for why) |
+
+### Reference example
+
+`benchmarks/cua_world-macos/environments/safari_env/tasks/devtools_security_header_audit/`
+ships `collect_evidence.py` (4 flows: probe_prefs, do_nothing, wrong_target,
+happy_path) plus `test_verifier_offline.py` (8 mock scenarios). The
+`evidence_docs/devtools_security_header_audit/interactive_pilot/` folder is
+a complete worked example of driving the env through real Safari + Terminal
+UI via the `macos_session.py` driver — 15 screenshots, every step
+documented in the per-flow README with manual visual verification.
+
+---
+
 ## Android Interactive Testing
 
 For Android environments, use ADB commands instead of xdotool:
