@@ -1,9 +1,9 @@
 """OpenAI Codex CLI as a gym-anything computer-use agent.
 
-Runs the Codex CLI headless inside a throwaway scratch container that can only
-reach the action gateway (and the OpenAI API). See
-``agents/shared/cli_harness.py`` for the shared machinery and the containment
-model.
+Runs the Codex CLI headless inside a throwaway, isolated sandbox (apptainer or
+docker; see ``agents/shared/agent_sandbox.py``) that can only reach the action
+gateway and the OpenAI API. See ``agents/shared/cli_harness.py`` for the shared
+machinery.
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ from agents.shared.cli_harness import CliHarnessAgent
 
 
 class CodexCliAgent(CliHarnessAgent):
-    image_tag = "gym-anything-cli-harness-codex:latest"
-    install_block = "RUN npm install -g @openai/codex"
+    sandbox_name = "codex"
+    sandbox_install = "npm install -g @openai/codex"
 
     def container_env(self) -> dict[str, str]:
         env: dict[str, str] = {

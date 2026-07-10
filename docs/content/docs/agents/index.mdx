@@ -96,19 +96,30 @@ detects the flag, calls `run_episode` once, and then runs the same `mark_done`
 verification as every other agent.
 
 The CLI never runs inside the task VM. It runs in a throwaway, GUI-less
-scratch Docker container that can reach exactly one thing on the host: an
-in-process **action gateway**. The CLI sends one action as a JSON string
-(the same vocabulary the other agents use) through a small `act` command, the
-gateway calls `env.step()` and returns the post-action screenshot plus the
-remaining step budget. The container has no route to the env's VNC/SSH ports,
-so the CLI can only affect the environment through the gateway, and it can
-never bypass the mouse-and-keyboard action space by editing files or the
-database directly. The shared machinery lives in
+scratch container that can reach exactly one thing on the host: an in-process
+**action gateway**. The CLI sends one action as a JSON string (the same
+vocabulary the other agents use) through a small `act` command, the gateway
+calls `env.step()` and returns the post-action screenshot plus the remaining
+step budget. So the CLI can only affect the environment through the gateway,
+and it can never bypass the mouse-and-keyboard action space by editing files
+or the database directly. The shared machinery lives in
 `agents/shared/cli_harness.py`.
 
-These agents need Docker on the host and the relevant API key
+The sandbox is backend-agnostic and auto-selected the way env runners are
+(`GYM_ANYTHING_AGENT_SANDBOX` override, then detect), in
+`agents/shared/agent_sandbox.py`: **Apptainer** (rootless, no daemon, the
+primary path on clusters) or **Docker** (daemon machines, which additionally
+get bridge network isolation). There is deliberately no no-isolation fallback:
+if neither is available the run fails rather than launch a permission-bypassed
+CLI unsandboxed. File and process isolation hold on both backends, and the env
+is a separate VM either way, so the agent has no filesystem path into it. On
+Docker the bridge also blocks any route to the env's ports; under rootless
+Apptainer (shared host network) that guarantee softens to the agent only ever
+being handed the gateway and never the env's SSH/VNC credentials.
+
+These agents need Apptainer or Docker on the host and the relevant API key
 (`ANTHROPIC_API_KEY` for Claude Code, `OPENAI_API_KEY` for Codex), which is
-injected into the scratch container per run, never baked into the image.
+injected into the sandbox per run, never baked into the image.
 
 ## The Fastest Way To Try One
 

@@ -1,9 +1,9 @@
 """Claude Code as a gym-anything computer-use agent.
 
-Runs the Claude Code CLI headless inside a throwaway scratch container that can
-only reach the action gateway (and the Anthropic API). See
-``agents/shared/cli_harness.py`` for the shared machinery and the containment
-model.
+Runs the Claude Code CLI headless inside a throwaway, isolated sandbox
+(apptainer or docker; see ``agents/shared/agent_sandbox.py``) that can only
+reach the action gateway and the Anthropic API. See
+``agents/shared/cli_harness.py`` for the shared machinery.
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ from agents.shared.cli_harness import CliHarnessAgent
 
 
 class ClaudeCodeAgent(CliHarnessAgent):
-    image_tag = "gym-anything-cli-harness-claude:latest"
-    install_block = "RUN npm install -g @anthropic-ai/claude-code"
+    sandbox_name = "claude"
+    sandbox_install = "npm install -g @anthropic-ai/claude-code"
 
     def container_env(self) -> dict[str, str]:
         env: dict[str, str] = {

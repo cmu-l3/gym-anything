@@ -2,10 +2,11 @@
 Codex CLI, ...) as gym-anything computer-use agents.
 
 Design (see the agents docs): the CLI never runs inside the task VM. It runs
-in a throwaway, GUI-less scratch container that can reach exactly one thing on
-the host — an in-process HTTP *action gateway* — and the model provider API.
-The container has no route to the env VM's VNC/SSH ports, so the CLI can only
-affect the environment through the gateway.
+in a throwaway, GUI-less isolated sandbox (apptainer or docker, see
+``agent_sandbox.py``) that can reach exactly one thing on the host, an
+in-process HTTP *action gateway*, plus the model provider API. The env is a
+separate VM, so the CLI has no filesystem path into it and can only affect the
+environment through the gateway.
 
 The gateway speaks the same text action vocabulary the other agents use
 (``agents/shared/qwen_computer_use.py``): the CLI sends one action as a JSON
@@ -35,6 +36,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Optional
 
+from agents.shared.agent_sandbox import SandboxSpec, select_sandbox
 from agents.shared.qwen_computer_use import parse_qwen3vl_response
 
 logger = logging.getLogger(__name__)
@@ -304,99 +306,10 @@ if resp.get("done"):
 """
 
 
-_DOCKERFILE_TEMPLATE = """FROM node:22-slim
-RUN apt-get update \\
- && apt-get install -y --no-install-recommends curl ca-certificates python3 procps \\
- && rm -rf /var/lib/apt/lists/*
-{install_block}
-COPY act /usr/local/bin/act
-RUN chmod +x /usr/local/bin/act
-WORKDIR /work
-"""
-
-
-class CliHarnessRunner:
-    """Owns the scratch container lifecycle and CLI invocation via `docker`.
-
-    All docker calls are isolated here so the parsing/gateway logic stays unit
-    testable without a daemon.
-    """
-
-    def __init__(
-        self,
-        image_tag: str,
-        install_block: str,
-        container_env: dict[str, str],
-        logs_dir: Path,
-    ):
-        self.image_tag = image_tag
-        self.install_block = install_block
-        self.container_env = container_env
-        self.logs_dir = Path(logs_dir)
-        self.container_name = f"gym-cli-harness-{secrets.token_hex(6)}"
-
-    def _run(self, args: list[str], timeout: Optional[int] = None) -> subprocess.CompletedProcess:
-        return subprocess.run(
-            args, capture_output=True, text=True, timeout=timeout, check=False
-        )
-
-    def ensure_image(self) -> None:
-        """Build the scratch image if the tag is not already present."""
-        inspect = self._run(["docker", "image", "inspect", self.image_tag])
-        if inspect.returncode == 0:
-            logger.debug("Scratch image %s already present", self.image_tag)
-            return
-        with tempfile.TemporaryDirectory() as build_dir:
-            build_path = Path(build_dir)
-            (build_path / "act").write_text(_ACT_SCRIPT)
-            (build_path / "Dockerfile").write_text(
-                _DOCKERFILE_TEMPLATE.format(install_block=self.install_block)
-            )
-            logger.info("Building scratch image %s", self.image_tag)
-            result = self._run(
-                ["docker", "build", "-t", self.image_tag, str(build_path)],
-                timeout=1800,
-            )
-            if result.returncode != 0:
-                raise RuntimeError(
-                    f"Failed to build scratch image {self.image_tag}:\n{result.stderr}"
-                )
-
-    def start_container(self, gateway_port: int, gateway_token: str) -> None:
-        self.logs_dir.mkdir(parents=True, exist_ok=True)
-        env_args: list[str] = []
-        env = {
-            **self.container_env,
-            "GATEWAY_URL": f"http://host.docker.internal:{gateway_port}/act",
-            "GATEWAY_TOKEN": gateway_token,
-        }
-        for key, value in env.items():
-            if value:
-                env_args += ["-e", f"{key}={value}"]
-        args = [
-            "docker", "run", "-d", "--rm",
-            "--name", self.container_name,
-            # Reach the host gateway on Linux too (Docker Desktop already maps it).
-            "--add-host", "host.docker.internal:host-gateway",
-            "-v", f"{self.logs_dir}:/logs",
-            *env_args,
-            self.image_tag,
-            "sleep", "infinity",
-        ]
-        result = self._run(args, timeout=120)
-        if result.returncode != 0:
-            raise RuntimeError(f"Failed to start scratch container:\n{result.stderr}")
-
-    def exec_cli(self, command: str, timeout_sec: int) -> subprocess.CompletedProcess:
-        """Run the CLI invocation inside the container, teeing stdout to /logs."""
-        wrapped = f"set -o pipefail; ({command}) 2>&1 | tee /logs/cli_stdout.txt"
-        return self._run(
-            ["docker", "exec", self.container_name, "bash", "-lc", wrapped],
-            timeout=timeout_sec,
-        )
-
-    def stop_container(self) -> None:
-        self._run(["docker", "rm", "-f", self.container_name], timeout=60)
+# The scratch image is built by the sandbox backend (agent_sandbox.py); the
+# per-agent bits (base image, CLI install line, invocation) live on the agent
+# subclasses. This module owns only the gateway, the prompt, and the `act`
+# script above.
 
 
 class CliHarnessAgent:
@@ -404,15 +317,17 @@ class CliHarnessAgent:
 
     Autonomous agents do not implement ``step()``. The evaluation loop calls
     ``run_episode(env, task_description)`` once; inside it the CLI drives the
-    env through the action gateway. Subclasses supply the scratch image's
-    install block, the container env (API keys), and the CLI invocation.
+    env through the action gateway, from inside an isolated sandbox
+    (``agent_sandbox.py``). Subclasses supply the scratch image's base + CLI
+    install line, the container env (API keys), and the CLI invocation.
     """
 
     autonomous = True
 
     # Subclasses override these.
-    image_tag: str = "gym-anything-cli-harness:base"
-    install_block: str = ""
+    sandbox_name: str = "cli"
+    sandbox_base_image: str = "node:22-slim"
+    sandbox_install: str = ""
 
     def __init__(self, agent_args: Optional[dict[str, Any]] = None, verbose: bool = False, debug: bool = False, **kwargs: Any):
         self.agent_args = agent_args or {}
@@ -448,6 +363,14 @@ class CliHarnessAgent:
         """
         raise NotImplementedError
 
+    def sandbox_spec(self) -> SandboxSpec:
+        return SandboxSpec(
+            name=self.sandbox_name,
+            base_image=self.sandbox_base_image,
+            install=self.sandbox_install,
+            act_script=_ACT_SCRIPT,
+        )
+
     # --- episode ------------------------------------------------------------
 
     def run_episode(self, env: Any, task_description: Optional[str] = None) -> None:
@@ -456,22 +379,18 @@ class CliHarnessAgent:
         max_steps = int(self.max_steps_override or getattr(env, "max_steps", None) or 50)
 
         logs_dir = Path(self.save_path) / "cli_harness" if self.save_path else Path(tempfile.mkdtemp())
+        logs_dir.mkdir(parents=True, exist_ok=True)
         token = secrets.token_hex(16)
         gateway = ActionGateway(env, resolution, max_steps, token)
-        runner = CliHarnessRunner(
-            image_tag=self.image_tag,
-            install_block=self.install_block,
-            container_env=self.container_env(),
-            logs_dir=logs_dir,
-        )
+        sandbox = select_sandbox(self.sandbox_spec(), logs_dir)
 
-        port = gateway.start()
+        port = gateway.start(host=sandbox.gateway_bind_host)
         try:
-            runner.ensure_image()
-            runner.start_container(port, token)
+            sandbox.build()
+            sandbox.start(gateway_port=port, gateway_token=token, container_env=self.container_env())
             prompt = build_harness_prompt(task, resolution, max_steps)
             (logs_dir / "prompt.txt").write_text(prompt)
-            result = runner.exec_cli(self.build_cli_command(), timeout_sec=self.timeout_sec)
+            result = sandbox.exec(self.build_cli_command(), timeout_sec=self.timeout_sec)
             if result.returncode != 0 and self.verbose:
                 logger.warning(
                     "CLI exited with %d; stderr: %s", result.returncode, result.stderr[:2000]
@@ -481,7 +400,7 @@ class CliHarnessAgent:
         finally:
             self._transcript = gateway.transcript
             gateway.stop()
-            runner.stop_container()
+            sandbox.stop()
             self.done = True
 
     def finish(self, *args: Any, **kwargs: Any) -> None:
