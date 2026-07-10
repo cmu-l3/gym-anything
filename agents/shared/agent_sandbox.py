@@ -64,8 +64,8 @@ _COMMON_INSTALL = (
 )
 
 
-def _run(args: list[str], timeout: int | None = None) -> subprocess.CompletedProcess:
-    return subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False)
+def _run(args: list[str], timeout: int | None = None, cwd: str | None = None) -> subprocess.CompletedProcess:
+    return subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False, cwd=cwd)
 
 
 class AgentSandbox(ABC):
@@ -217,10 +217,12 @@ class ApptainerSandbox(AgentSandbox):
             def_path.write_text(self.definition())
             logger.info("Building apptainer agent sandbox %s", self.sif_path)
             # --fakeroot lets the %post apt/npm installs run rootless (same as
-            # the env ApptainerDirectRunner build path).
+            # the env ApptainerDirectRunner build path). Run from the build dir
+            # so the def's %files source (`act`) resolves relative to it.
             result = _run(
-                ["apptainer", "build", "--fakeroot", str(self.sif_path), str(def_path)],
+                ["apptainer", "build", "--fakeroot", str(self.sif_path), "sandbox.def"],
                 timeout=1800,
+                cwd=str(path),
             )
             if result.returncode != 0:
                 raise RuntimeError(f"apptainer build failed:\n{result.stderr}")
