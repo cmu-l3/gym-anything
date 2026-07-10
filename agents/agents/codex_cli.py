@@ -27,10 +27,16 @@ class CodexCliAgent(CliHarnessAgent):
         return env
 
     def build_cli_command(self) -> str:
-        model = (self.model or "gpt-5.4").split("/")[-1]
-        # Codex reads the instruction as a positional arg; feed the rendered
-        # prompt file so we don't shell-escape a large multi-line string.
+        model = (self.model or "gpt-5.1").split("/")[-1]
+        # Codex authenticates from $CODEX_HOME/auth.json, not the OPENAI_API_KEY
+        # env var alone; without it codex falls back to ChatGPT-account mode
+        # (gates models and needs a login). Write the API-key auth.json first,
+        # into a writable dir under the bound /logs. Codex reads the instruction
+        # as a positional arg; feed the rendered prompt file so we don't
+        # shell-escape a large multi-line string.
         return (
+            "export CODEX_HOME=/logs/codex-home && mkdir -p $CODEX_HOME && "
+            'printf \'{"OPENAI_API_KEY": "%s"}\' "$OPENAI_API_KEY" > $CODEX_HOME/auth.json && '
             "codex exec "
             "--dangerously-bypass-approvals-and-sandbox "
             "--skip-git-repo-check "
