@@ -265,6 +265,67 @@ class AgentEvaluationContractTests(unittest.TestCase):
             self.assertEqual(records[0]["event"], "setup")
             self.assertTrue(any(record.get("event") == "iteration" for record in records))
 
+    def test_run_single_autonomous_agent_delegates_and_verifies(self) -> None:
+        """Autonomous agents skip the step loop: run_episode is called once and
+        mark_done still runs so verification stays on the shared path."""
+
+        class _FakeAutonomous:
+            instances: list = []
+            autonomous = True
+
+            def __init__(self, *args, **kwargs) -> None:
+                self.done = False
+                self.ran_with = None
+                self.finish_info = None
+                type(self).instances.append(self)
+
+            def init(self, task_description, display_resolution, save_path):
+                self.task_description = task_description
+
+            def run_episode(self, env, task_description=None):
+                self.ran_with = (env, task_description)
+
+            def finish(self, *args, **kwargs):
+                self.finish_info = kwargs.get("info")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_env = _FakeEnv(Path(tmp))
+            args = SimpleNamespace(
+                env_dir="demo-env",
+                seed=42,
+                task="demo-task",
+                steps=2,
+                agent="FakeAutonomous",
+                agent_args=json.dumps({"model": "claude"}),
+                debug=False,
+                debug_low=False,
+                verbose=False,
+                setup_code="none",
+                use_cache=False,
+                cache_level="pre_start",
+                use_savevm=False,
+                vlm_backend="local",
+                vlm_base_url="http://localhost:8080/v1",
+                vlm_model="demo-model",
+                remote_url=None,
+                remote_timeout=300,
+                remote_worker_reset_policy="core",
+            )
+
+            with mock.patch.object(run_single_module, "from_config", return_value=fake_env), \
+                 mock.patch.object(run_single_module.agent_registry, "FakeAutonomous", _FakeAutonomous, create=True):
+                _FakeAutonomous.instances.clear()
+                result = run_single_module.run_single(args)
+
+            self.assertEqual(result, 0)
+            agent = _FakeAutonomous.instances[0]
+            # run_episode was called with the env; the step loop never ran.
+            self.assertIs(agent.ran_with[0], fake_env)
+            # Exactly one env.step call: the mark_done verification.
+            self.assertEqual(fake_env.step_calls, [([], True)])
+            self.assertEqual(agent.finish_info["verifier"]["score"], 100)
+            self.assertTrue(fake_env.closed)
+
 
 if __name__ == "__main__":
     unittest.main()

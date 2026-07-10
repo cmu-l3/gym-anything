@@ -372,8 +372,21 @@ def run_single(args: argparse.Namespace) -> int:
     env_step_kwargs = {"wait_between_actions": 0.0} if getattr(args, "fast_io", False) else {}
     post_step_observation_delay = _nonnegative_seconds(args, "post_step_observation_delay")
 
+    autonomous = getattr(agent, "autonomous", False)
+
     try:
-        for _step_i in tqdm(range(max_steps)):
+        if autonomous:
+            # Autonomous agents (external CLI harnesses like Claude Code / Codex)
+            # own the whole episode: the harness drives env.step() through the
+            # action gateway. We kick it off, then fall into the shared
+            # mark_done verification path below, so verifiers/frames/traj.jsonl
+            # stay identical to every other agent. The step loop iterates zero
+            # times in this case.
+            logger.info("Running autonomous agent %s", args.agent)
+            agent.run_episode(env=env, task_description=task_description)
+            obs, _reward, done, info = env.step([], mark_done=True, **env_step_kwargs)
+
+        for _step_i in tqdm(range(0 if autonomous else max_steps)):
             iteration_start = time.perf_counter()
             t0 = time.perf_counter()
             actions = agent.step(obs, action_outputs)

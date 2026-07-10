@@ -38,8 +38,10 @@ We currently ship these agents:
 
 - `ClaudeAgent`
 - `Gemini3Agent`
+- `GeminiComputerUseAgent`, `GPT54ComputerUseAgent` (provider-native computer-use tools)
 - `Qwen3VLAgent`
 - `KimiAzureAgent`
+- `ClaudeCodeAgent`, `CodexCliAgent` (external CLI harnesses, see below)
 
 These classes are exported through `agents.agents`, which is why the evaluation commands refer to names such as `--agent ClaudeAgent`.
 
@@ -83,6 +85,30 @@ The `actions` list can contain normal environment actions such as mouse and keyb
 - `{"action": "wait", "time": 1.5}`
 
 Those control actions are handled by the environment layer, not by the evaluation loop.
+
+## Autonomous Agents (External CLI Harnesses)
+
+Some agents are not step-based. `ClaudeCodeAgent` and `CodexCliAgent` wrap
+existing coding CLIs (Claude Code, Codex) and let the CLI run the whole
+episode on its own. These set a class flag `autonomous = True` and implement
+`run_episode(env, task_description)` instead of `step(...)`. `run_single.py`
+detects the flag, calls `run_episode` once, and then runs the same `mark_done`
+verification as every other agent.
+
+The CLI never runs inside the task VM. It runs in a throwaway, GUI-less
+scratch Docker container that can reach exactly one thing on the host: an
+in-process **action gateway**. The CLI sends one action as a JSON string
+(the same vocabulary the other agents use) through a small `act` command, the
+gateway calls `env.step()` and returns the post-action screenshot plus the
+remaining step budget. The container has no route to the env's VNC/SSH ports,
+so the CLI can only affect the environment through the gateway, and it can
+never bypass the mouse-and-keyboard action space by editing files or the
+database directly. The shared machinery lives in
+`agents/shared/cli_harness.py`.
+
+These agents need Docker on the host and the relevant API key
+(`ANTHROPIC_API_KEY` for Claude Code, `OPENAI_API_KEY` for Codex), which is
+injected into the scratch container per run, never baked into the image.
 
 ## The Fastest Way To Try One
 

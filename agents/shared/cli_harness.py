@@ -1,0 +1,501 @@
+"""Shared machinery for running existing CLI coding harnesses (Claude Code,
+Codex CLI, ...) as gym-anything computer-use agents.
+
+Design (see the agents docs): the CLI never runs inside the task VM. It runs
+in a throwaway, GUI-less scratch container that can reach exactly one thing on
+the host — an in-process HTTP *action gateway* — and the model provider API.
+The container has no route to the env VM's VNC/SSH ports, so the CLI can only
+affect the environment through the gateway.
+
+The gateway speaks the same text action vocabulary the other agents use
+(``agents/shared/qwen_computer_use.py``): the CLI sends one action as a JSON
+string, the gateway parses it, calls ``env.step()``, and returns the
+post-action screenshot (base64 PNG) plus the remaining step budget. Inside the
+container a tiny ``act`` wrapper POSTs the command and writes the screenshot to
+a file the CLI then views. No MCP, no per-CLI protocol.
+
+Because the gateway calls ``env.step()`` for every action, step limits,
+timeouts, ``traj.jsonl``, frame capture, and verification all flow through
+``GymAnythingEnv`` unchanged — identical to every other agent. The gateway's
+own per-action log is the authoritative trajectory record.
+"""
+
+from __future__ import annotations
+
+import base64
+import json
+import logging
+import os
+import secrets
+import subprocess
+import tempfile
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from io import BytesIO
+from pathlib import Path
+from typing import Any, Optional
+
+from agents.shared.qwen_computer_use import parse_qwen3vl_response
+
+logger = logging.getLogger(__name__)
+
+
+# The single action the CLI can never issue meaningfully but might try; keep
+# the list here so both the prompt and the gateway agree.
+_TERMINATE_ACTIONS = {"terminate", "done", "finish"}
+
+
+def _obs_png_b64(obs: dict[str, Any]) -> Optional[str]:
+    """Extract the observation screenshot as a base64 PNG string, or None."""
+    if not isinstance(obs, dict):
+        return None
+    screen = obs.get("screen") or {}
+    if not isinstance(screen, dict):
+        return None
+    image = screen.get("image")
+    if image is not None and hasattr(image, "save"):
+        buffer = BytesIO()
+        image.save(buffer, format="PNG")
+        return base64.b64encode(buffer.getvalue()).decode("ascii")
+    if screen.get("png_b64"):
+        return screen["png_b64"]
+    path = screen.get("path")
+    if path and os.path.exists(path):
+        with open(path, "rb") as handle:
+            return base64.b64encode(handle.read()).decode("ascii")
+    return None
+
+
+class ActionGateway:
+    """Translate CLI action-command strings into ``env.step()`` calls.
+
+    The HTTP surface is a thin wrapper; ``step_from_command`` is the testable
+    core (no docker, no sockets). One request is in flight at a time (the CLI
+    blocks on each ``act``), so the single env instance is never touched
+    concurrently.
+    """
+
+    def __init__(
+        self,
+        env: Any,
+        resolution: tuple[int, int],
+        max_steps: int,
+        token: str,
+    ):
+        self.env = env
+        self.width, self.height = resolution
+        self.max_steps = max_steps
+        self.token = token
+        self.steps_taken = 0
+        self.transcript: list[dict[str, Any]] = []
+        self._server: Optional[ThreadingHTTPServer] = None
+        self._thread: Optional[threading.Thread] = None
+
+    # --- action translation ------------------------------------------------
+
+    def _env_actions_for(self, command: str) -> tuple[list[dict[str, Any]], bool, Optional[str]]:
+        """Return (env_actions, is_terminal, error) for a command string.
+
+        Reuses ``parse_qwen3vl_response`` (single source of truth for the
+        vocabulary and 0-1000 -> pixel scaling) by wrapping the raw action
+        JSON in the tool-call envelope the parser expects.
+        """
+        try:
+            action_json = json.loads(command)
+        except (json.JSONDecodeError, TypeError) as exc:
+            return [], False, f"invalid action JSON: {exc}"
+
+        if not isinstance(action_json, dict) or "action" not in action_json:
+            return [], False, "action JSON must be an object with an 'action' key"
+
+        name = str(action_json["action"]).lower()
+        if name == "screenshot":
+            return [{"action": "screenshot"}], False, None
+        if name in _TERMINATE_ACTIONS:
+            return [], True, None
+
+        synthetic = (
+            '<tool_call>{"name": "computer_use", "arguments": '
+            + json.dumps(action_json)
+            + "}</tool_call>"
+        )
+        parsed = parse_qwen3vl_response(
+            synthetic,
+            scale_dims=True,
+            scale_dims_ratio=(self.width / 1000.0, self.height / 1000.0),
+        )
+        meta = parsed["metadata"]
+        if meta.get("parse_error"):
+            return [], False, f"could not parse action: {meta.get('conclusion')}"
+        env_actions = parsed["actions"]
+        if meta.get("wait_time") is not None:
+            env_actions = [{"action": "wait", "time": meta["wait_time"]}]
+        return env_actions, bool(meta.get("is_terminal")), None
+
+    def step_from_command(self, command: str) -> dict[str, Any]:
+        """Execute one action command; return the gateway response payload."""
+        if self.steps_taken >= self.max_steps:
+            obs = self.env.capture_observation()
+            return {
+                "step": self.steps_taken,
+                "budget_remaining": 0,
+                "done": True,
+                "error": "step budget exhausted",
+                "screenshot_b64": _obs_png_b64(obs),
+            }
+
+        env_actions, is_terminal, error = self._env_actions_for(command)
+
+        if error is not None:
+            # Do not consume budget on a malformed command; let the model retry.
+            obs = self.env.capture_observation()
+            self.transcript.append(
+                {"step": self.steps_taken, "command": command, "error": error}
+            )
+            return {
+                "step": self.steps_taken,
+                "budget_remaining": self.max_steps - self.steps_taken,
+                "done": False,
+                "error": error,
+                "screenshot_b64": _obs_png_b64(obs),
+            }
+
+        obs, _reward, done, _info = self.env.step(env_actions)
+        self.steps_taken += 1
+        self.transcript.append(
+            {
+                "step": self.steps_taken,
+                "command": command,
+                "env_actions": env_actions,
+                "terminal_requested": is_terminal,
+                "env_done": bool(done),
+            }
+        )
+        return {
+            "step": self.steps_taken,
+            "budget_remaining": max(0, self.max_steps - self.steps_taken),
+            "done": bool(done) or is_terminal or self.steps_taken >= self.max_steps,
+            "error": None,
+            "screenshot_b64": _obs_png_b64(obs),
+        }
+
+    # --- HTTP server --------------------------------------------------------
+
+    def start(self, host: str = "0.0.0.0") -> int:
+        """Start the gateway on an ephemeral port; return the port."""
+        gateway = self
+
+        class _Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args: Any) -> None:  # silence default logging
+                pass
+
+            def do_POST(self) -> None:
+                if self.headers.get("X-Gateway-Token") != gateway.token:
+                    self.send_response(403)
+                    self.end_headers()
+                    return
+                length = int(self.headers.get("Content-Length", 0))
+                try:
+                    payload = json.loads(self.rfile.read(length) or b"{}")
+                    command = payload["command"]
+                except (json.JSONDecodeError, KeyError, ValueError) as exc:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": str(exc)}).encode())
+                    return
+                try:
+                    result = gateway.step_from_command(command)
+                except Exception as exc:  # keep the CLI alive on env hiccups
+                    logger.exception("gateway step failed")
+                    result = {"error": f"gateway error: {exc}", "done": False}
+                body = json.dumps(result).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        self._server = ThreadingHTTPServer((host, 0), _Handler)
+        port = self._server.server_address[1]
+        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
+        self._thread.start()
+        logger.info("Action gateway listening on %s:%d", host, port)
+        return port
+
+    def stop(self) -> None:
+        if self._server is not None:
+            self._server.shutdown()
+            self._server.server_close()
+            self._server = None
+
+
+def build_harness_prompt(task_description: str, resolution: tuple[int, int], max_steps: int) -> str:
+    """Instruction telling the CLI how to drive the computer through `act`."""
+    width, height = resolution
+    return f"""You are operating a remote computer to accomplish a task. You CANNOT \
+see or touch this computer directly. Your ONLY way to interact with it is the \
+`act` command, already installed on your PATH.
+
+`act` takes one JSON action string and returns the path to a screenshot taken \
+AFTER the action, plus how many actions you have left. Run it like:
+
+    act '{{"action": "screenshot"}}'
+    act '{{"action": "left_click", "coordinate": [512, 300]}}'
+    act '{{"action": "type", "text": "hello"}}'
+
+After EVERY `act` call, VIEW the screenshot file it printed (read the image) \
+before deciding your next action. Start by taking a screenshot to see the \
+current screen.
+
+Coordinates are on a 0-1000 grid: [0,0] is top-left, [1000,1000] is \
+bottom-right, regardless of the real {width}x{height} resolution.
+
+Available actions (the JSON `action` field):
+- screenshot                                        — just observe
+- left_click / right_click / double_click / triple_click, with "coordinate": [x, y]
+- mouse_move, with "coordinate": [x, y]
+- drag, with "coordinate": [x1, y1] and "coordinate2": [x2, y2]
+- type, with "text": "...", optional "enter": true, optional "clear": true
+- key, with "keys": ["ctrl", "s"]           — chord of held-then-released keys
+- scroll, with "coordinate": [x, y] and "pixels": <negative up / positive down>
+- wait, with "time": <seconds>
+- terminate, with "status": "success"       — when the task is fully done
+
+Rules:
+- You have at most {max_steps} actions. Each non-observation `act` call spends one.
+- Do NOT try to reach the computer any other way (no ssh, no editing files \
+directly, no network tricks). `act` is the only channel and the only thing \
+scored. Anything else is impossible and wastes turns.
+- When the task is fully complete, call `act '{{"action": "terminate", \
+"status": "success"}}'` and stop.
+
+Task:
+{task_description}
+"""
+
+
+_ACT_SCRIPT = r"""#!/usr/bin/env python3
+import sys, os, json, base64, urllib.request
+if len(sys.argv) < 2:
+    print("usage: act '<json action>'", file=sys.stderr); sys.exit(2)
+command = sys.argv[1]
+data = json.dumps({"command": command}).encode()
+req = urllib.request.Request(
+    os.environ["GATEWAY_URL"],
+    data=data,
+    headers={"Content-Type": "application/json",
+             "X-Gateway-Token": os.environ.get("GATEWAY_TOKEN", "")},
+)
+try:
+    resp = json.load(urllib.request.urlopen(req, timeout=180))
+except Exception as exc:
+    print(f"act: gateway request failed: {exc}", file=sys.stderr); sys.exit(1)
+if resp.get("screenshot_b64"):
+    os.makedirs("obs", exist_ok=True)
+    path = f"obs/step_{resp.get('step', 0):04d}.png"
+    with open(path, "wb") as fh:
+        fh.write(base64.b64decode(resp["screenshot_b64"]))
+    print(f"screenshot: {path}  (view this image before your next action)")
+if resp.get("error"):
+    print(f"error: {resp['error']}")
+print(f"budget_remaining: {resp.get('budget_remaining')}")
+if resp.get("done"):
+    print("EPISODE DONE: no further actions will be executed.")
+"""
+
+
+_DOCKERFILE_TEMPLATE = """FROM node:22-slim
+RUN apt-get update \\
+ && apt-get install -y --no-install-recommends curl ca-certificates python3 procps \\
+ && rm -rf /var/lib/apt/lists/*
+{install_block}
+COPY act /usr/local/bin/act
+RUN chmod +x /usr/local/bin/act
+WORKDIR /work
+"""
+
+
+class CliHarnessRunner:
+    """Owns the scratch container lifecycle and CLI invocation via `docker`.
+
+    All docker calls are isolated here so the parsing/gateway logic stays unit
+    testable without a daemon.
+    """
+
+    def __init__(
+        self,
+        image_tag: str,
+        install_block: str,
+        container_env: dict[str, str],
+        logs_dir: Path,
+    ):
+        self.image_tag = image_tag
+        self.install_block = install_block
+        self.container_env = container_env
+        self.logs_dir = Path(logs_dir)
+        self.container_name = f"gym-cli-harness-{secrets.token_hex(6)}"
+
+    def _run(self, args: list[str], timeout: Optional[int] = None) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            args, capture_output=True, text=True, timeout=timeout, check=False
+        )
+
+    def ensure_image(self) -> None:
+        """Build the scratch image if the tag is not already present."""
+        inspect = self._run(["docker", "image", "inspect", self.image_tag])
+        if inspect.returncode == 0:
+            logger.debug("Scratch image %s already present", self.image_tag)
+            return
+        with tempfile.TemporaryDirectory() as build_dir:
+            build_path = Path(build_dir)
+            (build_path / "act").write_text(_ACT_SCRIPT)
+            (build_path / "Dockerfile").write_text(
+                _DOCKERFILE_TEMPLATE.format(install_block=self.install_block)
+            )
+            logger.info("Building scratch image %s", self.image_tag)
+            result = self._run(
+                ["docker", "build", "-t", self.image_tag, str(build_path)],
+                timeout=1800,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(
+                    f"Failed to build scratch image {self.image_tag}:\n{result.stderr}"
+                )
+
+    def start_container(self, gateway_port: int, gateway_token: str) -> None:
+        self.logs_dir.mkdir(parents=True, exist_ok=True)
+        env_args: list[str] = []
+        env = {
+            **self.container_env,
+            "GATEWAY_URL": f"http://host.docker.internal:{gateway_port}/act",
+            "GATEWAY_TOKEN": gateway_token,
+        }
+        for key, value in env.items():
+            if value:
+                env_args += ["-e", f"{key}={value}"]
+        args = [
+            "docker", "run", "-d", "--rm",
+            "--name", self.container_name,
+            # Reach the host gateway on Linux too (Docker Desktop already maps it).
+            "--add-host", "host.docker.internal:host-gateway",
+            "-v", f"{self.logs_dir}:/logs",
+            *env_args,
+            self.image_tag,
+            "sleep", "infinity",
+        ]
+        result = self._run(args, timeout=120)
+        if result.returncode != 0:
+            raise RuntimeError(f"Failed to start scratch container:\n{result.stderr}")
+
+    def exec_cli(self, command: str, timeout_sec: int) -> subprocess.CompletedProcess:
+        """Run the CLI invocation inside the container, teeing stdout to /logs."""
+        wrapped = f"set -o pipefail; ({command}) 2>&1 | tee /logs/cli_stdout.txt"
+        return self._run(
+            ["docker", "exec", self.container_name, "bash", "-lc", wrapped],
+            timeout=timeout_sec,
+        )
+
+    def stop_container(self) -> None:
+        self._run(["docker", "rm", "-f", self.container_name], timeout=60)
+
+
+class CliHarnessAgent:
+    """Base for agents that delegate the episode to an external CLI harness.
+
+    Autonomous agents do not implement ``step()``. The evaluation loop calls
+    ``run_episode(env, task_description)`` once; inside it the CLI drives the
+    env through the action gateway. Subclasses supply the scratch image's
+    install block, the container env (API keys), and the CLI invocation.
+    """
+
+    autonomous = True
+
+    # Subclasses override these.
+    image_tag: str = "gym-anything-cli-harness:base"
+    install_block: str = ""
+
+    def __init__(self, agent_args: Optional[dict[str, Any]] = None, verbose: bool = False, debug: bool = False, **kwargs: Any):
+        self.agent_args = agent_args or {}
+        self.verbose = verbose
+        self.debug = debug
+        self.model = self.agent_args.get("model")
+        self.timeout_sec = int(self.agent_args.get("timeout_sec", 3600))
+        self.max_steps_override = self.agent_args.get("max_steps")
+        self.done = False
+        self.step_idx = -1
+        self.display_resolution: tuple[int, int] = (1920, 1080)
+        self.save_path: Optional[str] = None
+        self.task_description: str = ""
+        self._transcript: list[dict[str, Any]] = []
+
+    def init(self, task_description: str, display_resolution: tuple[int, int], save_path: str) -> None:
+        self.task_description = task_description
+        self.display_resolution = tuple(display_resolution)
+        self.save_path = save_path
+
+    # --- subclass hooks -----------------------------------------------------
+
+    def container_env(self) -> dict[str, str]:
+        """API keys / model config to inject into the scratch container."""
+        raise NotImplementedError
+
+    def build_cli_command(self) -> str:
+        """Shell command that runs the CLI headless inside the container.
+
+        The rendered instruction is available at ``/logs/prompt.txt`` inside
+        the container; read it from there to avoid shell-escaping a large
+        multi-line prompt.
+        """
+        raise NotImplementedError
+
+    # --- episode ------------------------------------------------------------
+
+    def run_episode(self, env: Any, task_description: Optional[str] = None) -> None:
+        task = task_description or self.task_description
+        resolution = self.display_resolution
+        max_steps = int(self.max_steps_override or getattr(env, "max_steps", None) or 50)
+
+        logs_dir = Path(self.save_path) / "cli_harness" if self.save_path else Path(tempfile.mkdtemp())
+        token = secrets.token_hex(16)
+        gateway = ActionGateway(env, resolution, max_steps, token)
+        runner = CliHarnessRunner(
+            image_tag=self.image_tag,
+            install_block=self.install_block,
+            container_env=self.container_env(),
+            logs_dir=logs_dir,
+        )
+
+        port = gateway.start()
+        try:
+            runner.ensure_image()
+            runner.start_container(port, token)
+            prompt = build_harness_prompt(task, resolution, max_steps)
+            (logs_dir / "prompt.txt").write_text(prompt)
+            result = runner.exec_cli(self.build_cli_command(), timeout_sec=self.timeout_sec)
+            if result.returncode != 0 and self.verbose:
+                logger.warning(
+                    "CLI exited with %d; stderr: %s", result.returncode, result.stderr[:2000]
+                )
+        except subprocess.TimeoutExpired:
+            logger.warning("CLI harness timed out after %ds", self.timeout_sec)
+        finally:
+            self._transcript = gateway.transcript
+            gateway.stop()
+            runner.stop_container()
+            self.done = True
+
+    def finish(self, *args: Any, **kwargs: Any) -> None:
+        if not self.save_path:
+            return
+        trajectory = {
+            "agent": type(self).__name__,
+            "model": self.model,
+            "task": self.task_description,
+            "steps": self._transcript,
+            "info": kwargs.get("info"),
+        }
+        try:
+            with open(f"{self.save_path}/trajectory.json", "w", encoding="utf-8") as handle:
+                json.dump(trajectory, handle, indent=2, default=str)
+        except OSError as exc:
+            logger.warning("Failed to write CLI harness trajectory: %s", exc)
