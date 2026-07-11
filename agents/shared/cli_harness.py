@@ -36,6 +36,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Optional
 
+from PIL import Image
+
 from agents.shared.agent_sandbox import SandboxSpec, select_sandbox
 from agents.shared.qwen_computer_use import parse_qwen3vl_response
 
@@ -46,9 +48,18 @@ logger = logging.getLogger(__name__)
 # the list here so both the prompt and the gateway agree.
 _TERMINATE_ACTIONS = {"terminate", "done", "finish"}
 
+# The screenshot the CLI's model sees is downscaled to fit this longest side.
+# Coding CLIs (Claude Code, Codex) silently downscale large images before the
+# model sees them and then report pixel coordinates in that reduced space; if
+# we serve full-res frames, every click lands short. So WE control the display
+# size: serve frames at this size, take pixel coords in it, and scale back to
+# the env's native resolution. 1280 keeps the image under model auto-downscale
+# thresholds so what the model sees is 1:1 with what we sent.
+_DISPLAY_MAX_LONG_SIDE = 1280
 
-def _obs_png_b64(obs: dict[str, Any]) -> Optional[str]:
-    """Extract the observation screenshot as a base64 PNG string, or None."""
+
+def _obs_png_bytes(obs: dict[str, Any]) -> Optional[bytes]:
+    """Extract the observation screenshot as raw PNG bytes, or None."""
     if not isinstance(obs, dict):
         return None
     screen = obs.get("screen") or {}
@@ -58,13 +69,16 @@ def _obs_png_b64(obs: dict[str, Any]) -> Optional[str]:
     if image is not None and hasattr(image, "save"):
         buffer = BytesIO()
         image.save(buffer, format="PNG")
-        return base64.b64encode(buffer.getvalue()).decode("ascii")
+        return buffer.getvalue()
     if screen.get("png_b64"):
-        return screen["png_b64"]
+        try:
+            return base64.b64decode(screen["png_b64"])
+        except (ValueError, TypeError):
+            return None
     path = screen.get("path")
     if path and os.path.exists(path):
         with open(path, "rb") as handle:
-            return base64.b64encode(handle.read()).decode("ascii")
+            return handle.read()
     return None
 
 
@@ -86,6 +100,13 @@ class ActionGateway:
     ):
         self.env = env
         self.width, self.height = resolution
+        # Display size the model actually sees; coords come back in this space.
+        scale = min(1.0, _DISPLAY_MAX_LONG_SIDE / max(self.width, self.height))
+        self.display_w = max(1, round(self.width * scale))
+        self.display_h = max(1, round(self.height * scale))
+        # Model (display) pixels -> env (native) pixels.
+        self.ratio_x = self.width / self.display_w
+        self.ratio_y = self.height / self.display_h
         self.max_steps = max_steps
         self.token = token
         self.steps_taken = 0
@@ -93,14 +114,32 @@ class ActionGateway:
         self._server: Optional[ThreadingHTTPServer] = None
         self._thread: Optional[threading.Thread] = None
 
+    def _display_screenshot_b64(self, obs: dict[str, Any]) -> Optional[str]:
+        """Return the observation resized to the display size as a base64 PNG."""
+        raw = _obs_png_bytes(obs)
+        if raw is None:
+            return None
+        try:
+            img = Image.open(BytesIO(raw))
+            if img.size != (self.display_w, self.display_h):
+                img = img.resize((self.display_w, self.display_h))
+            buffer = BytesIO()
+            img.convert("RGB").save(buffer, format="PNG")
+            return base64.b64encode(buffer.getvalue()).decode("ascii")
+        except Exception:
+            # Not a decodable image (e.g. a stub in tests): pass bytes through.
+            return base64.b64encode(raw).decode("ascii")
+
     # --- action translation ------------------------------------------------
 
     def _env_actions_for(self, command: str) -> tuple[list[dict[str, Any]], bool, Optional[str]]:
         """Return (env_actions, is_terminal, error) for a command string.
 
         Reuses ``parse_qwen3vl_response`` (single source of truth for the
-        vocabulary and 0-1000 -> pixel scaling) by wrapping the raw action
-        JSON in the tool-call envelope the parser expects.
+        action vocabulary) by wrapping the raw action JSON in the tool-call
+        envelope the parser expects. The model gives pixel coordinates in the
+        display-sized screenshot it was shown; the parser's ``scale_dims``
+        ratio maps those display pixels back to the env's native resolution.
         """
         try:
             action_json = json.loads(command)
@@ -124,7 +163,7 @@ class ActionGateway:
         parsed = parse_qwen3vl_response(
             synthetic,
             scale_dims=True,
-            scale_dims_ratio=(self.width / 1000.0, self.height / 1000.0),
+            scale_dims_ratio=(self.ratio_x, self.ratio_y),
         )
         meta = parsed["metadata"]
         if meta.get("parse_error"):
@@ -143,7 +182,7 @@ class ActionGateway:
                 "budget_remaining": 0,
                 "done": True,
                 "error": "step budget exhausted",
-                "screenshot_b64": _obs_png_b64(obs),
+                "screenshot_b64": self._display_screenshot_b64(obs),
             }
 
         env_actions, is_terminal, error = self._env_actions_for(command)
@@ -159,7 +198,7 @@ class ActionGateway:
                 "budget_remaining": self.max_steps - self.steps_taken,
                 "done": False,
                 "error": error,
-                "screenshot_b64": _obs_png_b64(obs),
+                "screenshot_b64": self._display_screenshot_b64(obs),
             }
 
         obs, _reward, done, _info = self.env.step(env_actions)
@@ -178,7 +217,7 @@ class ActionGateway:
             "budget_remaining": max(0, self.max_steps - self.steps_taken),
             "done": bool(done) or is_terminal or self.steps_taken >= self.max_steps,
             "error": None,
-            "screenshot_b64": _obs_png_b64(obs),
+            "screenshot_b64": self._display_screenshot_b64(obs),
         }
 
     # --- HTTP server --------------------------------------------------------
@@ -242,15 +281,18 @@ see or touch this computer directly. Your ONLY way to interact with it is the \
 AFTER the action, plus how many actions you have left. Run it like:
 
     act '{{"action": "screenshot"}}'
-    act '{{"action": "left_click", "coordinate": [512, 300]}}'
+    act '{{"action": "left_click", "coordinate": [960, 540]}}'
     act '{{"action": "type", "text": "hello"}}'
 
 After EVERY `act` call, VIEW the screenshot file it printed (read the image) \
 before deciding your next action. Start by taking a screenshot to see the \
 current screen.
 
-Coordinates are on a 0-1000 grid: [0,0] is top-left, [1000,1000] is \
-bottom-right, regardless of the real {width}x{height} resolution.
+Coordinates are PIXELS in the screenshot image you view, which is exactly \
+{width}x{height}: [0,0] is the top-left corner and [{width},{height}] is the \
+bottom-right. Read the pixel position of your target directly off the \
+screenshot. Windows may be small and not maximized, so aim at the center of \
+the exact element (menu label, button, field) you want.
 
 Available actions (the JSON `action` field):
 - screenshot                                        — just observe
@@ -388,7 +430,9 @@ class CliHarnessAgent:
         try:
             sandbox.build()
             sandbox.start(gateway_port=port, gateway_token=token, container_env=self.container_env())
-            prompt = build_harness_prompt(task, resolution, max_steps)
+            # The model sees display-sized frames, so the prompt's coordinate
+            # space is the display size, not the env's native resolution.
+            prompt = build_harness_prompt(task, (gateway.display_w, gateway.display_h), max_steps)
             (logs_dir / "prompt.txt").write_text(prompt)
             result = sandbox.exec(self.build_cli_command(), timeout_sec=self.timeout_sec)
             if result.returncode != 0 and self.verbose:
