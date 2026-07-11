@@ -93,7 +93,7 @@ def _resolve_mount_sources(env_spec: EnvSpec, env_root: Path) -> None:
     for m in env_spec.mounts:
         src = Path(m.source)
         if m.source and not src.is_absolute():
-            for base in (Path.cwd(), *env_root.parents, env_root):
+            for base in (env_root, *env_root.parents, Path.cwd()):
                 candidate = base / src
                 if candidate.exists():
                     m = MountSpec(target=m.target, source=str(candidate.resolve()), mode=m.mode)

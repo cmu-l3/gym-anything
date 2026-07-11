@@ -3185,8 +3185,9 @@ class QemuApptainerRunner(BaseRunner):
                 "-o", "StrictHostKeyChecking=no",
                 "-o", "UserKnownHostsFile=/dev/null",
                 "-o", "ConnectTimeout=10",
+                "-o", "BatchMode=yes",
                 "-p", str(self.ssh_port),
-                "ga@localhost",
+                f"{getattr(self, '_ssh_user', None) or 'ga'}@localhost",
                 cmd
             ]
             # Only allocate PTY if requested (needed for sudo/su compatibility,
@@ -3468,7 +3469,7 @@ class QemuApptainerRunner(BaseRunner):
                 "-o", "StrictHostKeyChecking=no",
                 "-o", "UserKnownHostsFile=/dev/null",
                 "-P", str(self.ssh_port),
-                host_src, f"ga@localhost:{container_dst}"
+                host_src, f"{getattr(self, '_ssh_user', None) or 'ga'}@localhost:{container_dst}"
             ]
             result = subprocess.run(cmd, capture_output=True)
             if result.returncode == 0:
@@ -3558,7 +3559,7 @@ class QemuApptainerRunner(BaseRunner):
                 "-o", "StrictHostKeyChecking=no",
                 "-o", "UserKnownHostsFile=/dev/null",
                 "-P", str(self.ssh_port),
-                f"ga@localhost:{container_src}", host_dst
+                f"{getattr(self, '_ssh_user', None) or 'ga'}@localhost:{container_src}", host_dst
             ]
             result = subprocess.run(cmd, capture_output=True)
             if result.returncode == 0:
