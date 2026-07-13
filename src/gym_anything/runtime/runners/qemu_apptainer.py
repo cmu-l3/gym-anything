@@ -276,9 +276,15 @@ class QemuApptainerRunner(BaseRunner):
                 self._ssh_password = "GymAnything123!"
         else:
             self.base_qcow2 = QEMU_CACHE / "base_ubuntu_gnome.qcow2"
-            # SSH credentials for Linux
-            self._ssh_user = "ga"
-            self._ssh_password = "password123"
+            # The stock image uses ga/password123, while imported environments
+            # may declare a different guest account (for example OSWorld).
+            ssh_cfg = getattr(spec, "ssh", None)
+            self._ssh_user = (
+                getattr(ssh_cfg, "user", None) if ssh_cfg else None
+            ) or "ga"
+            self._ssh_password = (
+                getattr(ssh_cfg, "password", None) if ssh_cfg else None
+            ) or "password123"
 
         self.env_hash = _get_env_hash(spec)
         self.env_checkpoint = QEMU_CACHE / f"checkpoint_{self.env_hash}.qcow2"
@@ -1894,7 +1900,7 @@ class QemuApptainerRunner(BaseRunner):
         password = self._ssh_password
 
         # For Windows or if SSH key doesn't exist, prefer paramiko with password auth
-        if self.is_windows or not ssh_key.exists():
+        if self.is_windows or self._ssh_user != "ga" or not ssh_key.exists():
             try:
                 import paramiko
                 client = paramiko.SSHClient()
@@ -1963,7 +1969,7 @@ class QemuApptainerRunner(BaseRunner):
         password = self._ssh_password
 
         # For Windows or if SSH key doesn't exist, use paramiko SFTP
-        if self.is_windows or not ssh_key.exists():
+        if self.is_windows or self._ssh_user != "ga" or not ssh_key.exists():
             try:
                 import paramiko
                 client = paramiko.SSHClient()
@@ -3178,7 +3184,7 @@ class QemuApptainerRunner(BaseRunner):
         ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
 
         # Try SSH with key first (if key exists) - Linux only
-        if ssh_key.exists():
+        if self._ssh_user == "ga" and ssh_key.exists():
             full_cmd = [
                 "ssh",
                 "-i", str(ssh_key),
@@ -3250,7 +3256,11 @@ class QemuApptainerRunner(BaseRunner):
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             try:
-                if not self.is_windows and ssh_key.exists():
+                if (
+                    not self.is_windows
+                    and self._ssh_user == "ga"
+                    and ssh_key.exists()
+                ):
                     try:
                         client.connect("localhost", port=self.ssh_port, username="ga",
                                       key_filename=str(ssh_key), timeout=15, look_for_keys=False)
@@ -3462,7 +3472,7 @@ class QemuApptainerRunner(BaseRunner):
         ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
 
         # Linux: Try SCP with key first
-        if ssh_key.exists():
+        if self._ssh_user == "ga" and ssh_key.exists():
             cmd = [
                 "scp", "-r",
                 "-i", str(ssh_key),
@@ -3552,7 +3562,7 @@ class QemuApptainerRunner(BaseRunner):
         ssh_key = Path.home() / ".ssh" / "ga_qemu_key"
 
         # Linux: Try SCP with key first
-        if ssh_key.exists():
+        if self._ssh_user == "ga" and ssh_key.exists():
             cmd = [
                 "scp", "-r",
                 "-i", str(ssh_key),
@@ -3584,18 +3594,22 @@ class QemuApptainerRunner(BaseRunner):
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             try:
-                # Windows: Use configured credentials directly
-                if self.is_windows:
+                # A generated key can authenticate only the stock ga account.
+                if (
+                    self.is_windows
+                    or self._ssh_user != "ga"
+                    or not ssh_key.exists()
+                ):
                     client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
                                   password=self._ssh_password, timeout=30, look_for_keys=False)
                 else:
-                    # Linux: Try key first, then password
+                    # Stock Linux image: try its key, then its configured password.
                     try:
                         client.connect("localhost", port=self.ssh_port, username="ga",
                                       key_filename=str(ssh_key), timeout=10, look_for_keys=False)
                     except Exception:
-                        client.connect("localhost", port=self.ssh_port, username="ga",
-                                      password="password123", timeout=10, look_for_keys=False)
+                        client.connect("localhost", port=self.ssh_port, username=self._ssh_user,
+                                      password=self._ssh_password, timeout=10, look_for_keys=False)
                 return client
             except Exception as e:
                 last_err = e
