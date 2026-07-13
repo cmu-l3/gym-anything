@@ -36,7 +36,7 @@ One-click launch starts an isolated worker, calls the real environment `reset`, 
 
 ## Atlas data and curation
 
-Atlas reads the sibling `research/collection/` corpus. Set `CAPTCHA_BENCH_RESEARCH_ROOT` when that corpus lives elsewhere. Its layered index is assembled from:
+Atlas reads the sibling `research/collection/` corpus. Set `CAPTCHA_BENCH_RESEARCH_ROOT` when that corpus lives elsewhere. The multi-gigabyte source archive is intentionally not duplicated inside the `gym-anything` package; a standalone checkout without it reports Atlas as unavailable while keeping the environment catalog, reviews, sessions, and evaluations operational. Its layered index is assembled from:
 
 - 44 entries in the deduplicated cross-source mechanic index;
 - 167 previously extracted source variants: 48 Neal.fun levels, 22 CaptchaWare microgames, 50 Captcha RPG states, 27 NextGen families, and 20 OpenCaptchaWorld families;

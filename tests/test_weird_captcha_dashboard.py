@@ -11,8 +11,8 @@ from pathlib import Path
 
 from benchmarks.weird_captcha_gym.dashboard.catalog import BENCHMARK_ROOT, build_catalog
 from benchmarks.weird_captcha_gym.dashboard.atlas import (
-    AtlasCurationStore, artifact_page, build_atlas, instance_detail, instance_page, source_detail,
-    specimen_detail,
+    AtlasCurationStore, COLLECTION_ROOT, artifact_page, build_atlas, instance_detail, instance_page,
+    source_detail, specimen_detail,
 )
 from benchmarks.weird_captcha_gym.dashboard.server import DashboardServer, EvaluationManager
 from benchmarks.weird_captcha_gym.dashboard.reviews import EnvironmentReviewStore
@@ -36,6 +36,12 @@ PACK_VI = {
     "three_camera_claw_machine", "zero_g_cable_autopsy",
     "portal_freight_oversized_parcel",
 }
+SURVEY_CORPUS_AVAILABLE = (
+    (COLLECTION_ROOT / "catalog.jsonl").is_file()
+    and (COLLECTION_ROOT / "mechanic-index.jsonl").is_file()
+    and (COLLECTION_ROOT / "sources").is_dir()
+)
+SURVEY_SKIP_REASON = "optional sibling research/collection survey corpus is not present"
 
 
 class WeirdCaptchaDashboardTests(unittest.TestCase):
@@ -77,6 +83,7 @@ class WeirdCaptchaDashboardTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "non-reviewable"):
                 store.update(archived, {"status": "approved", "note": ""})
 
+    @unittest.skipUnless(SURVEY_CORPUS_AVAILABLE, SURVEY_SKIP_REASON)
     def test_atlas_ingests_individual_specimens_sources_and_real_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             store = AtlasCurationStore(Path(temporary) / "curation.json")
@@ -102,6 +109,7 @@ class WeirdCaptchaDashboardTests(unittest.TestCase):
         self.assertEqual(len(atlas["instance_sources"]), 3)
         self.assertEqual(len(atlas["instance_families"]), 52)
 
+    @unittest.skipUnless(SURVEY_CORPUS_AVAILABLE, SURVEY_SKIP_REASON)
     def test_atlas_details_preserve_item_level_evidence_and_source_notes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             store = AtlasCurationStore(Path(temporary) / "curation.json")
@@ -128,6 +136,7 @@ class WeirdCaptchaDashboardTests(unittest.TestCase):
             self.assertEqual(virc["total"], 60)
             self.assertEqual(virc["instances"][0]["ground_truth_status"], "unavailable")
 
+    @unittest.skipUnless(SURVEY_CORPUS_AVAILABLE, SURVEY_SKIP_REASON)
     def test_atlas_curation_is_persistent_without_fabricating_an_environment(self) -> None:
         before = build_catalog()["stats"]["total"]
         with tempfile.TemporaryDirectory() as temporary:
@@ -147,6 +156,14 @@ class WeirdCaptchaDashboardTests(unittest.TestCase):
             store.update(concrete_id, {"decision": "shortlisted", "note": "concrete seed"})
             self.assertEqual(instance_detail(concrete_id, store)["curation"]["note"], "concrete seed")
         self.assertEqual(build_catalog()["stats"]["total"], before)
+
+    @unittest.skipIf(SURVEY_CORPUS_AVAILABLE, "full sibling survey corpus is present")
+    def test_atlas_gracefully_reports_an_absent_optional_survey_corpus(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            atlas = build_atlas(AtlasCurationStore(Path(temporary) / "curation.json"))
+        self.assertFalse(atlas["available"])
+        self.assertEqual(atlas["stats"]["catalog_records"], 0)
+        self.assertEqual(atlas["stats"]["files"], 0)
 
     def test_catalog_reports_the_final_environment_inventory(self) -> None:
         catalog = build_catalog()
@@ -572,38 +589,43 @@ class WeirdCaptchaDashboardTests(unittest.TestCase):
                 self.assertIn("Interaction Observatory", html)
             with urllib.request.urlopen(f"{base}/api/atlas", timeout=5) as response:
                 atlas = json.loads(response.read())
+            if SURVEY_CORPUS_AVAILABLE:
+                self.assertTrue(atlas["available"])
                 self.assertEqual(atlas["stats"]["catalog_records"], 1_411)
-            with urllib.request.urlopen(f"{base}/api/atlas/specimens/neal-im-not-a-robot--level-40", timeout=3) as response:
-                specimen = json.loads(response.read())
-                self.assertEqual(specimen["title"], "Slot Machine")
-            with urllib.request.urlopen(f"{base}/api/atlas/instances?source=visual-reasoning-captcha-vtt&limit=2", timeout=3) as response:
-                instances = json.loads(response.read())
-                self.assertEqual(instances["total"], 60)
-                self.assertEqual(len(instances["instances"]), 2)
-            instance_id = instances["instances"][0]["id"]
-            with urllib.request.urlopen(f"{base}/api/atlas/instances/{instance_id}", timeout=3) as response:
-                instance = json.loads(response.read())
-                self.assertEqual(instance["record_type"], "captured_example")
-            curation_request = urllib.request.Request(
-                f"{base}/api/atlas/specimens/neal-im-not-a-robot--level-40/curation",
-                data=json.dumps({"decision": "shortlisted", "note": "keep", "promoted": True}).encode("utf-8"),
-                headers={"content-type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(curation_request, timeout=3) as response:
-                curation = json.loads(response.read())
-                self.assertTrue(curation["curation"]["promoted"])
-                self.assertEqual(curation["stats"]["promoted"], 1)
-            with urllib.request.urlopen(f"{base}/atlas-media/neal-im-not-a-robot/media/page-official.png", timeout=3) as response:
-                self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
-                self.assertTrue(response.headers["Content-Type"].startswith("image/png"))
-            unicode_artifact = (
-                f"{base}/atlas-media/cursed-captchas-computer-vision/raw/"
-                "Cursed%20Captcha%EF%BC%9A%20Level%201%20-%20Show%20a%20Banana.info.json"
-            )
-            with urllib.request.urlopen(unicode_artifact, timeout=3) as response:
-                self.assertEqual(response.status, 200)
-                self.assertIn("filename*=UTF-8''", response.headers["Content-Disposition"])
+                with urllib.request.urlopen(f"{base}/api/atlas/specimens/neal-im-not-a-robot--level-40", timeout=3) as response:
+                    specimen = json.loads(response.read())
+                    self.assertEqual(specimen["title"], "Slot Machine")
+                with urllib.request.urlopen(f"{base}/api/atlas/instances?source=visual-reasoning-captcha-vtt&limit=2", timeout=3) as response:
+                    instances = json.loads(response.read())
+                    self.assertEqual(instances["total"], 60)
+                    self.assertEqual(len(instances["instances"]), 2)
+                instance_id = instances["instances"][0]["id"]
+                with urllib.request.urlopen(f"{base}/api/atlas/instances/{instance_id}", timeout=3) as response:
+                    instance = json.loads(response.read())
+                    self.assertEqual(instance["record_type"], "captured_example")
+                curation_request = urllib.request.Request(
+                    f"{base}/api/atlas/specimens/neal-im-not-a-robot--level-40/curation",
+                    data=json.dumps({"decision": "shortlisted", "note": "keep", "promoted": True}).encode("utf-8"),
+                    headers={"content-type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(curation_request, timeout=3) as response:
+                    curation = json.loads(response.read())
+                    self.assertTrue(curation["curation"]["promoted"])
+                    self.assertEqual(curation["stats"]["promoted"], 1)
+                with urllib.request.urlopen(f"{base}/atlas-media/neal-im-not-a-robot/media/page-official.png", timeout=3) as response:
+                    self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+                    self.assertTrue(response.headers["Content-Type"].startswith("image/png"))
+                unicode_artifact = (
+                    f"{base}/atlas-media/cursed-captchas-computer-vision/raw/"
+                    "Cursed%20Captcha%EF%BC%9A%20Level%201%20-%20Show%20a%20Banana.info.json"
+                )
+                with urllib.request.urlopen(unicode_artifact, timeout=3) as response:
+                    self.assertEqual(response.status, 200)
+                    self.assertIn("filename*=UTF-8''", response.headers["Content-Disposition"])
+            else:
+                self.assertFalse(atlas["available"])
+                self.assertEqual(atlas["stats"]["catalog_records"], 0)
             request = urllib.request.Request(
                 f"{base}/api/sessions",
                 data=json.dumps({"environment_id": "does_not_exist"}).encode("utf-8"),

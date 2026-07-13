@@ -3,12 +3,6 @@ from __future__ import annotations
 from collections import deque
 from pathlib import Path
 
-from playwright.sync_api import expect
-
-from benchmarks.weird_captcha_gym.tools.incubator_solvers.reviewed_overhaul_common import (
-    expect_fail_and_fresh, read_json, shot,
-)
-
 MECHANIC_ID = "slime_commute"
 KEYS = {"w": (0, -1), "s": (0, 1), "a": (-1, 0), "d": (1, 0)}
 
@@ -112,6 +106,12 @@ def _assert_visible_contact(page) -> None:
 
 
 def fail_once(page, state_dir: Path, out_dir: Path, mechanic: str) -> None:
+    from playwright.sync_api import expect
+
+    from benchmarks.weird_captcha_gym.tools.incubator_solvers.reviewed_overhaul_common import (
+        expect_fail_and_fresh, read_json, shot,
+    )
+
     assert mechanic == MECHANIC_ID
     state = read_json(state_dir / "public_state.json")
     before, board = state["challenge_id"], state["board"]
@@ -140,6 +140,8 @@ def fail_once(page, state_dir: Path, out_dir: Path, mechanic: str) -> None:
 
 
 def solve(page, state_dir: Path, out_dir: Path, mechanic: str) -> None:
+    from benchmarks.weird_captcha_gym.tools.incubator_solvers.reviewed_overhaul_common import read_json, shot
+
     assert mechanic == MECHANIC_ID
     state = read_json(state_dir / "public_state.json")
     plan = _plan(state["board"])
