@@ -8,6 +8,8 @@ from pathlib import Path
 from unittest import mock
 
 from gym_anything.api import from_config
+from gym_anything.contracts import RunnerRuntimeInfo
+from gym_anything.env import _require_hook_success
 from gym_anything.specs import EnvSpec, TaskSpec
 from gym_anything.verification import verify_environment_dir
 from gym_anything.verification.pipeline import verify_task_pipeline
@@ -49,6 +51,21 @@ class VerificationSystemTests(unittest.TestCase):
                 "action": [{"type": "mouse"}],
             },
         )
+
+    def test_failed_task_setup_hook_is_fatal_and_includes_its_log(self) -> None:
+        runner = mock.Mock()
+        runner.exec_capture.return_value = "setup exploded\n"
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "(?s)pre_task hook exited with code 17.*setup exploded",
+        ):
+            _require_hook_success(
+                runner,
+                "pre_task hook",
+                17,
+                "/tmp/task_pre_task.log",
+            )
 
     def test_verify_environment_dir_succeeds_for_valid_task_layout(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -354,6 +371,59 @@ class VerificationSystemTests(unittest.TestCase):
             self.assertEqual(result.stage, "verifier")
             self.assertIsNotNone(result.verifier)
             self.assertFalse(result.verifier["passed"])
+
+    def test_program_verifier_receives_complete_runner_runtime_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            task_dir = root / "tasks" / "demo"
+            episode_dir = root / "episode"
+            task_dir.mkdir(parents=True)
+            episode_dir.mkdir()
+            (task_dir / "verifier.py").write_text(
+                "def verify(traj, env_info, task_info):\n"
+                "    return {\n"
+                "        'passed': True, 'score': 100,\n"
+                "        'seen_ssh_port': env_info.get('ssh_port'),\n"
+                "        'seen_ssh_user': env_info.get('ssh_user'),\n"
+                "        'seen_vnc_port': env_info.get('vnc_port'),\n"
+                "    }\n",
+                encoding="utf-8",
+            )
+            env_spec = EnvSpec.from_dict({
+                "id": "test-env",
+                "runner": "local",
+                "observation": [{"type": "rgb_screen", "resolution": [640, 480]}],
+                "action": [{"type": "mouse"}],
+            })
+            task_spec = TaskSpec.from_dict({
+                "id": "demo",
+                "success": {
+                    "mode": "program",
+                    "spec": {"program": "verifier.py::verify"},
+                },
+            })
+            runner = mock.Mock()
+            runner.get_runtime_info.return_value = RunnerRuntimeInfo(
+                platform_family="linux",
+                ssh_port=2222,
+                ssh_user="user",
+                ssh_password="password",
+                vnc_port=5901,
+            )
+
+            result = VerifierRunner().evaluate(
+                runner=runner,
+                env_spec=env_spec,
+                task_spec=task_spec,
+                episode_dir=episode_dir,
+                env_root=root,
+                task_root=task_dir,
+            )
+
+            self.assertTrue(result["passed"])
+            self.assertEqual(result["seen_ssh_port"], 2222)
+            self.assertEqual(result["seen_ssh_user"], "user")
+            self.assertEqual(result["seen_vnc_port"], 5901)
 
     def test_vlm_checklist_verifier_scores_trajectory_with_mocked_vlm(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

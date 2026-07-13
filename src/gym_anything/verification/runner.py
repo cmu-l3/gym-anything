@@ -147,6 +147,16 @@ class VerifierRunner:
             runtime_info_getter = getattr(runner, "get_runtime_info", None)
             if callable(runtime_info_getter):
                 runtime_info = runtime_info_getter()
+                runtime_values = (
+                    runtime_info.to_dict()
+                    if hasattr(runtime_info, "to_dict")
+                    else asdict(runtime_info)
+                )
+                env_info.update({
+                    key: value
+                    for key, value in runtime_values.items()
+                    if value is not None
+                })
                 if runtime_info.container_name:
                     env_info["container"] = runtime_info.container_name
             elif hasattr(runner, "container_name"):
