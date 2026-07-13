@@ -33,6 +33,25 @@ logger = logging.getLogger(__name__)
 HOOK_TIMEOUT = int(os.environ.get("GYM_ANYTHING_HOOK_TIMEOUT", "1800"))
 
 
+def _require_hook_success(
+    runner: BaseRunner,
+    hook_name: str,
+    return_code: Any,
+    log_path: str,
+) -> None:
+    if return_code in (None, 0):
+        return
+    tail = ""
+    try:
+        tail = runner.exec_capture(
+            f"tail -n 80 {shlex.quote(log_path)} 2>/dev/null || true"
+        ).strip()
+    except Exception:
+        pass
+    detail = f"; output tail:\n{tail}" if tail else ""
+    raise RuntimeError(f"{hook_name} exited with code {return_code}{detail}")
+
+
 class GymAnythingEnv:
     """Unified environment wrapper exposing Gym-like API.
 
@@ -571,14 +590,24 @@ class GymAnythingEnv:
                     # Android uses sh instead of bash, and different paths
                     # Use longer timeout (180s) for Android hooks as game loading can take time
                     if self._platform_family() == "android":
-                        self._runner.exec(hook_cmd, timeout=180)
+                        return_code = self._runner.exec(hook_cmd, timeout=180)
                     # Windows uses PowerShell directly (hook_cmd already contains full PowerShell command)
                     elif self._platform_family() == "windows":
-                        self._runner.exec(hook_cmd, use_pty=False)
+                        return_code = self._runner.exec(hook_cmd, use_pty=False)
                     else:
                         # Use configurable timeout for pre_task hook (default 600s, can be overridden in task.json)
                         hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
-                        self._runner.exec(f"bash -lc {shlex.quote(hook_cmd)} > /tmp/task_pre_task.log 2>&1", use_pty=False, timeout=hook_timeout)
+                        return_code = self._runner.exec(
+                            f"bash -lc {shlex.quote(hook_cmd)} > /tmp/task_pre_task.log 2>&1",
+                            use_pty=False,
+                            timeout=hook_timeout,
+                        )
+                    _require_hook_success(
+                        self._runner,
+                        "pre_task hook",
+                        return_code,
+                        "/tmp/task_pre_task.log",
+                    )
                     self._capture_observation()
                     if self._reporter:
                         self._reporter.stage_done("pre_task_hook")
@@ -586,6 +615,7 @@ class GymAnythingEnv:
                     logger.warning("pre_task hook failed: %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("pre_task_hook", str(e))
+                    raise
 
             # === TASK INIT SCRIPT ===
             if self.task_spec and self.task_spec.init.init_script:
