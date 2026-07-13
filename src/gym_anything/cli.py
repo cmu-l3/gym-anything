@@ -32,6 +32,7 @@ from .verification.reports import render_task_pipeline_result_text
 
 _ENV_SEARCH_PATHS = [
     "benchmarks/cua_world/environments",
+    "benchmarks/weird_captcha_gym/environments",
 ]
 
 
@@ -410,26 +411,44 @@ def _build_agent_args(args) -> dict:
 
 def _run_benchmark_batch(args) -> int:
     """Run benchmark in batch mode across multiple tasks."""
-    from benchmarks.cua_world.registry import (
-        get_tasks_for_environment,
-        load_environment_task_splits,
-        resolve_environment_dir,
-        resolve_environment_key,
-    )
+    benchmark = getattr(args, "benchmark", "cua_world")
+    args.benchmark = benchmark
+    if benchmark == "cua_world":
+        from benchmarks.cua_world.registry import (
+            get_tasks_for_environment,
+            load_environment_task_splits,
+            resolve_environment_dir,
+            resolve_environment_key,
+        )
+    else:
+        from .registry import (
+            get_tasks_for_environment,
+            load_environment_task_splits,
+            resolve_environment_dir,
+            resolve_environment_key,
+        )
 
     if args.env_dir == "all":
-        registry = load_environment_task_splits(surface=args.surface)
+        if benchmark == "cua_world":
+            registry = load_environment_task_splits(surface=args.surface)
+        else:
+            registry = load_environment_task_splits(benchmark, surface=args.surface)
         pairs = []
         for env_key, split_map in registry.items():
             if args.split not in split_map:
                 continue
-            env_dir = str(resolve_environment_dir(env_key))
+            env_dir = str(resolve_environment_dir(env_key) if benchmark == "cua_world" else resolve_environment_dir(env_key, benchmark))
             for task_id in split_map[args.split]:
                 pairs.append((task_id, env_dir))
     else:
         env_key = resolve_environment_key(args.env_dir)
-        tasks = get_tasks_for_environment(env_key, split=args.split, surface=args.surface)
-        pairs = [(task_id, args.env_dir) for task_id in tasks]
+        if benchmark == "cua_world":
+            tasks = get_tasks_for_environment(env_key, split=args.split, surface=args.surface)
+            env_dir = args.env_dir
+        else:
+            tasks = get_tasks_for_environment(env_key, benchmark, split=args.split, surface=args.surface)
+            env_dir = str(resolve_environment_dir(args.env_dir, benchmark))
+        pairs = [(task_id, env_dir) for task_id in tasks]
 
     if not pairs:
         print(f"No tasks found for split '{args.split}'.", file=sys.stderr)
@@ -480,6 +499,7 @@ def _run_benchmark_batch(args) -> int:
             sys.executable, "-m", "gym_anything.cli", "benchmark",
             env_dir, "--task", task_id,
             "--agent", args.agent,
+            "--benchmark", args.benchmark,
             "--seed", str(args.seed),
             "--cache-level", args.cache_level,
         ]
@@ -556,7 +576,13 @@ def cmd_benchmark(args) -> int:
         print("Run: pip install -e '.[agents]'", file=sys.stderr)
         return 1
 
-    if args.env_dir != "all":
+    benchmark = getattr(args, "benchmark", "cua_world")
+    args.benchmark = benchmark
+    if args.env_dir != "all" and benchmark != "cua_world":
+        from .registry import resolve_environment_dir
+
+        args.env_dir = str(resolve_environment_dir(args.env_dir, benchmark))
+    elif args.env_dir != "all":
         args.env_dir = _resolve_env_dir(args.env_dir)
 
     _apply_verifier_overrides(args)
@@ -1191,6 +1217,7 @@ def main(argv=None):
 
     p_bench = sub.add_parser("benchmark", help="Run agent evaluation on benchmark tasks")
     p_bench.add_argument("env_dir", help="Environment name (e.g. zotero) or 'all' for full corpus")
+    p_bench.add_argument("--benchmark", default="cua_world", help="Benchmark package or root path for batch split resolution")
     p_bench.add_argument("--task", help="Task ID. Omit to run all tasks in the split (batch mode)")
     p_bench.add_argument("--agent", required=True, help="Agent class name (e.g. ClaudeAgent)")
     p_bench.add_argument("--model", help="Model identifier (e.g. claude-opus-4)")

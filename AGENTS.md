@@ -23,6 +23,13 @@ core APIs.
    example. Default reading order is in `contributing/index.mdx`.
 3. Work on a branch, not `main`.
 
+For any change to Weird CAPTCHA Gym, first read
+`benchmarks/weird_captcha_gym/docs/interaction-puzzle-field-notes.md` in full.
+Treat its interaction-first doctrine, human-feedback ledger, prohibited
+shortcuts, and definition of done as binding benchmark requirements. A
+scripted solver, green verifier, or polished screenshot proves wiring—not
+puzzle quality, human usability, or agent difficulty.
+
 ## Contracts you must not break
 
 - `src/gym_anything/contracts.py` — `SessionInfo`, `RunnerRuntimeInfo`.
