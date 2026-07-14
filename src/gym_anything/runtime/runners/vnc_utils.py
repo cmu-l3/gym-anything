@@ -1,8 +1,7 @@
 """
-VNC Utilities for QEMU-based environments.
+VNC Utilities for VM-backed environments.
 
-This module provides VNC-based screenshot capture and action injection
-for QEMU VMs running inside Apptainer containers.
+This module provides VNC-based screenshot capture and action injection.
 """
 
 from __future__ import annotations
@@ -170,11 +169,26 @@ class VNCConnection:
     _height: int = 0
     _pixel_format: Dict[str, Any] = None
     _name: str = ""
-    _lock: threading.Lock = None
+    _lock: threading.RLock = None
+    _button_mask: int = 0
+    _pointer_x: int = 0
+    _pointer_y: int = 0
     
     def __post_init__(self):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._pixel_format = {}
+
+    def _recv_exact(self, size: int) -> bytes:
+        """Receive exactly ``size`` bytes or raise if the peer disconnects."""
+        if self._socket is None:
+            raise ConnectionError("VNC socket is not connected")
+        chunks = bytearray()
+        while len(chunks) < size:
+            chunk = self._socket.recv(size - len(chunks))
+            if not chunk:
+                raise ConnectionError("VNC connection closed during read")
+            chunks.extend(chunk)
+        return bytes(chunks)
     
     def connect(self, timeout: float = 30.0) -> bool:
         """Establish VNC connection with handshake."""
@@ -185,22 +199,22 @@ class VNCConnection:
                 self._socket.connect((self.host, self.port))
                 
                 # Protocol version handshake
-                version = self._socket.recv(12)
+                version = self._recv_exact(12)
                 if not version.startswith(b"RFB "):
                     raise ConnectionError(f"Invalid VNC protocol version: {version}")
                 
                 # Send our version (3.8 is widely supported)
-                self._socket.send(b"RFB 003.008\n")
+                self._socket.sendall(b"RFB 003.008\n")
                 
                 # Security handshake
                 if not self._do_security_handshake():
                     return False
                 
                 # Client init - request shared desktop
-                self._socket.send(struct.pack("!B", 1))  # shared=1
+                self._socket.sendall(struct.pack("!B", 1))  # shared=1
                 
                 # Server init
-                server_init = self._socket.recv(24)
+                server_init = self._recv_exact(24)
                 self._width, self._height = struct.unpack("!HH", server_init[0:4])
                 
                 # Parse pixel format (16 bytes)
@@ -221,7 +235,7 @@ class VNCConnection:
                 # Desktop name
                 name_len = struct.unpack("!I", server_init[20:24])[0]
                 if name_len > 0:
-                    self._name = self._socket.recv(name_len).decode("utf-8", errors="ignore")
+                    self._name = self._recv_exact(name_len).decode("utf-8", errors="ignore")
                 
                 # Set pixel format to 32-bit BGRA for easier handling
                 self._set_pixel_format()
@@ -240,36 +254,36 @@ class VNCConnection:
     def _do_security_handshake(self) -> bool:
         """Handle VNC security handshake."""
         # Get security types count
-        num_types = struct.unpack("!B", self._socket.recv(1))[0]
+        num_types = struct.unpack("!B", self._recv_exact(1))[0]
         
         if num_types == 0:
             # Connection failed - read reason
-            reason_len = struct.unpack("!I", self._socket.recv(4))[0]
-            reason = self._socket.recv(reason_len).decode("utf-8", errors="ignore")
+            reason_len = struct.unpack("!I", self._recv_exact(4))[0]
+            reason = self._recv_exact(reason_len).decode("utf-8", errors="ignore")
             raise ConnectionError(f"VNC connection refused: {reason}")
         
         # Read available security types
-        types = list(self._socket.recv(num_types))
+        types = list(self._recv_exact(num_types))
         
         # Prefer no auth (1), then VNC auth (2)
         if 1 in types:
             # No authentication
-            self._socket.send(struct.pack("!B", 1))
+            self._socket.sendall(struct.pack("!B", 1))
         elif 2 in types:
             # VNC authentication
-            self._socket.send(struct.pack("!B", 2))
+            self._socket.sendall(struct.pack("!B", 2))
             if not self._vnc_auth():
                 return False
         else:
             raise ConnectionError(f"No supported security type: {types}")
         
         # Check security result
-        result = struct.unpack("!I", self._socket.recv(4))[0]
+        result = struct.unpack("!I", self._recv_exact(4))[0]
         if result != 0:
             # Read failure reason (RFB 3.8+)
             try:
-                reason_len = struct.unpack("!I", self._socket.recv(4))[0]
-                reason = self._socket.recv(reason_len).decode("utf-8", errors="ignore")
+                reason_len = struct.unpack("!I", self._recv_exact(4))[0]
+                reason = self._recv_exact(reason_len).decode("utf-8", errors="ignore")
                 raise ConnectionError(f"VNC authentication failed: {reason}")
             except:
                 raise ConnectionError("VNC authentication failed")
@@ -287,7 +301,7 @@ class VNCConnection:
                 raise ImportError("pycryptodome is required for VNC authentication: pip install pycryptodome")
         
         # Receive 16-byte challenge
-        challenge = self._socket.recv(16)
+        challenge = self._recv_exact(16)
         
         if not self.password:
             raise ValueError("VNC password required but not provided")
@@ -300,7 +314,7 @@ class VNCConnection:
         cipher = DES.new(key, DES.MODE_ECB)
         response = cipher.encrypt(challenge[:8]) + cipher.encrypt(challenge[8:16])
         
-        self._socket.send(response)
+        self._socket.sendall(response)
         return True
     
     def _set_pixel_format(self):
@@ -316,7 +330,7 @@ class VNCConnection:
         msg += struct.pack("!BBB", 16, 8, 0)
         msg += b"\x00\x00\x00"  # padding
         
-        self._socket.send(msg)
+        self._socket.sendall(msg)
         self._pixel_format = {
             "bpp": 32,
             "depth": 24,
@@ -340,7 +354,7 @@ class VNCConnection:
         msg = struct.pack("!BxH", 2, len(encodings))
         for enc in encodings:
             msg += struct.pack("!i", enc)
-        self._socket.send(msg)
+        self._socket.sendall(msg)
     
     def close(self):
         """Close the VNC connection."""
@@ -371,13 +385,13 @@ class VNCConnection:
                 # Message type 3 = FramebufferUpdateRequest
                 # incremental=0 (full update), x=0, y=0, width, height
                 msg = struct.pack("!BBHHHH", 3, 0, 0, 0, self._width, self._height)
-                self._socket.send(msg)
+                self._socket.sendall(msg)
                 
                 # Read framebuffer update response
                 self._socket.settimeout(10.0)
                 
                 while True:
-                    msg_type = struct.unpack("!B", self._socket.recv(1))[0]
+                    msg_type = struct.unpack("!B", self._recv_exact(1))[0]
                     
                     if msg_type == 0:  # FramebufferUpdate
                         break
@@ -392,26 +406,21 @@ class VNCConnection:
                         return None
                 
                 # Read number of rectangles
-                self._socket.recv(1)  # padding
-                num_rects = struct.unpack("!H", self._socket.recv(2))[0]
+                self._recv_exact(1)  # padding
+                num_rects = struct.unpack("!H", self._recv_exact(2))[0]
                 
                 # Initialize framebuffer
                 pixels = bytearray(self._width * self._height * 4)
                 
                 for _ in range(num_rects):
                     # Rectangle header
-                    x, y, w, h, encoding = struct.unpack("!HHHHI", self._socket.recv(12))
+                    x, y, w, h, encoding = struct.unpack("!HHHHi", self._recv_exact(12))
                     
                     if encoding == 0:  # Raw
                         # Read raw pixel data
                         bytes_per_pixel = self._pixel_format["bpp"] // 8
                         data_size = w * h * bytes_per_pixel
-                        data = b""
-                        while len(data) < data_size:
-                            chunk = self._socket.recv(data_size - len(data))
-                            if not chunk:
-                                raise ConnectionError("Connection closed during read")
-                            data += chunk
+                        data = self._recv_exact(data_size)
                         
                         # Copy to framebuffer
                         for row in range(h):
@@ -459,17 +468,17 @@ class VNCConnection:
     
     def _handle_colormap(self):
         """Handle SetColorMapEntries message."""
-        self._socket.recv(1)  # padding
-        first_color = struct.unpack("!H", self._socket.recv(2))[0]
-        num_colors = struct.unpack("!H", self._socket.recv(2))[0]
+        self._recv_exact(1)  # padding
+        first_color = struct.unpack("!H", self._recv_exact(2))[0]
+        num_colors = struct.unpack("!H", self._recv_exact(2))[0]
         # Read and discard color entries
-        self._socket.recv(num_colors * 6)
+        self._recv_exact(num_colors * 6)
     
     def _handle_cut_text(self):
         """Handle ServerCutText message."""
-        self._socket.recv(3)  # padding
-        length = struct.unpack("!I", self._socket.recv(4))[0]
-        self._socket.recv(length)  # discard text
+        self._recv_exact(3)  # padding
+        length = struct.unpack("!I", self._recv_exact(4))[0]
+        self._recv_exact(length)  # discard text
     
     def send_key(self, key: str, down: bool = True):
         """Send a key press or release event."""
@@ -481,7 +490,7 @@ class VNCConnection:
             # Message type 4 = KeyEvent
             # down_flag (1=pressed), padding (2 bytes), keysym (4 bytes)
             msg = struct.pack("!BBxxI", 4, 1 if down else 0, keysym)
-            self._socket.send(msg)
+            self._socket.sendall(msg)
     
     def send_key_combo(self, keys: List[str], delay: float = 0.01):
         """Send a key combination (e.g., Ctrl+C)."""
@@ -526,8 +535,36 @@ class VNCConnection:
             
             # Message type 5 = PointerEvent
             # button_mask (1 byte), x (2 bytes), y (2 bytes)
-            msg = struct.pack("!BBHH", 5, 0, x, y)
-            self._socket.send(msg)
+            self._pointer_x, self._pointer_y = x, y
+            msg = struct.pack("!BBHH", 5, self._button_mask, x, y)
+            self._socket.sendall(msg)
+
+    @property
+    def pointer_position(self) -> Tuple[int, int]:
+        return self._pointer_x, self._pointer_y
+
+    def send_mouse_button(
+        self,
+        button: int,
+        down: bool,
+        x: Optional[int] = None,
+        y: Optional[int] = None,
+    ) -> None:
+        """Press or release one pointer button while retaining other button state."""
+        if button < 1 or button > 8:
+            raise ValueError(f"VNC button must be between 1 and 8, got {button}")
+        with self._lock:
+            if not self._socket:
+                return
+            x = self._pointer_x if x is None else max(0, min(int(x), self._width - 1))
+            y = self._pointer_y if y is None else max(0, min(int(y), self._height - 1))
+            bit = 1 << (button - 1)
+            if down:
+                self._button_mask |= bit
+            else:
+                self._button_mask &= ~bit
+            self._pointer_x, self._pointer_y = x, y
+            self._socket.sendall(struct.pack("!BBHH", 5, self._button_mask, x, y))
     
     def send_mouse_click(self, x: int, y: int, button: int = 1, double: bool = False):
         """Send a mouse click at the specified position.
@@ -545,23 +582,24 @@ class VNCConnection:
             x = max(0, min(x, self._width - 1))
             y = max(0, min(y, self._height - 1))
             
-            button_mask = 1 << (button - 1)
+            button_mask = self._button_mask | (1 << (button - 1))
+            self._pointer_x, self._pointer_y = x, y
             
             clicks = 2 if double else 1
             for _ in range(clicks):
                 # Move to position
-                msg = struct.pack("!BBHH", 5, 0, x, y)
-                self._socket.send(msg)
+                msg = struct.pack("!BBHH", 5, self._button_mask, x, y)
+                self._socket.sendall(msg)
                 time.sleep(0.01)
                 
                 # Button down
                 msg = struct.pack("!BBHH", 5, button_mask, x, y)
-                self._socket.send(msg)
+                self._socket.sendall(msg)
                 time.sleep(0.05)
                 
                 # Button up
-                msg = struct.pack("!BBHH", 5, 0, x, y)
-                self._socket.send(msg)
+                msg = struct.pack("!BBHH", 5, self._button_mask, x, y)
+                self._socket.sendall(msg)
                 time.sleep(0.05)
     
     def send_mouse_drag(self, x1: int, y1: int, x2: int, y2: int, button: int = 1, steps: int = 20):
@@ -570,16 +608,16 @@ class VNCConnection:
             if not self._socket:
                 return
             
-            button_mask = 1 << (button - 1)
+            button_mask = self._button_mask | (1 << (button - 1))
             
             # Move to start position
-            msg = struct.pack("!BBHH", 5, 0, x1, y1)
-            self._socket.send(msg)
+            msg = struct.pack("!BBHH", 5, self._button_mask, x1, y1)
+            self._socket.sendall(msg)
             time.sleep(0.05)
             
             # Button down at start
             msg = struct.pack("!BBHH", 5, button_mask, x1, y1)
-            self._socket.send(msg)
+            self._socket.sendall(msg)
             time.sleep(0.05)
             
             # Interpolate movement
@@ -588,12 +626,13 @@ class VNCConnection:
                 x = int(x1 + (x2 - x1) * t)
                 y = int(y1 + (y2 - y1) * t)
                 msg = struct.pack("!BBHH", 5, button_mask, x, y)
-                self._socket.send(msg)
+                self._socket.sendall(msg)
                 time.sleep(0.02)
             
             # Button up at end
-            msg = struct.pack("!BBHH", 5, 0, x2, y2)
-            self._socket.send(msg)
+            msg = struct.pack("!BBHH", 5, self._button_mask, x2, y2)
+            self._socket.sendall(msg)
+            self._pointer_x, self._pointer_y = x2, y2
     
     def send_scroll(self, x: int, y: int, delta: int):
         """Send mouse scroll at position.
@@ -607,21 +646,22 @@ class VNCConnection:
                 return
             
             # Move to position first
-            msg = struct.pack("!BBHH", 5, 0, x, y)
-            self._socket.send(msg)
+            self._pointer_x, self._pointer_y = x, y
+            msg = struct.pack("!BBHH", 5, self._button_mask, x, y)
+            self._socket.sendall(msg)
             time.sleep(0.01)
             
             # Button 4 = scroll up, button 5 = scroll down
             button = 4 if delta > 0 else 5
-            button_mask = 1 << (button - 1)
+            button_mask = self._button_mask | (1 << (button - 1))
             
             for _ in range(abs(delta)):
                 # Click scroll button
                 msg = struct.pack("!BBHH", 5, button_mask, x, y)
-                self._socket.send(msg)
+                self._socket.sendall(msg)
                 time.sleep(0.02)
-                msg = struct.pack("!BBHH", 5, 0, x, y)
-                self._socket.send(msg)
+                msg = struct.pack("!BBHH", 5, self._button_mask, x, y)
+                self._socket.sendall(msg)
                 time.sleep(0.02)
 
 
@@ -663,5 +703,3 @@ class VNCConnectionPool:
             if self._connection:
                 self._connection.close()
                 self._connection = None
-
-

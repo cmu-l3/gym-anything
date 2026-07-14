@@ -247,6 +247,52 @@ Requirements: `pip install "gym-anything[modal]"` and a configured Modal token
 This runner is also the default backend when a benchmark runs as a
 prime-rl / verifiers environment; see [Training Hubs](/docs/extras/hubs).
 
+## Modal Native
+
+`GYM_ANYTHING_RUNNER=modal_native` runs an existing Linux environment directly
+inside a Modal VM Sandbox. It does not start QEMU inside the Sandbox. The runner
+boots its own Ubuntu desktop image, starts systemd in a PID namespace, exposes
+TigerVNC display `:1`, copies the existing mounts to their configured paths, and
+runs the existing environment and task hooks unchanged.
+
+CPU, memory, screen resolution, outbound networking, VNC password, and timeout
+are mapped from the same `EnvSpec` fields used by `QemuApptainerRunner` wherever
+Modal exposes an equivalent control. The image includes the preprovisioned `ga`
+desktop account used by QEMU environments. Mount `ro`/`rw` modes remain copied
+filesystem inputs rather than live host binds, matching QEMU behavior.
+
+Ubuntu package-to-Snap transitions run only after the VM's systemd and snapd
+are available, so existing environment installers continue to use the normal
+Ubuntu packages unchanged. Modal's VM kernel does not expose squashfs, so the
+runner extracts verified Snap images and presents them through read-only bind
+mounts instead of leaving one `snapfuse` helper process per package. This keeps
+application process discovery consistent with a normal Ubuntu VM. Snap apps
+work functionally, but Modal's kernel has AppArmor disabled, so snapd reports
+`devmode` rather than strict AppArmor confinement.
+
+Filesystem checkpoint caching is supported for `pre_start`, `post_start`, and
+task-specific `post_task` levels. Checkpoint IDs and distributed creation locks
+live in a Modal Dict; each checkpoint is a Modal filesystem-snapshot Image. The
+runner restarts from the new Image after creating a checkpoint so the first run
+has the same disk-only semantics as later restores. Modal VM Sandboxes do not
+provide VM memory snapshots, so `use_savevm=True` is unsupported.
+
+Requirements: `pip install "gym-anything[modal_native]"` and configured Modal
+credentials. Relevant environment variables:
+
+- `GYM_ANYTHING_MODAL_NATIVE_APP` — app name (default `gym-anything-modal-native-runner`)
+- `GYM_ANYTHING_MODAL_NATIVE_CHECKPOINT_DICT` — checkpoint registry name
+- `GYM_ANYTHING_MODAL_NATIVE_TIMEOUT` — Sandbox lifetime seconds (default `10800`)
+- `GYM_ANYTHING_MODAL_NATIVE_DESKTOP_TIMEOUT` — desktop startup timeout (default `300`)
+- `GYM_ANYTHING_MODAL_NATIVE_SNAPSHOT_TIMEOUT` — snapshot operation timeout (default `600`)
+- `GYM_ANYTHING_MODAL_NATIVE_SNAPSHOT_TTL` — snapshot TTL seconds or `none` (default `none`)
+- `GYM_ANYTHING_MODAL_NATIVE_REGION` — optional Modal region
+- `GYM_ANYTHING_MODAL_NATIVE_INBOUND_CIDR` — optional comma-separated VNC ingress CIDRs
+
+This runner currently supports Linux CPU environments only. It fails explicitly
+for GPU requests and for Windows, Android, or macOS specifications. Audio and UI
+tree observations remain empty, matching the Linux QEMU runner.
+
 ## use.computer (macOS)
 
 `runner: use_computer` (set by the `macos` preset) runs environments on remote
