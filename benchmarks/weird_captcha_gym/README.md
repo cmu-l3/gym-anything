@@ -33,9 +33,9 @@ The complete interaction-first design history, human VNC findings, implementatio
 
 ## Visual Dashboard
 
-The benchmark includes a screenshot-first environment hub for browsing all 65 folders: 63 evidence-backed built designs and 2 rejected archive records. All twenty Pack III–VI selections and all historical Incubator selections have been promoted to real, launchable environment records; the dashboard contains zero concept or scaffold cards. It can inspect evidence, start configured VNC sessions, and prepare or run evaluations through the existing CLI contract.
+The benchmark includes a screenshot-first environment hub for browsing all 65 folders: 63 evidence-backed built designs and 2 rejected archive records. All twenty Pack III–VI selections and all historical Incubator selections have been promoted to real, launchable environment records; the dashboard contains zero concept or scaffold cards. It can inspect evidence, open every built task as an ordinary local browser app, preserve the isolated VNC path, store human reviews, and prepare or run evaluations through the existing CLI contract. A Survey-free static export can be shared with collaborators; its authenticated loopback companion keeps all execution and administrative controls on each collaborator's own computer.
 
-Its Survey Atlas adds the upstream selection workflow in four explicit layers: 44 reusable designs, 250 source-exact variants, 1,043 concrete challenge/evidence records, and 74 source dossiers. The 1,411 browseable records retain all 19,168 local research files (including 12,710 image assets and 1,788 curated media files) without treating every grid cell, texture, or puzzle piece as a separate CAPTCHA. You can inspect structured ground truth and source evidence, compare candidates, keep field notes, shortlist/maybe/reject them, and promote promising mechanics into an honest non-launchable queue until a real environment, verifier, and evidence set exist.
+[Open the hosted CAPTCHA Bench dashboard](https://cmu-l3.github.io/gym-anything/captcha-bench/).
 
 ```bash
 PYTHONPATH=src python benchmarks/weird_captcha_gym/dashboard/server.py --open --runner avf

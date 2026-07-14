@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
 from collections import Counter
 from pathlib import Path
+from unittest import mock
 
-from benchmarks.weird_captcha_gym.dashboard.catalog import BENCHMARK_ROOT, build_catalog
+from benchmarks.weird_captcha_gym.dashboard.catalog import BENCHMARK_ROOT, REPO_ROOT, build_catalog
 from benchmarks.weird_captcha_gym.dashboard.atlas import (
     AtlasCurationStore, COLLECTION_ROOT, artifact_page, build_atlas, instance_detail, instance_page,
     source_detail, specimen_detail,
 )
-from benchmarks.weird_captcha_gym.dashboard.server import DashboardServer, EvaluationManager
+from benchmarks.weird_captcha_gym.dashboard.server import DashboardServer, EvaluationManager, SessionManager
+from benchmarks.weird_captcha_gym.dashboard.export_static import _validate_output_path, export_dashboard
 from benchmarks.weird_captcha_gym.dashboard.reviews import EnvironmentReviewStore
 
 
@@ -525,6 +529,127 @@ class WeirdCaptchaDashboardTests(unittest.TestCase):
                 "model": "qwen3-vl",
             })
 
+    def test_static_export_contains_the_full_catalog_without_survey_data(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "site"
+            manifest = export_dashboard(output, companion_url="http://127.0.0.1:9123", copy_media=False)
+            self.assertFalse(manifest["survey_included"])
+            self.assertEqual(manifest["catalog"], {"total": 65, "built": 63, "solution_videos": 11})
+            self.assertEqual(manifest["companion_url"], "http://127.0.0.1:9123")
+            html = (output / "index.html").read_text(encoding="utf-8")
+            app = (output / "static" / "app.js").read_text(encoding="utf-8")
+            config = (output / "static" / "config.js").read_text(encoding="utf-8")
+            catalog = json.loads((output / "data" / "catalog.json").read_text(encoding="utf-8"))
+            self.assertNotIn("Survey Atlas", html)
+            self.assertNotIn("/api/atlas", app)
+            self.assertIn('\"mode\":\"shared\"', config)
+            self.assertEqual(catalog["stats"]["built"], 63)
+            self.assertTrue(all(
+                not str(environment.get("cover") or "").startswith("/media/")
+                for environment in catalog["environments"]
+            ))
+            with self.assertRaises(ValueError):
+                _validate_output_path(Path.home().resolve())
+            with self.assertRaises(ValueError):
+                _validate_output_path(REPO_ROOT.resolve())
+
+    def test_browser_session_canceled_during_setup_cannot_boot_after_shutdown(self) -> None:
+        manager = SessionManager("local")
+        setup_started = threading.Event()
+        release_setup = threading.Event()
+        cancel_observed = threading.Event()
+        remove_browser_state = manager._remove_browser_state
+
+        def delayed_setup(*_args: object, **_kwargs: object) -> subprocess.CompletedProcess[str]:
+            setup_started.set()
+            self.assertTrue(release_setup.wait(timeout=5))
+            return subprocess.CompletedProcess([], 0, "", "")
+
+        def observed_remove(job_id: str) -> None:
+            remove_browser_state(job_id)
+            cancel_observed.set()
+
+        with (
+            mock.patch("benchmarks.weird_captcha_gym.dashboard.server.subprocess.run", side_effect=delayed_setup),
+            mock.patch("benchmarks.weird_captcha_gym.dashboard.server.subprocess.Popen") as popen,
+            mock.patch.object(manager, "_remove_browser_state", side_effect=observed_remove),
+        ):
+            session = manager.start_browser(
+                "domino_autopsy_env",
+                "domino_autopsy_seed_0001",
+                seed=12,
+                auto_open=False,
+            )
+            self.assertTrue(setup_started.wait(timeout=5))
+            manager.cleanup()
+            release_setup.set()
+            self.assertTrue(cancel_observed.wait(timeout=5))
+            self.assertEqual(manager.get(session["id"])["status"], "stopped")
+            self.assertFalse(Path(session["state_dir"]).exists())
+            popen.assert_not_called()
+
+    def test_companion_requires_pairing_key_and_exact_allowed_origin(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        token = "test-companion-token-with-enough-entropy"
+        origin = "https://captcha.example.test"
+        server = DashboardServer(
+            ("127.0.0.1", 0),
+            "avf",
+            review_path=Path(temporary.name) / "reviews.json",
+            companion_token=token,
+            allowed_origins={origin},
+        )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        base = f"http://127.0.0.1:{server.server_address[1]}"
+        try:
+            health_request = urllib.request.Request(f"{base}/api/health", headers={"Origin": origin})
+            with urllib.request.urlopen(health_request, timeout=3) as response:
+                health = json.loads(response.read())
+                self.assertTrue(health["auth_required"])
+                self.assertEqual(response.headers["Access-Control-Allow-Origin"], origin)
+
+            unpaired = urllib.request.Request(f"{base}/api/system", headers={"Origin": origin})
+            with self.assertRaises(urllib.error.HTTPError) as unpaired_error:
+                urllib.request.urlopen(unpaired, timeout=3)
+            self.assertEqual(unpaired_error.exception.code, 401)
+            self.assertEqual(unpaired_error.exception.headers["Access-Control-Allow-Origin"], origin)
+
+            paired = urllib.request.Request(
+                f"{base}/api/system",
+                headers={"Origin": origin, "X-Captcha-Bench-Token": token},
+            )
+            with urllib.request.urlopen(paired, timeout=3) as response:
+                system = json.loads(response.read())
+                self.assertTrue(system["companion"])
+
+            hostile = urllib.request.Request(
+                f"{base}/api/system",
+                headers={"Origin": "https://hostile.example", "X-Captcha-Bench-Token": token},
+            )
+            with self.assertRaises(urllib.error.HTTPError) as hostile_error:
+                urllib.request.urlopen(hostile, timeout=3)
+            self.assertEqual(hostile_error.exception.code, 403)
+
+            preflight = urllib.request.Request(
+                f"{base}/api/sessions",
+                headers={
+                    "Origin": origin,
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type,x-captcha-bench-token",
+                    "Access-Control-Request-Private-Network": "true",
+                },
+                method="OPTIONS",
+            )
+            with urllib.request.urlopen(preflight, timeout=3) as response:
+                self.assertEqual(response.status, 204)
+                self.assertEqual(response.headers["Access-Control-Allow-Private-Network"], "true")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=3)
+
     def test_http_server_serves_catalog_frontend_and_rejects_unknown_launch(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -532,7 +657,6 @@ class WeirdCaptchaDashboardTests(unittest.TestCase):
         server = DashboardServer(
             ("127.0.0.1", 0),
             "avf",
-            curation_path=Path(temporary.name) / "curation.json",
             review_path=review_path,
         )
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -587,45 +711,9 @@ class WeirdCaptchaDashboardTests(unittest.TestCase):
             with urllib.request.urlopen(f"{base}/", timeout=3) as response:
                 html = response.read().decode("utf-8")
                 self.assertIn("Interaction Observatory", html)
-            with urllib.request.urlopen(f"{base}/api/atlas", timeout=5) as response:
-                atlas = json.loads(response.read())
-            if SURVEY_CORPUS_AVAILABLE:
-                self.assertTrue(atlas["available"])
-                self.assertEqual(atlas["stats"]["catalog_records"], 1_411)
-                with urllib.request.urlopen(f"{base}/api/atlas/specimens/neal-im-not-a-robot--level-40", timeout=3) as response:
-                    specimen = json.loads(response.read())
-                    self.assertEqual(specimen["title"], "Slot Machine")
-                with urllib.request.urlopen(f"{base}/api/atlas/instances?source=visual-reasoning-captcha-vtt&limit=2", timeout=3) as response:
-                    instances = json.loads(response.read())
-                    self.assertEqual(instances["total"], 60)
-                    self.assertEqual(len(instances["instances"]), 2)
-                instance_id = instances["instances"][0]["id"]
-                with urllib.request.urlopen(f"{base}/api/atlas/instances/{instance_id}", timeout=3) as response:
-                    instance = json.loads(response.read())
-                    self.assertEqual(instance["record_type"], "captured_example")
-                curation_request = urllib.request.Request(
-                    f"{base}/api/atlas/specimens/neal-im-not-a-robot--level-40/curation",
-                    data=json.dumps({"decision": "shortlisted", "note": "keep", "promoted": True}).encode("utf-8"),
-                    headers={"content-type": "application/json"},
-                    method="POST",
-                )
-                with urllib.request.urlopen(curation_request, timeout=3) as response:
-                    curation = json.loads(response.read())
-                    self.assertTrue(curation["curation"]["promoted"])
-                    self.assertEqual(curation["stats"]["promoted"], 1)
-                with urllib.request.urlopen(f"{base}/atlas-media/neal-im-not-a-robot/media/page-official.png", timeout=3) as response:
-                    self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
-                    self.assertTrue(response.headers["Content-Type"].startswith("image/png"))
-                unicode_artifact = (
-                    f"{base}/atlas-media/cursed-captchas-computer-vision/raw/"
-                    "Cursed%20Captcha%EF%BC%9A%20Level%201%20-%20Show%20a%20Banana.info.json"
-                )
-                with urllib.request.urlopen(unicode_artifact, timeout=3) as response:
-                    self.assertEqual(response.status, 200)
-                    self.assertIn("filename*=UTF-8''", response.headers["Content-Disposition"])
-            else:
-                self.assertFalse(atlas["available"])
-                self.assertEqual(atlas["stats"]["catalog_records"], 0)
+            with self.assertRaises(urllib.error.HTTPError) as removed_atlas:
+                urllib.request.urlopen(f"{base}/api/atlas", timeout=3)
+            self.assertEqual(removed_atlas.exception.code, 404)
             request = urllib.request.Request(
                 f"{base}/api/sessions",
                 data=json.dumps({"environment_id": "does_not_exist"}).encode("utf-8"),
@@ -635,6 +723,50 @@ class WeirdCaptchaDashboardTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as raised:
                 urllib.request.urlopen(request, timeout=3)
             self.assertEqual(raised.exception.code, 400)
+
+            browser_request = urllib.request.Request(
+                f"{base}/api/sessions",
+                data=json.dumps({
+                    "environment_id": "domino_autopsy_env",
+                    "task_id": "domino_autopsy_seed_0001",
+                    "seed": 1776,
+                    "mode": "browser",
+                    "auto_open": False,
+                }).encode("utf-8"),
+                headers={"content-type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(browser_request, timeout=3) as response:
+                browser_session = json.loads(response.read())
+            self.assertEqual(browser_session["kind"], "browser")
+            deadline = time.monotonic() + 12
+            while time.monotonic() < deadline:
+                with urllib.request.urlopen(f"{base}/api/sessions", timeout=3) as response:
+                    sessions = json.loads(response.read())["sessions"]
+                browser_session = next(item for item in sessions if item["id"] == browser_session["id"])
+                if browser_session["status"] in {"running", "failed"}:
+                    break
+                time.sleep(0.1)
+            self.assertEqual(browser_session["status"], "running", browser_session.get("logs"))
+            self.assertEqual(browser_session["runner"], "local browser")
+            browser_url = browser_session["session"]["browser_url"]
+            browser_state_dir = Path(browser_session["state_dir"])
+            self.assertTrue(browser_state_dir.is_dir())
+            with urllib.request.urlopen(browser_url, timeout=3) as response:
+                puzzle_html = response.read().decode("utf-8")
+            self.assertIn("Weird CAPTCHA Gym", puzzle_html)
+            stop_request = urllib.request.Request(
+                f"{base}/api/sessions/{browser_session['id']}/stop",
+                data=b"{}",
+                headers={"content-type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(stop_request, timeout=3) as response:
+                self.assertIn(json.loads(response.read())["status"], {"stopping", "stopped"})
+            deadline = time.monotonic() + 8
+            while time.monotonic() < deadline and browser_state_dir.exists():
+                time.sleep(0.05)
+            self.assertFalse(browser_state_dir.exists())
         finally:
             server.shutdown()
             server.server_close()

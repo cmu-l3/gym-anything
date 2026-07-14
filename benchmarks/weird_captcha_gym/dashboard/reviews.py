@@ -15,9 +15,12 @@ except ImportError:  # pragma: no cover - exercised by the script entrypoint.
 
 REVIEW_STATUSES = ("pending", "looks_good", "approved", "revision_requested")
 RESEARCH_ROOT = Path(os.environ.get("CAPTCHA_BENCH_RESEARCH_ROOT", REPO_ROOT.parent / "research")).expanduser().resolve()
-DEFAULT_REVIEW_PATH = Path(
-    os.environ.get("CAPTCHA_BENCH_REVIEW_PATH", RESEARCH_ROOT / "collection" / "environment-reviews.json")
-).expanduser().resolve()
+LEGACY_REVIEW_PATH = (RESEARCH_ROOT / "collection" / "environment-reviews.json").resolve()
+LOCAL_REVIEW_PATH = (Path.home() / ".captcha-bench" / "environment-reviews.json").resolve()
+DEFAULT_REVIEW_PATH = Path(os.environ.get(
+    "CAPTCHA_BENCH_REVIEW_PATH",
+    LEGACY_REVIEW_PATH if LEGACY_REVIEW_PATH.is_file() else LOCAL_REVIEW_PATH,
+)).expanduser().resolve()
 
 
 def utc_now() -> str:

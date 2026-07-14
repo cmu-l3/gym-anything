@@ -70,10 +70,10 @@ def main() -> None:
         page.goto(args.base_url, wait_until="networkidle")
         expect(page.locator(".display-title")).to_contain_text("screenshot")
         expect(page.locator("#nav-environment-count")).to_have_text("65")
-        expect(page.locator("#nav-atlas-count")).to_have_text("1,411")
+        expect(page.locator('[data-nav="atlas"]')).to_have_count(0)
         expect(page.locator('[data-nav="reviews"]')).to_be_visible()
         expect(page.locator(".specimen-card")).to_have_count(3)
-        expect(page.locator(".atlas-home-portal")).to_contain_text("1,043 concrete challenge records")
+        expect(page.locator(".atlas-home-portal")).to_have_count(0)
         expect(page.locator('[data-open-env="shadow_crime_lab_env"]')).to_have_count(1)
         expect(page.locator('[data-open-env="robot_art_critic_env"]')).to_have_count(1)
         capture(page, output, "observatory")
@@ -163,13 +163,19 @@ def main() -> None:
         page.locator('.environment-card[data-open-env="domino_autopsy_env"] .card-media').click()
         expect(page.locator(".detail-title")).to_have_text("Domino Autopsy")
         expect(page.locator(".filmstrip button")).to_have_count(5)
-        expect(page.locator(".launch-console")).to_contain_text("One-click TigerVNC")
+        expect(page.locator(".launch-console")).to_contain_text("One-click browser play")
         page.locator(".detail-page").evaluate("node => { node.dataset.stabilityProbe = 'gallery'; }")
         page.locator(".filmstrip button").nth(1).click()
         expect(page.locator(".hero-frame-label")).to_contain_text("EVIDENCE FRAME 02")
         expect(page.locator("#modal-root")).to_be_empty()
         expect(page.locator(".detail-page")).to_have_attribute("data-stability-probe", "gallery")
         capture(page, output, "environment-detail")
+
+        page.locator('[data-config-launch="domino_autopsy_env"]').first.click()
+        expect(page.locator("#launch-mode")).to_have_value("browser")
+        expect(page.locator('#launch-mode option[value="vnc"]')).to_have_count(1)
+        expect(page.locator("#launch-form")).to_contain_text("real local UI and grader")
+        page.locator(".modal-close").click()
 
         solution = browser.new_page(viewport={"width": 1600, "height": 1000}, device_scale_factor=1)
         solution.on("pageerror", lambda exc: errors.append(f"solution video: {exc}"))
@@ -203,7 +209,7 @@ def main() -> None:
 
         page.locator('[data-nav="sessions"]').click()
         expect(page.locator(".sessions-page")).to_be_visible()
-        expect(page.locator(".empty-state")).to_contain_text("No machines are awake")
+        expect(page.locator(".empty-state")).to_contain_text("No specimens are awake")
         page.locator(".sessions-page").evaluate("node => { node.dataset.stabilityProbe = 'session-poll'; }")
         empty_launch = page.locator(".empty-state [data-action='open-launch-picker']")
         empty_launch.focus()
@@ -217,68 +223,6 @@ def main() -> None:
         page.locator("#palette-input").fill("funeral")
         expect(page.locator(".palette-item")).to_have_count(1)
         page.keyboard.press("Escape")
-
-        atlas = browser.new_page(viewport={"width": 1600, "height": 1000}, device_scale_factor=1)
-        atlas.on("pageerror", lambda exc: errors.append(f"atlas: {exc}"))
-        atlas.goto(f"{args.base_url}/#/atlas", wait_until="networkidle")
-        expect(atlas.locator(".atlas-hero h1")).to_contain_text("evidence")
-        expect(atlas.locator("#nav-atlas-count")).to_have_text("1,411")
-        expect(atlas.locator(".atlas-card")).to_have_count(44)
-        expect(atlas.locator(".atlas-ledger")).to_contain_text("1,043")
-        expect(atlas.locator(".atlas-audit-strip")).to_contain_text("19,168")
-        capture(atlas, output, "atlas-overview", full_page=False)
-
-        atlas.locator('[data-atlas-view="variants"]').click()
-        expect(atlas.locator(".atlas-card")).to_have_count(250)
-        atlas.locator("#atlas-search").fill("Slot Machine")
-        expect(atlas.locator(".atlas-card")).to_have_count(1)
-        atlas.locator('[data-open-atlas-item="neal-im-not-a-robot--level-40"]').click()
-        expect(atlas.locator(".atlas-detail-head h1")).to_have_text("Slot Machine")
-        expect(atlas.locator(".atlas-curator-panel")).to_contain_text("YOUR FIELD MARK")
-        expect(atlas.locator(".artifact-tile")).not_to_have_count(0)
-        expect(atlas.locator(".curator-honesty")).to_contain_text("does not fabricate")
-        capture(atlas, output, "atlas-item")
-
-        atlas.locator('[data-atlas-compare="neal-im-not-a-robot--level-40"]').first.click()
-        expect(atlas.locator(".atlas-compare-dock")).to_contain_text("1 / 3")
-        atlas.locator('[data-open-atlas-source="neal-im-not-a-robot"]').first.click()
-        expect(atlas.locator(".source-dossier-head h1")).to_have_text("I'm Not a Robot")
-        expect(atlas.locator(".source-record-stamp")).to_contain_text("210 files")
-        expect(atlas.locator(".artifact-tile")).to_have_count(48)
-        expect(atlas.locator(".atlas-source-page")).to_have_css("opacity", "1")
-        atlas.locator(".atlas-source-page").evaluate("node => { node.dataset.stabilityProbe = 'artifact-filter'; }")
-        atlas.locator('[data-atlas-artifact-kind="image"]').click()
-        expect(atlas.locator('.artifact-kind-tabs button.is-active')).to_contain_text("Image")
-        expect(atlas.locator(".atlas-source-page")).to_have_attribute("data-stability-probe", "artifact-filter")
-        capture(atlas, output, "atlas-source", full_page=False)
-
-        atlas.goto(f"{args.base_url}/#/atlas/item/{'neal-im-not-a-robot--level-41'}", wait_until="networkidle")
-        expect(atlas.locator(".atlas-detail-head h1")).to_have_text("Grave")
-        atlas.locator('[data-atlas-compare="neal-im-not-a-robot--level-41"]').first.click()
-        expect(atlas.locator(".atlas-compare-dock")).to_contain_text("2 / 3")
-        atlas.locator('[data-action="open-atlas-compare"]').click()
-        expect(atlas.locator(".atlas-compare-grid article")).to_have_count(2)
-        expect(atlas.locator(".atlas-compare-modal")).to_have_css("opacity", "1")
-        capture(atlas, output, "atlas-compare", full_page=False)
-        atlas.locator(".modal-close").click()
-
-        atlas.goto(f"{args.base_url}/#/atlas", wait_until="networkidle")
-        atlas.locator("#atlas-search").fill("")
-        atlas.locator('.atlas-view-switch [data-atlas-view="instances"]').click()
-        expect(atlas.locator(".atlas-instance-card")).to_have_count(36)
-        expect(atlas.locator("#atlas-result-count")).to_contain_text("36 loaded / 1,043")
-        atlas.locator("#atlas-instance-source").select_option("nextgen-captchas-benchmark")
-        atlas.locator("#atlas-instance-family").select_option("3D_Viewpoint")
-        expect(atlas.locator(".atlas-instance-card")).to_have_count(20)
-        expect(atlas.locator("#atlas-result-count")).to_contain_text("20 loaded / 20")
-        atlas.locator(".atlas-instance-card").first.scroll_into_view_if_needed()
-        capture(atlas, output, "atlas-instances", full_page=False)
-        atlas.locator(".atlas-instance-card").first.click()
-        expect(atlas.locator(".atlas-detail-head h1")).to_have_text("3D Viewpoint · 001")
-        expect(atlas.locator(".ground-truth-record")).to_contain_text("RECORDED ANSWER CONTRACT")
-        expect(atlas.locator(".artifact-tile")).to_have_count(10)
-        capture(atlas, output, "atlas-instance", full_page=False)
-        atlas.close()
 
         interaction_five = browser.new_page(viewport={"width": 1600, "height": 1000}, device_scale_factor=1)
         interaction_five.on("pageerror", lambda exc: errors.append(f"interaction five: {exc}"))
@@ -343,15 +287,6 @@ def main() -> None:
         capture(mobile, output, "mobile-environments", full_page=False)
         mobile.close()
 
-        mobile_atlas = browser.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=1)
-        mobile_atlas.on("pageerror", lambda exc: errors.append(f"mobile atlas: {exc}"))
-        mobile_atlas.goto(f"{args.base_url}/#/atlas", wait_until="networkidle")
-        expect(mobile_atlas.locator(".atlas-hero h1")).to_contain_text("evidence")
-        expect(mobile_atlas.locator(".atlas-card")).to_have_count(44)
-        expect(mobile_atlas.locator(".atlas-view-switch")).to_be_visible()
-        capture(mobile_atlas, output, "mobile-atlas", full_page=False)
-        mobile_atlas.close()
-
         if args.exercise_reviews:
             mobile_review = browser.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=1)
             mobile_review.on("pageerror", lambda exc: errors.append(f"mobile review: {exc}"))
@@ -395,21 +330,14 @@ def main() -> None:
             "live-session empty state",
             "poll-stable session focus",
             "command palette",
-            "four-layer Survey Atlas with 1,411 browseable records",
-            "44 reusable designs and 250 exact source variants",
-            "paginated 1,043-record concrete instance browser",
-            "ground-truth instance dossier with composed assets",
-            "artifact-rich mechanic dossier",
-            "source archive and media filters",
-            "artifact filtering without page reconstruction",
-            "three-slot evidence comparison tray",
+            "Survey-free navigation and Observatory",
+            "local-browser-first launch controls with preserved VNC mode",
             "zero concept and scaffold cards",
             "five launchable Interaction V builds and evidence dossier",
             "five launchable Interaction VI builds and evidence dossier",
             "twenty-three launchable Incubator builds",
             "Incubator built dossier",
             "responsive navigation",
-            "responsive Atlas evidence room",
         ],
     }
     (output / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")

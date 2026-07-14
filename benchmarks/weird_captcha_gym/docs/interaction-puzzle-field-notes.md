@@ -483,6 +483,20 @@ Examples from this execution:
 - Assert the bell is dynamic, finite-mass, non-sensor, and constrained.
 - Require measurable bell swing rather than trusting a CSS class or sound.
 
+### Keep a shared dashboard local-execution only
+
+The collaboration surface may be hosted, but the environments must not silently become hosted demos. The durable boundary is:
+
+- publish the built catalog and its dashboard media as static files;
+- exclude the mined Survey archive from the product export rather than deleting the source research;
+- run every built puzzle, review write, evaluation, and VNC session through an authenticated companion bound to loopback on the collaborator's own computer;
+- make the real localhost browser task the one-click default, while retaining VNC for runner-faithful inspection;
+- keep review, evaluation, password, path, and administrative controls visible to paired collaborators, as explicitly requested;
+- pair by exact dashboard origin plus a persistent local token, account for the browser's Local Network Access permission prompt, and retain legacy private-network preflight compatibility rather than assuming localhost fetches work;
+- verify the whole static-host → pairing UI → companion → generated task → local browser → teardown chain with ordinary browser actions.
+
+A static “Try now” button that executes on the host violates this boundary. A button that asks the paired local companion to launch the actual task satisfies it.
+
 ## Human validation status as of this record
 
 | Mechanic | Automated end-to-end | Human VNC evidence in this thread | Important note |
