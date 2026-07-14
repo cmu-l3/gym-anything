@@ -159,6 +159,10 @@ class GymAnythingEnv:
             from .runtime.runners.modal_runner import ModalRunner
             logger.info("Using ModalRunner (guest VM in Modal VM Sandbox)")
             return ModalRunner(spec)
+        if key == "modal_native":
+            from .runtime.runners.modal_native import ModalNativeRunner
+            logger.info("Using ModalNativeRunner (native Linux Modal VM Sandbox)")
+            return ModalNativeRunner(spec)
         if key == "use_computer":
             from .runtime.runners.use_computer import UseComputerRunner
             logger.info("Using UseComputerRunner (remote macOS sandbox via use.computer)")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -158,6 +159,15 @@ def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
     if target in {"all", "avd_native"}:
         checks.append(_check_binary("adb", "adb", probe=["adb", "version"]))
         checks.append(_check_binary("emulator", "emulator", probe=["emulator", "-version"]))
+    if target in {"all", "modal_native"}:
+        status = _modal_native_status()
+        checks.append(
+            DoctorCheck(
+                name="modal_native_sdk",
+                ok=bool(status.get("available")),
+                detail=status.get("reason") or "modal>=1.4 and credentials are configured",
+            )
+        )
     if target in {"all", "apptainer", "qemu", "avd"}:
         checks.append(_check_binary("ffmpeg", "ffmpeg", probe=["ffmpeg", "-version"], required=False))
     if target == "local":
@@ -317,6 +327,7 @@ _RUNNER_DEPS: Dict[str, List[str]] = {
     "use_computer": [],  # Python SDK + API key probed below
     "local": [],
     "modal": [],  # python package + token, checked specially in get_runner_status
+    "modal_native": [],  # modal>=1.4 + token, checked specially below
 }
 
 
@@ -340,6 +351,24 @@ def _modal_status() -> Dict:
         return {
             "available": False,
             "reason": "modal token not configured (run: modal token set)",
+            "deps": {},
+        }
+    return {"available": True, "reason": None, "deps": {}}
+
+
+def _modal_native_status() -> Dict:
+    """Availability check for the filesystem-capable native Modal runner."""
+    status = _modal_status()
+    if not status.get("available"):
+        return status
+    import modal
+
+    version_text = getattr(modal, "__version__", "0")
+    version = tuple(int(part) for part in re.findall(r"\d+", version_text)[:3])
+    if version < (1, 4):
+        return {
+            "available": False,
+            "reason": f"modal>=1.4 required (found {version_text})",
             "deps": {},
         }
     return {"available": True, "reason": None, "deps": {}}
@@ -379,6 +408,9 @@ def get_runner_status() -> Dict[str, Dict]:
             continue
         if runner_key == "modal":
             results[runner_key] = _modal_status()
+            continue
+        if runner_key == "modal_native":
+            results[runner_key] = _modal_native_status()
             continue
 
         dep_status = {}

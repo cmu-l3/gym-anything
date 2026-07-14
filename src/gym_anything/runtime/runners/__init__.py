@@ -8,6 +8,7 @@ from .avd_apptainer import AVDApptainerRunner
 from .avd_native import AVDNativeRunner
 from .avf import AVFRunner
 from .use_computer import UseComputerRunner
+from .modal_native import ModalNativeRunner
 
 __all__ = [
     "BaseRunner",
@@ -20,4 +21,5 @@ __all__ = [
     "AVDNativeRunner",
     "AVFRunner",
     "UseComputerRunner",
+    "ModalNativeRunner",
 ]
