@@ -35,6 +35,10 @@ _APT_PACKAGES = [
     "imagemagick",
     "inkscape",
     "libgimp2.0-dev",
+    "libx11-dev",
+    "libxdamage-dev",
+    "libxext-dev",
+    "libxtst-dev",
     "locales",
     "net-tools",
     "novnc",
@@ -146,6 +150,16 @@ def build_modal_native_image(modal):
             copy=True,
         )
         .add_local_file(
+            assets / "ga-fast-io.service",
+            "/etc/systemd/system/ga-fast-io.service",
+            copy=True,
+        )
+        .add_local_file(
+            assets / "fast_io_server.c",
+            "/tmp/ga-modal-native-fast-io.c",
+            copy=True,
+        )
+        .add_local_file(
             assets / "ga-snap-transitions.service",
             "/etc/systemd/system/ga-snap-transitions.service",
             copy=True,
@@ -153,6 +167,9 @@ def build_modal_native_image(modal):
         .run_commands(
             "apt-get purge -y gnome-initial-setup || true; "
             "apt-get remove -y update-notifier || true",
+            "gcc -O3 -flto -fopenmp -DNDEBUG -std=c11 -Wall -Wextra -Werror -pthread "
+            "/tmp/ga-modal-native-fast-io.c -o /usr/local/bin/ga-modal-native-fast-io "
+            "-lX11 -lXext -lXdamage -lXtst; rm /tmp/ga-modal-native-fast-io.c",
             "chmod 0755 /usr/local/sbin/ga-modal-native-bootstrap "
             "/usr/local/sbin/ga-nsenter /usr/local/sbin/ga-systemd-init "
             "/usr/local/sbin/ga-snap-transitions /usr/local/sbin/ga-snap-mounts "
