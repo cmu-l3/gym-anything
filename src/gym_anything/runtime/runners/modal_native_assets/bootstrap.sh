@@ -3,6 +3,7 @@ set -euo pipefail
 
 geometry="${GYM_ANYTHING_VNC_GEOMETRY:-1920x1080}"
 password="${GYM_ANYTHING_VNC_PASSWORD:-password}"
+fast_io_token="${GYM_ANYTHING_FAST_IO_TOKEN:?GYM_ANYTHING_FAST_IO_TOKEN is required}"
 
 install -d -m 0755 /run/gym-anything /etc/gym-anything
 install -d -o ga -g ga -m 0700 /home/ga/.vnc
@@ -10,6 +11,8 @@ printf '%s\n' "$password" | vncpasswd -f > /home/ga/.vnc/passwd
 chown ga:ga /home/ga/.vnc/passwd
 chmod 0600 /home/ga/.vnc/passwd
 printf 'GA_VNC_GEOMETRY=%s\n' "$geometry" > /etc/gym-anything/vnc.env
+umask 077
+printf 'GA_FAST_IO_TOKEN=%s\n' "$fast_io_token" > /etc/gym-anything/fast-io.env
 
 rm -f /run/gym-anything/systemd.pid
 /usr/bin/unshare --fork --pid --mount --mount-proc /usr/local/sbin/ga-systemd-init &

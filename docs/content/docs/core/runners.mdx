@@ -277,6 +277,18 @@ runner restarts from the new Image after creating a checkpoint so the first run
 has the same disk-only semantics as later restores. Modal VM Sandboxes do not
 provide VM memory snapshots, so `use_savevm=True` is unsupported.
 
+`fast_io=True` starts a native service next to the Xvnc server. A background
+XDamage listener captures changed frames through MIT-SHM into triple-buffered
+RGB memory, so screenshot requests return the latest completed frame instead of
+asking VNC to encode a new one. Keyboard and mouse actions are translated to one
+XTest event batch and acknowledged after a single `XSync`. The service is
+exposed through a persistent token-authenticated Modal TLS tunnel. A client
+running inside the Sandbox reads changed RGB frames directly from a seqlock-
+protected shared-memory triple buffer; calls made outside the Sandbox still
+include WAN transfer time. Fast mode requests at least four vCPUs so the RGB
+conversion can use four bounded row workers even when an environment asks for
+fewer; non-fast mode continues to honor the configured CPU count and use VNC.
+
 Requirements: `pip install "gym-anything[modal_native]"` and configured Modal
 credentials. Relevant environment variables:
 

@@ -13,6 +13,12 @@ from gym_anything.specs import EnvSpec
 from gym_anything.env import GymAnythingEnv
 from gym_anything.config.validators import validate_env_spec
 from gym_anything.runtime.runners.modal_native import ModalNativeRunner, VNC_PORT
+from gym_anything.runtime.runners import modal_native_fast_io as fast_io
+from gym_anything.runtime.runners.modal_native_fast_io import (
+    FAST_IO_PORT,
+    ModalNativeFastIOClient,
+    events_for_action,
+)
 from gym_anything.runtime.runners.modal_native_image import MODAL_NATIVE_IMAGE_FINGERPRINT
 from gym_anything.runtime.runners.vnc_utils import VNCConnection
 
@@ -108,6 +114,10 @@ class _FakeTunnel:
     tcp_socket = ("modal-vnc.example", 43210)
 
 
+class _FakeFastIOTunnel:
+    tls_socket = ("modal-fast-io.example", 443)
+
+
 class _FakeSandbox:
     create_calls = []
 
@@ -127,7 +137,10 @@ class _FakeSandbox:
         return sandbox
 
     def tunnels(self):
-        return {VNC_PORT: _FakeTunnel()}
+        return {
+            VNC_PORT: _FakeTunnel(),
+            FAST_IO_PORT: _FakeFastIOTunnel(),
+        }
 
     def exec(self, *args, **kwargs):
         self.exec_calls.append((args, kwargs))
@@ -284,6 +297,40 @@ class ModalNativeRunnerTests(unittest.TestCase):
         runner.stop()
         self.assertTrue(sandbox.terminated)
 
+    def test_fast_start_exposes_tls_service_and_connects_native_client(self):
+        runner = ModalNativeRunner(_spec())
+        runner.set_fast_io(True)
+        client = mock.Mock()
+        with mock.patch(
+            "gym_anything.runtime.runners.modal_native.build_modal_native_image",
+            return_value=_FakeImage(),
+        ), mock.patch.object(runner, "_wait_for_desktop"), mock.patch.object(
+            runner, "_setup_mounts"
+        ), mock.patch.object(runner, "_connect_vnc"), mock.patch(
+            "gym_anything.runtime.runners.modal_native.ModalNativeFastIOClient",
+            return_value=client,
+        ) as client_class:
+            runner.start()
+
+        _, kwargs, sandbox = _FakeSandbox.create_calls[-1]
+        self.assertEqual(kwargs["cpu"], (4.0, 4.0))
+        self.assertEqual(kwargs["encrypted_ports"], [FAST_IO_PORT])
+        self.assertEqual(
+            kwargs["env"]["GYM_ANYTHING_FAST_IO_TOKEN"], runner._fast_io_token
+        )
+        client_class.assert_called_once_with(
+            "modal-fast-io.example",
+            443,
+            runner._fast_io_token,
+            (1280, 720),
+            timeout=30.0,
+        )
+        client.connect.assert_called_once_with(retry_count=30, retry_delay=1.0)
+        service_command = sandbox.exec_calls[-1][0][-1]
+        self.assertEqual(service_command, "systemctl restart ga-fast-io.service")
+        runner.stop()
+        client.close.assert_called_once()
+
     def test_start_cleans_up_sandbox_when_interrupted(self):
         runner = ModalNativeRunner(_spec())
         with mock.patch(
@@ -359,6 +406,19 @@ class ModalNativeRunnerTests(unittest.TestCase):
         self.assertNotIn(
             "firefox", transition + mounts + wrapper + service + image_builder
         )
+        self.assertIn("ga-fast-io.service", image_builder)
+        self.assertIn("libxdamage-dev", image_builder)
+        fast_service = (assets / "ga-fast-io.service").read_text(encoding="utf-8")
+        fast_server = (assets / "fast_io_server.c").read_text(encoding="utf-8")
+        self.assertIn("Requires=ga-vnc.service", fast_service)
+        self.assertIn("XShmGetImage", fast_server)
+        self.assertIn("XDamageCreate", fast_server)
+        self.assertNotIn("XCheckTypedEvent", fast_server)
+        self.assertIn("XTestFakeKeyEvent", fast_server)
+        self.assertIn("convert_xrgb_ssse3", fast_server)
+        self.assertIn("#pragma omp parallel", fast_server)
+        self.assertIn("LOCAL_FRAME_PATH", fast_server)
+        self.assertIn("frame_cache.next_slot", fast_server)
 
     def test_exec_enters_systemd_namespace_and_merges_environment(self):
         runner = ModalNativeRunner(_spec())
@@ -418,6 +478,24 @@ class ModalNativeRunnerTests(unittest.TestCase):
         connection.type_text.assert_called_once_with("Hi")
         connection.send_key_combo.assert_called_once_with(["ctrl", "a"])
         self.assertEqual(connection.send_key.call_count, 2)
+
+    def test_fast_action_and_screenshot_bypass_vnc(self):
+        from PIL import Image
+
+        runner = ModalNativeRunner(_spec())
+        runner.set_fast_io(True)
+        client = mock.Mock()
+        client.capture_image.return_value = Image.new("RGB", (1280, 720), "red")
+        runner._fast_io_client = client
+        action = {"keyboard": {"text": "native"}}
+        with mock.patch.object(
+            runner, "_vnc_connection", side_effect=AssertionError("VNC hot path")
+        ):
+            runner.inject_action(action)
+            image = runner.capture_screenshot_image()
+        client.inject_action.assert_called_once_with(action)
+        self.assertEqual(image.mode, "RGB")
+        self.assertEqual(image.getpixel((0, 0)), (255, 0, 0))
 
     def test_mount_copy_replaces_target_and_keeps_environment_source_unchanged(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -520,6 +598,11 @@ class _FragmentedSocket:
             return value[:size]
         return value
 
+    def recv_into(self, buffer):
+        value = self.recv(len(buffer))
+        buffer[: len(value)] = value
+        return len(value)
+
     def sendall(self, data):
         self.sent.append(data)
 
@@ -531,6 +614,138 @@ class _FragmentedSocket:
 
     def close(self):
         self.closed = True
+
+
+class ModalNativeFastIOTests(unittest.TestCase):
+    @staticmethod
+    def _response(opcode, payload=b"", status=0):
+        return (
+            fast_io._RESPONSE_HEADER.pack(
+                fast_io._MAGIC,
+                fast_io._VERSION,
+                opcode,
+                status,
+                len(payload),
+            )
+            + payload
+        )
+
+    def test_action_translation_batches_mouse_text_and_hotkey(self):
+        events = events_for_action(
+            {
+                "mouse": {"left_click": [10, 20], "scroll": 1},
+                "keyboard": {"text": "A", "keys": ["ctrl", "a"]},
+            }
+        )
+        self.assertEqual(
+            events,
+            [
+                (1, 0, 0, 10, 20),
+                (2, 1, 1, 0, 0),
+                (2, 0, 1, 0, 0),
+                (2, 1, 5, 0, 0),
+                (2, 0, 5, 0, 0),
+                (3, 1, 0xFFE1, 0, 0),
+                (3, 1, ord("a"), 0, 0),
+                (3, 0, ord("a"), 0, 0),
+                (3, 0, 0xFFE1, 0, 0),
+                (3, 1, 0xFFE3, 0, 0),
+                (3, 1, ord("a"), 0, 0),
+                (3, 0, ord("a"), 0, 0),
+                (3, 0, 0xFFE3, 0, 0),
+            ],
+        )
+        f24_events = events_for_action({"keyboard": {"keys": "f24"}})
+        self.assertEqual([event[2] for event in f24_events], [0xFFD5, 0xFFD5])
+
+    def test_screenshot_protocol_reuses_unchanged_cached_frame(self):
+        pixels = bytes((255, 0, 0, 0, 255, 0))
+        first_metadata = fast_io._SCREENSHOT_META.pack(
+            2, 1, 6, 1, 7, 123456, 142_000
+        )
+        second_metadata = fast_io._SCREENSHOT_META.pack(
+            2, 1, 6, 0, 7, 123456, 142_000
+        )
+        first_response = self._response(
+            fast_io._OP_SCREENSHOT, first_metadata + pixels
+        )
+        second_response = self._response(fast_io._OP_SCREENSHOT, second_metadata)
+        sock = _FragmentedSocket(
+            [
+                first_response[:3],
+                first_response[3:19],
+                first_response[19:],
+                second_response,
+            ]
+        )
+        client = ModalNativeFastIOClient(
+            "host", 443, "token", (2, 1), use_tls=False
+        )
+        client._socket = sock
+
+        first = client.capture_image()
+        first.putpixel((0, 0), (0, 0, 0))
+        second = client.capture_image()
+
+        self.assertEqual(first.mode, "RGB")
+        self.assertEqual(first.getpixel((1, 0)), (0, 255, 0))
+        self.assertEqual(second.getpixel((0, 0)), (255, 0, 0))
+        self.assertEqual(second.getpixel((1, 0)), (0, 255, 0))
+        self.assertEqual(client.last_frame_captured_ns, 123456)
+        self.assertEqual(client.last_server_capture_ns, 142_000)
+        requested_frame_ids = [
+            fast_io._SCREENSHOT_REQUEST.unpack(message[-8:])[0]
+            for message in sock.sent
+        ]
+        self.assertEqual(requested_frame_ids, [0, 7])
+
+    def test_action_acknowledgement_reports_in_vm_elapsed_time(self):
+        payload = fast_io._ACTION_RESPONSE.pack(16_000)
+        sock = _FragmentedSocket(
+            [self._response(fast_io._OP_ACTION, payload)]
+        )
+        client = ModalNativeFastIOClient(
+            "host", 443, "token", (2, 1), use_tls=False
+        )
+        client._socket = sock
+        client.inject_action({"keyboard": {"text": "x"}})
+        self.assertEqual(client.last_server_action_ns, 16_000)
+        _, _, opcode, request_size = fast_io._REQUEST_HEADER.unpack(
+            sock.sent[0][: fast_io._REQUEST_HEADER.size]
+        )
+        self.assertEqual(opcode, fast_io._OP_ACTION)
+        self.assertGreater(request_size, 4)
+
+    def test_local_shared_frame_returns_stable_rgb_image_without_socket_transfer(self):
+        frame_size = 2 * 1 * 3
+        mapping_size = fast_io._LOCAL_HEADER_SIZE + frame_size * 3
+        with tempfile.TemporaryFile() as backing:
+            backing.truncate(mapping_size)
+            import mmap
+
+            mapping = mmap.mmap(backing.fileno(), mapping_size)
+            fast_io._LOCAL_PREFIX.pack_into(
+                mapping, 0, b"GAFS", fast_io._VERSION, 2, 1, 6, 3
+            )
+            fast_io._LOCAL_U64.pack_into(mapping, 24, 0)
+            fast_io._LOCAL_SLOT_META.pack_into(
+                mapping, 32, 2, 9, 123_000, 140_000
+            )
+            mapping[fast_io._LOCAL_HEADER_SIZE : fast_io._LOCAL_HEADER_SIZE + 6] = (
+                bytes((1, 2, 3, 4, 5, 6))
+            )
+            client = ModalNativeFastIOClient(
+                "127.0.0.1", 5902, "token", (2, 1), use_tls=False
+            )
+            client._local_frame_map = mapping
+            client._last_local_ping_ns = fast_io.time.monotonic_ns()
+            image = client.capture_image()
+            image.putpixel((0, 0), (0, 0, 0))
+            second = client.capture_image()
+            self.assertEqual(list(second.getdata()), [(1, 2, 3), (4, 5, 6)])
+            self.assertEqual(client._frame_id, 9)
+            self.assertEqual(client.last_server_capture_ns, 140_000)
+            client.close()
 
 
 class VNCTransportTests(unittest.TestCase):

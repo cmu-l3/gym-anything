@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import shlex
 import tarfile
 import tempfile
@@ -20,6 +21,7 @@ from ...config.presets import is_android_preset, is_windows_preset
 from ...contracts import RunnerRuntimeInfo
 from ...specs import EnvSpec, MountSpec
 from .base import BaseRunner
+from .modal_native_fast_io import FAST_IO_PORT, ModalNativeFastIOClient
 from .modal_native_image import MODAL_NATIVE_IMAGE_FINGERPRINT, build_modal_native_image
 from .vnc_utils import VNCConnection, VNCConnectionPool
 
@@ -116,6 +118,9 @@ class ModalNativeRunner(BaseRunner):
         self._sandbox = None
         self._vnc_tunnel: Optional[tuple[str, int]] = None
         self._vnc_pool: Optional[VNCConnectionPool] = None
+        self._fast_io_token = secrets.token_hex(32)
+        self._fast_io_tunnel: Optional[tuple[str, int]] = None
+        self._fast_io_client: Optional[ModalNativeFastIOClient] = None
         self._running = False
         self._checkpoint_cache_level: Optional[str] = None
         self._checkpoint_task_id: Optional[str] = None
@@ -177,9 +182,10 @@ class ModalNativeRunner(BaseRunner):
             )
 
     def _sandbox_create_kwargs(self) -> Dict[str, Any]:
+        cpu = max(self.cpu, 4.0) if self._fast_io else self.cpu
         kwargs: Dict[str, Any] = {
             "app": self._app,
-            "cpu": (self.cpu, self.cpu),
+            "cpu": (cpu, cpu),
             "memory": (self.memory_mb, self.memory_mb),
             "timeout": self.sandbox_timeout,
             "unencrypted_ports": [VNC_PORT],
@@ -187,12 +193,15 @@ class ModalNativeRunner(BaseRunner):
             "env": {
                 "GYM_ANYTHING_VNC_GEOMETRY": f"{self.resolution[0]}x{self.resolution[1]}",
                 "GYM_ANYTHING_VNC_PASSWORD": self.vnc_password,
+                "GYM_ANYTHING_FAST_IO_TOKEN": self._fast_io_token,
             },
             "tags": {
                 "gym-anything-runner": "modal-native",
                 "gym-anything-env": re.sub(r"[^A-Za-z0-9_.-]", "_", self.spec.id)[:64],
             },
         }
+        if self._fast_io:
+            kwargs["encrypted_ports"] = [FAST_IO_PORT]
         if self.spec.resources.net is False:
             kwargs["outbound_cidr_allowlist"] = []
             kwargs["outbound_domain_allowlist"] = []
@@ -220,6 +229,9 @@ class ModalNativeRunner(BaseRunner):
         self._vnc_tunnel = tuple(tunnel.tcp_socket)
         self.vnc_url = f"vnc://{self._vnc_tunnel[0]}:{self._vnc_tunnel[1]}"
         self.vnc_port = int(self._vnc_tunnel[1])
+        if self._fast_io:
+            fast_io_tunnel = self._sandbox.tunnels()[FAST_IO_PORT]
+            self._fast_io_tunnel = tuple(fast_io_tunnel.tls_socket)
         self._report_done("modal_native_sandbox", self.instance_name or "")
 
     def _start_with_image(self, image=None, seed: Optional[int] = None) -> None:
@@ -231,6 +243,8 @@ class ModalNativeRunner(BaseRunner):
             self._wait_for_desktop()
             self._setup_mounts()
             self._connect_vnc()
+            if self._fast_io:
+                self._connect_fast_io()
             self._running = True
         except BaseException:
             self.stop()
@@ -242,6 +256,13 @@ class ModalNativeRunner(BaseRunner):
         self._start_with_image(seed=seed)
 
     def stop(self) -> None:
+        fast_io_client, self._fast_io_client = self._fast_io_client, None
+        if fast_io_client is not None:
+            try:
+                fast_io_client.close()
+            except Exception as exc:
+                self._report_log(f"Modal Native fast-I/O cleanup failed: {exc}")
+
         pool, self._vnc_pool = self._vnc_pool, None
         if pool is not None:
             try:
@@ -257,6 +278,7 @@ class ModalNativeRunner(BaseRunner):
                 self._report_log(f"Modal Native Sandbox termination failed: {exc}")
 
         self._running = False
+        self._fast_io_tunnel = None
         self._vnc_tunnel = None
         self.vnc_port = None
         self.vnc_url = None
@@ -397,7 +419,36 @@ class ModalNativeRunner(BaseRunner):
             raise RuntimeError("Modal Native VNC connection failed")
         return connection
 
+    def _connect_fast_io(self) -> None:
+        if self._fast_io_tunnel is None:
+            raise RuntimeError("Modal Native fast-I/O tunnel is unavailable")
+        code = self.exec(
+            "systemctl restart ga-fast-io.service",
+            use_pty=False,
+            timeout=30,
+        )
+        if code != 0:
+            raise RuntimeError("Could not start the Modal Native fast-I/O service")
+        host, port = self._fast_io_tunnel
+        client = ModalNativeFastIOClient(
+            host,
+            port,
+            self._fast_io_token,
+            self.resolution,
+            timeout=30.0,
+        )
+        client.connect(retry_count=30, retry_delay=1.0)
+        self._fast_io_client = client
+
+    def _native_fast_io(self) -> ModalNativeFastIOClient:
+        if self._fast_io_client is None:
+            raise RuntimeError("Modal Native fast I/O is not initialized")
+        return self._fast_io_client
+
     def inject_action(self, action: Dict[str, Any]) -> None:
+        if self._fast_io:
+            self._native_fast_io().inject_action(action)
+            return
         connection = self._vnc_connection()
         mouse = action.get("mouse") or {}
         if "left_click" in mouse:
@@ -471,10 +522,17 @@ class ModalNativeRunner(BaseRunner):
         }
 
     def capture_screenshot(self, host_path) -> bool:
+        if self._fast_io:
+            destination = Path(host_path)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            self.capture_screenshot_image().save(destination, "PNG")
+            return True
         data = self._vnc_connection().capture_screenshot(Path(host_path))
         return data is not None
 
     def capture_screenshot_image(self):
+        if self._fast_io:
+            return self._native_fast_io().capture_image()
         import io
 
         from PIL import Image
