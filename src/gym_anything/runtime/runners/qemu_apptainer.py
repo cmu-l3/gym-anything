@@ -16,6 +16,8 @@ Usage:
 
 from __future__ import annotations
 
+import base64
+
 import fcntl
 import hashlib
 import json
@@ -230,6 +232,9 @@ class _FastInputAgentClient:
             self._buffer += chunk
         line, self._buffer = self._buffer.split(b"\n", 1)
         return json.loads(line.decode("utf-8"))
+
+
+_KEYBOARD_XLIB_PREAMBLE = 'import time, base64\nfrom Xlib import X, XK, display\nfrom Xlib.ext import xtest\n_D = display.Display()\n_INF = _D.display.info\n_MINKC, _MAXKC = _INF.min_keycode, _INF.max_keycode\n_NAME = {\n "ctrl":"Control_L","control":"Control_L","shift":"Shift_L","alt":"Alt_L",\n "super":"Super_L","win":"Super_L","meta":"Super_L","cmd":"Super_L","command":"Super_L",\n "enter":"Return","return":"Return","esc":"Escape","escape":"Escape",\n "tab":"Tab","space":"space","backspace":"BackSpace","delete":"Delete","del":"Delete",\n "up":"Up","down":"Down","left":"Left","right":"Right","home":"Home","end":"End",\n "pageup":"Prior","pagedown":"Next","pgup":"Prior","pgdn":"Next","page_up":"Prior",\n "page_down":"Next","insert":"Insert","ins":"Insert","kp_enter":"KP_Enter",\n "kp_add":"KP_Add","kp_subtract":"KP_Subtract","kp_multiply":"KP_Multiply",\n "kp_divide":"KP_Divide","menu":"Menu","caps_lock":"Caps_Lock","capslock":"Caps_Lock",\n "num_lock":"Num_Lock","numlock":"Num_Lock","print":"Print",\n}\nfor _n in range(1, 13):\n    _NAME["f%d" % _n] = "F%d" % _n\ndef _spares():\n    m = _D.get_keyboard_mapping(_MINKC, _MAXKC - _MINKC + 1)\n    return [_MINKC + i for i, r in enumerate(m) if not any(r)]\ndef _char_ks(ch):\n    cp = ord(ch)\n    return cp if cp <= 0xff else (cp | 0x01000000)\ndef _name_ks(name):\n    ks = XK.string_to_keysym(_NAME.get(name.lower(), name))\n    if ks == 0 and len(name) == 1:\n        ks = _char_ks(name)\n    return ks\ndef _kc_of_name(name, pool):\n    ks = _name_ks(name)\n    kc = _D.keysym_to_keycode(ks)\n    if kc == 0 and pool:\n        kc = pool.pop()\n        _D.change_keyboard_mapping(kc, [[ks, ks]])\n        _D.sync(); time.sleep(0.03)\n    return kc\n_SETTLE = 0.12\ndef type_text(text):\n    pool_all = _spares()\n    S = len(pool_all)\n    if S == 0:\n        return\n    ret = _D.keysym_to_keycode(XK.XK_Return)\n    tab = _D.keysym_to_keycode(XK.XK_Tab)\n    def _flush(seg):\n        # One batch of <= S distinct chars: remap all, settle ONCE, type,\n        # restore. No remap happens during typing, so no keypress can race a\n        # remap. Every char is typed via a spare keycode at level 0, so no\n        # shift logic and no layout dependence (fixes < -> > too).\n        remap = {}\n        pool = list(pool_all)\n        for ch in dict.fromkeys(seg):\n            if ch in "\\n\\t":\n                continue\n            kc = pool.pop()\n            ks = _char_ks(ch)\n            _D.change_keyboard_mapping(kc, [[ks, ks]])\n            remap[ch] = kc\n        _D.sync(); time.sleep(_SETTLE)\n        for ch in seg:\n            kc = ret if ch == "\\n" else tab if ch == "\\t" else remap.get(ch)\n            if not kc:\n                continue\n            xtest.fake_input(_D, X.KeyPress, kc)\n            xtest.fake_input(_D, X.KeyRelease, kc)\n            _D.sync(); time.sleep(0.006)\n        _D.sync(); time.sleep(_SETTLE / 3.0)\n        for kc in remap.values():\n            _D.change_keyboard_mapping(kc, [[X.NoSymbol, X.NoSymbol]])\n        _D.sync()\n    # Split the text into segments each having <= S distinct typeable chars,\n    # so an unlimited alphabet still fits the available spare keycodes.\n    seg = []\n    seen = set()\n    for ch in text:\n        typeable = ch not in "\\n\\t"\n        if typeable and ch not in seen and len(seen) >= S:\n            _flush(seg); seg = []; seen = set()\n        seg.append(ch)\n        if typeable:\n            seen.add(ch)\n    if seg:\n        _flush(seg)\ndef chord(keys):\n    pool = _spares()\n    kcs = [_kc_of_name(k, pool) for k in keys]\n    for kc in kcs:\n        if kc:\n            xtest.fake_input(_D, X.KeyPress, kc)\n            _D.sync(); time.sleep(0.01)\n    for kc in reversed(kcs):\n        if kc:\n            xtest.fake_input(_D, X.KeyRelease, kc)\n            _D.sync(); time.sleep(0.01)\ndef hold(keys, down):\n    pool = _spares()\n    for k in keys:\n        kc = _kc_of_name(k, pool)\n        if kc:\n            xtest.fake_input(_D, X.KeyPress if down else X.KeyRelease, kc)\n            _D.sync(); time.sleep(0.01)\n'
 
 
 class QemuApptainerRunner(BaseRunner):
@@ -2323,6 +2328,28 @@ class QemuApptainerRunner(BaseRunner):
         "?": ("slash", True),
     }
 
+    def _build_keyboard_script(self, keyboard: Dict[str, Any]) -> str:
+        lines = [_KEYBOARD_XLIB_PREAMBLE]
+        settle_ms = os.environ.get("GYM_ANYTHING_KBD_SETTLE_MS")
+        if settle_ms:
+            lines.append(f"_SETTLE = {float(settle_ms) / 1000.0!r}")
+        if "text" in keyboard:
+            b64 = base64.b64encode(str(keyboard["text"]).encode("utf-8")).decode("ascii")
+            lines.append(f"type_text(base64.b64decode('{b64}').decode())")
+        if "keys" in keyboard:
+            keys = keyboard["keys"]
+            keys = [keys] if isinstance(keys, str) else list(keys)
+            lines.append(f"chord({keys!r})")
+        if "keys_down" in keyboard:
+            keys = keyboard["keys_down"]
+            keys = [keys] if isinstance(keys, str) else list(keys)
+            lines.append(f"hold({keys!r}, True)")
+        if "keys_up" in keyboard:
+            keys = keyboard["keys_up"]
+            keys = [keys] if isinstance(keys, str) else list(keys)
+            lines.append(f"hold({keys!r}, False)")
+        return "\n".join(lines)
+
     def _normalize_key_name(self, key: str) -> str:
         """Normalize key name for pyautogui compatibility."""
         return self._KEY_NAME_MAP.get(key.lower(), key.lower())
@@ -2379,16 +2406,19 @@ class QemuApptainerRunner(BaseRunner):
         if not self.ssh_port:
             return
         script = self._build_pyautogui_script(commands)
-        # Use simple single-line command with proper escaping
-        escaped_script = script.replace('"', '\\"')
+        self._run_guest_python(script, timeout=timeout)
 
+    def _run_guest_python(self, script: str, timeout: int = 60) -> None:
+        """Run a python script in the guest, transported base64-encoded so the
+        guest shell never interprets its contents."""
+        if not self.ssh_port:
+            return
+        encoded = base64.b64encode(script.encode("utf-8")).decode("ascii")
+        bootstrap = f"import base64;exec(base64.b64decode('{encoded}').decode())"
         if self.is_windows:
-            # Windows: no DISPLAY, use 'python' (not python3)
-            cmd = f'python -c "{escaped_script}"'
+            cmd = f'python -c "{bootstrap}"'
         else:
-            # Linux: set DISPLAY for X11
-            cmd = f'DISPLAY=:1 python3 -c "{escaped_script}"'
-
+            cmd = f'DISPLAY=:1 python3 -c "{bootstrap}"'
         self._ssh_command(cmd, timeout=timeout)
 
     def _qmp_key_event(self, qcode: str, down: bool) -> Dict[str, Any]:
@@ -2696,39 +2726,18 @@ class QemuApptainerRunner(BaseRunner):
                 # Our convention: positive = down, so invert
                 commands.append(f"pyautogui.scroll({-dy})")
 
-        keyboard = action.get("keyboard")
-        if keyboard:
-            if "text" in keyboard:
-                text = keyboard["text"]
-                # Escape special characters for Python string
-                escaped_text = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "\\r")
-                commands.append(f"pyautogui.write('{escaped_text}', interval=0.03)")
-            if "keys" in keyboard:
-                keys = keyboard["keys"]
-                if isinstance(keys, str):
-                    keys = [keys]
-                # Normalize key names for pyautogui
-                keys_norm = [self._normalize_key_name(k) for k in keys]
-                keys_str = ", ".join(f"'{k}'" for k in keys_norm)
-                commands.append(f"pyautogui.hotkey({keys_str})")
-            # keys_down / keys_up support modifier-held clicks and hold_key by
-            # decomposing those gestures into a held-modifier sequence.
-            if "keys_down" in keyboard:
-                keys = keyboard["keys_down"]
-                if isinstance(keys, str):
-                    keys = [keys]
-                for k in keys:
-                    commands.append(f"pyautogui.keyDown('{self._normalize_key_name(k)}')")
-            if "keys_up" in keyboard:
-                keys = keyboard["keys_up"]
-                if isinstance(keys, str):
-                    keys = [keys]
-                for k in keys:
-                    commands.append(f"pyautogui.keyUp('{self._normalize_key_name(k)}')")
-
+        # Mouse via pyautogui; run it before keyboard so within-action order
+        # is preserved.
         if commands:
             print(f"[QemuApptainer] Executing pyautogui commands: {commands}")
             self._run_pyautogui(commands)
+
+        # Keyboard via direct Xlib in the guest (race-free batch keycode
+        # remap): types Unicode and `<` correctly and presses numpad/menu
+        # keys, without xdotool's per-character remap race.
+        keyboard = action.get("keyboard")
+        if keyboard:
+            self._run_guest_python(self._build_keyboard_script(keyboard))
 
     def _inject_action_via_client(self, action: Dict[str, Any]) -> None:
         """Inject actions using the PyAutoGUI TCP client (Windows)."""
