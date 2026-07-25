@@ -2723,13 +2723,26 @@ class QemuApptainerRunner(BaseRunner):
                 x, y = mouse["triple_click"]
                 commands.append(f"pyautogui.tripleClick({int(x)}, {int(y)})")
             if "left_click_drag" in mouse:
-                (x1, y1), (x2, y2) = mouse["left_click_drag"]
-                commands.append(f"pyautogui.moveTo({int(x1)}, {int(y1)})")
-                commands.append(f"pyautogui.drag({int(x2 - x1)}, {int(y2 - y1)}, duration=0.5, button='left')")
+                points = list(mouse["left_click_drag"])
+                if len(points) == 1:
+                    # One point means drag from wherever the cursor currently
+                    # is to that point (Qwen-style computer_use drags emit
+                    # only the destination).
+                    (x2, y2), = points
+                    commands.append(f"pyautogui.dragTo({int(x2)}, {int(y2)}, duration=0.5, button='left')")
+                else:
+                    (x1, y1), (x2, y2) = points
+                    commands.append(f"pyautogui.moveTo({int(x1)}, {int(y1)})")
+                    commands.append(f"pyautogui.drag({int(x2 - x1)}, {int(y2 - y1)}, duration=0.5, button='left')")
             if "right_click_drag" in mouse:
-                (x1, y1), (x2, y2) = mouse["right_click_drag"]
-                commands.append(f"pyautogui.moveTo({int(x1)}, {int(y1)})")
-                commands.append(f"pyautogui.drag({int(x2 - x1)}, {int(y2 - y1)}, duration=0.5, button='right')")
+                points = list(mouse["right_click_drag"])
+                if len(points) == 1:
+                    (x2, y2), = points
+                    commands.append(f"pyautogui.dragTo({int(x2)}, {int(y2)}, duration=0.5, button='right')")
+                else:
+                    (x1, y1), (x2, y2) = points
+                    commands.append(f"pyautogui.moveTo({int(x1)}, {int(y1)})")
+                    commands.append(f"pyautogui.drag({int(x2 - x1)}, {int(y2 - y1)}, duration=0.5, button='right')")
             if "move" in mouse:
                 x, y = mouse["move"]
                 commands.append(f"pyautogui.moveTo({int(x)}, {int(y)})")
