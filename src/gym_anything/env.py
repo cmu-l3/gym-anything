@@ -179,6 +179,14 @@ class GymAnythingEnv:
             from .runtime.runners.modal_runner import ModalRunner
             logger.info("Using ModalRunner (guest VM in Modal VM Sandbox)")
             return ModalRunner(spec)
+        if key == "modal_native":
+            from .runtime.runners.modal_native import ModalNativeRunner
+            logger.info("Using ModalNativeRunner (native Linux Modal VM Sandbox)")
+            return ModalNativeRunner(spec)
+        if key == "use_computer":
+            from .runtime.runners.use_computer import UseComputerRunner
+            logger.info("Using UseComputerRunner (remote macOS sandbox via use.computer)")
+            return UseComputerRunner(spec)
         if key == "avf":
             from .runtime.runners.avf import AVFRunner
             logger.info("Using AVFRunner (Apple Virtualization Framework + Rosetta)")
@@ -287,12 +295,14 @@ class GymAnythingEnv:
         if callable(getter):
             return getter()
         os_type = getattr(self.env_spec, "os_type", None)
-        if os_type in {"linux", "windows", "android"}:
+        if os_type in {"linux", "windows", "android", "macos"}:
             return os_type
         if getattr(self._runner, "is_android", False):
             return "android"
         if getattr(self._runner, "is_windows", False):
             return "windows"
+        if getattr(self._runner, "is_macos", False):
+            return "macos"
         return "linux"
 
     def _runtime_info(self) -> RunnerRuntimeInfo:
@@ -505,6 +515,8 @@ class GymAnythingEnv:
                     # Windows uses PowerShell
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
+                    elif self._platform_family() == "macos":
+                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/env_setup_pre_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     else:
                         self._runner.exec(f"bash -lc {shlex.quote(hook_cmd)} > /tmp/env_setup_pre_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     if self._reporter:
@@ -546,6 +558,8 @@ class GymAnythingEnv:
                     # Windows uses PowerShell
                     elif self._platform_family() == "windows":
                         self._runner.exec(hook_cmd)
+                    elif self._platform_family() == "macos":
+                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/env_setup_post_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     else:
                         self._runner.exec(f"bash -lc {shlex.quote(hook_cmd)} > /tmp/env_setup_post_start.log 2>&1", timeout=HOOK_TIMEOUT)
                     if self._reporter:
@@ -594,6 +608,9 @@ class GymAnythingEnv:
                     # Windows uses PowerShell directly (hook_cmd already contains full PowerShell command)
                     elif self._platform_family() == "windows":
                         return_code = self._runner.exec(hook_cmd, use_pty=False)
+                    elif self._platform_family() == "macos":
+                        hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
+                        return_code = self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/task_pre_task.log 2>&1", use_pty=False, timeout=hook_timeout)
                     else:
                         # Use configurable timeout for pre_task hook (default 600s, can be overridden in task.json)
                         hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
@@ -671,7 +688,10 @@ class GymAnythingEnv:
             container_name=runtime_info.container_name,
             instance_name=runtime_info.instance_name,
             vnc_port=runtime_info.vnc_port,
-            vnc_url=f"vnc://localhost:{runtime_info.vnc_port}" if runtime_info.vnc_port else None,
+            vnc_url=(
+                runtime_info.vnc_url
+                or (f"vnc://localhost:{runtime_info.vnc_port}" if runtime_info.vnc_port else None)
+            ),
             vnc_password=runtime_info.vnc_password,
             ssh_port=runtime_info.ssh_port,
             ssh_user=runtime_info.ssh_user,
@@ -992,6 +1012,8 @@ class GymAnythingEnv:
                 self._runner.exec(hook_cmd)
             elif self._platform_family() == "windows":
                 self._runner.exec(hook_cmd)
+            elif self._platform_family() == "macos":
+                self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/task_post_task.log 2>&1")
             else:
                 self._runner.exec(f"bash -lc {shlex.quote(hook_cmd)} > /tmp/task_post_task.log 2>&1")
         except Exception:
@@ -1100,11 +1122,21 @@ class GymAnythingEnv:
                     "/tmp/fluxbox.log",
                     "/tmp/ffmpeg.log",
 
-                    # All hook logs
+                    # All hook logs (Linux /tmp + legacy /home/ga + macOS
+                    # paths; copy_from silently skips non-existent files so
+                    # listing every variant is safe).
                     "/tmp/task_pre_task.log",
                     "/tmp/task_post_task.log",
                     "/tmp/env_setup_pre_start.log",
                     "/tmp/env_setup_post_start.log",
+                    "/home/ga/task_pre_task.log",
+                    "/home/ga/task_post_task.log",
+                    "/home/ga/env_setup_pre_start.log",
+                    "/home/ga/env_setup_post_start.log",
+                    "/Users/lume/task_pre_task.log",
+                    "/Users/lume/task_post_task.log",
+                    "/Users/lume/env_setup_pre_start.log",
+                    "/Users/lume/env_setup_post_start.log",
                 ]
                 for lp in logs:
                     try:
@@ -1210,8 +1242,8 @@ class GymAnythingEnv:
         token = os.environ.get("DOCKERHUB_TOKEN", "")
         if not username or not token:
             return
-        # Skip for non-Linux guests (Windows/Android don't use Docker-in-Docker)
-        if self._platform_family() in ("windows", "android"):
+        # Skip for non-Linux guests (Windows/Android/macOS don't use Docker-in-Docker)
+        if self._platform_family() in ("windows", "android", "macos"):
             return
         try:
             self._runner.exec(

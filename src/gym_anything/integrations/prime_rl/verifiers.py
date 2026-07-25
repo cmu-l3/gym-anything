@@ -103,6 +103,13 @@ def _completion_text(completion: Any) -> str:
     return str(content or "")
 
 
+def _role(message: Any) -> Optional[str]:
+    """Role of an OpenAI-style message (dict) or a vf.Message object."""
+    if isinstance(message, dict):
+        return message.get("role")
+    return getattr(message, "role", None)
+
+
 class RolloutAborted(Exception):
     """Raised inside the agent thread when the rollout is torn down."""
 
@@ -280,6 +287,33 @@ def _finalize_episode(state: "vf.State") -> None:
         state["finalize_error"] = traceback.format_exc()[-2000:]
 
 
+def _surface_verifier_info(state: "vf.State") -> None:
+    """Persist the verifier's full verdict into ``state["info"]``.
+
+    ``state["info"]`` is always serialised into the saved rollout output
+    (``state_to_output``), unlike arbitrary state keys, so this makes the score
+    breakdown and reasoning visible in the eval samples/dashboard instead of
+    being computed and dropped. Logging-only; does not touch the reward.
+    """
+    verifier = state.get("verifier") or {}
+    scores = verifier.get("scores") or {}
+    info = state.get("info")
+    if not isinstance(info, dict):
+        info = {}
+    info["verifier"] = {
+        "score": verifier.get("score"),
+        "passed": verifier.get("passed"),
+        "completion_score": scores.get("score_a"),
+        "integrity_passed": scores.get("score_b"),
+        "integrity_pass_rate": scores.get("integrity_pass_rate"),
+        "completion_details": scores.get("completion_details"),
+        "integrity_details": scores.get("integrity_details"),
+        "feedback": verifier.get("feedback"),
+        "error": verifier.get("error"),
+    }
+    state["info"] = info
+
+
 class GymAnythingAgentEnv(vf.MultiTurnEnv):
     """verifiers MultiTurnEnv that runs a real reference agent's step()."""
 
@@ -341,7 +375,18 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
     async def setup_state(self, state: vf.State) -> None:
         info = state.get("info", {})
         task_description = _task_text(state.get("prompt"))
-        env, obs = await asyncio.to_thread(self._boot, dict(info))
+        try:
+            env, obs = await asyncio.to_thread(self._boot, dict(info))
+        except Exception as e:
+            # Record the real cause for scoring/logging first, then hand the
+            # framework a vf.Error: the rollout loop catches only vf.Error and
+            # records the rollout as an aborted has_error sample, so one failed
+            # boot (missing Modal credentials, provisioning failure) does not
+            # crash the whole eval or training batch.
+            state["episode_reward"] = 0.0
+            state["verifier"] = {"error": f"environment boot failed: {e}"}
+            state["boot_error"] = traceback.format_exc()[-2000:]
+            raise vf.SandboxError(f"environment boot failed: {e}") from e
         state["ga_env"] = env
         state["actions_executed"] = 0
         state["parse_errors"] = 0
@@ -426,6 +471,35 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
             "come from the agent's own step()"
         )
 
+    async def render_completion(self, state: "vf.State") -> None:
+        """Record the FULL multi-turn trajectory, not just the last windowed turn.
+
+        verifiers' default ``render_completion`` serialises only
+        ``state["trajectory"][-1]`` because it assumes append-only prompts. Our
+        agent rebuilds a windowed prompt each turn, so the default drops every
+        prior screenshot and action, leaving a single-turn log. Every turn is
+        already in ``state["trajectory"]``; stitch each turn's new observation
+        (the trailing user message of its windowed prompt) and action into one
+        conversation so the recorded completion is the whole episode.
+
+        Logging-only: this runs from a ``@cleanup`` handler after the rollout, so
+        it never feeds the agent, and it does not affect the reward (which comes
+        from the env verifier via ``state["episode_reward"]``).
+        """
+        traj = state.get("trajectory") or []
+        if not traj:
+            state["completion"] = []
+            return
+        # Turn 0's action answers the observation already carried by state["prompt"].
+        conversation: List[Any] = list(traj[0]["completion"])
+        for step in traj[1:]:
+            user_msgs = [m for m in step["prompt"] if _role(m) == "user"]
+            conversation += user_msgs[-1:] + list(step["completion"])
+        final_resp = state.get("final_env_response")
+        if final_resp:
+            conversation += final_resp if isinstance(final_resp, list) else [final_resp]
+        state["completion"] = conversation
+
     async def _terminate(self, state: vf.State) -> "vf.Messages":
         """Score while the VM is alive, then signal rollout completion."""
         await asyncio.to_thread(_finalize_episode, state)
@@ -438,6 +512,7 @@ class GymAnythingAgentEnv(vf.MultiTurnEnv):
     async def finalize_reward(self, state: vf.State) -> None:
         """Score with the real verifier while the VM is alive (before close)."""
         await asyncio.to_thread(_finalize_episode, state)
+        _surface_verifier_info(state)
 
     @vf.cleanup(priority=0)
     async def close_env(self, state: vf.State) -> None:
@@ -475,6 +550,17 @@ async def actions_executed(state: vf.State) -> float:
 
 async def parse_errors(state: vf.State) -> float:
     return float(state.get("parse_errors", 0))
+
+
+async def verifier_completion(state: vf.State) -> float:
+    """Checklist completion score (0-100), before the integrity gate is applied."""
+    return float(((state.get("verifier") or {}).get("scores") or {}).get("score_a") or 0.0)
+
+
+async def verifier_integrity(state: vf.State) -> float:
+    """1.0 if every integrity check passed, else 0.0. A 0 here hard-zeros the score
+    even when verifier_completion is high (integrity_threshold is all-or-nothing)."""
+    return 1.0 if ((state.get("verifier") or {}).get("scores") or {}).get("score_b") else 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -522,8 +608,16 @@ def build_agent_env(
 
     dataset = Dataset.from_list(rows)
     rubric = vf.Rubric(
-        funcs=[task_reward, verifier_passed, verifier_score, actions_executed, parse_errors],
-        weights=[1.0, 0.0, 0.0, 0.0, 0.0],
+        funcs=[
+            task_reward,
+            verifier_passed,
+            verifier_score,
+            verifier_completion,
+            verifier_integrity,
+            actions_executed,
+            parse_errors,
+        ],
+        weights=[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     )
     return GymAnythingAgentEnv(
         dataset=dataset,

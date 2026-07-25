@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -30,6 +32,17 @@ class DoctorTests(unittest.TestCase):
 
         self.assertTrue(report.ok)
         self.assertEqual(report.checks[0].name, "local_runner")
+
+    def test_modal_native_doctor_requires_filesystem_capable_sdk(self) -> None:
+        old_modal = types.SimpleNamespace(__version__="1.3.9")
+        with mock.patch.object(
+            doctor, "_modal_status", return_value={"available": True, "reason": None, "deps": {}}
+        ), mock.patch.dict(sys.modules, {"modal": old_modal}):
+            report = run_doctor(runner="modal_native")
+
+        self.assertFalse(report.ok)
+        self.assertEqual(report.checks[0].name, "modal_native_sdk")
+        self.assertIn("modal>=1.4", report.checks[0].detail)
 
     def test_scan_verifier_imports_detects_missing_module(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

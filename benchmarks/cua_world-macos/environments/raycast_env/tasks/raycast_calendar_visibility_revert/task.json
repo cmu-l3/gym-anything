@@ -1,0 +1,45 @@
+{
+  "id": "raycast_calendar_visibility_revert@1",
+  "version": "1.0",
+  "env_id": "raycast_env@0.1",
+  "description": "Use Raycast's Calendar feature to find your availability for next Thursday between 1:00 PM and 6:00 PM, drawing only from the 'Personal' and 'Family' calendars and excluding any events whose status is tentative (look for events with '(tentative)' in the title or otherwise marked tentative). To get this view, temporarily configure Raycast Calendar's schedule view to show ONLY the Personal and Family calendars (hide Work and 'Family Birthdays'). Paste the resulting availability — formatted as a clean list of free time blocks — into the open Mail draft titled 'Re: Coffee next week?'. After pasting, restore Raycast Calendar's schedule visibility to exactly the state it was in before: all four calendars (Personal, Family, Work, Family Birthdays) visible. Do not use the macOS Calendar.app directly — the task is about Raycast Calendar's reversible visibility settings.",
+  "difficulty": "very_hard",
+  "tags": ["raycast", "calendar", "reversible-settings", "eventkit", "availability"],
+  "init": {
+    "timeout_sec": 1200,
+    "max_steps": 100
+  },
+  "hooks": {
+    "pre_task": "/Users/lume/workspace/tasks/raycast_calendar_visibility_revert/setup_task.sh",
+    "pre_task_timeout": 180,
+    "post_task": "/Users/lume/workspace/tasks/raycast_calendar_visibility_revert/export_result.sh"
+  },
+  "metadata": {
+    "required_calendars": ["Personal", "Family", "Work", "Family Birthdays"],
+    "visible_during_task": ["Personal", "Family"],
+    "must_restore_visible": ["Personal", "Family", "Work", "Family Birthdays"],
+    "availability_window_local": "13:00-18:00",
+    "expected_free_blocks_local": [
+      {"start": "13:00", "end": "14:00"},
+      {"start": "15:00", "end": "15:30"},
+      {"start": "16:30", "end": "17:00"}
+    ],
+    "events_to_seed": [
+      {"calendar": "Personal", "title": "Lunch with Sarah",       "start": "12:00", "end": "13:00", "availability": "busy"},
+      {"calendar": "Personal", "title": "Dentist appointment",    "start": "14:00", "end": "15:00", "availability": "busy"},
+      {"calendar": "Personal", "title": "Evening yoga",           "start": "17:00", "end": "18:00", "availability": "tentative"},
+      {"calendar": "Family",   "title": "Pick up kids from school","start": "15:30", "end": "16:30", "availability": "busy"},
+      {"calendar": "Work",     "title": "Engineering standup",    "start": "09:00", "end": "09:30", "availability": "busy"},
+      {"calendar": "Work",     "title": "Team retro",             "start": "13:00", "end": "14:00", "availability": "busy"},
+      {"calendar": "Family Birthdays","title": "Mom's birthday",         "all_day": true, "availability": "free"}
+    ],
+    "mail_draft_subject": "Re: Coffee next week?",
+    "verification_notes": "Free blocks for Personal+Family only (excluding busy/tentative) in 13:00-18:00 window: [13:00-14:00, 15:00-15:30, 16:30-17:00]. Including Work would collapse the first block (Team retro overlaps 13-14)."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_calendar_visibility_revert"
+    }
+  }
+}

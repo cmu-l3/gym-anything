@@ -97,12 +97,14 @@ class BaseRunner(abc.ABC):
 
     def get_platform_family(self) -> PlatformFamily:
         os_type = getattr(self.spec, "os_type", None)
-        if os_type in {"linux", "windows", "android"}:
+        if os_type in {"linux", "windows", "android", "macos"}:
             return os_type
         if getattr(self, "is_android", False):
             return "android"
         if getattr(self, "is_windows", False):
             return "windows"
+        if getattr(self, "is_macos", False):
+            return "macos"
         return "linux"
 
     def get_runtime_info(self) -> RunnerRuntimeInfo:
@@ -122,6 +124,7 @@ class BaseRunner(abc.ABC):
             instance_name=getattr(self, "instance_name", None),
             vnc_port=vnc_port,
             vnc_password=vnc_password,
+            vnc_url=getattr(self, "vnc_url", None),
             ssh_port=getattr(self, "ssh_port", None),
             ssh_user=getattr(self, "_ssh_user", None),
             ssh_password=getattr(self, "_ssh_password", None),
@@ -181,19 +184,19 @@ class BaseRunner(abc.ABC):
     def load_state(self, snapshot_container_path: str) -> None:
         raise NotImplementedError
 
-    # Optional: checkpoint support (for QEMU runner)
+    # Optional: checkpoint support
     def set_checkpoint_key(self, cache_level: str, task_id: Optional[str] = None, use_savevm: bool = False) -> None:
-        """Set checkpoint key for caching. Only implemented by QemuApptainerRunner."""
+        """Set the runner-specific checkpoint key for caching."""
         pass
 
     def checkpoint_exists(self) -> bool:
-        """Check if checkpoint exists. Only implemented by QemuApptainerRunner."""
+        """Check whether the configured checkpoint exists."""
         return False
 
     def create_checkpoint(self) -> bool:
-        """Create checkpoint. Only implemented by QemuApptainerRunner."""
+        """Create the configured checkpoint."""
         return False
 
     def start_from_checkpoint(self, seed: Optional[int] = None) -> bool:
-        """Start from checkpoint. Only implemented by QemuApptainerRunner."""
+        """Start from the configured checkpoint."""
         return False

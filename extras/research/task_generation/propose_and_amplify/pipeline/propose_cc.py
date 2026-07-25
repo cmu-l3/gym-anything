@@ -81,11 +81,33 @@ def run_claude(binary: Path, args: List[str], *, cwd: Path,
             _kill_process_group(pgid)
 
 
-def _packaged_notes_dir() -> Path:
-    """Real on-disk location of task_creation_notes/."""
+SUPPORTED_PLATFORMS = ("linux", "macos")
+SUPPORTED_TASK_TYPES = ("enterprise", "consumer")
+
+
+def _packaged_notes_dir(task_type: str = "enterprise") -> Path:
+    """Real on-disk location of task_creation_notes/ for the given task type.
+
+    ``enterprise`` → ``memory/task_creation_notes`` (the O*NET / occupation-
+    weighted corpus that biases the agent toward professional workflows).
+    ``consumer``   → ``memory_consumer/task_creation_notes`` (personal-use
+    framing — household, family, hobby, creative work, learning).
+    """
+    if task_type not in SUPPORTED_TASK_TYPES:
+        raise ValueError(
+            f"task_type must be one of {SUPPORTED_TASK_TYPES}; got {task_type!r}"
+        )
     here = Path(__file__).resolve().parent
     method_dir = here.parent
-    return method_dir / "memory" / "task_creation_notes"
+    subdir = "memory_consumer" if task_type == "consumer" else "memory"
+    return method_dir / subdir / "task_creation_notes"
+
+
+def _benchmark_root(platform: str) -> str:
+    """``benchmarks/cua_world-macos`` for macos, ``benchmarks/cua_world`` otherwise.
+    Mirrors the dispatcher in method.py so the agent's instructions point at the
+    same directory the dispatcher resolved the env from."""
+    return "benchmarks/cua_world-macos" if platform == "macos" else "benchmarks/cua_world"
 
 
 def run(
@@ -99,12 +121,23 @@ def run(
     start_idx: int = 0,
     session_id: Optional[str] = None,
     timeout: int = CLAUDE_TIMEOUT,
+    platform: str = "linux",
+    task_type: str = "enterprise",
 ) -> str:
     """Run the agentic proposer. Returns the session id."""
+    if platform not in SUPPORTED_PLATFORMS:
+        raise ValueError(
+            f"platform must be one of {SUPPORTED_PLATFORMS}; got {platform!r}"
+        )
+    if task_type not in SUPPORTED_TASK_TYPES:
+        raise ValueError(
+            f"task_type must be one of {SUPPORTED_TASK_TYPES}; got {task_type!r}"
+        )
     binary = _resolve_bin(claude_bin, "CLAUDE_BIN", "claude")
-    notes = (notes_dir or _packaged_notes_dir()).resolve()
+    notes = (notes_dir or _packaged_notes_dir(task_type)).resolve()
     notes_ref = notes.as_posix()
     getting_started_ref = (notes / "00_getting_started.md").as_posix()
+    bench_root = _benchmark_root(platform)
     logs_dir.mkdir(parents=True, exist_ok=True)
     session_id = session_id or str(uuid.uuid4())
 
@@ -113,7 +146,10 @@ def run(
     log_path = logs_dir / f"{target_env_dir}.txt"
     log_path.write_text(
         f"Session ID: {session_id}\n"
-        f"Target Env Directory: {target_env_dir}\n"
+        f"Platform: {platform}\n"
+        f"Task type: {task_type}\n"
+        f"Notes dir: {notes_ref}\n"
+        f"Target Env Directory: {target_env_dir} (under {bench_root}/environments/)\n"
         f"Start Index: {start_idx}\n"
     )
 
@@ -139,9 +175,21 @@ def run(
     # --- Step 2: Create 5 new tasks ---
     if not start_idx > 1:
         print("\n=== Step 2: Create New Tasks ===")
+        # Task-type-specific diversity hint. Enterprise: O*NET occupation ×
+        # industry prior (matches master_dataset.csv). Consumer: personal-use
+        # scenario classes (matches CONSUMER_USE_CASES.md). The rest of the
+        # prompt is identical across task types.
+        diversity_hint = {
+            "enterprise": "diverse environments (based on occupation and industry)",
+            "consumer": (
+                "diverse personal-use scenarios (household, family, hobby, "
+                "creative work, learning) — explicitly NOT enterprise / "
+                "professional / occupation-based framings"
+            ),
+        }[task_type]
         run_claude(binary, [
             "-p",
-            f"""now go through the starter tasks of {target_env_dir}. those are a.) very easy, and b.) not really realistic. we have to create "extremely hard" and "realistic" 5 new tasks, following the criteria mentioned in task_creation_notes. please follow it, and complete the job. Do not enter plan mode or ask me for any input at any time. Remember realistic tasks, diverse environments (based on occupation and industry), and extremely difficult tasks. Also note you are not compelled to use existing data and can download new ones per task as well. (Unrelated Context: remember to use the visual_grounding MCP tool to interact with the running environment)""",
+            f"""now go through the starter tasks of {target_env_dir}. those are a.) very easy, and b.) not really realistic. we have to create "extremely hard" and "realistic" 5 new tasks, following the criteria mentioned in task_creation_notes. please follow it, and complete the job. Do not enter plan mode or ask me for any input at any time. Remember realistic tasks, {diversity_hint}, and extremely difficult tasks. Also note you are not compelled to use existing data and can download new ones per task as well. (Unrelated Context: remember to use the visual_grounding MCP tool to interact with the running environment)""",
             "--dangerously-skip-permissions",
             "--resume", session_id,
             "--disallowedTools", "AskUserQuestion,EnterPlanMode,ExitPlanMode,Task(Plan)",
@@ -173,7 +221,7 @@ def run(
             "-p",
             (
                 f"now write a seed_tasks.json file at "
-                f"benchmarks/cua_world/environments/{target_env_dir}/tasks/seed_tasks.json "
+                f"{bench_root}/environments/{target_env_dir}/tasks/seed_tasks.json "
                 f"listing exactly the new tasks you just created in this session. "
                 f"format is a JSON array of bare task name strings (no @version suffix, "
                 f'no other keys), e.g. ["task_alpha", "task_beta"]. use the exact task '
@@ -198,6 +246,16 @@ def run(
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Agentic proposer (Claude Code).")
     parser.add_argument("target_env_dir", help="Env folder name (e.g. moodle_env)")
+    parser.add_argument("--platform", choices=SUPPORTED_PLATFORMS, default="linux",
+                        help="Target platform — selects which benchmark root the "
+                             "agent is told to write seed_tasks.json under.")
+    parser.add_argument("--task-type", choices=SUPPORTED_TASK_TYPES,
+                        default="enterprise",
+                        help="Task framing — selects which task_creation_notes "
+                             "corpus the agent reads. enterprise=O*NET / "
+                             "occupation-weighted prior (default); consumer="
+                             "personal-use framing (household, family, hobby, "
+                             "creative work, learning).")
     parser.add_argument("--start-idx", type=int, default=0)
     parser.add_argument("--session-id", default=None)
     parser.add_argument("--workspace", type=Path, default=Path.cwd())
@@ -221,6 +279,8 @@ def main() -> int:
         start_idx=args.start_idx,
         session_id=args.session_id,
         timeout=args.timeout_sec,
+        platform=args.platform,
+        task_type=args.task_type,
     )
     return 0
 

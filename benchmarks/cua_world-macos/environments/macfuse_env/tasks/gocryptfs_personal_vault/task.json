@@ -1,0 +1,47 @@
+{
+  "id": "gocryptfs_personal_vault@1",
+  "env_id": "macfuse_env@0.1",
+  "version": "1.0",
+  "description": "Set up a gocryptfs-encrypted personal vault using macFUSE for storing private documents (journal, medical records, financial notes) on your Mac. Install gocryptfs-mac via Homebrew from the gromgit/fuse tap, then: initialize an encrypted directory at /Users/lume/Documents/vault.enc/ using the passphrase 'PersonalVault2024!' (non-interactively — pipe the passphrase into gocryptfs -init -nosyslog); create the plaintext mount point at /Users/lume/Documents/vault.plain/; write a mount script at /Users/lume/Documents/mount_vault.sh that mounts the encrypted vault into the plaintext mount point using the same passphrase (the script must literally invoke gocryptfs and must be executable); write an unmount script at /Users/lume/Documents/umount_vault.sh that unmounts vault.plain (using umount or diskutil unmount and must be executable); write a LaunchAgent plist at /Users/lume/Library/LaunchAgents/com.lume.gocryptfs.vault.plist with Label 'com.lume.gocryptfs.vault', RunAtLoad set to true, ProgramArguments invoking the mount script via /bin/bash, and StandardOutPath / StandardErrorPath pointing into /Users/lume/Library/Logs/ (gocryptfs.vault.log and gocryptfs.vault.err); then register the LaunchAgent with launchctl load so launchctl list reports com.lume.gocryptfs.vault. The agent-user account is lume. Note: the macFUSE kernel extension cannot load in this sandbox, so the LaunchAgent's mount attempt may exit non-zero — that's fine, the deliverable is the configured setup itself.",
+  "difficulty": "very_hard",
+  "tags": [
+    "macfuse",
+    "gocryptfs",
+    "fuse",
+    "encryption",
+    "privacy",
+    "homebrew",
+    "launchagent",
+    "launchd",
+    "plist",
+    "filesystem"
+  ],
+  "init": {
+    "timeout_sec": 900,
+    "max_steps": 80,
+    "reward_type": "sparse"
+  },
+  "hooks": {
+    "pre_task": "/Users/lume/workspace/tasks/gocryptfs_personal_vault/setup_task.sh",
+    "post_task": "/Users/lume/workspace/tasks/gocryptfs_personal_vault/export_result.sh",
+    "pre_task_timeout": 120
+  },
+  "metadata": {
+    "vault_enc_path": "/Users/lume/Documents/vault.enc",
+    "vault_plain_path": "/Users/lume/Documents/vault.plain",
+    "mount_script_path": "/Users/lume/Documents/mount_vault.sh",
+    "umount_script_path": "/Users/lume/Documents/umount_vault.sh",
+    "launch_agent_plist_path": "/Users/lume/Library/LaunchAgents/com.lume.gocryptfs.vault.plist",
+    "launch_agent_label": "com.lume.gocryptfs.vault",
+    "vault_passphrase": "PersonalVault2024!",
+    "occupation": "Privacy-Conscious macOS Power User",
+    "pass_threshold": 70,
+    "scoring_notes": "Per-criterion binary scoring (no partials for individual fields). The 'just enough' adversarial path (do the install + init + scripts but skip LaunchAgent registration) scores 70 exactly — at the pass threshold; the full happy path scores 100. Anti-Pattern 4 safety: trivial mkdir + stub umount sums to 10/100, well below threshold."
+  },
+  "success": {
+    "mode": "program",
+    "spec": {
+      "program": "verifier.py::verify_gocryptfs_personal_vault"
+    }
+  }
+}

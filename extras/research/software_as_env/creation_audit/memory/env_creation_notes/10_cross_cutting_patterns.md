@@ -1,8 +1,8 @@
 # Cross-Cutting Patterns & Lessons Learned
 
-Distilled from 100+ environment implementations. These are generalizable patterns that apply to any new environment, not just the specific app where they were discovered. **34 patterns total.**
+Distilled from 100+ environment implementations. These are generalizable patterns that apply to any new environment, not just the specific app where they were discovered. **37 patterns total.**
 
-**See also:** `11_windows_environments.md` for Windows-specific patterns (schtasks, PyAutoGUI, Office installs).
+**See also:** `11_windows_environments.md` for Windows-specific patterns (schtasks, PyAutoGUI, Office installs). `12_macos_environments.md` for macOS-specific patterns (use.computer runner, SIP read-only root, Rosetta, TCC over SSH).
 
 ---
 
@@ -904,3 +904,62 @@ exit_status = channel.recv_exit_status()
 **Rule:** Never use `exec_command(..., timeout=N)` for scripts expected to run longer than N seconds with no output. Use raw channel with `settimeout(None)` for any setup/export script that could run silently for >30 seconds.
 
 **Affected envs:** Any environment where setup_task.sh or export_result.sh runs a multi-step operation (DB migrations, service restarts, file processing) without producing stdout during execution.
+
+---
+
+## 35. Verify Claims Against the User's Actual Entry Point
+
+When reporting that a feature works "end to end" or has been "visually verified," the verification must use the exact path the user will use — not a parallel test script that bypasses parts of the lifecycle.
+
+**The bug:**
+While building `cua_world-macos/google_earth_env`, an end-to-end test script called `runner.exec_capture("open -a 'Google Earth Pro'")` *after* `env.reset()`. That bypassed the task's `pre_task` hook (which killed the app). The script reported "visually verified, screenshots show the app running." When the user ran the actual CLI (`gym-anything run … -i`), they saw an empty desktop — because the CLI honors `pre_task` and pre_task had killed the app. The visual proof was for a code path the user would never run.
+
+**The fix:**
+- If the user will run a CLI command, run that exact CLI command (or simulate it faithfully — same reset semantics, same hooks, same flags).
+- For GUI/visual claims, capture the screenshot the user's flow produces, not one from a custom script that took a different path.
+- If you diverge from the user's path for convenience (skip a slow step, manually launch instead of waiting for the agent), **state it explicitly**: "I tested X by bypassing Y; you'll see Z when running the real flow."
+- "It passes the verifier in my probe" ≠ "you'll see the expected state when you run it." Especially for interactive/GUI features, the user's eyes are the verifier.
+
+**Rule:** Before claiming verification, ask "would the user, running their actual command, observe what I'm claiming?" If unsure, run their command.
+
+**Affected scenarios:** Any time an agent reports completion of a feature that has both a programmatic surface (verifier, exec_capture) and a user-facing surface (VNC viewer, interactive panel, screenshot). The two can disagree if your test script takes a shortcut.
+
+---
+
+## 36. Read & Follow Prior Notes Before Designing — Conventions Are Authoritative
+
+This repo's `env_creation_notes/` (general) and `specific_env_notes/<app>/` (per-app) document hard-won conventions. Treat them as authoritative defaults, not background reading. The convention is correct; if you're tempted to deviate, name it explicitly with the rationale, don't silently invent a new pattern.
+
+**The bug:**
+When building `cua_world-macos/google_earth_env`, the prior `specific_env_notes/google_earth/{05,07}_*.md` clearly documented the convention: `pre_task` launches Google Earth, agent tasks are operations inside it (`navigate_to_location`, `search_coordinates`, `create_placemark`, `take_screenshot`). I read those notes at the start of the conversation, then invented a `launch_google_earth` agent task whose `pre_task` *killed* the app and required the agent to re-open it. That contradicted the documented convention and broke interactive testing.
+
+**The fix:**
+- Before writing env.json or task.json, check `specific_env_notes/<app>/` for the app you're working on.
+- Scan the top-level convention files: `01_environment_structure.md`, `06_env_creation_checklist.md`, this file, plus `11_windows_environments.md` (Windows) / `12_macos_environments.md` (macOS) / `android_env_creation_guide.md` (Android).
+- For task patterns specifically, the canonical reference is `task_creation_notes/` under `extras/research/task_generation/propose_and_amplify/memory/`.
+- **Reading the notes is not enough — cross-check your design against them.** If your task design names a pattern the notes don't mention, that's a smell. Either find why the convention is different (and document the deviation), or change the design.
+- If the convention says "agent operates inside the launched app," do not write "launch the app" as an agent task.
+
+**Rule:** Conventions documented in `env_creation_notes/` and `specific_env_notes/` reflect hundreds of hours of experience across 100+ envs. Default to following them. Surprises (deviations) need explicit justification.
+
+**Affected scenarios:** Every new env, every new task. Especially when the app already has prior notes — the notes encode app-specific gotchas (Google Earth dialogs, OpenEMR DB shape, Aerobridge Django patterns) that are not obvious from the source.
+
+---
+
+## 37. Probe Before Speculating — Don't Present Inferences as Fact
+
+When stating something about an external system (API capability, file content, install behavior, etc.), either probe directly or mark the statement as inference. For external services with credentials in scope, the bar to probe is very low: one curl, one SDK call, one file read usually answers the question.
+
+**The bug:**
+When analyzing use.computer's caching story, I wrote: *"docs hint at one base per fleet."* That was extrapolation from a single phrase ("cloned from a base image") — presented as fact. The user pushed back: *"what exactly is that?? please confirm exactly what is possible and what is not at this point."* A 30-second probe (`GET /v1/platforms`) revealed there were actually **two** named base images, plus the API would silently accept a third — completely different reality. Speculation cost trust and time; probing would have been faster and right.
+
+**The fix:**
+- When making a factual claim about external behavior, probe first. One HTTP call, one SDK invocation, one file read is almost always cheaper than a paragraph of speculation.
+- When you must state something without probing, prefix it: "I infer …", "extrapolating from a single mention …", "based on the SDK shape, probably …". This lets the reader weight the claim correctly.
+- For environment installs, run the install script against a real sandbox once and inspect the actual error — don't reason about what's likely to happen.
+- For repo files, read the file rather than guess from a grep snippet. The Read tool is cheap.
+- If the user explicitly authorizes probing (API key, "don't worry about charges"), be more aggressive: spin up a real sandbox, install a real package, exercise a real flow.
+
+**Specific anti-pattern this targets:** the "research summary that sounds confident but is mostly inference" pattern. AGENTS.md is explicit: "Propose the proper integration and execute on it… not options dressed as cowardice." Probe-then-state, not infer-then-state.
+
+**Affected scenarios:** any task that depends on the actual behavior of an external service or unfamiliar code path. Especially when an API key or live system is in reach — speculation in that situation is unforced error.

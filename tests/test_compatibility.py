@@ -18,6 +18,12 @@ class CompatibilityContractTests(unittest.TestCase):
         self.assertEqual(compatibility.user_accounts_mode, "preprovisioned_accounts")
         self.assertTrue(compatibility.savevm)
 
+    def test_modal_native_has_disk_checkpoints_without_savevm(self) -> None:
+        compatibility = get_runner_compatibility("modal_native")
+        self.assertEqual(compatibility.user_accounts_mode, "preprovisioned_accounts")
+        self.assertTrue(compatibility.checkpoint_caching)
+        self.assertFalse(compatibility.savevm)
+
     def test_avd_user_accounts_are_metadata_only(self) -> None:
         compatibility = get_runner_compatibility("avd")
         self.assertEqual(compatibility.user_accounts_mode, "metadata_only")

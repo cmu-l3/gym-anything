@@ -20,6 +20,7 @@ _RUNNER_MODULES = (
     "build_windows_qcow2_apptainer",
     "docker",
     "local",
+    "modal_native",
     "qemu_apptainer",
     "qemu_native",
     "vnc_utils",

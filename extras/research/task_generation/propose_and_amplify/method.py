@@ -61,25 +61,43 @@ DEFAULT_TIMEOUT_SEC = 7200
 # ---------------------------------------------------------------------------
 
 
+SUPPORTED_PLATFORMS = ("linux", "macos")
+
+
+def _benchmark_root(platform: str) -> str:
+    """``benchmarks/cua_world-macos`` for macos, ``benchmarks/cua_world`` otherwise.
+
+    Mirrors the dispatcher in software_as_env/creation_audit/method.py so the
+    same env name resolves to the same on-disk folder across both research
+    pipelines.
+    """
+    if platform not in SUPPORTED_PLATFORMS:
+        raise ValueError(
+            f"platform must be one of {SUPPORTED_PLATFORMS}; got {platform!r}"
+        )
+    return "benchmarks/cua_world-macos" if platform == "macos" else "benchmarks/cua_world"
+
+
 def _default_workspace() -> Path:
     candidate = HERE.parents[3]
     return candidate if (candidate / "src" / "gym_anything").is_dir() else Path.cwd()
 
 
-def _resolve_env_folder(env_dir: str, workspace: Path) -> Path:
+def _resolve_env_folder(env_dir: str, workspace: Path, platform: str) -> Path:
     path = Path(env_dir)
     if path.is_absolute() and path.is_dir():
         return path
-    candidate = workspace / "benchmarks" / "cua_world" / "environments" / env_dir
+    bench_root = _benchmark_root(platform)
+    candidate = workspace / bench_root / "environments" / env_dir
     if candidate.is_dir():
         return candidate
     candidate2 = workspace / env_dir
     if candidate2.is_dir():
         return candidate2
     raise FileNotFoundError(
-        f"Cannot resolve --env-dir {env_dir!r}: not absolute, not under "
-        f"{workspace / 'benchmarks/cua_world/environments'}, and not under "
-        f"{workspace}. Pass an absolute path or check the env name."
+        f"Cannot resolve --env-dir {env_dir!r} for platform {platform!r}: not "
+        f"absolute, not under {workspace / bench_root / 'environments'}, and "
+        f"not under {workspace}. Pass an absolute path or check the env name."
     )
 
 
@@ -137,6 +155,8 @@ def _stage_propose(args: argparse.Namespace, env_folder: Path,
         start_idx=args.propose_start_idx,
         session_id=args.session_id,
         timeout=args.timeout_sec,
+        platform=args.platform,
+        task_type=args.task_type,
     )
     return 0
 
@@ -282,7 +302,7 @@ _STAGES = ("propose", "amplify", "extract")
 def run_pipeline(args: argparse.Namespace) -> int:
     workspace = (args.workspace or _default_workspace()).resolve()
     args.workspace_resolved = str(workspace)
-    env_folder = _resolve_env_folder(args.env_dir, workspace).resolve()
+    env_folder = _resolve_env_folder(args.env_dir, workspace, args.platform).resolve()
     output_dir = (
         Path(args.output_dir).resolve()
         if args.output_dir else
@@ -292,6 +312,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     plan = _STAGES if args.stage == "all" else (args.stage,)
     print(f"\n=== Propose-and-Amplify: {args.software} ({env_folder.name}) ===")
+    print(f"Platform  : {args.platform} ({_benchmark_root(args.platform)})")
+    print(f"Task type : {args.task_type}")
     print(f"Workspace : {workspace}")
     print(f"Env folder: {env_folder}")
     print(f"Output dir: {output_dir}")
@@ -337,8 +359,23 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--software", required=True,
                    help="Human-readable software name (e.g. 'Moodle')")
     p.add_argument("--env-dir", required=True,
-                   help="Env folder name under benchmarks/cua_world/environments/, "
-                        "or absolute path")
+                   help="Env folder name under benchmarks/cua_world{,-macos}/"
+                        "environments/ (selected by --platform), or absolute path")
+    p.add_argument("--platform", choices=SUPPORTED_PLATFORMS, default="linux",
+                   help="Target platform. Selects which benchmark root the env "
+                        "is resolved under and is threaded into the proposer so "
+                        "its seed_tasks.json write goes to the right place "
+                        "(default: linux)")
+    p.add_argument("--task-type", choices=propose_cc.SUPPORTED_TASK_TYPES,
+                   default="enterprise",
+                   help="Task framing. Selects which task_creation_notes "
+                        "corpus the proposer reads. enterprise=O*NET / "
+                        "occupation-weighted prior (the existing memory/); "
+                        "consumer=personal-use framing — household, family, "
+                        "hobby, creative work, learning (memory_consumer/). "
+                        "Independent of --platform: enterprise tasks make "
+                        "sense on macOS, consumer tasks make sense on Linux. "
+                        "Default: enterprise.")
     p.add_argument("--stage", choices=("all", *_STAGES), default="all",
                    help="Which stage to run (default: all)")
 

@@ -83,6 +83,21 @@ _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
             "savevm applies to QEMU guests only; AVD Android guests do not support it.",
         ],
     ),
+    "modal_native": RunnerCompatibility(
+        runner="modal_native",
+        display_name="ModalNativeRunner",
+        live_recording=False,
+        screenshot_video_assembly=True,
+        checkpoint_caching=True,
+        savevm=False,
+        user_accounts_mode="preprovisioned_accounts",
+        notes=[
+            "Runs Linux environments directly in a Modal VM Sandbox without nested QEMU.",
+            "Filesystem snapshots provide disk checkpoints; VM memory snapshots and savevm are unavailable.",
+            "The ga desktop account is preprovisioned; EnvSpec.user_accounts remains credential metadata.",
+            "GPU, Windows, Android, and macOS environments are rejected explicitly.",
+        ],
+    ),
     "avd": RunnerCompatibility(
         runner="avd",
         display_name="AVDApptainerRunner",
@@ -148,6 +163,22 @@ _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
             "LocalRunner is a synthetic-observation backend for validating orchestration only.",
         ],
     ),
+    "use_computer": RunnerCompatibility(
+        runner="use_computer",
+        display_name="UseComputerRunner",
+        live_recording=False,
+        screenshot_video_assembly=True,
+        checkpoint_caching=False,
+        savevm=False,
+        user_accounts_mode="preprovisioned_accounts",
+        notes=[
+            "Drives remote macOS sandboxes via the use.computer SDK (https://use.computer).",
+            "Sandboxes are ephemeral M4 Mac VMs (4 cores / 8 GB) cloned from a use.computer base image; the only login is 'lume' with passwordless sudo.",
+            "Requires USE_COMPUTER_API_KEY env var; honors USE_COMPUTER_BASE_URL for dev/prod selection.",
+            "Does not support checkpoint caching or savevm: the upstream API exposes no snapshot endpoint, and a half-baked client-side workaround would diverge from runner semantics elsewhere.",
+            "Audio capture is unsupported (the SDK has no audio endpoint); envs that declare an audio_waveform observation will silently get no audio in the obs.",
+        ],
+    ),
 }
 
 
@@ -174,11 +205,13 @@ def infer_runner_key_from_name(name: str) -> Optional[str]:
         "qemuapptainerrunner": "qemu",
         "qemunativerunner": "qemu_native",
         "modalrunner": "modal",
+        "modalnativerunner": "modal_native",
         "avdapptainerrunner": "avd",
         "avdnativerunner": "avd_native",
         "avfrunner": "avf",
         "apptainerdirectrunner": "apptainer",
         "localrunner": "local",
+        "usecomputerrunner": "use_computer",
     }
     return aliases.get(normalized)
 

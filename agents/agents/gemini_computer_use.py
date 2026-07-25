@@ -1,8 +1,21 @@
 """Gemini Computer Use agent.
 
-Uses Google's *official* Computer Use tool (`types.ComputerUse`) with
-`gemini-3-flash-preview` (the only Flash model that supports Computer Use as of
-2026-06; `gemini-3.5-flash` returns 400 "computer use capabilities" access error).
+Uses Google's official Computer Use tool (`types.ComputerUse`) and supports
+both current model generations:
+
+- `gemini-3-flash-preview` / `gemini-2.5-computer-use-preview*` emit the
+  legacy action set (click_at, type_text_at, key_combination, scroll_at, ...)
+  and are browser-environment models.
+- `gemini-3.5-flash` emits the newer action set (click, type, hotkey,
+  press_key, scroll, take_screenshot, ...) and supports
+  ENVIRONMENT_DESKTOP (google-genai >= 2.x), which is what this harness
+  actually shows the model.
+
+The translator dispatches on the action *name*, so both vocabularies work
+regardless of which model produced them. Unknown actions are never silently
+swallowed: they are logged, recorded in the transcript, reported back to the
+model as an error in the next function response, and after
+`_MAX_CONSECUTIVE_UNSUPPORTED` in a row the episode is marked done.
 
 Design choices:
 - **Full, untruncated history.** Every turn we append the model's content and a
@@ -10,12 +23,15 @@ Design choices:
   resend the whole list. The official docs show exactly this append-only loop; it
   also keeps the prefix stable so Gemini's implicit context caching is reused. We
   deliberately do NOT compact per turn.
-- One Gemini call per env step. The model returns a single predefined UI action
-  (click_at / type_text_at / key_combination / scroll / drag / ...); we translate
-  it to the env's low-level action dicts (mouse pixel coords in 1920x1080,
-  keyboard text/keys). Gemini coordinates are normalized 0-999 over the screenshot.
+- One Gemini call per env step. The model returns a single predefined UI action;
+  we translate it to the env's low-level action dicts (mouse pixel coords at the
+  native resolution, keyboard text/keys). Gemini coordinates are normalized
+  0-999 over the screenshot.
+- Browser-navigation actions (open_web_browser, search, navigate, ...) are
+  excluded via `excluded_predefined_functions` instead of being begged away in
+  the system prompt.
 - Completion is signalled by the model returning no function_call (a plain text
-  answer) -> we mark done.
+  answer): we mark done.
 """
 import json
 import os
@@ -33,14 +49,13 @@ load_dotenv()
 
 SYSTEM_INSTRUCTION = (
     "You are operating a single desktop application that is ALREADY OPEN and fills "
-    "the screen (1920x1080). Do not open a web browser, navigate to URLs, or use "
-    "search — interact directly with what is on screen using clicks, typing, and "
+    "the screen. Interact directly with what is on screen using clicks, typing, and "
     "keyboard shortcuts via the computer tool. Look carefully at each screenshot "
     "before acting. When the task is fully complete, stop calling the tool and "
     "reply with a short confirmation instead."
 )
 
-# Gemini key-combination names -> env (X11 keysym-ish) names used by the env layer.
+# Gemini key names -> env (X11 keysym-ish) names used by the env layer.
 _KEYMAP = {
     "control": "ctrl", "ctrl": "ctrl", "alt": "alt", "option": "alt",
     "shift": "shift", "meta": "super", "cmd": "super", "command": "super",
@@ -50,6 +65,21 @@ _KEYMAP = {
     "up": "Up", "down": "Down", "left": "Left", "right": "Right",
     "home": "Home", "end": "End", "pageup": "Prior", "pagedown": "Next",
 }
+
+# Models that emit the legacy (browser-only) action vocabulary.
+_LEGACY_MODEL_PREFIXES = ("gemini-2.5-computer-use", "gemini-3-flash")
+
+# Browser-navigation actions this harness can never execute (single desktop
+# app, no browser chrome). Excluded per vocabulary so the model cannot emit
+# them at all.
+_LEGACY_BROWSER_FUNCTIONS = ["open_web_browser", "search", "navigate", "go_back", "go_forward"]
+_NEW_BROWSER_FUNCTIONS = ["navigate", "go_back", "go_forward"]
+
+_MAX_CONSECUTIVE_UNSUPPORTED = 3
+
+
+def _uses_legacy_actions(model: str) -> bool:
+    return model.startswith(_LEGACY_MODEL_PREFIXES)
 
 
 class GeminiComputerUseAgent(BaseAgent):
@@ -70,13 +100,25 @@ class GeminiComputerUseAgent(BaseAgent):
         self.pending_name = None    # name of the function_call awaiting a screenshot
         self.pending_id = None
         self.pending_safety = False
+        self.pending_error = None   # error text to report for the previous action
+        self.consecutive_unsupported = 0
+        self._last_unsupported = False
         self.transcript = []        # human-readable record for inspection
 
         self.setup_custom_logger()
 
+        self.legacy_actions = _uses_legacy_actions(self.model)
+        self.environment = self._resolve_environment()
+        excluded = self.agent_args.get("excluded_functions")
+        if excluded is None:
+            excluded = _LEGACY_BROWSER_FUNCTIONS if self.legacy_actions else _NEW_BROWSER_FUNCTIONS
+
         self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         self.tool = types.Tool(
-            computer_use=types.ComputerUse(environment=types.Environment.ENVIRONMENT_BROWSER)
+            computer_use=types.ComputerUse(
+                environment=self.environment,
+                excluded_predefined_functions=list(excluded),
+            )
         )
         self.config = types.GenerateContentConfig(
             tools=[self.tool],
@@ -90,6 +132,30 @@ class GeminiComputerUseAgent(BaseAgent):
                 thinking_level=self.decoding_params.get("thinking_level", "high"),
             ),
         )
+
+    def _resolve_environment(self):
+        """Pick the ComputerUse environment.
+
+        Legacy models are browser-only. Newer models default to
+        ENVIRONMENT_DESKTOP, which is what this harness actually shows the
+        model, falling back to browser (with a warning) when the installed
+        google-genai predates the desktop enum. Override with
+        agent_args["environment"] = "browser" | "desktop" | "mobile".
+        """
+        requested = self.agent_args.get("environment")
+        if requested is None:
+            requested = "browser" if self.legacy_actions else "desktop"
+        enum_name = f"ENVIRONMENT_{requested.upper()}"
+        env = getattr(types.Environment, enum_name, None)
+        if env is None:
+            print(f"[gemini-cu] google-genai has no {enum_name} (SDK too old?); "
+                  "falling back to ENVIRONMENT_BROWSER")
+            return types.Environment.ENVIRONMENT_BROWSER
+        return env
+
+    @property
+    def _is_browser_env(self):
+        return self.environment == types.Environment.ENVIRONMENT_BROWSER
 
     # ---- bookkeeping (mirrors the other agents) ---------------------------
     def setup_custom_logger(self):
@@ -127,12 +193,19 @@ class GeminiComputerUseAgent(BaseAgent):
                 types.Part.from_bytes(data=shot, mime_type="image/png"),
             ]))
         else:
-            resp = {"url": "app://gridsmith"}
+            resp = {}
+            if self._is_browser_env:
+                # The browser protocol expects a current-URL field; a desktop
+                # app has none, so report a stable placeholder.
+                resp["url"] = f"app://{self.agent_args.get('task_name', 'desktop')}"
+            if self.pending_error:
+                resp["error"] = self.pending_error
             if self.pending_safety:
                 resp["safety_acknowledgement"] = "true"
             fr = self._function_response(self.pending_name, self.pending_id, resp, shot)
             self.contents.append(types.Content(role="user", parts=[types.Part(function_response=fr)]))
             self.pending_safety = False
+            self.pending_error = None
 
         try:
             response = self.client.models.generate_content(
@@ -177,24 +250,82 @@ class GeminiComputerUseAgent(BaseAgent):
 
         actions = self._translate(fc.name, args)
         self.transcript.append({"step": self.step_idx, "action": fc.name,
-                                "args": {k: v for k, v in args.items() if k != "safety_decision"},
-                                "env_actions": actions, "reasoning": reasoning_text})
+                                "args": {k: v for k, v in args.items()
+                                         if k not in ("safety_decision", "intent")},
+                                "intent": args.get("intent"),
+                                "env_actions": actions,
+                                "error": self.pending_error,
+                                "reasoning": reasoning_text})
         self._dump_transcript()
         if self.verbose:
             print(f"[gemini-cu] step {self.step_idx}: {fc.name}({args}) -> {actions}")
+        if self.consecutive_unsupported >= _MAX_CONSECUTIVE_UNSUPPORTED:
+            print(f"[gemini-cu] {self.consecutive_unsupported} unsupported actions "
+                  "in a row; ending episode")
+            self.done = True
+            self._dump_transcript()
         return [{"tool_id": f"gem_{self.step_idx}", "actions": actions}]
 
     # ---- action translation ----------------------------------------------
+    def _unsupported(self, name, detail):
+        """Loud no-op: warn, report the error back to the model, count it."""
+        self.pending_error = f"Action '{name}' is not supported here: {detail}"
+        self.consecutive_unsupported += 1
+        self._last_unsupported = True
+        print(f"[gemini-cu] UNSUPPORTED action {name}: {detail}")
+        return [{"action": "wait", "time": 0.5}]
+
     def _translate(self, name, args):
         W, H = self.display_resolution
 
         def px(x, y):
             return [int(round(float(x) / 1000.0 * W)), int(round(float(y) / 1000.0 * H))]
 
-        if name == "click_at":
+        self._last_unsupported = False
+        known = self._translate_known(name, args, px)
+        if known is not None:
+            if not self._last_unsupported:
+                self.consecutive_unsupported = 0
+            return known
+
+        if name in ("open_app", "list_apps"):
+            return self._unsupported(name, "mobile-only action; this is a desktop app")
+        if name in _LEGACY_BROWSER_FUNCTIONS or name in _NEW_BROWSER_FUNCTIONS:
+            return self._unsupported(name, "browser navigation is unavailable in a single desktop app")
+        return self._unsupported(name, "unknown predefined function for this harness")
+
+    def _translate_known(self, name, args, px):
+        """Return env actions for a recognized action name, else None.
+
+        Handles BOTH Gemini action vocabularies: legacy (gemini-3-flash-preview,
+        gemini-2.5-computer-use-preview) and current (gemini-3.5-flash).
+        """
+        # --- clicks (legacy: click_at / hover_at; new: click family + move) ---
+        if name in ("click_at", "click"):
             return [{"mouse": {"left_click": px(args["x"], args["y"])}}]
-        if name == "hover_at":
+        if name == "right_click":
+            return [{"mouse": {"right_click": px(args["x"], args["y"])}}]
+        if name == "middle_click":
+            return [{"mouse": {"middle_click": px(args["x"], args["y"])}}]
+        if name == "double_click":
+            return [{"mouse": {"double_click": px(args["x"], args["y"])}}]
+        if name == "triple_click":
+            return [{"mouse": {"triple_click": px(args["x"], args["y"])}}]
+        if name in ("hover_at", "move"):
             return [{"mouse": {"move": px(args["x"], args["y"])}}]
+        if name == "mouse_down":
+            return [{"mouse": {"move": px(args["x"], args["y"])}},
+                    {"mouse": {"buttons": {"left_down": True}}}]
+        if name == "mouse_up":
+            return [{"mouse": {"move": px(args["x"], args["y"])}},
+                    {"mouse": {"buttons": {"left_up": True}}}]
+        if name == "long_press":
+            return [{"mouse": {"move": px(args["x"], args["y"])}},
+                    {"mouse": {"buttons": {"left_down": True}}},
+                    {"action": "wait", "time": float(args.get("seconds", 2))},
+                    {"mouse": {"buttons": {"left_up": True}}}]
+
+        # --- typing (legacy: type_text_at clicks first; new: type at focus) ---
         if name == "type_text_at":
             out = [{"mouse": {"left_click": px(args["x"], args["y"])}}]
             if args.get("clear_before_typing"):
@@ -203,24 +334,67 @@ class GeminiComputerUseAgent(BaseAgent):
             if args.get("press_enter"):
                 out.append({"keyboard": {"keys": ["Return"]}})
             return out
+        if name == "type":
+            out = []
+            if args.get("clear_before_typing"):
+                out.append({"keyboard": {"keys": ["ctrl", "a"]}})
+            out.append({"keyboard": {"text": args.get("text", "")}})
+            if args.get("press_enter"):
+                out.append({"keyboard": {"keys": ["Return"]}})
+            return out
+
+        # --- keys ---
         if name == "key_combination":
             return self._key_combo_actions(str(args.get("keys", "")))
+        if name == "press_key":
+            return self._key_combo_actions(str(args.get("key", "")))
+        if name == "hotkey":
+            keys = args.get("keys", [])
+            if isinstance(keys, str):
+                return self._key_combo_actions(keys)
+            return [{"keyboard": {"keys": [_KEYMAP.get(str(k).lower(), str(k)) for k in keys]}}]
+        if name == "key_down":
+            return [{"keyboard": {"keys_down": [_KEYMAP.get(str(args.get("key", "")).lower(),
+                                                            str(args.get("key", "")))]}}]
+        if name == "key_up":
+            return [{"keyboard": {"keys_up": [_KEYMAP.get(str(args.get("key", "")).lower(),
+                                                          str(args.get("key", "")))]}}]
+
+        # --- scrolling ---
         if name == "scroll_document":
             amt = self._scroll_amount(args.get("direction", "down"), 600)
             return [{"mouse": {"scroll": amt}}]
-        if name == "scroll_at":
-            amt = self._scroll_amount(args.get("direction", "down"), int(args.get("magnitude", 600)))
-            return [{"mouse": {"move": px(args["x"], args["y"])}}, {"mouse": {"scroll": amt}}]
+        if name in ("scroll_at", "scroll"):
+            magnitude = int(args.get("magnitude", args.get("magnitude_in_pixels", 600)) or 600)
+            direction = str(args.get("direction", "down")).lower()
+            if direction in ("left", "right"):
+                return self._unsupported(name, "horizontal scroll is not modeled by the env")
+            amt = self._scroll_amount(direction, magnitude)
+            out = []
+            if "x" in args and "y" in args:
+                out.append({"mouse": {"move": px(args["x"], args["y"])}})
+            out.append({"mouse": {"scroll": amt}})
+            return out
+
+        # --- drags (legacy: destination_x/y; new: end_x/y or destination_x/y) ---
         if name == "drag_and_drop":
-            s = px(args["x"], args["y"])
-            d = px(args["destination_x"], args["destination_y"])
-            return [{"mouse": {"move": s}}, {"mouse": {"buttons": {"left_down": True}}},
-                    {"mouse": {"move": d}}, {"mouse": {"buttons": {"left_up": True}}}]
+            sx = args.get("x", args.get("start_x"))
+            sy = args.get("y", args.get("start_y"))
+            dx = args.get("destination_x", args.get("end_x"))
+            dy = args.get("destination_y", args.get("end_y"))
+            if None in (sx, sy, dx, dy):
+                return self._unsupported(name, f"missing drag coordinates in {sorted(args)}")
+            return [{"mouse": {"left_click_drag": [px(sx, sy), px(dx, dy)]}}]
+
+        # --- waiting / observation ---
         if name == "wait_5_seconds":
             return [{"action": "wait", "time": 5}]
-        # open_web_browser / navigate / search / go_back / go_forward: irrelevant to
-        # a single already-open app -> just re-observe so the loop continues.
-        return [{"action": "wait", "time": 0.5}]
+        if name == "wait":
+            return [{"action": "wait", "time": float(args.get("seconds", 1))}]
+        if name == "take_screenshot":
+            return [{"action": "screenshot"}]
+
+        return None
 
     @staticmethod
     def _scroll_amount(direction, magnitude):
@@ -232,13 +406,13 @@ class GeminiComputerUseAgent(BaseAgent):
         return 0  # left/right scroll not modeled
 
     def _key_combo_actions(self, combo):
-        """Translate a Gemini key_combination into env keyboard actions.
+        """Translate a key combination / single key into env keyboard actions.
 
-        Crucially, a single character (incl. GRIDSMITH's aggregator keys
-        + ~ < > # * & and ordinary letters/digits) is *typed*, not sent as an
-        xdotool keysym — `xdotool key +` is ambiguous/invalid, whereas typing it
-        yields the right JS event.key. Named keys (Enter/Escape/Tab/arrows) and
-        modifier chords (Ctrl+A, Shift+Equals) use xdotool key.
+        A single character (letters, digits, punctuation like + ~ < > # * &) is
+        *typed*, not sent as an xdotool keysym — `xdotool key +` is
+        ambiguous/invalid, whereas typing it yields the right JS event.key.
+        Named keys (Enter/Escape/Tab/arrows) and modifier chords (Ctrl+A,
+        Shift+Equals) use xdotool key.
         """
         c = combo.strip()
         if not c:

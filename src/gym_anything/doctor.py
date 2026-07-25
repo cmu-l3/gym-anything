@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -158,6 +159,15 @@ def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
     if target in {"all", "avd_native"}:
         checks.append(_check_binary("adb", "adb", probe=["adb", "version"]))
         checks.append(_check_binary("emulator", "emulator", probe=["emulator", "-version"]))
+    if target in {"all", "modal_native"}:
+        status = _modal_native_status()
+        checks.append(
+            DoctorCheck(
+                name="modal_native_sdk",
+                ok=bool(status.get("available")),
+                detail=status.get("reason") or "modal>=1.4 and credentials are configured",
+            )
+        )
     if target in {"all", "apptainer", "qemu", "avd"}:
         checks.append(_check_binary("ffmpeg", "ffmpeg", probe=["ffmpeg", "-version"], required=False))
     if target == "local":
@@ -314,8 +324,10 @@ _RUNNER_DEPS: Dict[str, List[str]] = {
     "avd": ["apptainer"],
     "avd_native": ["adb"],
     "apptainer": ["apptainer"],
+    "use_computer": [],  # Python SDK + API key probed below
     "local": [],
     "modal": [],  # python package + token, checked specially in get_runner_status
+    "modal_native": [],  # modal>=1.4 + token, checked specially below
 }
 
 
@@ -339,6 +351,24 @@ def _modal_status() -> Dict:
         return {
             "available": False,
             "reason": "modal token not configured (run: modal token set)",
+            "deps": {},
+        }
+    return {"available": True, "reason": None, "deps": {}}
+
+
+def _modal_native_status() -> Dict:
+    """Availability check for the filesystem-capable native Modal runner."""
+    status = _modal_status()
+    if not status.get("available"):
+        return status
+    import modal
+
+    version_text = getattr(modal, "__version__", "0")
+    version = tuple(int(part) for part in re.findall(r"\d+", version_text)[:3])
+    if version < (1, 4):
+        return {
+            "available": False,
+            "reason": f"modal>=1.4 required (found {version_text})",
             "deps": {},
         }
     return {"available": True, "reason": None, "deps": {}}
@@ -378,6 +408,9 @@ def get_runner_status() -> Dict[str, Dict]:
             continue
         if runner_key == "modal":
             results[runner_key] = _modal_status()
+            continue
+        if runner_key == "modal_native":
+            results[runner_key] = _modal_native_status()
             continue
 
         dep_status = {}
@@ -434,6 +467,30 @@ def get_runner_status() -> Dict[str, Dict]:
                 "install": _INSTALL_HINTS.get(qemu_bin, {}).get("macos" if _IS_MACOS else "linux", ""),
             }
             if not found:
+                all_ok = False
+
+        # Special: use_computer needs the Python SDK + an API key env var
+        if runner_key == "use_computer":
+            sdk_ok = False
+            try:
+                import use_computer  # noqa: F401
+                sdk_ok = True
+            except ImportError:
+                sdk_ok = False
+            dep_status["use-computer-sdk"] = {
+                "installed": sdk_ok,
+                "path": None,
+                "desc": "use.computer Python SDK",
+                "install": "pip install use-computer",
+            }
+            api_key_set = bool(os.environ.get("USE_COMPUTER_API_KEY") or os.environ.get("MMINI_API_KEY"))
+            dep_status["USE_COMPUTER_API_KEY"] = {
+                "installed": api_key_set,
+                "path": None,
+                "desc": "API key for use.computer (mk_live_*)",
+                "install": "Mint a key at https://use.computer and export USE_COMPUTER_API_KEY",
+            }
+            if not (sdk_ok and api_key_set):
                 all_ok = False
 
         # Special: avf needs base image or ability to build

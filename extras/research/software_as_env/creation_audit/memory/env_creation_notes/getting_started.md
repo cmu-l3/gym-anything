@@ -387,8 +387,9 @@ docker exec myapp-db mysql -u user -ppass dbname -N -e "SELECT * FROM table"
 | `benchmarks/cua_world/environments/openemr_env/` | Web app with Docker example |
 | `extras/research/software_as_env/creation_audit/memory/env_creation_notes/getting_started.md` | Getting started guide |
 | `extras/research/software_as_env/creation_audit/memory/env_creation_notes/07_web_applications_docker.md` | Docker web apps guide |
-| **`extras/research/software_as_env/creation_audit/memory/env_creation_notes/10_cross_cutting_patterns.md`** | **Hard-won lessons from 100+ envs: service readiness, dialog suppression, process detection, verification anti-gaming, Docker/snap gotchas, coordinate scaling, setsid, pgrep bugs, XAUTHORITY, and more** |
+| **`extras/research/software_as_env/creation_audit/memory/env_creation_notes/10_cross_cutting_patterns.md`** | **Hard-won lessons from 100+ envs: service readiness, dialog suppression, process detection, verification anti-gaming, Docker/snap gotchas, coordinate scaling, setsid, pgrep bugs, XAUTHORITY, verify-against-user-flow, follow-conventions, probe-before-speculating, and more** |
 | **`extras/research/software_as_env/creation_audit/memory/env_creation_notes/11_windows_environments.md`** | **Windows apps: Session 0 isolation, schtasks /IT, Win32 vs PyAutoGUI, Office installs, PowerShell gotchas** |
+| **`extras/research/software_as_env/creation_audit/memory/env_creation_notes/12_macos_environments.md`** | **macOS apps via `UseComputerRunner` (use.computer fleet): `/Users/lume/workspace` (SIP read-only root), Rosetta, DMG / .pkg install patterns, TCC over SSH, VNC URL handling, no checkpoint caching** |
 | `extras/research/software_as_env/creation_audit/memory/env_creation_notes/specific_env_notes/<env>/` | App-specific notes for similar environments |
 
 ---
@@ -440,8 +441,9 @@ WHERE LOWER(TRIM(field)) = 'value'
 ## Next Steps
 
 1. Go through relevant referenced files and notes to understand the gym anything framework and how environments/tasks work.
-2. **Read `extras/research/software_as_env/creation_audit/memory/env_creation_notes/10_cross_cutting_patterns.md`** — 30 generalizable patterns distilled from 100+ environments. Covers the most common pitfalls (service readiness, first-run dialogs, Docker v2 vs v1, snap gotchas, verification anti-gaming, setsid, pgrep bugs, XAUTHORITY, etc.). Read this BEFORE writing any scripts.
+2. **Read `extras/research/software_as_env/creation_audit/memory/env_creation_notes/10_cross_cutting_patterns.md`** — 37 generalizable patterns distilled from 100+ environments. Covers the most common pitfalls (service readiness, first-run dialogs, Docker v2 vs v1, snap gotchas, verification anti-gaming, setsid, pgrep bugs, XAUTHORITY, etc.) **plus three agent-discipline patterns** (#35 verify-against-user-flow, #36 follow-prior-conventions, #37 probe-before-speculating). Read this BEFORE writing any scripts.
 3. **If building a Windows app:** Read `extras/research/software_as_env/creation_audit/memory/env_creation_notes/11_windows_environments.md` — Session 0 isolation, schtasks /IT, Win32 vs PyAutoGUI automation, Office install patterns.
-3. Study existing environments in `benchmarks/cua_world/environments/`
-4. Check `extras/research/software_as_env/creation_audit/memory/env_creation_notes/specific_env_notes/<env_name>/` for app-specific notes on similar environments
-5. Check other notes in `extras/research/software_as_env/creation_audit/memory/env_creation_notes/` for specific topics
+4. **If building a macOS app:** Read `extras/research/software_as_env/creation_audit/memory/env_creation_notes/12_macos_environments.md` — UseComputerRunner / use.computer fleet, `/Users/lume/workspace` (SIP makes / read-only), Rosetta, DMG / .pkg install, TCC over SSH, VNC URL handling, no checkpoint caching today.
+5. Study existing environments in `benchmarks/cua_world/environments/` and `benchmarks/cua_world-macos/environments/`.
+6. Check `extras/research/software_as_env/creation_audit/memory/env_creation_notes/specific_env_notes/<env_name>/` for app-specific notes on similar environments — **these are authoritative defaults; deviations need justification (pattern #36)**.
+7. Check other notes in `extras/research/software_as_env/creation_audit/memory/env_creation_notes/` for specific topics

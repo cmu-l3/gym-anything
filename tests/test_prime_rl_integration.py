@@ -223,6 +223,31 @@ class VerifiersAdapterTests(unittest.TestCase):
         self.assertEqual(state["episode_reward"], 0.0)
         self.assertIn("error", state["verifier"])
 
+    def test_setup_state_boot_failure_aborts_as_vf_error(self) -> None:
+        import asyncio
+
+        import verifiers as vf
+
+        from gym_anything.integrations.prime_rl.verifiers import build_agent_env
+
+        rows = [
+            {
+                "prompt": [{"role": "user", "content": "x"}],
+                "info": {"env_dir": "/nonexistent", "env_name": "e", "task_id": "t", "seed": 0},
+                "task": "e/t",
+            }
+        ]
+        env = build_agent_env(rows, agent="Qwen3VLAgent", runner=None, env_id="t")
+        state = {"info": dict(rows[0]["info"]), "prompt": rows[0]["prompt"]}
+        # The rollout loop catches only vf.Error: a boot failure must surface
+        # as one (recorded as an aborted has_error sample), never as the raw
+        # exception, which would crash the whole eval.
+        with self.assertRaises(vf.Error):
+            asyncio.run(env.setup_state(state))
+        self.assertEqual(state["episode_reward"], 0.0)
+        self.assertIn("boot failed", state["verifier"]["error"])
+        self.assertIn("boot_error", state)
+
     def test_build_agent_env_constructs_environment(self) -> None:
         import verifiers as vf
 

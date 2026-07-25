@@ -16,17 +16,19 @@ from gym_anything.doctor import get_runner_status
 from gym_anything.specs import EnvSpec
 
 
-RunnerProfile = Literal["desktop_linux", "android", "synthetic"]
+RunnerProfile = Literal["desktop_linux", "android", "macos_remote", "synthetic"]
 
 RUNNER_PROFILES: dict[str, RunnerProfile] = {
     "docker": "desktop_linux",
     "qemu": "desktop_linux",
     "qemu_native": "desktop_linux",
     "modal": "desktop_linux",
+    "modal_native": "desktop_linux",
     "apptainer": "desktop_linux",
     "avf": "desktop_linux",
     "avd": "android",
     "avd_native": "android",
+    "use_computer": "macos_remote",
     "local": "synthetic",
 }
 
@@ -70,6 +72,10 @@ def _runner_class_for(runner_key: str):
         from gym_anything.runtime.runners.modal_runner import ModalRunner
 
         return ModalRunner
+    if runner_key == "modal_native":
+        from gym_anything.runtime.runners.modal_native import ModalNativeRunner
+
+        return ModalNativeRunner
     if runner_key == "apptainer":
         from gym_anything.runtime.runners.apptainer_direct import ApptainerDirectRunner
 
