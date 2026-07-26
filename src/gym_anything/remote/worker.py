@@ -920,11 +920,15 @@ def step_environment(env_id: str):
         actions = data.get("actions", [])
         wait_between_actions = data.get("wait_between_actions", 0.2)
         mark_done = data.get("mark_done", False)
+        capture_observation = data.get("capture_observation", True)
+        settle_after_actions = data.get("settle_after_actions", True)
 
         obs, reward, done, info = env.step(
             actions=actions,
             wait_between_actions=wait_between_actions,
-            mark_done=mark_done
+            mark_done=mark_done,
+            capture_observation=capture_observation,
+            settle_after_actions=settle_after_actions,
         )
 
         if metrics_collector:

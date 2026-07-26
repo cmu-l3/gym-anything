@@ -673,7 +673,21 @@ class GymAnythingEnv:
         # First observation (capture initial screen/audio as frame_00000)
         return self._capture_observation()
 
-    def step(self, actions: List[Dict[str, Any]], wait_between_actions: float = 0.2, mark_done: bool = False) -> Tuple[Dict[str, Any], float, bool, Dict[str, Any]]:
+    def step(
+        self,
+        actions: List[Dict[str, Any]],
+        wait_between_actions: float = 0.2,
+        mark_done: bool = False,
+        *,
+        capture_observation: bool = True,
+        settle_after_actions: bool = True,
+    ) -> Tuple[Dict[str, Any], float, bool, Dict[str, Any]]:
+        """Apply actions and optionally defer settling and observation capture.
+
+        Integrations that control the environment clock can set both keyword
+        flags to ``False``, then capture their own observation window. Existing
+        callers retain the original settle-and-capture behavior.
+        """
         # Multi-agent: accept mapping role->action, else annotate turn-based role
         if isinstance(actions, dict):
             actions = [actions]
@@ -710,15 +724,15 @@ class GymAnythingEnv:
                 injected_actions += 1
             if wait_between_actions and action_num < len(actions) - 1:
                 time.sleep(wait_between_actions)
-        if injected_actions:
+        if injected_actions and settle_after_actions:
             settle_seconds = self._post_action_settle_seconds()
             if settle_seconds > 0:
                 time.sleep(settle_seconds)
         # For synchronous envs, wait for the step cycle unless fast I/O asked for immediate observation.
-        cycle_seconds = self._step_cycle_settle_seconds(injected_actions)
+        cycle_seconds = self._step_cycle_settle_seconds(injected_actions) if settle_after_actions else 0.0
         if cycle_seconds > 0:
             time.sleep(cycle_seconds)
-        obs: Dict[str, Any] = self._capture_observation()
+        obs: Dict[str, Any] = self._capture_observation() if capture_observation else {}
 
         # Log step
         if self._traj_log:
