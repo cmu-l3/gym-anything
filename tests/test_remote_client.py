@@ -72,6 +72,35 @@ class RemoteClientResetPolicyTests(unittest.TestCase):
         self.assertEqual(env.max_steps, 3)
         self.assertEqual(env.timeout_sec, 120)
 
+    def test_step_sends_deferred_capture_controls(self) -> None:
+        env = self._make_env()
+        response = mock.Mock()
+        response.json.return_value = {
+            "observation": {},
+            "reward": 0.0,
+            "done": False,
+            "info": {"step": 0},
+        }
+
+        with mock.patch.object(env, "_request", return_value=response) as request_mock:
+            result = env.step(
+                [{"mouse": {"move": [1, 2]}}],
+                capture_observation=False,
+                settle_after_actions=False,
+            )
+
+        self.assertEqual(result[0], {})
+        self.assertEqual(
+            request_mock.call_args.kwargs["json"],
+            {
+                "actions": [{"mouse": {"move": [1, 2]}}],
+                "wait_between_actions": 0.2,
+                "mark_done": False,
+                "capture_observation": False,
+                "settle_after_actions": False,
+            },
+        )
+
     def test_create_remote_env_sends_verifier_overrides(self) -> None:
         response = mock.Mock()
         response.json.return_value = {"env_id": "env-123"}

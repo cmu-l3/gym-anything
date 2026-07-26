@@ -272,6 +272,32 @@ class RuntimeBehaviorTests(unittest.TestCase):
             finally:
                 env.close()
 
+    def test_step_can_defer_settling_and_observation_capture(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), None)
+
+            try:
+                env.reset(seed=1)
+                with mock.patch.object(env, "_capture_observation") as capture_mock, \
+                     mock.patch("gym_anything.env.time.sleep") as sleep_mock:
+                    obs, reward, done, info = env.step(
+                        [{"mouse": {"move": [1, 2]}}],
+                        capture_observation=False,
+                        settle_after_actions=False,
+                    )
+
+                self.assertEqual(obs, {})
+                self.assertEqual(reward, 0.0)
+                self.assertFalse(done)
+                self.assertEqual(info["action_result"]["output"], "Executed the action")
+                self.assertEqual(runner.injected_actions, [{"mouse": {"move": [1, 2]}}])
+                capture_mock.assert_not_called()
+                sleep_mock.assert_not_called()
+            finally:
+                env.close()
+
     def test_close_runs_post_task_hook_for_unfinished_episode(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runner = _FakeRunner()

@@ -51,8 +51,15 @@ SYSTEM_INSTRUCTION = (
     "You are operating a single desktop application that is ALREADY OPEN and fills "
     "the screen. Interact directly with what is on screen using clicks, typing, and "
     "keyboard shortcuts via the computer tool. Look carefully at each screenshot "
-    "before acting. When the task is fully complete, stop calling the tool and "
-    "reply with a short confirmation instead."
+    "before acting. Solve only from screenshots and visible controls in the task "
+    "webpage. Do not use code, scripts, automation, Developer Tools, the console, "
+    "debugger, inspector, network panel, source or DOM inspection, page-state "
+    "inspection, a terminal, shell, Python, address-bar or URL changes, query edits, "
+    "reload, navigation, browser extensions, external applications, or hidden-state "
+    "access. Do not switch to unrelated tabs. A tab opened by a visible task control "
+    "is allowed only when it is part of the task and only through its visible controls. "
+    "When the task is fully complete, stop calling the tool and reply with a short "
+    "confirmation instead."
 )
 
 # Gemini key names -> env (X11 keysym-ish) names used by the env layer.
@@ -80,6 +87,18 @@ _MAX_CONSECUTIVE_UNSUPPORTED = 3
 
 def _uses_legacy_actions(model: str) -> bool:
     return model.startswith(_LEGACY_MODEL_PREFIXES)
+
+
+def _observation_frame_paths(obs) -> list[Path]:
+    paths = []
+    for frame in obs.get("frames") or []:
+        value = frame.get("path") if isinstance(frame, dict) else frame
+        if value:
+            paths.append(Path(value))
+    if paths:
+        return paths
+    screen_path = (obs.get("screen") or {}).get("path")
+    return [Path(screen_path)] if screen_path else []
 
 
 class GeminiComputerUseAgent(BaseAgent):
@@ -113,7 +132,22 @@ class GeminiComputerUseAgent(BaseAgent):
         if excluded is None:
             excluded = _LEGACY_BROWSER_FUNCTIONS if self.legacy_actions else _NEW_BROWSER_FUNCTIONS
 
-        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        self.request_timeout_seconds = max(1, int(self.agent_args.get("request_timeout_seconds", 120)))
+        self.request_attempts = max(1, int(self.agent_args.get("request_attempts", 3)))
+        self.client = genai.Client(
+            api_key=os.getenv("GEMINI_API_KEY"),
+            http_options=types.HttpOptions(
+                timeout=self.request_timeout_seconds * 1000,
+                retryOptions=types.HttpRetryOptions(
+                    attempts=self.request_attempts,
+                    initialDelay=1.0,
+                    maxDelay=8.0,
+                    expBase=2.0,
+                    jitter=0.2,
+                    httpStatusCodes=[408, 429, *range(500, 600)],
+                ),
+            ),
+        )
         self.tool = types.Tool(
             computer_use=types.ComputerUse(
                 environment=self.environment,
@@ -171,8 +205,14 @@ class GeminiComputerUseAgent(BaseAgent):
 
     def save_observation(self, obs):
         try:
-            Image.open(obs["screen"]["path"]).save(
-                f"{self.save_folder_custom}/observation_{self.step_idx}.png")
+            paths = _observation_frame_paths(obs)
+            if not paths:
+                return
+            Image.open(paths[-1]).save(f"{self.save_folder_custom}/observation_{self.step_idx}.png")
+            if len(paths) > 1:
+                for frame_index, path in enumerate(paths):
+                    Image.open(path).save(
+                        f"{self.save_folder_custom}/observation_{self.step_idx}_frame_{frame_index}.png")
         except Exception as exc:
             print(f"[gemini-cu] save_observation failed: {exc}")
 
@@ -185,13 +225,17 @@ class GeminiComputerUseAgent(BaseAgent):
     def step(self, obs, action_outputs):
         self.save_observation(obs)
         self.step_idx += 1
-        shot = Path(obs["screen"]["path"]).read_bytes()
+        frame_paths = _observation_frame_paths(obs)
+        if not frame_paths:
+            raise ValueError("Gemini Computer Use requires a screen path or frame sequence")
+        shots = [path.read_bytes() for path in frame_paths]
 
         if not self.contents:
-            self.contents.append(types.Content(role="user", parts=[
-                types.Part(text=self.task_description),
-                types.Part.from_bytes(data=shot, mime_type="image/png"),
-            ]))
+            parts = [types.Part(text=self.task_description)]
+            if len(shots) > 1:
+                parts.append(types.Part(text="Screenshots below are ordered from earliest to latest."))
+            parts.extend(types.Part.from_bytes(data=shot, mime_type="image/png") for shot in shots)
+            self.contents.append(types.Content(role="user", parts=parts))
         else:
             resp = {}
             if self._is_browser_env:
@@ -202,7 +246,7 @@ class GeminiComputerUseAgent(BaseAgent):
                 resp["error"] = self.pending_error
             if self.pending_safety:
                 resp["safety_acknowledgement"] = "true"
-            fr = self._function_response(self.pending_name, self.pending_id, resp, shot)
+            fr = self._function_response(self.pending_name, self.pending_id, resp, shots)
             self.contents.append(types.Content(role="user", parts=[types.Part(function_response=fr)]))
             self.pending_safety = False
             self.pending_error = None
@@ -436,20 +480,32 @@ class GeminiComputerUseAgent(BaseAgent):
                 out.append(_KEYMAP.get(k.lower(), k))
         return out
 
-    def _function_response(self, name, fid, resp, shot):
-        blob = types.FunctionResponseBlob(mime_type="image/png", data=shot)
-        part = types.FunctionResponsePart(inline_data=blob)
+    def _function_response(self, name, fid, resp, shots):
+        parts = [
+            types.FunctionResponsePart(
+                inline_data=types.FunctionResponseBlob(mime_type="image/png", data=shot)
+            )
+            for shot in shots
+        ]
         try:
-            return types.FunctionResponse(id=fid, name=name or "computer", response=resp, parts=[part])
+            return types.FunctionResponse(id=fid, name=name or "computer", response=resp, parts=parts)
         except Exception:
-            return types.FunctionResponse(name=name or "computer", response=resp, parts=[part])
+            return types.FunctionResponse(name=name or "computer", response=resp, parts=parts)
 
     # ---- persistence ------------------------------------------------------
     def _dump_transcript(self):
         try:
             with open(f"{self.save_folder_custom}/trajectory.json", "w") as fh:
-                json.dump({"model": self.model, "task": getattr(self, "task_description", ""),
-                           "steps": self.transcript}, fh, indent=2)
+                json.dump({
+                    "model": self.model,
+                    "task": getattr(self, "task_description", ""),
+                    "request_policy": {
+                        "timeout_seconds": getattr(self, "request_timeout_seconds", None),
+                        "total_attempts": getattr(self, "request_attempts", None),
+                        "retry_statuses": [408, 429, "5xx"],
+                    },
+                    "steps": self.transcript,
+                }, fh, indent=2)
         except Exception as exc:
             print(f"[gemini-cu] trajectory dump failed: {exc}")
 
