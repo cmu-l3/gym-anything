@@ -692,7 +692,6 @@ class GymAnythingEnv:
         if isinstance(actions, dict):
             actions = [actions]
         injected_actions = 0
-        wait_between_actions = self._action_gap_seconds(wait_between_actions)
         control_result: Optional[Dict[str, Any]] = None
         for action_num, action in enumerate(actions):
             control = self._parse_control_action(action)
@@ -796,23 +795,6 @@ class GymAnythingEnv:
         if not self.fast_io:
             return 2.0
         value = os.environ.get("GYM_ANYTHING_FAST_IO_ACTION_SETTLE_MS", "0")
-        try:
-            return max(0.0, float(value) / 1000.0)
-        except (TypeError, ValueError):
-            return 0.0
-
-    def _action_gap_seconds(self, requested: float) -> float:
-        """Gap between actions inside one step.
-
-        fast_io zeroes it the way it already zeroes the post-action settle and
-        the step cycle: the fast input path exists to remove per-action
-        latency, and a 200 ms default gap dominated every composite gesture
-        (a three-action modifier-held click measured 418 ms, of which 400 ms
-        was this sleep). Override with GYM_ANYTHING_FAST_IO_ACTION_GAP_MS.
-        """
-        if not self.fast_io:
-            return requested
-        value = os.environ.get("GYM_ANYTHING_FAST_IO_ACTION_GAP_MS", "0")
         try:
             return max(0.0, float(value) / 1000.0)
         except (TypeError, ValueError):
