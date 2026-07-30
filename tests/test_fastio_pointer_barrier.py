@@ -57,16 +57,21 @@ class PointerBarrierTests(unittest.TestCase):
         masks = [e for e in self._expects(client) if "mask_set" in e]
         self.assertEqual(len(masks), 2)
 
-    def test_each_scroll_tick_is_sent_and_acked_on_its_own(self) -> None:
+    def test_each_scroll_tick_is_its_own_send_and_is_not_acked(self) -> None:
         """Batched into one input-send-event the guest coalesced them and 25
-        requested ticks arrived as 24."""
+        requested ticks arrived as 24, so each tick is sent on its own. It is
+        not acked: QEMU turns a wheel btn into REL_WHEEL, so no wheel button
+        is ever held and XQueryPointer's mask can never show one. Waiting for
+        that state fails every scroll."""
         runner, client = self._runner()
-        with mock.patch.object(runner, "_qmp_send_input_events"):
+        sends = []
+        with mock.patch.object(runner, "_qmp_send_input_events",
+                               side_effect=lambda events: sends.append(list(events))):
             runner._inject_action_via_qmp({"mouse": {"scroll": 5}})
 
-        pressed = [e for e in self._expects(client)
-                   if e.get("mask_set") == _X_BUTTON_MASK["wheel-down"]]
-        self.assertEqual(len(pressed), 5)
+        self.assertEqual(len(sends), 10)          # press and release, per tick
+        self.assertTrue(all(len(batch) == 1 for batch in sends))
+        self.assertEqual(self._expects(client), [])
 
     def test_a_drag_waits_at_every_waypoint(self) -> None:
         runner, client = self._runner()

@@ -2642,11 +2642,18 @@ class QemuApptainerRunner(BaseRunner):
             if "scroll" in mouse:
                 dy = int(mouse["scroll"])
                 button = "wheel-down" if dy > 0 else "wheel-up"
-                # One acked tick at a time. Batched into a single
-                # input-send-event the guest coalesces them and the tick count
-                # comes up short (25 requested, 24 delivered).
+                # One input-send-event per tick, which is what stops the guest
+                # coalescing them (25 requested arrived as 24 when all the
+                # events went in a single command). Deliberately NOT acked
+                # like a real button: QEMU turns a wheel btn into REL_WHEEL,
+                # so the guest never holds a wheel button and XQueryPointer's
+                # mask can never show one. Waiting for that state is waiting
+                # for something that cannot happen.
                 for _ in range(abs(dy)):
-                    send_button_tap(button)
+                    events.append(self._qmp_button_event(button, True))
+                    flush_events()
+                    events.append(self._qmp_button_event(button, False))
+                    flush_events()
 
         keyboard = action.get("keyboard")
         if keyboard:
@@ -2725,12 +2732,13 @@ class QemuApptainerRunner(BaseRunner):
                                   allow_error=True)
         if response.get("ok"):
             return
-        if response.get("error") == "unsupported_text":
+        if response.get("error") in ("unsupported_text", "unsupported_keys"):
             # uinput can only reach what the guest layout maps. Text outside
-            # it (accents, emoji) goes through the guest's Xlib typer, which
-            # remaps spare keycodes and types any keysym. Slow path, entered
-            # only for text the fast device provably cannot express, so ASCII
-            # typing keeps the fast path untouched.
+            # it (accents, emoji) and key names outside it (numpad, menu,
+            # lock keys) go through the guest's Xlib typer, which remaps spare
+            # keycodes and resolves any keysym. Slow path, entered only for
+            # input the fast device provably cannot express, so ordinary
+            # typing and chords keep the fast path untouched.
             self._run_guest_python(self._build_keyboard_script(keyboard))
             return
         raise RuntimeError(f"fast input agent error: {response.get('error', response)}")
