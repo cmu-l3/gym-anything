@@ -423,6 +423,22 @@ class X11State:
                 return False
             time.sleep(0.001)
 
+    def wait_keymap_changed(self, before: bytes, timeout_ms: int) -> bool:
+        """Ack for a request that deliberately changes the held-key set.
+
+        A held modifier only counts once the X server has it: the pointer
+        event that follows must observe it. Waiting here makes keys_down
+        synchronous with X instead of racing the next action.
+        """
+        deadline = time.perf_counter() + timeout_ms / 1000.0
+        while True:
+            self.sync()
+            if self.keymap() != before:
+                return True
+            if time.perf_counter() >= deadline:
+                return False
+            time.sleep(0.001)
+
 
 class FastInputService:
     def __init__(self, keyboard: UInputKeyboard, x11: Optional[X11State], x11_ack_timeout_ms: int):
@@ -454,7 +470,14 @@ class FastInputService:
 
     def _keyboard(self, keyboard: Dict[str, Any]) -> Dict[str, Any]:
         started = time.perf_counter_ns()
+        # Refuse before touching the device, never halfway through: the caller
+        # retries the whole request on the guest's Xlib typer, and a partially
+        # typed string would then be typed twice.
+        unsupported = unsupported_text_chars(keyboard.get("text"))
+        if unsupported:
+            return {"ok": False, "error": "unsupported_text", "chars": unsupported}
         before = self.x11.keymap() if self.x11 else None
+        pressed_before = set(self.keyboard.pressed)
         events = 0
         with self.lock:
             try:
@@ -469,23 +492,43 @@ class FastInputService:
                             self.keyboard.key_up(KEY_LEFTSHIFT)
                             events += 1
                 if "keys" in keyboard:
-                    keys = keyboard["keys"]
-                    if isinstance(keys, str):
-                        keys = [keys]
-                    if not isinstance(keys, list):
-                        raise ValueError("keyboard.keys must be a string or list of strings")
-                    self.keyboard.combo([key_name_to_code(str(key)) for key in keys])
-                    events += 2 * len(keys)
+                    codes = _key_codes(keyboard["keys"], "keyboard.keys")
+                    self.keyboard.combo(codes)
+                    events += 2 * len(codes)
+                # keys_down / keys_up compose a modifier-held gesture: the hold
+                # spans the pointer action that follows, so these keys stay
+                # down across requests until keys_up releases them.
+                if "keys_down" in keyboard:
+                    for code in _key_codes(keyboard["keys_down"], "keyboard.keys_down"):
+                        self.keyboard.key_down(code)
+                        events += 1
+                if "keys_up" in keyboard:
+                    for code in _key_codes(keyboard["keys_up"], "keyboard.keys_up"):
+                        self.keyboard.key_up(code)
+                        events += 1
             except Exception:
                 self.keyboard.release_all()
                 raise
 
             restored = True
             if self.x11 and before is not None:
-                restored = self.x11.wait_keymap_restored(before, self.x11_ack_timeout_ms)
-                if not restored:
-                    self.keyboard.release_all()
-                    raise RuntimeError("X11 keymap did not return to its pre-action state")
+                if set(self.keyboard.pressed) != pressed_before:
+                    # The request changed what is held. X must have seen it
+                    # before the next action is injected, or a modifier-held
+                    # click races its own modifier.
+                    restored = self.x11.wait_keymap_changed(
+                        before, self.x11_ack_timeout_ms)
+                    if not restored:
+                        self.keyboard.release_all()
+                        raise RuntimeError(
+                            "X11 never observed the held-key change")
+                else:
+                    restored = self.x11.wait_keymap_restored(
+                        before, self.x11_ack_timeout_ms)
+                    if not restored:
+                        self.keyboard.release_all()
+                        raise RuntimeError(
+                            "X11 keymap did not return to its pre-action state")
 
         return {
             "ok": True,
@@ -517,6 +560,32 @@ def text_to_codes(text: str) -> List[Tuple[int, bool]]:
         key_name, shifted = mapped
         codes.append((KEY_BY_NAME[key_name], shifted))
     return codes
+
+
+def unsupported_text_chars(text: Any) -> List[str]:
+    """Characters this device cannot type, in first-seen order.
+
+    uinput carries keycodes, so the guest's keyboard layout decides which
+    character a keycode produces; CHAR_MAP is exactly what the layout can
+    reach. Anything else needs a keysym remap, which belongs to the X server,
+    not here. Reporting them lets the caller reroute the request instead of
+    dropping characters or killing the episode.
+    """
+    if not isinstance(text, str):
+        return []
+    missing: List[str] = []
+    for char in text:
+        if char not in CHAR_MAP and char not in missing:
+            missing.append(char)
+    return missing
+
+
+def _key_codes(keys: Any, field: str) -> List[int]:
+    if isinstance(keys, str):
+        keys = [keys]
+    if not isinstance(keys, list):
+        raise ValueError(f"{field} must be a string or list of strings")
+    return [key_name_to_code(str(key)) for key in keys]
 
 
 class RequestHandler(socketserver.StreamRequestHandler):

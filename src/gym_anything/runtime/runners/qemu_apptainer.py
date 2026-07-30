@@ -206,20 +206,23 @@ class _FastInputAgentClient:
             self._socket = None
             self._buffer = b""
 
-    def request(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def request(self, payload: Dict[str, Any], allow_error: bool = False) -> Dict[str, Any]:
         with self._lock:
             try:
-                return self._request_once(payload)
+                return self._request_once(payload, allow_error)
             except OSError:
                 self.close()
-                return self._request_once(payload)
+                return self._request_once(payload, allow_error)
 
-    def _request_once(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _request_once(self, payload: Dict[str, Any], allow_error: bool = False) -> Dict[str, Any]:
         self.connect()
         assert self._socket is not None
         self._socket.sendall(json.dumps(payload, separators=(",", ":")).encode("utf-8") + b"\n")
         response = self._read_line()
-        if not response.get("ok"):
+        # allow_error hands a refusal back to the caller to act on. The agent
+        # refuses before touching the device, so a rerouted request cannot
+        # double-inject.
+        if not response.get("ok") and not allow_error:
             raise RuntimeError(f"fast input agent error: {response.get('error', response)}")
         return response
 
@@ -2637,12 +2640,42 @@ class QemuApptainerRunner(BaseRunner):
                 qcodes = [self._normalize_qmp_key_name(str(key)) for key in keys]
                 flush_events()
                 self._qmp_send_key_combo(qcodes)
+            # keys_down / keys_up hold a modifier across the pointer action
+            # between them. send-key always taps, so the hold has to go
+            # through input-send-event as separate down and up events.
+            if "keys_down" in keyboard:
+                flush_events()
+                for qcode in self._qmp_key_names(keyboard["keys_down"]):
+                    events.append(self._qmp_key_event(qcode, True))
+                flush_events()
+            if "keys_up" in keyboard:
+                flush_events()
+                for qcode in self._qmp_key_names(keyboard["keys_up"]):
+                    events.append(self._qmp_key_event(qcode, False))
+                flush_events()
 
         flush_events()
 
+    def _qmp_key_names(self, keys: Any) -> List[str]:
+        if isinstance(keys, str):
+            keys = [keys]
+        return [self._normalize_qmp_key_name(str(key)) for key in keys]
+
     def _inject_keyboard_via_fast_input_agent(self, keyboard: Dict[str, Any]) -> None:
         client = self._get_fast_input_client()
-        client.request({"op": "keyboard", "keyboard": keyboard})
+        response = client.request({"op": "keyboard", "keyboard": keyboard},
+                                  allow_error=True)
+        if response.get("ok"):
+            return
+        if response.get("error") == "unsupported_text":
+            # uinput can only reach what the guest layout maps. Text outside
+            # it (accents, emoji) goes through the guest's Xlib typer, which
+            # remaps spare keycodes and types any keysym. Slow path, entered
+            # only for text the fast device provably cannot express, so ASCII
+            # typing keeps the fast path untouched.
+            self._run_guest_python(self._build_keyboard_script(keyboard))
+            return
+        raise RuntimeError(f"fast input agent error: {response.get('error', response)}")
 
     def _inject_action_via_fast_io(self, action: Dict[str, Any]) -> None:
         mouse = action.get("mouse")
