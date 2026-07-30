@@ -2641,19 +2641,24 @@ class QemuApptainerRunner(BaseRunner):
                     self._await_pointer({key: _X_BUTTON_MASK[name]})
             if "scroll" in mouse:
                 dy = int(mouse["scroll"])
-                button = "wheel-down" if dy > 0 else "wheel-up"
-                # One input-send-event per tick, which is what stops the guest
-                # coalescing them (25 requested arrived as 24 when all the
-                # events went in a single command). Deliberately NOT acked
-                # like a real button: QEMU turns a wheel btn into REL_WHEEL,
-                # so the guest never holds a wheel button and XQueryPointer's
-                # mask can never show one. Waiting for that state is waiting
-                # for something that cannot happen.
-                for _ in range(abs(dy)):
-                    events.append(self._qmp_button_event(button, True))
-                    flush_events()
-                    events.append(self._qmp_button_event(button, False))
-                    flush_events()
+                if self.acks_input_delivery():
+                    # Through the in-guest device, which is where the keys go
+                    # too. A wheel notch has no observable held state to wait
+                    # on (QEMU turns it into REL_WHEEL), so it cannot be acked
+                    # like a button; putting it on the same device as the keys
+                    # orders it against them by construction instead, which is
+                    # what a modifier-held scroll needs.
+                    self._inject_scroll_via_fast_input_agent(dy)
+                else:
+                    button = "wheel-down" if dy > 0 else "wheel-up"
+                    # One notch per input-send-event: batched into a single
+                    # command the guest coalesces them and 25 requested ticks
+                    # arrive as 24.
+                    for _ in range(abs(dy)):
+                        events.append(self._qmp_button_event(button, True))
+                        flush_events()
+                        events.append(self._qmp_button_event(button, False))
+                        flush_events()
 
         keyboard = action.get("keyboard")
         if keyboard:
@@ -2725,6 +2730,10 @@ class QemuApptainerRunner(BaseRunner):
         if isinstance(keys, str):
             keys = [keys]
         return [self._normalize_qmp_key_name(str(key)) for key in keys]
+
+    def _inject_scroll_via_fast_input_agent(self, dy: int, dx: int = 0) -> None:
+        client = self._get_fast_input_client()
+        client.request({"op": "scroll", "dy": int(dy), "dx": int(dx)})
 
     def _inject_keyboard_via_fast_input_agent(self, keyboard: Dict[str, Any]) -> None:
         client = self._get_fast_input_client()

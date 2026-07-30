@@ -18,6 +18,9 @@ VERSION = 1
 
 EV_SYN = 0x00
 EV_KEY = 0x01
+EV_REL = 0x02
+REL_WHEEL = 0x08
+REL_HWHEEL = 0x06
 SYN_REPORT = 0
 BUS_USB = 0x03
 
@@ -25,6 +28,7 @@ UI_DEV_CREATE = 0x5501
 UI_DEV_DESTROY = 0x5502
 UI_SET_EVBIT = 0x40045564
 UI_SET_KEYBIT = 0x40045565
+UI_SET_RELBIT = 0x40045566
 
 KEY_ESC = 1
 KEY_1 = 2
@@ -321,6 +325,11 @@ class UInputKeyboard:
             fcntl.ioctl(self.fd, UI_SET_EVBIT, EV_KEY)
             for code in SUPPORTED_KEYS:
                 fcntl.ioctl(self.fd, UI_SET_KEYBIT, code)
+            # The wheel rides this device too, so a modifier-held scroll is
+            # one ordered stream instead of a race between two transports.
+            fcntl.ioctl(self.fd, UI_SET_EVBIT, EV_REL)
+            fcntl.ioctl(self.fd, UI_SET_RELBIT, REL_WHEEL)
+            fcntl.ioctl(self.fd, UI_SET_RELBIT, REL_HWHEEL)
             name = self.name.encode("utf-8")[:79] + b"\0"
             payload = struct.pack(
                 "80sHHHHI" + "i" * 256,
@@ -370,6 +379,20 @@ class UInputKeyboard:
     def key_tap(self, code: int) -> None:
         self.key_down(code)
         self.key_up(code)
+
+    def wheel(self, dy: int = 0, dx: int = 0) -> None:
+        """One wheel notch per SYN, which is what keeps the count exact.
+
+        A guest coalesces notches that arrive inside one input report, so
+        emitting N in a single report loses some of them (25 requested,
+        24 delivered, through QEMU).
+        """
+        for _ in range(abs(dy)):
+            self.emit(EV_REL, REL_WHEEL, -1 if dy > 0 else 1)
+            self.syn()
+        for _ in range(abs(dx)):
+            self.emit(EV_REL, REL_HWHEEL, 1 if dx > 0 else -1)
+            self.syn()
 
     def combo(self, codes: Iterable[int]) -> None:
         ordered = list(codes)
@@ -527,7 +550,29 @@ class FastInputService:
             return {"ok": True, "released": True}
         if op == "await_pointer":
             return self._await_pointer(payload)
+        if op == "scroll":
+            return self._scroll(payload)
         raise ValueError(f"unknown op {op!r}")
+
+    def _scroll(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Wheel notches on the same device as the keys, under the same lock.
+
+        A modifier-held scroll is keys_down, scroll, keys_up. Injected through
+        QEMU the wheel is a different transport from the keys, so the release
+        overtook the notches and the app saw an unmodified scroll. Same device
+        means one ordered stream and no barrier needed between them.
+        """
+        started = time.perf_counter_ns()
+        dy = int(payload.get("dy") or 0)
+        dx = int(payload.get("dx") or 0)
+        with self.lock:
+            self.keyboard.wheel(dy=dy, dx=dx)
+        return {
+            "ok": True,
+            "dy": dy,
+            "dx": dx,
+            "elapsed_ms": (time.perf_counter_ns() - started) / 1_000_000.0,
+        }
 
     def _await_pointer(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Delivery barrier for pointer events injected out of band (QMP).
