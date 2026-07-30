@@ -809,8 +809,15 @@ class GymAnythingEnv:
         latency, and a 200 ms default gap dominated every composite gesture
         (a three-action modifier-held click measured 418 ms, of which 400 ms
         was this sleep). Override with GYM_ANYTHING_FAST_IO_ACTION_GAP_MS.
+
+        Only safe because the runner now confirms delivery instead of assuming
+        it. Zeroing this gap while injection was still fire-and-forget made
+        every ordering race fire at once (modifiers dropped, repeats
+        collapsed, drags pressing at their endpoint), so a runner without a
+        delivery barrier keeps the gap it asked for.
         """
-        if not self.fast_io:
+        acks = getattr(self._runner, "acks_input_delivery", None)
+        if not self.fast_io or not (callable(acks) and acks()):
             return requested
         value = os.environ.get("GYM_ANYTHING_FAST_IO_ACTION_GAP_MS", "0")
         try:

@@ -394,11 +394,22 @@ class X11State:
         lib.XCloseDisplay.argtypes = [ctypes.c_void_p]
         lib.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
         lib.XQueryKeymap.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        lib.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+        lib.XDefaultRootWindow.restype = ctypes.c_ulong
+        lib.XQueryPointer.argtypes = [
+            ctypes.c_void_p, ctypes.c_ulong,
+            ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_ulong),
+            ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int),
+            ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int),
+            ctypes.POINTER(ctypes.c_uint),
+        ]
+        lib.XQueryPointer.restype = ctypes.c_int
         display = lib.XOpenDisplay(display_name.encode("utf-8"))
         if not display:
             raise RuntimeError(f"could not open X11 display {display_name!r}")
         self._lib = lib
         self._display = display
+        self._root = lib.XDefaultRootWindow(display)
 
     def close(self) -> None:
         if self._display:
@@ -412,6 +423,54 @@ class X11State:
         buf = ctypes.create_string_buffer(32)
         self._lib.XQueryKeymap(self._display, buf)
         return bytes(buf.raw)
+
+    def pointer(self) -> Tuple[int, int, int]:
+        """Root pointer position and button mask, straight from the X server.
+
+        Every call is a server round trip, so it doubles as the sync: what it
+        returns is what X has actually processed, not what was queued.
+        """
+        root = ctypes.c_ulong()
+        child = ctypes.c_ulong()
+        root_x, root_y = ctypes.c_int(), ctypes.c_int()
+        win_x, win_y = ctypes.c_int(), ctypes.c_int()
+        mask = ctypes.c_uint()
+        self._lib.XQueryPointer(
+            self._display, self._root, ctypes.byref(root), ctypes.byref(child),
+            ctypes.byref(root_x), ctypes.byref(root_y),
+            ctypes.byref(win_x), ctypes.byref(win_y), ctypes.byref(mask))
+        return root_x.value, root_y.value, mask.value
+
+    def wait_pointer(self, expect: Dict[str, Any], timeout_ms: int
+                     ) -> Tuple[bool, Tuple[int, int, int]]:
+        """Block until the X server's pointer state matches, or the deadline.
+
+        This is the pointer half of the delivery barrier. QMP's
+        input-send-event returns once QEMU has QUEUED events into the virtio
+        device, which says nothing about the guest having consumed them, so
+        the caller's next action can overtake them. Polling the server for the
+        state we asked for is the only claim that holds: no sleep, and the
+        deadline exists to fail rather than to pace.
+        """
+        deadline = time.perf_counter() + timeout_ms / 1000.0
+        want_x, want_y = expect.get("x"), expect.get("y")
+        tolerance = int(expect.get("tol", 2))
+        mask_set = int(expect.get("mask_set", 0))
+        mask_clear = int(expect.get("mask_clear", 0))
+        while True:
+            state = self.pointer()
+            x, y, mask = state
+            matched = True
+            if want_x is not None and abs(x - int(want_x)) > tolerance:
+                matched = False
+            if want_y is not None and abs(y - int(want_y)) > tolerance:
+                matched = False
+            if mask_set and (mask & mask_set) != mask_set:
+                matched = False
+            if mask_clear and (mask & mask_clear):
+                matched = False
+            if matched or time.perf_counter() >= deadline:
+                return matched, state
 
     def wait_keymap_restored(self, before: bytes, timeout_ms: int) -> bool:
         deadline = time.perf_counter() + timeout_ms / 1000.0
@@ -466,7 +525,34 @@ class FastInputService:
             with self.lock:
                 self.keyboard.release_all()
             return {"ok": True, "released": True}
+        if op == "await_pointer":
+            return self._await_pointer(payload)
         raise ValueError(f"unknown op {op!r}")
+
+    def _await_pointer(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Delivery barrier for pointer events injected out of band (QMP).
+
+        The runner injects the pointer through QEMU, which is a different
+        path from this agent, so nothing about that call proves the guest
+        consumed it. This asks the X server directly and returns once its
+        state matches what the runner sent.
+        """
+        if self.x11 is None:
+            raise ValueError("await_pointer needs the X11 connection")
+        expect = payload.get("expect")
+        if not isinstance(expect, dict):
+            raise ValueError("await_pointer needs an expect object")
+        timeout_ms = int(payload.get("timeout_ms") or self.x11_ack_timeout_ms)
+        started = time.perf_counter_ns()
+        matched, (x, y, mask) = self.x11.wait_pointer(expect, timeout_ms)
+        return {
+            "ok": True,
+            "matched": matched,
+            "x": x,
+            "y": y,
+            "mask": mask,
+            "elapsed_ms": (time.perf_counter_ns() - started) / 1_000_000.0,
+        }
 
     def _keyboard(self, keyboard: Dict[str, Any]) -> Dict[str, Any]:
         started = time.perf_counter_ns()
