@@ -10,7 +10,7 @@ never names a container technology, exactly like the env code talks to
 Backends are auto-selected the way env runners are (an explicit
 ``GYM_ANYTHING_AGENT_SANDBOX`` override, then detect what the machine has):
 
-- ``ApptainerSandbox`` — rootless, no daemon. Primary on clusters (Babel).
+- ``ApptainerSandbox`` — rootless, no daemon. Primary on HPC clusters.
 - ``DockerSandbox`` — daemon machines; also gets bridge network isolation.
 
 There is deliberately no no-isolation fallback: running a coding CLI with
