@@ -79,6 +79,21 @@ class FastIoQmpKeyboardTests(unittest.TestCase):
 
         guest.assert_not_called()
 
+    def test_unsupported_key_names_reroute_too(self) -> None:
+        """Numpad and lock keys are outside the uinput map for the same
+        reason accented characters are: the guest layout does not reach
+        them. Same door, not a hard error."""
+        runner = self._runner()
+        client = mock.Mock()
+        client.request.return_value = {"ok": False, "error": "unsupported_keys",
+                                       "keys": ["kp_add"]}
+
+        with mock.patch.object(runner, "_get_fast_input_client", return_value=client), \
+                mock.patch.object(runner, "_run_guest_python") as guest:
+            runner._inject_keyboard_via_fast_input_agent({"keys": ["kp_add"]})
+
+        self.assertIn("kp_add", guest.call_args.args[0])
+
     def test_other_agent_errors_still_raise(self) -> None:
         runner = self._runner()
         client = mock.Mock()
@@ -148,6 +163,16 @@ class FastInputAgentTests(unittest.TestCase):
         self.assertFalse(response["ok"])
         self.assertEqual(response["error"], "unsupported_text")
         self.assertEqual(response["chars"], ["ï"])
+        self.assertEqual(device.emitted, [])
+
+    def test_unknown_key_names_are_refused_without_touching_the_device(self) -> None:
+        service, device = self._service()
+
+        response = service.handle({"op": "keyboard", "keyboard": {"keys": ["kp_add"]}})
+
+        self.assertFalse(response["ok"])
+        self.assertEqual(response["error"], "unsupported_keys")
+        self.assertEqual(response["keys"], ["kp_add"])
         self.assertEqual(device.emitted, [])
 
     def test_a_held_key_is_acked_by_a_keymap_change_not_a_restore(self) -> None:

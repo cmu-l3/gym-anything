@@ -562,6 +562,9 @@ class FastInputService:
         unsupported = unsupported_text_chars(keyboard.get("text"))
         if unsupported:
             return {"ok": False, "error": "unsupported_text", "chars": unsupported}
+        unknown_keys = unsupported_key_names(keyboard)
+        if unknown_keys:
+            return {"ok": False, "error": "unsupported_keys", "keys": unknown_keys}
         before = self.x11.keymap() if self.x11 else None
         pressed_before = set(self.keyboard.pressed)
         events = 0
@@ -672,6 +675,33 @@ def _key_codes(keys: Any, field: str) -> List[int]:
     if not isinstance(keys, list):
         raise ValueError(f"{field} must be a string or list of strings")
     return [key_name_to_code(str(key)) for key in keys]
+
+
+def unsupported_key_names(keyboard: Dict[str, Any]) -> List[str]:
+    """Key names this device cannot press, in first-seen order.
+
+    Same boundary as unsupported_text_chars: the uinput map reaches what the
+    guest layout reaches, and names outside it (numpad, menu, lock keys) need
+    a keysym the X server has to resolve. Reporting them lets the caller
+    reroute rather than lose the keypress or kill the episode.
+    """
+    missing: List[str] = []
+    for field in ("keys", "keys_down", "keys_up"):
+        keys = keyboard.get(field)
+        if keys is None:
+            continue
+        if isinstance(keys, str):
+            keys = [keys]
+        if not isinstance(keys, list):
+            continue
+        for key in keys:
+            name = str(key)
+            try:
+                key_name_to_code(name)
+            except ValueError:
+                if name not in missing:
+                    missing.append(name)
+    return missing
 
 
 class RequestHandler(socketserver.StreamRequestHandler):
