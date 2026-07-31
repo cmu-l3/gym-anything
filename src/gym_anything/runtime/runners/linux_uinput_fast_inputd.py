@@ -739,6 +739,11 @@ class X11State:
             ctypes.POINTER(ctypes.c_uint),
         ]
         lib.XQueryPointer.restype = ctypes.c_int
+        lib.XGrabKeyboard.argtypes = [
+            ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int,
+            ctypes.c_int, ctypes.c_int, ctypes.c_ulong]
+        lib.XGrabKeyboard.restype = ctypes.c_int
+        lib.XUngrabKeyboard.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
         display = lib.XOpenDisplay(display_name.encode("utf-8"))
         if not display:
             raise RuntimeError(f"could not open X11 display {display_name!r}")
@@ -750,6 +755,29 @@ class X11State:
         if self._display:
             self._lib.XCloseDisplay(self._display)
             self._display = None
+
+    def keyboard_grabbed_by_other(self) -> bool:
+        """Is another client holding the keyboard right now?
+
+        XGrabKeyboard answers this directly: AlreadyGrabbed means someone
+        else owns it. A desktop shortcut freezing the keyboard to handle
+        itself and a release this device genuinely lost look identical in the
+        keymap, and they need opposite fixes, so guessing from which keys are
+        stuck is not good enough.
+        """
+        try:
+            root = self._lib.XDefaultRootWindow(self._display)
+            # owner_events=False, pointer_mode/keyboard_mode=GrabModeAsync,
+            # time=CurrentTime
+            status = int(self._lib.XGrabKeyboard(
+                self._display, root, 0, 1, 1, 0))
+        except Exception:
+            return False
+        if status == 0:  # GrabSuccess: nobody else had it, give it straight back
+            self._lib.XUngrabKeyboard(self._display, 0)
+            self.sync()
+            return False
+        return status == 1  # AlreadyGrabbed
 
     def sync(self) -> None:
         self._lib.XSync(self._display, 0)
@@ -1131,10 +1159,30 @@ class FastInputService:
                     if not restored:
                         # Read the diff before release_all, which clears it.
                         detail = _keymap_diff(before, self.x11.keymap())
+                        grabbed = self.x11.keyboard_grabbed_by_other()
                         self.keyboard.release_all()
-                        raise RuntimeError(
-                            "X11 keymap did not return to its pre-action "
-                            "state (%s)" % detail)
+                        # The guarantee exists so the next action does not
+                        # race a held key. A forced release that lands
+                        # satisfies exactly that, whether the desktop grabbed
+                        # the keyboard for its own shortcut or a release was
+                        # lost. Report it either way rather than either
+                        # failing on delivery that did happen or swallowing a
+                        # drop: a drop is survivable, an unnoticed one is not.
+                        recovered = self.x11.wait_keymap_restored(
+                            before, self.x11_ack_timeout_ms)
+                        print(json.dumps({
+                            "event": "keymap_forced_restore",
+                            "diff": detail,
+                            "grabbed_by_other_client": grabbed,
+                            "recovered": recovered,
+                            "keys": keyboard.get("keys"),
+                        }), flush=True)
+                        if not recovered:
+                            raise RuntimeError(
+                                "X11 keymap did not return to its pre-action "
+                                "state even after a forced release (%s)"
+                                % detail)
+                        restored = True
 
         return {
             "ok": True,
