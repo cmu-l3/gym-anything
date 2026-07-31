@@ -548,6 +548,8 @@ class QemuApptainerRunner(BaseRunner):
                 self.stop()
                 raise RuntimeError("SSH not available")
 
+            self._ensure_windows_evaluation_grace()
+
             # For Windows: Check if user is logged in, unlock if needed
             if self.is_windows:
                 # Test if SSH auth works
@@ -1278,6 +1280,80 @@ class QemuApptainerRunner(BaseRunner):
             time.sleep(2)
         print(f"[QemuApptainer] SSH timeout after {timeout}s")
         return False
+
+    def _ensure_windows_evaluation_grace(self) -> None:
+        """Rearm an expired time-based Windows evaluation before a run.
+
+        Expired Enterprise evaluation images shut the guest down roughly once
+        per hour.  That presents to the evaluator as simultaneous SSH, VNC,
+        and PyAutoGUI connection loss, and makes long trajectories impossible.
+        Rearming an instance overlay uses Windows' built-in evaluation grace;
+        it does not mutate the shared checkpoint backing file.
+        """
+        if not self.is_windows:
+            return
+
+        enabled = os.environ.get("GYM_ANYTHING_WINDOWS_EVAL_REARM", "1").strip().lower()
+        if enabled in {"0", "false", "no", "off"}:
+            print("[QemuApptainer] Windows evaluation rearm guard disabled")
+            return
+
+        probe = self._run_ssh_cmd(
+            self.ssh_port,
+            r"cscript //Nologo C:\Windows\System32\slmgr.vbs /dlv",
+            timeout=30,
+        )
+        probe_text = (probe.stdout + probe.stderr).decode(errors="replace")
+        probe_lower = probe_text.lower()
+        if probe.returncode != 0:
+            print("[QemuApptainer] Warning: could not query Windows evaluation status")
+            return
+
+        expired_evaluation = (
+            "timebased_eval" in probe_lower
+            and "license status: notification" in probe_lower
+        )
+        if not expired_evaluation:
+            return
+
+        print("[QemuApptainer] Expired Windows time-based evaluation detected")
+        print("[QemuApptainer] Rearming instance overlay before task startup...")
+        rearm = self._run_ssh_cmd(
+            self.ssh_port,
+            r"cscript //Nologo C:\Windows\System32\slmgr.vbs /rearm",
+            timeout=60,
+        )
+        rearm_text = (rearm.stdout + rearm.stderr).decode(errors="replace")
+        if rearm.returncode != 0:
+            raise RuntimeError(
+                "Windows evaluation is expired and slmgr /rearm failed: "
+                f"{rearm_text.strip()[:500]}"
+            )
+
+        # A reboot is required for the renewed grace period to take effect.
+        # The SSH command commonly reports a disconnect while shutdown begins,
+        # so its return code is intentionally ignored.
+        self._run_ssh_cmd(self.ssh_port, "shutdown /r /t 0 /f", timeout=15)
+        time.sleep(15)
+        if self._process and self._process.poll() is not None:
+            self._dump_log()
+            raise RuntimeError("QEMU exited while rebooting after Windows evaluation rearm")
+        if not self._wait_for_ssh(self.ssh_port, timeout=600):
+            self._dump_log()
+            raise RuntimeError("SSH did not return after Windows evaluation rearm")
+
+        verify = self._run_ssh_cmd(
+            self.ssh_port,
+            r"cscript //Nologo C:\Windows\System32\slmgr.vbs /xpr",
+            timeout=30,
+        )
+        verify_text = (verify.stdout + verify.stderr).decode(errors="replace")
+        if verify.returncode != 0 or "notification mode" in verify_text.lower():
+            raise RuntimeError(
+                "Windows evaluation remained expired after slmgr /rearm: "
+                f"{verify_text.strip()[:500]}"
+            )
+        print("[QemuApptainer] Windows evaluation grace restored and verified")
 
     def _test_ssh_auth(self) -> bool:
         """Test if SSH authentication works.
@@ -4242,6 +4318,8 @@ class QemuApptainerRunner(BaseRunner):
                 self._dump_log()
                 self.stop()
                 raise RuntimeError("SSH not available")
+
+            self._ensure_windows_evaluation_grace()
 
             # Setup mounts (copy hook scripts and other files to VM)
             # This is needed even when loading from checkpoint because mounts
