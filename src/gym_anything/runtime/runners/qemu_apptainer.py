@@ -2573,6 +2573,16 @@ class QemuApptainerRunner(BaseRunner):
         if mouse:
             if "move" in mouse:
                 x, y = mouse["move"]
+                # An explicit move promises an observable motion event, the
+                # same way a click promises a press and a release. An absolute
+                # device emits nothing when asked for the position it already
+                # holds, so a repeated move was silently unobservable: the
+                # pointer was correct and no motion existed to see. Step off by
+                # a pixel first and let the real move follow. Positioning moves
+                # inside a click or drag do not go through here; their
+                # observable outcome is the button events.
+                if self._pointer_at(int(x), int(y)):
+                    send_pointer_move(int(x) + (-1 if x > 0 else 1), int(y))
                 send_pointer_move(int(x), int(y))
             if "left_click" in mouse:
                 x, y = mouse["left_click"]
@@ -2699,6 +2709,20 @@ class QemuApptainerRunner(BaseRunner):
             and self._fast_uinput_keyboard_enabled()
             and getattr(self, "_fast_input_host_port", None)
         )
+
+    def _pointer_at(self, x: int, y: int) -> bool:
+        """Is the guest's pointer already exactly here? Answered by the X
+        server, not by a position this runner believes it set earlier: the
+        desktop can move the pointer too."""
+        if not self.acks_input_delivery():
+            return False
+        client = self._get_fast_input_client()
+        response = client.request({"op": "await_pointer", "expect": {},
+                                   "timeout_ms": 50}, allow_error=True)
+        if not response.get("ok"):
+            return False
+        return (abs(int(response.get("x", -1)) - x) <= 1
+                and abs(int(response.get("y", -1)) - y) <= 1)
 
     def _await_pointer(self, expect: Dict[str, Any]) -> None:
         """Barrier: return once the guest's X server shows the state we sent.

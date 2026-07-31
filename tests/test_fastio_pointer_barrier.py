@@ -116,6 +116,30 @@ class PointerBarrierTests(unittest.TestCase):
             runner._inject_action_via_qmp({"mouse": {"left_click": [1, 2]}})
         self.assertEqual(self._expects(client), [])
 
+    def test_a_repeated_move_still_produces_a_motion_event(self) -> None:
+        """Every action in the vocabulary produces its own events. An absolute
+        device is silent when asked for the position it already holds, which
+        made a repeated move the one action whose observability depended on
+        what happened before it."""
+        runner, client = self._runner()
+        client.request.return_value = {"ok": True, "matched": True,
+                                       "x": 400, "y": 300, "mask": 0}
+        with mock.patch.object(runner, "_qmp_send_input_events"):
+            runner._inject_action_via_qmp({"mouse": {"move": [400, 300]}})
+
+        moves = [e for e in self._expects(client) if "x" in e]
+        self.assertEqual(moves, [{"x": 399, "y": 300}, {"x": 400, "y": 300}])
+
+    def test_a_move_somewhere_new_does_not_detour(self) -> None:
+        runner, client = self._runner()
+        client.request.return_value = {"ok": True, "matched": True,
+                                       "x": 10, "y": 10, "mask": 0}
+        with mock.patch.object(runner, "_qmp_send_input_events"):
+            runner._inject_action_via_qmp({"mouse": {"move": [400, 300]}})
+
+        moves = [e for e in self._expects(client) if "x" in e]
+        self.assertEqual(moves, [{"x": 400, "y": 300}])
+
     def test_the_runner_reports_whether_it_acks_delivery(self) -> None:
         runner, _client = self._runner()
         self.assertTrue(runner.acks_input_delivery())
