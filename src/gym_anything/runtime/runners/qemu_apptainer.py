@@ -206,21 +206,31 @@ class _FastInputAgentClient:
             self._socket = None
             self._buffer = b""
 
-    def request(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def request(self, payload: Dict[str, Any], allow_error: bool = False) -> Dict[str, Any]:
         with self._lock:
             try:
-                return self._request_once(payload)
+                return self._request_once(payload, allow_error)
             except OSError:
                 self.close()
-                return self._request_once(payload)
+                return self._request_once(payload, allow_error)
 
-    def _request_once(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _request_once(self, payload: Dict[str, Any], allow_error: bool = False) -> Dict[str, Any]:
         self.connect()
         assert self._socket is not None
         self._socket.sendall(json.dumps(payload, separators=(",", ":")).encode("utf-8") + b"\n")
         response = self._read_line()
-        if not response.get("ok"):
+        # allow_error hands a refusal back to the caller to act on. The agent
+        # refuses before touching the device, so a rerouted request cannot
+        # double-inject.
+        if not response.get("ok") and not allow_error:
             raise RuntimeError(f"fast input agent error: {response.get('error', response)}")
+        forced = response.get("forced_restore")
+        if forced:
+            # The request recovered, but something held the keys down past
+            # the ack window. Say so on the host, where the record outlives
+            # the VM, or the only copy dies with the guest.
+            print("[QemuApptainer] fast input forced a key release: "
+                  + json.dumps(forced, separators=(",", ":")), flush=True)
         return response
 
     def _read_line(self) -> Dict[str, Any]:
@@ -233,6 +243,22 @@ class _FastInputAgentClient:
         line, self._buffer = self._buffer.split(b"\n", 1)
         return json.loads(line.decode("utf-8"))
 
+
+# X11 button bits in XQueryPointer's mask, used to confirm the guest actually
+# received a button transition. 4 and 5 are the wheel, which is why a wheel
+# tick can be acked at all.
+# Bigger than the delivery barrier's match tolerance and than the rounding of
+# the 0..32767 absolute mapping, so the step is a movement rather than a value
+# that lands back on the same pixel.
+_POINTER_NUDGE_PX = 8
+
+_X_BUTTON_MASK = {
+    "left": 1 << 8,
+    "middle": 1 << 9,
+    "right": 1 << 10,
+    "wheel-up": 1 << 11,
+    "wheel-down": 1 << 12,
+}
 
 _KEYBOARD_XLIB_PREAMBLE = 'import time, base64\nfrom Xlib import X, XK, display\nfrom Xlib.ext import xtest\n_D = display.Display()\n_INF = _D.display.info\n_MINKC, _MAXKC = _INF.min_keycode, _INF.max_keycode\n_NAME = {\n "ctrl":"Control_L","control":"Control_L","shift":"Shift_L","alt":"Alt_L",\n "super":"Super_L","win":"Super_L","meta":"Super_L","cmd":"Super_L","command":"Super_L",\n "enter":"Return","return":"Return","esc":"Escape","escape":"Escape",\n "tab":"Tab","space":"space","backspace":"BackSpace","delete":"Delete","del":"Delete",\n "up":"Up","down":"Down","left":"Left","right":"Right","home":"Home","end":"End",\n "pageup":"Prior","pagedown":"Next","pgup":"Prior","pgdn":"Next","page_up":"Prior",\n "page_down":"Next","insert":"Insert","ins":"Insert","kp_enter":"KP_Enter",\n "kp_add":"KP_Add","kp_subtract":"KP_Subtract","kp_multiply":"KP_Multiply",\n "kp_divide":"KP_Divide","menu":"Menu","caps_lock":"Caps_Lock","capslock":"Caps_Lock",\n "num_lock":"Num_Lock","numlock":"Num_Lock","print":"Print",\n}\nfor _n in range(1, 13):\n    _NAME["f%d" % _n] = "F%d" % _n\ndef _spares():\n    m = _D.get_keyboard_mapping(_MINKC, _MAXKC - _MINKC + 1)\n    return [_MINKC + i for i, r in enumerate(m) if not any(r)]\ndef _char_ks(ch):\n    cp = ord(ch)\n    return cp if cp <= 0xff else (cp | 0x01000000)\ndef _name_ks(name):\n    ks = XK.string_to_keysym(_NAME.get(name.lower(), name))\n    if ks == 0 and len(name) == 1:\n        ks = _char_ks(name)\n    return ks\ndef _kc_of_name(name, pool):\n    ks = _name_ks(name)\n    kc = _D.keysym_to_keycode(ks)\n    if kc == 0 and pool:\n        kc = pool.pop()\n        _D.change_keyboard_mapping(kc, [[ks, ks]])\n        _D.sync(); time.sleep(0.03)\n    return kc\n_SETTLE = 0.12\ndef type_text(text):\n    pool_all = _spares()\n    S = len(pool_all)\n    if S == 0:\n        return\n    ret = _D.keysym_to_keycode(XK.XK_Return)\n    tab = _D.keysym_to_keycode(XK.XK_Tab)\n    def _flush(seg):\n        # One batch of <= S distinct chars: remap all, settle ONCE, type,\n        # restore. No remap happens during typing, so no keypress can race a\n        # remap. Every char is typed via a spare keycode at level 0, so no\n        # shift logic and no layout dependence (fixes < -> > too).\n        remap = {}\n        pool = list(pool_all)\n        for ch in dict.fromkeys(seg):\n            if ch in "\\n\\t":\n                continue\n            kc = pool.pop()\n            ks = _char_ks(ch)\n            _D.change_keyboard_mapping(kc, [[ks, ks]])\n            remap[ch] = kc\n        _D.sync(); time.sleep(_SETTLE)\n        for ch in seg:\n            kc = ret if ch == "\\n" else tab if ch == "\\t" else remap.get(ch)\n            if not kc:\n                continue\n            xtest.fake_input(_D, X.KeyPress, kc)\n            xtest.fake_input(_D, X.KeyRelease, kc)\n            _D.sync(); time.sleep(0.006)\n        _D.sync(); time.sleep(_SETTLE / 3.0)\n        for kc in remap.values():\n            _D.change_keyboard_mapping(kc, [[X.NoSymbol, X.NoSymbol]])\n        _D.sync()\n    # Split the text into segments each having <= S distinct typeable chars,\n    # so an unlimited alphabet still fits the available spare keycodes.\n    seg = []\n    seen = set()\n    for ch in text:\n        typeable = ch not in "\\n\\t"\n        if typeable and ch not in seen and len(seen) >= S:\n            _flush(seg); seg = []; seen = set()\n        seg.append(ch)\n        if typeable:\n            seen.add(ch)\n    if seg:\n        _flush(seg)\ndef chord(keys):\n    pool = _spares()\n    kcs = [_kc_of_name(k, pool) for k in keys]\n    for kc in kcs:\n        if kc:\n            xtest.fake_input(_D, X.KeyPress, kc)\n            _D.sync(); time.sleep(0.01)\n    for kc in reversed(kcs):\n        if kc:\n            xtest.fake_input(_D, X.KeyRelease, kc)\n            _D.sync(); time.sleep(0.01)\ndef hold(keys, down):\n    pool = _spares()\n    for k in keys:\n        kc = _kc_of_name(k, pool)\n        if kc:\n            xtest.fake_input(_D, X.KeyPress if down else X.KeyRelease, kc)\n            _D.sync(); time.sleep(0.01)\n'
 
@@ -2545,17 +2571,35 @@ class QemuApptainerRunner(BaseRunner):
         def send_pointer_move(x: int, y: int) -> None:
             events.extend(self._qmp_move_events(int(x), int(y)))
             flush_events()
+            self._await_pointer({"x": int(x), "y": int(y)})
 
         def send_button_tap(button: str) -> None:
             events.append(self._qmp_button_event(button, True))
             flush_events()
+            self._await_pointer({"mask_set": _X_BUTTON_MASK.get(button, 0)})
             events.append(self._qmp_button_event(button, False))
             flush_events()
+            self._await_pointer({"mask_clear": _X_BUTTON_MASK.get(button, 0)})
 
         mouse = action.get("mouse")
         if mouse:
             if "move" in mouse:
                 x, y = mouse["move"]
+                # An explicit move promises an observable motion event, the
+                # same way a click promises a press and a release. An absolute
+                # device emits nothing when asked for the position it already
+                # holds, so a repeated move was silently unobservable: the
+                # pointer was correct and no motion existed to see. Step off by
+                # a pixel first and let the real move follow. Positioning moves
+                # inside a click or drag do not go through here; their
+                # observable outcome is the button events.
+                if self._pointer_at(int(x), int(y)):
+                    # Far enough to be a real move: a one-pixel step is inside
+                    # both the absolute mapping's rounding and the delivery
+                    # barrier's own tolerance, so it confirmed itself against a
+                    # pointer that had not moved and produced no motion event.
+                    step = -_POINTER_NUDGE_PX if x > _POINTER_NUDGE_PX else _POINTER_NUDGE_PX
+                    send_pointer_move(int(x) + step, int(y))
                 send_pointer_move(int(x), int(y))
             if "left_click" in mouse:
                 x, y = mouse["left_click"]
@@ -2584,45 +2628,64 @@ class QemuApptainerRunner(BaseRunner):
                 send_pointer_move(int(x1), int(y1))
                 events.append(self._qmp_button_event("left", True))
                 flush_events()
+                self._await_pointer({"mask_set": _X_BUTTON_MASK["left"],
+                                     "x": int(x1), "y": int(y1)})
                 for step in range(1, self._QMP_DRAG_STEPS + 1):
                     x = int(x1 + (x2 - x1) * step / self._QMP_DRAG_STEPS)
                     y = int(y1 + (y2 - y1) * step / self._QMP_DRAG_STEPS)
-                    events.extend(self._qmp_move_events(x, y))
-                flush_events()
+                    # Acked one waypoint at a time. Sent as one batch the
+                    # guest latches only the last coordinate, which is how a
+                    # drag arrived as a press at its own endpoint.
+                    send_pointer_move(x, y)
                 events.append(self._qmp_button_event("left", False))
                 flush_events()
+                self._await_pointer({"mask_clear": _X_BUTTON_MASK["left"]})
             if "right_click_drag" in mouse:
                 (x1, y1), (x2, y2) = mouse["right_click_drag"]
                 send_pointer_move(int(x1), int(y1))
                 events.append(self._qmp_button_event("right", True))
                 flush_events()
+                self._await_pointer({"mask_set": _X_BUTTON_MASK["right"],
+                                     "x": int(x1), "y": int(y1)})
                 for step in range(1, self._QMP_DRAG_STEPS + 1):
                     x = int(x1 + (x2 - x1) * step / self._QMP_DRAG_STEPS)
                     y = int(y1 + (y2 - y1) * step / self._QMP_DRAG_STEPS)
-                    events.extend(self._qmp_move_events(x, y))
-                flush_events()
+                    # Acked one waypoint at a time. Sent as one batch the
+                    # guest latches only the last coordinate, which is how a
+                    # drag arrived as a press at its own endpoint.
+                    send_pointer_move(x, y)
                 events.append(self._qmp_button_event("right", False))
                 flush_events()
+                self._await_pointer({"mask_clear": _X_BUTTON_MASK["right"]})
             buttons = mouse.get("buttons", {})
-            if buttons.get("left_down"):
-                events.append(self._qmp_button_event("left", True))
-            if buttons.get("left_up"):
-                events.append(self._qmp_button_event("left", False))
-            if buttons.get("right_down"):
-                events.append(self._qmp_button_event("right", True))
-            if buttons.get("right_up"):
-                events.append(self._qmp_button_event("right", False))
-            if buttons.get("middle_down"):
-                events.append(self._qmp_button_event("middle", True))
-            if buttons.get("middle_up"):
-                events.append(self._qmp_button_event("middle", False))
-            flush_events()
+            for name in ("left", "right", "middle"):
+                for suffix, down in (("_down", True), ("_up", False)):
+                    if not buttons.get(name + suffix):
+                        continue
+                    events.append(self._qmp_button_event(name, down))
+                    flush_events()
+                    key = "mask_set" if down else "mask_clear"
+                    self._await_pointer({key: _X_BUTTON_MASK[name]})
             if "scroll" in mouse:
                 dy = int(mouse["scroll"])
-                button = "wheel-down" if dy > 0 else "wheel-up"
-                for _ in range(abs(dy)):
-                    events.extend([self._qmp_button_event(button, True), self._qmp_button_event(button, False)])
-                flush_events()
+                if self.acks_input_delivery():
+                    # Through the in-guest device, which is where the keys go
+                    # too. A wheel notch has no observable held state to wait
+                    # on (QEMU turns it into REL_WHEEL), so it cannot be acked
+                    # like a button; putting it on the same device as the keys
+                    # orders it against them by construction instead, which is
+                    # what a modifier-held scroll needs.
+                    self._inject_scroll_via_fast_input_agent(dy)
+                else:
+                    button = "wheel-down" if dy > 0 else "wheel-up"
+                    # One notch per input-send-event: batched into a single
+                    # command the guest coalesces them and 25 requested ticks
+                    # arrive as 24.
+                    for _ in range(abs(dy)):
+                        events.append(self._qmp_button_event(button, True))
+                        flush_events()
+                        events.append(self._qmp_button_event(button, False))
+                        flush_events()
 
         keyboard = action.get("keyboard")
         if keyboard:
@@ -2637,17 +2700,167 @@ class QemuApptainerRunner(BaseRunner):
                 qcodes = [self._normalize_qmp_key_name(str(key)) for key in keys]
                 flush_events()
                 self._qmp_send_key_combo(qcodes)
+            # keys_down / keys_up hold a modifier across the pointer action
+            # between them. send-key always taps, so the hold has to go
+            # through input-send-event as separate down and up events.
+            if "keys_down" in keyboard:
+                flush_events()
+                for qcode in self._qmp_key_names(keyboard["keys_down"]):
+                    events.append(self._qmp_key_event(qcode, True))
+                flush_events()
+            if "keys_up" in keyboard:
+                flush_events()
+                for qcode in self._qmp_key_names(keyboard["keys_up"]):
+                    events.append(self._qmp_key_event(qcode, False))
+                flush_events()
 
         flush_events()
 
+    def acks_input_delivery(self) -> bool:
+        # Pointer events are confirmed against the guest's X server, and
+        # keyboard requests against its keymap, both through the in-guest
+        # agent. Without an agent provisioned for this instance injection is
+        # still fire-and-forget, and callers must keep pacing themselves.
+        return bool(
+            self._fast_io
+            and self._fast_uinput_keyboard_enabled()
+            and getattr(self, "_fast_input_host_port", None)
+        )
+
+    def _pointer_at(self, x: int, y: int) -> bool:
+        """Is the guest's pointer already exactly here? Answered by the X
+        server, not by a position this runner believes it set earlier: the
+        desktop can move the pointer too."""
+        if not self.acks_input_delivery():
+            return False
+        client = self._get_fast_input_client()
+        response = client.request({"op": "await_pointer", "expect": {},
+                                   "timeout_ms": 50}, allow_error=True)
+        if not response.get("ok"):
+            return False
+        return (abs(int(response.get("x", -1)) - x) <= 1
+                and abs(int(response.get("y", -1)) - y) <= 1)
+
+    def _await_pointer(self, expect: Dict[str, Any]) -> None:
+        """Barrier: return once the guest's X server shows the state we sent.
+
+        QMP's input-send-event returns when QEMU has QUEUED events into the
+        virtio device, not when the guest consumed them, so without this the
+        next action races the previous one: a keyboard release injected
+        in-guest overtakes a queued click (the modifier arrives dropped), a
+        second click lands before the first is seen (repeats collapse), and a
+        batch of moves latches only its last coordinate (a drag presses at its
+        own endpoint). The wait is on observed state, never on a clock; the
+        timeout exists to fail loudly, not to pace.
+        """
+        if not self.acks_input_delivery():
+            return
+        client = self._get_fast_input_client()
+        response = client.request({"op": "await_pointer", "expect": expect},
+                                  allow_error=True)
+        if not response.get("ok"):
+            raise RuntimeError(
+                f"fast input agent error: {response.get('error', response)}")
+        if not response.get("matched"):
+            raise RuntimeError(
+                f"pointer event never reached the guest X server: wanted "
+                f"{expect}, saw x={response.get('x')} y={response.get('y')} "
+                f"mask={response.get('mask')}")
+
+    def _qmp_key_names(self, keys: Any) -> List[str]:
+        if isinstance(keys, str):
+            keys = [keys]
+        return [self._normalize_qmp_key_name(str(key)) for key in keys]
+
+    def _pointer_steps(self, mouse: Dict[str, Any]) -> Optional[List[Dict[str, Any]]]:
+        """The gesture as a list of steps, or None if the agent cannot express
+        it and it has to go through QEMU."""
+        steps: List[Dict[str, Any]] = []
+        drag_steps = self._QMP_DRAG_STEPS
+
+        def click(x, y, button, times):
+            steps.append({"move": [int(x), int(y)]})
+            for _ in range(times):
+                steps.append({"button": button, "down": True})
+                steps.append({"button": button, "down": False})
+
+        def drag(points, button):
+            (x1, y1), (x2, y2) = points
+            steps.append({"move": [int(x1), int(y1)]})
+            steps.append({"button": button, "down": True})
+            for step in range(1, drag_steps + 1):
+                steps.append({"move": [
+                    int(x1 + (x2 - x1) * step / drag_steps),
+                    int(y1 + (y2 - y1) * step / drag_steps)]})
+            steps.append({"button": button, "down": False})
+
+        if "move" in mouse:
+            x, y = mouse["move"]
+            # Standalone move: guaranteed observable. Positioning moves inside
+            # a click or drag are not marked, since their observable outcome
+            # is the button events.
+            steps.append({"move": [int(x), int(y)], "guarantee_motion": True})
+        for key, button, times in (("left_click", "left", 1),
+                                   ("right_click", "right", 1),
+                                   ("middle_click", "middle", 1),
+                                   ("double_click", "left", 2),
+                                   ("triple_click", "left", 3)):
+            if key in mouse:
+                click(*mouse[key], button, times)
+        for key, button in (("left_click_drag", "left"),
+                            ("right_click_drag", "right")):
+            if key in mouse:
+                drag(mouse[key], button)
+        for name in ("left", "right", "middle"):
+            for suffix, down in (("_down", True), ("_up", False)):
+                if (mouse.get("buttons") or {}).get(name + suffix):
+                    steps.append({"button": name, "down": down})
+        return steps or None
+
+    def _inject_pointer_via_fast_input_agent(self, steps: List[Dict[str, Any]]) -> None:
+        """One request for a whole gesture.
+
+        Injected through QEMU every transition needed its own host round trip
+        to be confirmed, measured at ~13 ms each: a click cost 43 ms and a
+        five-click burst 185 ms. Beside the device the same confirmation is
+        0.1 ms, so the gesture goes over the wire once and is checked in the
+        guest between steps.
+        """
+        client = self._get_fast_input_client()
+        client.request({"op": "pointer", "steps": steps})
+
+    def _inject_scroll_via_fast_input_agent(self, dy: int, dx: int = 0) -> None:
+        client = self._get_fast_input_client()
+        client.request({"op": "scroll", "dy": int(dy), "dx": int(dx)})
+
     def _inject_keyboard_via_fast_input_agent(self, keyboard: Dict[str, Any]) -> None:
         client = self._get_fast_input_client()
-        client.request({"op": "keyboard", "keyboard": keyboard})
+        response = client.request({"op": "keyboard", "keyboard": keyboard},
+                                  allow_error=True)
+        if response.get("ok"):
+            return
+        if response.get("error") in ("unsupported_text", "unsupported_keys"):
+            # uinput can only reach what the guest layout maps. Text outside
+            # it (accents, emoji) and key names outside it (numpad, menu,
+            # lock keys) go through the guest's Xlib typer, which remaps spare
+            # keycodes and resolves any keysym. Slow path, entered only for
+            # input the fast device provably cannot express, so ordinary
+            # typing and chords keep the fast path untouched.
+            self._run_guest_python(self._build_keyboard_script(keyboard))
+            return
+        raise RuntimeError(f"fast input agent error: {response.get('error', response)}")
 
     def _inject_action_via_fast_io(self, action: Dict[str, Any]) -> None:
         mouse = action.get("mouse")
         if mouse:
-            self._inject_action_via_qmp({"mouse": mouse})
+            steps = (self._pointer_steps(mouse)
+                     if self.acks_input_delivery() else None)
+            if steps is not None:
+                self._inject_pointer_via_fast_input_agent(steps)
+                if "scroll" in mouse:
+                    self._inject_scroll_via_fast_input_agent(int(mouse["scroll"]))
+            else:
+                self._inject_action_via_qmp({"mouse": mouse})
 
         keyboard = action.get("keyboard")
         if keyboard:
