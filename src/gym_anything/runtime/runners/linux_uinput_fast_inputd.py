@@ -323,6 +323,38 @@ for letter in "abcdefghijklmnopqrstuvwxyz":
 
 SUPPORTED_KEYS = sorted(set(KEY_BY_NAME.values()))
 
+# X keycode -> the name we accept for it, so a stuck key is named not numbered.
+_NAME_BY_X_KEYCODE: Dict[int, str] = {}
+for _name, _code in KEY_BY_NAME.items():
+    _NAME_BY_X_KEYCODE.setdefault(_code + 8, _name)
+
+
+def _keymap_down(keymap: bytes) -> set:
+    """X keycodes currently down in a 32-byte XQueryKeymap bitmap."""
+    return {index * 8 + bit
+            for index, byte in enumerate(keymap)
+            for bit in range(8)
+            if byte & (1 << bit)}
+
+
+def _keymap_diff(before: bytes, after: bytes) -> str:
+    """Name what changed between two keymaps.
+
+    "did not return to its pre-action state" is not actionable on its own: a
+    modifier still held is a lost release, while a key released that we never
+    pressed means something else is typing and the guarantee is comparing
+    against a moving target. Those need different fixes, so the error has to
+    say which one happened.
+    """
+    down_before, down_after = _keymap_down(before), _keymap_down(after)
+
+    def names(codes):
+        return ", ".join("%s(%d)" % (_NAME_BY_X_KEYCODE.get(c, "?"), c)
+                         for c in sorted(codes)) or "none"
+
+    return "still down: %s; released since: %s" % (
+        names(down_after - down_before), names(down_before - down_after))
+
 
 class UInputKeyboard:
     def __init__(self, path: str, name: str):
@@ -1087,16 +1119,22 @@ class FastInputService:
                     restored = self.x11.wait_keymap_changed(
                         before, self.x11_ack_timeout_ms)
                     if not restored:
+                        # Read the diff before release_all, which clears it.
+                        detail = _keymap_diff(before, self.x11.keymap())
                         self.keyboard.release_all()
                         raise RuntimeError(
-                            "X11 never observed the held-key change")
+                            "X11 never observed the held-key change (%s)"
+                            % detail)
                 else:
                     restored = self.x11.wait_keymap_restored(
                         before, self.x11_ack_timeout_ms)
                     if not restored:
+                        # Read the diff before release_all, which clears it.
+                        detail = _keymap_diff(before, self.x11.keymap())
                         self.keyboard.release_all()
                         raise RuntimeError(
-                            "X11 keymap did not return to its pre-action state")
+                            "X11 keymap did not return to its pre-action "
+                            "state (%s)" % detail)
 
         return {
             "ok": True,
