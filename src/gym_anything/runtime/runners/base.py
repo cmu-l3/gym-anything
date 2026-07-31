@@ -83,6 +83,12 @@ class BaseRunner(abc.ABC):
     def supports_fast_io(self) -> bool:
         return False
 
+    def acks_input_delivery(self) -> bool:
+        """True when inject_action returns only after the guest has actually
+        received the input. Callers that would otherwise pace actions with a
+        sleep can drop it; a runner that fires and forgets must keep it."""
+        return False
+
     def set_fast_io(self, enabled: bool) -> None:
         self._fast_io = bool(enabled)
 
