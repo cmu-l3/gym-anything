@@ -19,8 +19,20 @@ VERSION = 1
 EV_SYN = 0x00
 EV_KEY = 0x01
 EV_REL = 0x02
+EV_ABS = 0x03
 REL_WHEEL = 0x08
 REL_HWHEEL = 0x06
+ABS_X = 0x00
+ABS_Y = 0x01
+BTN_LEFT = 0x110
+BTN_RIGHT = 0x111
+BTN_MIDDLE = 0x112
+BTN_SIDE = 0x113
+BTN_EXTRA = 0x114
+BUTTON_BY_NAME = {"left": BTN_LEFT, "right": BTN_RIGHT, "middle": BTN_MIDDLE,
+                  "back": BTN_SIDE, "forward": BTN_EXTRA}
+# X11 button mask bits, for confirming a press landed.
+BUTTON_MASK = {"left": 1 << 8, "middle": 1 << 9, "right": 1 << 10}
 SYN_REPORT = 0
 BUS_USB = 0x03
 
@@ -29,6 +41,7 @@ UI_DEV_DESTROY = 0x5502
 UI_SET_EVBIT = 0x40045564
 UI_SET_KEYBIT = 0x40045565
 UI_SET_RELBIT = 0x40045566
+UI_SET_ABSBIT = 0x40045567
 
 KEY_ESC = 1
 KEY_1 = 2
@@ -585,6 +598,97 @@ class XInputListener:
         self._stop.set()
 
 
+class UInputPointer:
+    """An absolute pointer, so a gesture is one request instead of one host
+    round trip per transition.
+
+    Injecting through QEMU meant every press, release and waypoint had to be
+    confirmed across the network: measured at ~13 ms each, which is why a
+    click cost 43 ms and a five-click burst 185 ms. The confirmation itself
+    takes 0.1 ms when it runs beside the device. Absolute axes rather than
+    relative so a coordinate means the same thing it means to the caller.
+
+    A device of its own, not extra axes on the keyboard: adding EV_ABS there
+    would change how the X server classifies a device that already carries
+    keys and a wheel.
+    """
+
+    def __init__(self, path: str, name: str, width: int, height: int):
+        self.path = path
+        self.name = name
+        self.width = width
+        self.height = height
+        self.fd: Optional[int] = None
+        self.pressed: Set[int] = set()
+
+    def open(self) -> None:
+        self.fd = os.open(self.path, os.O_WRONLY | os.O_NONBLOCK)
+        try:
+            fcntl.ioctl(self.fd, UI_SET_EVBIT, EV_SYN)
+            fcntl.ioctl(self.fd, UI_SET_EVBIT, EV_KEY)
+            for code in BUTTON_BY_NAME.values():
+                fcntl.ioctl(self.fd, UI_SET_KEYBIT, code)
+            fcntl.ioctl(self.fd, UI_SET_EVBIT, EV_ABS)
+            fcntl.ioctl(self.fd, UI_SET_ABSBIT, ABS_X)
+            fcntl.ioctl(self.fd, UI_SET_ABSBIT, ABS_Y)
+            # uinput_user_dev carries absmax[64], absmin[64], absfuzz[64] and
+            # absflat[64] after the header; the axis ranges are the screen, so
+            # a value is a pixel.
+            absmax = [0] * 64
+            absmax[ABS_X] = max(0, self.width - 1)
+            absmax[ABS_Y] = max(0, self.height - 1)
+            name = self.name.encode("utf-8")[:79] + b"\0"
+            payload = struct.pack(
+                "80sHHHHI" + "i" * 256,
+                name, BUS_USB, 0x1209, 0xA112, 1, 0,
+                *(absmax + [0] * 64 + [0] * 64 + [0] * 64),
+            )
+            os.write(self.fd, payload)
+            fcntl.ioctl(self.fd, UI_DEV_CREATE)
+        except Exception:
+            os.close(self.fd)
+            self.fd = None
+            raise
+
+    def close(self) -> None:
+        if self.fd is None:
+            return
+        try:
+            self.release_all()
+            fcntl.ioctl(self.fd, UI_DEV_DESTROY)
+        finally:
+            os.close(self.fd)
+            self.fd = None
+
+    def emit(self, ev_type: int, code: int, value: int) -> None:
+        if self.fd is None:
+            raise RuntimeError("uinput pointer is not open")
+        os.write(self.fd, struct.pack("llHHi", 0, 0, ev_type, code, value))
+
+    def syn(self) -> None:
+        self.emit(EV_SYN, SYN_REPORT, 0)
+
+    def move(self, x: int, y: int) -> None:
+        self.emit(EV_ABS, ABS_X, max(0, min(int(x), self.width - 1)))
+        self.emit(EV_ABS, ABS_Y, max(0, min(int(y), self.height - 1)))
+        self.syn()
+
+    def button(self, code: int, down: bool) -> None:
+        self.emit(EV_KEY, code, 1 if down else 0)
+        self.syn()
+        if down:
+            self.pressed.add(code)
+        else:
+            self.pressed.discard(code)
+
+    def release_all(self) -> None:
+        for code in sorted(self.pressed):
+            self.emit(EV_KEY, code, 0)
+        if self.pressed:
+            self.syn()
+        self.pressed.clear()
+
+
 class X11State:
     def __init__(self, display_name: str):
         lib = ctypes.CDLL("libX11.so.6")
@@ -622,6 +726,12 @@ class X11State:
         buf = ctypes.create_string_buffer(32)
         self._lib.XQueryKeymap(self._display, buf)
         return bytes(buf.raw)
+
+    def screen_size(self) -> Tuple[int, int]:
+        self._lib.XDisplayWidth.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        self._lib.XDisplayHeight.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        return (int(self._lib.XDisplayWidth(self._display, 0)),
+                int(self._lib.XDisplayHeight(self._display, 0)))
 
     def pointer(self) -> Tuple[int, int, int]:
         """Root pointer position and button mask, straight from the X server.
@@ -701,7 +811,9 @@ class X11State:
 class FastInputService:
     def __init__(self, keyboard: UInputKeyboard, x11: Optional[X11State],
                  x11_ack_timeout_ms: int,
-                 listener: "Optional[XInputListener]" = None):
+                 listener: "Optional[XInputListener]" = None,
+                 pointer_device: "Optional[UInputPointer]" = None):
+        self.pointer_device = pointer_device
         self.keyboard = keyboard
         self.x11 = x11
         self.x11_ack_timeout_ms = x11_ack_timeout_ms
@@ -716,6 +828,7 @@ class FastInputService:
                 "version": VERSION,
                 "backend": "uinput",
                 "device_name": self.keyboard.name,
+                "pointer": self.pointer_device is not None,
                 "x11": self.x11 is not None,
             }
         if op == "keyboard":
@@ -726,11 +839,15 @@ class FastInputService:
         if op == "release_all":
             with self.lock:
                 self.keyboard.release_all()
+                if self.pointer_device is not None:
+                    self.pointer_device.release_all()
             return {"ok": True, "released": True}
         if op == "await_pointer":
             return self._await_pointer(payload)
         if op == "scroll":
             return self._scroll(payload)
+        if op == "pointer":
+            return self._pointer(payload)
         raise ValueError(f"unknown op {op!r}")
 
     # Events per chunk, kept well under the 64-event floor of an evdev
@@ -787,6 +904,62 @@ class FastInputService:
                     f"presses; the rest never reached it (evdev client "
                     f"buffer overrun drops the whole queue silently)")
         return events
+
+    def _pointer(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """One gesture, confirmed step by step, in a single request.
+
+        Each confirmation is a local X round trip (~0.1 ms) instead of a host
+        round trip (~13 ms), which is the whole reason this exists: the checks
+        were never the cost, the network was.
+        """
+        if self.pointer_device is None:
+            raise ValueError("pointer injection needs the uinput pointer device")
+        if self.x11 is None:
+            raise ValueError("pointer injection needs the X11 connection")
+        steps = payload.get("steps")
+        if not isinstance(steps, list):
+            raise ValueError("pointer request needs a steps list")
+        started = time.perf_counter_ns()
+        timeout_ms = int(payload.get("timeout_ms") or self.x11_ack_timeout_ms)
+        done = 0
+        with self.lock:
+            try:
+                for step in steps:
+                    self._pointer_step(step, timeout_ms)
+                    done += 1
+            except Exception:
+                self.pointer_device.release_all()
+                raise
+        return {"ok": True, "steps": done,
+                "elapsed_ms": (time.perf_counter_ns() - started) / 1_000_000.0}
+
+    def _pointer_step(self, step: Dict[str, Any], timeout_ms: int) -> None:
+        device, x11 = self.pointer_device, self.x11
+        if "move" in step:
+            x, y = step["move"]
+            device.move(int(x), int(y))
+            matched, state = x11.wait_pointer({"x": int(x), "y": int(y)}, timeout_ms)
+            if not matched:
+                raise RuntimeError(
+                    f"pointer never reached ({x},{y}); X reports {state[:2]}")
+            return
+        if "button" in step:
+            name = str(step["button"])
+            down = bool(step.get("down"))
+            code = BUTTON_BY_NAME.get(name)
+            if code is None:
+                raise ValueError(f"unknown pointer button {name!r}")
+            device.button(code, down)
+            mask = BUTTON_MASK.get(name)
+            if mask:
+                key = "mask_set" if down else "mask_clear"
+                matched, state = x11.wait_pointer({key: mask}, timeout_ms)
+                if not matched:
+                    raise RuntimeError(
+                        f"button {name} {'press' if down else 'release'} never "
+                        f"reached the X server; mask is 0x{state[2]:04x}")
+            return
+        raise ValueError(f"unknown pointer step {step!r}")
 
     def _scroll(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Wheel notches on the same device as the keys, under the same lock.
@@ -1059,9 +1232,20 @@ def main() -> int:
     keyboard.open()
     x11 = None
     listener = None
+    pointer_device = None
     try:
         if args.x11_display:
             x11 = X11State(args.x11_display)
+            width, height = x11.screen_size()
+            try:
+                pointer_device = UInputPointer(args.device, args.device_name +
+                                               " Pointer", width, height)
+                pointer_device.open()
+            except Exception as exc:
+                # Without it the runner keeps injecting through QEMU, which is
+                # correct but pays a host round trip per transition.
+                print(json.dumps({"warning": "no uinput pointer",
+                                  "error": repr(exc)}), flush=True)
             try:
                 listener = XInputListener(args.x11_display)
             except Exception as exc:
@@ -1074,7 +1258,8 @@ def main() -> int:
         elif args.require_x11:
             raise RuntimeError("X11 display is required but DISPLAY is empty")
         service = FastInputService(keyboard, x11, args.x11_ack_timeout_ms,
-                                   listener=listener)
+                                   listener=listener,
+                                   pointer_device=pointer_device)
         with FastInputServer((args.host, args.port), service) as server:
             print(
                 json.dumps(

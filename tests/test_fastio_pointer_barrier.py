@@ -16,6 +16,66 @@ from unittest import mock
 from gym_anything.runtime.runners.qemu_apptainer import _X_BUTTON_MASK, QemuApptainerRunner
 
 
+class PointerGestureRoutingTests(unittest.TestCase):
+    """A gesture goes to the in-guest agent as one request.
+
+    Through QEMU every transition needed a host round trip to confirm it,
+    ~13 ms each: a click measured 43 ms, a five-click burst 185 ms. The same
+    confirmation beside the device is 0.1 ms."""
+
+    def _runner(self, acks: bool = True):
+        runner = QemuApptainerRunner.__new__(QemuApptainerRunner)
+        runner._fast_io = True
+        runner.is_android = False
+        runner.is_windows = False
+        runner.resolution = (1920, 1080)
+        runner._fast_uinput_keyboard_enabled = mock.Mock(return_value=acks)
+        runner._fast_input_host_port = 45500 if acks else None
+        client = mock.Mock()
+        client.request.return_value = {"ok": True, "steps": 0}
+        runner._get_fast_input_client = mock.Mock(return_value=client)
+        return runner, client
+
+    def _steps(self, client):
+        return [c.args[0]["steps"] for c in client.request.call_args_list
+                if c.args[0].get("op") == "pointer"]
+
+    def test_a_click_is_one_request(self) -> None:
+        runner, client = self._runner()
+        with mock.patch.object(runner, "_qmp_send_input_events") as qmp:
+            runner._inject_action_via_fast_io({"mouse": {"left_click": [400, 300]}})
+        qmp.assert_not_called()
+        self.assertEqual(self._steps(client), [[
+            {"move": [400, 300]},
+            {"button": "left", "down": True},
+            {"button": "left", "down": False}]])
+
+    def test_a_double_click_is_still_one_request(self) -> None:
+        runner, client = self._runner()
+        with mock.patch.object(runner, "_qmp_send_input_events"):
+            runner._inject_action_via_fast_io({"mouse": {"double_click": [1, 2]}})
+        steps = self._steps(client)[0]
+        self.assertEqual(sum(1 for s in steps if s.get("down") is True), 2)
+        self.assertEqual(len(self._steps(client)), 1)
+
+    def test_a_drag_carries_its_waypoints(self) -> None:
+        runner, client = self._runner()
+        with mock.patch.object(runner, "_qmp_send_input_events"):
+            runner._inject_action_via_fast_io(
+                {"mouse": {"left_click_drag": [[0, 0], [80, 80]]}})
+        steps = self._steps(client)[0]
+        moves = [s for s in steps if "move" in s]
+        self.assertEqual(len(moves), 1 + runner._QMP_DRAG_STEPS)
+        self.assertEqual(moves[-1], {"move": [80, 80]})
+
+    def test_without_the_agent_it_falls_back_to_qemu(self) -> None:
+        runner, client = self._runner(acks=False)
+        with mock.patch.object(runner, "_qmp_send_input_events") as qmp:
+            runner._inject_action_via_fast_io({"mouse": {"left_click": [1, 2]}})
+        qmp.assert_called()
+        self.assertEqual(self._steps(client), [])
+
+
 class PointerBarrierTests(unittest.TestCase):
     def _runner(self, acks: bool = True):
         runner = QemuApptainerRunner.__new__(QemuApptainerRunner)

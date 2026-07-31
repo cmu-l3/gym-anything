@@ -2765,6 +2765,60 @@ class QemuApptainerRunner(BaseRunner):
             keys = [keys]
         return [self._normalize_qmp_key_name(str(key)) for key in keys]
 
+    def _pointer_steps(self, mouse: Dict[str, Any]) -> Optional[List[Dict[str, Any]]]:
+        """The gesture as a list of steps, or None if the agent cannot express
+        it and it has to go through QEMU."""
+        steps: List[Dict[str, Any]] = []
+        drag_steps = self._QMP_DRAG_STEPS
+
+        def click(x, y, button, times):
+            steps.append({"move": [int(x), int(y)]})
+            for _ in range(times):
+                steps.append({"button": button, "down": True})
+                steps.append({"button": button, "down": False})
+
+        def drag(points, button):
+            (x1, y1), (x2, y2) = points
+            steps.append({"move": [int(x1), int(y1)]})
+            steps.append({"button": button, "down": True})
+            for step in range(1, drag_steps + 1):
+                steps.append({"move": [
+                    int(x1 + (x2 - x1) * step / drag_steps),
+                    int(y1 + (y2 - y1) * step / drag_steps)]})
+            steps.append({"button": button, "down": False})
+
+        if "move" in mouse:
+            x, y = mouse["move"]
+            steps.append({"move": [int(x), int(y)]})
+        for key, button, times in (("left_click", "left", 1),
+                                   ("right_click", "right", 1),
+                                   ("middle_click", "middle", 1),
+                                   ("double_click", "left", 2),
+                                   ("triple_click", "left", 3)):
+            if key in mouse:
+                click(*mouse[key], button, times)
+        for key, button in (("left_click_drag", "left"),
+                            ("right_click_drag", "right")):
+            if key in mouse:
+                drag(mouse[key], button)
+        for name in ("left", "right", "middle"):
+            for suffix, down in (("_down", True), ("_up", False)):
+                if (mouse.get("buttons") or {}).get(name + suffix):
+                    steps.append({"button": name, "down": down})
+        return steps or None
+
+    def _inject_pointer_via_fast_input_agent(self, steps: List[Dict[str, Any]]) -> None:
+        """One request for a whole gesture.
+
+        Injected through QEMU every transition needed its own host round trip
+        to be confirmed, measured at ~13 ms each: a click cost 43 ms and a
+        five-click burst 185 ms. Beside the device the same confirmation is
+        0.1 ms, so the gesture goes over the wire once and is checked in the
+        guest between steps.
+        """
+        client = self._get_fast_input_client()
+        client.request({"op": "pointer", "steps": steps})
+
     def _inject_scroll_via_fast_input_agent(self, dy: int, dx: int = 0) -> None:
         client = self._get_fast_input_client()
         client.request({"op": "scroll", "dy": int(dy), "dx": int(dx)})
@@ -2789,7 +2843,14 @@ class QemuApptainerRunner(BaseRunner):
     def _inject_action_via_fast_io(self, action: Dict[str, Any]) -> None:
         mouse = action.get("mouse")
         if mouse:
-            self._inject_action_via_qmp({"mouse": mouse})
+            steps = (self._pointer_steps(mouse)
+                     if self.acks_input_delivery() else None)
+            if steps is not None:
+                self._inject_pointer_via_fast_input_agent(steps)
+                if "scroll" in mouse:
+                    self._inject_scroll_via_fast_input_agent(int(mouse["scroll"]))
+            else:
+                self._inject_action_via_qmp({"mouse": mouse})
 
         keyboard = action.get("keyboard")
         if keyboard:
