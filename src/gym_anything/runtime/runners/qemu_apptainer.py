@@ -240,6 +240,11 @@ class _FastInputAgentClient:
 # X11 button bits in XQueryPointer's mask, used to confirm the guest actually
 # received a button transition. 4 and 5 are the wheel, which is why a wheel
 # tick can be acked at all.
+# Bigger than the delivery barrier's match tolerance and than the rounding of
+# the 0..32767 absolute mapping, so the step is a movement rather than a value
+# that lands back on the same pixel.
+_POINTER_NUDGE_PX = 8
+
 _X_BUTTON_MASK = {
     "left": 1 << 8,
     "middle": 1 << 9,
@@ -2582,7 +2587,12 @@ class QemuApptainerRunner(BaseRunner):
                 # inside a click or drag do not go through here; their
                 # observable outcome is the button events.
                 if self._pointer_at(int(x), int(y)):
-                    send_pointer_move(int(x) + (-1 if x > 0 else 1), int(y))
+                    # Far enough to be a real move: a one-pixel step is inside
+                    # both the absolute mapping's rounding and the delivery
+                    # barrier's own tolerance, so it confirmed itself against a
+                    # pointer that had not moved and produced no motion event.
+                    step = -_POINTER_NUDGE_PX if x > _POINTER_NUDGE_PX else _POINTER_NUDGE_PX
+                    send_pointer_move(int(x) + step, int(y))
                 send_pointer_move(int(x), int(y))
             if "left_click" in mouse:
                 x, y = mouse["left_click"]

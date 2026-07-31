@@ -128,7 +128,8 @@ class PointerBarrierTests(unittest.TestCase):
             runner._inject_action_via_qmp({"mouse": {"move": [400, 300]}})
 
         moves = [e for e in self._expects(client) if "x" in e]
-        self.assertEqual(moves, [{"x": 399, "y": 300}, {"x": 400, "y": 300}])
+        # far enough to clear both the ack tolerance and the mapping's rounding
+        self.assertEqual(moves, [{"x": 392, "y": 300}, {"x": 400, "y": 300}])
 
     def test_a_move_somewhere_new_does_not_detour(self) -> None:
         runner, client = self._runner()
