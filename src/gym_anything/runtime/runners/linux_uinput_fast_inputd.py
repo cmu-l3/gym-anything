@@ -681,32 +681,6 @@ class X11State:
                 return False
             time.sleep(0.001)
 
-    def key_is_down(self, keycode: int) -> bool:
-        """Is this X keycode held, according to the server's own key state?
-
-        X keycode is the evdev code plus 8. XQueryKeymap is a bit vector of
-        the 256 keycodes, so this reads the server's view directly rather
-        than inferring it from a modifier mask.
-        """
-        bits = self.keymap()
-        return bool(bits[keycode // 8] & (1 << (keycode % 8)))
-
-    def wait_key_down(self, keycode: int, timeout_ms: int) -> bool:
-        """Block until the X server shows the key held.
-
-        A chord presses its modifier and its main key microseconds apart. If
-        the server has not folded the modifier into its state by the time the
-        main key is processed, the chord arrives as a bare keypress: measured
-        on super+d, where the tap saw key_down super, then key_down d with an
-        empty modifier list, while ctrl+c registered correctly.
-        """
-        deadline = time.perf_counter() + timeout_ms / 1000.0
-        while True:
-            if self.key_is_down(keycode):
-                return True
-            if time.perf_counter() >= deadline:
-                return False
-
     def wait_keymap_changed(self, before: bytes, timeout_ms: int) -> bool:
         """Ack for a request that deliberately changes the held-key set.
 
@@ -814,27 +788,6 @@ class FastInputService:
                     f"buffer overrun drops the whole queue silently)")
         return events
 
-    def _chord(self, codes: List[int]) -> int:
-        """Press the keys in order, each confirmed held by the X server before
-        the next goes down, then release in reverse.
-
-        Without the confirmation a chord can arrive as its main key alone,
-        because the modifier is not yet in the server's state when the main
-        key is processed.
-        """
-        for code in codes:
-            self.keyboard.key_down(code)
-            if self.x11 is not None:
-                # X keycode is the evdev code plus 8.
-                if not self.x11.wait_key_down(code + 8, self.x11_ack_timeout_ms):
-                    self.keyboard.release_all()
-                    raise RuntimeError(
-                        f"X server never registered key {code} as held; the "
-                        f"chord would have arrived without it")
-        for code in reversed(codes):
-            self.keyboard.key_up(code)
-        return 2 * len(codes)
-
     def _scroll(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Wheel notches on the same device as the keys, under the same lock.
 
@@ -903,7 +856,8 @@ class FastInputService:
                     events += self._type_text(str(keyboard["text"]))
                 if "keys" in keyboard:
                     codes = _key_codes(keyboard["keys"], "keyboard.keys")
-                    events += self._chord(codes)
+                    self.keyboard.combo(codes)
+                    events += 2 * len(codes)
                 # keys_down / keys_up compose a modifier-held gesture: the hold
                 # spans the pointer action that follows, so these keys stay
                 # down across requests until keys_up releases them.
