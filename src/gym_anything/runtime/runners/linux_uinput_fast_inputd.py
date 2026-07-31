@@ -1092,6 +1092,7 @@ class FastInputService:
         if unknown_keys:
             return {"ok": False, "error": "unsupported_keys", "keys": unknown_keys}
         before = self.x11.keymap() if self.x11 else None
+        forced_restore = None
         pressed_before = set(self.keyboard.pressed)
         presses_before = (self.listener.counts().get(
             XInputListener.XI_RAW_KEY_PRESS, 0) if self.listener else 0)
@@ -1170,13 +1171,17 @@ class FastInputService:
                         # drop: a drop is survivable, an unnoticed one is not.
                         recovered = self.x11.wait_keymap_restored(
                             before, self.x11_ack_timeout_ms)
-                        print(json.dumps({
-                            "event": "keymap_forced_restore",
+                        forced_restore = {
                             "diff": detail,
                             "grabbed_by_other_client": grabbed,
                             "recovered": recovered,
                             "keys": keyboard.get("keys"),
-                        }), flush=True)
+                        }
+                        # Also on the response, not only this log: the guest
+                        # log dies with the VM, so a record that lives only
+                        # here is a loss report nobody can read.
+                        print(json.dumps({"event": "keymap_forced_restore",
+                                          **forced_restore}), flush=True)
                         if not recovered:
                             raise RuntimeError(
                                 "X11 keymap did not return to its pre-action "
@@ -1184,7 +1189,7 @@ class FastInputService:
                                 % detail)
                         restored = True
 
-        return {
+        response = {
             "ok": True,
             "events": events,
             "expected_presses": expected_presses,
@@ -1193,6 +1198,9 @@ class FastInputService:
             "x11_keymap_restored": restored,
             "elapsed_ms": (time.perf_counter_ns() - started) / 1_000_000.0,
         }
+        if forced_restore is not None:
+            response["forced_restore"] = forced_restore
+        return response
 
 
 def key_name_to_code(name: str) -> int:

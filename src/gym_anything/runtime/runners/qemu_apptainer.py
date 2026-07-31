@@ -224,6 +224,13 @@ class _FastInputAgentClient:
         # double-inject.
         if not response.get("ok") and not allow_error:
             raise RuntimeError(f"fast input agent error: {response.get('error', response)}")
+        forced = response.get("forced_restore")
+        if forced:
+            # The request recovered, but something held the keys down past
+            # the ack window. Say so on the host, where the record outlives
+            # the VM, or the only copy dies with the guest.
+            print("[QemuApptainer] fast input forced a key release: "
+                  + json.dumps(forced, separators=(",", ":")), flush=True)
         return response
 
     def _read_line(self) -> Dict[str, Any]:
