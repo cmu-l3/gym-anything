@@ -175,6 +175,36 @@ class FastInputAgentTests(unittest.TestCase):
         self.assertEqual(response["keys"], ["kp_add"])
         self.assertEqual(device.emitted, [])
 
+    def test_a_chord_waits_for_each_key_before_pressing_the_next(self) -> None:
+        """Measured on super+d: the tap saw key_down super, then key_down d
+        with an empty modifier list, so the chord arrived as a bare d. ctrl+c
+        registered fine, which is why pressing both and hoping looked correct
+        for a long time."""
+        x11 = mock.Mock()
+        x11.keymap.return_value = b"\x00" * 32
+        x11.wait_key_down.return_value = True
+        service, device = self._service(x11=x11)
+
+        service.handle({"op": "keyboard", "keyboard": {"keys": ["super", "d"]}})
+
+        # one confirmation per key, in press order, before any release
+        self.assertEqual([c.args[0] for c in x11.wait_key_down.call_args_list],
+                         [agent.KEY_BY_NAME["super"] + 8,
+                          agent.KEY_BY_NAME["d"] + 8])
+        self.assertEqual(device.emitted[:2],
+                         [("down", agent.KEY_BY_NAME["super"]),
+                          ("down", agent.KEY_BY_NAME["d"])])
+
+    def test_a_chord_key_the_server_never_registers_is_loud(self) -> None:
+        x11 = mock.Mock()
+        x11.keymap.return_value = b"\x00" * 32
+        x11.wait_key_down.return_value = False
+        service, device = self._service(x11=x11)
+
+        with self.assertRaises(RuntimeError):
+            service.handle({"op": "keyboard", "keyboard": {"keys": ["super", "d"]}})
+        self.assertEqual(device.pressed, set())
+
     def test_a_held_key_is_acked_by_a_keymap_change_not_a_restore(self) -> None:
         """The old ack demanded the keymap return to its pre-action state,
         which is false by construction once a key is deliberately held."""
