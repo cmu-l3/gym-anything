@@ -409,6 +409,182 @@ class UInputKeyboard:
         self.pressed.clear()
 
 
+class _XGenericEventCookie(ctypes.Structure):
+    _fields_ = [
+        ("type", ctypes.c_int),
+        ("serial", ctypes.c_ulong),
+        ("send_event", ctypes.c_int),
+        ("display", ctypes.c_void_p),
+        ("extension", ctypes.c_int),
+        ("evtype", ctypes.c_int),
+        ("cookie", ctypes.c_uint),
+        ("data", ctypes.c_void_p),
+    ]
+
+
+class _XIRawEvent(ctypes.Structure):
+    # Only the head is read; valuator fields past `flags` are not needed to
+    # count deliveries.
+    _fields_ = [
+        ("type", ctypes.c_int),
+        ("serial", ctypes.c_ulong),
+        ("send_event", ctypes.c_int),
+        ("display", ctypes.c_void_p),
+        ("extension", ctypes.c_int),
+        ("evtype", ctypes.c_int),
+        ("time", ctypes.c_ulong),
+        ("deviceid", ctypes.c_int),
+        ("sourceid", ctypes.c_int),
+        ("detail", ctypes.c_int),
+        ("flags", ctypes.c_int),
+    ]
+
+
+class _XIEventMask(ctypes.Structure):
+    _fields_ = [
+        ("deviceid", ctypes.c_int),
+        ("mask_len", ctypes.c_int),
+        ("mask", ctypes.POINTER(ctypes.c_ubyte)),
+    ]
+
+
+class XInputListener:
+    """What the X server actually dispatched, read from the X server.
+
+    The kernel accepts every event we inject and reports nothing back: an
+    evdev client whose ring buffer (64 events minimum) fills has its whole
+    queue discarded and gets a synthetic SYN_DROPPED, while the writer is
+    told nothing (drivers/input/evdev.c, __pass_event). So "the kernel took
+    it" is not evidence the X server got it, and a 200-character burst can
+    vanish entirely.
+
+    XI2 raw events are the record of what the server processed. They are
+    delivered regardless of focus or grabs, so this counts deliveries rather
+    than inferring them from end state: a burst that arrives as three events
+    instead of two hundred is visible here and nowhere else.
+    """
+
+    GENERIC_EVENT = 35
+    XI_RAW_KEY_PRESS = 13
+    XI_RAW_KEY_RELEASE = 14
+    XI_RAW_BUTTON_PRESS = 15
+    XI_RAW_BUTTON_RELEASE = 16
+    XI_RAW_MOTION = 17
+    XI_ALL_DEVICES = 0
+    XI_ALL_MASTER_DEVICES = 1
+
+    def __init__(self, display_name: str, deviceid: int = XI_ALL_MASTER_DEVICES):
+        # Measured on the guest: selecting XIAllDevices delivers each raw
+        # event twice, once for the slave and once for the master, so a
+        # counter built on it confirms a burst when half of it has arrived.
+        # XIAllMasterDevices reports each event once.
+        self._x11 = ctypes.CDLL("libX11.so.6")
+        self._xi = ctypes.CDLL("libXi.so.6")
+        self._x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+        self._x11.XOpenDisplay.restype = ctypes.c_void_p
+        self._x11.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+        self._x11.XDefaultRootWindow.restype = ctypes.c_ulong
+        self._x11.XQueryExtension.argtypes = [
+            ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_int),
+            ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+        self._x11.XNextEvent.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        self._x11.XPending.argtypes = [ctypes.c_void_p]
+        self._x11.XPending.restype = ctypes.c_int
+        self._x11.XGetEventData.argtypes = [ctypes.c_void_p,
+                                            ctypes.POINTER(_XGenericEventCookie)]
+        self._x11.XGetEventData.restype = ctypes.c_int
+        self._x11.XFreeEventData.argtypes = [ctypes.c_void_p,
+                                             ctypes.POINTER(_XGenericEventCookie)]
+        self._x11.XFlush.argtypes = [ctypes.c_void_p]
+        self._xi.XISelectEvents.argtypes = [ctypes.c_void_p, ctypes.c_ulong,
+                                            ctypes.POINTER(_XIEventMask),
+                                            ctypes.c_int]
+        self._xi.XIQueryVersion.argtypes = [ctypes.c_void_p,
+                                            ctypes.POINTER(ctypes.c_int),
+                                            ctypes.POINTER(ctypes.c_int)]
+
+        self._display = self._x11.XOpenDisplay(display_name.encode("utf-8"))
+        if not self._display:
+            raise RuntimeError(f"could not open X11 display {display_name!r}")
+        opcode, first_event, first_error = (ctypes.c_int(), ctypes.c_int(),
+                                            ctypes.c_int())
+        if not self._x11.XQueryExtension(
+                self._display, b"XInputExtension", ctypes.byref(opcode),
+                ctypes.byref(first_event), ctypes.byref(first_error)):
+            raise RuntimeError("X server has no XInputExtension")
+        self._opcode = opcode.value
+        major, minor = ctypes.c_int(2), ctypes.c_int(2)
+        self._xi.XIQueryVersion(self._display, ctypes.byref(major),
+                                ctypes.byref(minor))
+
+        mask_bits = (ctypes.c_ubyte * 4)()
+        for evtype in (self.XI_RAW_KEY_PRESS, self.XI_RAW_KEY_RELEASE,
+                       self.XI_RAW_BUTTON_PRESS, self.XI_RAW_BUTTON_RELEASE,
+                       self.XI_RAW_MOTION):
+            mask_bits[evtype >> 3] |= 1 << (evtype & 7)
+        event_mask = _XIEventMask(deviceid=deviceid, mask_len=4,
+                                  mask=ctypes.cast(mask_bits,
+                                                   ctypes.POINTER(ctypes.c_ubyte)))
+        root = self._x11.XDefaultRootWindow(self._display)
+        self._xi.XISelectEvents(self._display, root, ctypes.byref(event_mask), 1)
+        self._x11.XFlush(self._display)
+
+        self._changed = threading.Condition()
+        self._counts: Dict[int, int] = {}
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._drain, daemon=True)
+        self._thread.start()
+
+    def _drain(self) -> None:
+        buffer = (ctypes.c_char * 256)()
+        while not self._stop.is_set():
+            # XNextEvent blocks, which is what keeps this thread off the CPU;
+            # the connection is this listener's own, so blocking on it cannot
+            # hold up injection.
+            self._x11.XNextEvent(self._display, ctypes.byref(buffer))
+            cookie = ctypes.cast(ctypes.byref(buffer),
+                                 ctypes.POINTER(_XGenericEventCookie)).contents
+            if cookie.type != self.GENERIC_EVENT or cookie.extension != self._opcode:
+                continue
+            if not self._x11.XGetEventData(self._display, ctypes.byref(cookie)):
+                continue
+            try:
+                evtype = cookie.evtype
+                with self._changed:
+                    self._counts[evtype] = self._counts.get(evtype, 0) + 1
+                    self._changed.notify_all()
+            finally:
+                self._x11.XFreeEventData(self._display, ctypes.byref(cookie))
+
+    def counts(self) -> Dict[int, int]:
+        with self._changed:
+            return dict(self._counts)
+
+    def wait_for(self, evtype: int, target: int, timeout_ms: int) -> Tuple[bool, int]:
+        """Block until the server has dispatched `target` events of a type.
+
+        Counting is what makes this a delivery record: end state cannot tell
+        two key presses from twenty when every one of them is released again.
+
+        Woken by the reader thread, not by a poll interval, so nothing here
+        picks a rate. The deadline only decides when to give up and say what
+        was missing.
+        """
+        deadline = time.perf_counter() + timeout_ms / 1000.0
+        with self._changed:
+            while True:
+                seen = self._counts.get(evtype, 0)
+                if seen >= target:
+                    return True, seen
+                remaining = deadline - time.perf_counter()
+                if remaining <= 0:
+                    return False, seen
+                self._changed.wait(remaining)
+
+    def close(self) -> None:
+        self._stop.set()
+
+
 class X11State:
     def __init__(self, display_name: str):
         lib = ctypes.CDLL("libX11.so.6")
@@ -523,10 +699,13 @@ class X11State:
 
 
 class FastInputService:
-    def __init__(self, keyboard: UInputKeyboard, x11: Optional[X11State], x11_ack_timeout_ms: int):
+    def __init__(self, keyboard: UInputKeyboard, x11: Optional[X11State],
+                 x11_ack_timeout_ms: int,
+                 listener: "Optional[XInputListener]" = None):
         self.keyboard = keyboard
         self.x11 = x11
         self.x11_ack_timeout_ms = x11_ack_timeout_ms
+        self.listener = listener
         self.lock = threading.Lock()
 
     def handle(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -553,6 +732,61 @@ class FastInputService:
         if op == "scroll":
             return self._scroll(payload)
         raise ValueError(f"unknown op {op!r}")
+
+    # Events per chunk, kept well under the 64-event floor of an evdev
+    # client's ring buffer (drivers/input/evdev.c). A chunk that overruns a
+    # consumer's ring has its WHOLE queue discarded, not trimmed, which is
+    # how a 200-character string arrived as a single shift press.
+    _CHUNK_EVENTS = 24
+
+    def _type_text(self, text: str) -> int:
+        chunk: List[Tuple[int, bool]] = []
+        cost = 0
+        events = 0
+        for code, shifted in text_to_codes(text):
+            # key down + up + a SYN each, doubled when the shift wrap is on.
+            char_cost = 8 if shifted else 4
+            if chunk and cost + char_cost > self._CHUNK_EVENTS:
+                events += self._emit_chunk(chunk)
+                chunk, cost = [], 0
+            chunk.append((code, shifted))
+            cost += char_cost
+        if chunk:
+            events += self._emit_chunk(chunk)
+        return events
+
+    def _emit_chunk(self, chunk: List[Tuple[int, bool]]) -> int:
+        """Type one chunk, then confirm the X server dispatched all of it.
+
+        Without the confirmation the chunk size would be a guess about
+        someone else's buffer. With it, the size only decides throughput: a
+        chunk that gets dropped is reported with its exact shortfall instead
+        of surfacing later as text that silently differs.
+        """
+        presses = sum(2 if shifted else 1 for _, shifted in chunk)
+        before = (self.listener.counts().get(XInputListener.XI_RAW_KEY_PRESS, 0)
+                  if self.listener else 0)
+        events = 0
+        for code, shifted in chunk:
+            if shifted:
+                self.keyboard.key_down(KEY_LEFTSHIFT)
+                events += 1
+            self.keyboard.key_tap(code)
+            events += 2
+            if shifted:
+                self.keyboard.key_up(KEY_LEFTSHIFT)
+                events += 1
+        if self.listener:
+            arrived, seen = self.listener.wait_for(
+                XInputListener.XI_RAW_KEY_PRESS, before + presses,
+                self.x11_ack_timeout_ms)
+            if not arrived:
+                self.keyboard.release_all()
+                raise RuntimeError(
+                    f"X server dispatched {seen - before} of {presses} key "
+                    f"presses; the rest never reached it (evdev client "
+                    f"buffer overrun drops the whole queue silently)")
+        return events
 
     def _scroll(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Wheel notches on the same device as the keys, under the same lock.
@@ -612,19 +846,14 @@ class FastInputService:
             return {"ok": False, "error": "unsupported_keys", "keys": unknown_keys}
         before = self.x11.keymap() if self.x11 else None
         pressed_before = set(self.keyboard.pressed)
+        presses_before = (self.listener.counts().get(
+            XInputListener.XI_RAW_KEY_PRESS, 0) if self.listener else 0)
+        expected_presses = _expected_presses(keyboard)
         events = 0
         with self.lock:
             try:
                 if "text" in keyboard:
-                    for code, shifted in text_to_codes(str(keyboard["text"])):
-                        if shifted:
-                            self.keyboard.key_down(KEY_LEFTSHIFT)
-                            events += 1
-                        self.keyboard.key_tap(code)
-                        events += 2
-                        if shifted:
-                            self.keyboard.key_up(KEY_LEFTSHIFT)
-                            events += 1
+                    events += self._type_text(str(keyboard["text"]))
                 if "keys" in keyboard:
                     codes = _key_codes(keyboard["keys"], "keyboard.keys")
                     self.keyboard.combo(codes)
@@ -643,6 +872,24 @@ class FastInputService:
             except Exception:
                 self.keyboard.release_all()
                 raise
+
+            # Where did they land? Compares what this device emitted against
+            # what the X server dispatched, so a request that vanishes says so
+            # here instead of surfacing later as text that silently differs.
+            dispatched = None
+            if self.listener is not None and expected_presses:
+                arrived, seen = self.listener.wait_for(
+                    XInputListener.XI_RAW_KEY_PRESS,
+                    presses_before + expected_presses, self.x11_ack_timeout_ms)
+                dispatched = seen - presses_before
+                if not arrived:
+                    print(json.dumps({
+                        "event": "key_presses_lost",
+                        "expected": expected_presses,
+                        "x_dispatched": dispatched,
+                        "text": str(keyboard.get("text", ""))[:40],
+                        "keys": keyboard.get("keys"),
+                    }), flush=True)
 
             restored = True
             if self.x11 and before is not None:
@@ -667,6 +914,8 @@ class FastInputService:
         return {
             "ok": True,
             "events": events,
+            "expected_presses": expected_presses,
+            "x_dispatched_presses": dispatched,
             "pressed_after": len(self.keyboard.pressed),
             "x11_keymap_restored": restored,
             "elapsed_ms": (time.perf_counter_ns() - started) / 1_000_000.0,
@@ -720,6 +969,26 @@ def _key_codes(keys: Any, field: str) -> List[int]:
     if not isinstance(keys, list):
         raise ValueError(f"{field} must be a string or list of strings")
     return [key_name_to_code(str(key)) for key in keys]
+
+
+def _expected_presses(keyboard: Dict[str, Any]) -> int:
+    """Key presses a request should produce at the X server: one per typed
+    character plus its shift, one per named key pressed."""
+    total = 0
+    text = keyboard.get("text")
+    if isinstance(text, str):
+        try:
+            total += sum(2 if shifted else 1
+                         for _, shifted in text_to_codes(text))
+        except ValueError:
+            return 0
+    for field in ("keys", "keys_down"):
+        keys = keyboard.get(field)
+        if isinstance(keys, str):
+            keys = [keys]
+        if isinstance(keys, list):
+            total += len(keys)
+    return total
 
 
 def unsupported_key_names(keyboard: Dict[str, Any]) -> List[str]:
@@ -789,12 +1058,23 @@ def main() -> int:
     keyboard = UInputKeyboard(args.device, args.device_name)
     keyboard.open()
     x11 = None
+    listener = None
     try:
         if args.x11_display:
             x11 = X11State(args.x11_display)
+            try:
+                listener = XInputListener(args.x11_display)
+            except Exception as exc:
+                # Without it, typing cannot be confirmed and a dropped burst
+                # is silent, so say so rather than degrade quietly.
+                print(json.dumps({"warning": "no XI2 listener", "error": repr(exc)}),
+                      flush=True)
+                if args.require_x11:
+                    raise
         elif args.require_x11:
             raise RuntimeError("X11 display is required but DISPLAY is empty")
-        service = FastInputService(keyboard, x11, args.x11_ack_timeout_ms)
+        service = FastInputService(keyboard, x11, args.x11_ack_timeout_ms,
+                                   listener=listener)
         with FastInputServer((args.host, args.port), service) as server:
             print(
                 json.dumps(
