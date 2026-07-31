@@ -936,9 +936,23 @@ class FastInputService:
     def _pointer_step(self, step: Dict[str, Any], timeout_ms: int) -> None:
         device, x11 = self.pointer_device, self.x11
         if "move" in step:
-            x, y = step["move"]
-            device.move(int(x), int(y))
-            matched, state = x11.wait_pointer({"x": int(x), "y": int(y)}, timeout_ms)
+            x, y = int(step["move"][0]), int(step["move"][1])
+            if step.get("guarantee_motion"):
+                # An explicit move promises an observable motion event, the
+                # same way a click promises a press and a release. An absolute
+                # device is silent when asked for the position it already
+                # holds, so step off first. Eight pixels because a smaller
+                # step is inside the confirmation's own tolerance and would
+                # approve a movement that never happened.
+                here = x11.pointer()
+                if abs(here[0] - x) <= 1 and abs(here[1] - y) <= 1:
+                    away = x - 8 if x > 8 else x + 8
+                    device.move(away, y)
+                    if not x11.wait_pointer({"x": away, "y": y}, timeout_ms)[0]:
+                        raise RuntimeError(
+                            f"pointer never reached the step-off at ({away},{y})")
+            device.move(x, y)
+            matched, state = x11.wait_pointer({"x": x, "y": y}, timeout_ms)
             if not matched:
                 raise RuntimeError(
                     f"pointer never reached ({x},{y}); X reports {state[:2]}")

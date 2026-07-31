@@ -2789,7 +2789,10 @@ class QemuApptainerRunner(BaseRunner):
 
         if "move" in mouse:
             x, y = mouse["move"]
-            steps.append({"move": [int(x), int(y)]})
+            # Standalone move: guaranteed observable. Positioning moves inside
+            # a click or drag are not marked, since their observable outcome
+            # is the button events.
+            steps.append({"move": [int(x), int(y)], "guarantee_motion": True})
         for key, button, times in (("left_click", "left", 1),
                                    ("right_click", "right", 1),
                                    ("middle_click", "middle", 1),

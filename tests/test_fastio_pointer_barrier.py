@@ -68,6 +68,26 @@ class PointerGestureRoutingTests(unittest.TestCase):
         self.assertEqual(len(moves), 1 + runner._QMP_DRAG_STEPS)
         self.assertEqual(moves[-1], {"move": [80, 80]})
 
+    def test_a_standalone_move_is_marked_as_guaranteed(self) -> None:
+        """The guarantee travels with the step, so the agent knows to step off
+        when the pointer already sits on the target. Without it a repeated
+        move is silently unobservable, which is exactly what regressed when
+        the pointer path moved in-guest."""
+        runner, client = self._runner()
+        with mock.patch.object(runner, "_qmp_send_input_events"):
+            runner._inject_action_via_fast_io({"mouse": {"move": [400, 300]}})
+        self.assertEqual(self._steps(client),
+                         [[{"move": [400, 300], "guarantee_motion": True}]])
+
+    def test_a_click_positioning_move_is_not_guaranteed(self) -> None:
+        """A click's observable outcome is its press and release, so forcing
+        an extra motion into every click would add events nobody asked for."""
+        runner, client = self._runner()
+        with mock.patch.object(runner, "_qmp_send_input_events"):
+            runner._inject_action_via_fast_io({"mouse": {"left_click": [4, 3]}})
+        move = [s for s in self._steps(client)[0] if "move" in s][0]
+        self.assertNotIn("guarantee_motion", move)
+
     def test_without_the_agent_it_falls_back_to_qemu(self) -> None:
         runner, client = self._runner(acks=False)
         with mock.patch.object(runner, "_qmp_send_input_events") as qmp:
