@@ -465,6 +465,7 @@ class TaskHooks:
     pre_task: Optional[str] = None
     post_task: Optional[str] = None
     pre_task_timeout: int = 600  # Timeout in seconds for pre_task hook (default 10 min)
+    fail_on_error: bool = False
 
 
 @dataclass

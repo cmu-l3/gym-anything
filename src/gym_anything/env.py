@@ -599,6 +599,7 @@ class GymAnythingEnv:
                 if self._reporter:
                     self._reporter.stage_start("pre_task_hook")
                 logger.info("Running pre_task hook")
+                fail_on_error = self.task_spec.hooks.fail_on_error
                 try:
                     hook_cmd = self.task_spec.hooks.pre_task
                     # Android uses sh instead of bash, and different paths
@@ -619,12 +620,13 @@ class GymAnythingEnv:
                             use_pty=False,
                             timeout=hook_timeout,
                         )
-                    _require_hook_success(
-                        self._runner,
-                        "pre_task hook",
-                        return_code,
-                        "/tmp/task_pre_task.log",
-                    )
+                    if fail_on_error:
+                        _require_hook_success(
+                            self._runner,
+                            "pre_task hook",
+                            return_code,
+                            "/tmp/task_pre_task.log",
+                        )
                     self._capture_observation()
                     if self._reporter:
                         self._reporter.stage_done("pre_task_hook")
@@ -632,7 +634,8 @@ class GymAnythingEnv:
                     logger.warning("pre_task hook failed: %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("pre_task_hook", str(e))
-                    raise
+                    if fail_on_error:
+                        raise
 
             # === TASK INIT SCRIPT ===
             if self.task_spec and self.task_spec.init.init_script:

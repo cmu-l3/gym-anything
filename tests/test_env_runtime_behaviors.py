@@ -28,6 +28,7 @@ class _FakeRunner:
         self.injected_actions = []
         self.fast_io = False
         self.image_capture_calls = 0
+        self.exec_returncode = 0
 
     def start(self, seed=None) -> None:
         self.start_calls += 1
@@ -59,7 +60,7 @@ class _FakeRunner:
 
     def exec(self, command: str, **kwargs) -> int:
         self.exec_commands.append(command)
-        return 0
+        return self.exec_returncode
 
     def exec_capture(self, command: str) -> str:
         return ""
@@ -134,6 +135,42 @@ def _make_env_spec(output_dir: str, *, runner: str | None = None, recording: boo
 
 
 class RuntimeBehaviorTests(unittest.TestCase):
+    def test_pre_task_failure_is_permissive_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            runner.exec_returncode = 17
+            task_spec = TaskSpec.from_dict(
+                {"id": "demo-task", "hooks": {"pre_task": "false"}}
+            )
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), task_spec)
+
+            try:
+                env.reset(seed=1)
+            finally:
+                env.close()
+
+    def test_pre_task_failure_can_be_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            runner.exec_returncode = 17
+            task_spec = TaskSpec.from_dict(
+                {
+                    "id": "demo-task",
+                    "hooks": {"pre_task": "false", "fail_on_error": True},
+                }
+            )
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), task_spec)
+
+            try:
+                with self.assertRaisesRegex(
+                    RuntimeError, "pre_task hook exited with code 17"
+                ):
+                    env.reset(seed=1)
+            finally:
+                env.close()
+
     def test_step_handles_wait_control_action_inside_env(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runner = _FakeRunner()
@@ -290,7 +327,7 @@ class RuntimeBehaviorTests(unittest.TestCase):
             env.close()
 
             self.assertIn(
-                "bash -lc 'echo exported' > /home/ga/task_post_task.log 2>&1",
+                "bash -lc 'echo exported' > /tmp/task_post_task.log 2>&1",
                 runner.exec_commands,
             )
             self.assertEqual(runner.stop_calls, 1)
