@@ -2,6 +2,7 @@ import base64
 import json
 import math
 import re
+import time
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Dict, List, Optional, Tuple
@@ -106,8 +107,36 @@ class Qwen35VLAgent(Qwen3VLAgent):
             w_bar = cls._ceil_by_factor(width * beta, factor)
         return int(h_bar), int(w_bar)
 
+    # The worker writes each frame on its own node; a remote client reads it
+    # over a shared filesystem, so a just-written frame can be briefly
+    # invisible. A single unlucky read raised FileNotFoundError out of the
+    # episode and killed the whole batch client with it (~80 concurrent
+    # episodes lost to one microsecond of filesystem lag). Wait for the write
+    # to land instead. The first attempt is immediate, so a frame that is
+    # already there -- effectively all of them -- costs nothing.
+    _FRAME_WAIT_S = (0.25, 0.5, 1.0, 2.0, 4.0)
+
+    def _open_frame(self, image_path):
+        last = None
+        for delay in (0.0,) + self._FRAME_WAIT_S:
+            if delay:
+                time.sleep(delay)
+            try:
+                img = Image.open(image_path)
+                # Image.open only reads the header, so a half-written frame
+                # would open here and fail later during resize(), outside this
+                # retry. Decode now -- resize() would do it anyway -- so a
+                # truncated write is caught and retried like a missing one.
+                img.load()
+                return img
+            except (FileNotFoundError, OSError) as exc:
+                last = exc
+        raise FileNotFoundError(
+            f"frame never became readable after {sum(self._FRAME_WAIT_S):.1f}s: "
+            f"{image_path} ({last})")
+
     def process_image(self, image_path):
-        image = Image.open(image_path)
+        image = self._open_frame(image_path)
         original_width, original_height = image.size
         resized_height, resized_width = self._smart_resize(
             height=original_height,
