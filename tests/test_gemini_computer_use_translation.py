@@ -9,9 +9,11 @@ No API access needed: we build the agent without __init__ and call
 _translate directly.
 """
 import unittest
+from pathlib import Path
 
 from agents.agents.gemini_computer_use import (
     GeminiComputerUseAgent,
+    _observation_frame_paths,
     _uses_legacy_actions,
 )
 
@@ -30,6 +32,32 @@ class ModelFamilyTests(unittest.TestCase):
         self.assertTrue(_uses_legacy_actions("gemini-3-flash-preview"))
         self.assertTrue(_uses_legacy_actions("gemini-2.5-computer-use-preview-10-2025"))
         self.assertFalse(_uses_legacy_actions("gemini-3.5-flash"))
+
+
+class ObservationSequenceTests(unittest.TestCase):
+    def test_frames_take_precedence_and_keep_chronological_order(self):
+        obs = {
+            "screen": {"path": "latest.png"},
+            "frames": [
+                {"path": "first.png", "offset_ms": 0},
+                {"path": "second.png", "offset_ms": 100},
+            ],
+        }
+        self.assertEqual(
+            _observation_frame_paths(obs),
+            [Path("first.png"), Path("second.png")],
+        )
+
+    def test_screen_remains_the_single_frame_fallback(self):
+        self.assertEqual(
+            _observation_frame_paths({"screen": {"path": "latest.png"}}),
+            [Path("latest.png")],
+        )
+
+    def test_function_response_contains_every_frame(self):
+        agent = _bare_agent()
+        response = agent._function_response("computer", "call-1", {}, [b"one", b"two"])
+        self.assertEqual([part.inline_data.data for part in response.parts], [b"one", b"two"])
 
 
 class LegacyVocabularyTests(unittest.TestCase):

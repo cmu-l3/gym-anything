@@ -704,15 +704,26 @@ class GymAnythingEnv:
         # First observation (capture initial screen/audio as frame_00000)
         return self._capture_observation()
 
-    def step(self, actions: List[Dict[str, Any]], wait_between_actions: float = 0.2, mark_done: bool = False, settle_sec: Optional[float] = None) -> Tuple[Dict[str, Any], float, bool, Dict[str, Any]]:
-        # settle_sec is an explicit override for the pause after injecting
-        # actions, before the screenshot. When None, the env's own configured
-        # settle applies (_post_action_settle_seconds); a speed-focused caller
-        # passes a small value and lets the agent wait explicitly instead.
+    def step(
+        self,
+        actions: List[Dict[str, Any]],
+        wait_between_actions: float = 0.2,
+        mark_done: bool = False,
+        *,
+        capture_observation: bool = True,
+        settle_after_actions: bool = True,
+    ) -> Tuple[Dict[str, Any], float, bool, Dict[str, Any]]:
+        """Apply actions and optionally defer settling and observation capture.
+
+        Integrations that control the environment clock can set both keyword
+        flags to ``False``, then capture their own observation window. Existing
+        callers retain the original settle-and-capture behavior.
+        """
         # Multi-agent: accept mapping role->action, else annotate turn-based role
         if isinstance(actions, dict):
             actions = [actions]
         injected_actions = 0
+        wait_between_actions = self._action_gap_seconds(wait_between_actions)
         control_result: Optional[Dict[str, Any]] = None
         for action_num, action in enumerate(actions):
             control = self._parse_control_action(action)
@@ -745,16 +756,15 @@ class GymAnythingEnv:
                 injected_actions += 1
             if wait_between_actions and action_num < len(actions) - 1:
                 time.sleep(wait_between_actions)
-        if injected_actions:
-            # An explicit settle_sec overrides the env's configured settle.
-            settle_seconds = self._post_action_settle_seconds() if settle_sec is None else settle_sec
+        if injected_actions and settle_after_actions:
+            settle_seconds = self._post_action_settle_seconds()
             if settle_seconds > 0:
                 time.sleep(settle_seconds)
         # For synchronous envs, wait for the step cycle unless fast I/O asked for immediate observation.
-        cycle_seconds = self._step_cycle_settle_seconds(injected_actions)
+        cycle_seconds = self._step_cycle_settle_seconds(injected_actions) if settle_after_actions else 0.0
         if cycle_seconds > 0:
             time.sleep(cycle_seconds)
-        obs: Dict[str, Any] = self._capture_observation()
+        obs: Dict[str, Any] = self._capture_observation() if capture_observation else {}
 
         # Log step
         if self._traj_log:
@@ -817,6 +827,30 @@ class GymAnythingEnv:
         if not self.fast_io:
             return 2.0
         value = os.environ.get("GYM_ANYTHING_FAST_IO_ACTION_SETTLE_MS", "0")
+        try:
+            return max(0.0, float(value) / 1000.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _action_gap_seconds(self, requested: float) -> float:
+        """Gap between actions inside one step.
+
+        fast_io zeroes it the way it already zeroes the post-action settle and
+        the step cycle: the fast input path exists to remove per-action
+        latency, and a 200 ms default gap dominated every composite gesture
+        (a three-action modifier-held click measured 418 ms, of which 400 ms
+        was this sleep). Override with GYM_ANYTHING_FAST_IO_ACTION_GAP_MS.
+
+        Only safe because the runner now confirms delivery instead of assuming
+        it. Zeroing this gap while injection was still fire-and-forget made
+        every ordering race fire at once (modifiers dropped, repeats
+        collapsed, drags pressing at their endpoint), so a runner without a
+        delivery barrier keeps the gap it asked for.
+        """
+        acks = getattr(self._runner, "acks_input_delivery", None)
+        if not self.fast_io or not (callable(acks) and acks()):
+            return requested
+        value = os.environ.get("GYM_ANYTHING_FAST_IO_ACTION_GAP_MS", "0")
         try:
             return max(0.0, float(value) / 1000.0)
         except (TypeError, ValueError):

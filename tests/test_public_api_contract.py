@@ -58,6 +58,11 @@ class PublicApiContractTests(unittest.TestCase):
     def test_env_exposes_public_capture_screenshot_image(self) -> None:
         self.assertTrue(callable(getattr(GymAnythingEnv, "capture_screenshot_image", None)))
 
+    def test_step_exposes_deferred_capture_controls(self) -> None:
+        params = inspect.signature(GymAnythingEnv.step).parameters
+        self.assertIn("capture_observation", params)
+        self.assertIn("settle_after_actions", params)
+
     def test_env_exposes_public_episode_dir_property(self) -> None:
         self.assertIsInstance(getattr(GymAnythingEnv, "episode_dir", None), property)
 
@@ -84,6 +89,11 @@ class PublicApiContractTests(unittest.TestCase):
 
     def test_remote_exposes_public_capture_observation(self) -> None:
         self.assertTrue(callable(getattr(RemoteGymEnv, "capture_observation", None)))
+
+    def test_remote_step_exposes_deferred_capture_controls(self) -> None:
+        params = inspect.signature(RemoteGymEnv.step).parameters
+        self.assertIn("capture_observation", params)
+        self.assertIn("settle_after_actions", params)
 
     def test_remote_exposes_public_episode_dir_property(self) -> None:
         self.assertIsInstance(getattr(RemoteGymEnv, "episode_dir", None), property)

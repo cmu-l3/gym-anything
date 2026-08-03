@@ -369,14 +369,23 @@ class RemoteGymEnv:
 
         return obs
     
-    def step(self, actions: List[Dict[str, Any]], wait_between_actions: float = 0.2,
-             mark_done: bool = False) -> Tuple[Dict[str, Any], float, bool, Dict[str, Any]]:
+    def step(
+        self,
+        actions: List[Dict[str, Any]],
+        wait_between_actions: float = 0.2,
+        mark_done: bool = False,
+        *,
+        capture_observation: bool = True,
+        settle_after_actions: bool = True,
+    ) -> Tuple[Dict[str, Any], float, bool, Dict[str, Any]]:
         """Execute actions in the environment.
         
         Args:
             actions: List of action dictionaries
             wait_between_actions: Wait time between actions in seconds
             mark_done: Whether to mark episode as done
+            capture_observation: Whether to capture the normal post-action observation
+            settle_after_actions: Whether to apply the normal post-action delays
             
         Returns:
             Tuple of (observation, reward, done, info)
@@ -387,7 +396,9 @@ class RemoteGymEnv:
             json={
                 "actions": actions,
                 "wait_between_actions": wait_between_actions,
-                "mark_done": mark_done
+                "mark_done": mark_done,
+                "capture_observation": capture_observation,
+                "settle_after_actions": settle_after_actions,
             }
         )
         
