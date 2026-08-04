@@ -71,6 +71,57 @@ class BaseRunner(abc.ABC):
     def capture_observation(self) -> Dict[str, Any]:
         ...
 
+    # --- class-level facts (queried by doctor/CLI; never centrally tabled) ---
+
+    @classmethod
+    def doctor_status(cls) -> Dict[str, Any]:
+        """Host availability for this runner: {"available", "reason", "deps"}.
+
+        Default is optimistic with an honest reason; runners with real host
+        dependencies override this so doctor and worker preflight can probe
+        them.
+        """
+        return {
+            "available": True,
+            "reason": "no doctor probe declared by this runner",
+            "deps": {},
+        }
+
+    @classmethod
+    def cache_components(cls) -> list:
+        """Rows for `gym-anything cache`: {"name","category","paths","desc"}."""
+        return []
+
+    @classmethod
+    def install_plan(cls):
+        """An installers.InstallPlan for this runner's host deps, or None."""
+        return None
+
+    @classmethod
+    def validate_options(cls, spec: EnvSpec) -> list:
+        """Validate spec.runner_options; return a list of error strings.
+
+        Called after runner selection, before anything starts, so a typo in
+        runner-specific configuration fails at spec load rather than at
+        world boot. The default accepts anything.
+        """
+        return []
+
+    # --- episode participation ---
+
+    def on_episode_start(self, context: Dict[str, Any]) -> None:
+        """Receive the episode context (episode_dir, env_id, task_id, seed).
+
+        Called at the start of every reset, before the world starts. Default
+        no-op; worlds that persist artifacts or key state per-episode use
+        this instead of guessing paths.
+        """
+
+    def supports_time_control(self) -> bool:
+        """True when this world owns time: `wait` control actions are
+        forwarded to inject_action instead of sleeping host wall-clock."""
+        return False
+
     def supports_live_recording(self) -> bool:
         return False
 

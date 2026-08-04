@@ -74,9 +74,9 @@ class CliContractTests(unittest.TestCase):
         )
 
         completed = mock.Mock(returncode=0)
-        with mock.patch("benchmarks.cua_world.registry.resolve_environment_key", return_value="demo_env"), \
+        with mock.patch("gym_anything.registry.resolve_environment_key", return_value="demo_env"), \
              mock.patch(
-                 "benchmarks.cua_world.registry.get_tasks_for_environment",
+                 "gym_anything.registry.get_tasks_for_environment",
                  return_value=["task_a", "task_b", "task_c", "task_d"],
              ), \
              mock.patch.object(cli.subprocess, "run", return_value=completed) as run_mock:

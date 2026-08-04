@@ -13,12 +13,8 @@ from .compatibility import get_runner_compatibility, infer_runner_key_from_name
 from .runtime.post_reset import apply_post_reset_setup
 from .runtime.recording.ffmpeg import FFmpegRecorder, RecordingHandle
 from .runtime.recording.frames import assemble_step_video
-from .runtime.runners.avd_apptainer import AVDApptainerRunner
+from .runtime.runners import registry as runner_registry
 from .runtime.runners.base import BaseRunner
-from .runtime.runners.docker import DockerRunner
-from .runtime.runners.local import LocalRunner
-from .runtime.runners.qemu_apptainer import QemuApptainerRunner
-from .runtime.runners.qemu_native import QemuNativeRunner
 from .utils.jsonl import JSONLWriter
 from .verification.runner import VerifierRunner
 import base64
@@ -87,188 +83,49 @@ class GymAnythingEnv:
         }
 
     def _select_runner(self, spec: EnvSpec) -> BaseRunner:
-        """Select the appropriate runner based on environment and configuration.
+        """Select the runner for this spec through the runner registry.
 
-        Precedence, uniform for every runner key:
+        Precedence, uniform for every runner reference:
         1. GYM_ANYTHING_RUNNER (explicit override) — always wins, even when a
            preset pins spec.runner (e.g. GYM_ANYTHING_RUNNER=modal on
            android-avd-34 runs the same env remotely unchanged).
         2. spec.runner (env.json or preset pin).
         3. Platform auto-detect.
 
-        The SAME env.json files work with all runners!
+        A reference is a registered key ("qemu", case-insensitive) or a
+        locator ("pkg.mod:ClassName", case-preserved). The SAME env.json
+        files work with all runners!
         """
-        runner_override = os.environ.get("GYM_ANYTHING_RUNNER", "").lower()
-        spec_runner = (getattr(spec, "runner", None) or "").lower()
+        cls = None
+        for source, ref in (
+            ("override", os.environ.get("GYM_ANYTHING_RUNNER", "")),
+            ("spec runner", getattr(spec, "runner", None) or ""),
+        ):
+            if not ref:
+                continue
+            if not runner_registry.is_locator(ref):
+                ref = ref.lower()
+            resolved = runner_registry.resolve_runner_class(ref, spec)
+            if resolved is not None:
+                cls = resolved
+                break
+            logger.warning("Unknown %s '%s'; falling back to auto-detect", source, ref)
 
-        if runner_override:
-            runner = self._runner_for_key(runner_override, spec)
-            if runner is not None:
-                return runner
-            logger.warning(
-                "Unknown runner override '%s'; falling back to spec/auto-detect",
-                runner_override,
+        if cls is None:
+            cls = runner_registry.autodetect_runner_class(spec)
+
+        errors = cls.validate_options(spec)
+        if errors:
+            raise ValueError(
+                f"{cls.__name__} rejected EnvSpec.runner_options: "
+                + "; ".join(str(e) for e in errors)
             )
-
-        if spec_runner:
-            runner = self._runner_for_key(spec_runner, spec)
-            if runner is not None:
-                return runner
-            logger.warning(
-                "Unknown spec runner '%s'; falling back to auto-detect", spec_runner
-            )
-
-        # --- Auto-detect: pick the best available runner for this platform ---
-        import sys as _sys
-        import platform as _platform
-
-        if _sys.platform == "darwin" and _platform.machine() == "arm64":
-            # Apple Silicon: prefer AVF (Rosetta) > QemuNative (aarch64+HVF) > Docker
-            if self._check_avf_available():
-                from .runtime.runners.avf import AVFRunner
-                logger.info("Using AVFRunner (Apple Silicon, auto-detected)")
-                return AVFRunner(spec)
-            if self._check_qemu_native_available():
-                logger.info("Using QemuNativeRunner (Apple Silicon, auto-detected)")
-                return QemuNativeRunner(spec)
-        elif _sys.platform == "darwin":
-            # Intel Mac: prefer QemuNative (x86+HVF) > Docker
-            if self._check_qemu_native_available():
-                logger.info("Using QemuNativeRunner (Intel Mac, auto-detected)")
-                return QemuNativeRunner(spec)
-        else:
-            # Linux: prefer QemuApptainer > QemuNative > Docker
-            if self._check_apptainer_available():
-                logger.info("Using QemuApptainerRunner (auto-detected)")
-                return QemuApptainerRunner(spec)
-            if self._check_qemu_native_available():
-                logger.info("Using QemuNativeRunner (auto-detected)")
-                return QemuNativeRunner(spec)
-
-        # Fallback: Docker
-        if self._check_docker_available() and (spec.image or spec.dockerfile):
-            logger.info("Using DockerRunner (fallback)")
-            return DockerRunner(spec)
-
-        logger.warning("No suitable runtime found. Run: gym-anything doctor")
-        return LocalRunner(spec)
-
-    def _runner_for_key(self, key: str, spec: EnvSpec) -> Optional[BaseRunner]:
-        """Instantiate the runner an explicit key names, or None if unknown."""
-        if key == "modal":
-            from .runtime.runners.modal_runner import ModalRunner
-            logger.info("Using ModalRunner (guest VM in Modal VM Sandbox)")
-            return ModalRunner(spec)
-        if key == "modal_native":
-            from .runtime.runners.modal_native import ModalNativeRunner
-            logger.info("Using ModalNativeRunner (native Linux Modal VM Sandbox)")
-            return ModalNativeRunner(spec)
-        if key == "use_computer":
-            from .runtime.runners.use_computer import UseComputerRunner
-            logger.info("Using UseComputerRunner (remote macOS sandbox via use.computer)")
-            return UseComputerRunner(spec)
-        if key == "avf":
-            from .runtime.runners.avf import AVFRunner
-            logger.info("Using AVFRunner (Apple Virtualization Framework + Rosetta)")
-            return AVFRunner(spec)
-        if key == "avd_native":
-            from .runtime.runners.avd_native import AVDNativeRunner
-            logger.info("Using AVDNativeRunner (no Apptainer)")
-            return AVDNativeRunner(spec)
-        if key == "avd":
-            return self._make_avd_runner(spec)
-        if key == "apptainer":
-            logger.info("Using ApptainerDirectRunner (GPU-enabled)")
-            from .runtime.runners.apptainer_direct import ApptainerDirectRunner
-            return ApptainerDirectRunner(spec)
-        if key == "qemu_native":
-            logger.info("Using QemuNativeRunner")
-            return QemuNativeRunner(spec)
-        if key == "qemu":
-            return self._make_qemu_runner(spec)
-        if key == "local":
-            logger.info("Using LocalRunner")
-            return LocalRunner(spec)
-        if key == "docker":
-            logger.info("Using DockerRunner")
-            return DockerRunner(spec)
-        return None
-
-    def _make_qemu_runner(self, spec: EnvSpec) -> BaseRunner:
-        """Auto-select between QemuApptainerRunner and QemuNativeRunner."""
-        import sys
-        if sys.platform == "darwin":
-            logger.info("Using QemuNativeRunner (macOS detected)")
-            return QemuNativeRunner(spec)
-        if self._check_apptainer_available():
-            logger.info("Using QemuApptainerRunner")
-            return QemuApptainerRunner(spec)
-        if self._check_qemu_native_available():
-            logger.info("Apptainer not found, using QemuNativeRunner")
-            return QemuNativeRunner(spec)
-        raise RuntimeError(
-            "runner=qemu but neither Apptainer nor native QEMU found. "
-            "Install Apptainer or QEMU (brew install qemu / apt install qemu-system-x86)."
-        )
-
-    def _make_avd_runner(self, spec: EnvSpec) -> BaseRunner:
-        """Auto-select between AVDApptainerRunner and AVDNativeRunner."""
-        import sys
-        if sys.platform == "darwin":
-            from .runtime.runners.avd_native import AVDNativeRunner
-            logger.info("Using AVDNativeRunner (macOS detected)")
-            return AVDNativeRunner(spec)
-        if self._check_apptainer_available():
-            logger.info("Using AVDApptainerRunner")
-            return AVDApptainerRunner(spec)
-        # Fallback to native if Apptainer missing
-        from .runtime.runners.avd_native import AVDNativeRunner
-        logger.info("Apptainer not found, using AVDNativeRunner")
-        return AVDNativeRunner(spec)
-    
-    def _check_docker_available(self) -> bool:
-        """Check if Docker daemon is available and running."""
-        import subprocess
-        try:
-            result = subprocess.run(
-                ["docker", "info"],
-                capture_output=True,
-                timeout=5
-            )
-            return result.returncode == 0
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            return False
-    
-    def _check_apptainer_available(self) -> bool:
-        """Check if Apptainer is installed."""
-        import subprocess
-        try:
-            result = subprocess.run(
-                ["apptainer", "--version"],
-                capture_output=True,
-                timeout=5
-            )
-            return result.returncode == 0
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            return False
-
-    def _check_qemu_native_available(self) -> bool:
-        """Check if QEMU is installed directly on the host."""
-        import shutil
-        import platform
-        if platform.machine() in ("arm64", "aarch64"):
-            return shutil.which("qemu-system-aarch64") is not None
-        return shutil.which("qemu-system-x86_64") is not None
+        logger.info("Using %s", cls.__name__)
+        return cls(spec)
 
     def set_reporter(self, reporter) -> None:
         self._reporter = reporter
         self._runner.set_reporter(reporter)
-
-    def _check_avf_available(self) -> bool:
-        """Check if Apple Virtualization Framework tooling is available."""
-        import shutil
-        return (shutil.which("vfkit") is not None
-                and shutil.which("gvproxy") is not None)
 
     def _platform_family(self) -> str:
         getter = getattr(self._runner, "get_platform_family", None)
@@ -355,6 +212,15 @@ class GymAnythingEnv:
         self._rec_handle = None
         self._session_info = None
         self._ensure_episode_dir()
+
+        # Law L3 (context symmetry): the world receives the episode context
+        # up front, like the judge and the policy already do.
+        self._runner.on_episode_start({
+            "episode_dir": str(self._episode_dir),
+            "env_id": self.env_spec.id,
+            "task_id": self.task_spec.id if self.task_spec else None,
+            "seed": seed,
+        })
 
         # Resolve cache_level="default" → env-spec value (fallback "pre_start").
         # When in default mode, OR the env's default_use_savevm onto the
@@ -699,7 +565,12 @@ class GymAnythingEnv:
             if control is not None:
                 if control["kind"] == "wait":
                     seconds = control["seconds"]
-                    time.sleep(seconds)
+                    # Wall-clock sleep is a convenience; a world that owns
+                    # its clock gets the wait delivered instead (law L2).
+                    if self._runner.supports_time_control():
+                        self._runner.inject_action({"action": "wait", "time": seconds})
+                    else:
+                        time.sleep(seconds)
                     control_result = {
                         "action": "wait",
                         "output": f"Waited for {seconds} seconds",
@@ -1307,7 +1178,21 @@ class GymAnythingEnv:
                     obs["ui_tree"] = {"text": ui_text}
             except Exception:
                 pass
-        if not obs:
+        # Law L2 (forward, don't interpret): modality types core doesn't
+        # understand are delegated to the world and merged, never dropped —
+        # even when a known modality already produced something.
+        delegated = False
+        known_types = {"rgb_screen", "audio_waveform", "ui_tree"}
+        if any(o.type not in known_types for o in self.env_spec.observation):
+            delegated = True
+            try:
+                extra = self._runner.capture_observation() or {}
+                for key, value in extra.items():
+                    obs.setdefault(key, value)
+            except Exception:
+                if self.fast_io:
+                    raise
+        if not obs and not delegated:
             obs = self._runner.capture_observation()
         return obs
 

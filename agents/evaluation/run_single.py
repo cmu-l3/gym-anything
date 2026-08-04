@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import logging
 import os
@@ -172,6 +173,19 @@ def _load_task_description(env, env_dir: str, task_id: str) -> str | None:
         return json.load(task_file).get("description")
 
 
+def _resolve_agent_class(ref: str):
+    """Resolve --agent: a bundled class name, or a locator 'pkg.mod:ClassName'.
+
+    The locator form is the zero-registration path for downstream agents —
+    the same reference style program verifiers and reward shaping already
+    use.
+    """
+    if ":" in ref:
+        module_name, _, class_name = ref.partition(":")
+        return getattr(importlib.import_module(module_name), class_name)
+    return getattr(agent_registry, ref)
+
+
 def _make_env(args: argparse.Namespace):
     fast_io = bool(getattr(args, "fast_io", False))
     remote_url = getattr(args, "remote_url", None)
@@ -337,7 +351,7 @@ def run_single(args: argparse.Namespace) -> int:
     if task_description:
         task_description += "\nUnless explicitly mentioned, you are required to use the UI to complete the task not terminal."
 
-    agent_cls = getattr(agent_registry, args.agent)
+    agent_cls = _resolve_agent_class(args.agent)
     agent = agent_cls(agent_args=json.loads(args.agent_args), verbose=args.verbose, debug=args.debug)
     agent.init(
         task_description=task_description,

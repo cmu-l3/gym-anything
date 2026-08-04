@@ -4,9 +4,8 @@ from typing import Optional
 
 from ..specs import EnvSpec, TaskSpec
 from dataclasses import asdict
+from ..runtime.runners import registry as runner_registry
 from ..verification.contracts import SUPPORTED_SUCCESS_MODES
-
-SUPPORTED_RUNNERS = {"docker", "qemu", "qemu_native", "avd", "avd_native", "avf", "local", "apptainer", "modal", "modal_native", "use_computer"}
 
 # Minimal JSON Schemas embedded for optional validation
 ENV_SCHEMA = {
@@ -56,9 +55,12 @@ def validate_env_spec(spec: EnvSpec) -> None:
         raise ValueError("EnvSpec.observation must specify at least one modality")
     if not spec.action:
         raise ValueError("EnvSpec.action must specify at least one modality")
-    if spec.runner and spec.runner not in SUPPORTED_RUNNERS:
-        supported = ", ".join(sorted(SUPPORTED_RUNNERS))
-        raise ValueError(f"EnvSpec.runner '{spec.runner}' is not supported; supported runners: {supported}")
+    if spec.runner and not runner_registry.is_known_reference(spec.runner):
+        supported = ", ".join(runner_registry.list_runner_keys())
+        raise ValueError(
+            f"EnvSpec.runner '{spec.runner}' is not a registered runner key or an importable "
+            f"locator ('pkg.mod:ClassName'); registered runners: {supported}"
+        )
     # Optional JSON Schema validation if 'jsonschema' is installed
     try:
         import jsonschema  # type: ignore

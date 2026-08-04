@@ -523,6 +523,27 @@ def get_runner_status() -> Dict[str, Dict]:
                 all_ok = False
 
         results[runner_key] = {"available": all_ok, "deps": dep_status}
+
+    # Runners registered beyond the built-ins (entry points, register_runner)
+    # report their own class-level status — capabilities are queried from the
+    # party, never centrally tabled (laws L1/L4).
+    from .runtime.runners import registry as runner_registry
+    for key in runner_registry.list_runner_keys():
+        if key in results:
+            continue
+        try:
+            cls = runner_registry.resolve_runner_class(key)
+        except Exception as exc:
+            results[key] = {"available": False, "reason": str(exc), "deps": {}}
+            continue
+        if cls is None:
+            continue
+        try:
+            results[key] = dict(cls.doctor_status())
+        except Exception as exc:
+            results[key] = {"available": False, "reason": f"doctor_status failed: {exc}", "deps": {}}
+    for key, reason in runner_registry.registry_conflicts().items():
+        results[key] = {"available": False, "reason": reason, "deps": {}}
     return results
 
 

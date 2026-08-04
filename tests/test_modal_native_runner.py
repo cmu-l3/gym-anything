@@ -258,15 +258,10 @@ class ModalNativeRunnerTests(unittest.TestCase):
                 ModalNativeRunner(_spec())
 
     def test_core_runner_dispatch_uses_modal_native_key(self):
-        env = GymAnythingEnv.__new__(GymAnythingEnv)
-        sentinel = object()
-        with mock.patch(
-            "gym_anything.runtime.runners.modal_native.ModalNativeRunner",
-            return_value=sentinel,
-        ) as runner_class:
-            selected = env._runner_for_key("modal_native", _spec())
-        self.assertIs(selected, sentinel)
-        runner_class.assert_called_once()
+        from gym_anything.runtime.runners import registry as runner_registry
+
+        selected = runner_registry.resolve_runner_class("modal_native", _spec())
+        self.assertIs(selected, ModalNativeRunner)
 
     def test_start_maps_resources_network_resolution_and_runtime_info(self):
         spec = _spec(resources={"cpu": 3, "mem_gb": 6, "gpu": 0, "net": False})

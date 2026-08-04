@@ -30,25 +30,43 @@ from .verification import (
 from .verification.pipeline import verify_task_pipeline
 from .verification.reports import render_task_pipeline_result_text
 
-_ENV_SEARCH_PATHS = [
-    "benchmarks/cua_world/environments",
-]
+# Default benchmark. A configuration VALUE, not control flow (law L1): the
+# only sanctioned place a party name appears in core, overridable per
+# invocation (--benchmark) or ambiently (GYM_ANYTHING_BENCHMARK).
+DEFAULT_BENCHMARK = os.environ.get("GYM_ANYTHING_BENCHMARK", "cua_world")
 
 
-def _resolve_env_dir(name: str) -> str:
+def _benchmark_environments_root(benchmark: str) -> Path:
+    from .registry import resolve_benchmark_root
+    return resolve_benchmark_root(benchmark) / "environments"
+
+
+def _resolve_env_dir(name: str, benchmark: str = DEFAULT_BENCHMARK) -> str:
     """Resolve a short env name (e.g. 'moodle_env') to its full path."""
     # Already a valid path
     if Path(name).is_dir() and (Path(name) / "env.json").exists():
         return name
-    # Search standard locations
-    for base in _ENV_SEARCH_PATHS:
-        candidate = Path(base) / name
+    # Checkout-relative candidates keep their historical relative form: the
+    # string may travel to a remote worker that resolves it against ITS cwd,
+    # so a path that hits here must not be absolutized.
+    bench_path = Path(benchmark)
+    if (bench_path / "environments").is_dir():
+        relative = bench_path / "environments" / name  # benchmark given as a root path
+    else:
+        relative = Path("benchmarks") / benchmark / "environments" / name  # pillar layout
+    if relative.is_dir() and (relative / "env.json").exists():
+        return str(relative)
+    # Installed benchmark packages resolve absolutely via the registry.
+    try:
+        candidate = _benchmark_environments_root(benchmark) / name
         if candidate.is_dir() and (candidate / "env.json").exists():
             return str(candidate)
+    except ValueError:
+        pass
     # Fuzzy: try appending _env
     if not name.endswith("_env"):
-        return _resolve_env_dir(name + "_env")
-    print(f"Error: environment '{name}' not found.", file=sys.stderr)
+        return _resolve_env_dir(name + "_env", benchmark)
+    print(f"Error: environment '{name}' not found in benchmark '{benchmark}'.", file=sys.stderr)
     print(f"Run 'gym-anything list' to see available environments.", file=sys.stderr)
     sys.exit(1)
 
@@ -151,7 +169,7 @@ def _show_rich_help() -> None:
 
 
 def cmd_verify_spec(args):
-    args.env_dir = _resolve_env_dir(args.env_dir)
+    args.env_dir = _resolve_env_dir(args.env_dir, getattr(args, "benchmark", DEFAULT_BENCHMARK))
     summary = verify_environment_dir(args.env_dir, task_id=args.task)
     if args.json:
         _print_json(summary.to_dict())
@@ -161,7 +179,8 @@ def cmd_verify_spec(args):
 
 
 def cmd_verify_corpus(args):
-    summary = verify_corpus(args.root, max_failures=args.max_failures)
+    root = args.root or str(_benchmark_environments_root(args.benchmark))
+    summary = verify_corpus(root, max_failures=args.max_failures)
     if args.write_status_manifest:
         write_json_report(build_task_status_manifest(summary), args.write_status_manifest)
     if args.write_verified_split:
@@ -176,7 +195,7 @@ def cmd_verify_corpus(args):
 
 
 def cmd_verify_task(args):
-    args.env_dir = _resolve_env_dir(args.env_dir)
+    args.env_dir = _resolve_env_dir(args.env_dir, getattr(args, "benchmark", DEFAULT_BENCHMARK))
     _apply_verifier_overrides(args)
     result = verify_task_pipeline(
         env_dir=args.env_dir,
@@ -194,7 +213,7 @@ def cmd_verify_task(args):
 
 
 def cmd_validate(args):
-    args.env_dir = _resolve_env_dir(args.env_dir)
+    args.env_dir = _resolve_env_dir(args.env_dir, getattr(args, "benchmark", DEFAULT_BENCHMARK))
     summary = verify_environment_dir(args.env_dir, task_id=args.task)
     if summary.ok:
         first_task = next((record.spec_id for record in summary.records if record.kind == "task"), None)
@@ -219,7 +238,7 @@ def _pick_random_task(env_dir: str) -> str:
 
 
 def cmd_run(args):
-    args.env_dir = _resolve_env_dir(args.env_dir)
+    args.env_dir = _resolve_env_dir(args.env_dir, getattr(args, "benchmark", DEFAULT_BENCHMARK))
     if not args.task:
         args.task = _pick_random_task(args.env_dir)
         if args.task:
@@ -344,8 +363,14 @@ def cmd_list(args):
     console = Console()
     found_any = False
 
-    for base in _ENV_SEARCH_PATHS:
-        base_path = Path(base)
+    try:
+        search_roots = [_benchmark_environments_root(args.benchmark)]
+    except ValueError as exc:
+        console.print(f"[red]Cannot resolve benchmark '{args.benchmark}':[/] {exc}")
+        return 1
+
+    for base_path in search_roots:
+        base = str(base_path)
         if not base_path.is_dir():
             continue
         envs = sorted(
@@ -391,7 +416,8 @@ def _build_agent_args(args) -> dict:
     if getattr(args, "exp_name", None):
         agent_args["exp_name"] = args.exp_name
     else:
-        agent_name = args.agent.lower().replace("agent", "")
+        # For locator agents ("pkg.mod:Class") use the class-name part.
+        agent_name = args.agent.rsplit(":", 1)[-1].lower().replace("agent", "")
         model_short = (args.model or "default").split("/")[-1]
         agent_args["exp_name"] = f"{agent_name}-{model_short}"
     if args.task:
@@ -410,25 +436,28 @@ def _build_agent_args(args) -> dict:
 
 def _run_benchmark_batch(args) -> int:
     """Run benchmark in batch mode across multiple tasks."""
-    from benchmarks.cua_world.registry import (
+    from .registry import (
         get_tasks_for_environment,
         load_environment_task_splits,
         resolve_environment_dir,
         resolve_environment_key,
     )
 
+    benchmark = getattr(args, "benchmark", DEFAULT_BENCHMARK)
     if args.env_dir == "all":
-        registry = load_environment_task_splits(surface=args.surface)
+        registry = load_environment_task_splits(benchmark, surface=args.surface)
         pairs = []
         for env_key, split_map in registry.items():
             if args.split not in split_map:
                 continue
-            env_dir = str(resolve_environment_dir(env_key))
+            env_dir = str(resolve_environment_dir(env_key, benchmark))
             for task_id in split_map[args.split]:
                 pairs.append((task_id, env_dir))
     else:
         env_key = resolve_environment_key(args.env_dir)
-        tasks = get_tasks_for_environment(env_key, split=args.split, surface=args.surface)
+        tasks = get_tasks_for_environment(
+            env_key, benchmark, split=args.split, surface=args.surface
+        )
         pairs = [(task_id, args.env_dir) for task_id in tasks]
 
     if not pairs:
@@ -557,7 +586,7 @@ def cmd_benchmark(args) -> int:
         return 1
 
     if args.env_dir != "all":
-        args.env_dir = _resolve_env_dir(args.env_dir)
+        args.env_dir = _resolve_env_dir(args.env_dir, getattr(args, "benchmark", DEFAULT_BENCHMARK))
 
     _apply_verifier_overrides(args)
 
@@ -1137,14 +1166,25 @@ def main(argv=None):
     p_verify = sub.add_parser("verify", help="Run verification checks")
     verify_sub = p_verify.add_subparsers(dest="verify_cmd", required=True)
 
+    def _add_benchmark_arg(subparser) -> None:
+        subparser.add_argument(
+            "--benchmark",
+            default=DEFAULT_BENCHMARK,
+            help="Benchmark root path or package name (default: %(default)s; "
+                 "set GYM_ANYTHING_BENCHMARK to change the ambient default)",
+        )
+
     p_verify_spec = verify_sub.add_parser("spec", help="Verify one environment and its task specs")
     p_verify_spec.add_argument("env_dir")
     p_verify_spec.add_argument("--task")
     p_verify_spec.add_argument("--json", action="store_true")
+    _add_benchmark_arg(p_verify_spec)
     p_verify_spec.set_defaults(func=cmd_verify_spec)
 
     p_verify_corpus = verify_sub.add_parser("corpus", help="Verify all environment and task specs under a root")
-    p_verify_corpus.add_argument("root", nargs="?", default="benchmarks/cua_world/environments")
+    p_verify_corpus.add_argument("root", nargs="?", default=None,
+                                 help="Environments root (default: the --benchmark's environments/)")
+    _add_benchmark_arg(p_verify_corpus)
     p_verify_corpus.add_argument("--max-failures", type=int)
     p_verify_corpus.add_argument("--write-status-manifest")
     p_verify_corpus.add_argument("--write-verified-split")
@@ -1160,16 +1200,19 @@ def main(argv=None):
     p_verify_task.add_argument("--cache_level", default="pre_start")
     p_verify_task.add_argument("--use_savevm", action="store_true")
     p_verify_task.add_argument("--json", action="store_true")
+    _add_benchmark_arg(p_verify_task)
     _add_verifier_override_args(p_verify_task)
     p_verify_task.set_defaults(func=cmd_verify_task)
 
     p_val = sub.add_parser("validate", help="Validate env/task specs")
     p_val.add_argument("env_dir")
     p_val.add_argument("--task")
+    _add_benchmark_arg(p_val)
     p_val.set_defaults(func=cmd_validate)
 
     p_list = sub.add_parser("list", help="List available environments")
     p_list.add_argument("-v", "--verbose", action="store_true", help="Show tasks for each environment")
+    _add_benchmark_arg(p_list)
     p_list.set_defaults(func=cmd_list)
 
     p_run = sub.add_parser("run", help="Run an environment")
@@ -1182,10 +1225,13 @@ def main(argv=None):
     p_run.add_argument("--debug", action="store_true")
     p_run.add_argument("--open-vnc", action="store_true",
                        help="Automatically open VNC viewer after boot (macOS: Screen Sharing)")
+    _add_benchmark_arg(p_run)
     p_run.set_defaults(func=cmd_run)
 
+    from .runtime.runners.registry import list_runner_keys
+
     p_compat = sub.add_parser("compatibility", help="Show the runner compatibility checklist")
-    p_compat.add_argument("--runner", choices=["docker", "qemu", "qemu_native", "modal_native", "avd", "avd_native", "avf", "apptainer", "local"])
+    p_compat.add_argument("--runner", choices=list_runner_keys())
     p_compat.add_argument("--json", action="store_true")
     p_compat.set_defaults(func=cmd_compatibility)
 
@@ -1206,6 +1252,7 @@ def main(argv=None):
     p_bench.add_argument("--min-runs", type=int, default=None,
                          help="In batch mode, run each task until it has N completed trajectories (run_*/info.json), then skip it. Drives multi-trajectory sampling with many parallel workers (requires --exp-name and --model).")
     p_bench.add_argument("--surface", choices=("raw", "verified"), default="raw")
+    _add_benchmark_arg(p_bench)
     p_bench.add_argument("--use-cache", action="store_true")
     p_bench.add_argument("--cache-level", default="pre_start")
     p_bench.add_argument("--use-savevm", action="store_true")
@@ -1266,7 +1313,7 @@ def main(argv=None):
     p_cache_purge.set_defaults(func=cmd_cache_purge)
 
     p_doctor = sub.add_parser("doctor", help="Check system prerequisites and optional verifier imports")
-    p_doctor.add_argument("--runner", choices=["docker", "qemu", "qemu_native", "modal_native", "avd", "avd_native", "avf", "apptainer", "local"])
+    p_doctor.add_argument("--runner", choices=list_runner_keys())
     p_doctor.add_argument("--verification-root")
     p_doctor.add_argument("--json", action="store_true")
     p_doctor.add_argument("--no-install", action="store_true", help="Skip the interactive install prompt")
