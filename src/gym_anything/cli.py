@@ -1161,7 +1161,11 @@ def main(argv=None):
     from .runtime.runners.registry import list_runner_keys
 
     p_compat = sub.add_parser("compatibility", help="Show the runner compatibility checklist")
-    p_compat.add_argument("--runner", choices=list_runner_keys())
+    p_compat.add_argument(
+        "--runner",
+        help="Registered runner key (%s) or a locator 'pkg.mod:ClassName'"
+             % ", ".join(list_runner_keys()),
+    )
     p_compat.add_argument("--json", action="store_true")
     p_compat.set_defaults(func=cmd_compatibility)
 
@@ -1243,7 +1247,11 @@ def main(argv=None):
     p_cache_purge.set_defaults(func=cmd_cache_purge)
 
     p_doctor = sub.add_parser("doctor", help="Check system prerequisites and optional verifier imports")
-    p_doctor.add_argument("--runner", choices=list_runner_keys())
+    p_doctor.add_argument(
+        "--runner",
+        help="Registered runner key (%s) or a locator 'pkg.mod:ClassName'"
+             % ", ".join(list_runner_keys()),
+    )
     p_doctor.add_argument("--verification-root")
     p_doctor.add_argument("--json", action="store_true")
     p_doctor.add_argument("--no-install", action="store_true", help="Skip the interactive install prompt")

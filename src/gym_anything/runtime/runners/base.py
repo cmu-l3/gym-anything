@@ -88,6 +88,16 @@ class BaseRunner(abc.ABC):
         }
 
     @classmethod
+    def compatibility(cls):
+        """A compatibility.RunnerCompatibility row for this runner, or None.
+
+        When None, the compatibility surface builds a conservative generic
+        row from the class name — a runner that declares nothing is treated
+        as supporting nothing optional, never crashed over.
+        """
+        return None
+
+    @classmethod
     def cache_components(cls) -> list:
         """Rows for `gym-anything cache`: {"name","category","paths","desc"}."""
         return []

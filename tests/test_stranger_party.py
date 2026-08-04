@@ -357,3 +357,24 @@ StrangerConformance = build_conformance_case(
     actions=[{"action": "deliver", "target": "parcel"}],
     class_name="StrangerConformance",
 )
+
+
+class StrangerFactsSurfaceTest(unittest.TestCase):
+    """Doctor and compatibility accept a runner core has never met."""
+
+    def test_generic_compatibility_row_for_undeclared_runner(self):
+        from gym_anything.compatibility import get_runner_compatibility
+
+        row = get_runner_compatibility(STRANGER_LOCATOR)
+        self.assertEqual(row.runner, STRANGER_LOCATOR)
+        self.assertEqual(row.user_accounts_mode, "unsupported")
+        self.assertFalse(row.savevm)
+
+    def test_doctor_accepts_locator_runner(self):
+        from gym_anything.doctor import run_doctor
+
+        report = run_doctor(runner=STRANGER_LOCATOR)
+        self.assertTrue(report.ok)
+        names = [check.name for check in report.checks]
+        self.assertIn(f"{STRANGER_LOCATOR}_runner", names)
+        self.assertIn("stranger-engine", names)
