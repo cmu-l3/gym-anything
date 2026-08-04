@@ -203,12 +203,61 @@ def scan_verifier_imports(root: Path) -> DoctorCheck:
     )
 
 
+def check_cwd_shadowing() -> DoctorCheck:
+    """Warn when the working directory shadows the pillar packages.
+
+    The top-level ``agents`` / ``benchmarks`` names resolve from the current
+    working directory ahead of any installed or PYTHONPATH copy, so running
+    from the wrong checkout silently substitutes different agent/benchmark
+    code (this bit us in production: a client ran an outdated agent for
+    hours). Flags the case where a pillar resolves under cwd while
+    gym_anything itself resolves from a different tree.
+    """
+    import importlib
+
+    import gym_anything as _ga
+
+    ga_path = Path(_ga.__file__).resolve()
+    # site-packages: <root>/gym_anything/__init__.py; src layout: <root>/src/gym_anything/__init__.py
+    ga_root = ga_path.parents[2] if ga_path.parents[1].name == "src" else ga_path.parents[1]
+    cwd = Path.cwd().resolve()
+    shadows = []
+    for pillar in ("agents", "benchmarks"):
+        if not (cwd / pillar / "__init__.py").exists():
+            continue
+        try:
+            module = importlib.import_module(pillar)
+            pillar_root = Path(module.__file__).resolve().parents[1]
+        except Exception:
+            continue
+        if pillar_root == cwd and cwd != ga_root:
+            shadows.append(pillar)
+    if shadows:
+        return DoctorCheck(
+            name="cwd_shadowing",
+            ok=False,
+            detail=(
+                f"cwd {cwd} provides {', '.join(shadows)} but gym_anything resolves from "
+                f"{ga_root} — you may be running different pillar code than you installed"
+            ),
+            required=False,
+        )
+    return DoctorCheck(
+        name="cwd_shadowing",
+        ok=True,
+        detail="working directory does not shadow installed pillar packages",
+        required=False,
+    )
+
+
 def run_doctor(
     *,
     runner: Optional[str] = None,
     verification_root: Optional[Path] = None,
 ) -> DoctorReport:
     checks = _collect_runner_checks(runner)
+    if runner is None:
+        checks.append(check_cwd_shadowing())
     if verification_root is not None:
         checks.append(scan_verifier_imports(Path(verification_root)))
     return DoctorReport(checks=checks)
@@ -469,6 +518,7 @@ __all__ = [
     "DoctorCheck",
     "DoctorReport",
     "check_kvm_access",
+    "check_cwd_shadowing",
     "get_available_runners",
     "get_recommended_runner",
     "get_runner_status",

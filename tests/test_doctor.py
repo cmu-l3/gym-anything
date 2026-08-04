@@ -141,3 +141,35 @@ class KvmProbeIntegrationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CwdShadowingTests(unittest.TestCase):
+    """The cwd-beats-installed-packages incident class, mechanized."""
+
+    def test_clean_checkout_does_not_warn(self) -> None:
+        from gym_anything.doctor import check_cwd_shadowing
+
+        check = check_cwd_shadowing()
+        self.assertTrue(check.ok, msg=check.detail)
+
+    def test_mismatched_pillar_root_warns(self) -> None:
+        import types as _types
+
+        from gym_anything import doctor as _doctor
+
+        with tempfile.TemporaryDirectory() as tmp:
+            cwd = Path(tmp).resolve()
+            (cwd / "agents").mkdir()
+            (cwd / "agents" / "__init__.py").write_text("")
+            fake_agents = _types.SimpleNamespace(__file__=str(cwd / "agents" / "__init__.py"))
+            old_cwd = Path.cwd()
+            os_module = __import__("os")
+            os_module.chdir(cwd)
+            try:
+                with mock.patch.dict(sys.modules, {"agents": fake_agents}):
+                    check = _doctor.check_cwd_shadowing()
+            finally:
+                os_module.chdir(old_cwd)
+        self.assertFalse(check.ok)
+        self.assertIn("agents", check.detail)
+        self.assertFalse(check.required)
