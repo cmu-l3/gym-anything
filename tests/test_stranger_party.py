@@ -333,7 +333,10 @@ class AgentDoorTest(unittest.TestCase):
     """L1 for policies: a locator resolves an agent core never heard of."""
 
     def test_agent_locator(self):
-        from agents.evaluation.run_single import _resolve_agent_class
+        try:
+            from agents.evaluation.run_single import _resolve_agent_class
+        except ImportError as exc:  # minimal core install without [agents] deps
+            self.skipTest(f"agents extra not installed: {exc}")
 
         cls = _resolve_agent_class("tests.test_stranger_party:StrangerAgent")
         self.assertIs(cls, StrangerAgent)
@@ -341,3 +344,16 @@ class AgentDoorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# The stranger also runs the importable conformance suite — the dogfood rule:
+# the export downstream repos consume is exercised by a party core has never
+# met, in the same CI run.
+from gym_anything.testing import build_conformance_case  # noqa: E402
+
+StrangerConformance = build_conformance_case(
+    STRANGER_LOCATOR,
+    env_spec={"runner_options": {"tick_hz": 8}},
+    actions=[{"action": "deliver", "target": "parcel"}],
+    class_name="StrangerConformance",
+)

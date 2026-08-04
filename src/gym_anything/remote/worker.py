@@ -150,8 +150,27 @@ def run_runner_preflight(
     for required in must_support:
         info = status.get(required)
         if info is None:
-            missing_required.append(f"{required} (unknown runner)")
-            continue
+            from gym_anything.runtime.runners import registry as runner_registry
+
+            if runner_registry.is_locator(required):
+                # Locator-referenced runner (third-party, zero registration):
+                # probe the class's own doctor_status and advertise the exact
+                # string clients' specs carry, so master routing matches.
+                try:
+                    cls = runner_registry.resolve_runner_class(required)
+                    info = dict(cls.doctor_status())
+                except Exception as exc:
+                    missing_required.append(f"{required} ({exc})")
+                    continue
+                if info.get("available"):
+                    if required not in available:
+                        available.append(required)
+                        available.sort()
+                    logger.info("Runner %s READY (locator)", required)
+                    continue
+            else:
+                missing_required.append(f"{required} (unknown runner)")
+                continue
         if info.get("reason"):
             missing_required.append(f"{required} ({info['reason']})")
             continue
