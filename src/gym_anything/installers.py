@@ -59,11 +59,23 @@ class InstallPlan:
 
 
 def get_install_plan(runner: str) -> Optional[InstallPlan]:
-    """Return the install plan for the given runner on this platform, or None."""
-    builder = _PLAN_BUILDERS.get(runner)
-    if builder is None:
+    """Return the install plan the runner class declares, or None.
+
+    Plans are per-party facts (law L1): each runner class provides its own
+    via ``install_plan()``; this resolves the key and asks.
+    """
+    from .runtime.runners import registry as runner_registry
+
+    try:
+        cls = runner_registry.resolve_runner_class(runner)
+    except Exception:
         return None
-    return builder()
+    if cls is None:
+        return None
+    try:
+        return cls.install_plan()
+    except Exception:
+        return None
 
 
 def run_install_plan(plan: InstallPlan, *, dry_run: bool = False) -> bool:
@@ -92,75 +104,6 @@ def run_install_plan(plan: InstallPlan, *, dry_run: bool = False) -> bool:
             print(f"  [fail] step exited with code {result.returncode}")
             return False
     return True
-
-
-# --- Plan builders ---
-
-
-def _avf_plan() -> InstallPlan:
-    """macOS: Apple Virtualization Framework + gvproxy + qemu-img + mkisofs."""
-    gvproxy_asset = "gvproxy-darwin-arm64" if _IS_ARM else "gvproxy-darwin"
-    gvproxy_url = (
-        f"https://github.com/containers/gvisor-tap-vsock/releases/latest/download/{gvproxy_asset}"
-    )
-    return InstallPlan(
-        runner="avf",
-        summary="Apple Virtualization Framework (recommended for macOS)",
-        prereq_note="Requires Homebrew (https://brew.sh/).",
-        steps=[
-            InstallStep(
-                description="Install vfkit via Homebrew",
-                command=["brew", "install", "vfkit"],
-                requires=["brew"],
-                skip_if="vfkit",
-            ),
-            InstallStep(
-                description="Install qemu via Homebrew (for qemu-img)",
-                command=["brew", "install", "qemu"],
-                requires=["brew"],
-                skip_if="qemu-img",
-            ),
-            InstallStep(
-                description="Install cdrtools via Homebrew (for mkisofs)",
-                command=["brew", "install", "cdrtools"],
-                requires=["brew"],
-                skip_if="mkisofs",
-            ),
-            InstallStep(
-                description="Download gvproxy to /usr/local/bin (uses sudo)",
-                command=[
-                    f"sudo curl -fsSL -o /usr/local/bin/gvproxy {gvproxy_url} "
-                    f"&& sudo chmod +x /usr/local/bin/gvproxy"
-                ],
-                shell=True,
-                requires=["curl", "sudo"],
-                skip_if="gvproxy",
-            ),
-        ],
-    )
-
-
-def _qemu_native_plan() -> InstallPlan:
-    """macOS: native QEMU (no Apptainer)."""
-    return InstallPlan(
-        runner="qemu_native",
-        summary="Native QEMU for macOS (no Apptainer)",
-        prereq_note="Requires Homebrew.",
-        steps=[
-            InstallStep(
-                description="Install qemu via Homebrew",
-                command=["brew", "install", "qemu"],
-                requires=["brew"],
-                skip_if="qemu-img",
-            ),
-            InstallStep(
-                description="Install cdrtools via Homebrew (for mkisofs)",
-                command=["brew", "install", "cdrtools"],
-                requires=["brew"],
-                skip_if="mkisofs",
-            ),
-        ],
-    )
 
 
 def _has_module_system() -> bool:
@@ -193,12 +136,16 @@ def _module_has_apptainer() -> bool:
     return "apptainer" in combined or "singularity" in combined
 
 
-def _qemu_apptainer_plan() -> InstallPlan:
-    """Linux: Apptainer-based QEMU runner. Pick the install path that fits."""
+def apptainer_install_plan(runner_key: str) -> InstallPlan:
+    """Shared Apptainer install plan (module system / conda / apt / manual).
+
+    Used by every Apptainer-based runner class; parameterized by the key
+    so the plan is attributed to the runner that asked.
+    """
     # 1. HPC cluster with a module system — no install needed.
     if _module_has_apptainer():
         return InstallPlan(
-            runner="qemu",
+            runner=runner_key,
             summary="Apptainer via cluster module system (no install needed)",
             manual_only=(
                 "This host exposes Apptainer via its module system. Load it in your shell:\n"
@@ -211,7 +158,7 @@ def _qemu_apptainer_plan() -> InstallPlan:
     # 2. conda — rootless install, works for SLURM users without sudo.
     if shutil.which("conda") is not None:
         return InstallPlan(
-            runner="qemu",
+            runner=runner_key,
             summary="Apptainer via conda-forge (rootless, no sudo)",
             prereq_note="Installs into your active conda environment.",
             steps=[
@@ -227,7 +174,7 @@ def _qemu_apptainer_plan() -> InstallPlan:
     # 3. Debian/Ubuntu with sudo.
     if shutil.which("apt-get") is not None:
         return InstallPlan(
-            runner="qemu",
+            runner=runner_key,
             summary="Apptainer via apt (Debian/Ubuntu, uses sudo)",
             prereq_note="Uses the Apptainer PPA. On clusters, ask your admin about `module load` instead.",
             steps=[
@@ -254,7 +201,7 @@ def _qemu_apptainer_plan() -> InstallPlan:
 
     # 4. No automatic path — point at docs.
     return InstallPlan(
-        runner="qemu",
+        runner=runner_key,
         summary="Apptainer (manual install required)",
         manual_only=(
             "No automatic install path detected on this host.\n"
@@ -264,48 +211,10 @@ def _qemu_apptainer_plan() -> InstallPlan:
     )
 
 
-def _docker_plan() -> InstallPlan:
-    if _IS_MACOS:
-        return InstallPlan(
-            runner="docker",
-            summary="Docker Desktop for macOS",
-            prereq_note="Requires Homebrew. You still need to open Docker.app once to start the daemon.",
-            steps=[
-                InstallStep(
-                    description="Install Docker Desktop via Homebrew",
-                    command=["brew", "install", "--cask", "docker"],
-                    requires=["brew"],
-                    skip_if="docker",
-                ),
-            ],
-        )
-    return InstallPlan(
-        runner="docker",
-        summary="Docker Engine (via get.docker.com)",
-        prereq_note="Runs the official convenience script with sudo. Read it first if you're cautious.",
-        steps=[
-            InstallStep(
-                description="Install Docker via get.docker.com",
-                command=["curl -fsSL https://get.docker.com | sh"],
-                shell=True,
-                requires=["curl", "sudo"],
-                skip_if="docker",
-            ),
-        ],
-    )
-
-
-_PLAN_BUILDERS: Dict[str, Callable[[], InstallPlan]] = {
-    "avf": _avf_plan,
-    "qemu_native": _qemu_native_plan,
-    "qemu": _qemu_apptainer_plan,
-    "docker": _docker_plan,
-}
-
-
 __all__ = [
     "InstallPlan",
     "InstallStep",
+    "apptainer_install_plan",
     "get_install_plan",
     "run_install_plan",
 ]

@@ -18,19 +18,22 @@ from gym_anything.specs import EnvSpec
 
 RunnerProfile = Literal["desktop_linux", "android", "macos_remote", "synthetic"]
 
-RUNNER_PROFILES: dict[str, RunnerProfile] = {
-    "docker": "desktop_linux",
-    "qemu": "desktop_linux",
-    "qemu_native": "desktop_linux",
-    "modal": "desktop_linux",
-    "modal_native": "desktop_linux",
-    "apptainer": "desktop_linux",
-    "avf": "desktop_linux",
-    "avd": "android",
-    "avd_native": "android",
-    "use_computer": "macos_remote",
-    "local": "synthetic",
-}
+def _registry_profiles() -> dict[str, RunnerProfile]:
+    from gym_anything.runtime.runners import registry as runner_registry
+
+    profiles: dict[str, RunnerProfile] = {}
+    for key in runner_registry.list_runner_keys():
+        try:
+            cls = runner_registry.resolve_runner_class(key)
+        except Exception:
+            continue
+        if cls is None:
+            continue
+        profiles[key] = cls.conformance_profile()
+    return profiles
+
+
+RUNNER_PROFILES: dict[str, RunnerProfile] = _registry_profiles()
 
 _EXECUTION_ENV = "GYM_ANYTHING_RUN_EXECUTION_TESTS"
 _RUNNER_FILTER_ENV = "GYM_ANYTHING_EXECUTION_RUNNERS"

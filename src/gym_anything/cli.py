@@ -665,17 +665,6 @@ def cmd_benchmark(args) -> int:
 
 _CACHE_ROOT = Path.home() / ".cache" / "gym-anything"
 
-# Base files/dirs inside qemu/ that are expensive to rebuild.
-# Anything else in qemu/ (and qemu/avf/) is treated as work.
-_QEMU_BASE_NAMES = {
-    "base_ubuntu_gnome_arm64.qcow2",
-    "base_ubuntu_gnome_arm64.raw",
-    "base_ubuntu_gnome.qcow2",
-    "ubuntu-cloud-arm64.img",
-    "ubuntu-cloud.img",
-}
-
-
 def _cache_size(path: Path) -> int:
     """Return actual disk usage of a path in bytes (handles sparse files)."""
     if not path.exists():
@@ -704,92 +693,33 @@ def _format_size(num_bytes: int) -> str:
     return f"{n:.1f} PB"
 
 
-def _collect_qemu_work_paths() -> list[Path]:
-    """Return paths inside qemu/ that are work (not base images)."""
-    qemu = _CACHE_ROOT / "qemu"
-    if not qemu.exists():
-        return []
-    paths = []
-    for entry in qemu.iterdir():
-        if entry.name in _QEMU_BASE_NAMES:
-            continue
-        if entry.name == "avf":
-            # Descend into avf/ to separate base from work
-            for sub in entry.iterdir():
-                if sub.name not in _QEMU_BASE_NAMES:
-                    paths.append(sub)
-            continue
-        if entry.name.endswith(".log"):
-            paths.append(entry)
-            continue
-        paths.append(entry)
-    return paths
-
-
-def _collect_qemu_base_paths() -> list[Path]:
-    """Return paths inside qemu/ that are base images."""
-    qemu = _CACHE_ROOT / "qemu"
-    if not qemu.exists():
-        return []
-    paths = []
-    for entry in qemu.rglob("*"):
-        if entry.name in _QEMU_BASE_NAMES and entry.is_file():
-            paths.append(entry)
-    return paths
-
-
 def _cache_components() -> list[dict]:
-    """Return list of cache components with category (work/base)."""
-    return [
-        {
-            "name": "qemu-work",
-            "category": "work",
-            "paths": _collect_qemu_work_paths(),
-            "desc": "QEMU/AVF work directories and COW overlays (per-run state)",
-        },
-        {
-            "name": "avd-checkpoints",
-            "category": "work",
-            "paths": [_CACHE_ROOT / "avd-checkpoints"],
-            "desc": "AVD checkpoint snapshots",
-        },
-        {
-            "name": "containers",
-            "category": "work",
-            "paths": [_CACHE_ROOT / "containers"],
-            "desc": "Container runtime cache",
-        },
-        {
-            "name": "apptainer",
-            "category": "work",
-            "paths": [_CACHE_ROOT / "apptainer"],
-            "desc": "Apptainer SIF images and overlays",
-        },
-        {
-            "name": "qemu-base",
-            "category": "base",
-            "paths": _collect_qemu_base_paths(),
-            "desc": "QEMU/AVF base VM images (~5 min to rebuild)",
-        },
-        {
-            "name": "android-sdk",
-            "category": "base",
-            "paths": [_CACHE_ROOT / "android-sdk"],
-            "desc": "Android SDK (requires network to re-download)",
-        },
-        {
-            "name": "apks",
-            "category": "base",
-            "paths": [_CACHE_ROOT / "apks"],
-            "desc": "Downloaded Android APKs",
-        },
-        {
-            "name": "avd",
-            "category": "base",
-            "paths": [_CACHE_ROOT / "avd"],
-            "desc": "Android Virtual Device definitions",
-        },
-    ]
+    """Cache components declared by the registered runner classes (law L1).
+
+    Components are per-party facts; classes sharing a store declare the same
+    row and it is deduplicated by name here.
+    """
+    from .runtime.runners.registry import list_runner_keys, resolve_runner_class
+
+    rows: list[dict] = []
+    seen: set[str] = set()
+    for key in list_runner_keys():
+        try:
+            cls = resolve_runner_class(key)
+        except Exception:
+            continue
+        if cls is None:
+            continue
+        try:
+            components = cls.cache_components()
+        except Exception:
+            continue
+        for component in components:
+            if component["name"] in seen:
+                continue
+            seen.add(component["name"])
+            rows.append(component)
+    return rows
 
 
 def _component_size(component: dict) -> int:

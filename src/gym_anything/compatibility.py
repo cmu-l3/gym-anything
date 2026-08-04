@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Dict, Iterable, List, Literal, Optional
 
 
@@ -27,193 +27,71 @@ class RunnerCompatibility:
         return asdict(self)
 
 
-_RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
-    "docker": RunnerCompatibility(
-        runner="docker",
-        display_name="DockerRunner",
-        live_recording=True,
-        screenshot_video_assembly=True,
-        checkpoint_caching=True,
-        savevm=False,
-        user_accounts_mode="provision_from_spec",
-        notes=[
-            "Creates and configures user accounts from EnvSpec.user_accounts.",
-            "This is the only runner with live FFmpeg episode recording built into reset().",
-        ],
-    ),
-    "qemu": RunnerCompatibility(
-        runner="qemu",
-        display_name="QemuApptainerRunner",
-        live_recording=False,
-        screenshot_video_assembly=True,
-        checkpoint_caching=True,
-        savevm=True,
-        user_accounts_mode="preprovisioned_accounts",
-        notes=[
-            "Linux guests ship with a prebuilt ga user; Windows guests ship with a prebuilt Docker user.",
-            "EnvSpec.user_accounts is treated as declared credential metadata rather than guest-side provisioning.",
-        ],
-    ),
-    "qemu_native": RunnerCompatibility(
-        runner="qemu_native",
-        display_name="QemuNativeRunner",
-        live_recording=False,
-        screenshot_video_assembly=True,
-        checkpoint_caching=True,
-        savevm=True,
-        user_accounts_mode="preprovisioned_accounts",
-        notes=[
-            "Runs QEMU directly without Apptainer; works on macOS and bare-metal Linux.",
-            "Uses HVF acceleration on Intel Macs, KVM on Linux, TCG (slow) on Apple Silicon.",
-            "Identical VM behavior to QemuApptainerRunner; only the QEMU launch mechanism differs.",
-        ],
-    ),
-    "modal": RunnerCompatibility(
-        runner="modal",
-        display_name="ModalRunner",
-        live_recording=False,
-        screenshot_video_assembly=True,
-        checkpoint_caching=True,
-        savevm=True,
-        user_accounts_mode="preprovisioned_accounts",
-        notes=[
-            "Runs QemuNativeRunner inside a Modal VM Sandbox (real kernel, /dev/kvm).",
-            "Base QCOW2 images and checkpoints persist in a Modal Volume across sandboxes.",
-            "Requires the modal package and modal token; billed on Modal compute.",
-            "savevm applies to QEMU guests only; AVD Android guests do not support it.",
-        ],
-    ),
-    "modal_native": RunnerCompatibility(
-        runner="modal_native",
-        display_name="ModalNativeRunner",
-        live_recording=False,
-        screenshot_video_assembly=True,
-        checkpoint_caching=True,
-        savevm=False,
-        user_accounts_mode="preprovisioned_accounts",
-        notes=[
-            "Runs Linux environments directly in a Modal VM Sandbox without nested QEMU.",
-            "Filesystem snapshots provide disk checkpoints; VM memory snapshots and savevm are unavailable.",
-            "The ga desktop account is preprovisioned; EnvSpec.user_accounts remains credential metadata.",
-            "GPU, Windows, Android, and macOS environments are rejected explicitly.",
-        ],
-    ),
-    "avd": RunnerCompatibility(
-        runner="avd",
-        display_name="AVDApptainerRunner",
-        live_recording=False,
-        screenshot_video_assembly=True,
-        checkpoint_caching=True,
-        savevm=False,
-        user_accounts_mode="metadata_only",
-        notes=[
-            "Android user_accounts fields describe expected credentials or roles; they are not provisioned by the runner.",
-        ],
-    ),
-    "avd_native": RunnerCompatibility(
-        runner="avd_native",
-        display_name="AVDNativeRunner",
-        live_recording=False,
-        screenshot_video_assembly=True,
-        checkpoint_caching=True,
-        savevm=False,
-        user_accounts_mode="metadata_only",
-        notes=[
-            "Runs Android emulator directly without Apptainer; works on macOS and bare-metal Linux.",
-            "Uses HVF acceleration on macOS, KVM on Linux.",
-            "Identical behavior to AVDApptainerRunner; only the emulator launch mechanism differs.",
-        ],
-    ),
-    "apptainer": RunnerCompatibility(
-        runner="apptainer",
-        display_name="ApptainerDirectRunner",
-        live_recording=False,
-        screenshot_video_assembly=True,
-        checkpoint_caching=False,
-        savevm=False,
-        user_accounts_mode="preprovisioned_accounts",
-        notes=[
-            "The standard direct-Apptainer preset includes a prebuilt ga user.",
-            "EnvSpec.user_accounts is compatible as credential/config metadata, not as general-purpose account provisioning.",
-        ],
-    ),
-    "avf": RunnerCompatibility(
-        runner="avf",
-        display_name="AVFRunner",
-        live_recording=False,
-        screenshot_video_assembly=True,
-        checkpoint_caching=False,
-        savevm=False,
-        user_accounts_mode="preprovisioned_accounts",
-        notes=[
-            "Uses Apple Virtualization Framework with Rosetta for x86_64 binary translation.",
-            "Near-native speed (~80% of native) for x86 binaries on Apple Silicon.",
-            "Requires macOS 13+ on Apple Silicon, vfkit, and gvproxy.",
-        ],
-    ),
-    "local": RunnerCompatibility(
-        runner="local",
-        display_name="LocalRunner",
-        live_recording=False,
-        screenshot_video_assembly=False,
-        checkpoint_caching=False,
-        savevm=False,
-        user_accounts_mode="unsupported",
-        notes=[
-            "LocalRunner is a synthetic-observation backend for validating orchestration only.",
-        ],
-    ),
-    "use_computer": RunnerCompatibility(
-        runner="use_computer",
-        display_name="UseComputerRunner",
-        live_recording=False,
-        screenshot_video_assembly=True,
-        checkpoint_caching=False,
-        savevm=False,
-        user_accounts_mode="preprovisioned_accounts",
-        notes=[
-            "Drives remote macOS sandboxes via the use.computer SDK (https://use.computer).",
-            "Sandboxes are ephemeral M4 Mac VMs (4 cores / 8 GB) cloned from a use.computer base image; the only login is 'lume' with passwordless sudo.",
-            "Requires USE_COMPUTER_API_KEY env var; honors USE_COMPUTER_BASE_URL for dev/prod selection.",
-            "Does not support checkpoint caching or savevm: the upstream API exposes no snapshot endpoint, and a half-baked client-side workaround would diverge from runner semantics elsewhere.",
-            "Audio capture is unsupported (the SDK has no audio endpoint); envs that declare an audio_waveform observation will silently get no audio in the obs.",
-        ],
-    ),
-}
+def _resolve_class(runner: str):
+    from .runtime.runners import registry as runner_registry
+
+    cls = runner_registry.resolve_runner_class(runner)
+    if cls is None:
+        supported = ", ".join(runner_registry.list_runner_keys())
+        raise KeyError(f"Unknown runner {runner!r}; supported runners: {supported}")
+    return cls
 
 
 def list_supported_runners() -> List[str]:
-    return list(_RUNNER_COMPATIBILITY)
+    from .runtime.runners import registry as runner_registry
+
+    return runner_registry.list_runner_keys()
 
 
 def get_runner_compatibility(runner: str) -> RunnerCompatibility:
-    try:
-        return _RUNNER_COMPATIBILITY[runner]
-    except KeyError as exc:
-        supported = ", ".join(sorted(_RUNNER_COMPATIBILITY))
-        raise KeyError(f"Unknown runner {runner!r}; supported runners: {supported}") from exc
+    """The compatibility row a runner key resolves to on THIS host.
+
+    Each runner class declares its own row (law L1: facts live on the
+    party); family keys report the class dispatch would actually use, with
+    the row re-keyed to the requested key so key-oriented callers stay
+    consistent.
+    """
+    cls = _resolve_class(runner)
+    row = cls.compatibility()
+    if row is None:
+        row = RunnerCompatibility(
+            runner=runner,
+            display_name=cls.__name__,
+            live_recording=False,
+            screenshot_video_assembly=True,
+            checkpoint_caching=False,
+            savevm=False,
+            user_accounts_mode="unsupported",
+            notes=["This runner did not declare a compatibility profile."],
+        )
+    if row.runner != runner:
+        row = replace(row, runner=runner)
+    return row
 
 
 def get_runner_compatibility_matrix() -> List[RunnerCompatibility]:
-    return [get_runner_compatibility(runner) for runner in _RUNNER_COMPATIBILITY]
+    rows: List[RunnerCompatibility] = []
+    for runner in list_supported_runners():
+        try:
+            rows.append(get_runner_compatibility(runner))
+        except Exception:
+            continue
+    return rows
 
 
 def infer_runner_key_from_name(name: str) -> Optional[str]:
+    """Map a runner class name back to the key that resolves to it here."""
+    from .runtime.runners import registry as runner_registry
+
     normalized = name.lower()
-    aliases = {
-        "dockerrunner": "docker",
-        "qemuapptainerrunner": "qemu",
-        "qemunativerunner": "qemu_native",
-        "modalrunner": "modal",
-        "modalnativerunner": "modal_native",
-        "avdapptainerrunner": "avd",
-        "avdnativerunner": "avd_native",
-        "avfrunner": "avf",
-        "apptainerdirectrunner": "apptainer",
-        "localrunner": "local",
-        "usecomputerrunner": "use_computer",
-    }
-    return aliases.get(normalized)
+    for key in runner_registry.list_runner_keys():
+        try:
+            cls = runner_registry.resolve_runner_class(key)
+        except Exception:
+            continue
+        if cls is not None and cls.__name__.lower() == normalized:
+            return key
+    return None
 
 
 def render_compatibility_text(

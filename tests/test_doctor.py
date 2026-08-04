@@ -25,7 +25,7 @@ class DoctorTests(unittest.TestCase):
             report = run_doctor(runner="docker")
 
         self.assertFalse(report.ok)
-        self.assertTrue(any(check.name == "docker_cli" and not check.ok for check in report.checks))
+        self.assertTrue(any(check.name == "docker" and not check.ok for check in report.checks))
 
     def test_run_doctor_accepts_local_runner_without_system_tools(self) -> None:
         report = run_doctor(runner="local")
@@ -35,13 +35,11 @@ class DoctorTests(unittest.TestCase):
 
     def test_modal_native_doctor_requires_filesystem_capable_sdk(self) -> None:
         old_modal = types.SimpleNamespace(__version__="1.3.9")
-        with mock.patch.object(
-            doctor, "_modal_status", return_value={"available": True, "reason": None, "deps": {}}
-        ), mock.patch.dict(sys.modules, {"modal": old_modal}):
+        with mock.patch.dict(sys.modules, {"modal": old_modal}):
             report = run_doctor(runner="modal_native")
 
         self.assertFalse(report.ok)
-        self.assertEqual(report.checks[0].name, "modal_native_sdk")
+        self.assertEqual(report.checks[0].name, "modal_native_runner")
         self.assertIn("modal>=1.4", report.checks[0].detail)
 
     def test_scan_verifier_imports_detects_missing_module(self) -> None:
@@ -72,7 +70,12 @@ class DoctorTests(unittest.TestCase):
 
 
 class KvmProbeIntegrationTests(unittest.TestCase):
-    """KVM is part of get_runner_status for QEMU-family runners on Linux."""
+    """KVM is part of get_runner_status for QEMU-family runners on Linux.
+
+    The family key resolves to a concrete class per host, so these tests pin
+    the selector (apptainer present) and mock the probes at the doctor
+    module, where the runner classes read them.
+    """
 
     def test_check_kvm_access_raises_with_actionable_message(self) -> None:
         # Pick a path that definitely doesn't exist; we don't want this test
@@ -84,6 +87,7 @@ class KvmProbeIntegrationTests(unittest.TestCase):
     def test_get_runner_status_marks_qemu_unavailable_when_kvm_missing(self) -> None:
         with mock.patch.object(doctor, "_IS_LINUX", True), \
              mock.patch.object(doctor, "_IS_MACOS", False), \
+             mock.patch("gym_anything.runtime.runners.registry.apptainer_available", return_value=True), \
              mock.patch("gym_anything.doctor.shutil.which", return_value="/usr/bin/apptainer"), \
              mock.patch.object(
                 doctor, "_probe_kvm_openable", return_value=(False, "/dev/kvm does not exist")
@@ -99,6 +103,7 @@ class KvmProbeIntegrationTests(unittest.TestCase):
     def test_get_runner_status_marks_qemu_available_when_kvm_ok(self) -> None:
         with mock.patch.object(doctor, "_IS_LINUX", True), \
              mock.patch.object(doctor, "_IS_MACOS", False), \
+             mock.patch("gym_anything.runtime.runners.registry.apptainer_available", return_value=True), \
              mock.patch("gym_anything.doctor.shutil.which", return_value="/usr/bin/apptainer"), \
              mock.patch.object(doctor, "_probe_kvm_openable", return_value=(True, None)):
             status = get_runner_status()
@@ -109,12 +114,17 @@ class KvmProbeIntegrationTests(unittest.TestCase):
         self.assertEqual(qemu["deps"]["kvm"]["path"], DEFAULT_KVM_DEVICE)
 
     def test_get_runner_status_skips_kvm_probe_on_macos(self) -> None:
+        macos_sys = types.SimpleNamespace(platform="darwin")
         with mock.patch.object(doctor, "_IS_LINUX", False), \
              mock.patch.object(doctor, "_IS_MACOS", True), \
+             mock.patch("gym_anything.runtime.runners.registry.sys", macos_sys), \
              mock.patch.object(doctor, "_probe_kvm_openable") as probe:
             status = get_runner_status()
-        # qemu / avd are filtered out on macOS via the platform reason
-        self.assertEqual(status["qemu"].get("reason"), "requires Apptainer (Linux only)")
+        # On macOS the qemu family resolves to the native-QEMU path — doctor
+        # reports the class dispatch would actually use, so there is no
+        # platform block and no KVM probe.
+        self.assertIsNone(status["qemu"].get("reason"))
+        self.assertNotIn("kvm", status["qemu"]["deps"])
         probe.assert_not_called()
 
     def test_get_available_runners_returns_only_ready(self) -> None:

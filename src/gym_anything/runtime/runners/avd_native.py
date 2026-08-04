@@ -33,6 +33,37 @@ class AVDNativeRunner(AVDApptainerRunner):
     for native HVF acceleration instead of emulating x86_64.
     """
 
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='avd_native',
+            display_name='AVDNativeRunner',
+            live_recording=False,
+            screenshot_video_assembly=True,
+            checkpoint_caching=True,
+            savevm=False,
+            user_accounts_mode='metadata_only',
+            notes=[
+                'Runs Android emulator directly without Apptainer; works on macOS and bare-metal Linux.',
+                'Uses HVF acceleration on macOS, KVM on Linux.',
+                'Identical behavior to AVDApptainerRunner; only the emulator launch mechanism differs.',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        from gym_anything import doctor
+        deps = {"adb": doctor.binary_dep_row("adb")}
+        if doctor._IS_LINUX:
+            deps["kvm"] = doctor.kvm_dep_row()
+        return {"available": all(r["installed"] for r in deps.values()), "deps": deps}
+
+    @classmethod
+    def cache_components(cls):
+        from gym_anything.runtime.runners import host_cache
+        return host_cache.avd_components()
+
     def __init__(self, spec: EnvSpec):
         super().__init__(spec)
         # On Apple Silicon, override arch to arm64-v8a for native HVF speed

@@ -44,6 +44,58 @@ def _mount_value(mount: MountSpec | Dict[str, Any], name: str, default: Any = No
 class ModalNativeRunner(BaseRunner):
     """Run an existing Linux CUA environment directly in a Modal VM Sandbox."""
 
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='modal_native',
+            display_name='ModalNativeRunner',
+            live_recording=False,
+            screenshot_video_assembly=True,
+            checkpoint_caching=True,
+            savevm=False,
+            user_accounts_mode='preprovisioned_accounts',
+            notes=[
+                'Runs Linux environments directly in a Modal VM Sandbox without nested QEMU.',
+                'Filesystem snapshots provide disk checkpoints; VM memory snapshots and savevm are unavailable.',
+                'The ga desktop account is preprovisioned; EnvSpec.user_accounts remains credential metadata.',
+                'GPU, Windows, Android, and macOS environments are rejected explicitly.',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        import re as _re
+
+        try:
+            import modal
+        except ImportError:
+            return {
+                "available": False,
+                "reason": "modal package not installed (pip install modal)",
+                "deps": {},
+            }
+        version_text = getattr(modal, "__version__", "0")
+        version = tuple(int(part) for part in _re.findall(r"\d+", version_text)[:3])
+        if version < (1, 4):
+            return {
+                "available": False,
+                "reason": f"modal>=1.4 required (found {version_text})",
+                "deps": {},
+            }
+        import os as _os
+        from pathlib import Path as _Path
+        has_token = bool(_os.environ.get("MODAL_TOKEN_ID")) or (
+            _Path("~/.modal.toml").expanduser().exists()
+        )
+        if not has_token:
+            return {
+                "available": False,
+                "reason": "modal token not configured (run: modal token set)",
+                "deps": {},
+            }
+        return {"available": True, "reason": None, "deps": {}}
+
     def __init__(self, spec: EnvSpec):
         super().__init__(spec)
         self._validate_spec()

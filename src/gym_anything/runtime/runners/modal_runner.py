@@ -94,6 +94,48 @@ def _package_dir() -> Path:
 class ModalRunner(BaseRunner):
     """Runs the QEMU stack (Linux/Windows/Android guests) on Modal VM Sandboxes."""
 
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='modal',
+            display_name='ModalRunner',
+            live_recording=False,
+            screenshot_video_assembly=True,
+            checkpoint_caching=True,
+            savevm=True,
+            user_accounts_mode='preprovisioned_accounts',
+            notes=[
+                'Runs QemuNativeRunner inside a Modal VM Sandbox (real kernel, /dev/kvm).',
+                'Base QCOW2 images and checkpoints persist in a Modal Volume across sandboxes.',
+                'Requires the modal package and modal token; billed on Modal compute.',
+                'savevm applies to QEMU guests only; AVD Android guests do not support it.',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        import os as _os
+        from pathlib import Path as _Path
+        try:
+            import modal  # noqa: F401
+        except ImportError:
+            return {
+                "available": False,
+                "reason": "modal package not installed (pip install modal)",
+                "deps": {},
+            }
+        has_token = bool(_os.environ.get("MODAL_TOKEN_ID")) or (
+            _Path("~/.modal.toml").expanduser().exists()
+        )
+        if not has_token:
+            return {
+                "available": False,
+                "reason": "modal token not configured (run: modal token set)",
+                "deps": {},
+            }
+        return {"available": True, "reason": None, "deps": {}}
+
     def __init__(self, spec: EnvSpec):
         super().__init__(spec)
         try:

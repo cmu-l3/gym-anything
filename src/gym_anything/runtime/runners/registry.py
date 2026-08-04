@@ -295,40 +295,45 @@ def is_known_reference(ref: str) -> bool:
 
 
 def autodetect_runner_class(spec=None) -> Type[BaseRunner]:
-    """Pick the best available runner class for this platform.
+    """Pick the best available runner class for this host.
 
-    Preserves the historical preference order. The preference itself should
-    eventually be declared per-runner (platform fitness) and sorted here;
-    for now this is the one sanctioned place that ordering lives.
+    Preference is a per-party fact (law L1): each class declares its
+    platform_priority and autodetect eligibility; core sorts, queries
+    availability (law L4), and takes the best. LocalRunner (priority 1) is
+    the universal synthetic fallback.
     """
-    if sys.platform == "darwin" and platform.machine() == "arm64":
-        if avf_available():
-            logger.info("Using AVFRunner (Apple Silicon, auto-detected)")
-            return _select_avf(spec)
-        if qemu_native_available():
-            logger.info("Using QemuNativeRunner (Apple Silicon, auto-detected)")
-            return _select_qemu_native(spec)
-    elif sys.platform == "darwin":
-        if qemu_native_available():
-            logger.info("Using QemuNativeRunner (Intel Mac, auto-detected)")
-            return _select_qemu_native(spec)
-    else:
-        if apptainer_available():
-            logger.info("Using QemuApptainerRunner (auto-detected)")
-            from .qemu_apptainer import QemuApptainerRunner
-            return QemuApptainerRunner
-        if qemu_native_available():
-            logger.info("Using QemuNativeRunner (auto-detected)")
-            return _select_qemu_native(spec)
-
-    image = getattr(spec, "image", None) if spec is not None else None
-    dockerfile = getattr(spec, "dockerfile", None) if spec is not None else None
-    if docker_available() and (image or dockerfile):
-        logger.info("Using DockerRunner (fallback)")
-        return _select_docker(spec)
+    _load_entry_points()
+    candidates = []
+    seen = set()
+    for key in sorted(_table):
+        try:
+            cls = _table[key](spec)
+        except Exception:
+            continue
+        if cls in seen:
+            continue
+        seen.add(cls)
+        try:
+            priority = int(cls.platform_priority())
+        except Exception:
+            continue
+        if priority > 1:
+            candidates.append((priority, cls.__name__, cls))
+    candidates.sort(key=lambda item: (-item[0], item[1]))
+    for _, _, cls in candidates:
+        try:
+            if not cls.autodetect_eligible(spec):
+                continue
+            if not cls.doctor_status().get("available"):
+                continue
+        except Exception:
+            continue
+        logger.info("Using %s (auto-detected)", cls.__name__)
+        return cls
 
     logger.warning("No suitable runtime found. Run: gym-anything doctor")
-    return _select_local(spec)
+    from .local import LocalRunner
+    return LocalRunner
 
 
 __all__ = [

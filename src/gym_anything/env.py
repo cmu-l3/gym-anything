@@ -353,18 +353,9 @@ class GymAnythingEnv:
                     self._reporter.stage_start("pre_start_hook")
                 logger.info("Running pre_start hook")
                 try:
-                    hook_cmd = self.env_spec.hooks['pre_start']
-                    # Android uses sh instead of bash, and different paths
-                    # Use longer timeout (180s) for Android hooks as game loading can take time
-                    if self._platform_family() == "android":
-                        self._runner.exec(f"sh {hook_cmd}", timeout=180)
-                    # Windows uses PowerShell
-                    elif self._platform_family() == "windows":
-                        self._runner.exec(hook_cmd)
-                    elif self._platform_family() == "macos":
-                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/env_setup_pre_start.log 2>&1", timeout=HOOK_TIMEOUT)
-                    else:
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_pre_start.log 2>&1", timeout=HOOK_TIMEOUT)
+                    # The world owns command execution; core only names the
+                    # stage (law L2).
+                    self._runner.run_hook(self.env_spec.hooks['pre_start'], stage="pre_start")
                     if self._reporter:
                         self._reporter.stage_done("pre_start_hook")
                 except Exception as e:
@@ -396,18 +387,9 @@ class GymAnythingEnv:
                     self._reporter.stage_start("post_start_hook")
                 logger.info("Running post_start hook")
                 try:
-                    hook_cmd = self.env_spec.hooks['post_start']
-                    # Android uses sh instead of bash, and different paths
-                    # Use longer timeout (180s) for Android hooks as game loading can take time
-                    if self._platform_family() == "android":
-                        self._runner.exec(f"sh {hook_cmd}", timeout=180)
-                    # Windows uses PowerShell
-                    elif self._platform_family() == "windows":
-                        self._runner.exec(hook_cmd)
-                    elif self._platform_family() == "macos":
-                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/env_setup_post_start.log 2>&1", timeout=HOOK_TIMEOUT)
-                    else:
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/env_setup_post_start.log 2>&1", timeout=HOOK_TIMEOUT)
+                    # The world owns command execution; core only names the
+                    # stage (law L2).
+                    self._runner.run_hook(self.env_spec.hooks['post_start'], stage="post_start")
                     if self._reporter:
                         self._reporter.stage_done("post_start_hook")
                 except Exception as e:
@@ -429,12 +411,7 @@ class GymAnythingEnv:
             self._runner.run_reset(self.env_spec.reset_script, seed=seed)
         elif getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("reset"):
             try:
-                hook_cmd = self.env_spec.hooks['reset']
-                # Windows uses PowerShell
-                if self._platform_family() == "windows":
-                    self._runner.exec(hook_cmd)
-                else:
-                    self._runner.exec(f"bash -lc {hook_cmd}")
+                self._runner.run_hook(self.env_spec.hooks['reset'], stage="reset")
             except Exception:
                 pass
 
@@ -446,21 +423,13 @@ class GymAnythingEnv:
                     self._reporter.stage_start("pre_task_hook")
                 logger.info("Running pre_task hook")
                 try:
-                    hook_cmd = self.task_spec.hooks.pre_task
-                    # Android uses sh instead of bash, and different paths
-                    # Use longer timeout (180s) for Android hooks as game loading can take time
-                    if self._platform_family() == "android":
-                        self._runner.exec(hook_cmd, timeout=180)
-                    # Windows uses PowerShell directly (hook_cmd already contains full PowerShell command)
-                    elif self._platform_family() == "windows":
-                        self._runner.exec(hook_cmd, use_pty=False)
-                    elif self._platform_family() == "macos":
-                        hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
-                        self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/task_pre_task.log 2>&1", use_pty=False, timeout=hook_timeout)
-                    else:
-                        # Use configurable timeout for pre_task hook (default 600s, can be overridden in task.json)
-                        hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
-                        self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/task_pre_task.log 2>&1", use_pty=False, timeout=hook_timeout)
+                    hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
+                    self._runner.run_hook(
+                        self.task_spec.hooks.pre_task,
+                        stage="pre_task",
+                        timeout=hook_timeout,
+                        use_pty=False,
+                    )
                     self._capture_observation()
                     if self._reporter:
                         self._reporter.stage_done("pre_task_hook")
@@ -881,15 +850,7 @@ class GymAnythingEnv:
         if not (self.task_spec and self.task_spec.hooks and self.task_spec.hooks.post_task):
             return
         try:
-            hook_cmd = self.task_spec.hooks.post_task
-            if self._platform_family() == "android":
-                self._runner.exec(hook_cmd)
-            elif self._platform_family() == "windows":
-                self._runner.exec(hook_cmd)
-            elif self._platform_family() == "macos":
-                self._runner.exec(f"bash -lc {hook_cmd} > /Users/lume/task_post_task.log 2>&1")
-            else:
-                self._runner.exec(f"bash -lc {hook_cmd} > /home/ga/task_post_task.log 2>&1")
+            self._runner.run_hook(self.task_spec.hooks.post_task, stage="post_task")
         except Exception:
             pass
 

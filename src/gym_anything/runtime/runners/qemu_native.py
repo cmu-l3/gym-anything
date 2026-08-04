@@ -97,6 +97,71 @@ class QemuNativeRunner(QemuApptainerRunner):
     with KVM or HVF.
     """
 
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='qemu_native',
+            display_name='QemuNativeRunner',
+            live_recording=False,
+            screenshot_video_assembly=True,
+            checkpoint_caching=True,
+            savevm=True,
+            user_accounts_mode='preprovisioned_accounts',
+            notes=[
+                'Runs QEMU directly without Apptainer; works on macOS and bare-metal Linux.',
+                'Uses HVF acceleration on Intel Macs, KVM on Linux, TCG (slow) on Apple Silicon.',
+                'Identical VM behavior to QemuApptainerRunner; only the QEMU launch mechanism differs.',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        from gym_anything import doctor
+        qemu_bin = (
+            "qemu-system-aarch64" if (doctor._IS_MACOS and doctor._IS_ARM) else "qemu-system-x86_64"
+        )
+        deps = {
+            qemu_bin: doctor.binary_dep_row(qemu_bin),
+            "qemu-img": doctor.binary_dep_row("qemu-img"),
+            "mkisofs": doctor.binary_dep_row("mkisofs"),
+        }
+        if doctor._IS_LINUX:
+            deps["kvm"] = doctor.kvm_dep_row()
+        return {"available": all(r["installed"] for r in deps.values()), "deps": deps}
+
+    @classmethod
+    def platform_priority(cls):
+        return 70
+
+    @classmethod
+    def install_plan(cls):
+        from gym_anything.installers import InstallPlan, InstallStep
+        return InstallPlan(
+            runner="qemu_native",
+            summary="Native QEMU for macOS (no Apptainer)",
+            prereq_note="Requires Homebrew.",
+            steps=[
+                InstallStep(
+                    description="Install qemu via Homebrew",
+                    command=["brew", "install", "qemu"],
+                    requires=["brew"],
+                    skip_if="qemu-img",
+                ),
+                InstallStep(
+                    description="Install cdrtools via Homebrew (for mkisofs)",
+                    command=["brew", "install", "cdrtools"],
+                    requires=["brew"],
+                    skip_if="mkisofs",
+                ),
+            ],
+        )
+
+    @classmethod
+    def cache_components(cls):
+        from gym_anything.runtime.runners import host_cache
+        return host_cache.qemu_components()
+
     _accel_type: str   # "kvm", "hvf", or "tcg"
     _guest_arch: str   # "x86_64" or "aarch64"
 

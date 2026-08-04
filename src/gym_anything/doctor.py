@@ -15,11 +15,6 @@ from .verification.imports import find_missing_imports
 
 DEFAULT_KVM_DEVICE = "/dev/kvm"
 
-# Runners that require KVM acceleration on Linux. macOS variants use HVF and
-# are unaffected.
-_KVM_RUNNERS = {"qemu", "qemu_native", "avd", "avd_native"}
-
-
 def _probe_kvm_openable(device: str = DEFAULT_KVM_DEVICE) -> Tuple[bool, Optional[str]]:
     """Return (ok, reason) for whether the current process can open ``device`` RW.
 
@@ -128,74 +123,51 @@ def _check_binary(
 
 
 def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
-    target = runner or "all"
-    checks: List[DoctorCheck] = []
-    if target in {"all", "docker"}:
-        checks.append(_check_binary("docker_cli", "docker", probe=["docker", "--version"]))
-        checks.append(_check_binary(
-            "docker_daemon", "docker", probe=["docker", "info"], probe_timeout=3,
-        ))
-    if target in {"all", "qemu", "avd", "apptainer"}:
-        # Apptainer is Linux-only; don't fail on macOS
-        required = _IS_LINUX
-        checks.append(_check_binary("apptainer", "apptainer", probe=["apptainer", "--version"], required=required))
-    if target in {"all", "qemu"}:
-        # The `qemu` runner executes qemu-system-x86_64 and qemu-img inside the
-        # Apptainer container, so no host-level qemu binaries are required.
-        # adb is only consulted for Android envs and has a bundled fallback.
-        checks.append(_check_binary("adb", "adb", probe=["adb", "version"], required=False))
-    if target in {"all", "qemu_native"}:
-        checks.append(_check_binary("qemu_system", "qemu-system-x86_64", probe=["qemu-system-x86_64", "--version"]))
-        checks.append(_check_binary("qemu_img", "qemu-img", probe=["qemu-img", "--version"]))
-    if target in {"all", "avd"}:
-        # The `avd` runner bundles its own adb/emulator under
-        # ~/.cache/gym-anything/android-sdk/, so host binaries are optional.
-        checks.append(_check_binary("adb", "adb", probe=["adb", "version"], required=False))
-        checks.append(_check_binary("emulator", "emulator", probe=["emulator", "-version"], required=False))
-    if target in {"all", "avf"}:
-        checks.append(_check_binary("vfkit", "vfkit", probe=["vfkit", "--version"]))
-        checks.append(_check_binary("gvproxy", "gvproxy"))
-        checks.append(_check_binary("qemu_img", "qemu-img", probe=["qemu-img", "--version"]))
-    if target in {"all", "avd_native"}:
-        checks.append(_check_binary("adb", "adb", probe=["adb", "version"]))
-        checks.append(_check_binary("emulator", "emulator", probe=["emulator", "-version"]))
-    if target in {"all", "modal_native"}:
-        status = _modal_native_status()
-        checks.append(
-            DoctorCheck(
-                name="modal_native_sdk",
-                ok=bool(status.get("available")),
-                detail=status.get("reason") or "modal>=1.4 and credentials are configured",
-            )
-        )
-    if target in {"all", "apptainer", "qemu", "avd"}:
-        checks.append(_check_binary("ffmpeg", "ffmpeg", probe=["ffmpeg", "-version"], required=False))
-    if target == "local":
-        checks.append(DoctorCheck(name="local_runner", ok=True, detail="LocalRunner has no external system prerequisites"))
+    """Derive doctor checks from each runner's own status (laws L1/L4).
 
-    # When no specific runner is requested, the user just wants to know "is
-    # this machine usable?" Individual binary checks become diagnostic (WARN)
-    # and the overall verdict is driven by a single runner_availability check:
-    # the host is OK as long as at least one runner is READY.
-    if target == "all":
-        checks = [
-            DoctorCheck(name=c.name, ok=c.ok, detail=c.detail, required=False)
-            for c in checks
-        ]
+    With a specific runner: its dependency rows become required checks plus
+    a required summary. With no runner: every runner's rows are diagnostic
+    (WARN) and the overall verdict is a single runner_availability check —
+    the host is OK as long as at least one runner is READY.
+    """
+    if runner is not None:
+        statuses = {runner: _status_for_key(runner)}
+        required = True
+    else:
         statuses = get_runner_status()
+        required = False
+
+    checks: List[DoctorCheck] = []
+    for key, status in statuses.items():
+        for dep, row in (status.get("deps") or {}).items():
+            detail = (
+                row.get("path")
+                or row.get("reason")
+                or row.get("desc")
+                or ("installed" if row.get("installed") else "missing")
+            )
+            if not row.get("installed") and row.get("install"):
+                detail = f"{detail} — install: {row['install']}"
+            checks.append(DoctorCheck(
+                name=dep, ok=bool(row.get("installed")), detail=str(detail), required=required,
+            ))
+        summary = status.get("reason") or ("READY" if status.get("available") else "missing dependencies")
+        checks.append(DoctorCheck(
+            name=f"{key}_runner", ok=bool(status.get("available")), detail=str(summary), required=required,
+        ))
+
+    if runner is None:
         any_ready = any(s.get("available") for s in statuses.values())
-        detail = (
-            "at least one runner is READY"
-            if any_ready
-            else "no runner is READY — see Runner Status for missing deps"
-        )
         checks.append(DoctorCheck(
             name="runner_availability",
             ok=any_ready,
-            detail=detail,
+            detail=(
+                "at least one runner is READY"
+                if any_ready
+                else "no runner is READY — see Runner Status for missing deps"
+            ),
             required=True,
         ))
-
     return checks
 
 
@@ -313,67 +285,6 @@ _INSTALL_HINTS: Dict[str, Dict[str, str]] = {
     },
 }
 
-# Which binaries each runner needs on the host.
-# Runners built on Apptainer (qemu, avd, apptainer) only need `apptainer` on
-# the host — qemu-system-*, qemu-img, adb, emulator etc. live inside the SIF.
-_RUNNER_DEPS: Dict[str, List[str]] = {
-    "docker": ["docker"],
-    "qemu": ["apptainer"],
-    "qemu_native": ["qemu-img", "mkisofs"],  # qemu-system-* auto-detected
-    "avf": ["vfkit", "gvproxy", "qemu-img", "mkisofs"],
-    "avd": ["apptainer"],
-    "avd_native": ["adb"],
-    "apptainer": ["apptainer"],
-    "use_computer": [],  # Python SDK + API key probed below
-    "local": [],
-    "modal": [],  # python package + token, checked specially in get_runner_status
-    "modal_native": [],  # modal>=1.4 + token, checked specially below
-}
-
-
-def _modal_status() -> Dict:
-    """Availability check for ModalRunner: modal package + configured token."""
-    try:
-        import modal  # noqa: F401
-    except ImportError:
-        return {
-            "available": False,
-            "reason": "modal package not installed (pip install modal)",
-            "deps": {},
-        }
-    import os as _os
-    from pathlib import Path as _Path
-
-    has_token = bool(_os.environ.get("MODAL_TOKEN_ID")) or (
-        _Path("~/.modal.toml").expanduser().exists()
-    )
-    if not has_token:
-        return {
-            "available": False,
-            "reason": "modal token not configured (run: modal token set)",
-            "deps": {},
-        }
-    return {"available": True, "reason": None, "deps": {}}
-
-
-def _modal_native_status() -> Dict:
-    """Availability check for the filesystem-capable native Modal runner."""
-    status = _modal_status()
-    if not status.get("available"):
-        return status
-    import modal
-
-    version_text = getattr(modal, "__version__", "0")
-    version = tuple(int(part) for part in re.findall(r"\d+", version_text)[:3])
-    if version < (1, 4):
-        return {
-            "available": False,
-            "reason": f"modal>=1.4 required (found {version_text})",
-            "deps": {},
-        }
-    return {"available": True, "reason": None, "deps": {}}
-
-
 def _docker_daemon_alive() -> bool:
     """Return True if docker CLI is on PATH and the daemon responds quickly."""
     docker_bin = shutil.which("docker")
@@ -390,158 +301,70 @@ def _docker_daemon_alive() -> bool:
     return result.returncode == 0
 
 
-def get_runner_status() -> Dict[str, Dict]:
-    """Get status of all runners with dependency info."""
-    import os
+def binary_dep_row(binary: str, installed: Optional[bool] = None) -> Dict:
+    """A dependency-status row for a host binary, with install hints.
 
-    results = {}
-    for runner_key, deps in _RUNNER_DEPS.items():
-        # Platform check
-        if runner_key == "avf" and not _IS_MACOS:
-            results[runner_key] = {"available": False, "reason": "macOS only", "deps": {}}
-            continue
-        if runner_key in ("qemu", "avd") and _IS_MACOS:
-            results[runner_key] = {"available": False, "reason": "requires Apptainer (Linux only)", "deps": {}}
-            continue
-        if runner_key == "apptainer" and _IS_MACOS:
-            results[runner_key] = {"available": False, "reason": "Linux only", "deps": {}}
-            continue
-        if runner_key == "modal":
-            results[runner_key] = _modal_status()
-            continue
-        if runner_key == "modal_native":
-            results[runner_key] = _modal_native_status()
-            continue
+    Shared helper for runner classes composing their own doctor_status —
+    the hints catalog is keyed by binary, not by runner, so it stays here.
+    """
+    path = shutil.which(binary)
+    if installed is None:
+        installed = path is not None
+    return {
+        "installed": bool(installed),
+        "path": path,
+        "desc": _INSTALL_HINTS.get(binary, {}).get("desc", ""),
+        "install": _INSTALL_HINTS.get(binary, {}).get("macos" if _IS_MACOS else "linux", ""),
+    }
 
-        dep_status = {}
-        all_ok = True
-        for dep in deps:
-            found = shutil.which(dep)
-            if dep == "docker":
-                # Docker needs both the CLI and a running daemon.
-                daemon_up = _docker_daemon_alive() if found else False
-                if found and not daemon_up:
-                    # CLI is installed but daemon isn't responding: report it
-                    # as a separate "docker-daemon" missing dep so the hint is
-                    # actionable ("start the daemon" not "install docker").
-                    dep_status["docker-daemon"] = {
-                        "installed": False,
-                        "path": None,
-                        "desc": "Docker daemon not reachable",
-                        "install": (
-                            "open -a Docker" if _IS_MACOS else "sudo systemctl start docker"
-                        ),
-                    }
-                    all_ok = False
-                    continue
-                available = found is not None and daemon_up
-                dep_status[dep] = {
-                    "installed": available,
-                    "path": found,
-                    "desc": _INSTALL_HINTS.get(dep, {}).get("desc", ""),
-                    "install": _INSTALL_HINTS.get(dep, {}).get("macos" if _IS_MACOS else "linux", ""),
-                }
-                if not available:
-                    all_ok = False
-                continue
-            dep_status[dep] = {
-                "installed": found is not None,
-                "path": found,
-                "desc": _INSTALL_HINTS.get(dep, {}).get("desc", ""),
-                "install": _INSTALL_HINTS.get(dep, {}).get("macos" if _IS_MACOS else "linux", ""),
-            }
-            if not found:
-                all_ok = False
 
-        # Special: qemu_native needs either qemu-system-x86_64 or qemu-system-aarch64
-        if runner_key == "qemu_native":
-            if _IS_MACOS and _IS_ARM:
-                qemu_bin = "qemu-system-aarch64"
-            else:
-                qemu_bin = "qemu-system-x86_64"
-            found = shutil.which(qemu_bin)
-            dep_status[qemu_bin] = {
-                "installed": found is not None,
-                "path": found,
-                "desc": _INSTALL_HINTS.get(qemu_bin, {}).get("desc", ""),
-                "install": _INSTALL_HINTS.get(qemu_bin, {}).get("macos" if _IS_MACOS else "linux", ""),
-            }
-            if not found:
-                all_ok = False
+def kvm_dep_row(device: str = DEFAULT_KVM_DEVICE) -> Dict:
+    """A dependency-status row for /dev/kvm access (Linux acceleration)."""
+    kvm_ok, kvm_reason = _probe_kvm_openable(device)
+    return {
+        "installed": kvm_ok,
+        "path": device if kvm_ok else None,
+        "desc": "/dev/kvm openable read/write (hardware virtualization)",
+        "install": (
+            "sudo usermod -a -G kvm $USER  # then log out and back in"
+            if kvm_reason and "readable/writable" in kvm_reason
+            else "ensure /dev/kvm exists and the worker process can open it RW"
+        ),
+        "reason": kvm_reason,
+    }
 
-        # Special: use_computer needs the Python SDK + an API key env var
-        if runner_key == "use_computer":
-            sdk_ok = False
-            try:
-                import use_computer  # noqa: F401
-                sdk_ok = True
-            except ImportError:
-                sdk_ok = False
-            dep_status["use-computer-sdk"] = {
-                "installed": sdk_ok,
-                "path": None,
-                "desc": "use.computer Python SDK",
-                "install": "pip install use-computer",
-            }
-            api_key_set = bool(os.environ.get("USE_COMPUTER_API_KEY") or os.environ.get("MMINI_API_KEY"))
-            dep_status["USE_COMPUTER_API_KEY"] = {
-                "installed": api_key_set,
-                "path": None,
-                "desc": "API key for use.computer (mk_live_*)",
-                "install": "Mint a key at https://use.computer and export USE_COMPUTER_API_KEY",
-            }
-            if not (sdk_ok and api_key_set):
-                all_ok = False
 
-        # Special: avf needs base image or ability to build
-        if runner_key == "avf":
-            from pathlib import Path as _Path
-            base = _Path.home() / ".cache/gym-anything/qemu/avf/base_ubuntu_gnome_arm64.raw"
-            dep_status["base_image"] = {
-                "installed": base.exists(),
-                "path": str(base) if base.exists() else None,
-                "desc": "ARM64 Ubuntu base image (auto-built on first run)",
-                "install": "Built automatically on first run (~5 min)",
-            }
-
-        # Special: KVM-using runners need /dev/kvm openable on Linux. macOS
-        # variants accelerate via HVF and skip this probe.
-        if _IS_LINUX and runner_key in _KVM_RUNNERS:
-            kvm_ok, kvm_reason = _probe_kvm_openable(DEFAULT_KVM_DEVICE)
-            dep_status["kvm"] = {
-                "installed": kvm_ok,
-                "path": DEFAULT_KVM_DEVICE if kvm_ok else None,
-                "desc": "/dev/kvm openable read/write (hardware virtualization)",
-                "install": (
-                    "sudo usermod -a -G kvm $USER  # then log out and back in"
-                    if kvm_reason and "readable/writable" in kvm_reason
-                    else "ensure /dev/kvm exists and the worker process can open it RW"
-                ),
-                "reason": kvm_reason,
-            }
-            if not kvm_ok:
-                all_ok = False
-
-        results[runner_key] = {"available": all_ok, "deps": dep_status}
-
-    # Runners registered beyond the built-ins (entry points, register_runner)
-    # report their own class-level status — capabilities are queried from the
-    # party, never centrally tabled (laws L1/L4).
+def _status_for_key(key: str) -> Dict:
+    """Resolve one runner key and query the class for its own status."""
     from .runtime.runners import registry as runner_registry
+
+    conflicts = runner_registry.registry_conflicts()
+    if key in conflicts:
+        return {"available": False, "reason": conflicts[key], "deps": {}}
+    try:
+        cls = runner_registry.resolve_runner_class(key)
+    except Exception as exc:
+        return {"available": False, "reason": str(exc), "deps": {}}
+    if cls is None:
+        return {"available": False, "reason": f"unknown runner {key!r}", "deps": {}}
+    try:
+        return dict(cls.doctor_status())
+    except Exception as exc:
+        return {"available": False, "reason": f"doctor_status failed: {exc}", "deps": {}}
+
+
+def get_runner_status() -> Dict[str, Dict]:
+    """Status of every registered runner, each reported by its own class.
+
+    Family keys report the class dispatch would actually use on this host
+    (e.g. `qemu` on macOS reports the native-QEMU path), so doctor, worker
+    advertising, and env dispatch can never disagree.
+    """
+    from .runtime.runners import registry as runner_registry
+
+    results: Dict[str, Dict] = {}
     for key in runner_registry.list_runner_keys():
-        if key in results:
-            continue
-        try:
-            cls = runner_registry.resolve_runner_class(key)
-        except Exception as exc:
-            results[key] = {"available": False, "reason": str(exc), "deps": {}}
-            continue
-        if cls is None:
-            continue
-        try:
-            results[key] = dict(cls.doctor_status())
-        except Exception as exc:
-            results[key] = {"available": False, "reason": f"doctor_status failed: {exc}", "deps": {}}
+        results[key] = _status_for_key(key)
     for key, reason in runner_registry.registry_conflicts().items():
         results[key] = {"available": False, "reason": reason, "deps": {}}
     return results
@@ -560,28 +383,32 @@ def get_available_runners(runner_status: Optional[Dict[str, Dict]] = None) -> Li
 def get_recommended_runner(runner_status: Optional[Dict[str, Dict]] = None) -> Optional[str]:
     """Pick the recommended runner for this platform.
 
-    Always returns the top-preference runner for the platform, regardless of
-    whether its deps are installed — doctor offers to install it when missing.
-    This keeps the recommendation stable (e.g. macOS always gets `avf`) rather
-    than drifting to whichever runner happens to be ready first.
+    Preference is a per-party fact: each runner class declares its platform
+    fitness (platform_priority) and core sorts. Returns the top-priority
+    runner regardless of whether its deps are installed — doctor offers to
+    install it when missing, which keeps the recommendation stable.
     """
-    statuses = runner_status if runner_status is not None else get_runner_status()
+    del runner_status  # kept for signature compatibility; priority is class-declared
+    from .runtime.runners import registry as runner_registry
 
-    if _IS_MACOS and _IS_ARM:
-        preferences = ["avf", "qemu_native", "docker"]
-    elif _IS_MACOS:
-        preferences = ["qemu_native", "docker"]
-    elif _IS_LINUX:
-        preferences = ["qemu", "docker"]
-    else:
-        preferences = ["docker"]
-
-    # Return the first preference that isn't blocked by platform.
-    for runner in preferences:
-        status = statuses.get(runner)
-        if status is not None and not status.get("reason"):
-            return runner
-    return None
+    best_key: Optional[str] = None
+    best_priority = 0
+    for key in runner_registry.list_runner_keys():
+        try:
+            cls = runner_registry.resolve_runner_class(key)
+        except Exception:
+            continue
+        if cls is None:
+            continue
+        try:
+            priority = int(cls.platform_priority())
+        except Exception:
+            continue
+        if priority < 10:  # synthetic/fallback runners are never a recommendation
+            continue
+        if priority > best_priority or (priority == best_priority and best_key is not None and key < best_key):
+            best_key, best_priority = key, priority
+    return best_key
 
 
 def render_doctor_rich(report: DoctorReport) -> str:
@@ -595,25 +422,7 @@ def render_doctor_rich(report: DoctorReport) -> str:
     # Runner status
     runner_status = get_runner_status()
 
-    # Determine recommended runner
-    recommended = None
-    if _IS_MACOS and _IS_ARM:
-        for r in ["avf", "qemu_native", "docker"]:
-            if runner_status.get(r, {}).get("available"):
-                recommended = r
-                break
-        if not recommended:
-            recommended = "avf"  # Recommend even if not yet installed
-    elif _IS_MACOS:
-        for r in ["qemu_native", "docker"]:
-            if runner_status.get(r, {}).get("available"):
-                recommended = r
-                break
-    elif _IS_LINUX:
-        for r in ["qemu", "docker"]:
-            if runner_status.get(r, {}).get("available"):
-                recommended = r
-                break
+    recommended = get_recommended_runner(runner_status)
 
     lines.append("Runners:")
     lines.append("")
