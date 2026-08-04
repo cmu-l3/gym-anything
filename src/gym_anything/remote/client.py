@@ -104,7 +104,8 @@ class RemoteGymEnv:
                  env_dir: Optional[str] = None, task_id: Optional[str] = None,
                  timeout: int = 300, worker_reset_policy: Optional[str] = "core",
                  verifier_env: Optional[Dict[str, Any]] = None,
-                 fast_io: bool = False):
+                 fast_io: bool = False,
+                 benchmark: Optional[str] = None, env_name: Optional[str] = None):
         """Initialize remote environment client.
         
         Args:
@@ -137,12 +138,23 @@ class RemoteGymEnv:
             else _clean_verifier_env(verifier_env)
         )
         
+        self.benchmark = benchmark
+        self.env_name = env_name
+
         # Store specs for reference
         self.env_spec = env_spec
         self.task_spec = task_spec
         if env_dir and self.env_spec is None:
             self.env_spec, self.task_spec = self._load_local_config_specs(env_dir, task_id)
-        
+        elif benchmark and env_name and self.env_spec is None:
+            try:
+                from gym_anything.registry import resolve_environment_dir
+
+                local_dir = resolve_environment_dir(env_name, benchmark)
+                self.env_spec, self.task_spec = self._load_local_config_specs(local_dir, task_id)
+            except Exception:
+                pass
+
         # Create environment on remote server
         self._create_remote_environment(env_spec, task_spec, env_dir, task_id)
         
@@ -161,8 +173,26 @@ class RemoteGymEnv:
         """Create environment on remote server."""
         # Prepare request data
         data = {}
-        
-        if env_dir:
+
+        if self.benchmark and self.env_name and not env_dir:
+            # By-name create: the worker resolves against ITS installation;
+            # we attach a content digest of OUR copy so version skew is
+            # refused instead of silently running the wrong task (law L3).
+            data["benchmark"] = str(self.benchmark)
+            data["env_name"] = self.env_name
+            if task_id:
+                data["task_id"] = task_id
+                try:
+                    from gym_anything.registry import (
+                        compute_task_digest,
+                        resolve_environment_dir,
+                    )
+
+                    local_dir = resolve_environment_dir(self.env_name, self.benchmark)
+                    data["task_digest"] = compute_task_digest(local_dir, task_id)
+                except Exception:
+                    pass  # not resolvable locally: worker runs unverified
+        elif env_dir:
             data["env_dir"] = env_dir
             if task_id:
                 data["task_id"] = task_id
@@ -699,6 +729,29 @@ class RemoteGymEnv:
         return cls(
             remote_url=remote_url,
             env_dir=str(env_dir),
+            task_id=task_id,
+            timeout=timeout,
+            worker_reset_policy=worker_reset_policy,
+            verifier_env=verifier_env,
+            fast_io=fast_io,
+        )
+
+    @classmethod
+    def from_benchmark(cls, remote_url: str, benchmark: str, env_name: str,
+                       task_id: Optional[str] = None, timeout: int = 300,
+                       worker_reset_policy: Optional[str] = "core",
+                       verifier_env: Optional[Dict[str, Any]] = None,
+                       fast_io: bool = False) -> RemoteGymEnv:
+        """Create a remote environment by benchmark + environment name.
+
+        The worker resolves the benchmark against its own installed packages
+        (no shared filesystem or working-directory agreement needed) and
+        verifies the task-content digest computed from the client's copy.
+        """
+        return cls(
+            remote_url=remote_url,
+            benchmark=benchmark,
+            env_name=env_name,
             task_id=task_id,
             timeout=timeout,
             worker_reset_policy=worker_reset_policy,

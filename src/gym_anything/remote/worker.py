@@ -279,6 +279,35 @@ CORS(app)
 env_registry: Dict[str, Dict[str, Any]] = {}
 registry_lock = threading.Lock()
 
+
+def _mark_env_busy(env_id: str) -> None:
+    with registry_lock:
+        env_data = env_registry.get(env_id)
+        if env_data is not None:
+            env_data["busy"] = env_data.get("busy", 0) + 1
+
+
+def _mark_env_free(env_id: str) -> None:
+    with registry_lock:
+        env_data = env_registry.get(env_id)
+        if env_data is not None:
+            env_data["busy"] = max(0, env_data.get("busy", 1) - 1)
+            env_data["last_activity"] = time.time()
+
+
+@app.before_request
+def _track_env_request_start():
+    env_id = (request.view_args or {}).get("env_id")
+    if env_id:
+        _mark_env_busy(env_id)
+
+
+@app.teardown_request
+def _track_env_request_end(exc=None):
+    env_id = (request.view_args or {}).get("env_id")
+    if env_id:
+        _mark_env_free(env_id)
+
 # Cleanup configuration
 CLEANUP_INTERVAL = 60  # Check for idle environments every 60 seconds
 
@@ -337,6 +366,12 @@ class EnvironmentManager:
 
         with registry_lock:
             for env_id, env_data in env_registry.items():
+                # An in-flight request (an hours-long step, a cold reset) is
+                # not idleness: liveness is state reported by its owner, never
+                # inferred from request timestamps alone (law L3).
+                if env_data.get("busy", 0) > 0:
+                    continue
+
                 last_activity = env_data.get("last_activity", 0)
                 idle_time = current_time - last_activity
 
@@ -755,6 +790,30 @@ def create_environment():
         task_spec_dict = data.get("task_spec")
         env_dir = data.get("env_dir")
         task_id = data.get("task_id")
+
+        # By-name create: the worker resolves the benchmark against ITS OWN
+        # installed packages/filesystem (no shared-FS or cwd coupling), and
+        # verifies the client's task-content digest before running anything.
+        benchmark = data.get("benchmark")
+        env_name = data.get("env_name")
+        if not env_dir and benchmark and env_name:
+            from gym_anything.registry import compute_task_digest, resolve_environment_dir
+
+            env_dir = str(resolve_environment_dir(env_name, benchmark))
+            claimed_digest = data.get("task_digest")
+            if claimed_digest and task_id:
+                local_digest = compute_task_digest(env_dir, task_id)
+                if local_digest != claimed_digest:
+                    return jsonify({
+                        "error": (
+                            f"task content mismatch for {env_name}/{task_id}: "
+                            f"client has {claimed_digest}, this worker resolved {local_digest}. "
+                            "Align the benchmark version installed on client and worker."
+                        ),
+                        "client_digest": claimed_digest,
+                        "worker_digest": local_digest,
+                    }), 409
+
         metadata = data.get("metadata", {})
         verifier_env = data.get("verifier_env") or {}
         fast_io = bool(data.get("fast_io", False))

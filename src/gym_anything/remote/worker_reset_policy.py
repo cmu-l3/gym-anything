@@ -25,7 +25,9 @@ def apply_worker_reset_policy(
     fullscreen_steps: int = 50,
     logger=None,
 ) -> Dict[str, float]:
-    if policy == DEFAULT_WORKER_RESET_POLICY:
+    # None means "no worker-local policy" (clients send it explicitly for
+    # worlds where the desktop baseline setup is meaningless).
+    if policy is None or policy == DEFAULT_WORKER_RESET_POLICY:
         return {
             "apply_reset_policy": 0.0,
             "setup_env": 0.0,

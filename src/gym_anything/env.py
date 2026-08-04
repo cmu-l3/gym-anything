@@ -173,7 +173,7 @@ class GymAnythingEnv:
             use_savevm: If True, use QEMU savevm/loadvm for true VM state checkpointing.
                        This preserves memory, CPU state, running processes, and GUI state.
                        On restore, uses loadvm for instant state restoration (no reboot).
-                       Only effective with QemuApptainerRunner. Requires use_cache=True.
+                       Only effective with runners whose supports_savevm() is True. Requires use_cache=True.
 
                        Benefits of use_savevm=True:
                        - Instant restore (~3s vs 2-5min reboot)
