@@ -4,7 +4,7 @@
 Run in release CI on tag push (needs `workflow`-scoped credentials to add
 the workflow; the job is one step):
 
-    python scripts/release_check.py "${GITHUB_REF_NAME#v}"
+    python packaging/release_check.py "${GITHUB_REF_NAME#v}"
 """
 import sys
 import tomllib
