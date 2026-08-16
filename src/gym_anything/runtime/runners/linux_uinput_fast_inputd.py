@@ -997,6 +997,14 @@ class FastInputService:
         device, x11 = self.pointer_device, self.x11
         if "move" in step:
             x, y = int(step["move"][0]), int(step["move"][1])
+            # The device clamps to its absolute axis range when emitting, so an
+            # off-screen request lands on the screen edge — the same treatment
+            # X gives it. Verify the clamped point: an out-of-range request is
+            # a legal edge click, not a failed delivery. (Models emit
+            # out-of-bounds coordinates routinely; the slow path accepted them
+            # silently for the same reason.)
+            x = max(0, min(x, device.width - 1))
+            y = max(0, min(y, device.height - 1))
             if step.get("guarantee_motion"):
                 # An explicit move promises an observable motion event, the
                 # same way a click promises a press and a release. An absolute
