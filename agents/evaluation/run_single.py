@@ -11,8 +11,10 @@ from pathlib import Path
 from typing import Any
 
 import agents.agents as agent_registry
+from agents.shared.temporal_modes import TEMPORAL_MODES, world_time_mode
 from gym_anything.api import from_config
 from gym_anything.remote import RemoteGymEnv
+from gym_anything.utils.yaml import load_structured_file
 from tqdm import tqdm
 
 
@@ -95,6 +97,15 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=0.0,
         help="Seconds to wait after each env.step before refreshing the observation for the next model turn.",
+    )
+    parser.add_argument(
+        "--temporal-mode",
+        choices=TEMPORAL_MODES,
+        default=None,
+        help=(
+            "Computer-use timing contract: paused, live, live_timestamped, or "
+            "live_timestamped_execution. The final mode also permits execute_at_s."
+        ),
     )
     parser.add_argument("--vlm_backend", type=str, default=DEFAULT_VLM_BACKEND)
     parser.add_argument("--vlm_base_url", type=str, default=DEFAULT_VLM_BASE_URL)
@@ -186,22 +197,55 @@ def _resolve_agent_class(ref: str):
     return getattr(agent_registry, ref)
 
 
+def _temporal_runner_overrides(args: argparse.Namespace) -> dict[str, Any] | None:
+    temporal_mode = getattr(args, "temporal_mode", None)
+    if temporal_mode is None:
+        return None
+    env_dir = Path(args.env_dir)
+    env_spec_path = next(
+        (
+            path
+            for path in (env_dir / "env.yaml", env_dir / "env.yml", env_dir / "env.json")
+            if path.exists()
+        ),
+        None,
+    )
+    if env_spec_path is None:
+        raise FileNotFoundError(f"No env.yaml, env.yml, or env.json found in {env_dir}")
+    raw = load_structured_file(env_spec_path)
+    runner_options = dict(raw.get("runner_options") or {})
+    runner_options["time_mode"] = world_time_mode(temporal_mode)
+    if temporal_mode != "paused":
+        # Live agents can observe whenever they choose, so each capture is one
+        # instantaneous frame rather than a fixed multi-frame window.
+        runner_options["observation_window_ms"] = 0
+        runner_options["frames_per_observation"] = 1
+    return {"runner_options": runner_options}
+
+
 def _make_env(args: argparse.Namespace):
     fast_io = bool(getattr(args, "fast_io", False))
     remote_url = getattr(args, "remote_url", None)
+    overrides = _temporal_runner_overrides(args)
     if not remote_url:
-        return from_config(args.env_dir, task_id=args.task, fast_io=fast_io)
+        kwargs: dict[str, Any] = {"task_id": args.task, "fast_io": fast_io}
+        if overrides is not None:
+            kwargs["overrides"] = overrides
+        return from_config(args.env_dir, **kwargs)
     worker_reset_policy = getattr(args, "remote_worker_reset_policy", "core")
     if worker_reset_policy == "none":
         worker_reset_policy = None
-    return RemoteGymEnv.from_config(
-        remote_url=remote_url,
-        env_dir=args.env_dir,
-        task_id=args.task,
-        timeout=getattr(args, "remote_timeout", 300),
-        worker_reset_policy=worker_reset_policy,
-        fast_io=fast_io,
-    )
+    kwargs = {
+        "remote_url": remote_url,
+        "env_dir": args.env_dir,
+        "task_id": args.task,
+        "timeout": getattr(args, "remote_timeout", 300),
+        "worker_reset_policy": worker_reset_policy,
+        "fast_io": fast_io,
+    }
+    if overrides is not None:
+        kwargs["overrides"] = overrides
+    return RemoteGymEnv.from_config(**kwargs)
 
 
 def _elapsed_ms(start: float) -> float:
@@ -347,12 +391,16 @@ def run_single(args: argparse.Namespace) -> int:
             **setup_timings,
         },
     )
+    agent_cls = _resolve_agent_class(args.agent)
     task_description = _load_task_description(env, args.env_dir, args.task)
-    if task_description:
+    if task_description and not getattr(agent_cls, "autonomous", False):
         task_description += "\nUnless explicitly mentioned, you are required to use the UI to complete the task not terminal."
 
-    agent_cls = _resolve_agent_class(args.agent)
-    agent = agent_cls(agent_args=json.loads(args.agent_args), verbose=args.verbose, debug=args.debug)
+    agent_args = json.loads(args.agent_args)
+    temporal_mode = getattr(args, "temporal_mode", None)
+    if temporal_mode is not None:
+        agent_args["temporal_mode"] = temporal_mode
+    agent = agent_cls(agent_args=agent_args, verbose=args.verbose, debug=args.debug)
     agent.init(
         task_description=task_description,
         display_resolution=env.env_spec.observation[0].resolution,

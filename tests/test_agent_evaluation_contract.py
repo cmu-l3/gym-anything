@@ -8,6 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
+from agents.evaluation import run_batch as run_batch_module
 from agents.evaluation import run_single as run_single_module
 
 
@@ -80,6 +81,94 @@ class _FakeEnv:
 
 
 class AgentEvaluationContractTests(unittest.TestCase):
+    def test_run_batch_forwards_temporal_mode_to_run_single(self) -> None:
+        args = run_batch_module.build_parser().parse_args(
+            ["--temporal-mode", "live_timestamped_execution"]
+        )
+        with mock.patch.object(
+            run_batch_module,
+            "_build_task_env_pairs",
+            return_value=[("demo-task", "demo-env")],
+        ), mock.patch.object(run_batch_module.os, "listdir", side_effect=FileNotFoundError), \
+             mock.patch.object(run_batch_module.subprocess, "run") as run:
+            run_batch_module.run_batch(args)
+
+        command = run.call_args.args[0]
+        self.assertIn("--temporal-mode", command)
+        self.assertEqual(
+            command[command.index("--temporal-mode") + 1],
+            "live_timestamped_execution",
+        )
+
+    def test_parser_accepts_all_four_temporal_modes(self) -> None:
+        parser = run_single_module.build_parser()
+        for mode in (
+            "paused",
+            "live",
+            "live_timestamped",
+            "live_timestamped_execution",
+        ):
+            args = parser.parse_args(
+                [
+                    "--env_dir",
+                    "demo-env",
+                    "--task",
+                    "demo-task",
+                    "--agent",
+                    "FakePolicy",
+                    "--agent_args",
+                    "{}",
+                    "--temporal-mode",
+                    mode,
+                ]
+            )
+            self.assertEqual(args.temporal_mode, mode)
+
+    def test_temporal_mode_preserves_runner_options_and_maps_world_clock(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            env_dir = Path(tmp)
+            (env_dir / "env.json").write_text(
+                json.dumps(
+                    {
+                        "runner_options": {
+                            "observation_window_ms": 800,
+                            "frames_per_observation": 6,
+                        }
+                    }
+                )
+            )
+            for temporal_mode, expected_world_mode in (
+                ("paused", "paused"),
+                ("live", "live"),
+                ("live_timestamped", "live"),
+                ("live_timestamped_execution", "live"),
+            ):
+                expected_window_ms = 800 if temporal_mode == "paused" else 0
+                expected_frames = 6 if temporal_mode == "paused" else 1
+                args = SimpleNamespace(
+                    env_dir=str(env_dir),
+                    task="demo-task",
+                    fast_io=True,
+                    remote_url=None,
+                    temporal_mode=temporal_mode,
+                )
+                with mock.patch.object(
+                    run_single_module, "from_config", return_value=object()
+                ) as make_env:
+                    run_single_module._make_env(args)
+                make_env.assert_called_once_with(
+                    str(env_dir),
+                    task_id="demo-task",
+                    fast_io=True,
+                    overrides={
+                        "runner_options": {
+                            "observation_window_ms": expected_window_ms,
+                            "frames_per_observation": expected_frames,
+                            "time_mode": expected_world_mode,
+                        }
+                    },
+                )
+
     def test_run_single_relays_env_control_action_results_without_special_cases(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fake_env = _FakeEnv(Path(tmp))
@@ -274,6 +363,7 @@ class AgentEvaluationContractTests(unittest.TestCase):
             autonomous = True
 
             def __init__(self, *args, **kwargs) -> None:
+                self.agent_args = kwargs.get("agent_args", {})
                 self.done = False
                 self.ran_with = None
                 self.finish_info = None
@@ -290,8 +380,11 @@ class AgentEvaluationContractTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             fake_env = _FakeEnv(Path(tmp))
+            (Path(tmp) / "env.json").write_text(
+                json.dumps({"runner_options": {"frames_per_observation": 6}})
+            )
             args = SimpleNamespace(
-                env_dir="demo-env",
+                env_dir=tmp,
                 seed=42,
                 task="demo-task",
                 steps=2,
@@ -310,6 +403,7 @@ class AgentEvaluationContractTests(unittest.TestCase):
                 remote_url=None,
                 remote_timeout=300,
                 remote_worker_reset_policy="core",
+                temporal_mode="live_timestamped_execution",
             )
 
             with mock.patch.object(run_single_module, "from_config", return_value=fake_env), \
@@ -319,8 +413,13 @@ class AgentEvaluationContractTests(unittest.TestCase):
 
             self.assertEqual(result, 0)
             agent = _FakeAutonomous.instances[0]
+            self.assertEqual(
+                agent.agent_args["temporal_mode"],
+                "live_timestamped_execution",
+            )
             # run_episode was called with the env; the step loop never ran.
             self.assertIs(agent.ran_with[0], fake_env)
+            self.assertNotIn("not terminal", agent.ran_with[1])
             # Exactly one env.step call: the mark_done verification.
             self.assertEqual(fake_env.step_calls, [([], True)])
             self.assertEqual(agent.finish_info["verifier"]["score"], 100)

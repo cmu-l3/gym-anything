@@ -145,6 +145,48 @@ class RemoteClientResetPolicyTests(unittest.TestCase):
         payload = post.call_args.kwargs["json"]
         self.assertTrue(payload["fast_io"])
 
+    def test_create_remote_env_sends_runtime_overrides(self) -> None:
+        response = mock.Mock()
+        response.json.return_value = {"env_id": "env-123"}
+        overrides = {"runner_options": {"time_mode": "live"}}
+
+        with mock.patch("gym_anything.remote.client.requests.request", return_value=response) as post, \
+             mock.patch.object(RemoteGymEnv, "_setup_cache"):
+            RemoteGymEnv.from_config(
+                remote_url="http://localhost:5000",
+                env_dir="demo-env",
+                task_id="demo-task",
+                overrides=overrides,
+            )
+
+        self.assertEqual(post.call_args.kwargs["json"]["overrides"], overrides)
+
+    def test_worker_applies_runtime_overrides_to_from_config(self) -> None:
+        from gym_anything.remote import worker
+
+        manager = worker.EnvironmentManager()
+        fake_env = object()
+        overrides = {"runner_options": {"time_mode": "paused"}}
+        with mock.patch.object(worker, "from_config", return_value=fake_env) as make_env:
+            env_id = manager.create_environment(
+                env_spec_dict={},
+                env_dir="demo-env",
+                task_id="demo-task",
+                fast_io=True,
+                overrides=overrides,
+            )
+        try:
+            make_env.assert_called_once_with(
+                "demo-env",
+                task_id="demo-task",
+                overrides=overrides,
+                fast_io=True,
+            )
+            self.assertIs(worker.env_registry[env_id]["env"], fake_env)
+        finally:
+            with worker.registry_lock:
+                worker.env_registry.pop(env_id, None)
+
     def test_worker_serializes_fast_io_image_observation(self) -> None:
         from PIL import Image
 
