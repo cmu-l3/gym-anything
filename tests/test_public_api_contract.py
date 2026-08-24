@@ -109,6 +109,10 @@ class PublicApiContractTests(unittest.TestCase):
         params = inspect.signature(RemoteGymEnv.from_config).parameters
         self.assertIn("fast_io", params)
 
+    def test_remote_from_config_exposes_runtime_overrides(self) -> None:
+        params = inspect.signature(RemoteGymEnv.from_config).parameters
+        self.assertIn("overrides", params)
+
     def test_public_runner_compatibility_helpers_exist(self) -> None:
         self.assertTrue(callable(get_runner_compatibility))
         self.assertTrue(callable(get_runner_compatibility_matrix))

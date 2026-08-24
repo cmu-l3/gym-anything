@@ -102,30 +102,77 @@ detects the flag, calls `run_episode` once, and then runs the same `mark_done`
 verification as every other agent.
 
 The CLI never runs inside the task VM. It runs in a throwaway, GUI-less
-scratch container that can reach exactly one thing on the host: an in-process
-**action gateway**. The CLI sends one action as a JSON string (the same
-vocabulary the other agents use) through a small `act` command, the gateway
-calls `env.step()` and returns the post-action screenshot plus the remaining
-step budget. So the CLI can only affect the environment through the gateway,
-and it can never bypass the mouse-and-keyboard action space by editing files
-or the database directly. The shared machinery lives in
-`agents/shared/cli_harness.py`.
+scratch container and controls the task through an in-process **action
+gateway**. The prompt gives the CLI the gateway's authenticated HTTP contract;
+the CLI may call it from Python, JavaScript, shell scripts, loops, image-analysis
+code, or the optional `act` convenience command. The gateway accepts one action
+from the same vocabulary the other agents use and returns screenshot data plus
+the remaining step budget. Paused mode retains its configured chronological
+frame window. All three live modes configure the runner for one zero-duration
+frame and return exactly that frame; screenshot-only calls do not spend the
+action budget.
+
+The gateway has independent action and observation lanes. A target-time
+priority queue orders actions and waits without owning the injection lane. The
+lane is occupied only while `env.step(..., capture_observation=False,
+settle_after_actions=False)` injects an action and receives its acknowledgement.
+Observation capture is serialized by a different lock, so a waiting or newly
+arrived action can proceed while another request retrieves and encodes its
+frame. The action response still waits for its own post-ack frame before it is
+returned.
+
+The gateway is the contract boundary, not a prescribed client or control-loop
+implementation. The task environment is a separate VM whose files and
+credentials are not exposed to the CLI container. The shared machinery lives
+in `agents/shared/cli_harness.py`.
+
+Frame-window environments expose four timing contracts through one evaluator
+flag:
+
+| `--temporal-mode` | World clock | Timing metadata | `execute_at_s` |
+| --- | --- | --- | --- |
+| `paused` | Paused during model inference and input delivery | No | No |
+| `live` | Runs continuously | No | No |
+| `live_timestamped` | Runs continuously | Yes | No |
+| `live_timestamped_execution` | Runs continuously | Yes | Yes |
+
+Timestamped responses report `frame_captured_at_s` for the image and
+`current_time_s` near response serialization. These are separate because frame
+retrieval and encoding can take time. Action responses also report the
+acknowledgement as `action_executed_at_s`, the time from the request's last
+observed frame to that acknowledgement, and recent observe-to-execute
+latencies. In `live_timestamped_execution`, a mouse or keyboard action may add
+an absolute `execute_at_s` on the same clock. The queue wakes the injection lane
+when that target is due; the response reports measured lateness between the
+requested time and acknowledgement. A time that has passed executes
+immediately. The other three modes reject that field. This contract is
+implemented by the shared CLI harness, so it applies to every
+`CodexCliAgent` model, including `gpt-5.6-terra` and `gpt-5.6-luna`.
 
 The sandbox is backend-agnostic and auto-selected the way env runners are
 (`GYM_ANYTHING_AGENT_SANDBOX` override, then detect), in
 `agents/shared/agent_sandbox.py`: **Apptainer** (rootless, no daemon, the
-primary path on clusters) or **Docker** (daemon machines, which additionally
-get bridge network isolation). There is deliberately no no-isolation fallback:
-if neither is available the run fails rather than launch a permission-bypassed
-CLI unsandboxed. File and process isolation hold on both backends, and the env
-is a separate VM either way, so the agent has no filesystem path into it. On
-Docker the bridge also blocks any route to the env's ports; under rootless
-Apptainer (shared host network) that guarantee softens to the agent only ever
-being handed the gateway and never the env's SSH/VNC credentials.
+primary path on clusters) or **Docker** (daemon machines, using a bridge
+network). There is deliberately no no-isolation fallback: if neither is
+available the run fails rather than launch a permission-bypassed CLI
+unsandboxed. File and process isolation hold on both backends, and the env is a
+separate VM either way, so the agent has no filesystem path into it. Network
+egress is not an isolation boundary: rootless Apptainer shares the host network
+and Docker can reach the host gateway because both the model API and action
+gateway must remain reachable. The harness withholds task-VM addresses and
+credentials; it does not enforce a destination allowlist.
 
-These agents need Apptainer or Docker on the host and the relevant API key
-(`ANTHROPIC_API_KEY` for Claude Code, `OPENAI_API_KEY` for Codex), which is
-injected into the sandbox per run, never baked into the image.
+These agents need Apptainer or Docker on the host. Claude Code reads
+`ANTHROPIC_API_KEY`. Codex uses the host's existing CLI login: the harness
+copies only `$CODEX_HOME/auth.json` (default `~/.codex/auth.json`) into a
+mode-`0700` host scratch directory mounted as the container's private
+`CODEX_HOME` for each run. It does not mount the host Codex home or store the
+copied credential with episode artifacts, and it deletes the private scratch
+directory during teardown. Pass
+`codex_auth_path` in `agent_args` to select another login file. Codex sessions
+are ephemeral by default. Pass `persist_session=true` to retain only the
+session JSONL under the episode's `cli_harness/codex_home/sessions/` directory;
+the copied login file remains private and is discarded with the container.
 
 ## The Fastest Way To Try One
 

@@ -410,13 +410,19 @@ class EnvironmentManager:
                           task_id: Optional[str] = None,
                           metadata: Optional[Dict[str, Any]] = None,
                           verifier_env: Optional[Dict[str, Any]] = None,
-                          fast_io: bool = False) -> str:
+                          fast_io: bool = False,
+                          overrides: Optional[Dict[str, Any]] = None) -> str:
         """Create a new environment instance and return its ID."""
         env_id = str(uuid.uuid4())
 
         try:
             if env_dir:
-                env = from_config(env_dir, task_id=task_id, fast_io=fast_io)
+                env = from_config(
+                    env_dir,
+                    task_id=task_id,
+                    overrides=overrides,
+                    fast_io=fast_io,
+                )
             else:
                 env_spec = EnvSpec.from_dict(env_spec_dict) if env_spec_dict else None
                 task_spec = TaskSpec.from_dict(task_spec_dict) if task_spec_dict else None
@@ -836,6 +842,7 @@ def create_environment():
         metadata = data.get("metadata", {})
         verifier_env = data.get("verifier_env") or {}
         fast_io = bool(data.get("fast_io", False))
+        overrides = data.get("overrides")
 
         env_id = env_manager.create_environment(
             env_spec_dict=env_spec_dict,
@@ -845,6 +852,7 @@ def create_environment():
             metadata=metadata,
             verifier_env=verifier_env,
             fast_io=fast_io,
+            overrides=overrides,
         )
 
         return jsonify({"env_id": env_id}), 201

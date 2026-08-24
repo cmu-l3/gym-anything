@@ -11,7 +11,7 @@ Backends are auto-selected the way env runners are (an explicit
 ``GYM_ANYTHING_AGENT_SANDBOX`` override, then detect what the machine has):
 
 - ``ApptainerSandbox`` — rootless, no daemon. Primary on HPC clusters.
-- ``DockerSandbox`` — daemon machines; also gets bridge network isolation.
+- ``DockerSandbox`` — daemon machines; uses a bridge network.
 
 There is deliberately no no-isolation fallback: running a coding CLI with
 permission-bypass flags outside a sandbox is never acceptable, so if neither
@@ -21,11 +21,11 @@ Isolation, stated honestly:
 - File isolation: always. The backend gives the container its own root fs, and
   the env is a separate VM, so the agent has no filesystem path into the env.
 - Process isolation: always (PID namespace: apptainer instances, docker).
-- Network: docker's bridge additionally blocks any route to the env's ports.
-  Rootless apptainer shares the host network namespace (unavoidable rootless,
-  and outbound is needed for the API + gateway), so the env-port guarantee
-  there softens to "the agent is given only the gateway and never the env's
-  SSH/VNC host, port, or password."
+- Network: not an egress security boundary. Docker uses a bridge plus a route
+  to the host gateway; rootless apptainer shares the host network namespace.
+  Both need the action gateway and model-provider API. The harness withholds
+  task-environment addresses and credentials, but does not enforce a network
+  destination allowlist.
 """
 
 from __future__ import annotations
@@ -33,6 +33,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -41,6 +42,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+_IMAGE_RECIPE_VERSION = "2"
 
 
 @dataclass(frozen=True)
@@ -53,7 +56,10 @@ class SandboxSpec:
     act_script: str    # the `act` gateway-wrapper script, copied to /usr/local/bin
 
     def digest(self) -> str:
-        raw = f"{self.base_image}\n{self.install}\n{self.act_script}".encode()
+        raw = (
+            f"{_IMAGE_RECIPE_VERSION}\n{self.base_image}\n"
+            f"{self.install}\n{self.act_script}"
+        ).encode()
         return hashlib.sha256(raw).hexdigest()[:12]
 
 
@@ -71,9 +77,10 @@ def _run(args: list[str], timeout: int | None = None, cwd: str | None = None) ->
 class AgentSandbox(ABC):
     """One isolated container run: build the image, start it, exec the CLI, stop.
 
-    The CLI's writable scratch (config, ``obs/`` screenshots) lives under the
-    bind-mounted ``/logs`` so it is host-visible and sidesteps rootless
-    permission issues on the container's own root fs.
+    Episode artifacts live under the bind-mounted ``/logs``. Private runtime
+    state, including copied credentials, lives in a mode-0700 host scratch
+    directory mounted at ``/gym-agent-private``. The scratch directory is
+    removed when the container stops and is never part of the episode logs.
     """
 
     #: Address the gateway should bind to for this backend.
@@ -82,6 +89,7 @@ class AgentSandbox(ABC):
     def __init__(self, spec: SandboxSpec, logs_dir: Path):
         self.spec = spec
         self.logs_dir = Path(logs_dir)
+        self._private_dir: Path | None = None
 
     def gateway_url(self, port: int) -> str:
         """URL the container uses to reach the host gateway."""
@@ -93,11 +101,19 @@ class AgentSandbox(ABC):
 
     @abstractmethod
     def start(self, gateway_port: int, gateway_token: str, container_env: dict[str, str]) -> None:
-        """Start the container with the gateway coordinates and API-key env."""
+        """Start the container with the gateway coordinates and runtime env."""
 
     @abstractmethod
     def exec(self, command: str, timeout_sec: int) -> subprocess.CompletedProcess:
         """Run the CLI invocation inside the container, teeing stdout to /logs."""
+
+    @abstractmethod
+    def copy_file(self, source: Path, destination: str, mode: int = 0o600) -> None:
+        """Copy one host file into the running container's private filesystem."""
+
+    @abstractmethod
+    def copy_directory_from(self, source: str, destination: Path) -> None:
+        """Copy one container directory into the episode artifact directory."""
 
     @abstractmethod
     def stop(self) -> None:
@@ -108,6 +124,24 @@ class AgentSandbox(ABC):
     def _prepare_logs(self) -> None:
         (self.logs_dir / "work").mkdir(parents=True, exist_ok=True)
         (self.logs_dir / "home").mkdir(parents=True, exist_ok=True)
+
+    def _prepare_private_dir(self) -> Path:
+        if self._private_dir is None:
+            self._private_dir = Path(
+                tempfile.mkdtemp(prefix=f"gym-agent-{self.spec.name}-private-")
+            )
+            self._private_dir.chmod(0o700)
+        return self._private_dir
+
+    def _cleanup_private_dir(self) -> None:
+        private_dir = self._private_dir
+        self._private_dir = None
+        if private_dir is None:
+            return
+        try:
+            shutil.rmtree(private_dir)
+        except OSError:
+            logger.warning("Failed to remove private sandbox directory %s", private_dir)
 
     def _full_env(self, gateway_port: int, gateway_token: str, container_env: dict[str, str]) -> dict[str, str]:
         env = {
@@ -138,7 +172,8 @@ class DockerSandbox(AgentSandbox):
             f"RUN {self.spec.install}\n"
             "COPY act /usr/local/bin/act\n"
             "RUN chmod +x /usr/local/bin/act\n"
-            "RUN mkdir -p /logs/work /logs/home\n"
+            "RUN mkdir -p /logs/work /logs/home /gym-agent-private "
+            "&& chmod 1777 /gym-agent-private\n"
             "WORKDIR /logs/work\n"
         )
 
@@ -156,6 +191,7 @@ class DockerSandbox(AgentSandbox):
 
     def start(self, gateway_port: int, gateway_token: str, container_env: dict[str, str]) -> None:
         self._prepare_logs()
+        private_dir = self._prepare_private_dir()
         self._env = self._full_env(gateway_port, gateway_token, container_env)
         env_args: list[str] = []
         for key, value in self._env.items():
@@ -164,6 +200,7 @@ class DockerSandbox(AgentSandbox):
             "docker", "run", "-d", "--rm", "--name", self.container_name,
             "--add-host", "host.docker.internal:host-gateway",
             "-v", f"{self.logs_dir}:/logs",
+            "-v", f"{private_dir}:/gym-agent-private",
             *env_args,
             self.image_tag, "sleep", "infinity",
         ]
@@ -178,8 +215,47 @@ class DockerSandbox(AgentSandbox):
             timeout=timeout_sec,
         )
 
+    def copy_file(self, source: Path, destination: str, mode: int = 0o600) -> None:
+        parent = str(Path(destination).parent)
+        prepare = _run(
+            [
+                "docker", "exec", self.container_name, "sh", "-c",
+                f"umask 077; mkdir -p {shlex.quote(parent)}",
+            ],
+            timeout=60,
+        )
+        if prepare.returncode != 0:
+            raise RuntimeError(f"docker destination setup failed:\n{prepare.stderr}")
+        copied = _run(
+            ["docker", "cp", str(source), f"{self.container_name}:{destination}"],
+            timeout=60,
+        )
+        if copied.returncode != 0:
+            raise RuntimeError(f"docker copy failed:\n{copied.stderr}")
+        secured = _run(
+            ["docker", "exec", self.container_name, "chmod", f"{mode:o}", destination],
+            timeout=60,
+        )
+        if secured.returncode != 0:
+            raise RuntimeError(f"docker chmod failed:\n{secured.stderr}")
+
+    def copy_directory_from(self, source: str, destination: Path) -> None:
+        destination.mkdir(parents=True, exist_ok=True)
+        copied = _run(
+            [
+                "docker", "cp", f"{self.container_name}:{source.rstrip('/')}/.",
+                str(destination),
+            ],
+            timeout=60,
+        )
+        if copied.returncode != 0:
+            raise RuntimeError(f"docker artifact copy failed:\n{copied.stderr}")
+
     def stop(self) -> None:
-        _run(["docker", "rm", "-f", self.container_name], timeout=60)
+        try:
+            _run(["docker", "rm", "-f", self.container_name], timeout=60)
+        finally:
+            self._cleanup_private_dir()
 
 
 class ApptainerSandbox(AgentSandbox):
@@ -203,7 +279,8 @@ class ApptainerSandbox(AgentSandbox):
             f"    {_COMMON_INSTALL}\n"
             f"    {self.spec.install}\n"
             "    chmod +x /usr/local/bin/act\n"
-            "    mkdir -p /logs/work /logs/home\n"
+            "    mkdir -p /logs/work /logs/home /gym-agent-private\n"
+            "    chmod 1777 /gym-agent-private\n"
         )
 
     def build(self) -> None:
@@ -229,6 +306,7 @@ class ApptainerSandbox(AgentSandbox):
 
     def start(self, gateway_port: int, gateway_token: str, container_env: dict[str, str]) -> None:
         self._prepare_logs()
+        private_dir = self._prepare_private_dir()
         env = self._full_env(gateway_port, gateway_token, container_env)
         self._env_file = self.logs_dir / "sandbox.env"
         self._env_file.write_text("".join(f"{k}={v}\n" for k, v in env.items()))
@@ -236,6 +314,7 @@ class ApptainerSandbox(AgentSandbox):
             "apptainer", "instance", "start",
             "--contain", "--cleanenv", "--writable-tmpfs",
             "--bind", f"{self.logs_dir}:/logs",
+            "--bind", f"{private_dir}:/gym-agent-private",
             str(self.sif_path), self.instance_name,
         ]
         result = _run(args, timeout=120)
@@ -251,8 +330,54 @@ class ApptainerSandbox(AgentSandbox):
         ]
         return _run(args, timeout=timeout_sec)
 
+    def copy_file(self, source: Path, destination: str, mode: int = 0o600) -> None:
+        parent = str(Path(destination).parent)
+        command = (
+            f"umask 077; mkdir -p {shlex.quote(parent)}; "
+            f"cat > {shlex.quote(destination)}; chmod {mode:o} {shlex.quote(destination)}"
+        )
+        result = subprocess.run(
+            [
+                "apptainer", "exec", f"instance://{self.instance_name}",
+                "sh", "-c", command,
+            ],
+            input=source.read_bytes(),
+            capture_output=True,
+            timeout=60,
+            check=False,
+        )
+        if result.returncode != 0:
+            stderr = result.stderr.decode(errors="replace")
+            raise RuntimeError(f"apptainer copy failed:\n{stderr}")
+
+    def copy_directory_from(self, source: str, destination: Path) -> None:
+        logs_root = self.logs_dir.resolve()
+        destination = destination.resolve()
+        try:
+            relative = destination.relative_to(logs_root)
+        except ValueError as exc:
+            raise ValueError("sandbox artifacts must stay under the logs directory") from exc
+        destination.mkdir(parents=True, exist_ok=True)
+        container_destination = f"/logs/{relative.as_posix()}"
+        command = (
+            f"cp -a {shlex.quote(source.rstrip('/') + '/.')} "
+            f"{shlex.quote(container_destination + '/')}"
+        )
+        result = _run(
+            [
+                "apptainer", "exec", f"instance://{self.instance_name}",
+                "sh", "-c", command,
+            ],
+            timeout=60,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"apptainer artifact copy failed:\n{result.stderr}")
+
     def stop(self) -> None:
-        _run(["apptainer", "instance", "stop", self.instance_name], timeout=60)
+        try:
+            _run(["apptainer", "instance", "stop", self.instance_name], timeout=60)
+        finally:
+            self._cleanup_private_dir()
 
 
 def _apptainer_available() -> bool:

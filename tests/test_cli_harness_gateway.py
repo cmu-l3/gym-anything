@@ -6,11 +6,19 @@ No docker, no sockets.
 """
 import base64
 import io
+import json
+import tempfile
+import threading
+import time
 import unittest
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from unittest import mock
 
 from PIL import Image
 
 from agents.shared.cli_harness import (
+    _ACT_SCRIPT,
     ActionGateway,
     build_harness_prompt,
     _obs_png_bytes,
@@ -48,8 +56,35 @@ class FakeEnv:
         return self._obs()
 
 
-def _gateway(env, resolution=(1920, 1080)):
-    return ActionGateway(env, resolution, max_steps=env.max_steps, token="tok")
+class TimedFakeEnv(FakeEnv):
+    def __init__(self, root: Path):
+        super().__init__()
+        self.root = root
+
+    def _obs(self):
+        start_ms = time.time_ns() / 1_000_000
+        manifest = self.root / f"manifest-{self._n}.json"
+        manifest.write_text(
+            json.dumps(
+                {
+                    "window_started_wall_ms": start_ms,
+                    "frames": [{"offset_ms": 0}],
+                }
+            )
+        )
+        obs = super()._obs()
+        obs["capture_manifest"] = str(manifest)
+        return obs
+
+
+def _gateway(env, resolution=(1920, 1080), temporal_mode="live"):
+    return ActionGateway(
+        env,
+        resolution,
+        max_steps=env.max_steps,
+        token="tok",
+        temporal_mode=temporal_mode,
+    )
 
 
 class DisplayScalingTests(unittest.TestCase):
@@ -71,6 +106,64 @@ class DisplayScalingTests(unittest.TestCase):
         img = Image.open(io.BytesIO(base64.b64decode(resp["screenshot_b64"])))
         self.assertEqual(img.size, (1280, 720))
 
+    def test_live_mode_returns_only_the_last_frame(self):
+        env = FakeEnv()
+        colors = [(200, 0, 0), (0, 200, 0), (0, 0, 200), (100, 100, 0), (0, 100, 100), (100, 0, 100)]
+        env._obs = lambda: {
+            "frames": [
+                {"png_b64": base64.b64encode(_png(color=color)).decode()}
+                for color in colors
+            ],
+            "screen": {"png_b64": base64.b64encode(_png(color=colors[-1])).decode()},
+        }
+        resp = _gateway(env).step_from_command('{"action": "screenshot"}')
+
+        self.assertEqual(len(resp["screenshots_b64"]), 1)
+        image = Image.open(io.BytesIO(base64.b64decode(resp["screenshot_b64"])))
+        self.assertEqual(image.size, (1280, 720))
+        self.assertEqual(image.getpixel((0, 0)), colors[-1])
+        self.assertEqual(resp["screenshot_b64"], resp["screenshots_b64"][-1])
+
+    def test_paused_mode_keeps_the_chronological_frame_window(self):
+        env = FakeEnv()
+        colors = [(200, 0, 0), (0, 200, 0), (0, 0, 200)]
+        env._obs = lambda: {
+            "frames": [
+                {"png_b64": base64.b64encode(_png(color=color)).decode()}
+                for color in colors
+            ],
+            "screen": {"png_b64": base64.b64encode(_png(color=colors[-1])).decode()},
+        }
+        resp = _gateway(env, temporal_mode="paused").step_from_command(
+            '{"action": "screenshot"}'
+        )
+
+        self.assertEqual(len(resp["screenshots_b64"]), 3)
+        self.assertEqual(
+            [
+                Image.open(io.BytesIO(base64.b64decode(encoded))).getpixel((0, 0))
+                for encoded in resp["screenshots_b64"]
+            ],
+            colors,
+        )
+
+    def test_remote_frame_paths_are_fetched(self):
+        import tempfile
+
+        env = FakeEnv()
+        with tempfile.TemporaryDirectory() as tmp:
+            local = Path(tmp) / "fetched.png"
+            local.write_bytes(_NATIVE_PNG)
+            env._obs = lambda: {
+                "frames": [{"path": "/remote/turn/frame-000.png"}],
+                "screen": {"path": "/remote/turn/frame-000.png", "remote": True},
+            }
+            env.fetch_path = mock.Mock(return_value=str(local))
+            resp = _gateway(env).step_from_command('{"action": "screenshot"}')
+
+        self.assertEqual(len(resp["screenshots_b64"]), 1)
+        env.fetch_path.assert_called_once_with("/remote/turn/frame-000.png")
+
 
 class CommandTranslationTests(unittest.TestCase):
     def test_left_click_scales_display_pixels_to_native(self):
@@ -81,6 +174,18 @@ class CommandTranslationTests(unittest.TestCase):
         self.assertEqual(env.calls[-1], [{"mouse": {"left_click": [960, 540]}}])
         self.assertEqual(resp["budget_remaining"], 4)
         self.assertIsNotNone(resp["screenshot_b64"])
+
+    def test_action_injection_defers_settling_and_observation(self):
+        env = FakeEnv()
+        gw = _gateway(env)
+        with mock.patch.object(env, "step", wraps=env.step) as step:
+            gw.step_from_command('{"action": "left_click", "coordinate": [640, 360]}')
+
+        step.assert_called_once_with(
+            [{"mouse": {"left_click": [960, 540]}}],
+            capture_observation=False,
+            settle_after_actions=False,
+        )
 
     def test_type_with_enter_and_clear(self):
         env = FakeEnv()
@@ -101,11 +206,12 @@ class CommandTranslationTests(unittest.TestCase):
         gw.step_from_command('{"action": "key", "keys": ["ctrl", "s"]}')
         self.assertEqual(env.calls[-1], [{"keyboard": {"keys": ["ctrl", "s"]}}])
 
-    def test_screenshot_only_still_steps(self):
+    def test_screenshot_captures_without_consuming_action(self):
         env = FakeEnv()
         gw = _gateway(env)
         resp = gw.step_from_command('{"action": "screenshot"}')
-        self.assertEqual(env.calls[-1], [{"action": "screenshot"}])
+        self.assertEqual(env.calls, [])
+        self.assertEqual(resp["budget_remaining"], 5)
         self.assertFalse(resp["done"])
 
     def test_wait_maps_to_wait_action(self):
@@ -124,6 +230,114 @@ class CommandTranslationTests(unittest.TestCase):
         self.assertEqual(
             env.calls[-1], [{"mouse": {"left_click_drag": [[150, 300], [900, 600]]}}]
         )
+
+
+class TemporalModeTests(unittest.TestCase):
+    def test_plain_modes_do_not_return_timing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for mode in ("paused", "live"):
+                response = _gateway(
+                    TimedFakeEnv(Path(tmp)), temporal_mode=mode
+                ).step_from_command('{"action": "screenshot"}')
+                self.assertNotIn("timing", response)
+
+    def test_timestamped_mode_reports_capture_and_action_latency(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gateway = _gateway(
+                TimedFakeEnv(Path(tmp)), temporal_mode="live_timestamped"
+            )
+            first = gateway.step_from_command('{"action": "screenshot"}')
+            second = gateway.step_from_command(
+                '{"action": "left_click", "coordinate": [640, 360]}'
+            )
+
+        self.assertEqual(first["timing"]["frame_captured_at_s"], 0.0)
+        self.assertEqual(first["timing"]["screenshot_captured_at_s"], [0.0])
+        self.assertGreaterEqual(first["timing"]["current_time_s"], 0.0)
+        timing = second["timing"]
+        self.assertIn("action_executed_at_s", timing)
+        self.assertEqual(
+            timing["previous_action_finished_executing_by_s"],
+            timing["action_executed_at_s"],
+        )
+        self.assertGreaterEqual(
+            timing["seconds_between_your_last_screenshot_and_that_action_landing"],
+            0,
+        )
+        self.assertEqual(
+            timing["your_recent_observe_to_execute_latencies_s"],
+            [timing["seconds_between_your_last_screenshot_and_that_action_landing"]],
+        )
+        self.assertGreaterEqual(
+            timing["frame_captured_at_s"], timing["action_executed_at_s"]
+        )
+
+    def test_execute_at_is_rejected_outside_execution_mode(self):
+        for mode in ("paused", "live", "live_timestamped"):
+            env = FakeEnv()
+            response = _gateway(env, temporal_mode=mode).step_from_command(
+                '{"action": "left_click", "coordinate": [10, 20], "execute_at_s": 4}'
+            )
+            self.assertIn("live_timestamped_execution", response["error"])
+            self.assertEqual(env.calls, [])
+
+    def test_execution_mode_schedules_against_the_observation_clock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env = TimedFakeEnv(Path(tmp))
+            gateway = _gateway(
+                env, temporal_mode="live_timestamped_execution"
+            )
+            initial = gateway.step_from_command('{"action": "screenshot"}')
+            execute_at_s = initial["timing"]["current_time_s"] + 0.12
+            started = time.monotonic()
+            response = gateway.step_from_command(
+                json.dumps(
+                    {
+                        "action": "left_click",
+                        "coordinate": [640, 360],
+                        "execute_at_s": execute_at_s,
+                    }
+                )
+            )
+
+        self.assertGreaterEqual(time.monotonic() - started, 0.09)
+        self.assertEqual(
+            env.calls[-1], [{"mouse": {"left_click": [960, 540]}}]
+        )
+        self.assertEqual(
+            response["timing"]["previous_action_requested_execute_at_s"],
+            execute_at_s,
+        )
+        self.assertLess(abs(response["timing"]["action_execution_lateness_s"]), 0.05)
+        self.assertEqual(
+            gateway.transcript[-1]["requested_execute_at_s"], execute_at_s
+        )
+
+    def test_current_time_accounts_for_frame_retrieval_delay(self):
+        class SlowTimedFakeEnv(TimedFakeEnv):
+            def capture_observation(self):
+                observation = self._obs()
+                time.sleep(0.05)
+                return observation
+
+        with tempfile.TemporaryDirectory() as tmp:
+            response = _gateway(
+                SlowTimedFakeEnv(Path(tmp)),
+                temporal_mode="live_timestamped_execution",
+            ).step_from_command('{"action": "screenshot"}')
+
+        self.assertEqual(response["timing"]["frame_captured_at_s"], 0.0)
+        self.assertGreaterEqual(response["timing"]["current_time_s"], 0.04)
+
+    def test_execution_mode_requires_an_observation_clock_origin(self):
+        env = FakeEnv()
+        response = _gateway(
+            env, temporal_mode="live_timestamped_execution"
+        ).step_from_command(
+            '{"action": "left_click", "coordinate": [10, 20], "execute_at_s": 4}'
+        )
+        self.assertEqual(response["error"], "request a screenshot before using execute_at_s")
+        self.assertEqual(env.calls, [])
 
 
 class TerminalAndErrorTests(unittest.TestCase):
@@ -150,13 +364,23 @@ class TerminalAndErrorTests(unittest.TestCase):
         self.assertIn("action", resp["error"])
         self.assertEqual(len(env.calls), 0)
 
+    def test_non_string_action_is_a_normal_retryable_error(self):
+        env = FakeEnv()
+        gw = _gateway(env)
+        resp = gw.step_from_command('{"action": {"action": "screenshot"}}')
+        self.assertEqual(resp["error"], "the 'action' value must be a string")
+        self.assertEqual(resp["budget_remaining"], 5)
+        self.assertFalse(resp["done"])
+        self.assertIsNotNone(resp["screenshot_b64"])
+        self.assertEqual(len(env.calls), 0)
+
 
 class BudgetTests(unittest.TestCase):
     def test_budget_exhaustion_blocks_further_steps(self):
         env = FakeEnv(max_steps=2)
         gw = _gateway(env)
-        gw.step_from_command('{"action": "screenshot"}')
-        r2 = gw.step_from_command('{"action": "screenshot"}')
+        gw.step_from_command('{"action": "wait", "time": 0}')
+        r2 = gw.step_from_command('{"action": "wait", "time": 0}')
         self.assertEqual(r2["budget_remaining"], 0)
         self.assertTrue(r2["done"])
         r3 = gw.step_from_command('{"action": "screenshot"}')
@@ -175,8 +399,116 @@ class BudgetTests(unittest.TestCase):
         gw.step_from_command('{"action": "screenshot"}')
         gw.step_from_command('{"action": "left_click", "coordinate": [1, 1]}')
         self.assertEqual(len(gw.transcript), 2)
+        self.assertTrue(gw.transcript[0]["observation_only"])
         # 1 * 1.5 -> int(1.5) == 1
         self.assertEqual(gw.transcript[1]["env_actions"], [{"mouse": {"left_click": [1, 1]}}])
+
+
+class ConcurrencyTests(unittest.TestCase):
+    def test_concurrent_commands_are_serialized_before_touching_env(self):
+        class ConcurrentProbeEnv(FakeEnv):
+            def __init__(self):
+                super().__init__()
+                self.active_captures = 0
+                self.max_active_captures = 0
+                self.guard = threading.Lock()
+
+            def capture_observation(self):
+                with self.guard:
+                    self.active_captures += 1
+                    self.max_active_captures = max(
+                        self.max_active_captures, self.active_captures
+                    )
+                try:
+                    time.sleep(0.1)
+                    return self._obs()
+                finally:
+                    with self.guard:
+                        self.active_captures -= 1
+
+        env = ConcurrentProbeEnv()
+        gateway = _gateway(env)
+        callers_ready = threading.Barrier(3)
+
+        def request_screenshot():
+            callers_ready.wait()
+            return gateway.step_from_command('{"action": "screenshot"}')
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [executor.submit(request_screenshot) for _ in range(2)]
+            callers_ready.wait()
+            responses = [future.result() for future in futures]
+
+        self.assertEqual(env.max_active_captures, 1)
+        self.assertEqual(
+            sorted(response["observation"] for response in responses), [0, 1]
+        )
+
+    def test_scheduled_wait_does_not_block_an_immediate_action(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env = TimedFakeEnv(Path(tmp))
+            gateway = _gateway(env, temporal_mode="live_timestamped_execution")
+            initial = gateway.step_from_command('{"action": "screenshot"}')
+            execute_at_s = initial["timing"]["current_time_s"] + 0.25
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                scheduled = executor.submit(
+                    gateway.step_from_command,
+                    json.dumps(
+                        {
+                            "action": "left_click",
+                            "coordinate": [100, 100],
+                            "execute_at_s": execute_at_s,
+                        }
+                    ),
+                )
+                time.sleep(0.03)
+                immediate = executor.submit(
+                    gateway.step_from_command,
+                    '{"action": "left_click", "coordinate": [200, 200]}',
+                )
+                immediate.result(timeout=1)
+                self.assertFalse(scheduled.done())
+                scheduled.result(timeout=1)
+
+        self.assertEqual(
+            env.calls,
+            [
+                [{"mouse": {"left_click": [300, 300]}}],
+                [{"mouse": {"left_click": [150, 150]}}],
+            ],
+        )
+
+    def test_action_lane_runs_while_prior_response_captures(self):
+        class LaneProbeEnv(FakeEnv):
+            def __init__(self):
+                super().__init__()
+                self.capture_started = threading.Event()
+                self.release_capture = threading.Event()
+
+            def capture_observation(self):
+                self.capture_started.set()
+                self.release_capture.wait(timeout=2)
+                return self._obs()
+
+        env = LaneProbeEnv()
+        gateway = _gateway(env)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            first = executor.submit(
+                gateway.step_from_command,
+                '{"action": "left_click", "coordinate": [100, 100]}',
+            )
+            self.assertTrue(env.capture_started.wait(timeout=1))
+            second = executor.submit(
+                gateway.step_from_command,
+                '{"action": "left_click", "coordinate": [200, 200]}',
+            )
+            deadline = time.monotonic() + 1
+            while len(env.calls) < 2 and time.monotonic() < deadline:
+                time.sleep(0.005)
+            self.assertEqual(len(env.calls), 2)
+            env.release_capture.set()
+            first.result(timeout=1)
+            second.result(timeout=1)
 
 
 class ObservationExtractionTests(unittest.TestCase):
@@ -207,15 +539,49 @@ class ObservationExtractionTests(unittest.TestCase):
 
 
 class PromptTests(unittest.TestCase):
-    def test_prompt_contains_task_budget_and_act_usage(self):
+    def test_prompt_contains_task_budget_and_http_contract(self):
         # build_harness_prompt is given the display resolution.
         prompt = build_harness_prompt("Fill the background green.", (1280, 720), 40)
         self.assertIn("Fill the background green.", prompt)
         self.assertIn("at most 40 actions", prompt)
+        self.assertIn("HTTP action gateway", prompt)
+        self.assertIn("GATEWAY_URL", prompt)
+        self.assertIn("GATEWAY_TOKEN", prompt)
+        self.assertIn("def computer(action):", prompt)
+        self.assertIn("Python functions or programs", prompt)
+        self.assertIn("loops, OCR", prompt)
+        self.assertIn("optional convenience wrapper", prompt)
         self.assertIn("act '{", prompt)
         self.assertIn("PIXELS", prompt)
         self.assertIn("1280x720", prompt)
         self.assertIn("terminate", prompt)
+        self.assertIn("Live modes return exactly one instantaneous frame", prompt)
+        self.assertNotIn("Your ONLY way to interact with it is", prompt)
+        self.assertNotIn("After EVERY `act` call", prompt)
+
+    def test_prompt_exposes_only_the_selected_temporal_contract(self):
+        paused = build_harness_prompt("task", (1280, 720), 10, "paused")
+        live = build_harness_prompt("task", (1280, 720), 10, "live")
+        timestamped = build_harness_prompt(
+            "task", (1280, 720), 10, "live_timestamped"
+        )
+        execution = build_harness_prompt(
+            "task", (1280, 720), 10, "live_timestamped_execution"
+        )
+
+        self.assertIn("task clock is paused", paused)
+        self.assertNotIn("execute_at_s", paused)
+        self.assertIn("does not provide clock timestamps", live)
+        self.assertNotIn("execute_at_s", live)
+        self.assertIn("timing.current_time_s", timestamped)
+        self.assertNotIn("execute_at_s", timestamped)
+        self.assertIn("execute_at_s", execution)
+
+    def test_act_script_writes_every_observation_frame(self):
+        self.assertIn('resp.get("screenshots_b64")', _ACT_SCRIPT)
+        self.assertIn("chronological frame(s)", _ACT_SCRIPT)
+        self.assertIn("observation_", _ACT_SCRIPT)
+        self.assertIn('resp.get("timing")', _ACT_SCRIPT)
 
 
 if __name__ == "__main__":

@@ -105,7 +105,8 @@ class RemoteGymEnv:
                  timeout: int = 300, worker_reset_policy: Optional[str] = "core",
                  verifier_env: Optional[Dict[str, Any]] = None,
                  fast_io: bool = False,
-                 benchmark: Optional[str] = None, env_name: Optional[str] = None):
+                 benchmark: Optional[str] = None, env_name: Optional[str] = None,
+                 overrides: Optional[Dict[str, Any]] = None):
         """Initialize remote environment client.
         
         Args:
@@ -120,6 +121,7 @@ class RemoteGymEnv:
             verifier_env: Optional per-environment verifier/VLM overrides sent
                 to the worker. Defaults to the current process verifier env.
             fast_io: Request runner-native low-latency I/O paths.
+            overrides: Optional runtime EnvSpec overrides applied by the worker.
         """
         self.remote_url = remote_url.rstrip('/')
         self.timeout = timeout
@@ -156,7 +158,7 @@ class RemoteGymEnv:
                 pass
 
         # Create environment on remote server
-        self._create_remote_environment(env_spec, task_spec, env_dir, task_id)
+        self._create_remote_environment(env_spec, task_spec, env_dir, task_id, overrides)
         
         # Setup local cache
         self._setup_cache()
@@ -169,7 +171,7 @@ class RemoteGymEnv:
         self._cache_dir = cache_root / self.env_id
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         
-    def _create_remote_environment(self, env_spec, task_spec, env_dir, task_id):
+    def _create_remote_environment(self, env_spec, task_spec, env_dir, task_id, overrides):
         """Create environment on remote server."""
         # Prepare request data
         data = {}
@@ -217,6 +219,8 @@ class RemoteGymEnv:
             data["verifier_env"] = self.verifier_env
         if self.fast_io:
             data["fast_io"] = True
+        if overrides:
+            data["overrides"] = overrides
 
         # Hint the master at which runner this env needs so it can route to a
         # worker that advertises support. Best-effort: when the spec doesn't
@@ -709,7 +713,8 @@ class RemoteGymEnv:
                     task_id: Optional[str] = None, timeout: int = 300,
                     worker_reset_policy: Optional[str] = "core",
                     verifier_env: Optional[Dict[str, Any]] = None,
-                    fast_io: bool = False) -> RemoteGymEnv:
+                    fast_io: bool = False,
+                    overrides: Optional[Dict[str, Any]] = None) -> RemoteGymEnv:
         """Create remote environment from config directory.
         
         This mirrors the gym_anything.api.from_config() interface.
@@ -722,6 +727,7 @@ class RemoteGymEnv:
             worker_reset_policy: Worker-local post-reset policy
             verifier_env: Optional per-environment verifier/VLM overrides
             fast_io: Request runner-native low-latency I/O paths.
+            overrides: Optional runtime EnvSpec overrides applied by the worker.
             
         Returns:
             RemoteGymEnv instance
@@ -734,6 +740,7 @@ class RemoteGymEnv:
             worker_reset_policy=worker_reset_policy,
             verifier_env=verifier_env,
             fast_io=fast_io,
+            overrides=overrides,
         )
 
     @classmethod

@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 
+from agents.shared.temporal_modes import TEMPORAL_MODES
 from benchmarks.cua_world.registry import (
     get_tasks_for_environment,
     load_environment_task_splits,
@@ -52,6 +53,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=0.0,
         help="Seconds to wait after each env.step before refreshing the model observation",
+    )
+    parser.add_argument(
+        "--temporal-mode",
+        choices=TEMPORAL_MODES,
+        default=None,
+        help="Forward the selected temporal contract to every run_single process",
     )
     return parser
 
@@ -135,6 +142,8 @@ def run_batch(args: argparse.Namespace) -> int:
                 command.extend(["--post_reset_observation_delay", str(args.post_reset_observation_delay)])
             if args.post_step_observation_delay:
                 command.extend(["--post_step_observation_delay", str(args.post_step_observation_delay)])
+            if args.temporal_mode:
+                command.extend(["--temporal-mode", args.temporal_mode])
             print(" ".join(command))
             subprocess.run(command, check=False)
 
