@@ -161,6 +161,37 @@ class RemoteClientResetPolicyTests(unittest.TestCase):
 
         self.assertEqual(post.call_args.kwargs["json"]["overrides"], overrides)
 
+    def test_create_by_benchmark_sends_runtime_overrides(self) -> None:
+        response = mock.Mock()
+        response.json.return_value = {"env_id": "env-123"}
+        overrides = {
+            "runner_options": {
+                "time_mode": "live",
+                "observation_window_ms": 0,
+                "frames_per_observation": 1,
+            }
+        }
+
+        with mock.patch(
+            "gym_anything.remote.client.requests.request", return_value=response
+        ) as post, mock.patch.object(RemoteGymEnv, "_setup_cache"), mock.patch(
+            "gym_anything.registry.resolve_environment_dir",
+            side_effect=LookupError("client benchmark is not installed in this unit test"),
+        ):
+            RemoteGymEnv.from_benchmark(
+                remote_url="http://localhost:5000",
+                benchmark="demo-benchmark",
+                env_name="demo-env",
+                task_id="demo-task",
+                overrides=overrides,
+            )
+
+        payload = post.call_args.kwargs["json"]
+        self.assertEqual(payload["benchmark"], "demo-benchmark")
+        self.assertEqual(payload["env_name"], "demo-env")
+        self.assertEqual(payload["task_id"], "demo-task")
+        self.assertEqual(payload["overrides"], overrides)
+
     def test_worker_applies_runtime_overrides_to_from_config(self) -> None:
         from gym_anything.remote import worker
 

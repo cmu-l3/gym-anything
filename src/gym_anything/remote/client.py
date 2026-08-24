@@ -748,12 +748,14 @@ class RemoteGymEnv:
                        task_id: Optional[str] = None, timeout: int = 300,
                        worker_reset_policy: Optional[str] = "core",
                        verifier_env: Optional[Dict[str, Any]] = None,
-                       fast_io: bool = False) -> RemoteGymEnv:
+                       fast_io: bool = False,
+                       overrides: Optional[Dict[str, Any]] = None) -> RemoteGymEnv:
         """Create a remote environment by benchmark + environment name.
 
         The worker resolves the benchmark against its own installed packages
         (no shared filesystem or working-directory agreement needed) and
         verifies the task-content digest computed from the client's copy.
+        Runtime overrides are forwarded to the worker after that resolution.
         """
         return cls(
             remote_url=remote_url,
@@ -764,6 +766,7 @@ class RemoteGymEnv:
             worker_reset_policy=worker_reset_policy,
             verifier_env=verifier_env,
             fast_io=fast_io,
+            overrides=overrides,
         )
     
     @classmethod
