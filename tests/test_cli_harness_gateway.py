@@ -570,7 +570,12 @@ class PromptTests(unittest.TestCase):
         )
 
         self.assertIn("task clock is paused", paused)
+        self.assertIn("task freezes on the final returned frame", paused)
+        self.assertIn("next action is applied to that final frame's state", paused)
         self.assertNotIn("execute_at_s", paused)
+        self.assertNotIn("task freezes on the final returned frame", live)
+        self.assertNotIn("task freezes on the final returned frame", timestamped)
+        self.assertNotIn("task freezes on the final returned frame", execution)
         self.assertIn("does not provide clock timestamps", live)
         self.assertNotIn("execute_at_s", live)
         self.assertIn("timing.current_time_s", timestamped)

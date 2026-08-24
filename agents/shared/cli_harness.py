@@ -629,7 +629,9 @@ def build_harness_prompt(
     if temporal_mode == "paused":
         temporal_instructions = (
             "The task clock is paused while you reason and while your action is delivered. "
-            "It advances only through each configured observation window."
+            "It advances only through each configured observation window. After the "
+            "window completes, the task freezes on the final returned frame; your next "
+            "action is applied to that final frame's state."
         )
     elif temporal_mode == "live":
         temporal_instructions = (
