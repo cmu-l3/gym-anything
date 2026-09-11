@@ -20,7 +20,15 @@ def main():
         (directory / "sandweave.conf").write_text(f"[{section}]\nKeyringMode=inherit\n")
     subprocess.run(["systemctl", "daemon-reload"], check=True)
     subprocess.run(["apt-get", "update"], check=True)
-    subprocess.run(["apt-get", "install", "-y", "python3-yaml", "squashfuse"], check=True)
+    subprocess.run(["apt-get", "install", "-y", "python3-yaml", "squashfuse",
+                    "software-properties-common"], check=True)
+    # Use the repository's native Firefox package source for the shared desktop.
+    # Install the pin before Ubuntu desktop dependencies can select the Snap shim.
+    subprocess.run(["add-apt-repository", "-y", "-n", "ppa:mozillateam/ppa"], check=True)
+    Path("/etc/apt/preferences.d/mozilla-firefox").write_text(
+        "Package: *\nPin: release o=LP-PPA-mozillateam\nPin-Priority: 1001\n")
+    subprocess.run(["apt-get", "update"], check=True)
+    subprocess.run(["apt-get", "install", "-y", "--allow-downgrades", "firefox"], check=True)
     # /tmp lives on the root filesystem so filesystem caches include its files.
     # Preserve those files when systemd initializes a restored filesystem.
     Path("/etc/tmpfiles.d/tmp.conf").write_text("d /tmp 1777 root root -\n")

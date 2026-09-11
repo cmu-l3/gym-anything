@@ -265,7 +265,7 @@ class SandweaveRunner(BaseRunner):
         config = {"environment": self._config_digest()}
         config["task_id"] = self._task_id if self._cache_level == "post_task" else None
         digest = hashlib.sha256(json.dumps(config, sort_keys=True, default=str).encode()).hexdigest()
-        return f"gym-anything:v10:{digest}:{self._cache_level}:{self._cache_state}"
+        return f"gym-anything:v11:{digest}:{self._cache_level}:{self._cache_state}"
 
     def checkpoint_exists(self) -> bool:
         # The SDK has no top-level lookup API; use the metadata RPC its cache CLI uses.
