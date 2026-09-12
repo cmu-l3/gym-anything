@@ -24,6 +24,7 @@ RUNNER_PROFILES: dict[str, RunnerProfile] = {
     "qemu_native": "desktop_linux",
     "modal": "desktop_linux",
     "modal_native": "desktop_linux",
+    "sandweave": "desktop_linux",
     "apptainer": "desktop_linux",
     "avf": "desktop_linux",
     "avd": "android",
@@ -56,6 +57,10 @@ def _selected_execution_runners() -> list[str]:
 
 
 def _runner_class_for(runner_key: str):
+    if runner_key == "sandweave":
+        from gym_anything.runtime.runners.sandweave import SandweaveRunner
+
+        return SandweaveRunner
     if runner_key == "docker":
         from gym_anything.runtime.runners.docker import DockerRunner
 

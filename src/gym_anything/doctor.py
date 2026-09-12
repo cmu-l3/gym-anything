@@ -130,6 +130,13 @@ def _check_binary(
 def _collect_runner_checks(runner: Optional[str]) -> List[DoctorCheck]:
     target = runner or "all"
     checks: List[DoctorCheck] = []
+    if target in {"all", "sandweave"}:
+        from .runtime.runners.sandweave import dependency_status
+        status = dependency_status()
+        checks.append(DoctorCheck(
+            name="sandweave_sdk", ok=bool(status["available"]),
+            detail=status["reason"] or "sandweave>=0.2.6 installed; requires the prepared gym-anything/ubuntu image",
+        ))
     if target in {"all", "docker"}:
         checks.append(_check_binary("docker_cli", "docker", probe=["docker", "--version"]))
         checks.append(_check_binary(
@@ -328,6 +335,7 @@ _RUNNER_DEPS: Dict[str, List[str]] = {
     "local": [],
     "modal": [],  # python package + token, checked specially in get_runner_status
     "modal_native": [],  # modal>=1.4 + token, checked specially below
+    "sandweave": [],  # Python SDK, checked specially below
 }
 
 
@@ -411,6 +419,10 @@ def get_runner_status() -> Dict[str, Dict]:
             continue
         if runner_key == "modal_native":
             results[runner_key] = _modal_native_status()
+            continue
+        if runner_key == "sandweave":
+            from .runtime.runners.sandweave import dependency_status
+            results[runner_key] = dependency_status()
             continue
 
         dep_status = {}

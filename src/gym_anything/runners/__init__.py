@@ -23,6 +23,7 @@ _RUNNER_MODULES = (
     "modal_native",
     "qemu_apptainer",
     "qemu_native",
+    "sandweave",
     "vnc_utils",
     "windows_pyautogui_client",
 )

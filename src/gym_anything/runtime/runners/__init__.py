@@ -9,6 +9,7 @@ from .avd_native import AVDNativeRunner
 from .avf import AVFRunner
 from .use_computer import UseComputerRunner
 from .modal_native import ModalNativeRunner
+from .sandweave import SandweaveRunner
 
 __all__ = [
     "BaseRunner",
@@ -22,4 +23,5 @@ __all__ = [
     "AVFRunner",
     "UseComputerRunner",
     "ModalNativeRunner",
+    "SandweaveRunner",
 ]

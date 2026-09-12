@@ -28,6 +28,21 @@ class RunnerCompatibility:
 
 
 _RUNNER_COMPATIBILITY: Dict[str, RunnerCompatibility] = {
+    "sandweave": RunnerCompatibility(
+        runner="sandweave",
+        display_name="SandweaveRunner",
+        live_recording=False,
+        screenshot_video_assembly=True,
+        checkpoint_caching=True,
+        savevm=True,
+        user_accounts_mode="preprovisioned_accounts",
+        notes=[
+            "Linux GNOME desktops through Sandweave; requires Python 3.11+ and sandweave[desktop]>=0.2.6.",
+            "Filesystem restores boot fresh processes and discard volatile directories. GPU desktops cannot use savevm.",
+            "The ga desktop account is preprovisioned; user_accounts remains credential metadata.",
+            "VNC URLs are local to the Sandweave worker; remote targets require forwarding.",
+        ],
+    ),
     "docker": RunnerCompatibility(
         runner="docker",
         display_name="DockerRunner",
@@ -201,6 +216,7 @@ def get_runner_compatibility_matrix() -> List[RunnerCompatibility]:
 def infer_runner_key_from_name(name: str) -> Optional[str]:
     normalized = name.lower()
     aliases = {
+        "sandweaverunner": "sandweave",
         "dockerrunner": "docker",
         "qemuapptainerrunner": "qemu",
         "qemunativerunner": "qemu_native",

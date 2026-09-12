@@ -155,6 +155,10 @@ class GymAnythingEnv:
 
     def _runner_for_key(self, key: str, spec: EnvSpec) -> Optional[BaseRunner]:
         """Instantiate the runner an explicit key names, or None if unknown."""
+        if key == "sandweave":
+            from .runtime.runners.sandweave import SandweaveRunner
+            logger.info("Using SandweaveRunner (Linux GNOME sandbox)")
+            return SandweaveRunner(spec)
         if key == "modal":
             from .runtime.runners.modal_runner import ModalRunner
             logger.info("Using ModalRunner (guest VM in Modal VM Sandbox)")
