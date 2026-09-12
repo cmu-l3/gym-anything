@@ -3,7 +3,7 @@
 Sandweave owns provisioning, desktop I/O and checkpoint storage. Set
 SANDWEAVE_HOME for its assets/cache and GYM_ANYTHING_SANDWEAVE_TARGET for an
 optional SDK worker target; the default target is local. The worker must have
-the shared gym-anything/ubuntu image built from sandweave_ubuntu_setup.py.
+the shared gym-anything/ubuntu-qemu image imported from its QEMU Ubuntu base.
 """
 
 from __future__ import annotations
@@ -68,7 +68,8 @@ class SandweaveRunner(BaseRunner):
             "capabilities": {"desktop": {"resolution": list(self.resolution)}},
         })
         preparation = {"resources": dataclasses.asdict(spec.resources),
-                       "resolution": self.resolution, "env": self.default_exec_env()}
+                       "resolution": self.resolution, "env": self.default_exec_env(),
+                       "template": self._template.resolve()}
         self._base_key = "gym-anything:ubuntu:" + hashlib.sha256(
             json.dumps(preparation, sort_keys=True).encode()
         ).hexdigest()
