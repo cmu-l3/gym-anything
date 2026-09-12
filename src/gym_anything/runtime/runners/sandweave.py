@@ -3,7 +3,7 @@
 Sandweave owns provisioning, desktop I/O and checkpoint storage. Set
 SANDWEAVE_HOME for its assets/cache and GYM_ANYTHING_SANDWEAVE_TARGET for an
 optional SDK worker target; the default target is local. The worker must have
-the shared gym-anything/ubuntu-qemu image imported from its QEMU Ubuntu base.
+the shared image declared by sandweave_ubuntu.toml imported from its QEMU Ubuntu base.
 """
 
 from __future__ import annotations

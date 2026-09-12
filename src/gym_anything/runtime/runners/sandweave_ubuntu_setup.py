@@ -36,17 +36,9 @@ def main():
                  'systemd-networkd-wait-online.service', 'systemd-resolved.service',
                  'avahi-daemon.service', 'avahi-daemon.socket', 'rtkit-daemon.service']:
         mask(name)
-    for directory in [units, Path('/lib/systemd/system')]:
-        for pattern in ['snap-*.mount', 'snap.*.service', 'snapd.*']:
-            for path in directory.glob(pattern):
-                if path.suffix in ('.mount', '.service', '.socket', '.timer'):
-                    mask(path.name)
     directory = units / 'e2scrub_reap.service.d'
     directory.mkdir(exist_ok=True)
     (directory / 'sandweave.conf').write_text('[Service]\nPrivateNetwork=no\n')
-    autostart = Path('/home/ga/.config/autostart/snap-userd-autostart.desktop')
-    autostart.write_text('[Desktop Entry]\nType=Application\nHidden=true\n')
-    subprocess.run(['chown', 'ga:ga', str(autostart)], check=True)
     # Retain Ubuntu's session, theme, extensions, package versions and user config.
     Path('/home/ga/.vnc/xstartup').unlink(missing_ok=True)
     Path('/etc/tigervnc').mkdir(exist_ok=True)
@@ -70,12 +62,20 @@ def main():
     policy.chmod(0o755)
     try:
         subprocess.run(['apt-get', 'install', '-y', '--no-install-recommends', '--allow-downgrades', 'firefox'], check=True)
+        subprocess.run(['apt-get', 'purge', '-y', 'snapd'], check=True)
     finally:
         if previous is None:
             policy.unlink()
         else:
             policy.write_bytes(previous)
             policy.chmod(previous_mode)
+    # Remove imported Snap unit links and user autostart after the package purge.
+    for directory in [units, Path('/etc/systemd/user')]:
+        for pattern in ['snap-*', 'snap.*', 'snapd.*']:
+            for path in directory.rglob(pattern):
+                if path.is_symlink() or path.is_file():
+                    path.unlink()
+    Path('/home/ga/.config/autostart/snap-userd-autostart.desktop').unlink(missing_ok=True)
     subprocess.run(['apt-get', 'clean'], check=True)
     # Preserve the original dock's Firefox entry after replacing the Snap package.
     Path('/usr/share/applications/firefox_firefox.desktop').symlink_to('firefox.desktop')
