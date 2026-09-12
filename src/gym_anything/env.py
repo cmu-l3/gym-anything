@@ -456,7 +456,8 @@ class GymAnythingEnv:
             self._runner.create_checkpoint()
 
         # Start recording if enabled
-        if self.env_spec.recording.enable and self._runner.supports_live_recording():
+        if (self.env_spec.recording.enable and self._runner.supports_live_recording()
+                and not self._supports_native_recording()):
             self._recorder = FFmpegRecorder(self._runner)
             self._rec_handle = self._recorder.start(
                 out_dir=self._episode_dir,
@@ -753,7 +754,8 @@ class GymAnythingEnv:
             return {
                 "runner": self.runner_name,
                 "display_name": self.runner_name,
-                "live_recording": self._runner.supports_live_recording(),
+                "live_recording": (self._runner.supports_live_recording()
+                                   or self._supports_native_recording()),
                 "screenshot_video_assembly": bool(self.env_spec.recording.enable),
                 "checkpoint_caching": self._runner.supports_checkpoint_caching(),
                 "savevm": self._runner.supports_savevm(),
@@ -877,7 +879,13 @@ class GymAnythingEnv:
                         return 15.0
         return 15.0
 
+    def _supports_native_recording(self) -> bool:
+        capability = getattr(self._runner, "supports_native_recording", None)
+        return bool(capability()) if callable(capability) else False
+
     def _ensure_recording_artifact(self) -> None:
+        if self._supports_native_recording():
+            return
         if not self._episode_dir or not self.env_spec.recording.enable:
             return
         recording_path = self._episode_dir / "recording.mp4"
@@ -1180,6 +1188,8 @@ class GymAnythingEnv:
 
     # Controls & helpers (M4)
     def pause_recording(self) -> None:
+        if self._supports_native_recording():
+            raise NotImplementedError("Native recording follows the sandbox lifecycle; separate pause/resume is unavailable")
         if self._recorder and self._rec_handle:
             try:
                 self._recorder.stop(self._rec_handle)
@@ -1188,6 +1198,8 @@ class GymAnythingEnv:
             self._rec_handle = None
 
     def resume_recording(self) -> None:
+        if self._supports_native_recording():
+            raise NotImplementedError("Native recording follows the sandbox lifecycle; separate pause/resume is unavailable")
         if self._recorder and not self._rec_handle and self._episode_dir:
             self._rec_handle = self._recorder.start(
                 out_dir=self._episode_dir,

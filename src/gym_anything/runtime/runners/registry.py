@@ -155,6 +155,11 @@ def _select_use_computer(spec=None) -> Type[BaseRunner]:
     return UseComputerRunner
 
 
+def _select_sandweave(spec=None) -> Type[BaseRunner]:
+    from .sandweave import SandweaveRunner
+    return SandweaveRunner
+
+
 _BUILTINS: Dict[str, Selector] = {
     "docker": _select_docker,
     "qemu": _select_qemu,
@@ -166,6 +171,7 @@ _BUILTINS: Dict[str, Selector] = {
     "modal": _select_modal,
     "modal_native": _select_modal_native,
     "use_computer": _select_use_computer,
+    "sandweave": _select_sandweave,
     "local": _select_local,
 }
 

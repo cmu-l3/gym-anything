@@ -305,6 +305,45 @@ This runner currently supports Linux CPU environments only. It fails explicitly
 for GPU requests and for Windows, Android, or macOS specifications. Audio and UI
 tree observations remain empty, matching the Linux QEMU runner.
 
+## Sandweave (Linux, no KVM)
+
+Install `gym-anything[sandweave]` on Python 3.11+ and select
+`runner: sandweave`. Sandweave 0.2.14+ owns the desktop, input transport,
+filesystem and memory checkpoints, and optional continuous recording.
+The runner is explicit opt-in and does not change backend auto-selection.
+
+Prepare a Sandweave runtime containing the imported Ubuntu image named
+`gym-anything/ubuntu-qemu-nosnap`, as declared in
+`runtime/runners/sandweave_ubuntu.toml`. This is not interchangeable with an
+unmodified stock GNOME image. `sandweave_ubuntu_setup.py` adapts the provisioned
+Gym Ubuntu filesystem before it is published as that image.
+
+```bash
+sandweave setup --template gnome --assets /path/to/prepared-assets \
+  --directory /path/to/sandbox-home --yes
+export SANDWEAVE_HOME=/path/to/sandbox-home
+```
+
+`GYM_ANYTHING_SANDWEAVE_TARGET` optionally selects a configured SDK target.
+By default the SDK worker is local. In Slurm, keep it in the long-lived
+environment-worker step, not in a short-lived client step shared by other
+clients. No `/dev/kvm` access is required. Mounts are uploaded copies, not
+host bind mounts. CPU filesystem and memory checkpoints are supported;
+GPU memory checkpoints are refused.
+
+Recording follows `RecordingSpec.enable`; benchmark specs can leave it off.
+When enabled, `video_fps` controls the SDK recorder. The runner exports
+`recording.mp4` and `sandweave-recording/` (original segments, per-frame
+timestamps, checksums, and recovery metadata) to the episode directory before
+teardown. Recording spans sandbox startup through teardown, including setup.
+Separate recording pause/resume is unavailable; pausing the puzzle clock is
+independent of recording. Failed downloads are reported and retained SDK
+recordings are not deleted. Audio recording is not provided by this backend.
+
+Native recorder implementations opt into `BaseRunner.supports_native_recording`
+and receive their destination through `on_episode_start`. This keeps core from
+attaching a second recorder or substituting step frames for continuous video.
+
 ## use.computer (macOS)
 
 `runner: use_computer` (set by the `macos` preset) runs environments on remote
