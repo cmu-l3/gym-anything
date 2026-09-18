@@ -12,10 +12,12 @@ import dataclasses
 import hashlib
 import importlib.metadata
 import json
+import logging
 import math
 import os
 import re
 import shlex
+import socket
 import sys
 import uuid
 from pathlib import Path
@@ -25,6 +27,9 @@ from ...config.presets import is_android_preset, is_windows_preset
 from ...contracts import RunnerRuntimeInfo
 from ...specs import EnvSpec
 from .base import BaseRunner
+
+
+logger = logging.getLogger(__name__)
 
 
 def dependency_status() -> Dict[str, Any]:
@@ -109,6 +114,7 @@ class SandweaveRunner(BaseRunner):
         try:
             self._sandbox = self._sdk.Sandbox(
                 **source, target=self.target, startup_timeout=3600,
+                name=f"{self.spec.id}-{uuid.uuid4().hex}",
                 cpu=math.ceil(self.spec.resources.cpu),
                 memory=f"{self.spec.resources.mem_gb}GiB",
                 gpu=bool(self.spec.resources.gpu),
@@ -133,10 +139,21 @@ class SandweaveRunner(BaseRunner):
                 )
             info = self._sandbox.info
             vnc = info.get("vnc") or {}
+            worker_host = vnc.get("worker_host") or (info.get("worker") or {}).get("hostname")
+            local_vnc = worker_host == socket.gethostname() or (
+                not worker_host and self.target in (None, "local")
+            )
+            if vnc and not local_vnc:
+                logger.info(
+                    "Sandweave VNC for %s is on worker %s at 127.0.0.1:%s; "
+                    "connect through a tunnel to that worker",
+                    self._sandbox.id, worker_host or "unknown", vnc.get("port"),
+                )
             self._runtime_info = RunnerRuntimeInfo(
                 platform_family="linux", instance_name=self._sandbox.id,
-                vnc_port=vnc.get("port"), vnc_password=vnc.get("password"),
-                vnc_url=vnc.get("url"),
+                vnc_port=vnc.get("port") if local_vnc else None,
+                vnc_password=vnc.get("password"),
+                vnc_url=vnc.get("url") if local_vnc else None,
             )
             self._report_done("sandweave", self._sandbox.id)
         except BaseException:
