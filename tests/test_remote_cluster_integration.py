@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Callable
 
 import requests
+import psutil
 
 from gym_anything.remote import RemoteGymEnv
 
@@ -101,6 +102,7 @@ class RemoteClusterIntegrationTests(unittest.TestCase):
 
         master_port = _pick_free_port()
         worker_ports = [_pick_free_port(), _pick_free_port()]
+        dashboard_port = _pick_free_port()
         master_url = f"http://127.0.0.1:{master_port}"
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -110,8 +112,6 @@ class RemoteClusterIntegrationTests(unittest.TestCase):
                     sys.executable,
                     "-m",
                     "gym_anything.remote.master",
-                    "--host",
-                    "127.0.0.1",
                     "--port",
                     str(master_port),
                     "--dev",
@@ -126,8 +126,6 @@ class RemoteClusterIntegrationTests(unittest.TestCase):
                         sys.executable,
                         "-m",
                         "gym_anything.remote.worker",
-                        "--host",
-                        "127.0.0.1",
                         "--port",
                         str(port),
                         "--master-url",
@@ -136,8 +134,6 @@ class RemoteClusterIntegrationTests(unittest.TestCase):
                         "2",
                         "--heartbeat-interval",
                         "1",
-                        "--advertise-host",
-                        "127.0.0.1",
                         "--skip-preflight",
                     ],
                     cwd=repo_root,
@@ -147,6 +143,13 @@ class RemoteClusterIntegrationTests(unittest.TestCase):
                 for port in worker_ports
             ]
             envs: list[RemoteGymEnv] = []
+            dashboard_server = _ManagedProcess(
+                [sys.executable, "-m", "gym_anything.remote.dashboard_app",
+                 "--port", str(dashboard_port), "--servers", master_url],
+                cwd=repo_root,
+                log_path=tmp_path / "dashboard.log",
+                env=proc_env,
+            )
             try:
                 master.start()
                 _eventually(
@@ -214,6 +217,19 @@ class RemoteClusterIntegrationTests(unittest.TestCase):
                 self.assertEqual(dashboard.status_code, 200)
                 self.assertIn("Gym-Anything Master Dashboard", dashboard.text)
 
+                dashboard_server.start()
+                _eventually(
+                    lambda: requests.get(f"http://127.0.0.1:{dashboard_port}/health", timeout=1).status_code == 200,
+                    description="standalone dashboard health endpoint",
+                )
+                for process, port in zip(
+                    [master, *workers, dashboard_server],
+                    [master_port, *worker_ports, dashboard_port],
+                ):
+                    listeners = [conn.laddr for conn in psutil.Process(process._proc.pid).net_connections(kind="tcp")
+                                 if conn.status == psutil.CONN_LISTEN]
+                    self.assertEqual([(addr.ip, addr.port) for addr in listeners], [("127.0.0.1", port)])
+
                 for env in envs:
                     env.close()
 
@@ -223,6 +239,7 @@ class RemoteClusterIntegrationTests(unittest.TestCase):
 
                 _eventually(_all_envs_closed, timeout=10, description="environment cleanup")
             finally:
+                dashboard_server.stop()
                 for env in envs:
                     try:
                         env.close()

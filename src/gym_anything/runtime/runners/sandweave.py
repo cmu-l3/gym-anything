@@ -1,4 +1,4 @@
-"""Linux GNOME runner using sandweave[desktop]>=0.2.6 (Python 3.11+).
+"""Linux GNOME runner using sandweave[desktop]>=0.2.21 (Python 3.11+).
 
 Sandweave owns provisioning, desktop I/O and checkpoint storage. Set
 SANDWEAVE_HOME for its assets/cache and GYM_ANYTHING_SANDWEAVE_TARGET for an
@@ -39,8 +39,8 @@ def dependency_status() -> Dict[str, Any]:
     else:
         try:
             version = importlib.metadata.version("sandweave")
-            if tuple(map(int, re.findall(r"\d+", version)[:3])) < (0, 2, 6):
-                reason = f"sandweave>=0.2.6 required (found {version})"
+            if tuple(map(int, re.findall(r"\d+", version)[:3])) < (0, 2, 21):
+                reason = f"sandweave>=0.2.21 required (found {version})"
         except importlib.metadata.PackageNotFoundError:
             reason = "sandweave is not installed; pip install 'gym-anything[sandweave]'"
     return {"available": reason is None, "reason": reason, "deps": {}}

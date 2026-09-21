@@ -291,7 +291,7 @@ def serve(config_path: str, port: int) -> None:
             pass
 
     _Handler.runtime = _Runtime(env, config)
-    server = ThreadingHTTPServer(("0.0.0.0", port), _Handler)
+    server = ThreadingHTTPServer(("127.0.0.1", port), _Handler)
     print(f"[harbor-container] ready on :{port}")
     try:
         server.serve_forever()

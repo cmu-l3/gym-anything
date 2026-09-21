@@ -1058,7 +1058,7 @@ exec {self.sdk_manager.emulator_bin} {' '.join(emulator_args)}
             # Find free port
             import socket
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('', 0))
+                s.bind(('127.0.0.1', 0))
                 host_port = s.getsockname()[1]
 
         device_port = getattr(self, '_vnc_port_device', 5900)

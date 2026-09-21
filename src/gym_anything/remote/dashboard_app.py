@@ -562,7 +562,7 @@ def main():
     global CLEANUP_IDLE_THRESHOLD
     
     parser = argparse.ArgumentParser(description="Gym-Anything Dashboard Server")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: loopback only)")
     parser.add_argument("--port", type=int, default=5001, help="Port to bind to (default: 5001)")
     parser.add_argument("--servers", type=str, required=True,
                        help="Comma-separated list of remote server URLs (e.g., http://server1:5000,http://server2:5000)")

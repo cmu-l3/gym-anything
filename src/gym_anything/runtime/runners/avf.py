@@ -445,7 +445,7 @@ class AVFRunner(BaseRunner):
         import json
 
         data = json.dumps({
-            "local": f":{host_port}",
+            "local": f"127.0.0.1:{host_port}",
             "remote": f"{self._guest_ip}:{guest_port}",
         }).encode()
 
@@ -478,7 +478,7 @@ class AVFRunner(BaseRunner):
             self._ssh_tunnel_process = subprocess.Popen(
                 [
                     "ssh",
-                    "-L", f"{local_port}:localhost:{remote_port}",
+                    "-L", f"127.0.0.1:{local_port}:127.0.0.1:{remote_port}",
                     "-N",
                     "-o", "StrictHostKeyChecking=no",
                     "-o", "UserKnownHostsFile=/dev/null",
