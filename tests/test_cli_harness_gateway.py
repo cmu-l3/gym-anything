@@ -2,11 +2,14 @@
 
 Covers the testable core (command -> env.step translation, budget
 enforcement, display resize + coordinate scaling, prompt) with a fake env.
-No docker, no sockets.
+No Docker required; the HTTP test uses a local loopback socket.
 """
 import base64
 import io
+import json
 import unittest
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
 from PIL import Image
 
@@ -50,6 +53,25 @@ class FakeEnv:
 
 def _gateway(env, resolution=(1920, 1080)):
     return ActionGateway(env, resolution, max_steps=env.max_steps, token="tok")
+
+
+class GatewayHttpTests(unittest.TestCase):
+    def test_default_listener_is_loopback_and_still_requires_token(self):
+        gateway = _gateway(FakeEnv())
+        port = gateway.start()
+        try:
+            self.assertEqual(gateway._server.server_address, ("127.0.0.1", port))
+            data = json.dumps({"command": '{"action": "screenshot"}'}).encode()
+            request = Request(f"http://127.0.0.1:{port}/act", data=data)
+            with self.assertRaises(HTTPError) as error:
+                urlopen(request, timeout=5)
+            self.assertEqual(error.exception.code, 403)
+            request.add_header("X-Gateway-Token", "tok")
+            with urlopen(request, timeout=5) as response:
+                result = json.load(response)
+            self.assertTrue(result["screenshot_b64"])
+        finally:
+            gateway.stop()
 
 
 class DisplayScalingTests(unittest.TestCase):

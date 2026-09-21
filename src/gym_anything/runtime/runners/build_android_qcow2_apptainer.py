@@ -222,7 +222,7 @@ def run_android_install(
         "-cdrom", str(iso_path),
         # Display
         "-device", f"virtio-vga,xres={width},yres={height}",
-        "-vnc", f":{vnc_display}",
+        "-vnc", f"127.0.0.1:{vnc_display}",
         "-display", "none",
         "-monitor", "stdio",
         # Network with virtio
@@ -320,11 +320,11 @@ def run_post_install_boot(
         "-cpu", "host",
         "-drive", f"file={disk_path},format=qcow2,if=virtio",
         "-device", f"virtio-vga,xres={width},yres={height}",
-        "-vnc", f":{vnc_display}",
+        "-vnc", f"127.0.0.1:{vnc_display}",
         "-display", "none",
         "-monitor", "stdio",
         "-device", "virtio-net-pci,netdev=net0",
-        "-netdev", f"user,id=net0,hostfwd=tcp::{host_adb_port}-:{adb_port}",
+        "-netdev", f"user,id=net0,hostfwd=tcp:127.0.0.1:{host_adb_port}-:{adb_port}",
         "-usb",
         "-device", "usb-kbd",
         "-device", "usb-tablet",

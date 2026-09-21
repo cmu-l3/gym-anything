@@ -41,20 +41,41 @@ The main server commands are:
 
 {/* TODO: screenshot of the remote cluster dashboard showing connected workers */}
 
-Start one master:
+The master, worker and dashboard bind to `127.0.0.1` by default. Start one master:
 
 ```bash
-gym-anything-master --host 0.0.0.0 --port 5800
+gym-anything-master --host 127.0.0.1 --port 5800
 ```
 
-Start workers on the machines that should host environments:
+Start a worker on the same machine:
 
 ```bash
 gym-anything-worker \
-  --master-url http://master-host:5800 \
+  --host 127.0.0.1 --port 5801 \
+  --master-url http://127.0.0.1:5800 \
   --max-envs 1 \
-  --advertise-host "$(hostname -f)"
+  --advertise-host 127.0.0.1
 ```
+
+For a worker on another machine, first run this SSH connection from that worker
+machine and keep it running:
+
+```bash
+ssh -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:5800:127.0.0.1:5800 \
+  -R 127.0.0.1:5801:127.0.0.1:5801 user@master-host
+```
+
+Then run the same worker command there. The local forward lets the worker reach
+the master; the reverse forward lets the master reach the worker. Use a distinct
+worker port for each worker and match it in `--port` and both sides of `-R`.
+The SSH server must permit forwarding and retain its default `GatewayPorts no`
+setting so reverse forwards remain on loopback.
+
+From a separate benchmark or browser machine, forward the master port with
+`ssh -N -L 127.0.0.1:5800:127.0.0.1:5800 user@master-host`, then use
+`http://127.0.0.1:5800`. Forward the standalone dashboard's port in the same way
+when using `gym-anything-dashboard`.
 
 The master stores worker and environment routing state in memory, so run a single master process. Submit worker jobs with your cluster scheduler by launching `gym-anything-worker` in each job. The environment paths and cache paths used by clients must also exist on the worker machines.
 
@@ -93,7 +114,7 @@ gym-anything benchmark moodle \
   --task enroll_student \
   --agent ClaudeAgent \
   --model claude-opus-4 \
-  --remote-url http://master-host:5800
+  --remote-url http://127.0.0.1:5800
 ```
 
 The agent loop still runs in the client process. Environment reset, actions, screenshots, and verification run on the selected worker.
@@ -113,11 +134,12 @@ their model credentials. Each eligible worker must have the prepared
 the SDK alone does not import Gym's QEMU Ubuntu image. Keep the `SANDWEAVE_HOME`
 that contains that prepared image.
 
-Use Sandweave 0.2.20 on the client, controller and workers for the tested setup.
-This published release fixes the filesystem-checkpoint mount rejection and
-preserves the Docker storage setting. Live Google Earth and Moodle runs verified
-their default filesystem caches with normal and fast IO using the prepared image
-and the official runtime, without local SDK patches.
+Use Sandweave 0.2.21 or newer on the client, controller and workers. This release
+makes new Weave controllers bind to `127.0.0.1` by default, including startup with
+TLS certificates or a credential file. It retains the checkpoint and Docker
+storage fixes from 0.2.20. Live Google Earth and Moodle runs on 0.2.20 verified
+their default filesystem caches with normal and fast IO using the prepared
+image and the official runtime, without local SDK patches.
 
 Moodle's Docker database still fails with a cgroup/BPF program lookup error in
 this runtime. Its unchanged setup script uses its existing native-MariaDB
@@ -127,18 +149,22 @@ Docker-container compatibility with the prepared image.
 Start a controller on the server:
 
 ```bash
-sandweave cluster start lab --listen 0.0.0.0:8765
+sandweave cluster start lab
 ```
 
-This also registers the server as a worker. To use separate worker machines,
-add `--no-worker` and run the complete `sandweave cluster join` command printed
-at startup on each prepared worker. The controller prints connection links and
-a dashboard URL. Use its HTTPS or SSH connection options across untrusted
-networks; HTTP connections require a trusted network.
+This also registers the server as a worker. A new controller listens on
+`127.0.0.1` with an automatically assigned port. Existing saved listener settings
+are retained: to restrict a previously public controller, stop it and restart
+with `--listen 127.0.0.1:0`.
+To use separate worker machines, add `--no-worker`, then use the SSH connection
+link printed by the controller with `sandweave cluster join` on each prepared
+worker. SSH must be available from each worker to the controller. Sandweave
+creates the loopback tunnel for that SSH connection.
 
 On the benchmark machine, from the project where you will run benchmarks, save
-the connection once. Paste the complete HTTP connection link printed by the
-controller, including its `#token=...` fragment, or its SSH address:
+the connection once. On another machine, paste the SSH connection link printed
+by the controller. On the controller machine, the HTTP link also works; preserve
+its complete `#token=...` fragment:
 
 ```bash
 read -r -p 'Sandweave controller connection link: ' weave_address
@@ -202,11 +228,11 @@ If you have SSH access to that worker, establish a tunnel using those values:
 ```bash
 read -r -p 'Worker SSH destination (user@host): ' weave_worker
 read -r -p 'Worker VNC port reported by Gym: ' weave_vnc_port
-ssh -N -L "15901:127.0.0.1:${weave_vnc_port}" "$weave_worker"
+ssh -N -L "127.0.0.1:15901:127.0.0.1:${weave_vnc_port}" "$weave_worker"
 ```
 
 Keep the tunnel running and open `vnc://127.0.0.1:15901` in your VNC viewer.
 The SDK screenshot and input paths work through Weave without this VNC tunnel.
 
-See [Sandweave's cluster documentation](https://github.com/Pranjal2041/sandweave/blob/v0.2.20/docs/clusters.md)
+See [Sandweave's cluster documentation](https://github.com/Pranjal2041/sandweave/blob/v0.2.21/docs/clusters.md)
 for worker limits, connection options and controller lifecycle.

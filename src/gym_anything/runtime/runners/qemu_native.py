@@ -200,12 +200,12 @@ class QemuNativeRunner(QemuApptainerRunner):
         width, height = self.resolution
         firmware = _find_aarch64_firmware()
 
-        port_forwards = f"hostfwd=tcp::{ssh_port}-:22"
+        port_forwards = f"hostfwd=tcp:127.0.0.1:{ssh_port}-:22"
         if self.is_windows:
-            port_forwards += f",hostfwd=tcp::{self.pyautogui_port}-:5555"
+            port_forwards += f",hostfwd=tcp:127.0.0.1:{self.pyautogui_port}-:5555"
         fast_input_host_port = getattr(self, "_fast_input_host_port", None)
         if self._fast_uinput_keyboard_enabled() and fast_input_host_port:
-            port_forwards += f",hostfwd=tcp::{fast_input_host_port}-:{self._fast_input_guest_port}"
+            port_forwards += f",hostfwd=tcp:127.0.0.1:{fast_input_host_port}-:{self._fast_input_guest_port}"
 
         netdev_options = f"user,id=net0,{port_forwards}"
         if getattr(getattr(getattr(self, "spec", None), "resources", None), "net", None) is False:
@@ -224,7 +224,7 @@ class QemuNativeRunner(QemuApptainerRunner):
             "-drive", f"file={disk_abs},format=qcow2,if=virtio",
             # Display
             "-device", "virtio-gpu-pci",
-            "-vnc", f":{vnc_display},password=on",
+            "-vnc", f"127.0.0.1:{vnc_display},password=on",
             "-display", "none",
             "-monitor", "stdio",
             # Network

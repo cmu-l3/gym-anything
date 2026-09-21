@@ -4,13 +4,13 @@ import unittest
 from types import SimpleNamespace
 from unittest import mock
 
-from gym_anything.runtime.runners.sandweave import SandweaveRunner
+from gym_anything.runtime.runners.sandweave import SandweaveRunner, dependency_status
 from gym_anything.specs import EnvSpec
 
 
 class SandweaveRunnerTests(unittest.TestCase):
     def make_runner(self, *, target=None, worker_host="local-host"):
-        sdk = mock.Mock(__version__="0.2.6")
+        sdk = mock.Mock(__version__="0.2.21")
         sdk.Template.return_value.resolve.return_value = {"name": "gym-ubuntu"}
         sdk.Sandbox.return_value = SimpleNamespace(
             id="sw-example",
@@ -29,6 +29,19 @@ class SandweaveRunnerTests(unittest.TestCase):
              mock.patch("gym_anything.runtime.runners.sandweave.dependency_status", return_value={"available": True}):
             runner = SandweaveRunner(spec)
         return runner, sdk
+
+    @mock.patch("gym_anything.runtime.runners.sandweave.sys.platform", "linux")
+    @mock.patch("gym_anything.runtime.runners.sandweave.sys.version_info", (3, 11))
+    def test_requires_release_with_loopback_controller_defaults(self):
+        for version, available in [("0.2.20", False), ("0.2.21", True)]:
+            with self.subTest(version=version), mock.patch(
+                "gym_anything.runtime.runners.sandweave.importlib.metadata.version",
+                return_value=version,
+            ):
+                status = dependency_status()
+                self.assertEqual(status["available"], available)
+                if not available:
+                    self.assertIn("sandweave>=0.2.21 required", status["reason"])
 
     @mock.patch("gym_anything.runtime.runners.sandweave.socket.gethostname", return_value="local-host")
     def test_cluster_placement_controls_vnc_visibility(self, _hostname):
