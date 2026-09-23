@@ -4,6 +4,13 @@ Sandweave owns provisioning, desktop I/O and checkpoint storage. Set
 SANDWEAVE_HOME for its assets/cache and GYM_ANYTHING_SANDWEAVE_TARGET for an
 optional SDK worker target; the default target is local. Sandweave downloads and
 verifies the prepared Ubuntu image pinned in sandweave_ubuntu.toml on each worker.
+
+An environment can adjust the template through ``runner_options.template``, a
+Sandweave template table merged over the runner's own. For example, a machine
+that runs Docker containers needs cgroup v1, because gVisor rejects the eBPF
+device programs runc attaches under cgroup v2::
+
+    "runner_options": {"template": {"runtime_options": {"cgroup": "v1"}}}
 """
 
 from __future__ import annotations
@@ -26,6 +33,7 @@ from typing import Any, Dict, Optional
 from ...config.presets import is_android_preset, is_windows_preset
 from ...contracts import RunnerRuntimeInfo
 from ...specs import EnvSpec
+from ...utils.merge import deep_merge_env_dict
 from .base import BaseRunner
 
 
@@ -68,10 +76,10 @@ class SandweaveRunner(BaseRunner):
         self.resolution = tuple(
             self._screen.resolution if self._screen and self._screen.resolution else (1920, 1080)
         )
-        self._template = sandweave.Template({
+        self._template = sandweave.Template(deep_merge_env_dict({
             "extends": str(Path(__file__).with_name("sandweave_ubuntu.toml")),
             "capabilities": {"desktop": {"resolution": list(self.resolution)}},
-        })
+        }, (spec.runner_options or {}).get("template", {})))
         preparation = {"resources": dataclasses.asdict(spec.resources),
                        "resolution": self.resolution, "env": self.default_exec_env(),
                        "template": self._template.resolve()}
@@ -105,6 +113,17 @@ class SandweaveRunner(BaseRunner):
     @classmethod
     def doctor_status(cls) -> Dict[str, Any]:
         return dependency_status()
+
+    @classmethod
+    def validate_options(cls, spec: EnvSpec) -> list:
+        options = spec.runner_options or {}
+        errors = [f"unknown runner_options key: {key!r}" for key in options if key != "template"]
+        template = options.get("template")
+        if template is not None and not isinstance(template, dict):
+            errors.append("runner_options.template must be a Sandweave template table")
+        elif template and "extends" in template:
+            errors.append("runner_options.template cannot replace the runner's base template ('extends')")
+        return errors
 
     def supports_fast_io(self) -> bool:
         return True
