@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cua-world"
+version = "0.1.0"
+description = "CUA-World: the computer-use benchmark corpus for Gym-Anything, with its Prime Intellect verifiers environment and Harbor adapter"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # Tracks gym-anything's main branch, so an install always gets the latest
+    # core. The URL makes the package install standalone: gym-anything is not
+    # on PyPI. No [tool.uv.sources] override here on purpose: `prime env push`
+    # builds and installs the package from its source directory, where a local
+    # path would not exist. For local development, install gym-anything
+    # editable first and this package with --no-deps (see README.md).
+    "gym-anything[modal,prime-rl,benchmark,agents] @ git+https://github.com/cmu-l3/gym-anything@main",
+]
+tags = ["computer-use", "gui", "multi-turn", "vision", "tool-use", "multimodal", "real-world", "train", "eval"]
+
+[project.scripts]
+cua-world = "cua_world.main:main"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+# One distribution, two import roots, both named for CUA-World:
+#   benchmarks.cua_world  the corpus (environments, tasks, splits, registry
+#                         binding); this distribution owns the shared
+#                         `benchmarks` namespace in installed environments
+#   cua_world             the hub entry points: `load_environment` for Prime
+#                         Intellect (`vf-eval cua-world` imports `cua_world`)
+#                         and the Harbor adapter (`cua_world.main`)
+#
+# Hatchling walks each force-included directory once per inode, so a
+# directory the corpus shares by symlink is skipped under its second name.
+# Each such symlink is mapped explicitly below;
+# tests/test_cua_world_package.py fails if one is missing.
+[tool.hatch.build.targets.wheel]
+packages = []
+
+[tool.hatch.build.targets.wheel.force-include]
+"../../benchmarks/__init__.py" = "benchmarks/__init__.py"
+"../../benchmarks/cua_world" = "benchmarks/cua_world"
+"../../benchmarks/cua_world/environments/gimp_env_all/tasks" = "benchmarks/cua_world/environments/gimp_env_all_fast/tasks"
+"../../extras/hubs/harbor/cua_world/src/cua_world" = "cua_world"
+
+[tool.hatch.build.targets.sdist.force-include]
+"../../benchmarks/__init__.py" = "benchmarks/__init__.py"
+"../../benchmarks/cua_world" = "benchmarks/cua_world"
+"../../benchmarks/cua_world/environments/gimp_env_all/tasks" = "benchmarks/cua_world/environments/gimp_env_all_fast/tasks"
+"../../extras/hubs/harbor/cua_world/src/cua_world" = "cua_world"
+
+[tool.verifiers.eval]
+num_examples = 1
+rollouts_per_example = 1

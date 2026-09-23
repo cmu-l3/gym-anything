@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest import mock
 
 from gym_anything import get_runner_compatibility
 from gym_anything.env import GymAnythingEnv
@@ -50,6 +51,37 @@ class CompatibilityContractTests(unittest.TestCase):
         profile = env.get_compatibility_profile()
         self.assertEqual(profile["runner"], "local")
         self.assertEqual(profile["user_accounts_mode"], "unsupported")
+
+
+class QemuWithoutBackendsTests(unittest.TestCase):
+    """A Linux host with neither Apptainer nor native QEMU, like the CI runners."""
+
+    def setUp(self) -> None:
+        from gym_anything.runtime.runners import registry
+
+        for patcher in (
+            mock.patch.object(registry.sys, "platform", "linux"),
+            mock.patch.object(registry, "apptainer_available", return_value=False),
+            mock.patch.object(registry, "qemu_native_available", return_value=False),
+        ):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_fact_queries_name_a_class(self) -> None:
+        from gym_anything.runtime.runners import registry
+        from gym_anything.runtime.runners.qemu_native import QemuNativeRunner
+
+        self.assertIs(registry.resolve_runner_class("qemu"), QemuNativeRunner)
+        self.assertEqual(
+            get_runner_compatibility("qemu").user_accounts_mode, "preprovisioned_accounts"
+        )
+
+    def test_dispatch_fails_with_the_reason(self) -> None:
+        from gym_anything.runtime.runners import registry
+
+        spec = EnvSpec.from_dict({"id": "qemu-host-check@1", "runner": "qemu"})
+        with self.assertRaisesRegex(RuntimeError, "neither Apptainer nor native QEMU"):
+            registry.resolve_runner_class("qemu", spec)
 
 
 if __name__ == "__main__":

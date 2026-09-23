@@ -51,6 +51,55 @@ def _import_sdk():
 class UseComputerRunner(BaseRunner):
     """Drives a remote macOS sandbox via the use.computer SDK."""
 
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='use_computer',
+            display_name='UseComputerRunner',
+            live_recording=False,
+            screenshot_video_assembly=True,
+            checkpoint_caching=False,
+            savevm=False,
+            user_accounts_mode='preprovisioned_accounts',
+            notes=[
+                'Drives remote macOS sandboxes via the use.computer SDK (https://use.computer).',
+                "Sandboxes are ephemeral M4 Mac VMs (4 cores / 8 GB) cloned from a use.computer base image; the only login is 'lume' with passwordless sudo.",
+                'Requires USE_COMPUTER_API_KEY env var; honors USE_COMPUTER_BASE_URL for dev/prod selection.',
+                'Does not support checkpoint caching or savevm: the upstream API exposes no snapshot endpoint, and a half-baked client-side workaround would diverge from runner semantics elsewhere.',
+                'Audio capture is unsupported (the SDK has no audio endpoint); envs that declare an audio_waveform observation will silently get no audio in the obs.',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        import os as _os
+        try:
+            import use_computer  # noqa: F401
+            sdk_ok = True
+        except ImportError:
+            sdk_ok = False
+        api_key_set = bool(_os.environ.get("USE_COMPUTER_API_KEY") or _os.environ.get("MMINI_API_KEY"))
+        deps = {
+            "use-computer-sdk": {
+                "installed": sdk_ok,
+                "path": None,
+                "desc": "use.computer Python SDK",
+                "install": "pip install use-computer",
+            },
+            "USE_COMPUTER_API_KEY": {
+                "installed": api_key_set,
+                "path": None,
+                "desc": "API key for use.computer (mk_live_*)",
+                "install": "Mint a key at https://use.computer and export USE_COMPUTER_API_KEY",
+            },
+        }
+        return {"available": sdk_ok and api_key_set, "deps": deps}
+
+    @classmethod
+    def conformance_profile(cls):
+        return "macos_remote"
+
     is_macos = True
 
     def __init__(self, spec: EnvSpec):

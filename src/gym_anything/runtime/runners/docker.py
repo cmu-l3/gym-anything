@@ -92,6 +92,85 @@ class DockerRunner(BaseRunner):
     x11vnc or similar, PulseAudio, ffmpeg, xdotool). It does not enforce this.
     """
 
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='docker',
+            display_name='DockerRunner',
+            live_recording=True,
+            screenshot_video_assembly=True,
+            checkpoint_caching=True,
+            savevm=False,
+            user_accounts_mode='provision_from_spec',
+            notes=[
+                'Creates and configures user accounts from EnvSpec.user_accounts.',
+                'This is the only runner with live FFmpeg episode recording built into reset().',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        from gym_anything import doctor
+        deps = {}
+        cli_path = doctor.shutil.which("docker")
+        daemon_up = doctor._docker_daemon_alive() if cli_path else False
+        if cli_path and not daemon_up:
+            deps["docker-daemon"] = {
+                "installed": False,
+                "path": None,
+                "desc": "Docker daemon not reachable",
+                "install": "open -a Docker" if doctor._IS_MACOS else "sudo systemctl start docker",
+            }
+        else:
+            deps["docker"] = doctor.binary_dep_row("docker", installed=bool(cli_path and daemon_up))
+        return {"available": all(r["installed"] for r in deps.values()), "deps": deps}
+
+    @classmethod
+    def platform_priority(cls):
+        return 50
+
+    @classmethod
+    def autodetect_eligible(cls, spec=None):
+        return bool(spec is not None and (getattr(spec, "image", None) or getattr(spec, "dockerfile", None)))
+
+    @classmethod
+    def install_plan(cls):
+        from gym_anything.installers import InstallPlan, InstallStep, _IS_MACOS
+        if _IS_MACOS:
+            return InstallPlan(
+                runner="docker",
+                summary="Docker Desktop for macOS",
+                prereq_note="Requires Homebrew. You still need to open Docker.app once to start the daemon.",
+                steps=[
+                    InstallStep(
+                        description="Install Docker Desktop via Homebrew",
+                        command=["brew", "install", "--cask", "docker"],
+                        requires=["brew"],
+                        skip_if="docker",
+                    ),
+                ],
+            )
+        return InstallPlan(
+            runner="docker",
+            summary="Docker Engine (via get.docker.com)",
+            prereq_note="Runs the official convenience script with sudo. Read it first if you're cautious.",
+            steps=[
+                InstallStep(
+                    description="Install Docker via get.docker.com",
+                    command=["curl -fsSL https://get.docker.com | sh"],
+                    shell=True,
+                    requires=["curl", "sudo"],
+                    skip_if="docker",
+                ),
+            ],
+        )
+
+    @classmethod
+    def cache_components(cls):
+        from gym_anything.runtime.runners import host_cache
+        return host_cache.container_components()
+
     def __init__(self, spec: EnvSpec):
         super().__init__(spec)
         # Sanitize container name: letters, digits, '_', '-', '.' only

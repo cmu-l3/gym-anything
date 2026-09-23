@@ -1,4 +1,4 @@
-"""The publishable Harbor adapter package (extras/hubs/harbor/cua_world).
+"""The Harbor adapter (extras/hubs/harbor/cua_world, shipped in cua-world).
 
 Covers the adapter's task generation against the real benchmark content and
 guards the wiring strings against drift from the integrations compiler

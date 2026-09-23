@@ -274,6 +274,46 @@ class QemuApptainerRunner(BaseRunner):
     4. Create COW overlay for this instance
     5. Boot VM, interact via VNC
     """
+
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='qemu',
+            display_name='QemuApptainerRunner',
+            live_recording=False,
+            screenshot_video_assembly=True,
+            checkpoint_caching=True,
+            savevm=True,
+            user_accounts_mode='preprovisioned_accounts',
+            notes=[
+                'Linux guests ship with a prebuilt ga user; Windows guests ship with a prebuilt Docker user.',
+                'EnvSpec.user_accounts is treated as declared credential metadata rather than guest-side provisioning.',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        from gym_anything import doctor
+        deps = {"apptainer": doctor.binary_dep_row("apptainer")}
+        if doctor._IS_LINUX:
+            deps["kvm"] = doctor.kvm_dep_row()
+        return {"available": all(r["installed"] for r in deps.values()), "deps": deps}
+
+    @classmethod
+    def platform_priority(cls):
+        from gym_anything import doctor
+        return 80 if doctor._IS_LINUX else 0
+
+    @classmethod
+    def install_plan(cls):
+        from gym_anything.installers import apptainer_install_plan
+        return apptainer_install_plan("qemu")
+
+    @classmethod
+    def cache_components(cls):
+        from gym_anything.runtime.runners import host_cache
+        return host_cache.qemu_components() + host_cache.apptainer_components()
     
     def __init__(self, spec: EnvSpec):
         super().__init__(spec)

@@ -16,6 +16,34 @@ class LocalRunner(BaseRunner):
     orchestration and API without external dependencies.
     """
 
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='local',
+            display_name='LocalRunner',
+            live_recording=False,
+            screenshot_video_assembly=False,
+            checkpoint_caching=False,
+            savevm=False,
+            user_accounts_mode='unsupported',
+            notes=[
+                'LocalRunner is a synthetic-observation backend for validating orchestration only.',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        return {"available": True, "reason": None, "deps": {}}
+
+    @classmethod
+    def platform_priority(cls):
+        return 1
+
+    @classmethod
+    def conformance_profile(cls):
+        return "synthetic"
+
     def __init__(self, spec: EnvSpec):
         super().__init__(spec)
         self._running = False

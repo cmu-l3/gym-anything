@@ -82,7 +82,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y \\
 
 ARG GYM_ANYTHING_REF={ref}
 RUN pip install --no-cache-dir \\
-    "gym-anything{extras} @ git+https://github.com/cmu-l3/gym-anything@${{GYM_ANYTHING_REF}}"
+    "gym-anything{extras} @ git+https://github.com/cmu-l3/gym-anything@${{GYM_ANYTHING_REF}}" \\
+ && pip install --no-cache-dir --no-deps \\
+    "cua-world @ git+https://github.com/cmu-l3/gym-anything@${{GYM_ANYTHING_REF}}#subdirectory=packaging/cua-world"
 
 COPY gym-anything.json /harbor-task/gym-anything.json
 
@@ -205,8 +207,9 @@ def compile_task(
     ``build_timeout_sec`` defaults high because the first boot of an
     environment provisions it; later boots load from the cache volume.
     ``gym_anything_ref`` pins the gym-anything git ref installed into the
-    task image; ``pip_extras`` adds extras (e.g. ``"benchmark"`` for the
-    full verifier dependency corpus — core deps already cover PIL/numpy).
+    task image, with the CUA-World corpus (the cua-world package) from the
+    same ref; ``pip_extras`` adds extras (e.g. ``"benchmark"`` for the full
+    verifier dependency corpus — core deps already cover PIL/numpy).
     """
     resolved_env_dir = (
         Path(env_dir) if env_dir else resolve_environment_dir(env_name, benchmark)

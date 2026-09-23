@@ -177,6 +177,39 @@ class AVDApptainerRunner(BaseRunner):
     Checkpoint saves emulator userdata and snapshot for fast resume.
     """
 
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='avd',
+            display_name='AVDApptainerRunner',
+            live_recording=False,
+            screenshot_video_assembly=True,
+            checkpoint_caching=True,
+            savevm=False,
+            user_accounts_mode='metadata_only',
+            notes=[
+                'Android user_accounts fields describe expected credentials or roles; they are not provisioned by the runner.',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        from gym_anything import doctor
+        deps = {"apptainer": doctor.binary_dep_row("apptainer")}
+        if doctor._IS_LINUX:
+            deps["kvm"] = doctor.kvm_dep_row()
+        return {"available": all(r["installed"] for r in deps.values()), "deps": deps}
+
+    @classmethod
+    def conformance_profile(cls):
+        return "android"
+
+    @classmethod
+    def cache_components(cls):
+        from gym_anything.runtime.runners import host_cache
+        return host_cache.avd_components() + host_cache.apptainer_components()
+
     def __init__(self, spec: EnvSpec):
         """Initialize AVD runner.
 

@@ -45,6 +45,20 @@ class _FakeRunner:
         self.injected_actions.append(action)
         return None
 
+    def on_episode_start(self, context) -> None:
+        return None
+
+    def get_platform_family(self):
+        return "linux"
+
+    def run_hook(self, command, *, stage, timeout=None, use_pty=True):
+        from gym_anything.runtime.runners.base import BaseRunner
+
+        return BaseRunner.run_hook(self, command, stage=stage, timeout=timeout, use_pty=use_pty)
+
+    def supports_time_control(self) -> bool:
+        return False
+
     def capture_observation(self):
         return {"screen": {"path": "synthetic.png"}}
 

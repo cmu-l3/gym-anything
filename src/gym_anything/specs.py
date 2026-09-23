@@ -299,7 +299,15 @@ class EnvSpec:
 
     # OS type and runner (for platform-specific handling)
     os_type: Optional[str] = None  # "linux", "windows", "android", "macos"
-    runner: Optional[str] = None  # "docker", "qemu", "qemu_native", "avd", "avd_native", "local", "use_computer"
+    # A registered runner key ("docker", "qemu", ...) or a locator
+    # ("pkg.mod:ClassName"). See runtime.runners.registry.
+    runner: Optional[str] = None
+
+    # Runner-specific configuration, owned and validated by the runner class
+    # (BaseRunner.validate_options). Core carries it opaquely, including over
+    # the remote wire. Built-in runners keep their typed blocks above; new
+    # runners use this exclusively.
+    runner_options: Dict[str, Any] = field(default_factory=dict)
 
     # Backends (optional hints)
     display_backend: Optional[str] = None
@@ -312,6 +320,24 @@ class EnvSpec:
 
     # Multi-agent (optional)
     multi_agent: Optional[Dict[str, Any]] = None  # {"roles": ["player","adversary"], "turn_based": bool}
+
+    # Unrecognized env.json fields, preserved (not dropped) so specs written
+    # for newer core versions or downstream tooling round-trip intact.
+    # Mirrors TaskSpec.extras.
+    extras: Dict[str, Any] = field(default_factory=dict)
+
+    _RECOGNIZED_KEYS = frozenset({
+        "id", "version", "description", "category", "authors", "licence",
+        "upstream_url", "tags", "base", "image", "dockerfile", "entrypoint",
+        "apptainer", "resources", "mounts", "apks", "user_accounts",
+        "observation", "action", "synchronous", "step_cycle_ms",
+        "reset_script", "deterministic", "supports_save_restore",
+        "save_paths", "default_cache_level", "default_use_savevm",
+        "security", "recording", "vnc", "ssh", "adb", "avd", "diagnostics",
+        "os_type", "runner", "runner_options", "display_backend",
+        "input_backend", "audio_backend", "skip_display_audio_bootstrap",
+        "hooks", "multi_agent", "extras",
+    })
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "EnvSpec":
@@ -412,12 +438,17 @@ class EnvSpec:
             diagnostics=d.get("diagnostics", False),
             os_type=d.get("os_type"),
             runner=d.get("runner"),
+            runner_options=dict(d.get("runner_options", {})),
             display_backend=d.get("display_backend"),
             input_backend=d.get("input_backend"),
             audio_backend=d.get("audio_backend"),
             skip_display_audio_bootstrap=d.get("skip_display_audio_bootstrap", False),
             hooks=d.get("hooks", {}),
             multi_agent=d.get("multi_agent"),
+            extras={
+                **{k: v for k, v in d.items() if k not in EnvSpec._RECOGNIZED_KEYS},
+                **dict(d.get("extras", {})),
+            },
         )
 
     def merge_overrides(self, overrides: Dict[str, Any]) -> "EnvSpec":

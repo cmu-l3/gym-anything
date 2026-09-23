@@ -71,6 +71,130 @@ class BaseRunner(abc.ABC):
     def capture_observation(self) -> Dict[str, Any]:
         ...
 
+    # --- class-level facts (queried by doctor/CLI; never centrally tabled) ---
+
+    @classmethod
+    def doctor_status(cls) -> Dict[str, Any]:
+        """Host availability for this runner: {"available", "reason", "deps"}.
+
+        Default is optimistic with an honest reason; runners with real host
+        dependencies override this so doctor and worker preflight can probe
+        them.
+        """
+        return {
+            "available": True,
+            "reason": "no doctor probe declared by this runner",
+            "deps": {},
+        }
+
+    @classmethod
+    def compatibility(cls):
+        """A compatibility.RunnerCompatibility row for this runner, or None.
+
+        When None, the compatibility surface builds a conservative generic
+        row from the class name — a runner that declares nothing is treated
+        as supporting nothing optional, never crashed over.
+        """
+        return None
+
+    @classmethod
+    def cache_components(cls) -> list:
+        """Rows for `gym-anything cache`: {"name","category","paths","desc"}."""
+        return []
+
+    @classmethod
+    def install_plan(cls):
+        """An installers.InstallPlan for this runner's host deps, or None."""
+        return None
+
+    @classmethod
+    def validate_options(cls, spec: EnvSpec) -> list:
+        """Validate spec.runner_options; return a list of error strings.
+
+        Called after runner selection, before anything starts, so a typo in
+        runner-specific configuration fails at spec load rather than at
+        world boot. The default accepts anything.
+        """
+        return []
+
+    @classmethod
+    def platform_priority(cls) -> int:
+        """Auto-detect fitness on this host (0 = never auto-detected).
+
+        Preference is a per-party fact; core only sorts. The synthetic
+        LocalRunner declares 1 (universal fallback); bundled VM runners
+        declare their platform tiers.
+        """
+        return 0
+
+    @classmethod
+    def autodetect_eligible(cls, spec=None) -> bool:
+        """Whether auto-detect may pick this runner for the given spec."""
+        return True
+
+    @classmethod
+    def conformance_profile(cls) -> str:
+        """Which conformance-suite profile exercises this runner."""
+        return "desktop_linux"
+
+    # --- episode participation ---
+
+    def on_episode_start(self, context: Dict[str, Any]) -> None:
+        """Receive the episode context (episode_dir, env_id, task_id, seed).
+
+        Called at the start of every reset, before the world starts. Default
+        no-op; worlds that persist artifacts or key state per-episode use
+        this instead of guessing paths.
+        """
+
+    def supports_time_control(self) -> bool:
+        """True when this world owns time: `wait` control actions are
+        forwarded to inject_action instead of sleeping host wall-clock."""
+        return False
+
+    def run_hook(self, command: str, *, stage: str,
+                 timeout: Optional[int] = None, use_pty: bool = True) -> int:
+        """Run a lifecycle hook command in this world.
+
+        The default reproduces the historical OS-family shell wrapping
+        (bash -lc with per-stage logs on Linux/macOS, raw passthrough on
+        Windows/PowerShell, sh on Android). Worlds with different — or no —
+        shell semantics override this: core never guesses how a world
+        executes commands (law L2).
+        """
+        import os as _os
+
+        family = self.get_platform_family()
+        if family == "windows":
+            if stage == "pre_task":
+                return self.exec(command, use_pty=False)
+            return self.exec(command)
+        if family == "android":
+            if stage in ("pre_start", "post_start"):
+                return self.exec(f"sh {command}", timeout=timeout if timeout is not None else 180)
+            if stage == "pre_task":
+                return self.exec(command, timeout=timeout if timeout is not None else 180)
+            if stage == "reset":
+                return self.exec(f"bash -lc {command}")
+            return self.exec(command)
+        home = "/Users/lume" if family == "macos" else "/home/ga"
+        logs = {
+            "pre_start": f"{home}/env_setup_pre_start.log",
+            "post_start": f"{home}/env_setup_post_start.log",
+            "pre_task": f"{home}/task_pre_task.log",
+            "post_task": f"{home}/task_post_task.log",
+        }
+        log = logs.get(stage)
+        wrapped = f"bash -lc {command}" + (f" > {log} 2>&1" if log else "")
+        kwargs = {}
+        if stage == "pre_task":
+            kwargs["use_pty"] = use_pty
+        if timeout is None and stage in ("pre_start", "post_start"):
+            timeout = int(_os.environ.get("GYM_ANYTHING_HOOK_TIMEOUT", "1800"))
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+        return self.exec(wrapped, **kwargs)
+
     def supports_live_recording(self) -> bool:
         return False
 

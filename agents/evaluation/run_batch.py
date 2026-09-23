@@ -8,7 +8,7 @@ import subprocess
 import sys
 import time
 
-from benchmarks.cua_world.registry import (
+from gym_anything.registry import (
     get_tasks_for_environment,
     load_environment_task_splits,
     resolve_environment_dir,
@@ -27,6 +27,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--repeat", type=int, default=1)
     parser.add_argument("--env_dir", type=str, default="all")
+    parser.add_argument("--benchmark", type=str, default="cua_world",
+                        help="Benchmark root path or package name")
     parser.add_argument("--max_steps", type=int, default=50)
     parser.add_argument("--max_tasks", type=int, default=-1)
     parser.add_argument("--max_repetitions", type=int, default=-1)
@@ -59,18 +61,20 @@ def build_parser() -> argparse.ArgumentParser:
 def _build_task_env_pairs(args: argparse.Namespace) -> list[tuple[str, str]]:
     pairs: list[tuple[str, str]] = []
     if args.env_dir == "all":
-        registry = load_environment_task_splits(surface=args.surface)
+        registry = load_environment_task_splits(args.benchmark, surface=args.surface)
         for env_key, split_map in registry.items():
             if args.split not in split_map:
                 continue
-            env_dir = resolve_environment_dir(env_key)
+            env_dir = resolve_environment_dir(env_key, args.benchmark)
             for task_id in split_map[args.split]:
                 pairs.append((task_id, str(env_dir)))
         return pairs
 
     env_key = resolve_environment_key(args.env_dir)
-    env_dir_path = resolve_environment_dir(args.env_dir)
-    for task_id in get_tasks_for_environment(env_key, split=args.split, surface=args.surface):
+    env_dir_path = resolve_environment_dir(args.env_dir, args.benchmark)
+    for task_id in get_tasks_for_environment(
+        env_key, args.benchmark, split=args.split, surface=args.surface
+    ):
         pairs.append((task_id, str(env_dir_path)))
     return pairs
 

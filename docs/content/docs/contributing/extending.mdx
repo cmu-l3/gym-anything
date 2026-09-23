@@ -1,0 +1,150 @@
+---
+title: Extending Gym-Anything
+description: Build your own runners, benchmarks, and agents in your own repo — pip install gym-anything and add parties.
+---
+
+Gym-Anything runs **episodes** — `reset → (observe → act)* → verify →
+artifacts` — with four parties: the **world** (a runner), the **policy** (an
+agent), the **content** (a benchmark), and the **judge** (a verifier). Core
+is scale infrastructure for episodes; every opinion about what a world looks
+like, how time passes in it, or what success means belongs to a party.
+Downstream projects keep their own repository, add `gym-anything` as a
+dependency, and contribute parties. Everything a bundled party can do, yours
+can do, through the same mechanisms.
+
+The design laws behind this page live in `docs/design/modularity.md`; the
+executable proof is the *stranger test* (`tests/test_stranger_party.py` and
+friends): a world with an alien clock and alien observation types, run
+through every public door in CI. It doubles as a working example to copy.
+
+## Worlds (runners)
+
+Subclass `gym_anything.runtime.runners.base.BaseRunner`. Six methods are
+required — `start`, `stop`, `run_reset`, `run_task_init`, `inject_action`,
+`capture_observation` — everything else is optional with graceful defaults.
+
+Reference your runner with **zero registration** anywhere a runner key is
+accepted, using a locator:
+
+```json
+{"runner": "robobench.isaac:IsaacSimRunner"}
+```
+
+or register a short name — in code
+(`gym_anything.runtime.runners.registry.register_runner("isaac", IsaacSimRunner)`)
+or via an entry point in your `pyproject.toml`:
+
+```toml
+[project.entry-points."gym_anything.runners"]
+isaac = "robobench.isaac:IsaacSimRunner"
+```
+
+Built-in names are reserved; conflicting registrations error at first use;
+`replace=True` is the only override.
+
+**Configuration** goes in `EnvSpec.runner_options` — an opaque dict core
+forwards untouched (including over the remote wire). Declare
+`validate_options()` on your class so typos fail at spec load, not at world
+boot.
+
+**Facts about your runner live on your class**, queried by doctor, the
+compatibility matrix, the cache CLI, and worker preflight: `doctor_status()`,
+`compatibility()`, `install_plan()`, `cache_components()`,
+`platform_priority()`, `conformance_profile()`.
+
+**Time and observations are yours.** Return whatever observation dict your
+world produces — modality types core doesn't know are delegated to you and
+merged, never dropped. Declare `supports_time_control()` to receive `wait`
+actions instead of having core sleep wall-clock; declare
+`acks_input_delivery()` (with `--fast-io`) to drop core's pacing sleeps
+entirely. Your runner receives the episode context (`episode_dir`, ids,
+seed) via `on_episode_start`. Hooks execute through your `run_hook` — the
+default wraps commands for OS-family shells; a world with no shell
+overrides it.
+
+**Conformance:** point the importable suite at your runner and run it in
+your CI:
+
+```python
+from gym_anything.testing import build_conformance_case
+
+IsaacConformance = build_conformance_case(
+    "robobench.isaac:IsaacSimRunner",
+    env_spec={"observation": [{"type": "telemetry"}],
+              "runner_options": {"usd_stage": "warehouse/scene.usd"}},
+    actions=[{"action": "step_sim", "steps": 4}],
+)
+```
+
+Determinism checks gate on your spec's own `deterministic` declaration and
+skip honestly otherwise.
+
+## Benchmarks (content)
+
+A benchmark is anything shaped like the layout contract — no registration:
+
+```text
+your_world/
+  environments/<env>/env.json
+  environments/<env>/tasks/<task>/task.json  (+ setup, verifier.py)
+  splits/<env>_split.json
+```
+
+Ship it as a package under your own name; every surface accepts
+`--benchmark <name-or-path>` (ambient default via `GYM_ANYTHING_BENCHMARK`):
+
+```bash
+pip install robobench
+gym-anything benchmark all --benchmark robotics_world --split train --agent ...
+```
+
+Mirror `benchmarks/cua_world/registry/splits.py` if you want a thin binding
+module with your roots pre-filled — that is the whole pattern.
+
+## Agents (policies)
+
+Subclass the `BaseAgent` contract (`init` / `step` / `finish`, plus the
+`autonomous`/`run_episode` door for harnesses that own the whole episode)
+and reference it by locator — no registration:
+
+```bash
+gym-anything benchmark all --benchmark robotics_world \
+    --agent robobench.agents:IsaacPilotAgent --model ...
+```
+
+## Judges (verifiers)
+
+Task success is already fully open: `success.mode: "program"` with
+`"program": "verifier.py::verify"` (or `pkg.mod:func`) runs your code with
+injected capabilities — `exec_capture`, `copy_from_env`, `query_vlm`, frame
+helpers — so verifiers can read ground-truth world state. This is the
+extension path; there is deliberately no verifier-mode registry.
+
+## The remote stack, for free
+
+Workers advertise the runners they can host. Registered runner keys are
+probed and advertised automatically; for locator-referenced runners start
+workers with `--must-support-runner pkg.mod:ClassName` and the exact string
+your specs carry is advertised, so master routing matches with no master
+changes. Clients can create environments **by name** — the worker resolves
+your benchmark against *its own* installation (no shared filesystem), and a
+content digest of the task folder is verified so client/worker version skew
+is refused rather than silently running the wrong task:
+
+```python
+from gym_anything.remote import RemoteGymEnv
+
+env = RemoteGymEnv.from_benchmark(
+    remote_url="http://master:5800",
+    benchmark="robotics_world", env_name="warehouse", task_id="pick_crate",
+)
+```
+
+## Guardrails
+
+- `gym-anything doctor` reports registered/locator runners via their own
+  `doctor_status()`, flags registry conflicts, and warns when your working
+  directory shadows installed pillar packages.
+- Core CI enforces the design mechanically: the stranger tests (local,
+  worker, and master-routed) and a token-level guard asserting core
+  orchestration names no specific party in control flow.

@@ -74,6 +74,100 @@ class AVFRunner(BaseRunner):
     Inherits SSH-based command execution from the QEMU runner codebase.
     """
 
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='avf',
+            display_name='AVFRunner',
+            live_recording=False,
+            screenshot_video_assembly=True,
+            checkpoint_caching=False,
+            savevm=False,
+            user_accounts_mode='preprovisioned_accounts',
+            notes=[
+                'Uses Apple Virtualization Framework with Rosetta for x86_64 binary translation.',
+                'Near-native speed (~80% of native) for x86 binaries on Apple Silicon.',
+                'Requires macOS 13+ on Apple Silicon, vfkit, and gvproxy.',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        from pathlib import Path as _Path
+
+        from gym_anything import doctor
+        if not doctor._IS_MACOS:
+            return {"available": False, "reason": "macOS only", "deps": {}}
+        deps = {
+            "vfkit": doctor.binary_dep_row("vfkit"),
+            "gvproxy": doctor.binary_dep_row("gvproxy"),
+            "qemu-img": doctor.binary_dep_row("qemu-img"),
+            "mkisofs": doctor.binary_dep_row("mkisofs"),
+        }
+        base = _Path.home() / ".cache/gym-anything/qemu/avf/base_ubuntu_gnome_arm64.raw"
+        deps["base_image"] = {
+            "installed": base.exists(),
+            "path": str(base) if base.exists() else None,
+            "desc": "ARM64 Ubuntu base image (auto-built on first run)",
+            "install": "Built automatically on first run (~5 min)",
+        }
+        required = {k: r for k, r in deps.items() if k != "base_image"}
+        return {"available": all(r["installed"] for r in required.values()), "deps": deps}
+
+    @classmethod
+    def platform_priority(cls):
+        from gym_anything import doctor
+        return 100 if (doctor._IS_MACOS and doctor._IS_ARM) else 0
+
+    @classmethod
+    def install_plan(cls):
+        from gym_anything.installers import InstallPlan, InstallStep, _IS_ARM
+        gvproxy_asset = "gvproxy-darwin-arm64" if _IS_ARM else "gvproxy-darwin"
+        gvproxy_url = (
+            f"https://github.com/containers/gvisor-tap-vsock/releases/latest/download/{gvproxy_asset}"
+        )
+        return InstallPlan(
+            runner="avf",
+            summary="Apple Virtualization Framework (recommended for macOS)",
+            prereq_note="Requires Homebrew (https://brew.sh/).",
+            steps=[
+                InstallStep(
+                    description="Install vfkit via Homebrew",
+                    command=["brew", "install", "vfkit"],
+                    requires=["brew"],
+                    skip_if="vfkit",
+                ),
+                InstallStep(
+                    description="Install qemu via Homebrew (for qemu-img)",
+                    command=["brew", "install", "qemu"],
+                    requires=["brew"],
+                    skip_if="qemu-img",
+                ),
+                InstallStep(
+                    description="Install cdrtools via Homebrew (for mkisofs)",
+                    command=["brew", "install", "cdrtools"],
+                    requires=["brew"],
+                    skip_if="mkisofs",
+                ),
+                InstallStep(
+                    description="Download gvproxy to /usr/local/bin (uses sudo)",
+                    command=[
+                        f"sudo curl -fsSL -o /usr/local/bin/gvproxy {gvproxy_url} "
+                        f"&& sudo chmod +x /usr/local/bin/gvproxy"
+                    ],
+                    shell=True,
+                    requires=["curl", "sudo"],
+                    skip_if="gvproxy",
+                ),
+            ],
+        )
+
+    @classmethod
+    def cache_components(cls):
+        from gym_anything.runtime.runners import host_cache
+        return host_cache.qemu_components()
+
     def __init__(self, spec: EnvSpec):
         super().__init__(spec)
 

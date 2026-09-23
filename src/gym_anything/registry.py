@@ -62,6 +62,28 @@ def resolve_benchmark_root(benchmark: Union[str, Path]) -> Path:
     )
 
 
+def compute_task_digest(env_dir: Union[str, Path], task_id: str) -> str:
+    """Content digest of a task folder (task.json + setup + verifier + assets).
+
+    Identity is content, not version strings: editable installs change files
+    without changing versions, and a client and worker must agree on the
+    exact task they are running (law L3: state reported by its owner). The
+    digest covers every file under the task folder in sorted relative-path
+    order.
+    """
+    import hashlib
+
+    task_dir = Path(env_dir) / "tasks" / str(task_id)
+    if not task_dir.is_dir():
+        raise ValueError(f"No task folder at {task_dir}")
+    digest = hashlib.sha256()
+    for file_path in sorted(p for p in task_dir.rglob("*") if p.is_file()):
+        digest.update(str(file_path.relative_to(task_dir)).encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(hashlib.sha256(file_path.read_bytes()).digest())
+    return "sha256:" + digest.hexdigest()
+
+
 def _dedupe_preserve_order(values: Iterable[str]) -> List[str]:
     ordered: List[str] = []
     seen = set()
@@ -321,6 +343,7 @@ def get_tasks_for_environment(
 
 __all__ = [
     "DISK_SPLIT",
+    "compute_task_digest",
     "get_tasks_for_environment",
     "list_environments",
     "load_environment_task_splits",

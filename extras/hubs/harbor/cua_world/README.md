@@ -1,7 +1,7 @@
 ## CUA-World-Long → Harbor Adapter
 
 **Notice:**
-1. This adapter follows the Harbor adapter template. The source of truth for the adapter code lives in the [gym-anything repository](https://github.com/cmu-l3/gym-anything) under `extras/hubs/harbor/cua_world/` and is mirrored here.
+1. This adapter follows the Harbor adapter template. The source of truth for the adapter code lives in the [gym-anything repository](https://github.com/cmu-l3/gym-anything) under `extras/hubs/harbor/cua_world/` and is mirrored here. There, the `cua_world` package ships in the `cua-world` package (`packaging/cua-world`) together with the CUA-World corpus and the Prime Intellect environment.
 2. The default task preparation dir is `datasets/cua-world`.
 3. Tutorial references: [agent version](https://www.harborframework.com/docs/datasets/adapters), [human version](https://www.harborframework.com/docs/datasets/adapters-human).
 

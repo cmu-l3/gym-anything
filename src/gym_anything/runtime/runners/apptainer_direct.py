@@ -121,6 +121,41 @@ class ApptainerDirectRunner(BaseRunner):
         4. Interact via VNC (screenshots) and `apptainer exec` (commands)
     """
 
+    @classmethod
+    def compatibility(cls):
+        from gym_anything.compatibility import RunnerCompatibility
+        return RunnerCompatibility(
+            runner='apptainer',
+            display_name='ApptainerDirectRunner',
+            live_recording=False,
+            screenshot_video_assembly=True,
+            checkpoint_caching=False,
+            savevm=False,
+            user_accounts_mode='preprovisioned_accounts',
+            notes=[
+                'The standard direct-Apptainer preset includes a prebuilt ga user.',
+                'EnvSpec.user_accounts is compatible as credential/config metadata, not as general-purpose account provisioning.',
+            ],
+        )
+
+    @classmethod
+    def doctor_status(cls):
+        from gym_anything import doctor
+        if doctor._IS_MACOS:
+            return {"available": False, "reason": "Linux only", "deps": {}}
+        deps = {"apptainer": doctor.binary_dep_row("apptainer")}
+        return {"available": all(r["installed"] for r in deps.values()), "deps": deps}
+
+    @classmethod
+    def install_plan(cls):
+        from gym_anything.installers import apptainer_install_plan
+        return apptainer_install_plan("apptainer")
+
+    @classmethod
+    def cache_components(cls):
+        from gym_anything.runtime.runners import host_cache
+        return host_cache.apptainer_components()
+
     def __init__(self, spec: EnvSpec):
         super().__init__(spec)
 
