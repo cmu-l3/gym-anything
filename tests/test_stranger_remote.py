@@ -113,6 +113,10 @@ class StrangerRemoteTest(unittest.TestCase):
                 worker.env_manager._cleanup_idle_environments()
                 self.assertIn(env_id, worker.env_registry, "busy env was reaped")
                 worker._mark_env_free(env_id)
+                # Freeing stamps last_activity with time.time(); on a coarse
+                # clock the reaper can read the same value and see zero idle
+                # time, which is not "> 0". Backdate so the env is idle.
+                worker.env_registry[env_id]["last_activity"] -= 1
                 worker.env_manager._cleanup_idle_environments()
                 self.assertNotIn(env_id, worker.env_registry, "idle env survived")
             finally:
