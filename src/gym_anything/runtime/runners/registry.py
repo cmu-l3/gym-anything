@@ -94,14 +94,20 @@ def _select_local(spec=None) -> Type[BaseRunner]:
 
 
 def _select_qemu(spec=None) -> Type[BaseRunner]:
-    """Family key: QemuApptainer on Linux with apptainer, QemuNative otherwise."""
+    """Family key: QemuApptainer on Linux with apptainer, QemuNative otherwise.
+
+    Without a spec this is a class-level query (compatibility, doctor,
+    listings) and always names a class: the facts do not depend on what is
+    installed, and QemuNative's doctor_status reports what is missing. With a
+    spec (dispatch), a host with neither backend fails with the reason.
+    """
     from .qemu_native import QemuNativeRunner
     if sys.platform == "darwin":
         return QemuNativeRunner
     if apptainer_available():
         from .qemu_apptainer import QemuApptainerRunner
         return QemuApptainerRunner
-    if qemu_native_available():
+    if qemu_native_available() or spec is None:
         return QemuNativeRunner
     raise RuntimeError(
         "runner=qemu but neither Apptainer nor native QEMU found. "
