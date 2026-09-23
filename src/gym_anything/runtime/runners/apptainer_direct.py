@@ -58,7 +58,7 @@ def _find_free_port(start: int = 5900, max_attempts: int = 300) -> int:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                s.bind(("0.0.0.0", port))
+                s.bind(("127.0.0.1", port))
                 return port
         except OSError:
             continue
@@ -649,7 +649,7 @@ From: ubuntu:22.04
         # Start Xvfb (use nohup and redirect to ensure it backgrounds properly)
         xvfb_cmd = (
             f"nohup Xvfb {display} -screen 0 {width}x{height}x{depth} "
-            f"-ac +extension GLX +render -noreset > /tmp/xvfb.log 2>&1 &"
+            f"-ac -nolisten tcp +extension GLX +render -noreset > /tmp/xvfb.log 2>&1 &"
         )
         self._exec_instance_bg(xvfb_cmd)
         print(f"[ApptainerDirect] Xvfb started on {display}")
@@ -673,7 +673,7 @@ From: ubuntu:22.04
         # Start x11vnc (use nohup for background)
         vnc_cmd = (
             f"nohup x11vnc -display {display} -forever -shared "
-            f"-rfbport {self._vnc_port} -passwd {self._vnc_password} "
+            f"-listen 127.0.0.1 -no6 -rfbport {self._vnc_port} -passwd {self._vnc_password} "
             f"-noxdamage -noxfixes -o /tmp/x11vnc.log > /dev/null 2>&1 &"
         )
         self._exec_instance_bg(vnc_cmd)

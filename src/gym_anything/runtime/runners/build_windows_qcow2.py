@@ -185,8 +185,8 @@ def run_windows_installation(
         "-e", "PASSWORD=admin",
         "-v", f"{storage_dir}:/storage",
         "-v", f"{oem_dir}:/oem",
-        "-p", "8006:8006",  # VNC web interface
-        "-p", "3389:3389",  # RDP
+        "-p", "127.0.0.1:8006:8006",  # VNC web interface
+        "-p", "127.0.0.1:3389:3389",  # RDP
         "--privileged" if check_kvm() else "",
         DOCKUR_IMAGE,
     ]

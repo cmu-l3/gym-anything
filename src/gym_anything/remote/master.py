@@ -13,7 +13,7 @@ Features:
 - Aggregated dashboard and metrics
 
 Usage:
-    python -m gym_anything.remote.master --host 0.0.0.0 --port 5000
+    python -m gym_anything.remote.master --host 127.0.0.1 --port 5000
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MasterConfig:
     """Master server configuration."""
-    host: str = "0.0.0.0"
+    host: str = "127.0.0.1"
     port: int = 5000
 
     # Health check settings
@@ -1630,13 +1630,14 @@ async def index():
 # =============================================================================
 
 def find_available_port(start_range: int = 5000, end_range: int = 5999,
-                        max_attempts: int = 50) -> int:
+                        max_attempts: int = 50, host: str = "127.0.0.1") -> int:
     """Find an available port with random selection and retry."""
+    family = socket.AF_INET6 if ":" in host else socket.AF_INET
     for attempt in range(max_attempts):
         port = random.randint(start_range, end_range)
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('', port))
+            with socket.socket(family, socket.SOCK_STREAM) as s:
+                s.bind((host, port))
                 return port
         except OSError:
             continue
@@ -1646,7 +1647,7 @@ def find_available_port(start_range: int = 5000, end_range: int = 5999,
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Gym-Anything Master Server")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: loopback only)")
     parser.add_argument("--port", type=int, default=5000, help="Port to bind to")
     parser.add_argument("--auto-port", action="store_true",
                        help="Auto-select available port if specified port is taken")
@@ -1674,10 +1675,11 @@ def main():
     port = args.port
     if args.auto_port:
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('', port))
+            family = socket.AF_INET6 if ":" in args.host else socket.AF_INET
+            with socket.socket(family, socket.SOCK_STREAM) as s:
+                s.bind((args.host, port))
         except OSError:
-            port = find_available_port()
+            port = find_available_port(host=args.host)
             logger.info(f"Port {args.port} in use, using {port} instead")
 
     logger.info("=" * 70)

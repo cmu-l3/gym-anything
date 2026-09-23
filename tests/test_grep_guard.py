@@ -47,7 +47,7 @@ _RUNNER_CLASS_NAMES = [
     "DockerRunner", "QemuApptainerRunner", "QemuNativeRunner",
     "AVDApptainerRunner", "AVDNativeRunner", "AVFRunner",
     "ApptainerDirectRunner", "LocalRunner", "UseComputerRunner",
-    "ModalRunner", "ModalNativeRunner",
+    "ModalRunner", "ModalNativeRunner", "SandweaveRunner",
 ]
 
 # Patterns over the token stream (dotted names appear as "a . b").

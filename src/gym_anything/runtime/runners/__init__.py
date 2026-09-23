@@ -20,6 +20,7 @@ _LAZY_CLASSES = {
     "AVFRunner": ".avf",
     "UseComputerRunner": ".use_computer",
     "ModalNativeRunner": ".modal_native",
+    "SandweaveRunner": ".sandweave",
 }
 
 __all__ = ["BaseRunner", *_LAZY_CLASSES]

@@ -921,8 +921,8 @@ class DockerRunner(BaseRunner):
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 try:
-                    # Bind to 0.0.0.0 to mirror Docker port publish behavior
-                    s.bind(("0.0.0.0", port))
+                    # Match the loopback address used for Docker port publishing.
+                    s.bind(("127.0.0.1", port))
                     return port
                 except OSError:
                     port += 1

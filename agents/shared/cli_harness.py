@@ -222,7 +222,7 @@ class ActionGateway:
 
     # --- HTTP server --------------------------------------------------------
 
-    def start(self, host: str = "0.0.0.0") -> int:
+    def start(self, host: str = "127.0.0.1") -> int:
         """Start the gateway on an ephemeral port; return the port."""
         gateway = self
 

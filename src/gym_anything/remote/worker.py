@@ -202,7 +202,7 @@ def run_runner_preflight(
 
 class WorkerConfig:
     """Worker server configuration."""
-    host: str = "0.0.0.0"
+    host: str = "127.0.0.1"
     port: int = 0  # 0 = auto-select
     port_range_start: int = 5100
     port_range_end: int = 5999
@@ -234,14 +234,15 @@ config = WorkerConfig()
 # =============================================================================
 
 def find_available_port(start_range: int = 5100, end_range: int = 5999,
-                        max_attempts: int = 50) -> int:
+                        max_attempts: int = 50, host: str = "127.0.0.1") -> int:
     """Find an available port with random selection and retry."""
+    family = socket.AF_INET6 if ":" in host else socket.AF_INET
     for attempt in range(max_attempts):
         port = random.randint(start_range, end_range)
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            with socket.socket(family, socket.SOCK_STREAM) as s:
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                s.bind(('', port))
+                s.bind((host, port))
                 logger.info(f"Found available port: {port} (attempt {attempt + 1})")
                 return port
         except OSError:
@@ -251,12 +252,13 @@ def find_available_port(start_range: int = 5100, end_range: int = 5999,
                       f"after {max_attempts} attempts")
 
 
-def try_bind_port(port: int) -> bool:
+def try_bind_port(port: int, host: str = "127.0.0.1") -> bool:
     """Check if a port is available."""
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        family = socket.AF_INET6 if ":" in host else socket.AF_INET
+        with socket.socket(family, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind(('', port))
+            s.bind((host, port))
             return True
     except OSError:
         return False
@@ -1371,7 +1373,7 @@ def main():
     global master_client, heartbeat_manager
 
     parser = argparse.ArgumentParser(description="Gym-Anything Worker Server")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: loopback only)")
     parser.add_argument("--port", type=int, default=0,
                        help="Port to bind to (0 = auto-select)")
     parser.add_argument("--master-url", type=str, default=None,
@@ -1450,15 +1452,17 @@ def main():
         config.port = find_available_port(
             start_range=config.port_range_start,
             end_range=config.port_range_end,
-            max_attempts=config.port_max_attempts
+            max_attempts=config.port_max_attempts,
+            host=config.host,
         )
     else:
-        if not try_bind_port(args.port):
+        if not try_bind_port(args.port, host=config.host):
             logger.warning(f"Port {args.port} not available, finding alternative...")
             config.port = find_available_port(
                 start_range=config.port_range_start,
                 end_range=config.port_range_end,
-                max_attempts=config.port_max_attempts
+                max_attempts=config.port_max_attempts,
+                host=config.host,
             )
         else:
             config.port = args.port

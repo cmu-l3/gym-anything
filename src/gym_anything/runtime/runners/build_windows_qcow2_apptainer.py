@@ -681,7 +681,7 @@ def run_windows_install(
     qemu_cmd.extend([
         # Display with virtio-vga (best performance)
         "-device", "virtio-vga",
-        "-vnc", f":{vnc_display}",
+        "-vnc", f"127.0.0.1:{vnc_display}",
         "-display", "none",
         # Network with virtio (best performance, needed for Windows Update bypass)
         "-device", "virtio-net-pci,netdev=net0",
@@ -798,10 +798,10 @@ def run_post_install_setup(
         "-drive", f"if=pflash,format=raw,file={local_vars}",
         "-drive", f"file={disk_path},format=qcow2,if=virtio",
         "-device", "virtio-vga",
-        "-vnc", f":{vnc_display}",
+        "-vnc", f"127.0.0.1:{vnc_display}",
         "-display", "none",
         "-device", "virtio-net-pci,netdev=net0",
-        "-netdev", f"user,id=net0,hostfwd=tcp::{ssh_port}-:22",
+        "-netdev", f"user,id=net0,hostfwd=tcp:127.0.0.1:{ssh_port}-:22",
         "-boot", "c",
     ]
 
