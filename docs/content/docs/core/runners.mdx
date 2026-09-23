@@ -66,6 +66,52 @@ If your question is simply "does this support caching?" or "can I use savevm her
 
 This reflects our current runner behavior.
 
+## Sandweave Ubuntu Image
+
+Sandweave runs Linux environments with normal and fast IO. Install
+`gym-anything[sandweave]` on Linux with Python 3.11+ and select
+`GYM_ANYTHING_RUNNER=sandweave`. For remote workers, see
+[Sandweave with Weave](/core/remote#sandweave-with-weave).
+
+The runner's template pins a prepared Ubuntu 22.04 image by release URL and
+SHA-256 checksums. Sandweave downloads and imports it automatically on each
+worker, then reuses its local cache. The QCOW2 file is read offline; workers
+never boot QEMU or need KVM to prepare this image.
+
+The image uses Gym's QEMU Ubuntu provisioning, followed by
+`sandweave_ubuntu_setup.py`. The desktop packages and configuration are retained;
+native Firefox replaces Snap Firefox, and `snapd` is removed. No benchmark
+environment or task setup is baked into the base.
+
+### Maintaining The Published Image
+
+Only maintainers build the image. On a Linux machine with KVM, Apptainer,
+`fakeroot`, GNU tar, `sfdisk` and `e2fsprogs`, use a local disk with at least
+64 GiB of build space while keeping 15% free:
+
+```bash
+export GYM_ANYTHING_QEMU_CACHE=/scratch/gym-image-build/qemu
+mkdir -p "$GYM_ANYTHING_QEMU_CACHE"
+python -m gym_anything.runtime.runners.build_sandweave_ubuntu \
+  --source-qcow2 "$GYM_ANYTHING_QEMU_CACHE/base_ubuntu_gnome.qcow2" \
+  --output /scratch/gym-image-build/release
+```
+
+If the source is absent, the builder creates it with
+`build_base_qcow2_nodocker.py`. It prepares a disposable copy, checks the package
+changes, removes build-machine keys and state, and packages a new filesystem.
+Build-machine host keys are omitted; the guest generates keys at first boot.
+The source image is preserved.
+Builds require KVM and fail immediately without it; no software-emulation fallback
+is used. The output records source, recipe and artifact checksums for auditing.
+
+Publish the ZIP, `image.json`, `SHA256SUMS`, package list and build provenance as
+assets of a new versioned GitHub release. Update the template with that release's
+URL and both checksums from `image.json`. Validate a fresh worker and the existing
+Moodle and Google Earth environments before updating the runner's pin. Rebuilds
+can receive newer Firefox packages from the PPA, so each published build gets a
+new release rather than replacing an existing artifact.
+
 ## QEMU Fast I/O
 
 QEMU's host VNC, SSH, ADB and input-agent forwards bind to `127.0.0.1`.

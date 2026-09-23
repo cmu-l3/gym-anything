@@ -129,10 +129,11 @@ Useful remote flags:
 
 Install Gym's `sandweave` extra on the Linux benchmark machine (Python 3.11+)
 and Sandweave on the workers. Benchmark agents also need the `agents` extra and
-their model credentials. Each eligible worker must have the prepared
-`gym-anything/ubuntu-qemu-nosnap` base used by `sandweave_ubuntu.toml`; installing
-the SDK alone does not import Gym's QEMU Ubuntu image. Keep the `SANDWEAVE_HOME`
-that contains that prepared image.
+their model credentials. On first use, Sandweave downloads the versioned Ubuntu
+image pinned in `sandweave_ubuntu.toml`, verifies its SHA-256 checksums, and caches
+it in each worker's `SANDWEAVE_HOME`. Workers need outbound HTTPS and disk space
+for image preparation. They do not need a local QEMU image, QEMU, KVM, or a
+manually registered base snapshot. Later launches reuse the verified local image.
 
 Use Sandweave 0.2.21 or newer on the client, controller and workers. This release
 makes new Weave controllers bind to `127.0.0.1` by default, including startup with
@@ -157,7 +158,7 @@ This also registers the server as a worker. A new controller listens on
 are retained: to restrict a previously public controller, stop it and restart
 with `--listen 127.0.0.1:0`.
 To use separate worker machines, add `--no-worker`, then use the SSH connection
-link printed by the controller with `sandweave cluster join` on each prepared
+link printed by the controller with `sandweave cluster join` on each
 worker. SSH must be available from each worker to the controller. Sandweave
 creates the loopback tunnel for that SSH connection.
 
