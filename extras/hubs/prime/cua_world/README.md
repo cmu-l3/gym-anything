@@ -165,10 +165,12 @@ for the full design.
 
 ## Local development
 
-Inside the gym-anything repo, install gym-anything editable first, then this
-shell without deps (so it resolves your checkout instead of the pinned tag):
+This environment is the `cua_world` module of the `cua-world` package
+(`packaging/cua-world`), which also ships the corpus. Inside the gym-anything
+repo, install gym-anything editable first, then that package without deps
+(so it resolves your checkout instead of the main-branch pin):
 
 ```bash
-uv pip install -e ".[modal,prime-rl,benchmark]"      # from repo root
-uv pip install -e extras/hubs/prime/cua_world --no-deps
+uv pip install -e ".[modal,prime-rl,benchmark,agents]"   # from repo root
+uv pip install --no-deps packaging/cua-world
 ```
