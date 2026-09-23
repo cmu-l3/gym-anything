@@ -11,6 +11,16 @@ that runs Docker containers needs cgroup v1, because gVisor rejects the eBPF
 device programs runc attaches under cgroup v2::
 
     "runner_options": {"template": {"runtime_options": {"cgroup": "v1"}}}
+
+Machines that must reach each other join a Sandweave service network
+(sandweave>=0.2.24) through ``runner_options.service_network``: the network's
+ID from ``sandweave.create_service_network()``, this machine's names on it, and
+the named networks it shares with its peers::
+
+    "runner_options": {"service_network": {"id": "net-...", "aliases": ["mail.example.test"],
+                                           "networks": ["office"]}}
+
+The ID identifies one episode's network, so it is not part of checkpoint keys.
 """
 
 from __future__ import annotations
@@ -76,6 +86,9 @@ class SandweaveRunner(BaseRunner):
         self.resolution = tuple(
             self._screen.resolution if self._screen and self._screen.resolution else (1920, 1080)
         )
+        self._service_network = (spec.runner_options or {}).get("service_network")
+        if self._service_network and not hasattr(sandweave, "create_service_network"):
+            raise RuntimeError("runner_options.service_network requires sandweave>=0.2.24")
         self._template = sandweave.Template(deep_merge_env_dict({
             "extends": str(Path(__file__).with_name("sandweave_ubuntu.toml")),
             "capabilities": {"desktop": {"resolution": list(self.resolution)}},
@@ -117,12 +130,24 @@ class SandweaveRunner(BaseRunner):
     @classmethod
     def validate_options(cls, spec: EnvSpec) -> list:
         options = spec.runner_options or {}
-        errors = [f"unknown runner_options key: {key!r}" for key in options if key != "template"]
+        errors = [f"unknown runner_options key: {key!r}" for key in options
+                  if key not in ("template", "service_network")]
         template = options.get("template")
         if template is not None and not isinstance(template, dict):
             errors.append("runner_options.template must be a Sandweave template table")
         elif template and "extends" in template:
             errors.append("runner_options.template cannot replace the runner's base template ('extends')")
+        membership = options.get("service_network")
+        if membership is not None:
+            if not isinstance(membership, dict) or not isinstance(membership.get("id"), str):
+                errors.append("runner_options.service_network needs the network 'id'")
+            else:
+                errors += [f"unknown runner_options.service_network key: {key!r}" for key in membership
+                           if key not in ("id", "aliases", "networks")]
+                errors += [f"runner_options.service_network.{key} must be a list of names"
+                           for key in ("aliases", "networks") if key in membership
+                           and not (isinstance(membership[key], list)
+                                    and all(isinstance(name, str) for name in membership[key]))]
         return errors
 
     def supports_fast_io(self) -> bool:
@@ -162,6 +187,7 @@ class SandweaveRunner(BaseRunner):
                 gpu=bool(self.spec.resources.gpu),
                 network="internet" if self.spec.resources.net else "offline",
                 env=self.default_exec_env(),
+                **self._membership(),
             )
             if cache is None:
                 for mount in sorted(self.spec.mounts, key=lambda m: len(Path(m.target).parts)):
@@ -311,10 +337,19 @@ class SandweaveRunner(BaseRunner):
         self._cache_level, self._task_id = cache_level, task_id
         self._cache_state = "memory" if use_savevm else "filesystem"
 
+    def _membership(self) -> Dict[str, Any]:
+        if not self._service_network:
+            return {}
+        return {"service_network": self._service_network["id"],
+                "aliases": self._service_network.get("aliases"),
+                "networks": self._service_network.get("networks")}
+
     def _config_digest(self) -> str:
         config = dataclasses.asdict(self.spec)
         for key in ("recording", "diagnostics", "runner"):
             config.pop(key, None)
+        # A service network is one episode's; checkpoints must outlive it.
+        config.get("runner_options", {}).get("service_network", {}).pop("id", None)
         config["sandweave_version"] = self._sdk.__version__
         config["template"] = self._template.resolve()
         return hashlib.sha256(json.dumps(config, sort_keys=True, default=str).encode()).hexdigest()
