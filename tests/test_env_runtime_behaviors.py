@@ -117,6 +117,29 @@ class _FakeRunner:
         return False
 
 
+class _CachingFakeRunner(_FakeRunner):
+    """Keeps the checkpoint levels it saves; hooks whose command names a failing script exit 1."""
+
+    def __init__(self, failing=()) -> None:
+        super().__init__()
+        self.failing = failing
+        self.checkpoints = []
+
+    def supports_checkpoint_caching(self) -> bool:
+        return True
+
+    def set_checkpoint_key(self, cache_level: str, task_id=None, use_savevm: bool = False) -> None:
+        self.level = cache_level
+
+    def create_checkpoint(self) -> bool:
+        self.checkpoints.append(self.level)
+        return True
+
+    def exec(self, command: str, **kwargs) -> int:
+        super().exec(command, **kwargs)
+        return 1 if any(script in command for script in self.failing) else 0
+
+
 class _FakeVerifier:
     def evaluate(self, **kwargs):
         return {"passed": True, "score": 100}
@@ -482,6 +505,35 @@ class RuntimeBehaviorTests(unittest.TestCase):
                 self.assertAlmostEqual(reward, 0.37)
             finally:
                 env.close()
+
+    def _checkpoints_after_reset(self, cache_level: str, failing=()) -> list:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _CachingFakeRunner(failing)
+            spec = EnvSpec.from_dict({
+                "id": "demo-env",
+                "observation": [{"type": "rgb_screen", "fps": 1, "resolution": [64, 64]}],
+                "action": [{"type": "mouse"}],
+                "recording": {"enable": False, "output_dir": tmp},
+                "hooks": {"pre_start": "/setup/install.sh", "post_start": "/setup/seed.sh",
+                          "reset": "/setup/open.sh"},
+            })
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(spec, None)
+            try:
+                env.reset(seed=1, use_cache=True, cache_level=cache_level)
+            finally:
+                env.close()
+            return runner.checkpoints
+
+    def test_a_setup_whose_hooks_succeed_is_checkpointed(self) -> None:
+        self.assertEqual(self._checkpoints_after_reset("post_start"), ["post_start"])
+
+    def test_a_failed_hook_is_never_checkpointed(self) -> None:
+        self.assertEqual(self._checkpoints_after_reset("post_start", failing=("seed.sh",)), [])
+        self.assertEqual(self._checkpoints_after_reset("post_start", failing=("install.sh",)), [])
+        self.assertEqual(self._checkpoints_after_reset("post_task", failing=("open.sh",)), [])
+        # A level reached before the failure is still checkpointed.
+        self.assertEqual(self._checkpoints_after_reset("pre_start", failing=("seed.sh",)), ["pre_start"])
 
     def test_local_runner_rejects_checkpoint_caching(self) -> None:
         env = GymAnythingEnv(_make_env_spec("./artifacts", runner="local"), None)

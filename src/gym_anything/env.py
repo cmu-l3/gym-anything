@@ -28,6 +28,12 @@ logger = logging.getLogger(__name__)
 HOOK_TIMEOUT = int(os.environ.get("GYM_ANYTHING_HOOK_TIMEOUT", "1800"))
 
 
+def _check_hook_status(stage: str, status) -> None:
+    """Raise when a hook exited non-zero. A runner that reports no status is taken at its word."""
+    if isinstance(status, int) and status != 0:
+        raise RuntimeError(f"{stage} hook exited with status {status}")
+
+
 class GymAnythingEnv:
     """Unified environment wrapper exposing Gym-like API.
 
@@ -344,6 +350,9 @@ class GymAnythingEnv:
 
         level_order = {"pre_start": 1, "post_start": 2, "post_task": 3}
         loaded_level_num = level_order.get(checkpoint_level, 0) if checkpoint_loaded else 0
+        # A failed hook is only a warning, but a checkpoint taken after it would
+        # hand the failed setup to every later episode, so none is taken.
+        hook_failed = False
 
         # === PRE_START HOOK ===
         # Skip if checkpoint_loaded and checkpoint was at pre_start or later
@@ -355,10 +364,12 @@ class GymAnythingEnv:
                 try:
                     # The world owns command execution; core only names the
                     # stage (law L2).
-                    self._runner.run_hook(self.env_spec.hooks['pre_start'], stage="pre_start")
+                    _check_hook_status("pre_start", self._runner.run_hook(
+                        self.env_spec.hooks['pre_start'], stage="pre_start"))
                     if self._reporter:
                         self._reporter.stage_done("pre_start_hook")
                 except Exception as e:
+                    hook_failed = True
                     logger.warning("pre_start hook failed: %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("pre_start_hook", str(e))
@@ -366,10 +377,13 @@ class GymAnythingEnv:
         # Create checkpoint after pre_start if this is the target level
         # Also creates when we started from scratch with a higher cache_level target
         if use_cache and cache_level == "pre_start" and checkpoint_level != "pre_start":
-            savevm_msg = " (with savevm)" if use_savevm else ""
-            logger.info("Creating checkpoint at level=pre_start%s", savevm_msg)
-            self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
-            self._runner.create_checkpoint()
+            if hook_failed:
+                logger.warning("Not creating a checkpoint at level=pre_start: a hook failed")
+            else:
+                savevm_msg = " (with savevm)" if use_savevm else ""
+                logger.info("Creating checkpoint at level=pre_start%s", savevm_msg)
+                self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
+                self._runner.create_checkpoint()
 
         # === DOCKERHUB AUTHENTICATION ===
         # Authenticate with DockerHub inside the guest before post_start hooks
@@ -389,10 +403,12 @@ class GymAnythingEnv:
                 try:
                     # The world owns command execution; core only names the
                     # stage (law L2).
-                    self._runner.run_hook(self.env_spec.hooks['post_start'], stage="post_start")
+                    _check_hook_status("post_start", self._runner.run_hook(
+                        self.env_spec.hooks['post_start'], stage="post_start"))
                     if self._reporter:
                         self._reporter.stage_done("post_start_hook")
                 except Exception as e:
+                    hook_failed = True
                     logger.warning("post_start hook failed: %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("post_start_hook", str(e))
@@ -400,10 +416,13 @@ class GymAnythingEnv:
         # Create checkpoint after post_start if this is the target level
         # Also creates when we loaded from a lower level (e.g., pre_start fallback)
         if use_cache and cache_level == "post_start" and checkpoint_level != "post_start":
-            savevm_msg = " (with savevm)" if use_savevm else ""
-            logger.info("Creating checkpoint at level=post_start%s", savevm_msg)
-            self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
-            self._runner.create_checkpoint()
+            if hook_failed:
+                logger.warning("Not creating a checkpoint at level=post_start: a hook failed")
+            else:
+                savevm_msg = " (with savevm)" if use_savevm else ""
+                logger.info("Creating checkpoint at level=post_start%s", savevm_msg)
+                self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
+                self._runner.create_checkpoint()
 
         # === RESET SCRIPT ===
         # Always runs (not part of checkpoint levels)
@@ -411,9 +430,11 @@ class GymAnythingEnv:
             self._runner.run_reset(self.env_spec.reset_script, seed=seed)
         elif getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("reset"):
             try:
-                self._runner.run_hook(self.env_spec.hooks['reset'], stage="reset")
-            except Exception:
-                pass
+                _check_hook_status("reset", self._runner.run_hook(self.env_spec.hooks['reset'], stage="reset"))
+            except Exception as e:
+                # The reset hook's effects are part of a post_task checkpoint.
+                hook_failed = True
+                logger.warning("reset hook failed: %s", e)
 
         # === PRE_TASK HOOK ===
         # Skip if checkpoint_loaded and checkpoint was at post_task
@@ -424,16 +445,17 @@ class GymAnythingEnv:
                 logger.info("Running pre_task hook")
                 try:
                     hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
-                    self._runner.run_hook(
+                    _check_hook_status("pre_task", self._runner.run_hook(
                         self.task_spec.hooks.pre_task,
                         stage="pre_task",
                         timeout=hook_timeout,
                         use_pty=False,
-                    )
+                    ))
                     self._capture_observation()
                     if self._reporter:
                         self._reporter.stage_done("pre_task_hook")
                 except Exception as e:
+                    hook_failed = True
                     logger.warning("pre_task hook failed: %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("pre_task_hook", str(e))
@@ -450,10 +472,13 @@ class GymAnythingEnv:
         # Create checkpoint after pre_task/init if this is the target level
         # Also creates when we loaded from a lower level (e.g., post_start or pre_start fallback)
         if use_cache and cache_level == "post_task" and checkpoint_level != "post_task":
-            savevm_msg = " (with savevm)" if use_savevm else ""
-            logger.info("Creating checkpoint at level=post_task%s", savevm_msg)
-            self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
-            self._runner.create_checkpoint()
+            if hook_failed:
+                logger.warning("Not creating a checkpoint at level=post_task: a hook failed")
+            else:
+                savevm_msg = " (with savevm)" if use_savevm else ""
+                logger.info("Creating checkpoint at level=post_task%s", savevm_msg)
+                self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
+                self._runner.create_checkpoint()
 
         # Start recording if enabled
         if self.env_spec.recording.enable and self._runner.supports_live_recording():
