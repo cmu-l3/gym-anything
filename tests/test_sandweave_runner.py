@@ -9,7 +9,7 @@ from gym_anything.specs import EnvSpec
 
 
 class SandweaveRunnerTests(unittest.TestCase):
-    def make_runner(self, *, target=None, worker_host="local-host"):
+    def make_runner(self, *, target=None, worker_host="local-host", runner_options=None):
         sdk = mock.Mock(__version__="0.2.21")
         sdk.Template.return_value.resolve.return_value = {"name": "gym-ubuntu"}
         sdk.Sandbox.return_value = SimpleNamespace(
@@ -23,6 +23,7 @@ class SandweaveRunnerTests(unittest.TestCase):
         spec = EnvSpec.from_dict({
             "id": "moodle_env@0.1", "runner": "sandweave",
             "resources": {"cpu": 2, "mem_gb": 4, "gpu": 0, "net": True},
+            "runner_options": runner_options or {},
         })
         with mock.patch.dict("sys.modules", {"sandweave": sdk}), \
              mock.patch.dict("os.environ", {"GYM_ANYTHING_SANDWEAVE_TARGET": target} if target else {}, clear=True), \
@@ -96,6 +97,26 @@ class SandweaveRunnerTests(unittest.TestCase):
         self.assertEqual(runner._checkpoint_key(), key)
         self.assertEqual(runner._base_key, base_key)
         runner.stop()
+
+    def test_template_options_are_merged_into_the_runner_template(self):
+        _, default_sdk = self.make_runner()
+        default_template = default_sdk.Template.call_args.args[0]
+        runner, sdk = self.make_runner(runner_options={"template": {"runtime_options": {"cgroup": "v1"}}})
+        template = sdk.Template.call_args.args[0]
+        self.assertEqual(template["runtime_options"], {"cgroup": "v1"})
+        self.assertEqual(template["extends"], default_template["extends"])
+        self.assertEqual(template["capabilities"], default_template["capabilities"])
+        self.assertNotIn("runtime_options", default_template)
+
+    def test_template_options_are_validated(self):
+        def errors(options):
+            return SandweaveRunner.validate_options(EnvSpec.from_dict({
+                "id": "env", "runner": "sandweave", "runner_options": options}))
+        self.assertEqual(errors({}), [])
+        self.assertEqual(errors({"template": {"runtime_options": {"cgroup": "v1"}}}), [])
+        self.assertEqual(len(errors({"template": "v1"})), 1)
+        self.assertEqual(len(errors({"template": {"extends": "other.toml"}})), 1)
+        self.assertEqual(len(errors({"cgroup": "v1"})), 1)
 
 
 if __name__ == "__main__":
