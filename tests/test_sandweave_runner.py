@@ -118,6 +118,52 @@ class SandweaveRunnerTests(unittest.TestCase):
         self.assertEqual(len(errors({"template": {"extends": "other.toml"}})), 1)
         self.assertEqual(len(errors({"cgroup": "v1"})), 1)
 
+    def test_service_network_membership_reaches_every_sandbox(self):
+        membership = {"id": "net-" + "a" * 32, "aliases": ["mail.example.test"], "networks": ["office"]}
+        runner, sdk = self.make_runner(runner_options={"service_network": membership})
+        runner.set_checkpoint_key("post_start", None)
+        runner.start()
+        started = sdk.Sandbox.call_args.kwargs
+        runner.stop()
+        runner.start_from_checkpoint()
+        restored = sdk.Sandbox.call_args.kwargs
+        for kwargs in (started, restored):
+            self.assertEqual(kwargs["service_network"], membership["id"])
+            self.assertEqual(kwargs["aliases"], ["mail.example.test"])
+            self.assertEqual(kwargs["networks"], ["office"])
+        runner.stop()
+        plain, plain_sdk = self.make_runner()
+        plain.start()
+        self.assertNotIn("service_network", plain_sdk.Sandbox.call_args.kwargs)
+        plain.stop()
+
+    def test_checkpoints_do_not_depend_on_the_episode_network(self):
+        keys = []
+        for network in ("net-" + "a" * 32, "net-" + "b" * 32):
+            runner, _ = self.make_runner(runner_options={"service_network": {"id": network, "networks": ["office"]}})
+            runner.set_checkpoint_key("post_start", None)
+            keys.append(runner._checkpoint_key())
+        self.assertEqual(keys[0], keys[1])
+
+    def test_service_network_needs_a_supporting_sdk(self):
+        spec = EnvSpec.from_dict({"id": "env", "runner": "sandweave",
+                                  "resources": {"cpu": 2, "mem_gb": 4, "gpu": 0, "net": True},
+                                  "runner_options": {"service_network": {"id": "net-" + "a" * 32}}})
+        old_sdk = mock.Mock(spec=["Template", "Sandbox", "__version__"])
+        with mock.patch.dict("sys.modules", {"sandweave": old_sdk}), \
+             mock.patch("gym_anything.runtime.runners.sandweave.dependency_status", return_value={"available": True}):
+            with self.assertRaisesRegex(RuntimeError, "sandweave>=0.2.24"):
+                SandweaveRunner(spec)
+
+    def test_service_network_options_are_validated(self):
+        def errors(membership):
+            return SandweaveRunner.validate_options(EnvSpec.from_dict({
+                "id": "env", "runner": "sandweave", "runner_options": {"service_network": membership}}))
+        self.assertEqual(errors({"id": "net-x", "aliases": ["a.test"], "networks": ["office"]}), [])
+        self.assertEqual(len(errors({"aliases": ["a.test"]})), 1)
+        self.assertEqual(len(errors({"id": "net-x", "aliases": "a.test"})), 1)
+        self.assertEqual(len(errors({"id": "net-x", "ports": [80]})), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
