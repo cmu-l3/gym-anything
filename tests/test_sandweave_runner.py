@@ -34,7 +34,9 @@ class SandweaveRunnerTests(unittest.TestCase):
     @mock.patch("gym_anything.runtime.runners.sandweave.sys.version_info", (3, 11))
     def test_requires_release_with_loopback_controller_defaults(self):
         for version, available in [("0.2.20", False), ("0.2.21", True)]:
-            with self.subTest(version=version), mock.patch(
+            with self.subTest(version=version), mock.patch.dict(
+                "sys.modules", {"sandweave.releases": SimpleNamespace(host_info=lambda: {})}
+            ), mock.patch(
                 "gym_anything.runtime.runners.sandweave.importlib.metadata.version",
                 return_value=version,
             ):
@@ -42,6 +44,66 @@ class SandweaveRunnerTests(unittest.TestCase):
                 self.assertEqual(status["available"], available)
                 if not available:
                     self.assertIn("sandweave>=0.2.21 required", status["reason"])
+
+    @mock.patch("gym_anything.runtime.runners.sandweave.sys.platform", "linux")
+    @mock.patch("gym_anything.runtime.runners.sandweave.sys.version_info", (3, 11))
+    @mock.patch("gym_anything.runtime.runners.sandweave.importlib.metadata.version", return_value="0.2.21")
+    def test_doctor_checks_local_worker_using_installed_sdk(self, _version):
+        from gym_anything.doctor import run_doctor
+        for error in (None, ValueError("requires Linux 5.4 or newer (found 5.3.0)"),
+                      ValueError("Linux x86-64 workers required")):
+            with self.subTest(error=error):
+                probe = mock.Mock(side_effect=error, return_value={})
+                with mock.patch.dict("sys.modules", {"sandweave.releases": SimpleNamespace(host_info=probe)}), \
+                     mock.patch.dict("os.environ", {}, clear=True):
+                    report = run_doctor(runner="sandweave")
+                self.assertEqual(report.ok, error is None)
+                probe.assert_called_once_with()
+                if error:
+                    self.assertIn(str(error), report.checks[-1].detail)
+
+    @mock.patch("gym_anything.runtime.runners.sandweave.sys.platform", "linux")
+    @mock.patch("gym_anything.runtime.runners.sandweave.sys.version_info", (3, 11))
+    @mock.patch("gym_anything.runtime.runners.sandweave.importlib.metadata.version", return_value="0.2.21")
+    def test_remote_target_does_not_check_client_kernel(self, _version):
+        for target in ("lab", "ssh://user@worker", "http://worker:8080"):
+            with self.subTest(target=target):
+                probe = mock.Mock(side_effect=AssertionError("client is not the worker"))
+                with mock.patch.dict("sys.modules", {"sandweave.releases": SimpleNamespace(host_info=probe)}), \
+                     mock.patch.dict("os.environ", {"GYM_ANYTHING_SANDWEAVE_TARGET": target}, clear=True):
+                    self.assertTrue(dependency_status()["available"])
+                probe.assert_not_called()
+
+    @mock.patch("gym_anything.runtime.runners.sandweave.sys.platform", "linux")
+    @mock.patch("gym_anything.runtime.runners.sandweave.sys.version_info", (3, 11))
+    def test_doctor_cli_with_real_sdk_kernel_check(self):
+        import contextlib
+        import io
+        import json
+        try:
+            from sandweave import releases
+        except ImportError:
+            self.skipTest("optional Sandweave SDK is not installed")
+        from gym_anything.cli import cmd_doctor
+
+        args = SimpleNamespace(runner="sandweave", verification_root=None, json=True)
+        supports_linux54 = getattr(releases, "MINIMUM_KERNEL", (5, 6, 0)) <= (5, 4, 0)
+        for kernel, target, expected in [("5.3.0-46-generic", "local", 1),
+                                          ("5.4.0-216-generic", "local", 0 if supports_linux54 else 1),
+                                          ("5.6.0", "local", 0),
+                                          ("5.14.0", "local", 0),
+                                          ("5.3.0-46-generic", "lab", 0)]:
+            with self.subTest(kernel=kernel, target=target), \
+                 mock.patch.dict("os.environ", {"GYM_ANYTHING_SANDWEAVE_TARGET": target}, clear=True), \
+                 mock.patch.object(releases.platform, "system", return_value="Linux"), \
+                 mock.patch.object(releases.platform, "machine", return_value="x86_64"), \
+                 mock.patch.object(releases.platform, "release", return_value=kernel), \
+                 contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(cmd_doctor(args), expected)
+                report = json.loads(output.getvalue())
+                self.assertEqual(report["ok"], expected == 0)
+                if expected:
+                    self.assertIn("Linux", report["checks"][-1]["detail"])
 
     @mock.patch("gym_anything.runtime.runners.sandweave.socket.gethostname", return_value="local-host")
     def test_cluster_placement_controls_vnc_visibility(self, _hostname):
