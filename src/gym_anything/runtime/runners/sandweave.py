@@ -61,6 +61,13 @@ def dependency_status() -> Dict[str, Any]:
                 reason = f"sandweave>=0.2.21 required (found {version})"
         except importlib.metadata.PackageNotFoundError:
             reason = "sandweave is not installed; pip install 'gym-anything[sandweave]'"
+    if reason is None and os.environ.get("GYM_ANYTHING_SANDWEAVE_TARGET", "local") in ("", "local"):
+        try:
+            from sandweave.releases import host_info
+
+            host_info()
+        except (ImportError, OSError, ValueError) as exc:
+            reason = f"Sandweave worker is incompatible: {exc}"
     return {"available": reason is None, "reason": reason, "deps": {}}
 
 
@@ -116,7 +123,7 @@ class SandweaveRunner(BaseRunner):
             savevm=True,
             user_accounts_mode="preprovisioned_accounts",
             notes=[
-                "Linux GNOME desktops through Sandweave; requires Python 3.11+ and sandweave[desktop]>=0.2.21.",
+                "Linux GNOME desktops through Sandweave; requires Python 3.11+ and sandweave[desktop]>=0.2.21. The installed SDK checks local worker kernel compatibility.",
                 "Filesystem restores boot fresh processes and discard volatile directories. GPU desktops cannot use savevm.",
                 "The ga desktop account is preprovisioned; user_accounts remains credential metadata.",
                 "VNC URLs are local to the Sandweave worker; remote targets require forwarding.",
