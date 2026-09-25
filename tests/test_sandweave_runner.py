@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import unittest
 from types import SimpleNamespace
 from unittest import mock
@@ -8,10 +9,19 @@ from gym_anything.runtime.runners.sandweave import SandweaveRunner, dependency_s
 from gym_anything.specs import EnvSpec
 
 
+@dataclasses.dataclass(frozen=True)
+class Memory:
+    """The fields of sandweave.Memory that the runner sets (sandweave>=0.2.28)."""
+    guest: str
+    runtime: str = "512MiB"
+    reservation: str | None = None
+    experimental: bool = False
+
+
 class SandweaveRunnerTests(unittest.TestCase):
-    def make_runner(self, *, target=None, worker_host="local-host", runner_options=None):
-        sdk = mock.Mock(__version__="0.2.21")
-        sdk.Template.return_value.resolve.return_value = {"name": "gym-ubuntu"}
+    def make_runner(self, *, target=None, worker_host="local-host", runner_options=None, template=None):
+        sdk = mock.Mock(__version__="0.2.21", Memory=Memory)
+        sdk.Template.return_value.resolve.return_value = template or {"name": "gym-ubuntu"}
         sdk.Sandbox.return_value = SimpleNamespace(
             id="sw-example",
             info={
@@ -163,6 +173,62 @@ class SandweaveRunnerTests(unittest.TestCase):
         self.assertEqual(len(errors({"aliases": ["a.test"]})), 1)
         self.assertEqual(len(errors({"id": "net-x", "aliases": "a.test"})), 1)
         self.assertEqual(len(errors({"id": "net-x", "ports": [80]})), 1)
+
+    def test_memory_reservation_reaches_every_sandbox(self):
+        reserved = {"memory": {"reservation": "2GiB", "experimental": True}}
+        template = {"name": "gym-ubuntu", "resources": {"runtime_memory": "4GiB"}}
+        runner, sdk = self.make_runner(runner_options=reserved, template=template)
+        runner.set_checkpoint_key("post_start", None)
+        runner.start()
+        started = sdk.Sandbox.call_args.kwargs["memory"]
+        runner.stop()
+        runner.start_from_checkpoint()
+        restored = sdk.Sandbox.call_args.kwargs["memory"]
+        runner.stop()
+        expected = Memory(guest="4GiB", runtime="4GiB", reservation="2GiB", experimental=True)
+        self.assertEqual((started, restored), (expected, expected))
+        plain, plain_sdk = self.make_runner()
+        plain.start()
+        self.assertEqual(plain_sdk.Sandbox.call_args.kwargs["memory"], "4GiB")
+        plain.stop()
+
+    def test_checkpoints_do_not_depend_on_the_reservation(self):
+        keys = []
+        for options in ({}, {"memory": {"reservation": "2GiB", "experimental": True}},
+                        {"memory": {"reservation": "3GiB", "experimental": True}}):
+            runner, _ = self.make_runner(runner_options=options)
+            runner.set_checkpoint_key("post_start", None)
+            keys.append(runner._checkpoint_key())
+        self.assertEqual(len(set(keys)), 1)
+
+    def test_memory_reservation_needs_a_supporting_sdk(self):
+        spec = EnvSpec.from_dict({"id": "env", "runner": "sandweave",
+                                  "resources": {"cpu": 2, "mem_gb": 4, "gpu": 0, "net": True},
+                                  "runner_options": {"memory": {"reservation": "2GiB", "experimental": True}}})
+
+        @dataclasses.dataclass(frozen=True)
+        class OldMemory:
+            guest: str
+            runtime: str = "512MiB"
+
+        old_sdk = mock.Mock(__version__="0.2.26", Memory=OldMemory)
+        with mock.patch.dict("sys.modules", {"sandweave": old_sdk}), \
+             mock.patch("gym_anything.runtime.runners.sandweave.dependency_status", return_value={"available": True}):
+            with self.assertRaisesRegex(RuntimeError, "sandweave>=0.2.28"):
+                SandweaveRunner(spec)
+
+    def test_memory_options_are_validated(self):
+        def errors(memory):
+            return SandweaveRunner.validate_options(EnvSpec.from_dict({
+                "id": "env", "runner": "sandweave", "runner_options": {"memory": memory}}))
+        self.assertEqual(errors({"reservation": "2GiB", "experimental": True}), [])
+        self.assertEqual(errors({"reservation": 2 * 1024**3, "experimental": True}), [])
+        self.assertEqual(len(errors({"reservation": "2GiB"})), 1)
+        self.assertEqual(len(errors({"reservation": "2GiB", "experimental": False})), 1)
+        self.assertEqual(len(errors({"reservation": "2GiB", "experimental": True, "guest": "8GiB"})), 1)
+        self.assertEqual(len(errors({"experimental": True})), 1)
+        self.assertEqual(len(errors({"reservation": True, "experimental": True})), 1)
+        self.assertEqual(len(errors("2GiB")), 1)
 
 
 if __name__ == "__main__":

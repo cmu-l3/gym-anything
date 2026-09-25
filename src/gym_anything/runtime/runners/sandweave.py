@@ -21,6 +21,19 @@ the named networks it shares with its peers::
                                            "networks": ["office"]}}
 
 The ID identifies one episode's network, so it is not part of checkpoint keys.
+
+A machine can reserve less memory than its guest limit (sandweave>=0.2.28), so a
+worker packs more machines that rarely use their full limit at once.
+``resources.mem_gb`` stays the guest limit, and ``runner_options.memory`` names
+the smaller amount counted for admission. Sandweave treats this as experimental:
+the reservation is scheduling accounting, not a cap on real use, and if combined
+use exceeds the worker's RAM the host can kill any sandbox in the allocation. So
+the option must opt in explicitly::
+
+    "runner_options": {"memory": {"reservation": "8GiB", "experimental": true}}
+
+The reservation is admission accounting only, so it is not part of checkpoint
+keys, and restores apply the current setting.
 """
 
 from __future__ import annotations
@@ -89,6 +102,9 @@ class SandweaveRunner(BaseRunner):
         self._service_network = (spec.runner_options or {}).get("service_network")
         if self._service_network and not hasattr(sandweave, "create_service_network"):
             raise RuntimeError("runner_options.service_network requires sandweave>=0.2.24")
+        self._memory = (spec.runner_options or {}).get("memory")
+        if self._memory and "reservation" not in getattr(sandweave.Memory, "__dataclass_fields__", {}):
+            raise RuntimeError("runner_options.memory requires sandweave>=0.2.28")
         self._template = sandweave.Template(deep_merge_env_dict({
             "extends": str(Path(__file__).with_name("sandweave_ubuntu.toml")),
             "capabilities": {"desktop": {"resolution": list(self.resolution)}},
@@ -131,7 +147,7 @@ class SandweaveRunner(BaseRunner):
     def validate_options(cls, spec: EnvSpec) -> list:
         options = spec.runner_options or {}
         errors = [f"unknown runner_options key: {key!r}" for key in options
-                  if key not in ("template", "service_network")]
+                  if key not in ("template", "service_network", "memory")]
         template = options.get("template")
         if template is not None and not isinstance(template, dict):
             errors.append("runner_options.template must be a Sandweave template table")
@@ -148,6 +164,17 @@ class SandweaveRunner(BaseRunner):
                            for key in ("aliases", "networks") if key in membership
                            and not (isinstance(membership[key], list)
                                     and all(isinstance(name, str) for name in membership[key]))]
+        memory = options.get("memory")
+        if memory is not None:
+            if not isinstance(memory, dict) or not isinstance(memory.get("reservation"), (str, int)) \
+                    or isinstance(memory.get("reservation"), bool):
+                errors.append("runner_options.memory needs a 'reservation' size")
+            else:
+                errors += [f"unknown runner_options.memory key: {key!r}" for key in memory
+                           if key not in ("reservation", "experimental")]
+                if memory.get("experimental") is not True:
+                    errors.append("runner_options.memory.reservation is experimental in Sandweave; "
+                                  "set 'experimental': true to accept possible host out-of-memory failures")
         return errors
 
     def supports_fast_io(self) -> bool:
@@ -183,7 +210,7 @@ class SandweaveRunner(BaseRunner):
                 **source, target=self.target, startup_timeout=3600,
                 name=f"{self.spec.id}-{uuid.uuid4().hex}",
                 cpu=math.ceil(self.spec.resources.cpu),
-                memory=f"{self.spec.resources.mem_gb}GiB",
+                memory=self._memory_request(),
                 gpu=bool(self.spec.resources.gpu),
                 network="internet" if self.spec.resources.net else "offline",
                 env=self.default_exec_env(),
@@ -337,6 +364,14 @@ class SandweaveRunner(BaseRunner):
         self._cache_level, self._task_id = cache_level, task_id
         self._cache_state = "memory" if use_savevm else "filesystem"
 
+    def _memory_request(self):
+        guest = f"{self.spec.resources.mem_gb}GiB"
+        if not self._memory:
+            return guest
+        runtime = self._template.resolve().get("resources", {}).get("runtime_memory", "512MiB")
+        return self._sdk.Memory(guest=guest, runtime=runtime, reservation=self._memory["reservation"],
+                                experimental=True)
+
     def _membership(self) -> Dict[str, Any]:
         if not self._service_network:
             return {}
@@ -350,6 +385,8 @@ class SandweaveRunner(BaseRunner):
             config.pop(key, None)
         # A service network is one episode's; checkpoints must outlive it.
         config.get("runner_options", {}).get("service_network", {}).pop("id", None)
+        # A reservation is admission accounting; restores may change it.
+        config.get("runner_options", {}).pop("memory", None)
         config["sandweave_version"] = self._sdk.__version__
         config["template"] = self._template.resolve()
         return hashlib.sha256(json.dumps(config, sort_keys=True, default=str).encode()).hexdigest()
