@@ -35,6 +35,10 @@ from .verification.reports import render_task_pipeline_result_text
 # invocation (--benchmark) or ambiently (GYM_ANYTHING_BENCHMARK).
 DEFAULT_BENCHMARK = os.environ.get("GYM_ANYTHING_BENCHMARK", "cua_world")
 
+# The name this CLI calls itself in usage lines and hints. A program that
+# offers these commands under its own name passes it as main(prog=...).
+PROG = "gym-anything"
+
 
 def _benchmark_environments_root(benchmark: str) -> Path:
     from .registry import resolve_benchmark_root
@@ -67,7 +71,7 @@ def _resolve_env_dir(name: str, benchmark: str = DEFAULT_BENCHMARK) -> str:
     if not name.endswith("_env"):
         return _resolve_env_dir(name + "_env", benchmark)
     print(f"Error: environment '{name}' not found in benchmark '{benchmark}'.", file=sys.stderr)
-    print(f"Run 'gym-anything list' to see available environments.", file=sys.stderr)
+    print(f"Run '{PROG} list' to see available environments.", file=sys.stderr)
     sys.exit(1)
 
 
@@ -159,8 +163,8 @@ def _show_rich_help() -> None:
 
     panel = Panel(
         commands,
-        title="[bold]gym-anything[/bold]",
-        subtitle="[dim]Use gym-anything <command> --help for details[/dim]",
+        title=f"[bold]{PROG}[/bold]",
+        subtitle=f"[dim]Use {PROG} <command> --help for details[/dim]",
         border_style="blue",
         padding=(1, 2),
     )
@@ -1057,7 +1061,7 @@ def _doctor_offer_install(
     if no_install:
         console.print()
         console.print(
-            f"[dim]--no-install given; skipping. Run `gym-anything doctor` without it to install.[/dim]"
+            f"[dim]--no-install given; skipping. Run `{PROG} doctor` without it to install.[/dim]"
         )
         return
 
@@ -1076,12 +1080,15 @@ def _doctor_offer_install(
     ok = run_install_plan(plan)
     console.print()
     if ok:
-        console.print("[bold green]Install complete.[/bold green] Re-run `gym-anything doctor` to verify.")
+        console.print(f"[bold green]Install complete.[/bold green] Re-run `{PROG} doctor` to verify.")
     else:
-        console.print("[bold red]Install failed.[/bold red] See output above, then re-run `gym-anything doctor`.")
+        console.print(f"[bold red]Install failed.[/bold red] See output above, then re-run `{PROG} doctor`.")
 
 
-def main(argv=None):
+def main(argv=None, prog=None):
+    global PROG
+    if prog:
+        PROG = prog
     # Intercept bare invocation / --help to show rich help
     if argv is None:
         argv = sys.argv[1:]
@@ -1089,7 +1096,7 @@ def main(argv=None):
         _show_rich_help()
         return 0
 
-    parser = argparse.ArgumentParser(prog="gym-anything", add_help=False)
+    parser = argparse.ArgumentParser(prog=PROG, add_help=False)
     parser.add_argument("-h", "--help", action="store_true", default=False)
     sub = parser.add_subparsers(dest="cmd")
 
