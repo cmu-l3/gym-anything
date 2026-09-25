@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import unittest
 from argparse import Namespace
 from pathlib import Path
@@ -9,6 +10,23 @@ from gym_anything import cli
 
 
 class CliContractTests(unittest.TestCase):
+    def tearDown(self) -> None:
+        cli.PROG = "gym-anything"
+
+    def test_a_program_can_offer_the_commands_under_its_own_name(self) -> None:
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out, self.assertRaises(SystemExit):
+            cli.main(["run", "--help"], prog="company_gym")
+        self.assertIn("usage: company_gym run", out.getvalue())
+
+        with mock.patch("sys.stderr", new_callable=io.StringIO) as err, self.assertRaises(SystemExit):
+            cli._resolve_env_dir("no_such_environment_anywhere")
+        self.assertIn("Run 'company_gym list'", err.getvalue())
+
+    def test_the_default_name_is_gym_anything(self) -> None:
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out, self.assertRaises(SystemExit):
+            cli.main(["run", "--help"])
+        self.assertIn("usage: gym-anything run", out.getvalue())
+
     def test_short_environment_name_resolves_to_cua_world_environment(self) -> None:
         resolved = Path(cli._resolve_env_dir("moodle"))
         self.assertEqual(resolved, Path("benchmarks/cua_world/environments/moodle_env"))
