@@ -104,6 +104,20 @@ policy. The ID belongs to one episode, so checkpoint keys ignore it.
 "runner_options": {"service_network": {"id": "net-...", "aliases": ["mail.example.test"], "networks": ["office"]}}
 ```
 
+A machine can reserve less memory than its guest limit (sandweave 0.2.28 or
+newer), so a worker packs more machines that rarely use their full limit at the
+same time. `resources.mem_gb` stays the guest limit, and
+`runner_options.memory.reservation` is the amount counted for admission.
+Sandweave marks this experimental: a reservation is scheduling accounting, not a
+cap on real use, and if the machines together use more than the worker's RAM,
+the host can kill any sandbox in the allocation. The option therefore requires
+`"experimental": true`. Checkpoint keys ignore the reservation, and restores
+apply the current setting.
+
+```json
+"runner_options": {"memory": {"reservation": "8GiB", "experimental": true}}
+```
+
 ### Maintaining The Published Image
 
 Only maintainers build the image. On a Linux machine with KVM, Apptainer,
