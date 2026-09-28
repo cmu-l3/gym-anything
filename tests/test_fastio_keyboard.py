@@ -13,7 +13,7 @@ import unittest
 from unittest import mock
 
 from gym_anything.runtime.runners import linux_uinput_fast_inputd as agent
-from gym_anything.runtime.runners.qemu_apptainer import QemuApptainerRunner
+from gym_anything.runtime.runners.qemu_apptainer import QemuApptainerRunner, _FastInputAgentClient
 
 
 class FastIoQmpKeyboardTests(unittest.TestCase):
@@ -196,6 +196,47 @@ class FastInputAgentTests(unittest.TestCase):
 
         x11.wait_keymap_restored.assert_called_once()
         x11.wait_keymap_changed.assert_not_called()
+
+    def test_default_ack_timeout_outlasts_a_brief_guest_stall(self) -> None:
+        """100 ms failed a click while Firefox was starting; the ack wait
+        returns on the ack, so a longer bound costs a healthy guest nothing."""
+        seen = {}
+
+        def capture(keyboard, x11, x11_ack_timeout_ms, **kwargs):
+            seen["timeout_ms"] = x11_ack_timeout_ms
+            raise SystemExit(0)
+
+        with mock.patch("sys.argv", ["fast_inputd", "--port", "1", "--x11-display", ""]), \
+                mock.patch.object(agent, "UInputKeyboard", return_value=mock.Mock()), \
+                mock.patch.object(agent, "FastInputService", side_effect=capture):
+            with self.assertRaises(SystemExit):
+                agent.main()
+
+        self.assertGreaterEqual(seen["timeout_ms"], 1000)
+
+
+class FastInputAgentClientTests(unittest.TestCase):
+    """The host side of the agent socket."""
+
+    def _request_with_timeout(self, op):
+        sock = mock.Mock()
+        sock.recv.side_effect = TimeoutError("timed out")
+        client = _FastInputAgentClient("127.0.0.1", 1)
+        with mock.patch("socket.create_connection", return_value=sock):
+            with self.assertRaises(TimeoutError):
+                client.request({"op": op})
+        return sock
+
+    def test_a_timeout_after_send_does_not_resend_input(self) -> None:
+        """The agent may already have injected it; a resend types or clicks twice."""
+        sock = self._request_with_timeout("keyboard")
+        self.assertEqual(sock.sendall.call_count, 1)
+        # An input op outwaits the agent's ack timeout instead of the 1 s ping deadline.
+        self.assertGreaterEqual(sock.settimeout.call_args.args[0], 10.0)
+
+    def test_ping_is_still_retried(self) -> None:
+        sock = self._request_with_timeout("ping")
+        self.assertEqual(sock.sendall.call_count, 2)
 
 
 if __name__ == "__main__":

@@ -1341,7 +1341,10 @@ def main() -> int:
     parser.add_argument("--device-name", default="GymAnything Fast Keyboard")
     parser.add_argument("--x11-display", default=os.environ.get("DISPLAY", ""))
     parser.add_argument("--require-x11", action="store_true")
-    parser.add_argument("--x11-ack-timeout-ms", type=int, default=100)
+    # Every ack wait returns as soon as X confirms, so this only bounds a
+    # stall. A healthy guest acks in ~0.1 ms; at 100 ms a guest busy for a
+    # moment (Firefox starting) failed a click.
+    parser.add_argument("--x11-ack-timeout-ms", type=int, default=1000)
     args = parser.parse_args()
 
     keyboard = UInputKeyboard(args.device, args.device_name)

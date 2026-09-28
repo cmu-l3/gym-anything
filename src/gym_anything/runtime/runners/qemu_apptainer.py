@@ -181,6 +181,8 @@ class _QMPClient:
 class _FastInputAgentClient:
     """Persistent host-side client for the Linux guest uinput input service."""
 
+    _READ_TIMEOUT_S = 30.0
+
     def __init__(self, host: str, port: int, timeout: float = 1.0):
         self.host = host
         self.port = int(port)
@@ -208,16 +210,29 @@ class _FastInputAgentClient:
 
     def request(self, payload: Dict[str, Any], allow_error: bool = False) -> Dict[str, Any]:
         with self._lock:
+            self._sent = False
             try:
                 return self._request_once(payload, allow_error)
             except OSError:
                 self.close()
+                # Once sent, the agent may already be executing it (a read
+                # timeout or reset says nothing either way); resending would
+                # type or click twice. Only ping is safe to repeat.
+                if self._sent and payload.get("op") != "ping":
+                    raise
                 return self._request_once(payload, allow_error)
 
     def _request_once(self, payload: Dict[str, Any], allow_error: bool = False) -> Dict[str, Any]:
         self.connect()
         assert self._socket is not None
+        # ping probes liveness and keeps the short deadline; input ops wait on
+        # the agent's X acks (up to --x11-ack-timeout-ms each), which can take
+        # well over it.
+        self._socket.settimeout(
+            self.timeout if payload.get("op") == "ping" else max(self.timeout, self._READ_TIMEOUT_S)
+        )
         self._socket.sendall(json.dumps(payload, separators=(",", ":")).encode("utf-8") + b"\n")
+        self._sent = True
         response = self._read_line()
         # allow_error hands a refusal back to the caller to act on. The agent
         # refuses before touching the device, so a rerouted request cannot
