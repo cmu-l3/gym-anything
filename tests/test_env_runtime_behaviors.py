@@ -535,6 +535,83 @@ class RuntimeBehaviorTests(unittest.TestCase):
         # A level reached before the failure is still checkpointed.
         self.assertEqual(self._checkpoints_after_reset("pre_start", failing=("seed.sh",)), ["pre_start"])
 
+    def _env_with_hooks(self, tmp: str, runner) -> GymAnythingEnv:
+        task_spec = TaskSpec.from_dict({
+            "id": "demo-task",
+            "hooks": {"pre_task": "/setup/task.sh", "post_task": "/setup/export.sh"},
+            "success": {"mode": "program", "spec": {"program": "verifier.py::verify"}},
+        })
+        with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+            env = GymAnythingEnv(_make_env_spec(tmp), task_spec)
+        env._verifier = _FakeVerifier()
+        return env
+
+    def test_close_stops_the_runner_even_if_grading_is_interrupted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            env = self._env_with_hooks(tmp, runner)
+            env.reset(seed=1)
+            with mock.patch.object(env, "_complete_episode", side_effect=KeyboardInterrupt):
+                with self.assertRaises(KeyboardInterrupt):
+                    env.close()
+            self.assertEqual(runner.stop_calls, 1)
+
+    def test_a_reset_that_raised_is_not_exported_or_graded(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            env = self._env_with_hooks(tmp, runner)
+            with mock.patch.object(runner, "run_task_init", side_effect=KeyboardInterrupt), \
+                 mock.patch.object(env, "_finalize_episode") as finalize:
+                env.task_spec.init.init_script = "/setup/init.sh"
+                with self.assertRaises(KeyboardInterrupt):
+                    env.reset(seed=1)
+                env.close()
+            self.assertFalse(any("export.sh" in cmd for cmd in runner.exec_commands))
+            finalize.assert_not_called()
+            self.assertEqual(runner.stop_calls, 1)
+
+    def test_a_reset_whose_first_capture_failed_is_not_graded(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            env = self._env_with_hooks(tmp, runner)
+            with mock.patch.object(env, "_capture_observation", side_effect=RuntimeError("screenshot failed")), \
+                 mock.patch.object(env, "_complete_episode") as complete:
+                with self.assertRaises(RuntimeError):
+                    env.reset(seed=1)
+                env.close()
+            complete.assert_not_called()
+            self.assertEqual(runner.stop_calls, 1)
+
+    def test_close_before_any_reset_only_stops_the_runner(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _FakeRunner()
+            env = self._env_with_hooks(tmp, runner)
+            with mock.patch.object(env, "_finalize_episode") as finalize:
+                env.close()
+            self.assertFalse(any("export.sh" in cmd for cmd in runner.exec_commands))
+            finalize.assert_not_called()
+            self.assertEqual(runner.stop_calls, 1)
+
+    def test_a_screenshot_glitch_after_pre_task_is_not_a_failed_hook(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _CachingFakeRunner()
+            env = self._env_with_hooks(tmp, runner)
+            real_capture = env._capture_observation
+            captures = iter([RuntimeError("screenshot failed")])
+
+            def capture():
+                error = next(captures, None)
+                if error:
+                    raise error
+                return real_capture()
+
+            try:
+                with mock.patch.object(env, "_capture_observation", side_effect=capture):
+                    env.reset(seed=1, use_cache=True, cache_level="post_task")
+            finally:
+                env.close()
+            self.assertEqual(runner.checkpoints, ["post_task"])
+
     def test_local_runner_rejects_checkpoint_caching(self) -> None:
         env = GymAnythingEnv(_make_env_spec("./artifacts", runner="local"), None)
 

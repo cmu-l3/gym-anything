@@ -331,9 +331,17 @@ def run_single(args: argparse.Namespace) -> int:
         resolved_max_steps = args.steps or env.max_steps or 50
         env.set_episode_limits(max_steps=resolved_max_steps, timeout_sec=86400)
         logger.info("Environment reset successfully")
-    except Exception as exc:
-        logger.error("Error setting up environment: %s", exc)
-        env.close()
+    except BaseException as exc:
+        # Ctrl-C mid-reset too: a QEMU VM runs under setsid and outlives this
+        # process unless the env is closed.
+        logger.error("Error setting up environment: %r", exc)
+        try:
+            env.close()
+        except Exception:
+            # Keep the setup error as the reason; this one is secondary.
+            logger.exception("Closing the environment after the failed reset also failed")
+        if not isinstance(exc, Exception):
+            raise
         return 1
 
     logger.info("Episode started. Artifacts will be saved under: %s", env.episode_dir)

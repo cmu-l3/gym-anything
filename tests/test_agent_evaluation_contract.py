@@ -130,6 +130,35 @@ class AgentEvaluationContractTests(unittest.TestCase):
             )
             self.assertEqual(policy.finish_info["verifier"]["score"], 100)
 
+    def test_ctrl_c_during_reset_still_closes_the_env(self) -> None:
+        # A QEMU VM runs under setsid, so one whose env is never closed
+        # outlives run_single.
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_env = _FakeEnv(Path(tmp))
+            fake_env.reset = mock.Mock(side_effect=KeyboardInterrupt)
+            args = SimpleNamespace(
+                env_dir="demo-env", seed=42, task="demo-task", steps=2, agent="FakePolicy",
+                agent_args=json.dumps({"model": "demo-model"}), debug=False, debug_low=False,
+                verbose=False, setup_code="none", use_cache=False, cache_level="pre_start",
+                use_savevm=False, vlm_backend="local", vlm_base_url="http://localhost:8080/v1",
+                vlm_model="demo-model", remote_url=None, remote_timeout=300,
+                remote_worker_reset_policy="core",
+            )
+            with mock.patch.object(run_single_module, "from_config", return_value=fake_env), \
+                 mock.patch.object(run_single_module.agent_registry, "FakePolicy", _FakePolicy, create=True):
+                with self.assertRaises(KeyboardInterrupt):
+                    run_single_module.run_single(args)
+                self.assertTrue(fake_env.closed)
+
+                # An ordinary setup error is still an exit code, and a failing
+                # close() neither hides Ctrl-C nor replaces the setup error.
+                fake_env.reset = mock.Mock(side_effect=RuntimeError("setup failed"))
+                self.assertEqual(run_single_module.run_single(args), 1)
+                fake_env.reset = mock.Mock(side_effect=KeyboardInterrupt)
+                fake_env.close = mock.Mock(side_effect=OSError("ssh gone"))
+                with self.assertRaises(KeyboardInterrupt):
+                    run_single_module.run_single(args)
+
     def test_run_single_can_delay_and_refresh_model_observations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fake_env = _FakeEnv(Path(tmp))

@@ -67,7 +67,8 @@ class GymAnythingEnv:
         self._max_steps: Optional[int] = None
         self._session_info: Optional[SessionInfo] = None
         self._traj_log: Optional[JSONLWriter] = None
-        self._finalized: bool = False
+        # Nothing to grade before a reset finishes (see reset()).
+        self._finalized: bool = True
         self._env_root: Optional[Path] = None
         self._task_root: Optional[Path] = None
         self._verifier = VerifierRunner()
@@ -212,7 +213,9 @@ class GymAnythingEnv:
             self.close()
 
         self._step_idx = 0
-        self._finalized = False
+        # Nothing to grade until this reset finishes: close() must not export
+        # or verify a reset that raised (a failed setup, Ctrl-C).
+        self._finalized = True
         self._reward_fn = None
         self._recorder = None
         self._rec_handle = None
@@ -451,7 +454,6 @@ class GymAnythingEnv:
                         timeout=hook_timeout,
                         use_pty=False,
                     ))
-                    self._capture_observation()
                     if self._reporter:
                         self._reporter.stage_done("pre_task_hook")
                 except Exception as e:
@@ -459,6 +461,11 @@ class GymAnythingEnv:
                     logger.warning("pre_task hook failed: %s", e)
                     if self._reporter:
                         self._reporter.stage_fail("pre_task_hook", str(e))
+                # Outside the hook's try: a screenshot glitch is not a failed hook.
+                try:
+                    self._capture_observation()
+                except Exception as e:
+                    logger.warning("Could not capture the observation after pre_task: %s", e)
 
             # === TASK INIT SCRIPT ===
             if self.task_spec and self.task_spec.init.init_script:
@@ -531,7 +538,9 @@ class GymAnythingEnv:
         logger.info("Session: %s", self._session_info.to_dict())
 
         # First observation (capture initial screen/audio as frame_00000)
-        return self._capture_observation()
+        obs = self._capture_observation()
+        self._finalized = False
+        return obs
 
     def step(
         self,
@@ -798,30 +807,39 @@ class GymAnythingEnv:
         return apply_post_reset_setup(self, setup_code=setup_code, steps=steps, env_dir=env_dir)
 
     def close(self) -> None:
-        if not self._finalized:
-            try:
-                self._complete_episode()
-            except Exception:
-                pass
-        if self._recorder and self._rec_handle:
-            try:
-                self._recorder.stop(self._rec_handle)
-            except Exception:
-                if self.fast_io:
-                    raise
-                pass
+        # Stop the runner however the rest goes (a recorder error under
+        # fast_io, Ctrl-C while grading): a QEMU VM runs under setsid and
+        # would outlive this process.
         try:
-            self._ensure_recording_artifact()
-        except Exception:
-            pass
-        self._runner.stop()
-        self._recorder = None
-        self._rec_handle = None
-        self._episode_dir = None
-        self._session_info = None
-        if self._traj_log:
-            self._traj_log.close()
-            self._traj_log = None
+            if not self._finalized:
+                try:
+                    self._complete_episode()
+                except Exception:
+                    pass
+            if self._recorder and self._rec_handle:
+                try:
+                    self._recorder.stop(self._rec_handle)
+                except Exception:
+                    if self.fast_io:
+                        raise
+                    pass
+            try:
+                self._ensure_recording_artifact()
+            except Exception:
+                pass
+        finally:
+            try:
+                self._runner.stop()
+            finally:
+                # Cleared even on a raise, so the next close() or reset() does
+                # not stop the same recorder again.
+                self._recorder = None
+                self._rec_handle = None
+                self._episode_dir = None
+                self._session_info = None
+                if self._traj_log:
+                    self._traj_log.close()
+                    self._traj_log = None
 
     # Helpers
     def _ensure_episode_dir(self) -> None:
