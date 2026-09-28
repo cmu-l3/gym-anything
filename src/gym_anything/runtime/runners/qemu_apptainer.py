@@ -263,6 +263,28 @@ _X_BUTTON_MASK = {
 _KEYBOARD_XLIB_PREAMBLE = 'import time, base64\nfrom Xlib import X, XK, display\nfrom Xlib.ext import xtest\n_D = display.Display()\n_INF = _D.display.info\n_MINKC, _MAXKC = _INF.min_keycode, _INF.max_keycode\n_NAME = {\n "ctrl":"Control_L","control":"Control_L","shift":"Shift_L","alt":"Alt_L",\n "super":"Super_L","win":"Super_L","meta":"Super_L","cmd":"Super_L","command":"Super_L",\n "enter":"Return","return":"Return","esc":"Escape","escape":"Escape",\n "tab":"Tab","space":"space","backspace":"BackSpace","delete":"Delete","del":"Delete",\n "up":"Up","down":"Down","left":"Left","right":"Right","home":"Home","end":"End",\n "pageup":"Prior","pagedown":"Next","pgup":"Prior","pgdn":"Next","page_up":"Prior",\n "page_down":"Next","insert":"Insert","ins":"Insert","kp_enter":"KP_Enter",\n "kp_add":"KP_Add","kp_subtract":"KP_Subtract","kp_multiply":"KP_Multiply",\n "kp_divide":"KP_Divide","menu":"Menu","caps_lock":"Caps_Lock","capslock":"Caps_Lock",\n "num_lock":"Num_Lock","numlock":"Num_Lock","print":"Print",\n}\nfor _n in range(1, 13):\n    _NAME["f%d" % _n] = "F%d" % _n\ndef _spares():\n    m = _D.get_keyboard_mapping(_MINKC, _MAXKC - _MINKC + 1)\n    return [_MINKC + i for i, r in enumerate(m) if not any(r)]\ndef _char_ks(ch):\n    cp = ord(ch)\n    return cp if cp <= 0xff else (cp | 0x01000000)\ndef _name_ks(name):\n    ks = XK.string_to_keysym(_NAME.get(name.lower(), name))\n    if ks == 0 and len(name) == 1:\n        ks = _char_ks(name)\n    return ks\ndef _kc_of_name(name, pool):\n    ks = _name_ks(name)\n    kc = _D.keysym_to_keycode(ks)\n    if kc == 0 and pool:\n        kc = pool.pop()\n        _D.change_keyboard_mapping(kc, [[ks, ks]])\n        _D.sync(); time.sleep(0.03)\n    return kc\n_SETTLE = 0.12\ndef type_text(text):\n    pool_all = _spares()\n    S = len(pool_all)\n    if S == 0:\n        return\n    ret = _D.keysym_to_keycode(XK.XK_Return)\n    tab = _D.keysym_to_keycode(XK.XK_Tab)\n    def _flush(seg):\n        # One batch of <= S distinct chars: remap all, settle ONCE, type,\n        # restore. No remap happens during typing, so no keypress can race a\n        # remap. Every char is typed via a spare keycode at level 0, so no\n        # shift logic and no layout dependence (fixes < -> > too).\n        remap = {}\n        pool = list(pool_all)\n        for ch in dict.fromkeys(seg):\n            if ch in "\\n\\t":\n                continue\n            kc = pool.pop()\n            ks = _char_ks(ch)\n            _D.change_keyboard_mapping(kc, [[ks, ks]])\n            remap[ch] = kc\n        _D.sync(); time.sleep(_SETTLE)\n        for ch in seg:\n            kc = ret if ch == "\\n" else tab if ch == "\\t" else remap.get(ch)\n            if not kc:\n                continue\n            xtest.fake_input(_D, X.KeyPress, kc)\n            xtest.fake_input(_D, X.KeyRelease, kc)\n            _D.sync(); time.sleep(0.006)\n        _D.sync(); time.sleep(_SETTLE / 3.0)\n        for kc in remap.values():\n            _D.change_keyboard_mapping(kc, [[X.NoSymbol, X.NoSymbol]])\n        _D.sync()\n    # Split the text into segments each having <= S distinct typeable chars,\n    # so an unlimited alphabet still fits the available spare keycodes.\n    seg = []\n    seen = set()\n    for ch in text:\n        typeable = ch not in "\\n\\t"\n        if typeable and ch not in seen and len(seen) >= S:\n            _flush(seg); seg = []; seen = set()\n        seg.append(ch)\n        if typeable:\n            seen.add(ch)\n    if seg:\n        _flush(seg)\ndef chord(keys):\n    pool = _spares()\n    kcs = [_kc_of_name(k, pool) for k in keys]\n    for kc in kcs:\n        if kc:\n            xtest.fake_input(_D, X.KeyPress, kc)\n            _D.sync(); time.sleep(0.01)\n    for kc in reversed(kcs):\n        if kc:\n            xtest.fake_input(_D, X.KeyRelease, kc)\n            _D.sync(); time.sleep(0.01)\ndef hold(keys, down):\n    pool = _spares()\n    for k in keys:\n        kc = _kc_of_name(k, pool)\n        if kc:\n            xtest.fake_input(_D, X.KeyPress if down else X.KeyRelease, kc)\n            _D.sync(); time.sleep(0.01)\n'
 
 
+# Names the keyboard backends (guest Xlib, uinput, QMP) accept for Ctrl and Alt.
+# Meta_L/Meta_R count as Alt: on the stock pc layout Xlib resolves them to the
+# Alt keycode.
+_VT_SWITCH_MODIFIERS = (
+    {"ctrl", "control", "leftctrl", "rightctrl", "ctrl_l", "ctrl_r", "control_l", "control_r"},
+    {"alt", "leftalt", "rightalt", "alt_l", "alt_r", "meta_l", "meta_r"},
+)
+_VT_SWITCH_KEYS = {f"f{n}" for n in range(1, 13)}
+
+
+def _is_vt_switch(keyboard: Dict[str, Any]) -> bool:
+    """True if one keyboard field presses Ctrl, Alt and one of F1-F12
+    together, which switches a Linux guest to a text console."""
+    for field in ("keys", "keys_down"):
+        keys = keyboard.get(field) or []
+        names = {str(k).strip().lower().replace("-", "_")
+                 for k in ([keys] if isinstance(keys, str) else keys)}
+        if all(names & mods for mods in _VT_SWITCH_MODIFIERS) and names & _VT_SWITCH_KEYS:
+            return True
+    return False
+
+
 class QemuApptainerRunner(BaseRunner):
     """
     QEMU-inside-Apptainer runner for HPC/SLURM.
@@ -2994,6 +3016,17 @@ class QemuApptainerRunner(BaseRunner):
         On Android: Uses ADB input commands.
         On Linux: Uses pyautogui over SSH with DISPLAY=:1.
         """
+        keyboard = action.get("keyboard")
+        if keyboard and not self.is_windows and not self.is_android and _is_vt_switch(keyboard):
+            # Ctrl+Alt+F<n> moves the Linux guest to a text console. X then gets
+            # no input and the screen shows "login:" for the rest of the episode.
+            # Drop only the chord field; keys_up and text still go through, so a
+            # held modifier is still released.
+            print(f"[QemuApptainer] Dropping VT-switch chord {keyboard!r}")
+            keyboard = {k: v for k, v in keyboard.items() if not _is_vt_switch({k: v})}
+            action = {k: v for k, v in action.items() if k != "keyboard"}
+            if keyboard:
+                action["keyboard"] = keyboard
         if self._fast_io and not self.is_android:
             self._inject_action_via_fast_io(action)
             return
