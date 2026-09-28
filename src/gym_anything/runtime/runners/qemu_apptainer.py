@@ -103,10 +103,16 @@ def _check_kvm() -> bool:
     return os.path.exists("/dev/kvm") and os.access("/dev/kvm", os.R_OK | os.W_OK)
 
 
+# Bump when what a checkpoint contains changes, so stale ones are rebuilt.
+# 2: /tmp survives the boot from a checkpoint (tmpfiles override in create_checkpoint).
+_CHECKPOINT_FORMAT = "2"
+
+
 def _get_env_hash(spec: EnvSpec) -> str:
     """Generate hash for environment (for caching checkpoints)."""
-    # Hash based on: preset/image + hooks + scripts
+    # Hash based on: checkpoint format + base/image/dockerfile + hooks
     key_parts = [
+        _CHECKPOINT_FORMAT,
         spec.base or "",
         spec.image or "",
         spec.dockerfile or "",
@@ -4174,6 +4180,18 @@ class QemuApptainerRunner(BaseRunner):
 
                 # Shutdown VM gracefully to flush disk
                 if self._process and self._process.stdin:
+                    if not self._use_savevm and self.get_platform_family() == "linux":
+                        # A disk checkpoint boots afresh, and on an Ubuntu-style on-disk
+                        # /tmp the tmpfiles rule ("D /tmp") empties it at boot, taking what
+                        # the setup hooks left there. Keep /tmp, as the Sandweave setup and
+                        # Docker presets do. Not needed for savevm: loadvm does not boot.
+                        # sh -c: exec() sudo-wraps a plain command, not a shell line.
+                        rc = self.exec("sh -c " + shlex.quote(
+                            "mkdir -p /etc/tmpfiles.d && "
+                            "echo 'd /tmp 1777 root root -' > /etc/tmpfiles.d/tmp.conf"))
+                        if rc != 0:
+                            print(f"[QemuApptainer] Checkpoint creation failed: could not keep /tmp (rc={rc})")
+                            return False
                     self.exec("sync")
                     time.sleep(1)
                     self._process.stdin.write(b"quit\n")
