@@ -3469,7 +3469,8 @@ class QemuApptainerRunner(BaseRunner):
     
     # === Exec via SSH ===
     
-    def _ssh_command(self, cmd: str, capture: bool = True, timeout: int = 600, use_pty: bool = True) -> subprocess.CompletedProcess:
+    def _ssh_command(self, cmd: str, capture: bool = True, timeout: int = 600, use_pty: bool = True,
+                     deadline: Optional[int] = None) -> subprocess.CompletedProcess:
         """Run SSH command with key-based auth, falling back to password via paramiko.
 
         Args:
@@ -3479,6 +3480,8 @@ class QemuApptainerRunner(BaseRunner):
             use_pty: Whether to allocate a PTY. Set to False for task init scripts
                      to prevent SIGHUP from killing background processes when the
                      SSH session ends.
+            deadline: Host-side limit in seconds on the paramiko path, which
+                      otherwise waits for the exit status forever.
         """
         if not self.ssh_port:
             return subprocess.CompletedProcess([], 0, b"", b"")
@@ -3491,7 +3494,7 @@ class QemuApptainerRunner(BaseRunner):
 
         # For Windows, go directly to paramiko with password auth
         if self.is_windows:
-            result = self._ssh_with_paramiko(cmd, capture, timeout, use_pty)
+            result = self._ssh_with_paramiko(cmd, capture, timeout, use_pty, deadline)
             self._track_ssh_result(result)
             return result
 
@@ -3535,7 +3538,7 @@ class QemuApptainerRunner(BaseRunner):
                 print(f"[QemuApptainer] SSH error: {e}, trying paramiko...")
 
         # Fallback to paramiko with password
-        result = self._ssh_with_paramiko(cmd, capture, timeout, use_pty)
+        result = self._ssh_with_paramiko(cmd, capture, timeout, use_pty, deadline)
         self._track_ssh_result(result)
         return result
 
@@ -3550,7 +3553,8 @@ class QemuApptainerRunner(BaseRunner):
                     f"VM unresponsive: {self._consecutive_ssh_failures} consecutive SSH failures. Aborting."
                 )
 
-    def _ssh_with_paramiko(self, cmd: str, capture: bool, timeout: int, use_pty: bool = True) -> subprocess.CompletedProcess:
+    def _ssh_with_paramiko(self, cmd: str, capture: bool, timeout: int, use_pty: bool = True,
+                           deadline: Optional[int] = None) -> subprocess.CompletedProcess:
         """Fallback SSH using Python's paramiko with key or password authentication.
 
         Connection setup is retried: back-to-back SSH sessions (hooks, exec,
@@ -3595,25 +3599,95 @@ class QemuApptainerRunner(BaseRunner):
                 print(f"[QemuApptainer] Paramiko error: {e}")
                 return subprocess.CompletedProcess([], 1, b"", str(e).encode())
 
+            # exec_command's timeout bounds single reads only; the exec/pty
+            # request, the exit status and the EOF reads all wait forever on a
+            # frozen guest. Closing the client at `deadline` unblocks every one.
+            expired = threading.Event()
+            timer = None
+            if deadline:
+                def _expire(client=client):
+                    expired.set()
+                    client.close()
+                timer = threading.Timer(deadline, _expire)
+                timer.daemon = True
+                timer.start()
             try:
                 # Only request PTY if needed (for sudo/su compatibility)
                 # Disable PTY for task init to prevent SIGHUP killing background processes
                 stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=use_pty)
-                exit_code = stdout.channel.recv_exit_status()
-                out = stdout.read()
-                err = stderr.read()
+                # Drain output while waiting: a command that writes more than
+                # the SSH window blocks until it is read, so it never exits.
+                channel = stdout.channel
+                out, err = [], []
+                while not expired.is_set() and not channel.status_event.wait(0.05):
+                    while channel.recv_ready() and not expired.is_set():
+                        out.append(channel.recv(65536))
+                    while channel.recv_stderr_ready() and not expired.is_set():
+                        err.append(channel.recv_stderr(65536))
+                if not expired.is_set():
+                    exit_code = channel.recv_exit_status()
+                    out.append(stdout.read())
+                    err.append(stderr.read())
+                if expired.is_set():
+                    raise TimeoutError
                 client.close()
-                return subprocess.CompletedProcess([], exit_code, out, err)
+                return subprocess.CompletedProcess([], exit_code, b"".join(out), b"".join(err))
             except Exception as e:
                 try:
                     client.close()
                 except Exception:
                     pass
+                if expired.is_set():
+                    print(f"[QemuApptainer] No result within {deadline}s; guest unresponsive? {cmd[:80]}")
+                    return subprocess.CompletedProcess([], 124, b"", b"timeout")
                 print(f"[QemuApptainer] Paramiko exec error: {e}")
                 return subprocess.CompletedProcess([], 1, b"", str(e).encode())
+            finally:
+                if timer is not None:
+                    timer.cancel()
         return subprocess.CompletedProcess([], 1, b"", str(last_err).encode())
     
-    def exec(self, cmd: str, env: Optional[Dict[str, str]] = None, user: Optional[str] = None, use_pty: bool = True, timeout: int = 600) -> int:
+    # ponytail: backstops, not the declared per-hook limits. Those were never
+    # enforced on the paramiko path, and some installs take 40+ minutes, so
+    # enforcing them now would break slow hooks that work today. A backstop
+    # only stops a hook that would otherwise hang forever.
+    _INSTALL_HOOK_BACKSTOP_S = 3600  # pre_start / post_start
+    _TASK_HOOK_BACKSTOP_S = 1200     # pre_task / post_task / reset: 2x the 600s pre_task default
+
+    def run_hook(self, command: str, *, stage: str,
+                 timeout: Optional[int] = None, use_pty: bool = True) -> int:
+        if self.get_platform_family() != "linux":
+            return super().run_hook(command, stage=stage, timeout=timeout, use_pty=use_pty)
+        # Over a PTY a hook's stdin is a terminal, so a tool that prompts
+        # (composer's "Continue as root/super user?", apt, read) waits forever;
+        # /dev/null gives it EOF. `timeout` runs in the guest and sends SIGTERM
+        # to the hook's process group (SIGKILL 30s later if bash is still up).
+        # Descendants that left the group (setsid, daemons) are not killed.
+        # No --foreground: it would signal bash only, not its children. The cost
+        # is that a hook touching the tty (stty, /dev/tty) stops until the limit.
+        install = stage in ("pre_start", "post_start")
+        env_limit = int(os.environ.get("GYM_ANYTHING_HOOK_TIMEOUT") or 0)
+        if timeout is None and install and env_limit > 0:
+            limit = env_limit
+        else:
+            floor = self._INSTALL_HOOK_BACKSTOP_S if install else self._TASK_HOOK_BACKSTOP_S
+            limit = max(timeout or 0, floor)
+        logs = {
+            "pre_start": "/home/ga/env_setup_pre_start.log",
+            "post_start": "/home/ga/env_setup_post_start.log",
+            "pre_task": "/home/ga/task_pre_task.log",
+            "post_task": "/home/ga/task_post_task.log",
+        }
+        log = logs.get(stage)
+        wrapped = f"timeout -k 30 {limit} bash -lc {shlex.quote(command)} < /dev/null" + (f" > {log} 2>&1" if log else "")
+        kwargs: Dict[str, Any] = {"timeout": limit + 60}
+        if stage == "pre_task":
+            kwargs["use_pty"] = use_pty
+        # The host deadline covers a frozen guest, where the in-guest timeout can't fire.
+        return self.exec(wrapped, deadline=limit + 120, **kwargs)
+
+    def exec(self, cmd: str, env: Optional[Dict[str, str]] = None, user: Optional[str] = None, use_pty: bool = True, timeout: int = 600,
+             deadline: Optional[int] = None) -> int:
         """Execute command via SSH or ADB shell.
 
         For Linux, commands are wrapped with sudo to match Docker's root execution behavior.
@@ -3627,6 +3701,7 @@ class QemuApptainerRunner(BaseRunner):
             use_pty: Whether to allocate a PTY. Set to False for task init scripts
                      to prevent SIGHUP from killing background processes.
             timeout: Command timeout in seconds (default 600)
+            deadline: Host-side limit in seconds (Linux), see _ssh_command
         """
         env = self.merge_exec_env(env)
         # Android: Use ADB shell
@@ -3648,7 +3723,7 @@ class QemuApptainerRunner(BaseRunner):
         # Linux: Wrap with sudo to match Docker's root execution (Docker container runs as root)
         # Use sudo -E to preserve environment variables
         wrapped_cmd = f"sudo -E {wrap_posix_command_with_env(cmd, env)}"
-        result = self._ssh_command(wrapped_cmd, use_pty=use_pty, timeout=timeout)
+        result = self._ssh_command(wrapped_cmd, use_pty=use_pty, timeout=timeout, deadline=deadline)
         if result.returncode != 0 and result.stderr:
             print(f"[QemuApptainer] exec failed: {result.stderr.decode()[:200]}")
         return result.returncode
