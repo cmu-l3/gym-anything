@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 import json
 import os
+import shlex
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -138,6 +140,29 @@ class _CachingFakeRunner(_FakeRunner):
     def exec(self, command: str, **kwargs) -> int:
         super().exec(command, **kwargs)
         return 1 if any(script in command for script in self.failing) else 0
+
+
+class _LocalGuestRunner(_FakeRunner):
+    """Runs capture commands on the host, with /home/ga mapped to a temp dir; hooks named in failing exit 1."""
+
+    def __init__(self, home: str, failing=()) -> None:
+        super().__init__()
+        self.home = home
+        self.failing = failing
+
+    def hook_log_paths(self, stages):
+        from gym_anything.runtime.runners.base import BaseRunner
+
+        return BaseRunner.hook_log_paths(self, stages)
+
+    def exec(self, command: str, **kwargs) -> int:
+        super().exec(command, **kwargs)
+        return 1 if any(script in command for script in self.failing) else 0
+
+    def exec_capture_bytes(self, command: str) -> bytes:
+        # Like QEMU's `sudo -E <cmd>`: a plain command, no shell.
+        argv = shlex.split(command.replace("/home/ga", self.home))
+        return subprocess.run(argv, capture_output=True).stdout
 
 
 class _FakeVerifier:
@@ -534,6 +559,89 @@ class RuntimeBehaviorTests(unittest.TestCase):
         self.assertEqual(self._checkpoints_after_reset("post_task", failing=("open.sh",)), [])
         # A level reached before the failure is still checkpointed.
         self.assertEqual(self._checkpoints_after_reset("pre_start", failing=("seed.sh",)), ["pre_start"])
+
+    def test_hook_logs_are_copied_into_the_episode_and_a_failure_into_the_host_log(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as home:
+            Path(home, "env_setup_post_start.log").write_text("=== setup complete ===\n")
+            # A tail cut through a multi-byte character must not lose the file.
+            Path(home, "task_pre_task.log").write_bytes(
+                b"\xe2\x94" + b'FATAL:  database "odoo_quality" does not exist\n')
+            Path(home, "task_post_task.log").write_text("exported result.json\n")
+            runner = _LocalGuestRunner(home, failing=("task.sh",))
+            task_spec = TaskSpec.from_dict({
+                "id": "demo-task",
+                "hooks": {"pre_task": "/setup/task.sh", "post_task": "/setup/export.sh"},
+                "success": {"mode": "program", "spec": {"program": "verifier.py::verify"}},
+            })
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), task_spec)
+            env._verifier = _FakeVerifier()
+
+            with self.assertLogs("gym_anything.env", level="WARNING") as logs:
+                env.reset(seed=1)
+            self.assertIn('pre_task hook output (last 30 lines):\n\ufffdFATAL:  database "odoo_quality"',
+                          "\n".join(logs.output))
+            with mock.patch("gym_anything.env.time.sleep"):
+                env.step([], mark_done=True)
+            copied = (env.episode_dir / "vm_hook_logs.log").read_text()
+            env.close()
+
+            self.assertIn(f"===== {home}/env_setup_post_start.log\n=== setup complete ===", copied)
+            self.assertIn('database "odoo_quality" does not exist', copied)
+            self.assertIn(f"===== {home}/task_post_task.log\nexported result.json", copied)
+            # A stage whose log was never written is skipped, not an error.
+            self.assertNotIn("env_setup_pre_start.log", copied)
+            # Worlds whose run_hook keeps no log have nothing to copy.
+            runner.get_platform_family = lambda: "windows"
+            self.assertEqual(runner.hook_log_paths(["pre_task"]), [])
+
+    def test_an_oversized_hook_log_is_cut_at_a_line_and_saved_when_reset_raises(self) -> None:
+        from gym_anything import env as env_module
+
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as home:
+            # "─" is 3 bytes, so the byte cut lands inside a character.
+            Path(home, "task_pre_task.log").write_text("─" * 30_000 + "\nkeep 1\nkeep 2\n", encoding="utf-8")
+            runner = _LocalGuestRunner(home)
+            runner.run_task_init = mock.Mock(side_effect=RuntimeError("init died"))
+            task_spec = TaskSpec.from_dict({
+                "id": "demo-task",
+                "hooks": {"pre_task": "/setup/task.sh"},
+                "init": {"init_script": "/setup/init.sh"},
+                "success": {"mode": "program", "spec": {"program": "verifier.py::verify"}},
+            })
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), task_spec)
+            with self.assertRaisesRegex(RuntimeError, "init died"):
+                env.reset(seed=1)
+            copied = (env.episode_dir / "vm_hook_logs.log").read_text(encoding="utf-8")
+
+            self.assertEqual(copied, f"===== {home}/task_pre_task.log\nkeep 1\nkeep 2\n\n")
+            self.assertLessEqual(len(copied.encode()), env_module._HOOK_LOG_MAX_BYTES + 200)
+
+    def test_a_failed_host_write_of_hook_logs_does_not_abort_reset(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as home:
+            Path(home, "task_pre_task.log").write_text("ok\n")
+            runner = _LocalGuestRunner(home)
+            task_spec = TaskSpec.from_dict({
+                "id": "demo-task",
+                "hooks": {"pre_task": "/setup/task.sh"},
+                "success": {"mode": "program", "spec": {"program": "verifier.py::verify"}},
+            })
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), task_spec)
+            real_open = open
+
+            def failing_open(path, *args, **kwargs):
+                if str(path).endswith("vm_hook_logs.log"):
+                    raise OSError("disk full")
+                return real_open(path, *args, **kwargs)
+
+            with mock.patch("builtins.open", failing_open), \
+                    self.assertLogs("gym_anything.env", level="WARNING") as logs:
+                env.reset(seed=1)
+            env.close()
+
+            self.assertIn("Could not write vm_hook_logs.log: disk full", "\n".join(logs.output))
 
     def test_local_runner_rejects_checkpoint_caching(self) -> None:
         env = GymAnythingEnv(_make_env_spec("./artifacts", runner="local"), None)

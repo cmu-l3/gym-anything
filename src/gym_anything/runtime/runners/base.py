@@ -1,10 +1,21 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from ...contracts import PlatformFamily, RunnerRuntimeInfo
 from ...specs import EnvSpec
+
+
+def _hook_logs(family: str) -> Dict[str, str]:
+    """Where the default run_hook sends each stage's output on Linux/macOS."""
+    home = "/Users/lume" if family == "macos" else "/home/ga"
+    return {
+        "pre_start": f"{home}/env_setup_pre_start.log",
+        "post_start": f"{home}/env_setup_post_start.log",
+        "pre_task": f"{home}/task_pre_task.log",
+        "post_task": f"{home}/task_post_task.log",
+    }
 
 
 class BaseRunner(abc.ABC):
@@ -177,14 +188,7 @@ class BaseRunner(abc.ABC):
             if stage == "reset":
                 return self.exec(f"bash -lc {command}")
             return self.exec(command)
-        home = "/Users/lume" if family == "macos" else "/home/ga"
-        logs = {
-            "pre_start": f"{home}/env_setup_pre_start.log",
-            "post_start": f"{home}/env_setup_post_start.log",
-            "pre_task": f"{home}/task_pre_task.log",
-            "post_task": f"{home}/task_post_task.log",
-        }
-        log = logs.get(stage)
+        log = _hook_logs(family).get(stage)
         wrapped = f"bash -lc {command}" + (f" > {log} 2>&1" if log else "")
         kwargs = {}
         if stage == "pre_task":
@@ -194,6 +198,16 @@ class BaseRunner(abc.ABC):
         if timeout is not None:
             kwargs["timeout"] = timeout
         return self.exec(wrapped, **kwargs)
+
+    def hook_log_paths(self, stages: List[str]) -> List[str]:
+        """Where run_hook leaves these stages' output inside this world, so
+        the env can copy it out. Worlds whose hooks keep no log return [].
+        A world that overrides run_hook overrides this to match."""
+        family = self.get_platform_family()
+        if family not in ("linux", "macos"):
+            return []
+        logs = _hook_logs(family)
+        return [logs[stage] for stage in stages if stage in logs]
 
     def supports_live_recording(self) -> bool:
         return False

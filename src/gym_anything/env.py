@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shlex
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -32,6 +33,34 @@ def _check_hook_status(stage: str, status) -> None:
     """Raise when a hook exited non-zero. A runner that reports no status is taken at its word."""
     if isinstance(status, int) and status != 0:
         raise RuntimeError(f"{stage} hook exited with status {status}")
+
+
+# Per stage, in the episode's vm_hook_logs.log. A checkpointed VM copies the
+# install logs it was baked with into every episode, so keep them short.
+_HOOK_LOG_MAX_BYTES = 64_000
+
+
+def _guest_text(runner, cmd: str) -> str:
+    # Bytes, decoded leniently: a tail cut through a UTF-8 character must not
+    # lose the whole log.
+    try:
+        return runner.exec_capture_bytes(cmd).decode("utf-8", errors="replace")
+    except NotImplementedError:
+        return runner.exec_capture(cmd)
+
+
+def _log_hook_output(runner, stage: str, lines: int = 30) -> None:
+    """Copy the tail of a failed hook's in-world log into the host log."""
+    try:
+        paths = runner.hook_log_paths([stage])
+        if not paths:
+            return
+        tail = _guest_text(runner, f"tail -n {lines} {shlex.quote(paths[0])}")
+    except Exception as e:
+        logger.warning("Could not read %s hook output: %s", stage, e)
+        return
+    if tail and tail.strip():
+        logger.warning("%s hook output (last %d lines):\n%s", stage, lines, tail.rstrip())
 
 
 class GymAnythingEnv:
@@ -354,120 +383,128 @@ class GymAnythingEnv:
         # hand the failed setup to every later episode, so none is taken.
         hook_failed = False
 
-        # === PRE_START HOOK ===
-        # Skip if checkpoint_loaded and checkpoint was at pre_start or later
-        if loaded_level_num < level_order["pre_start"]:
-            if getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("pre_start"):
-                if self._reporter:
-                    self._reporter.stage_start("pre_start_hook")
-                logger.info("Running pre_start hook")
+        try:
+            # === PRE_START HOOK ===
+            # Skip if checkpoint_loaded and checkpoint was at pre_start or later
+            if loaded_level_num < level_order["pre_start"]:
+                if getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("pre_start"):
+                    if self._reporter:
+                        self._reporter.stage_start("pre_start_hook")
+                    logger.info("Running pre_start hook")
+                    try:
+                        # The world owns command execution; core only names the
+                        # stage (law L2).
+                        _check_hook_status("pre_start", self._runner.run_hook(
+                            self.env_spec.hooks['pre_start'], stage="pre_start"))
+                        if self._reporter:
+                            self._reporter.stage_done("pre_start_hook")
+                    except Exception as e:
+                        hook_failed = True
+                        logger.warning("pre_start hook failed: %s", e)
+                        _log_hook_output(self._runner, "pre_start")
+                        if self._reporter:
+                            self._reporter.stage_fail("pre_start_hook", str(e))
+
+            # Create checkpoint after pre_start if this is the target level
+            # Also creates when we started from scratch with a higher cache_level target
+            if use_cache and cache_level == "pre_start" and checkpoint_level != "pre_start":
+                if hook_failed:
+                    logger.warning("Not creating a checkpoint at level=pre_start: a hook failed")
+                else:
+                    savevm_msg = " (with savevm)" if use_savevm else ""
+                    logger.info("Creating checkpoint at level=pre_start%s", savevm_msg)
+                    self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
+                    self._runner.create_checkpoint()
+
+            # === DOCKERHUB AUTHENTICATION ===
+            # Authenticate with DockerHub inside the guest before post_start hooks
+            # that may run docker compose pull / docker run. Pre_start caches are
+            # already available, so this runs after pre_start but before post_start.
+            # Fails silently if Docker is not installed in the guest.
+            if loaded_level_num < level_order["post_start"]:
+                self._dockerhub_login_in_guest()
+
+            # === POST_START HOOK ===
+            # Skip if checkpoint_loaded and checkpoint was at post_start or later
+            if loaded_level_num < level_order["post_start"]:
+                if getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("post_start"):
+                    if self._reporter:
+                        self._reporter.stage_start("post_start_hook")
+                    logger.info("Running post_start hook")
+                    try:
+                        # The world owns command execution; core only names the
+                        # stage (law L2).
+                        _check_hook_status("post_start", self._runner.run_hook(
+                            self.env_spec.hooks['post_start'], stage="post_start"))
+                        if self._reporter:
+                            self._reporter.stage_done("post_start_hook")
+                    except Exception as e:
+                        hook_failed = True
+                        logger.warning("post_start hook failed: %s", e)
+                        _log_hook_output(self._runner, "post_start")
+                        if self._reporter:
+                            self._reporter.stage_fail("post_start_hook", str(e))
+
+            # Create checkpoint after post_start if this is the target level
+            # Also creates when we loaded from a lower level (e.g., pre_start fallback)
+            if use_cache and cache_level == "post_start" and checkpoint_level != "post_start":
+                if hook_failed:
+                    logger.warning("Not creating a checkpoint at level=post_start: a hook failed")
+                else:
+                    savevm_msg = " (with savevm)" if use_savevm else ""
+                    logger.info("Creating checkpoint at level=post_start%s", savevm_msg)
+                    self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
+                    self._runner.create_checkpoint()
+
+            # === RESET SCRIPT ===
+            # Always runs (not part of checkpoint levels)
+            if self.env_spec.reset_script:
+                self._runner.run_reset(self.env_spec.reset_script, seed=seed)
+            elif getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("reset"):
                 try:
-                    # The world owns command execution; core only names the
-                    # stage (law L2).
-                    _check_hook_status("pre_start", self._runner.run_hook(
-                        self.env_spec.hooks['pre_start'], stage="pre_start"))
-                    if self._reporter:
-                        self._reporter.stage_done("pre_start_hook")
+                    _check_hook_status("reset", self._runner.run_hook(self.env_spec.hooks['reset'], stage="reset"))
                 except Exception as e:
+                    # The reset hook's effects are part of a post_task checkpoint.
                     hook_failed = True
-                    logger.warning("pre_start hook failed: %s", e)
+                    logger.warning("reset hook failed: %s", e)
+
+            # === PRE_TASK HOOK ===
+            # Skip if checkpoint_loaded and checkpoint was at post_task
+            if loaded_level_num < level_order["post_task"]:
+                if self.task_spec and self.task_spec.hooks and self.task_spec.hooks.pre_task:
                     if self._reporter:
-                        self._reporter.stage_fail("pre_start_hook", str(e))
+                        self._reporter.stage_start("pre_task_hook")
+                    logger.info("Running pre_task hook")
+                    try:
+                        hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
+                        _check_hook_status("pre_task", self._runner.run_hook(
+                            self.task_spec.hooks.pre_task,
+                            stage="pre_task",
+                            timeout=hook_timeout,
+                            use_pty=False,
+                        ))
+                        self._capture_observation()
+                        if self._reporter:
+                            self._reporter.stage_done("pre_task_hook")
+                    except Exception as e:
+                        hook_failed = True
+                        logger.warning("pre_task hook failed: %s", e)
+                        _log_hook_output(self._runner, "pre_task")
+                        if self._reporter:
+                            self._reporter.stage_fail("pre_task_hook", str(e))
 
-        # Create checkpoint after pre_start if this is the target level
-        # Also creates when we started from scratch with a higher cache_level target
-        if use_cache and cache_level == "pre_start" and checkpoint_level != "pre_start":
-            if hook_failed:
-                logger.warning("Not creating a checkpoint at level=pre_start: a hook failed")
-            else:
-                savevm_msg = " (with savevm)" if use_savevm else ""
-                logger.info("Creating checkpoint at level=pre_start%s", savevm_msg)
-                self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
-                self._runner.create_checkpoint()
+                # === TASK INIT SCRIPT ===
+                if self.task_spec and self.task_spec.init.init_script:
+                    self._runner.run_task_init(self.task_spec.init.init_script)
 
-        # === DOCKERHUB AUTHENTICATION ===
-        # Authenticate with DockerHub inside the guest before post_start hooks
-        # that may run docker compose pull / docker run. Pre_start caches are
-        # already available, so this runs after pre_start but before post_start.
-        # Fails silently if Docker is not installed in the guest.
-        if loaded_level_num < level_order["post_start"]:
-            self._dockerhub_login_in_guest()
-
-        # === POST_START HOOK ===
-        # Skip if checkpoint_loaded and checkpoint was at post_start or later
-        if loaded_level_num < level_order["post_start"]:
-            if getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("post_start"):
-                if self._reporter:
-                    self._reporter.stage_start("post_start_hook")
-                logger.info("Running post_start hook")
-                try:
-                    # The world owns command execution; core only names the
-                    # stage (law L2).
-                    _check_hook_status("post_start", self._runner.run_hook(
-                        self.env_spec.hooks['post_start'], stage="post_start"))
-                    if self._reporter:
-                        self._reporter.stage_done("post_start_hook")
-                except Exception as e:
-                    hook_failed = True
-                    logger.warning("post_start hook failed: %s", e)
-                    if self._reporter:
-                        self._reporter.stage_fail("post_start_hook", str(e))
-
-        # Create checkpoint after post_start if this is the target level
-        # Also creates when we loaded from a lower level (e.g., pre_start fallback)
-        if use_cache and cache_level == "post_start" and checkpoint_level != "post_start":
-            if hook_failed:
-                logger.warning("Not creating a checkpoint at level=post_start: a hook failed")
-            else:
-                savevm_msg = " (with savevm)" if use_savevm else ""
-                logger.info("Creating checkpoint at level=post_start%s", savevm_msg)
-                self._runner.set_checkpoint_key(cache_level, task_id, use_savevm=use_savevm)
-                self._runner.create_checkpoint()
-
-        # === RESET SCRIPT ===
-        # Always runs (not part of checkpoint levels)
-        if self.env_spec.reset_script:
-            self._runner.run_reset(self.env_spec.reset_script, seed=seed)
-        elif getattr(self.env_spec, "hooks", None) and self.env_spec.hooks.get("reset"):
-            try:
-                _check_hook_status("reset", self._runner.run_hook(self.env_spec.hooks['reset'], stage="reset"))
-            except Exception as e:
-                # The reset hook's effects are part of a post_task checkpoint.
-                hook_failed = True
-                logger.warning("reset hook failed: %s", e)
-
-        # === PRE_TASK HOOK ===
-        # Skip if checkpoint_loaded and checkpoint was at post_task
-        if loaded_level_num < level_order["post_task"]:
-            if self.task_spec and self.task_spec.hooks and self.task_spec.hooks.pre_task:
-                if self._reporter:
-                    self._reporter.stage_start("pre_task_hook")
-                logger.info("Running pre_task hook")
-                try:
-                    hook_timeout = self.task_spec.hooks.pre_task_timeout if self.task_spec.hooks else 600
-                    _check_hook_status("pre_task", self._runner.run_hook(
-                        self.task_spec.hooks.pre_task,
-                        stage="pre_task",
-                        timeout=hook_timeout,
-                        use_pty=False,
-                    ))
-                    self._capture_observation()
-                    if self._reporter:
-                        self._reporter.stage_done("pre_task_hook")
-                except Exception as e:
-                    hook_failed = True
-                    logger.warning("pre_task hook failed: %s", e)
-                    if self._reporter:
-                        self._reporter.stage_fail("pre_task_hook", str(e))
-
-            # === TASK INIT SCRIPT ===
-            if self.task_spec and self.task_spec.init.init_script:
-                self._runner.run_task_init(self.task_spec.init.init_script)
-
-            # === INIT PYAUTOGUI ACTIONS (for Windows) ===
-            if self.task_spec and self.task_spec.init.init_pyautogui:
-                logger.info("Running init_pyautogui actions")
-                self._run_init_pyautogui(self.task_spec.init.init_pyautogui)
+                # === INIT PYAUTOGUI ACTIONS (for Windows) ===
+                if self.task_spec and self.task_spec.init.init_pyautogui:
+                    logger.info("Running init_pyautogui actions")
+                    self._run_init_pyautogui(self.task_spec.init.init_pyautogui)
+        finally:
+            # Every reset, restored post_task checkpoints included, and also
+            # when a later setup step raises.
+            self._save_vm_hook_logs(["pre_start", "post_start", "pre_task"])
         # breakpoint()
         # Create checkpoint after pre_task/init if this is the target level
         # Also creates when we loaded from a lower level (e.g., post_start or pre_start fallback)
@@ -878,6 +915,38 @@ class GymAnythingEnv:
             self._runner.run_hook(self.task_spec.hooks.post_task, stage="post_task")
         except Exception:
             pass
+        self._save_vm_hook_logs(["post_task"])
+
+    def _save_vm_hook_logs(self, stages: List[str]) -> None:
+        """Append the in-world logs of these hook stages to the episode's
+        vm_hook_logs.log, so the host keeps what ran inside the VM. A
+        checkpointed VM still holds the logs of the hooks that baked it."""
+        if not self._episode_dir:
+            return
+        try:
+            paths = self._runner.hook_log_paths(stages)
+            if not paths:
+                return
+            # One command for all stages: every SSH session costs a handshake.
+            # bash -c: runners exec a plain command (QEMU: sudo -E <cmd>).
+            # A cut log drops its partial first line, so the tail never starts
+            # inside a UTF-8 character (AVF decodes strictly).
+            n = _HOOK_LOG_MAX_BYTES
+            script = (
+                f'for f in {" ".join(map(shlex.quote, paths))}; do [ -f "$f" ] || continue; '
+                f'echo "===== $f"; if [ "$(wc -c < "$f")" -gt {n} ]; '
+                f'then tail -c {n} "$f" | tail -n +2; else cat "$f"; fi; echo; done'
+            )
+            text = _guest_text(self._runner, f"bash -c {shlex.quote(script)}")
+        except Exception as e:
+            logger.debug("Could not copy VM hook logs %s: %s", stages, e)
+            return
+        if text and text.strip():
+            try:
+                with open(Path(self._episode_dir) / "vm_hook_logs.log", "a", encoding="utf-8") as f:
+                    f.write(text)
+            except OSError as e:
+                logger.warning("Could not write vm_hook_logs.log: %s", e)
 
     def _post_task_settle_seconds(self) -> float:
         has_post_task_hook = bool(
