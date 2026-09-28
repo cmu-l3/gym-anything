@@ -105,8 +105,10 @@ def _check_kvm() -> bool:
 
 def _get_env_hash(spec: EnvSpec) -> str:
     """Generate hash for environment (for caching checkpoints)."""
-    # Hash based on: preset/image + hooks + scripts
+    # Hash based on: env id + preset/image + hooks. The id keeps apart envs
+    # whose hooks share command paths but install different things.
     key_parts = [
+        spec.id or "",
         spec.base or "",
         spec.image or "",
         spec.dockerfile or "",
