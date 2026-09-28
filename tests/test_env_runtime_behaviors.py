@@ -358,6 +358,30 @@ class RuntimeBehaviorTests(unittest.TestCase):
             )
             self.assertEqual(runner.stop_calls, 1)
 
+    def test_a_failed_post_task_export_is_reported_but_still_verified(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = _CachingFakeRunner(failing=("export.sh",))
+            task_spec = TaskSpec.from_dict(
+                {
+                    "id": "demo-task",
+                    "hooks": {"post_task": "/setup/export.sh"},
+                    "success": {"mode": "program", "spec": {"program": "verifier.py::verify"}},
+                }
+            )
+            with mock.patch.object(GymAnythingEnv, "_select_runner", return_value=runner):
+                env = GymAnythingEnv(_make_env_spec(tmp), task_spec)
+            env._verifier = _FakeVerifier()
+
+            env.reset(seed=1)
+            with mock.patch("gym_anything.env.time.sleep"), \
+                 self.assertLogs("gym_anything.env", level="WARNING") as logs:
+                _, _, done, info = env.step([], mark_done=True)
+
+            self.assertIn("post_task hook failed: post_task hook exited with status 1", "\n".join(logs.output))
+            self.assertTrue(done)
+            self.assertTrue(info["verifier"]["passed"])
+            env.close()
+
     def test_close_without_post_task_hook_does_not_sleep(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runner = _FakeRunner()

@@ -874,10 +874,13 @@ class GymAnythingEnv:
     def _run_post_task_hook(self) -> None:
         if not (self.task_spec and self.task_spec.hooks and self.task_spec.hooks.post_task):
             return
+        # Still non-fatal, but a failed export leaves the verifier grading stale
+        # or missing results, so say so.
         try:
-            self._runner.run_hook(self.task_spec.hooks.post_task, stage="post_task")
-        except Exception:
-            pass
+            _check_hook_status("post_task", self._runner.run_hook(
+                self.task_spec.hooks.post_task, stage="post_task"))
+        except Exception as e:
+            logger.warning("post_task hook failed: %s", e)
 
     def _post_task_settle_seconds(self) -> float:
         has_post_task_hook = bool(
