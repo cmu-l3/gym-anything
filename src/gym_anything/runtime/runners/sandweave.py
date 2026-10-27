@@ -47,8 +47,11 @@ import math
 import os
 import re
 import shlex
+import shutil
 import socket
+import subprocess
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -119,6 +122,7 @@ class SandweaveRunner(BaseRunner):
         self._cache_level = None
         self._task_id = None
         self._cache_state = "filesystem"
+        self._episode_dir = None
 
     @classmethod
     def compatibility(cls):
@@ -126,13 +130,14 @@ class SandweaveRunner(BaseRunner):
         return RunnerCompatibility(
             runner="sandweave",
             display_name="SandweaveRunner",
-            live_recording=False,
+            live_recording=True,
             screenshot_video_assembly=True,
             checkpoint_caching=True,
             savevm=True,
             user_accounts_mode="preprovisioned_accounts",
             notes=[
                 "Linux GNOME desktops through Sandweave; requires Python 3.11+ and sandweave[desktop]>=0.2.21.",
+                "Native recording follows RecordingSpec.enable, spans sandbox startup to teardown and keeps timestamped segments. It cannot be paused separately.",
                 "Filesystem restores boot fresh processes and discard volatile directories. GPU desktops cannot use savevm.",
                 "The ga desktop account is preprovisioned; user_accounts remains credential metadata.",
                 "VNC URLs are local to the Sandweave worker; remote targets require forwarding.",
@@ -177,6 +182,13 @@ class SandweaveRunner(BaseRunner):
                                   "set 'experimental': true to accept possible host out-of-memory failures")
         return errors
 
+    def on_episode_start(self, context: Dict[str, Any]) -> None:
+        directory = context.get("episode_dir")
+        self._episode_dir = Path(directory) if directory else None
+
+    def supports_native_recording(self) -> bool:
+        return True
+
     def supports_fast_io(self) -> bool:
         return True
 
@@ -214,6 +226,8 @@ class SandweaveRunner(BaseRunner):
                 gpu=bool(self.spec.resources.gpu),
                 network="internet" if self.spec.resources.net else "offline",
                 env=self.default_exec_env(),
+                recording=(self._sdk.Recording(fps=self.spec.recording.video_fps)
+                           if self.spec.recording.enable else False),
                 **self._membership(),
             )
             if cache is None:
@@ -264,11 +278,43 @@ class SandweaveRunner(BaseRunner):
         if sandbox is not None:
             # SDK stop() saves a snapshot; runner teardown must discard the session.
             try:
-                sandbox.terminate()
+                if self.spec.recording.enable and self._episode_dir is not None:
+                    self._download_recording(sandbox)
             finally:
-                sandbox.close()
-            self._sandbox = None
+                try:
+                    sandbox.terminate()
+                finally:
+                    sandbox.close()
+                    self._sandbox = None
         self._runtime_info = RunnerRuntimeInfo(platform_family="linux")
+
+    def _download_recording(self, sandbox) -> None:
+        self._episode_dir.mkdir(parents=True, exist_ok=True)
+        destination = self._episode_dir / "sandweave-recording"
+        if not destination.exists():
+            # Failed downloads retain their partial evidence; a retry uses a
+            # new empty directory, as required by the SDK's download contract.
+            temporary = Path(tempfile.mkdtemp(prefix=".sandweave-recording-", dir=self._episode_dir))
+            sandbox.recording.download(temporary)
+            temporary.rename(destination)
+        manifest = json.loads((destination / "recording.json").read_text())
+        videos = [destination / segment["id"] / "video.mp4" for segment in manifest["segments"]]
+        if not videos or any(not video.is_file() for video in videos):
+            raise RuntimeError(f"Sandweave recording has no complete video; evidence retained at {destination}")
+        target = self._episode_dir / "recording.mp4"
+        if target.exists():
+            raise FileExistsError(f"Refusing to overwrite recording: {target}")
+        if len(videos) == 1:
+            shutil.copyfile(videos[0], target)
+        else:
+            import imageio_ffmpeg
+
+            playlist = destination / "segments.txt"
+            playlist.write_text("".join("file '" + str(video).replace("'", "'\\''") + "'\n" for video in videos))
+            subprocess.run([
+                imageio_ffmpeg.get_ffmpeg_exe(), "-nostdin", "-n", "-loglevel", "error",
+                "-f", "concat", "-safe", "0", "-i", str(playlist), "-c", "copy", str(target),
+            ], check=True, timeout=300)
 
     def _run(self, cmd: str, *, env=None, user=None, timeout=600, **kwargs):
         return self._active().run(

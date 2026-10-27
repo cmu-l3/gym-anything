@@ -198,6 +198,14 @@ class BaseRunner(abc.ABC):
     def supports_live_recording(self) -> bool:
         return False
 
+    def supports_native_recording(self) -> bool:
+        """Whether the runner records and exports video using episode context.
+
+        Native recording follows start/stop and RecordingSpec. Core must not
+        attach its FFmpeg recorder or substitute a step-frame video for it.
+        """
+        return False
+
     def supports_checkpoint_caching(self) -> bool:
         return False
 
