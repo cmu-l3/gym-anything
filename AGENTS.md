@@ -74,3 +74,13 @@ A passing test suite with a broken VNC session is a broken change. Live test is 
 - Propose the proper integration and execute on it. If a real design
   question exists, name it sharply with a recommended answer and move on
   — not options dressed as cowardice.
+
+## Codex evaluation session handoff
+
+- When the user asks to inspect or interrogate a persisted Codex evaluation
+  session, provide only its session ID. The user loads the ID manually in
+  their Codex client.
+- Do not provide a resume command or create a launcher script unless the user
+  explicitly asks for one.
+- Before handing off the ID, verify that it belongs to the requested run and
+  that its saved session is present.

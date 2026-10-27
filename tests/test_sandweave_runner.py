@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import dataclasses
+import json
+import tempfile
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
@@ -19,7 +22,8 @@ class Memory:
 
 
 class SandweaveRunnerTests(unittest.TestCase):
-    def make_runner(self, *, target=None, worker_host="local-host", runner_options=None, template=None):
+    def make_runner(self, *, target=None, worker_host="local-host", runner_options=None, template=None,
+                    recording=None):
         sdk = mock.Mock(__version__="0.2.21", Memory=Memory)
         sdk.Template.return_value.resolve.return_value = template or {"name": "gym-ubuntu"}
         sdk.Sandbox.return_value = SimpleNamespace(
@@ -29,11 +33,13 @@ class SandweaveRunnerTests(unittest.TestCase):
                 "vnc": {"port": 59017, "url": "vnc://127.0.0.1:59017", "password": "secret"},
             },
             files=mock.Mock(), run=mock.Mock(), terminate=mock.Mock(), close=mock.Mock(),
+            recording=mock.Mock(),
         )
         spec = EnvSpec.from_dict({
             "id": "moodle_env@0.1", "runner": "sandweave",
             "resources": {"cpu": 2, "mem_gb": 4, "gpu": 0, "net": True},
             "runner_options": runner_options or {},
+            **({"recording": recording} if recording is not None else {}),
         })
         with mock.patch.dict("sys.modules", {"sandweave": sdk}), \
              mock.patch.dict("os.environ", {"GYM_ANYTHING_SANDWEAVE_TARGET": target} if target else {}, clear=True), \
@@ -229,6 +235,73 @@ class SandweaveRunnerTests(unittest.TestCase):
         self.assertEqual(len(errors({"experimental": True})), 1)
         self.assertEqual(len(errors({"reservation": True, "experimental": True})), 1)
         self.assertEqual(len(errors("2GiB")), 1)
+
+    def test_recording_follows_the_recording_spec(self):
+        runner, sdk = self.make_runner(recording={"enable": False})
+        runner.start()
+        self.assertIs(sdk.Sandbox.call_args.kwargs["recording"], False)
+        runner.stop()
+        runner, sdk = self.make_runner(recording={"enable": True, "video_fps": 10})
+        runner.start()
+        sdk.Recording.assert_called_once_with(fps=10)
+        self.assertIs(sdk.Sandbox.call_args.kwargs["recording"], sdk.Recording.return_value)
+        self.assertTrue(runner.supports_native_recording())
+        runner.stop()
+
+    def test_native_recording_downloads_before_cleanup(self):
+        runner, sdk = self.make_runner(recording={"enable": True, "video_fps": 10})
+        sandbox = sdk.Sandbox.return_value
+        with tempfile.TemporaryDirectory() as directory:
+            episode = Path(directory)
+            runner.on_episode_start({"episode_dir": str(episode)})
+
+            def download(destination):
+                self.assertFalse(sandbox.terminate.called)
+                (destination / "segment").mkdir()
+                (destination / "segment" / "video.mp4").write_bytes(b"recorded-video")
+                (destination / "recording.json").write_text(json.dumps({"segments": [{"id": "segment"}]}))
+
+            sandbox.recording.download.side_effect = download
+            runner.start()
+            runner.stop()
+            runner.stop()
+            self.assertEqual((episode / "recording.mp4").read_bytes(), b"recorded-video")
+            self.assertTrue((episode / "sandweave-recording" / "recording.json").is_file())
+        sandbox.recording.download.assert_called_once()
+        sandbox.terminate.assert_called_once()
+        sandbox.close.assert_called_once()
+
+    def test_native_download_failure_is_reported_and_guest_is_released(self):
+        runner, sdk = self.make_runner(recording={"enable": True})
+        sandbox = sdk.Sandbox.return_value
+        with tempfile.TemporaryDirectory() as directory:
+            runner.on_episode_start({"episode_dir": directory})
+            runner.start()
+            sandbox.recording.download.side_effect = IOError("download failed")
+            with self.assertRaisesRegex(IOError, "download failed"):
+                runner.stop()
+        self.assertIsNone(runner._sandbox)
+        sandbox.terminate.assert_called_once()
+        sandbox.close.assert_called_once()
+        sandbox.recording.delete.assert_not_called()
+
+    def test_core_does_not_replace_native_video_with_step_frames(self):
+        from gym_anything.env import GymAnythingEnv
+
+        runner, _ = self.make_runner(recording={"enable": True})
+        env = GymAnythingEnv.__new__(GymAnythingEnv)
+        env._runner = runner
+        env.env_spec = runner.spec
+        env._recorder = None
+        env._rec_handle = None
+        with tempfile.TemporaryDirectory() as directory, \
+             mock.patch("gym_anything.env.assemble_step_video", side_effect=AssertionError("step-frame fallback")):
+            env._episode_dir = Path(directory)
+            env._ensure_recording_artifact()
+        with self.assertRaisesRegex(NotImplementedError, "sandbox lifecycle"):
+            env.pause_recording()
+        with self.assertRaisesRegex(NotImplementedError, "sandbox lifecycle"):
+            env.resume_recording()
 
 
 if __name__ == "__main__":

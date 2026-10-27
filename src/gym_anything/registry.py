@@ -68,8 +68,9 @@ def compute_task_digest(env_dir: Union[str, Path], task_id: str) -> str:
     Identity is content, not version strings: editable installs change files
     without changing versions, and a client and worker must agree on the
     exact task they are running (law L3: state reported by its owner). The
-    digest covers every file under the task folder in sorted relative-path
-    order.
+    digest covers every source file under the task folder in sorted
+    relative-path order. Python bytecode caches are runtime artifacts and do
+    not participate in task identity.
     """
     import hashlib
 
@@ -77,8 +78,16 @@ def compute_task_digest(env_dir: Union[str, Path], task_id: str) -> str:
     if not task_dir.is_dir():
         raise ValueError(f"No task folder at {task_dir}")
     digest = hashlib.sha256()
-    for file_path in sorted(p for p in task_dir.rglob("*") if p.is_file()):
-        digest.update(str(file_path.relative_to(task_dir)).encode("utf-8"))
+    files = []
+    for file_path in task_dir.rglob("*"):
+        relative_path = file_path.relative_to(task_dir)
+        if not file_path.is_file() or "__pycache__" in relative_path.parts:
+            continue
+        if file_path.suffix in {".pyc", ".pyo"}:
+            continue
+        files.append((relative_path, file_path))
+    for relative_path, file_path in sorted(files):
+        digest.update(str(relative_path).encode("utf-8"))
         digest.update(b"\0")
         digest.update(hashlib.sha256(file_path.read_bytes()).digest())
     return "sha256:" + digest.hexdigest()

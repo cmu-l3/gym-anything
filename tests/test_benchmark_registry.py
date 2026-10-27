@@ -204,6 +204,25 @@ class CoreRegistryContractTests(unittest.TestCase):
             self.assertEqual(list_environments(root), ["a_env", "b_env"])
             self.assertEqual(get_tasks_for_environment("a_env", root), ["t2", "t3"])
 
+    def test_task_digest_ignores_python_bytecode_caches(self) -> None:
+        from gym_anything.registry import compute_task_digest
+
+        with tempfile.TemporaryDirectory() as tmp:
+            env_dir = Path(tmp) / "demo_env"
+            task_dir = env_dir / "tasks" / "task_a"
+            _write_json(task_dir / "task.json", {"instruction": "Do the task"})
+            (task_dir / "verifier.py").write_text("VALUE = 1\n", encoding="utf-8")
+            original = compute_task_digest(env_dir, "task_a")
+
+            cache_dir = task_dir / "__pycache__"
+            cache_dir.mkdir()
+            (cache_dir / "verifier.cpython-312.pyc").write_bytes(b"runtime bytecode")
+            (task_dir / "stray.pyc").write_bytes(b"runtime bytecode")
+            self.assertEqual(compute_task_digest(env_dir, "task_a"), original)
+
+            (task_dir / "verifier.py").write_text("VALUE = 2\n", encoding="utf-8")
+            self.assertNotEqual(compute_task_digest(env_dir, "task_a"), original)
+
     def test_cua_world_registry_is_a_thin_binding(self) -> None:
         # The wrapper and core must agree on the real corpus.
         from benchmarks.cua_world.registry import DEFAULT_ENVIRONMENTS_ROOT, DEFAULT_SPLITS_ROOT
