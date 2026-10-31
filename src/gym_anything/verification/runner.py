@@ -144,6 +144,8 @@ class VerifierRunner:
             env_info["copy_to_env"] = runner.copy_to
             # Add exec_capture for direct command execution (used for secure DB queries)
             env_info["exec_capture"] = runner.exec_capture
+            # Many task verifiers look this up as exec_in_env; same callable.
+            env_info["exec_in_env"] = runner.exec_capture
             runtime_info_getter = getattr(runner, "get_runtime_info", None)
             if callable(runtime_info_getter):
                 runtime_info = runtime_info_getter()

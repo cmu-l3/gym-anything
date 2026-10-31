@@ -566,6 +566,50 @@ class VerificationSystemTests(unittest.TestCase):
             self.assertEqual(query.call_args.kwargs["config"]["api_key"], "request-secret")
             self.assertEqual(query.call_args.kwargs["config"]["timeout"], 123)
 
+    def test_program_verifier_gets_exec_in_env_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            task_dir = root / "tasks" / "demo"
+            episode_dir = root / "episode"
+            task_dir.mkdir(parents=True)
+            episode_dir.mkdir()
+            (task_dir / "verifier.py").write_text(
+                "def verify(traj, env_info, task_info):\n"
+                "    out = env_info['exec_in_env']('echo hi').strip()\n"
+                "    return {'passed': out == 'hi', 'score': 100, 'feedback': out}\n",
+                encoding="utf-8",
+            )
+            env_spec = EnvSpec.from_dict(
+                {
+                    "id": "test-env",
+                    "runner": "local",
+                    "observation": [{"type": "rgb_screen", "resolution": [640, 480]}],
+                    "action": [{"type": "mouse"}],
+                }
+            )
+            task_spec = TaskSpec.from_dict(
+                {
+                    "id": "demo",
+                    "description": "Do the thing.",
+                    "success": {"mode": "program", "spec": {"program": "verifier.py::verify"}},
+                }
+            )
+            runner = mock.Mock()
+            runner.exec_capture.return_value = "hi\n"
+
+            with mock.patch.dict(os.environ, _VERIFIER_ENV_DEFAULTS, clear=False):
+                result = VerifierRunner().evaluate(
+                    runner=runner,
+                    env_spec=env_spec,
+                    task_spec=task_spec,
+                    episode_dir=episode_dir,
+                    env_root=root,
+                    task_root=task_dir,
+                )
+
+            self.assertTrue(result["passed"], result)
+            runner.exec_capture.assert_called_once_with("echo hi")
+
     def test_local_runner_hint_is_honored(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
